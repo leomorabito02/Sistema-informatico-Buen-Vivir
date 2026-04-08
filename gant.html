@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gantt v4 — Proyecto Buen Vivir</title>
+<style>
+:root {
+  --font-sans: system-ui, -apple-system, sans-serif;
+  --color-text-primary: #1a1a18;
+  --color-text-secondary: #5f5e5a;
+  --color-text-tertiary: #9c9a92;
+  --color-border-secondary: rgba(0,0,0,0.18);
+  --color-border-tertiary: rgba(0,0,0,0.10);
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-text-primary: #e8e6de;
+    --color-text-secondary: #b4b2a9;
+    --color-text-tertiary: #7a7870;
+    --color-border-secondary: rgba(255,255,255,0.18);
+    --color-border-tertiary: rgba(255,255,255,0.10);
+  }
+  body { background: #1a1a18; }
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { padding: 24px; font-family: var(--font-sans); }
+.wrap { padding: 1rem 0; }
+.legend { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 1.25rem; }
+.li { display: flex; align-items: center; gap: 5px; font-size: 11px; color: var(--color-text-secondary); }
+.ld { width: 11px; height: 11px; border-radius: 2px; flex-shrink: 0; }
+.scroll { overflow-x: auto; }
+</style>
+</head>
+<body>
+<div class="wrap">
+<h2 style="font-size:0;height:0;overflow:hidden;">Gantt detallado v4 proyecto Buen Vivir</h2>
+
+<div class="legend">
+  <div class="li"><div class="ld" style="background:#D4537E"></div>Relevamiento / arquitectura</div>
+  <div class="li"><div class="ld" style="background:#888780"></div>Infraestructura base</div>
+  <div class="li"><div class="ld" style="background:#534AB7"></div>Sprints entrega 1</div>
+  <div class="li"><div class="ld" style="background:#3B6D11"></div>Sprints entrega 2</div>
+  <div class="li"><div class="ld" style="background:#BA7517"></div>Testing</div>
+</div>
+
+<div class="scroll"><div id="g"></div></div>
+</div>
+
+<script>
+const S=new Date('2026-04-07'),E=new Date('2026-11-14');
+const TD=(E-S)/86400000;
+function p(d){return((new Date(d)-S)/86400000/TD)*100;}
+function r(s,e){return{l:p(s),w:Math.max(p(e)-p(s),0.5)};}
+
+const DL=[
+  {d:'2026-08-13',lbl:'13 ago',c:'#185FA5'},
+  {d:'2026-11-05',lbl:'5 nov', c:'#3B6D11'},
+];
+
+const MONTHS=[
+  {lbl:'abr',d:'2026-04-07'},
+  {lbl:'may',d:'2026-05-01'},
+  {lbl:'jun',d:'2026-06-01'},
+  {lbl:'jul',d:'2026-07-01'},
+  {lbl:'ago',d:'2026-08-01'},
+  {lbl:'sep',d:'2026-09-01'},
+  {lbl:'oct',d:'2026-10-01'},
+  {lbl:'nov',d:'2026-11-01'},
+];
+
+const data=[
+  {t:'grp', lbl:'ENTREGA 1 — hasta 13 de agosto'},
+
+  {t:'epic', lbl:'Épica: relevamiento y arquitectura'},
+  {t:'task', lbl:'Entrevistas con el centro + relevamiento funcional', bars:[{...r('2026-04-07','2026-04-28'),c:'#D4537E'}]},
+  {t:'task', lbl:'Especificación de requerimientos (backlog completo)', bars:[{...r('2026-04-14','2026-05-09'),c:'#D4537E'}]},
+  {t:'task', lbl:'Diseño arquitectura microservicios + diagramas de arquitectura', bars:[{...r('2026-04-21','2026-05-16'),c:'#D4537E'}]},
+  
+  {t:'task', lbl:'Setup cuenta Contentful + diseño de content types', bars:[{...r('2026-04-21','2026-05-09'),c:'#D4537E'}]},
+  {t:'mito', lbl:'Hito: backlog aprobado + arquitectura cerrada + Contentful configurado', d:'2026-05-16',c:'#D4537E'},
+
+  {t:'epic', lbl:'Épica: infraestructura base'},
+  {t:'task', lbl:'Compra de dominio + DNS + hosting',           bars:[{...r('2026-05-18','2026-05-25'),c:'#888780'}]},
+  {t:'task', lbl:'Repositorio, branching strategy y CI/CD pipeline', bars:[{...r('2026-05-18','2026-06-01'),c:'#888780'}]},
+  {t:'task', lbl:'Entornos: dev / staging / producción',        bars:[{...r('2026-05-25','2026-06-08'),c:'#888780'}]},
+  {t:'task', lbl:'Variables de entorno y gestión de secretos',  bars:[{...r('2026-05-25','2026-06-08'),c:'#888780'}]},
+  {t:'mito', lbl:'Hito: infra base lista y pipeline verde',     d:'2026-06-08',c:'#888780'},
+
+  {t:'epic', lbl:'Épica: auth, roles y base del sistema (Sprint 1)'},
+  {t:'task', lbl:'Autenticación JWT + registro / login',        bars:[{...r('2026-06-09','2026-06-29'),c:'#534AB7'}]},
+  {t:'task', lbl:'Gestión de roles: admin, participante, voluntario, empresa', bars:[{...r('2026-06-09','2026-06-29'),c:'#534AB7'}]},
+  {t:'task', lbl:'CRUD perfiles de participantes (admin)',      bars:[{...r('2026-06-16','2026-06-29'),c:'#534AB7'}]},
+  {t:'mito', lbl:'Hito: sistema base desplegado con login funcional', d:'2026-06-29',c:'#534AB7'},
+
+  {t:'epic', lbl:'Épica: módulo de educación con Contentful (Sprint 2 y 3)'},
+  {t:'task', lbl:'Integración API Contentful: cursos y talleres', bars:[{...r('2026-06-30','2026-07-14'),c:'#534AB7'}]},
+  {t:'task', lbl:'Sincronización de content types (áreas formativas, descripción, materiales)', bars:[{...r('2026-06-30','2026-07-21'),c:'#534AB7'}]},
+  {t:'task', lbl:'Catálogo de cursos para participantes (consume Contentful)', bars:[{...r('2026-07-07','2026-07-21'),c:'#534AB7'}]},
+  {t:'task', lbl:'Panel admin: gestión de cursos via Contentful', bars:[{...r('2026-07-14','2026-07-28'),c:'#534AB7'}]},
+  {t:'task', lbl:'Inscripción de participantes a cursos',       bars:[{...r('2026-07-28','2026-08-04'),c:'#534AB7'}]},
+  {t:'task', lbl:'Registro de asistencia por actividad',        bars:[{...r('2026-07-28','2026-08-04'),c:'#534AB7'}]},
+  {t:'task', lbl:'Seguimiento de progreso por participante',    bars:[{...r('2026-08-04','2026-08-11'),c:'#534AB7'}]},
+  {t:'task', lbl:'Notificaciones básicas por email (inscripción, recordatorio)', bars:[{...r('2026-07-21','2026-08-04'),c:'#534AB7'}]},
+  {t:'mito', lbl:'Hito: módulo educación funcional end-to-end', d:'2026-08-04',c:'#534AB7'},
+
+  {t:'epic', lbl:'Testing — Entrega 1'},
+  {t:'task', lbl:'Pruebas unitarias + integración (auth, roles, educación)', bars:[{...r('2026-08-04','2026-08-13'),c:'#BA7517'}]},
+  {t:'task', lbl:'Corrección de bugs + ajustes de UX',          bars:[{...r('2026-08-07','2026-08-13'),c:'#BA7517'}]},
+  {t:'mito', lbl:'ENTREGA 1',                                   d:'2026-08-13',c:'#185FA5'},
+
+  {t:'grp', lbl:'ENTREGA 2 — hasta 5 de noviembre'},
+
+  {t:'epic', lbl:'Épica: promoción humana (Sprint 4)'},
+  {t:'task', lbl:'Ficha de proceso personal por participante',  bars:[{...r('2026-08-18','2026-09-08'),c:'#3B6D11'}]},
+  {t:'task', lbl:'Registro de hitos y avances del proceso',     bars:[{...r('2026-08-25','2026-09-08'),c:'#3B6D11'}]},
+  {t:'task', lbl:'Historial y línea de tiempo del participante', bars:[{...r('2026-09-01','2026-09-15'),c:'#3B6D11'}]},
+  {t:'mito', lbl:'Hito: módulo promoción humana funcional',     d:'2026-09-15',c:'#3B6D11'},
+
+  {t:'epic', lbl:'Épica: inserción laboral (Sprint 5)'},
+  {t:'task', lbl:'Publicación de ofertas (empresa / voluntario)', bars:[{...r('2026-09-15','2026-10-06'),c:'#3B6D11'}]},
+  {t:'task', lbl:'Moderación de ofertas por admin',             bars:[{...r('2026-09-22','2026-10-06'),c:'#3B6D11'}]},
+  {t:'task', lbl:'Vinculación participante–oferta según perfil y habilidades', bars:[{...r('2026-09-29','2026-10-13'),c:'#3B6D11'}]},
+  {t:'task', lbl:'Integración API generación de CV',            bars:[{...r('2026-09-22','2026-10-13'),c:'#3B6D11'}]},
+  {t:'mito', lbl:'Hito: módulo laboral con CV integrado',       d:'2026-10-13',c:'#3B6D11'},
+
+  {t:'epic', lbl:'Épica: APIs externas — mapas y pagos (Sprint 6, paralelo)'},
+  {t:'task', lbl:'Integración API de mapas (ubicación del centro y puntos relevantes)', bars:[{...r('2026-09-22','2026-10-06'),c:'#3B6D11'}]},
+  {t:'task', lbl:'Pasarela de pagos para donaciones',           bars:[{...r('2026-09-29','2026-10-20'),c:'#3B6D11'}]},
+
+  {t:'epic', lbl:'Épica: difusión, IA y notificaciones (Sprint 7)'},
+  {t:'task', lbl:'Módulo de campañas y concientización',        bars:[{...r('2026-10-06','2026-10-27'),c:'#3B6D11'}]},
+  {t:'task', lbl:'Notificaciones push',                         bars:[{...r('2026-10-06','2026-10-20'),c:'#3B6D11'}]},
+  {t:'task', lbl:'IA: sugerencia de habilidades según cursos realizados (API generativa)', bars:[{...r('2026-10-13','2026-10-27'),c:'#3B6D11'}]},
+  {t:'mito', lbl:'Hito: todas las integraciones y IA completos', d:'2026-10-27',c:'#3B6D11'},
+
+  {t:'epic', lbl:'Testing — Entrega 2'},
+  {t:'task', lbl:'Pruebas unitarias + integración E2',          bars:[{...r('2026-10-27','2026-11-05'),c:'#BA7517'}]},
+  {t:'task', lbl:'Pruebas de funcionamiento en entorno real con datos reales', bars:[{...r('2026-10-29','2026-11-05'),c:'#BA7517'}]},
+  {t:'mito', lbl:'ENTREGA FINAL',                               d:'2026-11-05',c:'#3B6D11'},
+];
+
+const LW=42;
+const g=document.getElementById('g');
+
+const dlLines = DL.map(d=>`<div style="position:absolute;left:${p(d.d)}%;top:-6px;bottom:-6px;width:2px;border-radius:1px;background:${d.c};opacity:0.22;z-index:3"></div>`).join('');
+
+let html=`<div style="display:grid;grid-template-columns:${LW}% 1fr;gap:4px;margin-bottom:6px;padding-bottom:4px;border-bottom:0.5px solid var(--color-border-secondary);">
+<div></div>
+<div style="position:relative;height:24px;">`;
+MONTHS.forEach(m=>{
+  const lp=p(m.d);
+  if(lp>=0&&lp<=102) html+=`<span style="position:absolute;left:${lp}%;font-size:10px;color:var(--color-text-tertiary);transform:translateX(-2px)">${m.lbl}</span>`;
+});
+DL.forEach(d=>{
+  const lp=p(d.d);
+  html+=`<div style="position:absolute;left:${lp}%;top:-2px;bottom:-2px;width:2px;border-radius:1px;background:${d.c};z-index:5"></div>`;
+  html+=`<div style="position:absolute;left:${lp}%;top:-20px;font-size:10px;font-weight:500;color:${d.c};transform:translateX(-50%);white-space:nowrap">${d.lbl}</div>`;
+});
+html+=`</div></div>`;
+
+data.forEach(item=>{
+  if(item.t==='grp'){
+    html+=`<div style="display:grid;grid-template-columns:${LW}% 1fr;gap:4px;padding-top:18px;padding-bottom:4px;">
+      <div style="font-size:11px;font-weight:500;color:var(--color-text-secondary);padding-right:8px;">${item.lbl}</div>
+      <div style="position:relative;height:1px;background:var(--color-border-secondary);margin-top:9px;">${DL.map(d=>`<div style="position:absolute;left:${p(d.d)}%;top:-6px;bottom:-6px;width:2px;background:${d.c};opacity:0.3"></div>`).join('')}</div></div>`;
+    return;
+  }
+  if(item.t==='epic'){
+    html+=`<div style="display:grid;grid-template-columns:${LW}% 1fr;gap:4px;padding-top:12px;padding-bottom:2px;">
+      <div style="font-size:11px;font-weight:500;color:var(--color-text-primary);padding-right:8px;">${item.lbl}</div>
+      <div style="position:relative;height:12px;">${dlLines}</div></div>`;
+    return;
+  }
+  if(item.t==='mito'){
+    const lp=p(item.d);
+    const big=item.lbl.startsWith('ENTREGA');
+    const sz=big?14:10;
+    html+=`<div style="display:grid;grid-template-columns:${LW}% 1fr;gap:4px;align-items:center;padding:3px 0;border-bottom:0.5px solid var(--color-border-tertiary);">
+      <div style="font-size:10.5px;color:${item.c};font-weight:500;padding-right:8px;line-height:1.3;">${item.lbl}</div>
+      <div style="position:relative;height:20px;">${dlLines}
+        <div style="position:absolute;left:${lp}%;width:${sz}px;height:${sz}px;border-radius:2px;transform:rotate(45deg);top:${big?3:5}px;margin-left:-${sz/2}px;background:${item.c};z-index:6"></div>
+      </div></div>`;
+    return;
+  }
+  html+=`<div style="display:grid;grid-template-columns:${LW}% 1fr;gap:4px;align-items:center;padding:2px 0;border-bottom:0.5px solid var(--color-border-tertiary);">
+    <div style="font-size:10.5px;color:var(--color-text-secondary);padding-right:8px;padding-left:10px;line-height:1.3;">${item.lbl}</div>
+    <div style="position:relative;height:17px;">${dlLines}
+      ${(item.bars||[]).map(b=>`<div style="position:absolute;left:${b.l}%;width:${b.w}%;height:100%;border-radius:3px;background:${b.c};opacity:0.83;z-index:4"></div>`).join('')}
+    </div></div>`;
+});
+
+g.innerHTML=html;
+</script>
+</body>
+</html>
