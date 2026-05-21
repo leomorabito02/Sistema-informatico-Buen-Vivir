@@ -206,47 +206,15 @@ export function Login({ onLogin }: LoginProps) {
             <Link to="/register" className="text-primary hover:underline">
               Regístrate aquí
             </Link>
+             <br>
+            </br>
+            <br>
+            </br>
+            
+            <Link to="/" className="text-primary hover:underline">
+              Volver a la pantalla principal
+            </Link>
           </p>
-        </div>
-      </div>
-
-      {/* Right side - Hero image */}
-      <div className="hidden lg:flex flex-1 bg-gradient-to-br from-primary to-[#1a3a1f] p-12 items-center justify-center">
-        <div className="text-white max-w-lg">
-          <Leaf className="w-20 h-20 mb-6" />
-          <h2 className="text-4xl mb-4">Transformando Vidas</h2>
-          <p className="text-lg opacity-90 mb-8">
-            Centro de Ecología Integral dedicado al acompañamiento de personas en situación de vulnerabilidad
-          </p>
-          <div className="space-y-4">
-            <div className="flex items-start gap-3">
-              <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center flex-shrink-0 mt-1">
-                ✓
-              </div>
-              <div>
-                <h4>Educación Integral</h4>
-                <p className="text-sm opacity-80">Cursos y talleres diseñados para el desarrollo personal y profesional</p>
-              </div>
-            </div>
-            <div className="flex items-start gap-3">
-              <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center flex-shrink-0 mt-1">
-                ✓
-              </div>
-              <div>
-                <h4>Acompañamiento Personalizado</h4>
-                <p className="text-sm opacity-80">Seguimiento continuo del progreso de cada participante</p>
-              </div>
-            </div>
-            <div className="flex items-start gap-3">
-              <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center flex-shrink-0 mt-1">
-                ✓
-              </div>
-              <div>
-                <h4>Comunidad Solidaria</h4>
-                <p className="text-sm opacity-80">Red de apoyo con voluntarios, empresas y profesionales</p>
-              </div>
-            </div>
-          </div>
         </div>
       </div>
     </div>

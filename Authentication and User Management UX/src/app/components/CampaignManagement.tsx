@@ -44,6 +44,36 @@ export function CampaignManagement({ userRole, onLogout }: CampaignManagementPro
       views: 0,
       createdBy: 'Ana Rodríguez'
     },
+    {
+      id: 4,
+      title: 'Huerta Urbana Ecológica',
+      description: 'Crea tu propia huerta sustentable en espacios reducidos',
+      date: '12 de Junio, 2026',
+      category: 'Ecología',
+      status: 'Publicada',
+      views: 189,
+      createdBy: 'Roberto García'
+    },
+    {
+      id: 5,
+      title: 'Reciclaje y Economía Circular',
+      description: 'Aprende técnicas de reciclaje y reutilización de materiales',
+      date: '18 de Junio, 2026',
+      category: 'Ecología',
+      status: 'Publicada',
+      views: 142,
+      createdBy: 'Patricia Sánchez'
+    },
+    {
+      id: 6,
+      title: 'Energías Renovables para el Hogar',
+      description: 'Descubre cómo implementar energías limpias en tu casa',
+      date: '25 de Junio, 2026',
+      category: 'Ecología',
+      status: 'Borrador',
+      views: 0,
+      createdBy: 'Miguel Torres'
+    },
   ];
 
   const filteredCampaigns = campaigns.filter(campaign =>
@@ -120,18 +150,18 @@ export function CampaignManagement({ userRole, onLogout }: CampaignManagementPro
         </div>
 
         {/* Campaigns Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
           {filteredCampaigns.map((campaign) => (
-            <div key={campaign.id} className="bg-card rounded-lg border border-border overflow-hidden">
-              <div className="aspect-video bg-gradient-to-br from-primary to-[#1a3a1f] flex items-center justify-center">
-                <span className="text-6xl">📢</span>
+            <div key={campaign.id} className="bg-card rounded-lg border border-border overflow-hidden h-full flex flex-col">
+              <div className="aspect-square bg-gradient-to-br from-primary to-[#1a3a1f] flex items-center justify-center flex-shrink-0">
+                <span className="text-4xl">📢</span>
               </div>
-              <div className="p-6">
-                <div className="flex items-center justify-between mb-3">
-                  <span className="inline-flex px-3 py-1 rounded-full text-xs bg-primary/10 text-primary">
+              <div className="p-4 flex flex-col flex-1">
+                <div className="flex items-center justify-between mb-2 gap-2">
+                  <span className="inline-flex px-2 py-1 rounded text-xs bg-primary/10 text-primary whitespace-nowrap">
                     {campaign.category}
                   </span>
-                  <span className={`inline-flex px-3 py-1 rounded-full text-xs ${
+                  <span className={`inline-flex px-2 py-1 rounded text-xs whitespace-nowrap ${
                     campaign.status === 'Publicada'
                       ? 'bg-[#66bb6a]/10 text-[#2d7a3e]'
                       : 'bg-[#f59e0b]/10 text-[#d97706]'
@@ -140,39 +170,31 @@ export function CampaignManagement({ userRole, onLogout }: CampaignManagementPro
                   </span>
                 </div>
 
-                <h3 className="text-xl mb-2">{campaign.title}</h3>
-                <p className="text-sm text-muted-foreground mb-4 line-clamp-2">{campaign.description}</p>
+                <h3 className="text-sm font-semibold mb-1 line-clamp-2">{campaign.title}</h3>
+                <p className="text-xs text-muted-foreground mb-3 line-clamp-2 flex-1">{campaign.description}</p>
 
-                <div className="flex items-center justify-between text-sm text-muted-foreground mb-4">
-                  <span className="flex items-center gap-1">
-                    <Calendar className="w-4 h-4" />
-                    {campaign.date}
-                  </span>
-                  <span>{campaign.views} vistas</span>
+                <div className="flex items-center justify-between text-xs text-muted-foreground mb-3 pb-3 border-t border-border">
+                  <span className="truncate">{campaign.date}</span>
+                  <span className="flex-shrink-0 ml-2">{campaign.views}</span>
                 </div>
 
-                <p className="text-xs text-muted-foreground mb-4">
-                  Creada por: {campaign.createdBy}
-                </p>
-
-                <div className="flex gap-2">
+                <div className="flex gap-1">
                   <button
-                    className="flex-1 px-4 py-2 rounded-lg border border-border hover:bg-secondary transition-colors flex items-center justify-center gap-2"
+                    className="flex-1 px-2 py-1 rounded border border-border hover:bg-secondary transition-colors flex items-center justify-center gap-1 text-xs"
                   >
-                    <Eye className="w-4 h-4" />
+                    <Eye className="w-3 h-3" />
                     Ver
                   </button>
                   <button
                     onClick={() => handleEditCampaign(campaign)}
-                    className="flex-1 px-4 py-2 rounded-lg border border-border hover:bg-secondary transition-colors flex items-center justify-center gap-2"
+                    className="flex-1 px-2 py-1 rounded border border-border hover:bg-secondary transition-colors flex items-center justify-center gap-1 text-xs"
                   >
-                    <Edit className="w-4 h-4" />
-                    Editar
+                    <Edit className="w-3 h-3" />
                   </button>
                   <button
-                    className="px-4 py-2 rounded-lg border border-destructive/20 text-destructive hover:bg-destructive/10 transition-colors"
+                    className="px-2 py-1 rounded border border-destructive/20 text-destructive hover:bg-destructive/10 transition-colors"
                   >
-                    <Trash2 className="w-4 h-4" />
+                    <Trash2 className="w-3 h-3" />
                   </button>
                 </div>
               </div>
