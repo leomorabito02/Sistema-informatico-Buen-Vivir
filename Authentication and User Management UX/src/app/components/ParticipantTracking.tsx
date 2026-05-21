@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Leaf, LogOut, Search, Plus, User, Calendar, TrendingUp, FileText, Download, X } from 'lucide-react';
+import { Leaf, LogOut, Search, Plus, User, Calendar, TrendingUp, FileText, Download, X, Edit } from 'lucide-react';
 
 interface ParticipantTrackingProps {
   userRole: 'admin' | 'voluntario';
@@ -12,6 +12,7 @@ export function ParticipantTracking({ userRole, onLogout }: ParticipantTrackingP
   const [showMilestoneModal, setShowMilestoneModal] = useState(false);
   const [selectedParticipant, setSelectedParticipant] = useState<any>(null);
   const [showTimelineModal, setShowTimelineModal] = useState(false);
+  const [editingMilestone, setEditingMilestone] = useState<any>(null);
 
   const participants = [
     {
@@ -147,8 +148,7 @@ export function ParticipantTracking({ userRole, onLogout }: ParticipantTrackingP
                   </div>
                 </div>
                 <div className="text-right">
-                  <div className="text-2xl text-primary mb-1">{participant.progress}%</div>
-                  <p className="text-xs text-muted-foreground">Progreso</p>
+                  <p className="text-xs text-muted-foreground">Actualizado {participant.lastUpdate}</p>
                 </div>
               </div>
 
@@ -172,7 +172,6 @@ export function ParticipantTracking({ userRole, onLogout }: ParticipantTrackingP
               </div>
 
               <div className="flex items-center justify-between text-sm text-muted-foreground mb-4">
-                <span>{participant.milestones} hitos registrados</span>
                 <span>Actualizado {participant.lastUpdate}</span>
               </div>
 
@@ -222,14 +221,6 @@ export function ParticipantTracking({ userRole, onLogout }: ParticipantTrackingP
 
             <div className="p-6">
               <div className="flex items-center justify-between mb-6">
-                <div className="text-center flex-1">
-                  <div className="text-3xl text-primary mb-1">{selectedParticipant.progress}%</div>
-                  <p className="text-sm text-muted-foreground">Progreso General</p>
-                </div>
-                <div className="text-center flex-1">
-                  <div className="text-3xl text-primary mb-1">{selectedParticipant.milestones}</div>
-                  <p className="text-sm text-muted-foreground">Hitos Registrados</p>
-                </div>
                 <button className="px-6 py-3 rounded-lg border border-border hover:bg-secondary transition-colors flex items-center gap-2">
                   <Download className="w-4 h-4" />
                   Exportar PDF
@@ -250,7 +241,18 @@ export function ParticipantTracking({ userRole, onLogout }: ParticipantTrackingP
                     <div className="flex-1 pb-6">
                       <div className="flex items-start justify-between mb-2">
                         <h3 className="text-lg">{milestone.title}</h3>
-                        <span className="text-sm text-muted-foreground whitespace-nowrap ml-4">{milestone.date}</span>
+                        <div className="flex items-center gap-2 ml-4">
+                          <button
+                            onClick={() => {
+                              setEditingMilestone(milestone);
+                              setShowMilestoneModal(true);
+                            }}
+                            className="p-1 rounded hover:bg-secondary transition-colors"
+                          >
+                            <Edit className="w-4 h-4" />
+                          </button>
+                          <span className="text-sm text-muted-foreground whitespace-nowrap">{milestone.date}</span>
+                        </div>
                       </div>
                       <p className="text-muted-foreground mb-2">{milestone.description}</p>
                       <p className="text-sm text-muted-foreground">Responsable: {milestone.responsible}</p>
@@ -263,14 +265,19 @@ export function ParticipantTracking({ userRole, onLogout }: ParticipantTrackingP
         </div>
       )}
 
-      {/* Add Milestone Modal */}
+      {/* Add/Edit Milestone Modal */}
       {showMilestoneModal && selectedParticipant && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
           <div className="bg-card rounded-lg border border-border w-full max-w-2xl">
             <div className="border-b border-border p-6 flex items-center justify-between">
-              <h2 className="text-2xl">Registrar Nuevo Hito - {selectedParticipant.name}</h2>
+              <h2 className="text-2xl">
+                {editingMilestone ? 'Editar Hito' : 'Registrar Nuevo Hito'} - {selectedParticipant.name}
+              </h2>
               <button
-                onClick={() => setShowMilestoneModal(false)}
+                onClick={() => {
+                  setShowMilestoneModal(false);
+                  setEditingMilestone(null);
+                }}
                 className="p-2 rounded-lg hover:bg-secondary transition-colors"
               >
                 <X className="w-5 h-5" />
@@ -283,6 +290,7 @@ export function ParticipantTracking({ userRole, onLogout }: ParticipantTrackingP
                   <label className="block mb-2">Fecha del Hito</label>
                   <input
                     type="date"
+                    defaultValue={editingMilestone ? editingMilestone.date : ''}
                     className="w-full px-4 py-3 rounded-lg border border-border bg-input-background focus:outline-none focus:ring-2 focus:ring-primary"
                     required
                   />
@@ -292,6 +300,7 @@ export function ParticipantTracking({ userRole, onLogout }: ParticipantTrackingP
                   <label className="block mb-2">Título del Hito</label>
                   <input
                     type="text"
+                    defaultValue={editingMilestone ? editingMilestone.title : ''}
                     className="w-full px-4 py-3 rounded-lg border border-border bg-input-background focus:outline-none focus:ring-2 focus:ring-primary"
                     placeholder="Ej: Completó curso de Panadería"
                     required
@@ -301,6 +310,7 @@ export function ParticipantTracking({ userRole, onLogout }: ParticipantTrackingP
                 <div>
                   <label className="block mb-2">Descripción</label>
                   <textarea
+                    defaultValue={editingMilestone ? editingMilestone.description : ''}
                     className="w-full px-4 py-3 rounded-lg border border-border bg-input-background focus:outline-none focus:ring-2 focus:ring-primary min-h-[120px]"
                     placeholder="Describe el logro o avance significativo..."
                     required
@@ -311,6 +321,7 @@ export function ParticipantTracking({ userRole, onLogout }: ParticipantTrackingP
                   <label className="block mb-2">Responsable</label>
                   <input
                     type="text"
+                    defaultValue={editingMilestone ? editingMilestone.responsible : ''}
                     className="w-full px-4 py-3 rounded-lg border border-border bg-input-background focus:outline-none focus:ring-2 focus:ring-primary"
                     placeholder="Tu nombre"
                     required
@@ -320,7 +331,10 @@ export function ParticipantTracking({ userRole, onLogout }: ParticipantTrackingP
                 <div className="flex justify-end gap-3 pt-4">
                   <button
                     type="button"
-                    onClick={() => setShowMilestoneModal(false)}
+                    onClick={() => {
+                      setShowMilestoneModal(false);
+                      setEditingMilestone(null);
+                    }}
                     className="px-6 py-3 rounded-lg border border-border hover:bg-secondary transition-colors"
                   >
                     Cancelar
@@ -329,7 +343,7 @@ export function ParticipantTracking({ userRole, onLogout }: ParticipantTrackingP
                     type="submit"
                     className="px-6 py-3 bg-primary text-primary-foreground rounded-lg hover:opacity-90 transition-opacity"
                   >
-                    Registrar Hito
+                    {editingMilestone ? 'Guardar Cambios' : 'Registrar Hito'}
                   </button>
                 </div>
               </form>

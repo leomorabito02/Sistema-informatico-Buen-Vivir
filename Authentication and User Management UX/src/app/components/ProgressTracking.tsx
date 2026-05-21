@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
-import { Leaf, LogOut, BookOpen, Award, TrendingUp, Sparkles, Download } from 'lucide-react';
+import { useState } from 'react';
+import { Leaf, LogOut, BookOpen, Award, TrendingUp, Sparkles, Download, Calendar, X } from 'lucide-react';
 
 interface ProgressTrackingProps {
   userRole: 'admin' | 'participante' | 'voluntario' | 'empresa' | 'docente';
@@ -7,6 +8,8 @@ interface ProgressTrackingProps {
 }
 
 export function ProgressTracking({ userRole, onLogout }: ProgressTrackingProps) {
+  const [showTimeline, setShowTimeline] = useState(false);
+
   const enrolledCourses = [
     {
       id: 1,
@@ -67,6 +70,39 @@ export function ProgressTracking({ userRole, onLogout }: ProgressTrackingProps) 
     'Nutrición',
     'Diseño de Moda',
     'Cocina',
+  ];
+
+  const timeline = [
+    {
+      id: 1,
+      date: '15 de Mayo, 2026',
+      event: 'Completó el curso "Panadería Artesanal"',
+      type: 'completion'
+    },
+    {
+      id: 2,
+      date: '10 de Mayo, 2026',
+      event: 'Alcanzó 75% de progreso en "Panadería Artesanal"',
+      type: 'milestone'
+    },
+    {
+      id: 3,
+      date: '5 de Mayo, 2026',
+      event: 'Se inscribió en "Computación Básica"',
+      type: 'enrollment'
+    },
+    {
+      id: 4,
+      date: '1 de Mayo, 2026',
+      event: 'Completó el curso "Cocina Saludable"',
+      type: 'completion'
+    },
+    {
+      id: 5,
+      date: '25 de Abril, 2026',
+      event: 'Se inscribió en "Huerta Orgánica"',
+      type: 'enrollment'
+    },
   ];
 
   const totalProgress = Math.round(
@@ -154,7 +190,16 @@ export function ProgressTracking({ userRole, onLogout }: ProgressTrackingProps) 
           {/* Enrolled Courses Progress */}
           <div className="lg:col-span-2 space-y-6">
             <div className="bg-card rounded-lg border border-border p-6">
-              <h2 className="text-2xl mb-6">Cursos en Progreso</h2>
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-2xl">Cursos en Progreso</h2>
+                <button
+                  onClick={() => setShowTimeline(true)}
+                  className="px-4 py-2 rounded-lg border border-border hover:bg-secondary transition-colors flex items-center gap-2"
+                >
+                  <Calendar className="w-4 h-4" />
+                  Ver Timeline
+                </button>
+              </div>
               <div className="space-y-4">
                 {enrolledCourses.map((course) => (
                   <Link
@@ -259,34 +304,59 @@ export function ProgressTracking({ userRole, onLogout }: ProgressTrackingProps) 
                 ))}
               </div>
             </div>
-
-            {/* Learning Streak */}
-            <div className="bg-card rounded-lg border border-border p-6">
-              <h2 className="text-xl mb-4">Racha de Aprendizaje</h2>
-              <div className="text-center mb-4">
-                <div className="text-5xl mb-2">🔥</div>
-                <p className="text-3xl text-primary mb-1">7 días</p>
-                <p className="text-sm text-muted-foreground">¡Sigue así!</p>
-              </div>
-              <div className="grid grid-cols-7 gap-2">
-                {['L', 'M', 'X', 'J', 'V', 'S', 'D'].map((day, index) => (
-                  <div
-                    key={day}
-                    className={`aspect-square rounded-lg flex items-center justify-center text-xs ${
-                      index < 7 ? 'bg-primary text-primary-foreground' : 'bg-secondary text-muted-foreground'
-                    }`}
-                  >
-                    {day}
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Study Hours */}
             
           </div>
         </div>
       </main>
+
+      {/* Timeline Modal */}
+      {showTimeline && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+          <div className="bg-card rounded-lg border border-border w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            <div className="sticky top-0 bg-card border-b border-border p-6 flex items-center justify-between">
+              <div>
+                <h2 className="text-2xl mb-1">Cronología de Avances</h2>
+                <p className="text-sm text-muted-foreground">Tu historial de logros y eventos</p>
+              </div>
+              <button
+                onClick={() => setShowTimeline(false)}
+                className="p-2 rounded-lg hover:bg-secondary transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="p-6">
+              <div className="space-y-6">
+                {timeline.map((item, index) => (
+                  <div key={item.id} className="flex gap-4">
+                    <div className="flex flex-col items-center">
+                      <div className={`w-10 h-10 rounded-full flex items-center justify-center text-primary-foreground flex-shrink-0 ${
+                        item.type === 'completion' ? 'bg-green-500' :
+                        item.type === 'milestone' ? 'bg-blue-500' :
+                        'bg-purple-500'
+                      }`}>
+                        {item.type === 'completion' && '✓'}
+                        {item.type === 'milestone' && '⭐'}
+                        {item.type === 'enrollment' && '+'}
+                      </div>
+                      {index < timeline.length - 1 && (
+                        <div className="w-0.5 flex-1 bg-border mt-2" />
+                      )}
+                    </div>
+                    <div className="flex-1 pb-6">
+                      <div className="flex items-start justify-between mb-2">
+                        <h3 className="text-base font-medium">{item.event}</h3>
+                        <span className="text-sm text-muted-foreground whitespace-nowrap ml-4">{item.date}</span>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

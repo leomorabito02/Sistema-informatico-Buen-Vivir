@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 import { Leaf, Briefcase, Megaphone, LogIn, Users, BookOpen, Heart, TrendingUp, Award, MapPin, Clock, Phone } from 'lucide-react';
-import logoImg from './logo.png.jpeg';
+import logoImg from './logo.png';
 
 export function LandingPage() {
   return (
@@ -29,6 +29,13 @@ export function LandingPage() {
                 Donar
               </a>
               <Link
+                to="/register?role=empresa"
+                className="px-5 py-2 bg-white/15 border border-white/50 text-white rounded-lg hover:bg-white/25 transition-colors flex items-center gap-2"
+              >
+                <Briefcase className="w-4 h-4" />
+                Ofrecer Empleo
+              </Link>
+              <Link
                 to="/login"
                 className="px-6 py-2 bg-white text-primary rounded-lg hover:bg-white/90 transition-colors flex items-center gap-2"
               >
@@ -51,14 +58,7 @@ export function LandingPage() {
               Plataforma de acompañamiento integral para personas en situación de vulnerabilidad.
               Transformamos vidas a través de la educación, el trabajo digno y el desarrollo personal.
             </p>
-            <div className="flex flex-wrap gap-4">
-              <Link
-                to="/ofertas-laborales-publico"
-                className="px-8 py-4 bg-white text-primary rounded-lg hover:bg-white/90 transition-colors flex items-center gap-2 text-lg"
-              >
-                <Briefcase className="w-5 h-5" />
-                Ver Ofertas Laborales
-              </Link>
+            <div className="flex flex-wrap gap-4">  
               <Link
                 to="/campanas-publico"
                 className="px-8 py-4 bg-white/10 border-2 border-white rounded-lg hover:bg-white/20 transition-colors flex items-center gap-2 text-lg backdrop-blur-sm"
@@ -206,6 +206,279 @@ export function LandingPage() {
         </div>
       </section>
 
+      {/* Educational Materials Section - Public Access */}
+      <section className="py-24 bg-gradient-to-b from-secondary to-background">
+        <div className="container mx-auto px-6">
+          <div className="text-center mb-20">
+            <h2 className="text-5xl mb-4 font-bold">Biblioteca de Recursos Comunitarios</h2>
+            <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
+              Conocimientos compartidos por nuestra comunidad para el buen vivir. 
+              Materiales gratuitos creados con el propósito de fortalecer capacidades y saberes colectivos.
+            </p>
+          </div>
+
+          {/* Categories Grid */}
+          <div className="mb-20">
+            <h3 className="text-3xl font-semibold mb-12 text-center">Categorías de Aprendizaje</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              {/* Gastronomía */}
+              <div className="bg-card rounded-lg border border-border p-6 hover:border-primary hover:shadow-lg transition-all">
+                <div className="w-12 h-12 rounded-full bg-orange-100 flex items-center justify-center mb-4">
+                  <span className="text-2xl">🍳</span>
+                </div>
+                <h4 className="text-lg font-semibold mb-2">Gastronomía</h4>
+                <p className="text-sm text-muted-foreground mb-4">Técnicas culinarias, nutrición y seguridad alimentaria</p>
+                <span className="text-xs bg-orange-100 text-orange-700 px-3 py-1 rounded">12 recursos</span>
+              </div>
+
+              {/* Oficios */}
+              <div className="bg-card rounded-lg border border-border p-6 hover:border-primary hover:shadow-lg transition-all">
+                <div className="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center mb-4">
+                  <span className="text-2xl">🔨</span>
+                </div>
+                <h4 className="text-lg font-semibold mb-2">Oficios y Construcción</h4>
+                <p className="text-sm text-muted-foreground mb-4">Carpintería, electricidad, plomería y más</p>
+                <span className="text-xs bg-blue-100 text-blue-700 px-3 py-1 rounded">8 recursos</span>
+              </div>
+
+              {/* Ecología */}
+              <div className="bg-card rounded-lg border border-border p-6 hover:border-primary hover:shadow-lg transition-all">
+                <div className="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center mb-4">
+                  <span className="text-2xl">🌱</span>
+                </div>
+                <h4 className="text-lg font-semibold mb-2">Ecología y Sostenibilidad</h4>
+                <p className="text-sm text-muted-foreground mb-4">Agricultura orgánica, reciclaje y energías renovables</p>
+                <span className="text-xs bg-green-100 text-green-700 px-3 py-1 rounded">10 recursos</span>
+              </div>
+
+              {/* Tecnología */}
+              <div className="bg-card rounded-lg border border-border p-6 hover:border-primary hover:shadow-lg transition-all">
+                <div className="w-12 h-12 rounded-full bg-purple-100 flex items-center justify-center mb-4">
+                  <span className="text-2xl">💻</span>
+                </div>
+                <h4 className="text-lg font-semibold mb-2">Tecnología Digital</h4>
+                <p className="text-sm text-muted-foreground mb-4">Informática, herramientas web y seguridad digital</p>
+                <span className="text-xs bg-purple-100 text-purple-700 px-3 py-1 rounded">9 recursos</span>
+              </div>
+
+              {/* Arte y Diseño */}
+              <div className="bg-card rounded-lg border border-border p-6 hover:border-primary hover:shadow-lg transition-all">
+                <div className="w-12 h-12 rounded-full bg-pink-100 flex items-center justify-center mb-4">
+                  <span className="text-2xl">✂️</span>
+                </div>
+                <h4 className="text-lg font-semibold mb-2">Arte y Diseño</h4>
+                <p className="text-sm text-muted-foreground mb-4">Costura, diseño de moda y expresión creativa</p>
+                <span className="text-xs bg-pink-100 text-pink-700 px-3 py-1 rounded">7 recursos</span>
+              </div>
+
+              {/* Bienestar */}
+              <div className="bg-card rounded-lg border border-border p-6 hover:border-primary hover:shadow-lg transition-all">
+                <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center mb-4">
+                  <span className="text-2xl">❤️</span>
+                </div>
+                <h4 className="text-lg font-semibold mb-2">Salud y Bienestar</h4>
+                <p className="text-sm text-muted-foreground mb-4">Nutrición, ejercicio y desarrollo personal</p>
+                <span className="text-xs bg-red-100 text-red-700 px-3 py-1 rounded">11 recursos</span>
+              </div>
+
+              {/* Administración */}
+              <div className="bg-card rounded-lg border border-border p-6 hover:border-primary hover:shadow-lg transition-all">
+                <div className="w-12 h-12 rounded-full bg-indigo-100 flex items-center justify-center mb-4">
+                  <span className="text-2xl">📊</span>
+                </div>
+                <h4 className="text-lg font-semibold mb-2">Gestión y Negocios</h4>
+                <p className="text-sm text-muted-foreground mb-4">Emprendimiento, finanzas y administración</p>
+                <span className="text-xs bg-indigo-100 text-indigo-700 px-3 py-1 rounded">6 recursos</span>
+              </div>
+
+              {/* Comunicación */}
+              <div className="bg-card rounded-lg border border-border p-6 hover:border-primary hover:shadow-lg transition-all">
+                <div className="w-12 h-12 rounded-full bg-cyan-100 flex items-center justify-center mb-4">
+                  <span className="text-2xl">🎤</span>
+                </div>
+                <h4 className="text-lg font-semibold mb-2">Comunicación</h4>
+                <p className="text-sm text-muted-foreground mb-4">Oralidad, escritura y habilidades interpersonales</p>
+                <span className="text-xs bg-cyan-100 text-cyan-700 px-3 py-1 rounded">5 recursos</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Featured Materials */}
+          <div className="mb-20">
+            <h3 className="text-3xl font-semibold mb-12 text-center">Recursos Destacados</h3>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+              {/* Material 1 */}
+              <div className="bg-card rounded-lg border border-border overflow-hidden hover:border-primary hover:shadow-xl transition-all">
+                <div className="h-40 bg-gradient-to-br from-orange-100 to-yellow-100 flex items-center justify-center">
+                  <span className="text-6xl">🍞</span>
+                </div>
+                <div className="p-6">
+                  <div className="flex items-center justify-between mb-3">
+                    <span className="px-3 py-1 rounded text-xs font-medium bg-orange-100 text-orange-700">PDF</span>
+                    <span className="text-xs text-muted-foreground">5 MB</span>
+                  </div>
+                  <h4 className="text-lg font-semibold mb-2">Guía Completa de Panadería Artesanal</h4>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    Manual profesional con técnicas de amasado, fermentación, horneado y presentación de panes artesanales
+                  </p>
+                  <div className="flex items-center justify-between text-xs text-muted-foreground mb-4">
+                    <span>📚 Gastronomía</span>
+                    <span>⭐ 4.8/5</span>
+                  </div>
+                  <button className="px-4 py-2 rounded-lg border border-border hover:bg-secondary transition-colors w-full text-sm font-medium">
+                    Descargar Material
+                  </button>
+                </div>
+              </div>
+
+              {/* Material 2 */}
+              <div className="bg-card rounded-lg border border-border overflow-hidden hover:border-primary hover:shadow-xl transition-all">
+                <div className="h-40 bg-gradient-to-br from-green-100 to-lime-100 flex items-center justify-center">
+                  <span className="text-6xl">🌿</span>
+                </div>
+                <div className="p-6">
+                  <div className="flex items-center justify-between mb-3">
+                    <span className="px-3 py-1 rounded text-xs font-medium bg-green-100 text-green-700">Guía</span>
+                    <span className="text-xs text-muted-foreground">8 MB</span>
+                  </div>
+                  <h4 className="text-lg font-semibold mb-2">Manual de Huerta Orgánica</h4>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    Cultivo sustentable en espacios reducidos, preparación de compost, riego eficiente y control biológico de plagas
+                  </p>
+                  <div className="flex items-center justify-between text-xs text-muted-foreground mb-4">
+                    <span>🌱 Ecología</span>
+                    <span>⭐ 4.9/5</span>
+                  </div>
+                  <button className="px-4 py-2 rounded-lg border border-border hover:bg-secondary transition-colors w-full text-sm font-medium">
+                    Descargar Material
+                  </button>
+                </div>
+              </div>
+
+              {/* Material 3 */}
+              <div className="bg-card rounded-lg border border-border overflow-hidden hover:border-primary hover:shadow-xl transition-all">
+                <div className="h-40 bg-gradient-to-br from-blue-100 to-cyan-100 flex items-center justify-center">
+                  <span className="text-6xl">💻</span>
+                </div>
+                <div className="p-6">
+                  <div className="flex items-center justify-between mb-3">
+                    <span className="px-3 py-1 rounded text-xs font-medium bg-blue-100 text-blue-700">Vídeo</span>
+                    <span className="text-xs text-muted-foreground">120 min</span>
+                  </div>
+                  <h4 className="text-lg font-semibold mb-2">Informática Básica para Principiantes</h4>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    Serie de videos sobre sistema operativo, navegador web, email y herramientas de productividad esenciales
+                  </p>
+                  <div className="flex items-center justify-between text-xs text-muted-foreground mb-4">
+                    <span>💻 Tecnología</span>
+                    <span>⭐ 4.7/5</span>
+                  </div>
+                  <button className="px-4 py-2 rounded-lg border border-border hover:bg-secondary transition-colors w-full text-sm font-medium">
+                    Ver Vídeo
+                  </button>
+                </div>
+              </div>
+
+              {/* Material 4 */}
+              <div className="bg-card rounded-lg border border-border overflow-hidden hover:border-primary hover:shadow-xl transition-all">
+                <div className="h-40 bg-gradient-to-br from-pink-100 to-rose-100 flex items-center justify-center">
+                  <span className="text-6xl">✂️</span>
+                </div>
+                <div className="p-6">
+                  <div className="flex items-center justify-between mb-3">
+                    <span className="px-3 py-1 rounded text-xs font-medium bg-pink-100 text-pink-700">Guía</span>
+                    <span className="text-xs text-muted-foreground">6 MB</span>
+                  </div>
+                  <h4 className="text-lg font-semibold mb-2">Técnicas de Costura y Diseño</h4>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    Puntadas básicas, uso de máquina de coser, lectura de patrones y adaptación de tallas para crear prendas
+                  </p>
+                  <div className="flex items-center justify-between text-xs text-muted-foreground mb-4">
+                    <span>👗 Arte y Diseño</span>
+                    <span>⭐ 4.8/5</span>
+                  </div>
+                  <button className="px-4 py-2 rounded-lg border border-border hover:bg-secondary transition-colors w-full text-sm font-medium">
+                    Descargar Material
+                  </button>
+                </div>
+              </div>
+
+              {/* Material 5 */}
+              <div className="bg-card rounded-lg border border-border overflow-hidden hover:border-primary hover:shadow-xl transition-all">
+                <div className="h-40 bg-gradient-to-br from-purple-100 to-indigo-100 flex items-center justify-center">
+                  <span className="text-6xl">📊</span>
+                </div>
+                <div className="p-6">
+                  <div className="flex items-center justify-between mb-3">
+                    <span className="px-3 py-1 rounded text-xs font-medium bg-purple-100 text-purple-700">PDF</span>
+                    <span className="text-xs text-muted-foreground">4 MB</span>
+                  </div>
+                  <h4 className="text-lg font-semibold mb-2">Guía de Emprendimiento</h4>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    Pasos para crear un negocio, plan de negocios, finanzas básicas, marketing y gestión de clientes
+                  </p>
+                  <div className="flex items-center justify-between text-xs text-muted-foreground mb-4">
+                    <span>💼 Negocios</span>
+                    <span>⭐ 4.6/5</span>
+                  </div>
+                  <button className="px-4 py-2 rounded-lg border border-border hover:bg-secondary transition-colors w-full text-sm font-medium">
+                    Descargar Material
+                  </button>
+                </div>
+              </div>
+
+              {/* Material 6 */}
+              <div className="bg-card rounded-lg border border-border overflow-hidden hover:border-primary hover:shadow-xl transition-all">
+                <div className="h-40 bg-gradient-to-br from-red-100 to-orange-100 flex items-center justify-center">
+                  <span className="text-6xl">❤️</span>
+                </div>
+                <div className="p-6">
+                  <div className="flex items-center justify-between mb-3">
+                    <span className="px-3 py-1 rounded text-xs font-medium bg-red-100 text-red-700">Vídeo</span>
+                    <span className="text-xs text-muted-foreground">90 min</span>
+                  </div>
+                  <h4 className="text-lg font-semibold mb-2">Nutrición y Alimentación Saludable</h4>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    Pirámide nutricional, macronutrientes, recetas saludables, presupuesto alimentario y compras inteligentes
+                  </p>
+                  <div className="flex items-center justify-between text-xs text-muted-foreground mb-4">
+                    <span>🥗 Salud</span>
+                    <span>⭐ 4.9/5</span>
+                  </div>
+                  <button className="px-4 py-2 rounded-lg border border-border hover:bg-secondary transition-colors w-full text-sm font-medium">
+                    Ver Vídeo
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* CTA Section */}
+          <div className="bg-gradient-to-r from-primary/10 to-primary/5 rounded-2xl border border-primary/20 p-12 text-center">
+            <h3 className="text-2xl font-semibold mb-4">Sé Parte del Cambio</h3>
+            <p className="text-muted-foreground mb-8 max-w-3xl mx-auto">
+              Estamos buscando voluntarios comprometidos con acompañar procesos de reinserción social y empresas que crean en el potencial de las personas. 
+              Si querés ofrecer trabajo, pasantías o voluntariado para ayudar a transformar vidas, ¡te necesitamos!
+            </p>
+            <div className="flex flex-wrap gap-4 justify-center">
+              <Link
+                to="/register?role=voluntario"
+                className="px-8 py-3 bg-primary text-primary-foreground rounded-lg hover:opacity-90 transition-opacity font-medium"
+              >
+                Sumate como Voluntario
+              </Link>
+              <Link
+                to="/register?role=empresa"
+                className="px-8 py-3 border-2 border-primary text-primary rounded-lg hover:bg-primary/5 transition-colors font-medium"
+              >
+                Ofrecer Trabajo o Pasantía
+              </Link>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* ── NUEVA: Ubicación con Google Maps ── */}
       <section className="py-20">
         <div className="container mx-auto px-6">
@@ -281,31 +554,6 @@ export function LandingPage() {
         </div>
       </section>
 
-      {/* CTA Section */}
-      <section className="py-20 bg-gradient-to-br from-primary to-[#1a3a1f] text-white">
-        <div className="container mx-auto px-6 text-center">
-          <h2 className="text-4xl mb-6">¿Querés ser parte del cambio?</h2>
-          <p className="text-xl mb-8 text-white/90 max-w-2xl mx-auto">
-            Ya sea como participante, voluntario, docente o empresa,
-            tu contribución puede transformar vidas
-          </p>
-          <div className="flex flex-wrap gap-4 justify-center">
-            <Link
-              to="/login"
-              className="px-8 py-4 bg-white text-primary rounded-lg hover:bg-white/90 transition-colors text-lg"
-            >
-              Iniciar Sesión
-            </Link>
-            <Link
-              to="/register"
-              className="px-8 py-4 bg-white/10 border-2 border-white rounded-lg hover:bg-white/20 transition-colors text-lg backdrop-blur-sm"
-            >
-              Registrarse
-            </Link>
-          </div>
-        </div>
-      </section>
-
       {/* ── NUEVA: Sección de Donación ── */}
       <section id="donar" className="py-20 bg-card">
         <div className="container mx-auto px-6">
@@ -330,10 +578,19 @@ export function LandingPage() {
               ))}
             </div>
 
-            <button className="px-12 py-4 bg-primary text-primary-foreground rounded-lg hover:opacity-90 transition-opacity text-lg flex items-center gap-3 mx-auto">
-              <Heart className="w-5 h-5" />
-              Donar ahora
-            </button>
+            <div className="flex flex-wrap gap-4 justify-center">
+              <button className="px-12 py-4 bg-primary text-primary-foreground rounded-lg hover:opacity-90 transition-opacity text-lg flex items-center gap-3">
+                <Heart className="w-5 h-5" />
+                Donar ahora
+              </button>
+              <Link
+                to="/register?role=empresa"
+                className="px-12 py-4 bg-primary text-primary-foreground rounded-lg hover:opacity-90 transition-opacity text-lg flex items-center gap-3"
+              >
+                <Briefcase className="w-5 h-5" />
+                Ofrecer Empleo
+              </Link>
+            </div>
 
             <p className="text-sm text-muted-foreground mt-4">
               Procesamos donaciones de forma segura. Podés cancelar cuando quieras.

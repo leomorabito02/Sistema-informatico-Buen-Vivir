@@ -22,7 +22,14 @@ export function CourseCatalog({ userRole, onLogout }: CourseCatalogProps) {
       duration: '8 semanas',
       enrolled: 24,
       maxStudents: 30,
-      image: '🍞'
+      image: '🍞',
+      level: 'Principiante',
+      schedule: 'Martes y Jueves, 18:00-20:00',
+      startDate: '2026-06-01',
+      rating: 4.8,
+      reviews: 45,
+      modules: 12,
+      completedModules: 9,
     },
     {
       id: 2,
@@ -33,7 +40,14 @@ export function CourseCatalog({ userRole, onLogout }: CourseCatalogProps) {
       duration: '10 semanas',
       enrolled: 18,
       maxStudents: 20,
-      image: '🔨'
+      image: '🔨',
+      level: 'Principiante',
+      schedule: 'Lunes y Miércoles, 14:00-16:00',
+      startDate: '2026-06-05',
+      rating: 4.6,
+      reviews: 32,
+      modules: 15,
+      completedModules: 0,
     },
     {
       id: 3,
@@ -44,7 +58,14 @@ export function CourseCatalog({ userRole, onLogout }: CourseCatalogProps) {
       duration: '12 semanas',
       enrolled: 32,
       maxStudents: 35,
-      image: '✂️'
+      image: '✂️',
+      level: 'Intermedio',
+      schedule: 'Miércoles y Viernes, 16:00-18:00',
+      startDate: '2026-06-10',
+      rating: 4.9,
+      reviews: 58,
+      modules: 16,
+      completedModules: 5,
     },
     {
       id: 4,
@@ -55,7 +76,14 @@ export function CourseCatalog({ userRole, onLogout }: CourseCatalogProps) {
       duration: '6 semanas',
       enrolled: 20,
       maxStudents: 25,
-      image: '🌱'
+      image: '🌱',
+      level: 'Principiante',
+      schedule: 'Sábados, 10:00-12:00',
+      startDate: '2026-06-07',
+      rating: 4.7,
+      reviews: 41,
+      modules: 8,
+      completedModules: 3,
     },
     {
       id: 5,
@@ -66,7 +94,14 @@ export function CourseCatalog({ userRole, onLogout }: CourseCatalogProps) {
       duration: '8 semanas',
       enrolled: 28,
       maxStudents: 30,
-      image: '💻'
+      image: '💻',
+      level: 'Principiante',
+      schedule: 'Martes y Jueves, 19:00-21:00',
+      startDate: '2026-06-03',
+      rating: 4.5,
+      reviews: 67,
+      modules: 10,
+      completedModules: 7,
     },
     {
       id: 6,
@@ -77,11 +112,54 @@ export function CourseCatalog({ userRole, onLogout }: CourseCatalogProps) {
       duration: '6 semanas',
       enrolled: 25,
       maxStudents: 30,
-      image: '🥗'
+      image: '🥗',
+      level: 'Principiante',
+      schedule: 'Lunes y Miércoles, 17:00-19:00',
+      startDate: '2026-06-02',
+      rating: 4.7,
+      reviews: 52,
+      modules: 8,
+      completedModules: 0,
+    },
+    {
+      id: 7,
+      title: 'Electricidad Residencial',
+      description: 'Instalaciones eléctricas seguras para viviendas',
+      area: 'Oficios',
+      teacher: 'Miguel Torres',
+      duration: '10 semanas',
+      enrolled: 15,
+      maxStudents: 18,
+      image: '⚡',
+      level: 'Avanzado',
+      schedule: 'Jueves y Sábado, 09:00-11:00',
+      startDate: '2026-06-12',
+      rating: 4.8,
+      reviews: 28,
+      modules: 14,
+      completedModules: 0,
+    },
+    {
+      id: 8,
+      title: 'Gestión de Negocios',
+      description: 'Principios de administración y emprendimiento',
+      area: 'Administración',
+      teacher: 'Patricia González',
+      duration: '8 semanas',
+      enrolled: 22,
+      maxStudents: 28,
+      image: '💼',
+      level: 'Intermedio',
+      schedule: 'Martes y Viernes, 17:00-19:00',
+      startDate: '2026-06-15',
+      rating: 4.6,
+      reviews: 39,
+      modules: 11,
+      completedModules: 0,
     }
   ];
 
-  const areas = ['Gastronomía', 'Oficios', 'Arte y Diseño', 'Agricultura', 'Tecnología'];
+  const areas = ['Gastronomía', 'Oficios', 'Arte y Diseño', 'Agricultura', 'Tecnología', 'Administración'];
 
   const filteredCourses = mockCourses.filter(course => {
     const matchesSearch = course.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -160,48 +238,49 @@ export function CourseCatalog({ userRole, onLogout }: CourseCatalogProps) {
         </div>
 
         {/* Courses Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
           {filteredCourses.map((course) => (
             <Link
               key={course.id}
               to={`/courses/${course.id}`}
-              className="bg-card rounded-lg border border-border overflow-hidden hover:border-primary hover:shadow-lg transition-all group"
+              className="bg-card rounded-lg border border-border overflow-hidden hover:border-primary hover:shadow-lg transition-all group h-full flex flex-col"
             >
-              <div className="aspect-video bg-gradient-to-br from-primary to-[#1a3a1f] flex items-center justify-center text-8xl">
+              <div className="aspect-square bg-gradient-to-br from-primary to-[#1a3a1f] flex items-center justify-center text-5xl flex-shrink-0">
                 {course.image}
               </div>
-              <div className="p-6">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="inline-flex px-3 py-1 rounded-full text-xs bg-primary/10 text-primary">
+              <div className="p-3 flex flex-col flex-1">
+                <div className="flex items-center justify-between mb-2 gap-1">
+                  <span className="inline-flex px-2 py-0.5 rounded text-xs bg-primary/10 text-primary font-medium truncate">
                     {course.area}
                   </span>
-                  <span className="text-sm text-muted-foreground flex items-center gap-1">
-                    <Users className="w-4 h-4" />
-                    {course.enrolled}/{course.maxStudents}
+                  <span className="inline-flex px-2 py-0.5 rounded text-xs bg-blue-100 text-blue-700 font-medium truncate">
+                    {course.level}
                   </span>
                 </div>
-                <h3 className="text-xl mb-2 group-hover:text-primary transition-colors">{course.title}</h3>
-                <p className="text-sm text-muted-foreground mb-4 line-clamp-2">{course.description}</p>
-                <div className="flex items-center justify-between text-sm">
-                  <div className="flex items-center gap-1 text-muted-foreground">
-                    <UserIcon className="w-4 h-4" />
-                    {course.teacher}
+                <h3 className="text-sm font-semibold mb-1 group-hover:text-primary transition-colors line-clamp-2">{course.title}</h3>
+                <p className="text-xs text-muted-foreground mb-2 line-clamp-1">{course.description}</p>
+                
+                {/* Ratings */}
+                <div className="flex items-center gap-1 mb-2">
+                  <div className="flex text-yellow-400 text-xs">
+                    {'★'.repeat(Math.floor(course.rating))}
+                    {'☆'.repeat(5 - Math.floor(course.rating))}
                   </div>
-                  <div className="flex items-center gap-1 text-muted-foreground">
-                    <Clock className="w-4 h-4" />
-                    {course.duration}
-                  </div>
+                  <span className="text-xs text-muted-foreground">({course.reviews})</span>
                 </div>
-                <div className="mt-4 pt-4 border-t border-border">
-                  <div className="w-full bg-secondary rounded-full h-2 overflow-hidden">
+
+                {/* Progress Bar */}
+                <div className="mt-auto pt-2 border-t border-gray-200">
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-xs font-medium">{course.enrolled}/{course.maxStudents}</span>
+                    <span className="text-xs text-muted-foreground">{Math.round((course.enrolled / course.maxStudents) * 100)}%</span>
+                  </div>
+                  <div className="w-full bg-gray-200 rounded-full h-1.5 overflow-hidden">
                     <div
                       className="h-full bg-primary transition-all"
                       style={{ width: `${(course.enrolled / course.maxStudents) * 100}%` }}
                     />
                   </div>
-                  <p className="text-xs text-muted-foreground mt-2 text-center">
-                    {course.maxStudents - course.enrolled} cupos disponibles
-                  </p>
                 </div>
               </div>
             </Link>

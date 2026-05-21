@@ -181,38 +181,15 @@ export function Register() {
             <Link to="/login" className="text-primary hover:underline">
               Inicia sesión
             </Link>
+            <br>
+            </br>
+            <br>
+            </br>
+            
+            <Link to="/" className="text-primary hover:underline">
+              Volver a la pantalla principal
+            </Link>
           </p>
-        </div>
-      </div>
-
-      {/* Right side - Info */}
-      <div className="hidden lg:flex flex-1 bg-gradient-to-br from-primary to-[#1a3a1f] p-12 items-center justify-center">
-        <div className="text-white max-w-lg">
-          <h2 className="text-4xl mb-6">Bienvenido a Buen Vivir</h2>
-          <p className="text-lg opacity-90 mb-8">
-            Al unirte a nuestra plataforma, serás parte de una comunidad dedicada al crecimiento integral y la transformación social.
-          </p>
-          <div className="bg-white/10 rounded-lg p-6 backdrop-blur-sm">
-            <h3 className="text-xl mb-4">¿Qué obtendrás?</h3>
-            <ul className="space-y-3">
-              <li className="flex items-center gap-3">
-                <div className="w-6 h-6 rounded-full bg-white/20 flex items-center justify-center flex-shrink-0">✓</div>
-                <span>Acceso a cursos y talleres formativos</span>
-              </li>
-              <li className="flex items-center gap-3">
-                <div className="w-6 h-6 rounded-full bg-white/20 flex items-center justify-center flex-shrink-0">✓</div>
-                <span>Seguimiento personalizado de tu progreso</span>
-              </li>
-              <li className="flex items-center gap-3">
-                <div className="w-6 h-6 rounded-full bg-white/20 flex items-center justify-center flex-shrink-0">✓</div>
-                <span>Certificados al completar los cursos</span>
-              </li>
-              <li className="flex items-center gap-3">
-                <div className="w-6 h-6 rounded-full bg-white/20 flex items-center justify-center flex-shrink-0">✓</div>
-                <span>Red de contactos y oportunidades</span>
-              </li>
-            </ul>
-          </div>
         </div>
       </div>
     </div>
