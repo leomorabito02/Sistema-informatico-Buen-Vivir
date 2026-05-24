@@ -60,14 +60,18 @@ export function Dashboard({ userRole, onLogout }: DashboardProps) {
       { label: 'Generar CV', path: '/generar-cv', icon: Award },
     ],
     admin: [
+      { label: 'Dashboard', path: '/dashboard', icon: BarChart3 },
       { label: 'Gestión de Usuarios', path: '/users', icon: Users },
       { label: 'Seguimiento', path: '/seguimiento-participantes', icon: TrendingUp },
       { label: 'Cursos', path: '/courses', icon: BookOpen },
       { label: 'Campañas', path: '/gestion-campanas', icon: Megaphone },
+      { label: 'Inserción Laboral', path: '/insercion-laboral', icon: Award },
     ],
     voluntario: [
-      { label: 'Seguimiento', path: '/seguimiento-participantes', icon: TrendingUp },
-      { label: 'Campañas', path: '/gestion-campanas', icon: Megaphone },
+      { label: 'Cursos', path: '/courses', icon: BookOpen },
+      { label: 'Registrar Asistencia', path: '/seguimiento-participantes', icon: TrendingUp },
+      { label: 'Ver Trabajos', path: '/insercion-laboral', icon: Award },
+      { label: 'Gestión de Participantes', path: '/gestion-participantes', icon: Users },
     ],
     docente: [
       { label: 'Portal Docente', path: '/teacher-portal', icon: GraduationCap },
@@ -84,16 +88,16 @@ export function Dashboard({ userRole, onLogout }: DashboardProps) {
   return (
     <div className="min-h-screen bg-background flex flex-col">
       {/* Top Navigation Bar */}
-      <header className="bg-card border-b border-border p-4">
+      <header className="bg-primary/90 text-white border-b-2 border-primary p-4">
         <div className="flex items-center justify-between">
           {/* Logo and Brand */}
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-primary flex items-center justify-center flex-shrink-0">
-              <Leaf className="w-6 h-6 text-primary-foreground" />
+            <div className="w-10 h-10 rounded-lg bg-white/20 flex items-center justify-center flex-shrink-0">
+              <Leaf className="w-6 h-6 text-white" />
             </div>
             <div>
-              <h2 className="font-medium">Buen Vivir</h2>
-              <p className="text-xs text-muted-foreground capitalize">{userRole}</p>
+              <h2 className="font-medium text-white">Buen Vivir</h2>
+              <p className="text-xs text-white/70 capitalize">{userRole}</p>
             </div>
           </div>
 
@@ -103,7 +107,7 @@ export function Dashboard({ userRole, onLogout }: DashboardProps) {
               <Link
                 key={item.path}
                 to={item.path}
-                className="px-3 py-2 rounded-lg hover:bg-sidebar-accent transition-colors text-sm font-medium"
+                className="px-3 py-2 rounded-lg hover:bg-white/10 transition-colors text-sm font-medium text-white"
               >
                 {item.label}
               </Link>
@@ -112,11 +116,11 @@ export function Dashboard({ userRole, onLogout }: DashboardProps) {
 
           {/* Right Side Actions */}
           <div className="flex items-center gap-4">
-            <button className="relative p-2 rounded-lg hover:bg-secondary transition-colors">
+            <button className="relative p-2 rounded-lg hover:bg-white/10 transition-colors text-white">
               <Bell className="w-5 h-5" />
               <span className="absolute top-1 right-1 w-2 h-2 bg-destructive rounded-full"></span>
             </button>
-            <button className="p-2 rounded-lg hover:bg-secondary transition-colors">
+            <button className="p-2 rounded-lg hover:bg-white/10 transition-colors text-white">
               <Settings className="w-5 h-5" />
             </button>
             <button
@@ -132,147 +136,10 @@ export function Dashboard({ userRole, onLogout }: DashboardProps) {
 
       {/* Main Content */}
       <main className="flex-1 overflow-auto">
-        {/* Section Title */}
-        <div className="bg-card border-b border-border p-6">
-          <p className="text-muted-foreground">
-            Bienvenido de nuevo, aquí está tu resumen
-          </p>
-        </div>
+
 
         {/* Stats Grid */}
         <div className="p-6">
-          {/* Quick Actions - Moved to top */}
-          <div className="mb-8">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
-              {userRole === 'participante' && (
-                <>
-                  <Link
-                    to="/courses"
-                    className="p-4 rounded-lg bg-gradient-to-br from-blue-50 to-blue-100 border border-blue-200 hover:shadow-md transition-all"
-                  >
-                    <BookOpen className="w-6 h-6 text-blue-600 mb-2" />
-                    <h3 className="font-medium text-sm text-blue-900">Explorar Cursos</h3>
-                  </Link>
-                  <Link
-                    to="/progress"
-                    className="p-4 rounded-lg bg-gradient-to-br from-green-50 to-green-100 border border-green-200 hover:shadow-md transition-all"
-                  >
-                    <BarChart3 className="w-6 h-6 text-green-600 mb-2" />
-                    <h3 className="font-medium text-sm text-green-900">Mi Progreso</h3>
-                  </Link>
-                  <Link
-                    to="/ofertas-laborales"
-                    className="p-4 rounded-lg bg-gradient-to-br from-purple-50 to-purple-100 border border-purple-200 hover:shadow-md transition-all"
-                  >
-                    <Award className="w-6 h-6 text-purple-600 mb-2" />
-                    <h3 className="font-medium text-sm text-purple-900">Ofertas Laborales</h3>
-                  </Link>
-                  <Link
-                    to="/generar-cv"
-                    className="p-4 rounded-lg bg-gradient-to-br from-orange-50 to-orange-100 border border-orange-200 hover:shadow-md transition-all"
-                  >
-                    <FileText className="w-6 h-6 text-orange-600 mb-2" />
-                    <h3 className="font-medium text-sm text-orange-900">Generar CV</h3>
-                  </Link>
-                </>
-              )}
-              
-              {userRole === 'admin' && (
-                <>
-                  <Link
-                    to="/users"
-                    className="p-4 rounded-lg bg-gradient-to-br from-blue-50 to-blue-100 border border-blue-200 hover:shadow-md transition-all"
-                  >
-                    <Users className="w-6 h-6 text-blue-600 mb-2" />
-                    <h3 className="font-medium text-sm text-blue-900">Gestionar Usuarios</h3>
-                  </Link>
-                  <Link
-                    to="/courses"
-                    className="p-4 rounded-lg bg-gradient-to-br from-green-50 to-green-100 border border-green-200 hover:shadow-md transition-all"
-                  >
-                    <BookOpen className="w-6 h-6 text-green-600 mb-2" />
-                    <h3 className="font-medium text-sm text-green-900">Gestionar Cursos</h3>
-                  </Link>
-                  <Link
-                    to="/seguimiento-participantes"
-                    className="p-4 rounded-lg bg-gradient-to-br from-purple-50 to-purple-100 border border-purple-200 hover:shadow-md transition-all"
-                  >
-                    <TrendingUp className="w-6 h-6 text-purple-600 mb-2" />
-                    <h3 className="font-medium text-sm text-purple-900">Seguimiento</h3>
-                  </Link>
-                  <Link
-                    to="/gestion-campanas"
-                    className="p-4 rounded-lg bg-gradient-to-br from-orange-50 to-orange-100 border border-orange-200 hover:shadow-md transition-all"
-                  >
-                    <Megaphone className="w-6 h-6 text-orange-600 mb-2" />
-                    <h3 className="font-medium text-sm text-orange-900">Campañas</h3>
-                  </Link>
-                </>
-              )}
-              
-              {userRole === 'voluntario' && (
-                <>
-                  <Link
-                    to="/seguimiento-participantes"
-                    className="p-4 rounded-lg bg-gradient-to-br from-blue-50 to-blue-100 border border-blue-200 hover:shadow-md transition-all"
-                  >
-                    <TrendingUp className="w-6 h-6 text-blue-600 mb-2" />
-                    <h3 className="font-medium text-sm text-blue-900">Mis Participantes</h3>
-                  </Link>
-                  <Link
-                    to="/gestion-campanas"
-                    className="p-4 rounded-lg bg-gradient-to-br from-green-50 to-green-100 border border-green-200 hover:shadow-md transition-all"
-                  >
-                    <Megaphone className="w-6 h-6 text-green-600 mb-2" />
-                    <h3 className="font-medium text-sm text-green-900">Campañas</h3>
-                  </Link>
-                </>
-              )}
-              
-              {userRole === 'docente' && (
-                <>
-                  <Link
-                    to="/teacher-portal"
-                    className="p-4 rounded-lg bg-gradient-to-br from-blue-50 to-blue-100 border border-blue-200 hover:shadow-md transition-all"
-                  >
-                    <GraduationCap className="w-6 h-6 text-blue-600 mb-2" />
-                    <h3 className="font-medium text-sm text-blue-900">Portal Docente</h3>
-                  </Link>
-                  <Link
-                    to="/courses"
-                    className="p-4 rounded-lg bg-gradient-to-br from-green-50 to-green-100 border border-green-200 hover:shadow-md transition-all"
-                  >
-                    <BookOpen className="w-6 h-6 text-green-600 mb-2" />
-                    <h3 className="font-medium text-sm text-green-900">Mis Cursos</h3>
-                  </Link>
-                </>
-              )}
-              
-              {userRole === 'empresa' && (
-                <>
-                  <Link
-                    to="/ofertas-laborales"
-                    className="p-4 rounded-lg bg-gradient-to-br from-blue-50 to-blue-100 border border-blue-200 hover:shadow-md transition-all"
-                  >
-                    <BookOpen className="w-6 h-6 text-blue-600 mb-2" />
-                    <h3 className="font-medium text-sm text-blue-900">Mis Ofertas</h3>
-                  </Link>
-                  <Link
-                    to="/usuarios"
-                    className="p-4 rounded-lg bg-gradient-to-br from-green-50 to-green-100 border border-green-200 hover:shadow-md transition-all"
-                  >
-                    <Users className="w-6 h-6 text-green-600 mb-2" />
-                    <h3 className="font-medium text-sm text-green-900">Candidatos</h3>
-                  </Link>
-                  <div className="p-4 rounded-lg bg-gradient-to-br from-purple-50 to-purple-100 border border-purple-200 hover:shadow-md transition-all cursor-pointer">
-                    <Phone className="w-6 h-6 text-purple-600 mb-2" />
-                    <h3 className="font-medium text-sm text-purple-900">Contactar Centro</h3>
-                  </div>
-                </>
-              )}
-            </div>
-          </div>
-
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
             {currentStats.map((stat) => (
               <div key={stat.label} className="bg-card rounded-lg border border-border p-6">

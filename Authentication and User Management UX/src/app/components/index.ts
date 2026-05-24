@@ -9,7 +9,8 @@ export { Card, CardHeader, CardBody, CardFooter } from './base/Card';
 export { DataTable } from './base/DataTable';
 
 // Componentes Principales
-export { App } from './App';
+// The App component file is missing; disable the re-export until the component is added.
+// export { App } from './App';
 export { Dashboard } from './Dashboard';
 export { Login } from './Login';
 export { Register } from './Register';
@@ -22,7 +23,9 @@ export { ProgressTracking } from './ProgressTracking';
 
 // Módulo de Inserción Laboral
 export { PublicJobOffers } from './PublicJobOffers';
-export { JobApplicationForm } from './JobApplicationForm';
+// The JobApplicationForm component file is missing; disable the re-export until the component is added.
+// export { JobApplicationForm } from './JobApplicationForm';
+export { LaborInsertion } from './LaborInsertion';
 
 // Módulo de Campañas
 export { PublicCampaigns } from './PublicCampaigns';
@@ -36,6 +39,7 @@ export { NotificationCenter } from './NotificationCenter';
 
 // Otros Módulos
 export { UserManagement } from './UserManagement';
+export { VolunteerUserManagement } from './VolunteerUserManagement';
 export { TeacherPortal } from './TeacherPortal';
 export { ParticipantTracking } from './ParticipantTracking';
 export { CVGenerator } from './CVGenerator';

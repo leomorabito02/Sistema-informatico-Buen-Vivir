@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Leaf, Search, Plus, BookOpen, Clock, Users, LogOut, Filter, X, User as UserIcon, FileText, Upload } from 'lucide-react';
+import { Leaf, Search, Plus, BookOpen, Clock, Users, LogOut, Filter, X, User as UserIcon, FileText, Upload, Edit, AlertCircle } from 'lucide-react';
 
 interface CourseCatalogProps {
   userRole: 'admin' | 'participante' | 'voluntario' | 'empresa' | 'docente';
@@ -11,6 +11,8 @@ export function CourseCatalog({ userRole, onLogout }: CourseCatalogProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [filterArea, setFilterArea] = useState('all');
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [selectedCourseForEdit, setSelectedCourseForEdit] = useState<any>(null);
 
   const mockCourses = [
     {
@@ -30,6 +32,7 @@ export function CourseCatalog({ userRole, onLogout }: CourseCatalogProps) {
       reviews: 45,
       modules: 12,
       completedModules: 9,
+      suggestedSkills: ['Técnicas de amasado', 'Fermentación', 'Horneado profesional'],
     },
     {
       id: 2,
@@ -48,6 +51,7 @@ export function CourseCatalog({ userRole, onLogout }: CourseCatalogProps) {
       reviews: 32,
       modules: 15,
       completedModules: 0,
+      suggestedSkills: ['Manejo de herramientas', 'Seguridad', 'Medición y corte'],
     },
     {
       id: 3,
@@ -66,6 +70,7 @@ export function CourseCatalog({ userRole, onLogout }: CourseCatalogProps) {
       reviews: 58,
       modules: 16,
       completedModules: 5,
+      suggestedSkills: ['Máquina de coser', 'Diseño de prendas', 'Telas'],
     },
     {
       id: 4,
@@ -84,6 +89,7 @@ export function CourseCatalog({ userRole, onLogout }: CourseCatalogProps) {
       reviews: 41,
       modules: 8,
       completedModules: 3,
+      suggestedSkills: ['Cultivo orgánico', 'Compostaje', 'Riego eficiente'],
     },
     {
       id: 5,
@@ -102,6 +108,7 @@ export function CourseCatalog({ userRole, onLogout }: CourseCatalogProps) {
       reviews: 67,
       modules: 10,
       completedModules: 7,
+      suggestedSkills: ['Sistema operativo', 'Navegación web', 'Ofimática'],
     },
     {
       id: 6,
@@ -120,6 +127,7 @@ export function CourseCatalog({ userRole, onLogout }: CourseCatalogProps) {
       reviews: 52,
       modules: 8,
       completedModules: 0,
+      suggestedSkills: ['Nutrición', 'Cocina saludable', 'Presupuesto'],
     },
     {
       id: 7,
@@ -138,6 +146,7 @@ export function CourseCatalog({ userRole, onLogout }: CourseCatalogProps) {
       reviews: 28,
       modules: 14,
       completedModules: 0,
+      suggestedSkills: ['Seguridad eléctrica', 'Circuitos', 'Herramientas'],
     },
     {
       id: 8,
@@ -156,6 +165,7 @@ export function CourseCatalog({ userRole, onLogout }: CourseCatalogProps) {
       reviews: 39,
       modules: 11,
       completedModules: 0,
+      suggestedSkills: ['Plan de negocios', 'Finanzas', 'Liderazgo'],
     }
   ];
 
@@ -171,21 +181,21 @@ export function CourseCatalog({ userRole, onLogout }: CourseCatalogProps) {
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
-      <header className="bg-card border-b border-border p-6">
+      <header className="bg-primary/90 text-white border-b-2 border-primary p-6">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <Link to="/dashboard" className="w-10 h-10 rounded-lg bg-primary flex items-center justify-center">
-              <Leaf className="w-6 h-6 text-primary-foreground" />
+            <Link to="/dashboard" className="w-10 h-10 rounded-lg bg-white/20 flex items-center justify-center">
+              <Leaf className="w-6 h-6 text-white" />
             </Link>
             <div>
-              <h1 className="text-2xl">Catálogo de Cursos</h1>
-              <p className="text-sm text-muted-foreground">Explora y gestiona los cursos disponibles</p>
+              <h1 className="text-2xl text-white">Catálogo de Cursos</h1>
+              <p className="text-sm text-white/70">Explora y gestiona los cursos disponibles</p>
             </div>
           </div>
           <div className="flex items-center gap-3">
             <Link
               to="/dashboard"
-              className="px-4 py-2 rounded-lg border border-border hover:bg-secondary transition-colors"
+              className="px-4 py-2 rounded-lg border border-white hover:bg-white/10 transition-colors text-white"
             >
               Volver
             </Link>
@@ -240,50 +250,70 @@ export function CourseCatalog({ userRole, onLogout }: CourseCatalogProps) {
         {/* Courses Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
           {filteredCourses.map((course) => (
-            <Link
+            <div
               key={course.id}
-              to={`/courses/${course.id}`}
-              className="bg-card rounded-lg border border-border overflow-hidden hover:border-primary hover:shadow-lg transition-all group h-full flex flex-col"
+              className="bg-card rounded-lg border border-border overflow-hidden hover:border-primary hover:shadow-lg transition-all group h-full flex flex-col relative"
             >
-              <div className="aspect-square bg-gradient-to-br from-primary to-[#1a3a1f] flex items-center justify-center text-5xl flex-shrink-0">
-                {course.image}
-              </div>
-              <div className="p-3 flex flex-col flex-1">
-                <div className="flex items-center justify-between mb-2 gap-1">
-                  <span className="inline-flex px-2 py-0.5 rounded text-xs bg-primary/10 text-primary font-medium truncate">
-                    {course.area}
-                  </span>
-                  <span className="inline-flex px-2 py-0.5 rounded text-xs bg-blue-100 text-blue-700 font-medium truncate">
-                    {course.level}
-                  </span>
+              <Link
+                to={`/courses/${course.id}`}
+                className="flex flex-col flex-1"
+              >
+                <div className="aspect-square bg-gradient-to-br from-primary to-[#1a3a1f] flex items-center justify-center text-5xl flex-shrink-0">
+                  {course.image}
                 </div>
-                <h3 className="text-sm font-semibold mb-1 group-hover:text-primary transition-colors line-clamp-2">{course.title}</h3>
-                <p className="text-xs text-muted-foreground mb-2 line-clamp-1">{course.description}</p>
-                
-                {/* Ratings */}
-                <div className="flex items-center gap-1 mb-2">
-                  <div className="flex text-yellow-400 text-xs">
-                    {'★'.repeat(Math.floor(course.rating))}
-                    {'☆'.repeat(5 - Math.floor(course.rating))}
+                <div className="p-3 flex flex-col flex-1">
+                  <div className="flex items-center justify-between mb-2 gap-1">
+                    <span className="inline-flex px-2 py-0.5 rounded text-xs bg-primary/10 text-primary font-medium truncate">
+                      {course.area}
+                    </span>
                   </div>
-                  <span className="text-xs text-muted-foreground">({course.reviews})</span>
-                </div>
+                  <h3 className="text-sm font-semibold mb-1 group-hover:text-primary transition-colors line-clamp-2">{course.title}</h3>
+                  <p className="text-xs text-muted-foreground mb-2 line-clamp-1">{course.description}</p>
+                  
+                  {/* Suggested Skills */}
+                  {course.suggestedSkills && (
+                    <div className="mb-2">
+                      <p className="text-xs font-medium text-muted-foreground mb-1">Habilidades sugeridas:</p>
+                      <div className="flex flex-wrap gap-1">
+                        {course.suggestedSkills.map((skill: string, idx: number) => (
+                          <span key={idx} className="text-xs px-2 py-0.5 rounded bg-green-100 text-green-700">
+                            {skill}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
 
-                {/* Progress Bar */}
-                <div className="mt-auto pt-2 border-t border-gray-200">
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="text-xs font-medium">{course.enrolled}/{course.maxStudents}</span>
-                    <span className="text-xs text-muted-foreground">{Math.round((course.enrolled / course.maxStudents) * 100)}%</span>
-                  </div>
-                  <div className="w-full bg-gray-200 rounded-full h-1.5 overflow-hidden">
-                    <div
-                      className="h-full bg-primary transition-all"
-                      style={{ width: `${(course.enrolled / course.maxStudents) * 100}%` }}
-                    />
+                  {/* Progress Bar */}
+                  <div className="mt-auto pt-2 border-t border-gray-200">
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-xs font-medium">{course.enrolled}/{course.maxStudents}</span>
+                      <span className="text-xs text-muted-foreground">{Math.round((course.enrolled / course.maxStudents) * 100)}%</span>
+                    </div>
+                    <div className="w-full bg-gray-200 rounded-full h-1.5 overflow-hidden">
+                      <div
+                        className="h-full bg-primary transition-all"
+                        style={{ width: `${(course.enrolled / course.maxStudents) * 100}%` }}
+                      />
+                    </div>
                   </div>
                 </div>
-              </div>
-            </Link>
+              </Link>
+              
+              {/* Edit Button - visible for admin and voluntario */}
+              {(userRole === 'admin' || userRole === 'voluntario') && (
+                <button
+                  onClick={() => {
+                    setSelectedCourseForEdit(course);
+                    setShowEditModal(true);
+                  }}
+                  className="absolute top-3 right-3 p-2 bg-white/90 rounded-lg hover:bg-white shadow-md transition-all opacity-0 group-hover:opacity-100"
+                  title="Editar curso"
+                >
+                  <Edit className="w-4 h-4 text-primary" />
+                </button>
+              )}
+            </div>
           ))}
         </div>
       </main>
@@ -390,6 +420,114 @@ export function CourseCatalog({ userRole, onLogout }: CourseCatalogProps) {
                     className="px-6 py-3 bg-primary text-primary-foreground rounded-lg hover:opacity-90 transition-opacity"
                   >
                     Crear Curso
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Course Modal */}
+      {showEditModal && selectedCourseForEdit && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+          <div className="bg-card rounded-lg border border-border w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            <div className="sticky top-0 bg-card border-b border-border p-6 flex items-center justify-between">
+              <h2 className="text-2xl">Editar Curso</h2>
+              <button
+                onClick={() => setShowEditModal(false)}
+                className="p-2 rounded-lg hover:bg-secondary transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="p-6">
+              <form className="space-y-4">
+                <div>
+                  <label className="block mb-2">Título del Curso</label>
+                  <input
+                    type="text"
+                    defaultValue={selectedCourseForEdit.title}
+                    className="w-full px-4 py-3 rounded-lg border border-border bg-input-background focus:outline-none focus:ring-2 focus:ring-primary"
+                    placeholder="Ej: Panadería Artesanal"
+                  />
+                </div>
+
+                <div>
+                  <label className="block mb-2">Descripción</label>
+                  <textarea
+                    defaultValue={selectedCourseForEdit.description}
+                    className="w-full px-4 py-3 rounded-lg border border-border bg-input-background focus:outline-none focus:ring-2 focus:ring-primary min-h-[100px]"
+                    placeholder="Describe el contenido y objetivos del curso..."
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block mb-2">Área Formativa</label>
+                    <select defaultValue={selectedCourseForEdit.area} className="w-full px-4 py-3 rounded-lg border border-border bg-input-background focus:outline-none focus:ring-2 focus:ring-primary">
+                      <option value="">Seleccionar área</option>
+                      {areas.map(area => (
+                        <option key={area} value={area}>{area}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block mb-2">Docente Responsable</label>
+                    <select defaultValue={selectedCourseForEdit.teacher} className="w-full px-4 py-3 rounded-lg border border-border bg-input-background focus:outline-none focus:ring-2 focus:ring-primary">
+                      <option value="">Seleccionar docente</option>
+                      <option value="María Rodríguez">María Rodríguez</option>
+                      <option value="Carlos Mendoza">Carlos Mendoza</option>
+                      <option value="Ana López">Ana López</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block mb-2">Duración</label>
+                    <input
+                      type="text"
+                      defaultValue={selectedCourseForEdit.duration}
+                      className="w-full px-4 py-3 rounded-lg border border-border bg-input-background focus:outline-none focus:ring-2 focus:ring-primary"
+                      placeholder="Ej: 8 semanas"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block mb-2">Cupos Máximos</label>
+                    <input
+                      type="number"
+                      defaultValue={selectedCourseForEdit.maxStudents}
+                      className="w-full px-4 py-3 rounded-lg border border-border bg-input-background focus:outline-none focus:ring-2 focus:ring-primary"
+                      placeholder="30"
+                    />
+                  </div>
+                </div>
+
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                  <div className="flex items-start gap-3">
+                    <AlertCircle className="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" />
+                    <p className="text-sm text-blue-800">
+                      <strong>Información:</strong> Los cambios en este formulario actualizarán los metadatos del curso. 
+                      El contenido del curso se gestiona a través de Contentful (CMS headless).
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex justify-end gap-3 pt-4">
+                  <button
+                    type="button"
+                    onClick={() => setShowEditModal(false)}
+                    className="px-6 py-3 rounded-lg border border-border hover:bg-secondary transition-colors"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-6 py-3 bg-primary text-primary-foreground rounded-lg hover:opacity-90 transition-opacity"
+                  >
+                    Guardar Cambios
                   </button>
                 </div>
               </form>

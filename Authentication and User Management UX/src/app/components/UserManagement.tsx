@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Leaf, Search, Plus, Edit, Trash2, Eye, FileText, LogOut, X, User, Mail, Phone, Upload } from 'lucide-react';
+import { Leaf, Search, Plus, Edit, Trash2, Eye, FileText, LogOut, X, User, Mail, Phone, Upload, CheckCircle, AlertCircle } from 'lucide-react';
 
 interface UserManagementProps {
   onLogout: () => void;
@@ -12,16 +12,17 @@ export function UserManagement({ onLogout }: UserManagementProps) {
   const [showModal, setShowModal] = useState(false);
   const [modalMode, setModalMode] = useState<'create' | 'edit' | 'view'>('create');
   const [selectedUser, setSelectedUser] = useState<any>(null);
-
-  const mockUsers = [
+  const [showStatusModal, setShowStatusModal] = useState(false);
+  const [userToChangeStatus, setUserToChangeStatus] = useState<any>(null);
+  const [usersList, setUsersList] = useState([
     { id: 1, name: 'María González', email: 'maria@email.com', phone: '+54 9 11 1234-5678', role: 'participante', status: 'Activo', courses: 3 },
     { id: 2, name: 'Juan Pérez', email: 'juan@email.com', phone: '+54 9 11 2345-6789', role: 'participante', status: 'Activo', courses: 5 },
     { id: 3, name: 'Ana Martínez', email: 'ana@email.com', phone: '+54 9 11 3456-7890', role: 'voluntario', status: 'Pendiente', courses: 0 },
     { id: 4, name: 'Carlos López', email: 'carlos@email.com', phone: '+54 9 11 4567-8901', role: 'docente', status: 'Activo', courses: 2 },
     { id: 5, name: 'Laura Rodríguez', email: 'laura@email.com', phone: '+54 9 11 5678-9012', role: 'participante', status: 'Activo', courses: 1 },
-  ];
+  ]);
 
-  const filteredUsers = mockUsers.filter(user => {
+  const filteredUsers = usersList.filter(user => {
     const matchesSearch = user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
                          user.email.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesRole = filterRole === 'all' || user.role === filterRole;
@@ -46,24 +47,37 @@ export function UserManagement({ onLogout }: UserManagementProps) {
     setShowModal(true);
   };
 
+  const handleChangeStatus = (user: any) => {
+    setUserToChangeStatus(user);
+    setShowStatusModal(true);
+  };
+
+  const updateUserStatus = (newStatus: string) => {
+    setUsersList(usersList.map(u => 
+      u.id === userToChangeStatus.id ? { ...u, status: newStatus } : u
+    ));
+    setShowStatusModal(false);
+    setUserToChangeStatus(null);
+  };
+
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
-      <header className="bg-card border-b border-border p-6">
+      <header className="bg-primary/90 text-white border-b-2 border-primary p-6">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <Link to="/dashboard" className="w-10 h-10 rounded-lg bg-primary flex items-center justify-center">
-              <Leaf className="w-6 h-6 text-primary-foreground" />
+            <Link to="/dashboard" className="w-10 h-10 rounded-lg bg-white/20 flex items-center justify-center">
+              <Leaf className="w-6 h-6 text-white" />
             </Link>
             <div>
-              <h1 className="text-2xl">Gestión de Usuarios</h1>
-              <p className="text-sm text-muted-foreground">Administra perfiles de participantes y usuarios</p>
+              <h1 className="text-2xl text-white">Gestión de Usuarios</h1>
+              <p className="text-sm text-white/70">Administra perfiles de participantes y usuarios</p>
             </div>
           </div>
           <div className="flex items-center gap-3">
             <Link
               to="/dashboard"
-              className="px-4 py-2 rounded-lg border border-border hover:bg-secondary transition-colors"
+              className="px-4 py-2 rounded-lg border border-white hover:bg-white/10 transition-colors text-white"
             >
               Volver
             </Link>
@@ -148,11 +162,20 @@ export function UserManagement({ onLogout }: UserManagementProps) {
                       </span>
                     </td>
                     <td className="p-4">
-                      <span className={`inline-flex px-3 py-1 rounded-full text-sm ${
-                        user.status === 'Activo' ? 'bg-[#66bb6a]/10 text-[#2d7a3e]' : 'bg-[#f59e0b]/10 text-[#d97706]'
-                      }`}>
-                        {user.status}
-                      </span>
+                      <div className="flex items-center gap-2">
+                        <span className={`inline-flex px-3 py-1 rounded-full text-sm ${
+                          user.status === 'Activo' ? 'bg-[#66bb6a]/10 text-[#2d7a3e]' : 'bg-[#f59e0b]/10 text-[#d97706]'
+                        }`}>
+                          {user.status}
+                        </span>
+                        <button
+                          onClick={() => handleChangeStatus(user)}
+                          className="p-1 rounded hover:bg-secondary transition-colors"
+                          title="Cambiar estado"
+                        >
+                          {user.status === 'Activo' ? <AlertCircle className="w-4 h-4 text-amber-600" /> : <CheckCircle className="w-4 h-4 text-green-600" />}
+                        </button>
+                      </div>
                     </td>
                     <td className="p-4 text-muted-foreground">{user.courses}</td>
                     <td className="p-4">
@@ -309,6 +332,58 @@ export function UserManagement({ onLogout }: UserManagementProps) {
                   </div>
                 )}
               </form>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Status Change Modal */}
+      {showStatusModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+          <div className="bg-card rounded-lg border border-border w-full max-w-sm">
+            <div className="border-b border-border p-6 flex items-center justify-between">
+              <h2 className="text-xl font-semibold">Cambiar Estado</h2>
+              <button
+                onClick={() => setShowStatusModal(false)}
+                className="p-2 rounded-lg hover:bg-secondary transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="p-6 space-y-4">
+              <p className="text-foreground">
+                Usuario: <strong>{userToChangeStatus?.name}</strong>
+              </p>
+              <p className="text-sm text-muted-foreground">
+                Estado actual: <strong>{userToChangeStatus?.status}</strong>
+              </p>
+
+              <div className="space-y-2 pt-4">
+                <button
+                  onClick={() => updateUserStatus('Activo')}
+                  className="w-full px-4 py-2 rounded-lg border border-green-600 text-green-600 hover:bg-green-50 transition-colors flex items-center justify-center gap-2"
+                >
+                  <CheckCircle className="w-4 h-4" />
+                  Activar Usuario
+                </button>
+                <button
+                  onClick={() => updateUserStatus('Pendiente')}
+                  className="w-full px-4 py-2 rounded-lg border border-amber-600 text-amber-600 hover:bg-amber-50 transition-colors flex items-center justify-center gap-2"
+                >
+                  <AlertCircle className="w-4 h-4" />
+                  Poner en Pendiente
+                </button>
+              </div>
+
+              <div className="flex justify-end gap-3 pt-4">
+                <button
+                  onClick={() => setShowStatusModal(false)}
+                  className="px-6 py-2 rounded-lg border border-border hover:bg-secondary transition-colors"
+                >
+                  Cancelar
+                </button>
+              </div>
             </div>
           </div>
         </div>

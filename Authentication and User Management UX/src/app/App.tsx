@@ -5,6 +5,7 @@ import { Login } from './components/Login';
 import { Register } from './components/Register';
 import { Dashboard } from './components/Dashboard';
 import { UserManagement } from './components/UserManagement';
+import { VolunteerUserManagement } from './components/VolunteerUserManagement';
 import { CourseCatalog } from './components/CourseCatalog';
 import { CourseDetail } from './components/CourseDetail';
 import { ProgressTracking } from './components/ProgressTracking';
@@ -14,6 +15,7 @@ import { PublicCampaigns } from './components/PublicCampaigns';
 import { ParticipantTracking } from './components/ParticipantTracking';
 import { CVGenerator } from './components/CVGenerator';
 import { CampaignManagement } from './components/CampaignManagement';
+import { LaborInsertion } from './components/LaborInsertion';
 
 export default function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -136,6 +138,26 @@ export default function App() {
           element={
             isAuthenticated && userRole === 'docente' ?
             <TeacherPortal onLogout={handleLogout} /> :
+            <Navigate to="/dashboard" />
+          }
+        />
+
+        {/* Labor Insertion */}
+        <Route
+          path="/insercion-laboral"
+          element={
+            isAuthenticated && (userRole === 'admin' || userRole === 'voluntario' || userRole === 'empresa') ?
+            <LaborInsertion userRole={userRole} onLogout={handleLogout} /> :
+            <Navigate to="/dashboard" />
+          }
+        />
+
+        {/* Volunteer User Management */}
+        <Route
+          path="/gestion-participantes"
+          element={
+            isAuthenticated && userRole === 'voluntario' ?
+            <VolunteerUserManagement onLogout={handleLogout} /> :
             <Navigate to="/dashboard" />
           }
         />
