@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import { Leaf, Briefcase, Megaphone, LogIn, Users, BookOpen, Heart, TrendingUp, Award, MapPin, Clock, Phone } from 'lucide-react';
-import logoImg from './logo.png';
+
+const logoImg = new URL('./logo.png', import.meta.url).href;
 
 export function LandingPage() {
   return (
@@ -135,7 +136,7 @@ export function LandingPage() {
             </p>
           </div>
 
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-8">
             <div className="text-center">
               <div className="text-5xl text-primary mb-2">248</div>
               <div className="text-muted-foreground">Participantes Activos</div>
@@ -147,10 +148,6 @@ export function LandingPage() {
             <div className="text-center">
               <div className="text-5xl text-primary mb-2">32</div>
               <div className="text-muted-foreground">Voluntarios</div>
-            </div>
-            <div className="text-center">
-              <div className="text-5xl text-primary mb-2">85%</div>
-              <div className="text-muted-foreground">Tasa de Éxito</div>
             </div>
           </div>
         </div>
@@ -324,7 +321,7 @@ export function LandingPage() {
                   </p>
                   <div className="flex items-center justify-between text-xs text-muted-foreground mb-4">
                     <span>📚 Gastronomía</span>
-                    <span>⭐ 4.8/5</span>
+                    
                   </div>
                   <button className="px-4 py-2 rounded-lg border border-border hover:bg-secondary transition-colors w-full text-sm font-medium">
                     Descargar Material
@@ -348,7 +345,7 @@ export function LandingPage() {
                   </p>
                   <div className="flex items-center justify-between text-xs text-muted-foreground mb-4">
                     <span>🌱 Ecología</span>
-                    <span>⭐ 4.9/5</span>
+                    
                   </div>
                   <button className="px-4 py-2 rounded-lg border border-border hover:bg-secondary transition-colors w-full text-sm font-medium">
                     Descargar Material
@@ -372,7 +369,7 @@ export function LandingPage() {
                   </p>
                   <div className="flex items-center justify-between text-xs text-muted-foreground mb-4">
                     <span>💻 Tecnología</span>
-                    <span>⭐ 4.7/5</span>
+                    
                   </div>
                   <button className="px-4 py-2 rounded-lg border border-border hover:bg-secondary transition-colors w-full text-sm font-medium">
                     Ver Vídeo
@@ -396,7 +393,7 @@ export function LandingPage() {
                   </p>
                   <div className="flex items-center justify-between text-xs text-muted-foreground mb-4">
                     <span>👗 Arte y Diseño</span>
-                    <span>⭐ 4.8/5</span>
+                    
                   </div>
                   <button className="px-4 py-2 rounded-lg border border-border hover:bg-secondary transition-colors w-full text-sm font-medium">
                     Descargar Material
@@ -420,7 +417,7 @@ export function LandingPage() {
                   </p>
                   <div className="flex items-center justify-between text-xs text-muted-foreground mb-4">
                     <span>💼 Negocios</span>
-                    <span>⭐ 4.6/5</span>
+                   
                   </div>
                   <button className="px-4 py-2 rounded-lg border border-border hover:bg-secondary transition-colors w-full text-sm font-medium">
                     Descargar Material
@@ -444,7 +441,7 @@ export function LandingPage() {
                   </p>
                   <div className="flex items-center justify-between text-xs text-muted-foreground mb-4">
                     <span>🥗 Salud</span>
-                    <span>⭐ 4.9/5</span>
+                   
                   </div>
                   <button className="px-4 py-2 rounded-lg border border-border hover:bg-secondary transition-colors w-full text-sm font-medium">
                     Ver Vídeo
@@ -583,13 +580,6 @@ export function LandingPage() {
                 <Heart className="w-5 h-5" />
                 Donar ahora
               </button>
-              <Link
-                to="/register?role=empresa"
-                className="px-12 py-4 bg-primary text-primary-foreground rounded-lg hover:opacity-90 transition-opacity text-lg flex items-center gap-3"
-              >
-                <Briefcase className="w-5 h-5" />
-                Ofrecer Empleo
-              </Link>
             </div>
 
             <p className="text-sm text-muted-foreground mt-4">
