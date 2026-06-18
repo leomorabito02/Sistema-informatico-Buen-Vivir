@@ -1,6 +1,10 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Leaf, Search, Plus, BookOpen, Clock, Users, LogOut, Filter, X, User as UserIcon, FileText, Upload, Edit, AlertCircle } from 'lucide-react';
+import { Button } from 'primereact/button';
+import { InputText } from 'primereact/inputtext';
+import { Dropdown } from 'primereact/dropdown';
+import { InputTextarea } from 'primereact/inputtextarea';
 
 interface CourseCatalogProps {
   userRole: 'admin' | 'participante' | 'voluntario' | 'empresa' | 'docente';
@@ -185,7 +189,7 @@ export function CourseCatalog({ userRole, onLogout }: CourseCatalogProps) {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
             <Link to="/dashboard" className="w-10 h-10 rounded-lg bg-white/20 flex items-center justify-center">
-              <Leaf className="w-6 h-6 text-white" />
+              <img src="/logo.png" alt="Buen Vivir" className="w-8 h-8 object-contain" />
             </Link>
             <div>
               <h1 className="text-2xl text-white">Catálogo de Cursos</h1>
@@ -199,13 +203,12 @@ export function CourseCatalog({ userRole, onLogout }: CourseCatalogProps) {
             >
               Volver
             </Link>
-            <button
+            <Button
               onClick={onLogout}
-              className="px-4 py-2 rounded-lg bg-destructive text-destructive-foreground hover:opacity-90 transition-opacity flex items-center gap-2"
-            >
-              <LogOut className="w-4 h-4" />
-              Salir
-            </button>
+              icon={<LogOut className="w-4 h-4 mr-2" />}
+              label="Salir"
+              className="px-4 py-2 bg-destructive text-destructive-foreground hover:opacity-90 transition-opacity border-none"
+            />
           </div>
         </div>
       </header>
@@ -215,34 +218,28 @@ export function CourseCatalog({ userRole, onLogout }: CourseCatalogProps) {
         {/* Search and Filters */}
         <div className="bg-card rounded-lg border border-border p-6 mb-6">
           <div className="flex flex-col lg:flex-row gap-4">
-            <div className="flex-1 relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-              <input
-                type="text"
+            <div className="flex-1 relative p-input-icon-left">
+              <i className="pi pi-search z-10 text-muted-foreground" />
+              <InputText
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-10 pr-4 py-3 rounded-lg border border-border bg-input-background focus:outline-none focus:ring-2 focus:ring-primary"
+                className="w-full pl-10 pr-4 py-3"
                 placeholder="Buscar cursos por nombre o descripción..."
               />
             </div>
-            <select
+            <Dropdown
               value={filterArea}
-              onChange={(e) => setFilterArea(e.target.value)}
-              className="px-4 py-3 rounded-lg border border-border bg-input-background focus:outline-none focus:ring-2 focus:ring-primary"
-            >
-              <option value="all">Todas las áreas</option>
-              {areas.map(area => (
-                <option key={area} value={area}>{area}</option>
-              ))}
-            </select>
+              options={[{label: 'Todas las áreas', value: 'all'}, ...areas.map(a => ({label: a, value: a}))]}
+              onChange={(e) => setFilterArea(e.value)}
+              className="w-full md:w-auto"
+            />
             {userRole === 'admin' && (
-              <button
+              <Button
                 onClick={() => setShowCreateModal(true)}
-                className="px-6 py-3 bg-primary text-primary-foreground rounded-lg hover:opacity-90 transition-opacity flex items-center gap-2 whitespace-nowrap"
-              >
-                <Plus className="w-5 h-5" />
-                Nuevo Curso
-              </button>
+                icon={<Plus className="w-5 h-5 mr-2" />}
+                label="Nuevo Curso"
+                className="px-6 py-3 bg-primary text-primary-foreground border-none whitespace-nowrap"
+              />
             )}
           </div>
         </div>
@@ -302,16 +299,16 @@ export function CourseCatalog({ userRole, onLogout }: CourseCatalogProps) {
               
               {/* Edit Button - visible for admin and voluntario */}
               {(userRole === 'admin' || userRole === 'voluntario') && (
-                <button
-                  onClick={() => {
-                    setSelectedCourseForEdit(course);
-                    setShowEditModal(true);
-                  }}
-                  className="absolute top-3 right-3 p-2 bg-white/90 rounded-lg hover:bg-white shadow-md transition-all opacity-0 group-hover:opacity-100"
-                  title="Editar curso"
-                >
-                  <Edit className="w-4 h-4 text-primary" />
-                </button>
+                  <Button
+                    onClick={(e) => {
+                      e.preventDefault();
+                      setSelectedCourseForEdit(course);
+                      setShowEditModal(true);
+                    }}
+                    icon={<Edit className="w-4 h-4 text-primary" />}
+                    className="absolute top-3 right-3 p-button-rounded p-button-text bg-white/90 hover:bg-white shadow-md opacity-0 group-hover:opacity-100 transition-all"
+                    tooltip="Editar curso"
+                  />
               )}
             </div>
           ))}
@@ -336,17 +333,16 @@ export function CourseCatalog({ userRole, onLogout }: CourseCatalogProps) {
               <form className="space-y-4">
                 <div>
                   <label className="block mb-2">Título del Curso</label>
-                  <input
-                    type="text"
-                    className="w-full px-4 py-3 rounded-lg border border-border bg-input-background focus:outline-none focus:ring-2 focus:ring-primary"
+                  <InputText
+                    className="w-full"
                     placeholder="Ej: Panadería Artesanal"
                   />
                 </div>
 
                 <div>
                   <label className="block mb-2">Descripción</label>
-                  <textarea
-                    className="w-full px-4 py-3 rounded-lg border border-border bg-input-background focus:outline-none focus:ring-2 focus:ring-primary min-h-[100px]"
+                  <InputTextarea
+                    className="w-full resize-none min-h-[100px]"
                     placeholder="Describe el contenido y objetivos del curso..."
                   />
                 </div>
@@ -354,38 +350,35 @@ export function CourseCatalog({ userRole, onLogout }: CourseCatalogProps) {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className="block mb-2">Área Formativa</label>
-                    <select className="w-full px-4 py-3 rounded-lg border border-border bg-input-background focus:outline-none focus:ring-2 focus:ring-primary">
-                      <option value="">Seleccionar área</option>
-                      {areas.map(area => (
-                        <option key={area} value={area}>{area}</option>
-                      ))}
-                    </select>
+                    <Dropdown options={areas.map(a => ({label: a, value: a}))} placeholder="Seleccionar área" className="w-full" />
                   </div>
 
                   <div>
                     <label className="block mb-2">Docente Responsable</label>
-                    <select className="w-full px-4 py-3 rounded-lg border border-border bg-input-background focus:outline-none focus:ring-2 focus:ring-primary">
-                      <option value="">Seleccionar docente</option>
-                      <option value="1">María Rodríguez</option>
-                      <option value="2">Carlos Mendoza</option>
-                      <option value="3">Ana López</option>
-                    </select>
+                    <Dropdown 
+                      options={[
+                        {label: 'María Rodríguez', value: '1'},
+                        {label: 'Carlos Mendoza', value: '2'},
+                        {label: 'Ana López', value: '3'}
+                      ]} 
+                      placeholder="Seleccionar docente" 
+                      className="w-full" 
+                    />
                   </div>
 
                   <div>
                     <label className="block mb-2">Duración</label>
-                    <input
-                      type="text"
-                      className="w-full px-4 py-3 rounded-lg border border-border bg-input-background focus:outline-none focus:ring-2 focus:ring-primary"
+                    <InputText
+                      className="w-full"
                       placeholder="Ej: 8 semanas"
                     />
                   </div>
 
                   <div>
                     <label className="block mb-2">Cupos Máximos</label>
-                    <input
+                    <InputText
                       type="number"
-                      className="w-full px-4 py-3 rounded-lg border border-border bg-input-background focus:outline-none focus:ring-2 focus:ring-primary"
+                      className="w-full"
                       placeholder="30"
                     />
                   </div>
@@ -408,19 +401,17 @@ export function CourseCatalog({ userRole, onLogout }: CourseCatalogProps) {
                 </div>
 
                 <div className="flex justify-end gap-3 pt-4">
-                  <button
+                  <Button
                     type="button"
                     onClick={() => setShowCreateModal(false)}
-                    className="px-6 py-3 rounded-lg border border-border hover:bg-secondary transition-colors"
-                  >
-                    Cancelar
-                  </button>
-                  <button
+                    label="Cancelar"
+                    className="p-button-outlined p-button-secondary"
+                  />
+                  <Button
                     type="submit"
-                    className="px-6 py-3 bg-primary text-primary-foreground rounded-lg hover:opacity-90 transition-opacity"
-                  >
-                    Crear Curso
-                  </button>
+                    label="Crear Curso"
+                    className="bg-primary text-primary-foreground border-none"
+                  />
                 </div>
               </form>
             </div>
@@ -446,19 +437,18 @@ export function CourseCatalog({ userRole, onLogout }: CourseCatalogProps) {
               <form className="space-y-4">
                 <div>
                   <label className="block mb-2">Título del Curso</label>
-                  <input
-                    type="text"
+                  <InputText
                     defaultValue={selectedCourseForEdit.title}
-                    className="w-full px-4 py-3 rounded-lg border border-border bg-input-background focus:outline-none focus:ring-2 focus:ring-primary"
+                    className="w-full"
                     placeholder="Ej: Panadería Artesanal"
                   />
                 </div>
 
                 <div>
                   <label className="block mb-2">Descripción</label>
-                  <textarea
+                  <InputTextarea
                     defaultValue={selectedCourseForEdit.description}
-                    className="w-full px-4 py-3 rounded-lg border border-border bg-input-background focus:outline-none focus:ring-2 focus:ring-primary min-h-[100px]"
+                    className="w-full resize-none min-h-[100px]"
                     placeholder="Describe el contenido y objetivos del curso..."
                   />
                 </div>
@@ -466,40 +456,43 @@ export function CourseCatalog({ userRole, onLogout }: CourseCatalogProps) {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className="block mb-2">Área Formativa</label>
-                    <select defaultValue={selectedCourseForEdit.area} className="w-full px-4 py-3 rounded-lg border border-border bg-input-background focus:outline-none focus:ring-2 focus:ring-primary">
-                      <option value="">Seleccionar área</option>
-                      {areas.map(area => (
-                        <option key={area} value={area}>{area}</option>
-                      ))}
-                    </select>
+                    <Dropdown 
+                      value={selectedCourseForEdit.area}
+                      options={areas.map(a => ({label: a, value: a}))} 
+                      placeholder="Seleccionar área" 
+                      className="w-full" 
+                    />
                   </div>
 
                   <div>
                     <label className="block mb-2">Docente Responsable</label>
-                    <select defaultValue={selectedCourseForEdit.teacher} className="w-full px-4 py-3 rounded-lg border border-border bg-input-background focus:outline-none focus:ring-2 focus:ring-primary">
-                      <option value="">Seleccionar docente</option>
-                      <option value="María Rodríguez">María Rodríguez</option>
-                      <option value="Carlos Mendoza">Carlos Mendoza</option>
-                      <option value="Ana López">Ana López</option>
-                    </select>
+                    <Dropdown 
+                      value={selectedCourseForEdit.teacher}
+                      options={[
+                        {label: 'María Rodríguez', value: 'María Rodríguez'},
+                        {label: 'Carlos Mendoza', value: 'Carlos Mendoza'},
+                        {label: 'Ana López', value: 'Ana López'}
+                      ]} 
+                      placeholder="Seleccionar docente" 
+                      className="w-full" 
+                    />
                   </div>
 
                   <div>
                     <label className="block mb-2">Duración</label>
-                    <input
-                      type="text"
+                    <InputText
                       defaultValue={selectedCourseForEdit.duration}
-                      className="w-full px-4 py-3 rounded-lg border border-border bg-input-background focus:outline-none focus:ring-2 focus:ring-primary"
+                      className="w-full"
                       placeholder="Ej: 8 semanas"
                     />
                   </div>
 
                   <div>
                     <label className="block mb-2">Cupos Máximos</label>
-                    <input
+                    <InputText
                       type="number"
                       defaultValue={selectedCourseForEdit.maxStudents}
-                      className="w-full px-4 py-3 rounded-lg border border-border bg-input-background focus:outline-none focus:ring-2 focus:ring-primary"
+                      className="w-full"
                       placeholder="30"
                     />
                   </div>
@@ -516,19 +509,17 @@ export function CourseCatalog({ userRole, onLogout }: CourseCatalogProps) {
                 </div>
 
                 <div className="flex justify-end gap-3 pt-4">
-                  <button
+                  <Button
                     type="button"
                     onClick={() => setShowEditModal(false)}
-                    className="px-6 py-3 rounded-lg border border-border hover:bg-secondary transition-colors"
-                  >
-                    Cancelar
-                  </button>
-                  <button
+                    label="Cancelar"
+                    className="p-button-outlined p-button-secondary"
+                  />
+                  <Button
                     type="submit"
-                    className="px-6 py-3 bg-primary text-primary-foreground rounded-lg hover:opacity-90 transition-opacity"
-                  >
-                    Guardar Cambios
-                  </button>
+                    label="Guardar Cambios"
+                    className="bg-primary text-primary-foreground border-none"
+                  />
                 </div>
               </form>
             </div>

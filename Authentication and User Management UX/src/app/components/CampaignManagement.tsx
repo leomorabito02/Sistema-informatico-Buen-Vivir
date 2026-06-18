@@ -99,7 +99,7 @@ export function CampaignManagement({ userRole, onLogout }: CampaignManagementPro
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
             <Link to="/dashboard" className="w-10 h-10 rounded-lg bg-white/20 flex items-center justify-center">
-              <Leaf className="w-6 h-6 text-white" />
+              <img src="/logo.png" alt="Buen Vivir" className="w-8 h-8 object-contain" />
             </Link>
             <div>
               <h1 className="text-2xl text-white">Gestión de Campañas</h1>
