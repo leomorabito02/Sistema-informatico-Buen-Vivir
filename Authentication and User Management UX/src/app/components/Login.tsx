@@ -1,6 +1,10 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Mail, Lock, Eye, EyeOff, Leaf, Shield } from 'lucide-react';
+import { InputText } from 'primereact/inputtext';
+import { Password } from 'primereact/password';
+import { Dropdown } from 'primereact/dropdown';
+import { Button } from 'primereact/button';
 
 interface LoginProps {
   onLogin: (role: 'admin' | 'participante' | 'voluntario' | 'empresa' | 'docente') => void;
@@ -34,8 +38,8 @@ export function Login({ onLogin }: LoginProps) {
         <div className="w-full max-w-md">
           {/* Logo and Title */}
           <div className="text-center mb-8">
-            <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-primary mb-4">
-              <Leaf className="w-8 h-8 text-primary-foreground" />
+            <div className="w-24 h-24 mx-auto rounded-full overflow-hidden bg-primary flex items-center justify-center mb-4 shadow-md">
+              <img src="/logo.png" alt="Buen Vivir" className="w-full h-full object-cover" />
             </div>
             <h1 className="text-3xl mb-2">Buen Vivir</h1>
             <p className="text-muted-foreground">
@@ -52,28 +56,29 @@ export function Login({ onLogin }: LoginProps) {
                 <>
                   <div>
                     <label className="block mb-2">Tipo de Usuario (Demo)</label>
-                    <select
+                    <Dropdown
                       value={selectedRole}
-                      onChange={(e) => setSelectedRole(e.target.value as any)}
-                      className="w-full px-4 py-3 rounded-lg border border-border bg-input-background focus:outline-none focus:ring-2 focus:ring-primary"
-                    >
-                      <option value="admin">Responsable (ve todo)</option>
-                      <option value="voluntario">Voluntario (seguimiento y campañas)</option>
-                      <option value="participante">Participante (cursos y CV)</option>
-                      <option value="docente">Docente (subir contenido)</option>
-                      <option value="empresa">Empresa</option>
-                    </select>
+                      options={[
+                        { label: 'Responsable (ve todo)', value: 'admin' },
+                        { label: 'Voluntario (seguimiento y campañas)', value: 'voluntario' },
+                        { label: 'Participante (cursos y CV)', value: 'participante' },
+                        { label: 'Docente (subir contenido)', value: 'docente' },
+                        { label: 'Empresa', value: 'empresa' }
+                      ]}
+                      onChange={(e) => setSelectedRole(e.value)}
+                      className="w-full border border-border rounded-md flex items-center"
+                      pt={{ input: { className: 'py-3 px-4' } }}
+                    />
                   </div>
 
                   <div>
                     <label className="block mb-2">Email o Usuario</label>
                     <div className="relative">
-                      <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-                      <input
-                        type="text"
+                      <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground z-10" />
+                      <InputText
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
-                        className="w-full pl-10 pr-4 py-3 rounded-lg border border-border bg-input-background focus:outline-none focus:ring-2 focus:ring-primary"
+                        className="w-full pl-10 pr-4 py-3 border border-border rounded-md"
                         placeholder="tu@email.com"
                         required
                       />
@@ -83,22 +88,17 @@ export function Login({ onLogin }: LoginProps) {
                   <div>
                     <label className="block mb-2">Contraseña</label>
                     <div className="relative">
-                      <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-                      <input
-                        type={showPassword ? 'text' : 'password'}
+                      <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground z-10" />
+                      <Password
                         value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        className="w-full pl-10 pr-12 py-3 rounded-lg border border-border bg-input-background focus:outline-none focus:ring-2 focus:ring-primary"
+                        onChange={(e: any) => setPassword(e.target.value)}
+                        toggleMask
+                        className="w-full"
+                        inputClassName="w-full pl-10 pr-12 py-3 border border-border rounded-md bg-transparent"
                         placeholder="••••••••"
                         required
+                        feedback={false}
                       />
-                      <button
-                        type="button"
-                        onClick={() => setShowPassword(!showPassword)}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                      >
-                        {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-                      </button>
                     </div>
                   </div>
 
@@ -112,12 +112,11 @@ export function Login({ onLogin }: LoginProps) {
                     </a>
                   </div>
 
-                  <button
+                  <Button
                     type="submit"
-                    className="w-full py-3 bg-primary text-primary-foreground rounded-lg hover:opacity-90 transition-opacity"
-                  >
-                    Continuar
-                  </button>
+                    label="Continuar"
+                    className="w-full py-3 bg-primary text-primary-foreground hover:opacity-90 transition-opacity border-none"
+                  />
                 </>
               ) : (
                 <>
@@ -133,31 +132,28 @@ export function Login({ onLogin }: LoginProps) {
 
                   <div>
                     <label className="block mb-2">Código 2FA</label>
-                    <input
-                      type="text"
+                    <InputText
                       value={twoFactorCode}
                       onChange={(e) => setTwoFactorCode(e.target.value)}
-                      className="w-full px-4 py-3 rounded-lg border border-border bg-input-background focus:outline-none focus:ring-2 focus:ring-primary text-center text-2xl tracking-widest"
+                      className="w-full px-4 py-3 text-center text-2xl tracking-widest border border-border rounded-md"
                       placeholder="000000"
                       maxLength={6}
                       required
                     />
                   </div>
 
-                  <button
+                  <Button
                     type="submit"
-                    className="w-full py-3 bg-primary text-primary-foreground rounded-lg hover:opacity-90 transition-opacity"
-                  >
-                    Verificar e Ingresar
-                  </button>
+                    label="Verificar e Ingresar"
+                    className="w-full py-3 bg-primary text-primary-foreground hover:opacity-90 transition-opacity border-none"
+                  />
 
-                  <button
+                  <Button
                     type="button"
                     onClick={() => setShow2FA(false)}
-                    className="w-full py-2 text-primary hover:underline"
-                  >
-                    Volver
-                  </button>
+                    label="Volver"
+                    className="p-button-text w-full py-2 text-primary"
+                  />
                 </>
               )}
             </form>
@@ -173,11 +169,11 @@ export function Login({ onLogin }: LoginProps) {
                   </div>
                 </div>
 
-                <button
+                <Button
                   onClick={handleGoogleLogin}
-                  className="w-full py-3 border border-border rounded-lg hover:bg-secondary transition-colors flex items-center justify-center gap-3"
+                  className="w-full py-3 border border-border rounded-lg hover:bg-secondary transition-colors flex items-center justify-center gap-3 bg-transparent text-foreground p-button-outlined"
                 >
-                  <svg className="w-5 h-5" viewBox="0 0 24 24">
+                  <svg className="w-5 h-5 mr-2" viewBox="0 0 24 24">
                     <path
                       fill="#4285F4"
                       d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
@@ -196,7 +192,7 @@ export function Login({ onLogin }: LoginProps) {
                     />
                   </svg>
                   Google
-                </button>
+                </Button>
               </>
             )}
           </div>

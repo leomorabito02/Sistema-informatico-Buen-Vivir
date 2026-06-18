@@ -57,7 +57,7 @@ export function PublicJobOffers() {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
               <Link to="/" className="w-10 h-10 rounded-lg bg-primary flex items-center justify-center">
-                <Leaf className="w-6 h-6 text-primary-foreground" />
+                <img src="/logo.png" alt="Buen Vivir" className="w-8 h-8 object-contain" />
               </Link>
               <div>
                 <h1 className="text-2xl">Ofertas Laborales</h1>

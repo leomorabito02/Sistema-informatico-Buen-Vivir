@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Leaf, LogOut, Upload, BookOpen, FileText, Users, BarChart3, CheckCircle, Clock, X, Download } from 'lucide-react';
+import { Dropdown } from 'primereact/dropdown';
 
 interface TeacherPortalProps {
   onLogout: () => void;
@@ -72,7 +73,7 @@ export function TeacherPortal({ onLogout }: TeacherPortalProps) {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
             <Link to="/dashboard" className="w-10 h-10 rounded-lg bg-primary flex items-center justify-center">
-              <Leaf className="w-6 h-6 text-primary-foreground" />
+              <img src="/logo.png" alt="Buen Vivir" className="w-8 h-8 object-contain" />
             </Link>
             <div>
               <h1 className="text-2xl">Portal Docente</h1>
@@ -241,12 +242,14 @@ export function TeacherPortal({ onLogout }: TeacherPortalProps) {
 
                 <div>
                   <label className="block mb-2">Curso Asociado</label>
-                  <select className="w-full px-4 py-3 rounded-lg border border-border bg-input-background focus:outline-none focus:ring-2 focus:ring-primary">
-                    <option value="">Seleccionar curso</option>
-                    {myCourses.map(course => (
-                      <option key={course.id} value={course.id}>{course.title}</option>
-                    ))}
-                  </select>
+                  <Dropdown 
+                    options={[
+                      {label: 'Panadería Artesanal', value: '1'},
+                      {label: 'Costura y Diseño', value: '2'}
+                    ]}
+                    placeholder="Seleccione el curso"
+                    className="w-full"
+                  />
                 </div>
 
                 <div>

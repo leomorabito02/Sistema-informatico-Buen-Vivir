@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 import { Leaf, Briefcase, Megaphone, LogIn, Users, BookOpen, Heart, TrendingUp, Award, MapPin, Clock, Phone } from 'lucide-react';
+import { Button } from 'primereact/button';
 
 const logoImg = new URL('./logo.png', import.meta.url).href;
 
@@ -16,32 +17,18 @@ export function LandingPage() {
         <nav className="relative border-b border-white/10 backdrop-blur-sm">
           <div className="container mx-auto px-6 py-4 flex items-center justify-between">
             <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-white/20 flex items-center justify-center overflow-hidden">
-  <img src={logoImg} alt="Logo Buen Vivir" className="w-8 h-8 object-contain" />
-</div>
+              <div className="w-10 h-10 rounded-lg bg-white/20 flex items-center justify-center overflow-hidden">
+                <img src="/logo.png" alt="Logo Buen Vivir" className="w-10 h-10 object-contain" />
+              </div>
               <span className="text-xl">Buen Vivir</span>
             </div>
             <div className="flex items-center gap-3">
-              <a
-                href="#donar"
-                className="px-5 py-2 bg-white/15 border border-white/50 text-white rounded-lg hover:bg-white/25 transition-colors flex items-center gap-2"
-              >
-                <Heart className="w-4 h-4" />
-                Donar
-              </a>
-              <Link
-                to="/register?role=empresa"
-                className="px-5 py-2 bg-white/15 border border-white/50 text-white rounded-lg hover:bg-white/25 transition-colors flex items-center gap-2"
-              >
-                <Briefcase className="w-4 h-4" />
-                Ofrecer Empleo
+
+              <Link to="/register?role=empresa">
+                <Button label="Ofrecer Empleo" icon={<Briefcase className="w-4 h-4 mr-2" />} className="p-button-outlined text-white border-white/50 hover:bg-white/25" />
               </Link>
-              <Link
-                to="/login"
-                className="px-6 py-2 bg-white text-primary rounded-lg hover:bg-white/90 transition-colors flex items-center gap-2"
-              >
-                <LogIn className="w-4 h-4" />
-                Iniciar Sesión
+              <Link to="/login">
+                <Button label="Iniciar Sesión" icon={<LogIn className="w-4 h-4 mr-2" />} className="bg-white text-primary border-none hover:bg-white/90" />
               </Link>
             </div>
           </div>
@@ -60,12 +47,8 @@ export function LandingPage() {
               Transformamos vidas a través de la educación, el trabajo digno y el desarrollo personal.
             </p>
             <div className="flex flex-wrap gap-4">  
-              <Link
-                to="/campanas-publico"
-                className="px-8 py-4 bg-white/10 border-2 border-white rounded-lg hover:bg-white/20 transition-colors flex items-center gap-2 text-lg backdrop-blur-sm"
-              >
-                <Megaphone className="w-5 h-5" />
-                Campañas y Concientización
+              <Link to="/campanas-publico">
+                <Button label="Campañas y Concientización" icon={<Megaphone className="w-5 h-5 mr-2" />} className="p-button-outlined border-2 border-white text-white hover:bg-white/20 backdrop-blur-sm text-lg py-3 px-6" />
               </Link>
             </div>
           </div>
@@ -323,9 +306,7 @@ export function LandingPage() {
                     <span>📚 Gastronomía</span>
                     
                   </div>
-                  <button className="px-4 py-2 rounded-lg border border-border hover:bg-secondary transition-colors w-full text-sm font-medium">
-                    Descargar Material
-                  </button>
+                  <Button label="Descargar Material" className="w-full p-button-outlined" />
                 </div>
               </div>
 
@@ -347,9 +328,7 @@ export function LandingPage() {
                     <span>🌱 Ecología</span>
                     
                   </div>
-                  <button className="px-4 py-2 rounded-lg border border-border hover:bg-secondary transition-colors w-full text-sm font-medium">
-                    Descargar Material
-                  </button>
+                  <Button label="Descargar Material" className="w-full p-button-outlined" />
                 </div>
               </div>
 
@@ -371,9 +350,7 @@ export function LandingPage() {
                     <span>💻 Tecnología</span>
                     
                   </div>
-                  <button className="px-4 py-2 rounded-lg border border-border hover:bg-secondary transition-colors w-full text-sm font-medium">
-                    Ver Vídeo
-                  </button>
+                  <Button label="Ver Vídeo" className="w-full p-button-outlined" />
                 </div>
               </div>
 
@@ -395,9 +372,7 @@ export function LandingPage() {
                     <span>👗 Arte y Diseño</span>
                     
                   </div>
-                  <button className="px-4 py-2 rounded-lg border border-border hover:bg-secondary transition-colors w-full text-sm font-medium">
-                    Descargar Material
-                  </button>
+                  <Button label="Descargar Material" className="w-full p-button-outlined" />
                 </div>
               </div>
 
@@ -419,9 +394,7 @@ export function LandingPage() {
                     <span>💼 Negocios</span>
                    
                   </div>
-                  <button className="px-4 py-2 rounded-lg border border-border hover:bg-secondary transition-colors w-full text-sm font-medium">
-                    Descargar Material
-                  </button>
+                  <Button label="Descargar Material" className="w-full p-button-outlined" />
                 </div>
               </div>
 
@@ -443,9 +416,7 @@ export function LandingPage() {
                     <span>🥗 Salud</span>
                    
                   </div>
-                  <button className="px-4 py-2 rounded-lg border border-border hover:bg-secondary transition-colors w-full text-sm font-medium">
-                    Ver Vídeo
-                  </button>
+                  <Button label="Ver Vídeo" className="w-full p-button-outlined" />
                 </div>
               </div>
             </div>
@@ -459,17 +430,11 @@ export function LandingPage() {
               Si querés ofrecer trabajo, pasantías o voluntariado para ayudar a transformar vidas, ¡te necesitamos!
             </p>
             <div className="flex flex-wrap gap-4 justify-center">
-              <Link
-                to="/register?role=voluntario"
-                className="px-8 py-3 bg-primary text-primary-foreground rounded-lg hover:opacity-90 transition-opacity font-medium"
-              >
-                Sumate como Voluntario
+              <Link to="/register?role=voluntario">
+                <Button label="Sumate como Voluntario" className="bg-primary text-primary-foreground border-none hover:opacity-90 px-8 py-3" />
               </Link>
-              <Link
-                to="/register?role=empresa"
-                className="px-8 py-3 border-2 border-primary text-primary rounded-lg hover:bg-primary/5 transition-colors font-medium"
-              >
-                Ofrecer Trabajo o Pasantía
+              <Link to="/register?role=empresa">
+                <Button label="Ofrecer Trabajo o Pasantía" className="p-button-outlined text-primary border-2 border-primary hover:bg-primary/5 px-8 py-3" />
               </Link>
             </div>
           </div>
@@ -551,43 +516,6 @@ export function LandingPage() {
         </div>
       </section>
 
-      {/* ── NUEVA: Sección de Donación ── */}
-      <section id="donar" className="py-20 bg-card">
-        <div className="container mx-auto px-6">
-          <div className="max-w-2xl mx-auto text-center">
-            <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-6">
-              <Heart className="w-8 h-8 text-primary" />
-            </div>
-            <h2 className="text-4xl mb-4">Apoyá nuestro trabajo</h2>
-            <p className="text-xl text-muted-foreground mb-10">
-              Tu donación nos permite seguir acompañando a personas en situación de vulnerabilidad.
-              Cada aporte, por pequeño que sea, transforma vidas.
-            </p>
-
-            <div className="flex flex-wrap gap-3 justify-center mb-6">
-              {['$500', '$1.000', '$2.000', 'Otro monto'].map((monto) => (
-                <button
-                  key={monto}
-                  className="px-6 py-3 rounded-lg border border-border hover:border-primary hover:bg-primary/5 transition-colors"
-                >
-                  {monto}
-                </button>
-              ))}
-            </div>
-
-            <div className="flex flex-wrap gap-4 justify-center">
-              <button className="px-12 py-4 bg-primary text-primary-foreground rounded-lg hover:opacity-90 transition-opacity text-lg flex items-center gap-3">
-                <Heart className="w-5 h-5" />
-                Donar ahora
-              </button>
-            </div>
-
-            <p className="text-sm text-muted-foreground mt-4">
-              Procesamos donaciones de forma segura. Podés cancelar cuando quieras.
-            </p>
-          </div>
-        </div>
-      </section>
 
       {/* Footer */}
       <footer className="bg-card border-t border-border py-12">
@@ -596,7 +524,7 @@ export function LandingPage() {
             <div>
               <div className="flex items-center gap-3 mb-4">
                 <div className="w-10 h-10 rounded-lg bg-primary flex items-center justify-center">
-                  <Leaf className="w-6 h-6 text-primary-foreground" />
+                  <img src="/logo.png" alt="Buen Vivir" className="w-8 h-8 object-contain" />
                 </div>
                 <span className="text-xl">Buen Vivir</span>
               </div>
@@ -615,9 +543,7 @@ export function LandingPage() {
                 <Link to="/campanas-publico" className="block text-muted-foreground hover:text-primary">
                   Campañas
                 </Link>
-                <a href="#donar" className="block text-muted-foreground hover:text-primary">
-                  Donar
-                </a>
+
                 <Link to="/login" className="block text-muted-foreground hover:text-primary">
                   Iniciar Sesión
                 </Link>

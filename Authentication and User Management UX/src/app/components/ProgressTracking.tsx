@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import { useState } from 'react';
 import { Leaf, LogOut, BookOpen, Award, TrendingUp, Sparkles, Download, Calendar, X } from 'lucide-react';
+import { Button } from 'primereact/button';
 
 interface ProgressTrackingProps {
   userRole: 'admin' | 'participante' | 'voluntario' | 'empresa' | 'docente';
@@ -116,7 +117,7 @@ export function ProgressTracking({ userRole, onLogout }: ProgressTrackingProps) 
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
             <Link to="/dashboard" className="w-10 h-10 rounded-lg bg-primary flex items-center justify-center">
-              <Leaf className="w-6 h-6 text-primary-foreground" />
+              <img src="/logo.png" alt="Buen Vivir" className="w-8 h-8 object-contain" />
             </Link>
             <div>
               <h1 className="text-2xl">Mi Progreso</h1>
@@ -271,10 +272,7 @@ export function ProgressTracking({ userRole, onLogout }: ProgressTrackingProps) 
                           </p>
                         </div>
                       </div>
-                      <button className="px-4 py-2 rounded-lg border border-border hover:bg-secondary transition-colors flex items-center gap-2">
-                        <Download className="w-4 h-4" />
-                        Descargar
-                      </button>
+                      <Button icon={<Download className="w-4 h-4 mr-2" />} label="Exportar" className="p-button-outlined p-button-secondary bg-transparent text-foreground border-border hover:bg-secondary" />
                     </div>
                   </div>
                 ))}

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Leaf, Search, Calendar, ArrowLeft, Megaphone } from 'lucide-react';
+import { Button } from 'primereact/button';
 
 export function PublicCampaigns() {
   const [searchQuery, setSearchQuery] = useState('');
@@ -58,7 +59,7 @@ export function PublicCampaigns() {
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-4">
               <Link to="/" className="w-12 h-12 rounded-lg bg-white flex items-center justify-center">
-                <Leaf className="w-8 h-8 text-[#2d8659]" />
+                <img src="/logo.png" alt="Buen Vivir" className="w-8 h-8 object-contain" />
               </Link>
               <div>
                 <h1 className="text-4xl font-bold">Campañas</h1>
@@ -196,9 +197,7 @@ export function PublicCampaigns() {
               >
                 Cerrar
               </button>
-              <button className="flex-1 px-6 py-3 bg-[#2d8659] text-white font-bold rounded-lg hover:bg-[#1a5c3a] transition-colors">
-                Participar
-              </button>
+              <Button label="Registrarme" className="flex-1 bg-[#2d8659] text-white font-bold hover:bg-[#1a5c3a] border-none" />
             </div>
           </div>
         </div>

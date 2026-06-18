@@ -1,6 +1,10 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { User, Mail, Lock, Phone, Leaf, Eye, EyeOff } from 'lucide-react';
+import { InputText } from 'primereact/inputtext';
+import { Password } from 'primereact/password';
+import { Dropdown } from 'primereact/dropdown';
+import { Button } from 'primereact/button';
 
 export function Register() {
   const [showPassword, setShowPassword] = useState(false);
@@ -32,8 +36,8 @@ export function Register() {
         <div className="w-full max-w-md">
           {/* Logo and Title */}
           <div className="text-center mb-8">
-            <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-primary mb-4">
-              <Leaf className="w-8 h-8 text-primary-foreground" />
+            <div className="w-24 h-24 mx-auto rounded-full overflow-hidden bg-primary flex items-center justify-center mb-4 shadow-md">
+              <img src="/logo.png" alt="Buen Vivir" className="w-full h-full object-cover" />
             </div>
             <h1 className="text-3xl mb-2">Crear Cuenta</h1>
             <p className="text-muted-foreground">
@@ -47,13 +51,12 @@ export function Register() {
               <div>
                 <label className="block mb-2">Nombre Completo</label>
                 <div className="relative">
-                  <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-                  <input
-                    type="text"
+                  <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground z-10" />
+                  <InputText
                     name="name"
                     value={formData.name}
-                    onChange={handleChange}
-                    className="w-full pl-10 pr-4 py-3 rounded-lg border border-border bg-input-background focus:outline-none focus:ring-2 focus:ring-primary"
+                    onChange={handleChange as any}
+                    className="w-full pl-10 pr-4 py-3 border border-border rounded-md"
                     placeholder="Juan Pérez"
                     required
                   />
@@ -63,13 +66,13 @@ export function Register() {
               <div>
                 <label className="block mb-2">Email</label>
                 <div className="relative">
-                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-                  <input
+                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground z-10" />
+                  <InputText
                     type="email"
                     name="email"
                     value={formData.email}
-                    onChange={handleChange}
-                    className="w-full pl-10 pr-4 py-3 rounded-lg border border-border bg-input-background focus:outline-none focus:ring-2 focus:ring-primary"
+                    onChange={handleChange as any}
+                    className="w-full pl-10 pr-4 py-3 border border-border rounded-md"
                     placeholder="tu@email.com"
                     required
                   />
@@ -79,13 +82,13 @@ export function Register() {
               <div>
                 <label className="block mb-2">Teléfono</label>
                 <div className="relative">
-                  <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-                  <input
+                  <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground z-10" />
+                  <InputText
                     type="tel"
                     name="phone"
                     value={formData.phone}
-                    onChange={handleChange}
-                    className="w-full pl-10 pr-4 py-3 rounded-lg border border-border bg-input-background focus:outline-none focus:ring-2 focus:ring-primary"
+                    onChange={handleChange as any}
+                    className="w-full pl-10 pr-4 py-3 border border-border rounded-md"
                     placeholder="+54 9 11 1234-5678"
                     required
                   />
@@ -94,18 +97,19 @@ export function Register() {
 
               <div>
                 <label className="block mb-2">Rol</label>
-                <select
+                <Dropdown
                   name="role"
                   value={formData.role}
-                  onChange={handleChange}
-                  className="w-full px-4 py-3 rounded-lg border border-border bg-input-background focus:outline-none focus:ring-2 focus:ring-primary"
-                  required
-                >
-                  <option value="participante">Participante</option>
-                  <option value="voluntario">Voluntario</option>
-                  <option value="docente">Docente</option>
-                  <option value="empresa">Empresa</option>
-                </select>
+                  options={[
+                    { label: 'Participante', value: 'participante' },
+                    { label: 'Voluntario', value: 'voluntario' },
+                    { label: 'Docente', value: 'docente' },
+                    { label: 'Empresa', value: 'empresa' }
+                  ]}
+                  onChange={(e) => setFormData({ ...formData, role: e.value })}
+                  className="w-full border border-border rounded-md flex items-center"
+                  pt={{ input: { className: 'py-3 px-4' } }}
+                />
                 <p className="text-xs text-muted-foreground mt-1">
                   {formData.role === 'voluntario' && 'Los voluntarios deben ser aprobados por los coordinadores'}
                   {formData.role === 'docente' && 'Los docentes tendrán acceso al portal educativo'}
@@ -117,46 +121,36 @@ export function Register() {
               <div>
                 <label className="block mb-2">Contraseña</label>
                 <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-                  <input
-                    type={showPassword ? 'text' : 'password'}
+                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground z-10" />
+                  <Password
                     name="password"
                     value={formData.password}
-                    onChange={handleChange}
-                    className="w-full pl-10 pr-12 py-3 rounded-lg border border-border bg-input-background focus:outline-none focus:ring-2 focus:ring-primary"
+                    onChange={handleChange as any}
+                    toggleMask
+                    className="w-full"
+                    inputClassName="w-full pl-10 pr-12 py-3 border border-border rounded-md bg-transparent"
                     placeholder="••••••••"
                     required
+                    feedback={false}
                   />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                  >
-                    {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-                  </button>
                 </div>
               </div>
 
               <div>
                 <label className="block mb-2">Confirmar Contraseña</label>
                 <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-                  <input
-                    type={showConfirmPassword ? 'text' : 'password'}
+                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground z-10" />
+                  <Password
                     name="confirmPassword"
                     value={formData.confirmPassword}
-                    onChange={handleChange}
-                    className="w-full pl-10 pr-12 py-3 rounded-lg border border-border bg-input-background focus:outline-none focus:ring-2 focus:ring-primary"
+                    onChange={handleChange as any}
+                    toggleMask
+                    className="w-full"
+                    inputClassName="w-full pl-10 pr-12 py-3 border border-border rounded-md bg-transparent"
                     placeholder="••••••••"
                     required
+                    feedback={false}
                   />
-                  <button
-                    type="button"
-                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                  >
-                    {showConfirmPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-                  </button>
                 </div>
               </div>
 
@@ -167,12 +161,11 @@ export function Register() {
                 </label>
               </div>
 
-              <button
+              <Button
                 type="submit"
-                className="w-full py-3 bg-primary text-primary-foreground rounded-lg hover:opacity-90 transition-opacity"
-              >
-                Crear Cuenta
-              </button>
+                label="Crear Cuenta"
+                className="w-full py-3 bg-primary text-primary-foreground hover:opacity-90 transition-opacity border-none"
+              />
             </form>
           </div>
 

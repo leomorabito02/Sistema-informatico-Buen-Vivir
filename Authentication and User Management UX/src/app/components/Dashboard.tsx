@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 import { Leaf, BookOpen, Users, BarChart3, LogOut, Menu, Bell, Settings, GraduationCap, Award, TrendingUp, Megaphone, Clock, Target, CheckCircle, AlertCircle, Phone, FileText } from 'lucide-react';
+import { Button } from 'primereact/button';
 import { useState } from 'react';
 import { Card, CardHeader, CardBody } from './base';
 
@@ -78,8 +79,7 @@ export function Dashboard({ userRole, onLogout }: DashboardProps) {
       { label: 'Mis Cursos', path: '/courses', icon: BookOpen },
     ],
     empresa: [
-      { label: 'Ofertas Laborales', path: '/ofertas-laborales', icon: BookOpen },
-      { label: 'Candidatos', path: '/usuarios', icon: Users },
+      { label: 'Ofertas Laborales', path: '/insercion-laboral', icon: BookOpen },
     ],
   };
 
@@ -93,7 +93,7 @@ export function Dashboard({ userRole, onLogout }: DashboardProps) {
           {/* Logo and Brand */}
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-lg bg-white/20 flex items-center justify-center flex-shrink-0">
-              <Leaf className="w-6 h-6 text-white" />
+              <img src="/logo.png" alt="Buen Vivir" className="w-8 h-8 object-contain" />
             </div>
             <div>
               <h2 className="font-medium text-white">Buen Vivir</h2>
@@ -116,20 +116,16 @@ export function Dashboard({ userRole, onLogout }: DashboardProps) {
 
           {/* Right Side Actions */}
           <div className="flex items-center gap-4">
-            <button className="relative p-2 rounded-lg hover:bg-white/10 transition-colors text-white">
-              <Bell className="w-5 h-5" />
+            <Button icon={<Bell className="w-5 h-5 text-white" />} className="relative p-2 rounded-lg hover:bg-white/10 transition-colors p-button-text">
               <span className="absolute top-1 right-1 w-2 h-2 bg-destructive rounded-full"></span>
-            </button>
-            <button className="p-2 rounded-lg hover:bg-white/10 transition-colors text-white">
-              <Settings className="w-5 h-5" />
-            </button>
-            <button
+            </Button>
+            <Button icon={<Settings className="w-5 h-5 text-white" />} className="p-2 rounded-lg hover:bg-white/10 transition-colors p-button-text" />
+            <Button
               onClick={onLogout}
-              className="px-4 py-2 rounded-lg bg-destructive text-destructive-foreground hover:opacity-90 transition-opacity flex items-center gap-2 text-sm"
-            >
-              <LogOut className="w-4 h-4" />
-              Salir
-            </button>
+              icon={<LogOut className="w-4 h-4 mr-2" />}
+              label="Salir"
+              className="px-4 py-2 rounded-lg bg-destructive text-destructive-foreground hover:opacity-90 transition-opacity border-none text-sm"
+            />
           </div>
         </div>
       </header>
