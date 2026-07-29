@@ -61,7 +61,7 @@ services:
   # Microservicio Labor Integration
   labor-integration-service:
     build:
-      context: ./labor-intetgration
+      context: ./labor-integration
       dockerfile: Dockerfile
     container_name: buenvivir-labor-integration
     ports:
