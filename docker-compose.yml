@@ -1,0 +1,103 @@
+version: '3.8'
+
+services:
+  # Microservicio Auth
+  auth-service:
+    build:
+      context: ./auth
+      dockerfile: Dockerfile
+    container_name: buenvivir-auth
+    ports:
+      - "8081:8080"
+    environment:
+      PORT: "8080"
+
+      JWT_SECRET: "local-dev-secret-key"
+
+  # Microservicio Campaigns
+  campaigns-service:
+    build:
+      context: ./campaigns
+      dockerfile: Dockerfile
+    container_name: buenvivir-campaigns
+    ports:
+      - "8082:8080"
+    environment:
+      PORT: "8080"
+
+  # Microservicio Dashboard
+  dashboard-service:
+    build:
+      context: ./dashboard
+      dockerfile: Dockerfile
+    container_name: buenvivir-dashboard
+    ports:
+      - "8083:8080"
+    environment:
+      PORT: "8080"
+
+  # Microservicio Education
+  education-service:
+    build:
+      context: ./education
+      dockerfile: Dockerfile
+    container_name: buenvivir-education
+    ports:
+      - "8084:8080"
+    environment:
+      PORT: "8080"
+
+  # Microservicio Human Promotion
+  human-promotion-service:
+    build:
+      context: ./human-promotion
+      dockerfile: Dockerfile
+    container_name: buenvivir-human-promotion
+    ports:
+      - "8085:8080"
+    environment:
+      PORT: "8080"
+
+  # Microservicio Labor Integration
+  labor-integration-service:
+    build:
+      context: ./labor-intetgration
+      dockerfile: Dockerfile
+    container_name: buenvivir-labor-integration
+    ports:
+      - "8086:8080"
+    environment:
+      PORT: "8080"
+
+  # Microservicio Notifications
+  notifications-service:
+    build:
+      context: ./notifications
+      dockerfile: Dockerfile
+    container_name: buenvivir-notifications
+    ports:
+      - "8087:8080"
+    environment:
+      PORT: "8080"
+
+  # Microservicio RxResume
+  rxresume-service:
+    build:
+      context: ./rxresume
+      dockerfile: Dockerfile
+    container_name: buenvivir-rxresume
+    ports:
+      - "8088:8080"
+    environment:
+      PORT: "8080"
+
+  # Frontend Angular PWA
+  frontend-pwa:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: buenvivir-frontend
+    ports:
+      - "4200:80"
+    depends_on:
+      - auth-service
