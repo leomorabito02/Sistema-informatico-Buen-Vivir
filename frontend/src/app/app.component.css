@@ -1,0 +1,39 @@
+.app-header {
+  padding: 1.5rem;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.app-title {
+  margin: 0;
+  font-size: 1.25rem;
+  color: var(--primary);
+}
+
+.app-badge {
+  font-size: 0.875rem;
+  background: #166534;
+  color: #4ade80;
+  padding: 0.25rem 0.75rem;
+  border-radius: 9999px;
+}
+
+.app-main {
+  padding: 2rem;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.app-card {
+  background: var(--surface);
+  border-radius: 12px;
+  padding: 2rem;
+  border: 1px solid var(--border);
+}
+
+.app-text-muted {
+  color: var(--text-muted);
+}
