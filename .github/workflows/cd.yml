@@ -35,11 +35,14 @@ jobs:
           if [ "${{ github.ref }}" = "refs/heads/main" ]; then
             echo "ENV_NAME=PROD" >> $GITHUB_ENV
             echo "SERVICE_SUFFIX=prod" >> $GITHUB_ENV
-          else
+          elif [ "${{ github.ref }}" = "refs/heads/testing" ]; then
             echo "ENV_NAME=TEST" >> $GITHUB_ENV
             echo "SERVICE_SUFFIX=test" >> $GITHUB_ENV
+          else
+            echo "::error::FAIL - Branch '${{ github.ref }}' no autorizada para ejecución de CD."
+            exit 1
           fi
-          echo "Ejecutando CD para Commit SHA: $COMMIT_SHA"
+          echo "Ejecutando CD para Commit SHA: $COMMIT_SHA en entorno: ${{ env.ENV_NAME }}"
 
       - name: Stage 1 - Descargar Artefacto Angular de CI
         uses: actions/download-artifact@v4
