@@ -1,7 +1,10 @@
 name: CD Pipeline
 
 on:
-  push:
+  workflow_run:
+    workflows: ["CI Pipeline"]
+    types:
+      - completed
     branches:
       - testing
       - main
@@ -10,6 +13,7 @@ on:
 permissions:
   contents: read
   id-token: write
+  actions: read
 
 env:
   FRONTEND_DIR: 'frontend'
@@ -18,6 +22,7 @@ jobs:
   cd-pipeline:
     name: CD (Despliegue)
     runs-on: ubuntu-latest
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
 
     steps:
       # =========================================================================
@@ -29,17 +34,19 @@ jobs:
       - name: Stage 1 - Determinar Entorno y SHA
         id: env-setup
         run: |
-          COMMIT_SHA="${{ github.sha }}"
+          COMMIT_SHA="${{ github.event.workflow_run.head_sha || github.sha }}"
           echo "COMMIT_SHA=$COMMIT_SHA" >> $GITHUB_ENV
           
-          if [ "${{ github.ref }}" = "refs/heads/main" ]; then
+          REF_NAME="${{ github.event.workflow_run.head_branch || github.ref_name }}"
+          
+          if [ "$REF_NAME" = "main" ]; then
             echo "ENV_NAME=PROD" >> $GITHUB_ENV
             echo "SERVICE_SUFFIX=prod" >> $GITHUB_ENV
-          elif [ "${{ github.ref }}" = "refs/heads/testing" ]; then
+          elif [ "$REF_NAME" = "testing" ]; then
             echo "ENV_NAME=TEST" >> $GITHUB_ENV
             echo "SERVICE_SUFFIX=test" >> $GITHUB_ENV
           else
-            echo "::error::FAIL - Branch '${{ github.ref }}' no autorizada para ejecución de CD."
+            echo "::error::FAIL - Branch '$REF_NAME' no autorizada para ejecución de CD."
             exit 1
           fi
           echo "Ejecutando CD para Commit SHA: $COMMIT_SHA en entorno: ${{ env.ENV_NAME }}"
@@ -47,8 +54,10 @@ jobs:
       - name: Stage 1 - Descargar Artefacto Angular de CI
         uses: actions/download-artifact@v4
         with:
-          name: angular-build-${{ github.sha }}
+          name: angular-build-${{ env.COMMIT_SHA }}
           path: ./dist-angular
+          run-id: ${{ github.event.workflow_run.id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
         continue-on-error: true
 
       - name: Stage 1 - Verificar existencia de artefactos CI
