@@ -103,46 +103,22 @@ Fichero: `.github/workflows/ci.yml`
 - **Política de bloqueo:** Si se detectan vulnerabilidades clasificadas como `CRITICAL` o `HIGH`, el job falla inmediatamente y se impide la publicación.
 
 #### Stage 7 - Publicación
-- Autentica contra Google Cloud usando **Workload Identity Federation**.
-- Etiqueta y sube la imagen Docker a **Google Artifact Registry**: `gcr.io/proyecto/backend:<COMMIT_SHA>`.
-- Sube el build compilado de Angular como un artefacto persistente de GitHub Actions (`actions/upload-artifact@v4`) identificado por el Commit SHA.
+- Subes el build compilado de Angular como un artefacto persistente de GitHub Actions (`actions/upload-artifact@v4`) identificado por el Commit SHA.
+
+#### Stage 8 - Despliegue Frontend (Cloudflare Pages)
+- **Condición:** Se ejecuta únicamente en eventos `push` a las ramas `testing` y `main`.
+- **Detección de Entorno:** Asigna el sufijo `test` para la rama `testing` y `prod` para la rama `main`.
+- **Despliegue:** Publica automáticamente el directorio `frontend/dist/frontend-buen-vivir/browser` en Cloudflare Pages (`cloudflare/wrangler-action@v3`) hacia el proyecto `${{ secrets.CLOUDFLARE_PROJECT }}-${{ env.SERVICE_SUFFIX }}`.
 
 ---
 
-## 4. Pipeline de CD (Despliegue Continuo)
+## 4. Pipeline de CD (Integrado)
 
-Fichero: `.github/workflows/cd.yml`
+El pipeline de CD ha sido unificado dentro del archivo `.github/workflows/ci.yml` (Stage 8) para garantizar una ejecución secuencial inmediata y sin fricciones tras la fase de construcción.
 
-### Triggers
-- **Push** a la rama `testing` (despliegue automático a TEST).
-- **Push** a la rama `main` (despliegue automático a PROD).
-- **Manual Trigger** (`workflow_dispatch`).
-
-### Etapas (Stages)
-
-#### Stage 1 - Verificación de Artefactos (Strict Gatekeeper)
-- Obtiene el Commit SHA de la rama que desencadenó el CD.
-- Descarga el artefacto Angular compilado en el CI desde GitHub Actions Artifacts.
-- Consulta **Google Artifact Registry** para verificar la existencia exacta de la imagen Docker correspondiente a ese Commit SHA.
-- **Criterio de Falla:** Si la imagen Docker o el artefacto Angular no existen, el CD **falla inmediatamente**. Se garantiza que ningún artefacto no validado por CI pueda llegar a despliegue.
-
-#### Stage 2 - Despliegue según Entorno
-- Detecta la rama activa (`testing` -> Entorno TEST, `main` -> Entorno PROD).
-- **Backend (Cloud Run):** Despliega la imagen del Artifact Registry a **Google Cloud Run** (`google-github-actions/deploy-cloudrun@v2`).
-- **Frontend (Cloudflare Pages):** Publica el artefacto de Angular en **Cloudflare Pages** (`cloudflare/wrangler-action@v3`).
-
-#### Stage 3 - Smoke Tests
-Una vez finalizado el despliegue, se ejecutan peticiones HTTP de validación contra el servicio:
-1. `GET /`
-2. `GET /health`
-3. `GET /api/version`
-
-#### Stage 4 - Health Check & Rollback Automático
-- Evalúa la respuesta de los Smoke Tests y la disponibilidad de Cloud Run y Cloudflare Pages.
-- **En caso de ÉXITO:** Transición completada.
-- **En caso de FALLA:**
-  - **Rollback en Cloud Run:** Ejecuta una reasignación automática de tráfico (`update-traffic --to-revisions`) dirigiendo el 100% de las peticiones a la revisión anterior lista y saludable.
-  - **Rollback en Cloudflare Pages:** Revierte la publicación a la versión previa estable.
+### Triggers de Despliegue
+- **Push a `testing`:** Publicación automática en el entorno de TEST de Cloudflare Pages (`<CLOUDFLARE_PROJECT>-test`).
+- **Push a `main`:** Publicación automática en el entorno de PROD de Cloudflare Pages (`<CLOUDFLARE_PROJECT>-prod`).
 
 ---
 

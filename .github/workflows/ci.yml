@@ -194,3 +194,23 @@ jobs:
           name: angular-build-${{ github.sha }}
           path: ${{ env.FRONTEND_DIR }}/dist/frontend-buen-vivir/browser
           retention-days: 7
+
+      # =========================================================================
+      # Stage 8 - Despliegue Frontend (Cloudflare Pages)
+      # =========================================================================
+      - name: Stage 8 - Determinar Entorno de Despliegue
+        if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/testing')
+        run: |
+          if [ "${{ github.ref }}" = "refs/heads/main" ]; then
+            echo "SERVICE_SUFFIX=prod" >> $GITHUB_ENV
+          else
+            echo "SERVICE_SUFFIX=test" >> $GITHUB_ENV
+          fi
+
+      - name: Stage 8 - Despliegue Frontend (Cloudflare Pages)
+        if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/testing')
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: pages deploy ${{ env.FRONTEND_DIR }}/dist/frontend-buen-vivir/browser --project-name=${{ secrets.CLOUDFLARE_PROJECT }}-${{ env.SERVICE_SUFFIX }}
