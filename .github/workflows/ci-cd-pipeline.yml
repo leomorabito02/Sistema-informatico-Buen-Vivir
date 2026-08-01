@@ -195,9 +195,9 @@ jobs:
       - name: Determinar Entorno de Despliegue
         run: |
           if [ "${{ github.ref }}" = "refs/heads/main" ]; then
-            echo "SERVICE_SUFFIX=prod" >> $GITHUB_ENV
+            echo "BRANCH_NAME=main" >> $GITHUB_ENV
           else
-            echo "SERVICE_SUFFIX=test" >> $GITHUB_ENV
+            echo "BRANCH_NAME=testing" >> $GITHUB_ENV
           fi
 
       - name: Despliegue en Cloudflare Pages
@@ -205,4 +205,4 @@ jobs:
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          command: pages deploy ./dist-angular --project-name=${{ secrets.CLOUDFLARE_PROJECT }}-${{ env.SERVICE_SUFFIX }}
+          command: pages deploy ./dist-angular --project-name=${{ secrets.CLOUDFLARE_PROJECT }} --branch=${{ env.BRANCH_NAME }}
