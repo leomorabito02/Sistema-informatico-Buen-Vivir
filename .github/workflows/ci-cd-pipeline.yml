@@ -1,10 +1,11 @@
-name: CI Pipeline
+name: CI/CD Pipeline
 
 on:
   push:
     branches: ['**']
   pull_request:
     branches: ['**']
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -13,43 +14,43 @@ permissions:
 
 env:
   GO_VERSION: '1.22'
-  NODE_VERSION: '20'
+  NODE_VERSION: '22'
   IMAGE_NAME: 'backend'
   FRONTEND_DIR: 'frontend'
 
 jobs:
-  ci-pipeline:
+  # =========================================================================
+  # Job 1: CI (Integración Continua - Validaciones, Tests y Build)
+  # =========================================================================
+  build-and-test:
     name: CI (Validación + Construcción)
     runs-on: ubuntu-latest
 
     steps:
-      # =========================================================================
-      # Stage 1 - Preparación
-      # =========================================================================
-      - name: Stage 1 - Checkout repository
+      - name: Checkout repository
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-#      - name: Stage 1 - Configurar Go
+#      - name: Configurar Go
 #        uses: actions/setup-go@v5
 #        with:
 #          go-version: ${{ env.GO_VERSION }}
 #          cache: true
 
-      - name: Stage 1 - Configurar Node.js
+      - name: Configurar Node.js
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
           cache-dependency-path: '${{ env.FRONTEND_DIR }}/package.json'
 
-      - name: Stage 1 - Instalar dependencias Frontend
+      - name: Instalar dependencias Frontend
         run: |
           cd ${{ env.FRONTEND_DIR }}
           npm ci || npm install
 
-#      - name: Stage 1 - Instalar dependencias Go
+#      - name: Instalar dependencias Go
 #        run: |
 #          for d in auth campaigns dashboard education human-promotion labor-integration notifications rxresume; do
 #            if [ -f "$d/go.mod" ]; then
@@ -58,10 +59,7 @@ jobs:
 #            fi
 #          done
 
-      # =========================================================================
-      # Stage 2 - Calidad
-      # =========================================================================
-#      - name: Stage 2 - Backend (golangci-lint)
+#      - name: Backend Linting (golangci-lint)
 #        uses: golangci/golangci-lint-action@v6
 #        with:
 #          version: v1.59.1
@@ -69,20 +67,17 @@ jobs:
 #          skip-cache: true
 #        continue-on-error: true
 
-      - name: Stage 2 - Frontend (ESLint)
+      - name: Frontend (ESLint)
         run: |
           cd ${{ env.FRONTEND_DIR }}
-          npx eslint . --ext .ts,.html || echo "Lint warnings found"
+          npx --yes eslint . --ext .ts,.html || echo "Lint warnings found"
 
-      - name: Stage 2 - Frontend (Prettier --check)
+      - name: Frontend (Prettier --check)
         run: |
           cd ${{ env.FRONTEND_DIR }}
-          npx prettier --check "src/**/*.{ts,html,css,json}" || echo "Prettier formatting check complete"
+          npx --yes prettier --check "src/**/*.{ts,html,css,json}" || echo "Prettier formatting check complete"
 
-      # =========================================================================
-      # Stage 3 - Testing & Cobertura
-      # =========================================================================
-#      - name: Stage 3 - Backend Testing (go test)
+#      - name: Backend Testing (go test)
 #        run: |
 #          for d in auth campaigns dashboard education human-promotion labor-integration notifications rxresume; do
 #            if [ -f "$d/go.mod" ]; then
@@ -91,34 +86,28 @@ jobs:
 #            fi
 #          done
 
-      - name: Stage 3 - Frontend Testing (ng test)
+      - name: Frontend Testing (ng test)
         run: |
           cd ${{ env.FRONTEND_DIR }}
-          npx ng test --watch=false --browsers=ChromeHeadless --code-coverage || true
+          npx --yes ng test --watch=false --browsers=ChromeHeadless --code-coverage || true
 
-      - name: Stage 3 - Coverage Report Generation
+      - name: Coverage Report Generation
         run: |
           echo "Coverage Reports generated successfully."
 
-      # =========================================================================
-      # Stage 4 - Seguridad
-      # =========================================================================
-#      # SAST: Semgrep
-#      - name: Stage 4 - SAST (Semgrep)
+#      - name: SAST (Semgrep)
 #        uses: semgrep/semgrep-action@v1
 #        with:
 #          publishToken: ${{ secrets.SEMGREP_APP_TOKEN }}
 #        continue-on-error: true
 
-#      # SAST: Gosec
-#      - name: Stage 4 - SAST (gosec)
+#      - name: SAST (gosec)
 #        uses: securego/gosec-action@v2
 #        with:
 #          args: './...'
 #        continue-on-error: true
 
-#      # Dependencias: govulncheck
-#      - name: Stage 4 - Dependencias (govulncheck)
+#      - name: Dependencias Backend (govulncheck)
 #        run: |
 #          go install golang.org/x/vuln/cmd/govulncheck@latest
 #          for d in auth campaigns dashboard education human-promotion labor-integration notifications rxresume; do
@@ -127,35 +116,27 @@ jobs:
 #            fi
 #          done
 
-      # Dependencias: npm audit
-      - name: Stage 4 - Dependencias (npm audit)
+      - name: Dependencias Frontend (npm audit)
         run: |
           cd ${{ env.FRONTEND_DIR }}
           npm audit --audit-level=high || true
 
-      # Secretos: Gitleaks
-      - name: Stage 4 - Secretos (Gitleaks)
+      - name: Secretos (Gitleaks)
         uses: gitleaks/gitleaks-action@v2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         continue-on-error: true
 
-      # =========================================================================
-      # Stage 5 - Build
-      # =========================================================================
-#      - name: Stage 5 - Backend Docker Build
+#      - name: Backend Docker Build
 #        run: |
 #          docker build -t backend:${{ github.sha }} -f auth/Dockerfile ./auth
 
-      - name: Stage 5 - Frontend Angular Build
+      - name: Frontend Angular Build
         run: |
           cd ${{ env.FRONTEND_DIR }}
-          npx ng build --configuration production
+          npx --yes ng build --configuration production
 
-      # =========================================================================
-      # Stage 6 - Escaneo Docker (Trivy)
-      # =========================================================================
-#      - name: Stage 6 - Trivy Image Scan (Bloquear si encuentra CRITICAL/HIGH)
+#      - name: Trivy Image Scan
 #        uses: aquasecurity/trivy-action@master
 #        with:
 #          image-ref: 'backend:${{ github.sha }}'
@@ -165,22 +146,19 @@ jobs:
 #          vuln-type: 'os,library'
 #          severity: 'CRITICAL,HIGH'
 
-      # =========================================================================
-      # Stage 7 - Publicación
-      # =========================================================================
-#      - name: Stage 7 - GCP Authenticate via Workload Identity
+#      - name: GCP Authenticate
 #        if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/testing')
 #        uses: google-github-actions/auth@v2
 #        with:
 #          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
 #          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
 
-#      - name: Stage 7 - Configure Docker for Artifact Registry
+#      - name: Configure Docker for Artifact Registry
 #        if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/testing')
 #        run: |
 #          gcloud auth configure-docker ${{ secrets.ARTIFACT_REGISTRY_HOST || 'gcr.io' }} --quiet
 
-#      - name: Stage 7 - Push Image to Artifact Registry (Tag = SHA)
+#      - name: Push Image to Artifact Registry
 #        if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/testing')
 #        run: |
 #          REGISTRY="${{ secrets.ARTIFACT_REGISTRY || 'gcr.io/proyecto' }}"
@@ -188,18 +166,33 @@ jobs:
 #          docker tag backend:${{ github.sha }} "$IMAGE_TAG"
 #          docker push "$IMAGE_TAG"
 
-      - name: Stage 7 - Upload Angular Artifact
+      - name: Upload Angular Artifact
         uses: actions/upload-artifact@v4
         with:
           name: angular-build-${{ github.sha }}
           path: ${{ env.FRONTEND_DIR }}/dist/frontend-buen-vivir/browser
           retention-days: 7
 
-      # =========================================================================
-      # Stage 8 - Despliegue Frontend (Cloudflare Pages)
-      # =========================================================================
-      - name: Stage 8 - Determinar Entorno de Despliegue
-        if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/testing')
+  # =========================================================================
+  # Job 2: CD (Despliegue Continuo a Cloudflare Pages)
+  # =========================================================================
+  deploy-cloudflare:
+    name: CD (Despliegue Cloudflare Pages)
+    needs: build-and-test
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/testing')
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Descargar Artefacto Angular
+        uses: actions/download-artifact@v4
+        with:
+          name: angular-build-${{ github.sha }}
+          path: ./dist-angular
+
+      - name: Determinar Entorno de Despliegue
         run: |
           if [ "${{ github.ref }}" = "refs/heads/main" ]; then
             echo "SERVICE_SUFFIX=prod" >> $GITHUB_ENV
@@ -207,10 +200,9 @@ jobs:
             echo "SERVICE_SUFFIX=test" >> $GITHUB_ENV
           fi
 
-      - name: Stage 8 - Despliegue Frontend (Cloudflare Pages)
-        if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/testing')
+      - name: Despliegue en Cloudflare Pages
         uses: cloudflare/wrangler-action@v3
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          command: pages deploy ${{ env.FRONTEND_DIR }}/dist/frontend-buen-vivir/browser --project-name=${{ secrets.CLOUDFLARE_PROJECT }}-${{ env.SERVICE_SUFFIX }}
+          command: pages deploy ./dist-angular --project-name=${{ secrets.CLOUDFLARE_PROJECT }}-${{ env.SERVICE_SUFFIX }}
