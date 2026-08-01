@@ -59,66 +59,39 @@ El diseño de estos pipelines sigue el patrón empresarial **Build-Once & Promot
 
 ---
 
-## 3. Pipeline de CI (Integración Continua)
+## 3. Pipeline Unificado de CI/CD
 
-Fichero: `.github/workflows/ci.yml`
+Fichero: `.github/workflows/ci-cd-pipeline.yml`
 
 ### Triggers
-- **Pull Request** a cualquier rama.
-- **Push** a cualquier rama.
+- **Pull Request:** Ejecuta únicamente el Job de CI (`build-and-test`).
+- **Push a `main` o `testing`:** Ejecuta el Job de CI (`build-and-test`) y posteriormente el Job de CD (`deploy-cloudflare`).
 
-### Etapas (Stages)
+### Estructura de Jobs
 
-#### Stage 1 - Preparación
+#### Job 1: CI (`build-and-test`)
 - **Checkout:** Descarga el código del repositorio (`actions/checkout@v4`).
-- **Configurar Go:** Inicializa Go 1.22 con caché de módulos activada.
-- **Configurar Node:** Inicializa Node.js 20.x con caché de dependencias npm activada.
-- **Instalar dependencias:** Ejecuta `npm ci` para el frontend y `go mod download` para los microservicios backend.
+- **Configurar Node:** Inicializa Node.js 22 (`actions/setup-node@v4`).
+- **Instalar dependencias:** Ejecuta `npm ci` en la carpeta `frontend`.
+- **Calidad de Código:** Ejecuta ESLint (`npx --yes eslint`) y Prettier (`npx --yes prettier --check`).
+- **Testing:** Ejecuta `ng test` en modo headless (`npx --yes ng test --watch=false --browsers=ChromeHeadless`).
+- **Auditorías de Seguridad:** Auditoría de dependencias (`npm audit`) y escaneo de secretos (`Gitleaks`).
+- **Construcción (Build):** Compila el frontend Angular en modo producción (`npx --yes ng build --configuration production`).
+- **Artefactos:** Almacena el build compilado (`dist/frontend-buen-vivir/browser`) como artefacto de GitHub Actions.
 
-#### Stage 2 - Calidad de Código
-- **Backend:** Ejecuta `golangci-lint` para auditar sintaxis y calidad Go.
-- **Frontend:** Ejecuta ESLint (`npx eslint`) y Prettier (`npx prettier --check`).
-
-#### Stage 3 - Testing y Cobertura
-- **Backend:** Ejecuta `go test -v -coverprofile=coverage.out ./...` en los microservicios Go.
-- **Frontend:** Ejecuta `ng test --watch=false --browsers=ChromeHeadless --code-coverage`.
-- **Cobertura:** Almacena y reporta los indicadores de cobertura de pruebas.
-
-#### Stage 4 - Análisis de Seguridad (SAST, Dependencias y Secretos)
-- **SAST Backend/Frontend:**
-  - **Semgrep:** Análisis estático multi-lenguaje.
-  - **Gosec:** Análisis de seguridad en código Go.
-- **Auditoría de Dependencias:**
-  - **Govulncheck:** Escaneo de vulnerabilidades conocidas en dependencias Go.
-  - **npm audit:** Verificación de vulnerabilidades en paquetes Node.js.
-- **Escaneo de Secretos:**
-  - **Gitleaks:** Detección de claves API, tokens o credenciales hardcodeadas en el commit.
-
-#### Stage 5 - Construcción (Build)
-- **Backend:** Construye la imagen Docker del backend tagged temporalmente con el Commit SHA (`backend:${{ github.sha }}`).
-- **Frontend:** Compila la aplicación Angular en modo producción (`ng build --configuration production`).
-
-#### Stage 6 - Escaneo de Imágenes Docker
-- **Trivy Image Scan:** Analiza las capas de la imagen Docker generada.
-- **Política de bloqueo:** Si se detectan vulnerabilidades clasificadas como `CRITICAL` o `HIGH`, el job falla inmediatamente y se impide la publicación.
-
-#### Stage 7 - Publicación
-- Subes el build compilado de Angular como un artefacto persistente de GitHub Actions (`actions/upload-artifact@v4`) identificado por el Commit SHA.
-
-#### Stage 8 - Despliegue Frontend (Cloudflare Pages)
-- **Condición:** Se ejecuta únicamente en eventos `push` a las ramas `testing` y `main`.
-- **Detección de Entorno:** Asigna el sufijo `test` para la rama `testing` y `prod` para la rama `main`.
-- **Despliegue:** Publica automáticamente el directorio `frontend/dist/frontend-buen-vivir/browser` en Cloudflare Pages (`cloudflare/wrangler-action@v3`) hacia el proyecto `${{ secrets.CLOUDFLARE_PROJECT }}-${{ env.SERVICE_SUFFIX }}`.
+#### Job 2: CD (`deploy-cloudflare`)
+- **Condición:** Requiere el éxito de `build-and-test` (`needs: build-and-test`) y un push a `main` o `testing`.
+- **Regla de Ruteo SPA:** Genera el archivo `_redirects` con la regla `/* /index.html 200` para garantizar el soporte de ruteo interno en Angular.
+- **Despliegue:** Publica mediante `wrangler pages deploy` directo a Cloudflare Pages hacia el proyecto indicado en `CLOUDFLARE_PROJECT` (ej. `ceibuenvivir`).
 
 ---
 
-## 4. Pipeline de CD (Integrado)
+## 4. Entornos y URLs de Despliegue
 
-El pipeline de CD ha sido unificado dentro del archivo `.github/workflows/ci.yml` (Stage 8) para garantizar una ejecución secuencial inmediata y sin fricciones tras la fase de construcción.
-
-### Triggers de Despliegue
-- **Push a `testing`:** Publicación automática en el entorno de TEST de Cloudflare Pages (`<CLOUDFLARE_PROJECT>-test`).
-- **Push a `main`:** Publicación automática en el entorno de PROD de Cloudflare Pages (`<CLOUDFLARE_PROJECT>-prod`).
+| Entorno | Rama | Dominio / URL Oficial | Tipo de Despliegue en Cloudflare |
+| :--- | :--- | :--- | :--- |
+| **PROD** | `main` | `https://ceibuenvivir.org` (`https://ceibuenvivir.pages.dev`) | Producción |
+| **TEST** | `testing` | `https://testing.ceibuenvivir.pages.dev` | Preview / Testing |
 
 ---
 

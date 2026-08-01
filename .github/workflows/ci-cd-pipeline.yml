@@ -210,5 +210,6 @@ jobs:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: |
+          echo "/* /index.html 200" > ./dist-angular/_redirects
           npx --yes wrangler pages project create "${{ secrets.CLOUDFLARE_PROJECT }}" --production-branch=main || true
           npx --yes wrangler pages deploy ./dist-angular --project-name="${{ secrets.CLOUDFLARE_PROJECT }}" --branch="${{ env.BRANCH_NAME }}" --commit-dirty=true
