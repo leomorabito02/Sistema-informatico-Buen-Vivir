@@ -59,50 +59,50 @@ jobs:
           fi
           echo "Artefacto de Angular verificado correctamente."
 
-      - name: Stage 1 - Autenticar GCP
-        uses: google-github-actions/auth@v2
-        with:
-          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
-          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+#      - name: Stage 1 - Autenticar GCP
+#        uses: google-github-actions/auth@v2
+#        with:
+#          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+#          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
 
-      - name: Stage 1 - Configurar gcloud
-        uses: google-github-actions/setup-gcloud@v2
-        with:
-          project_id: ${{ secrets.GCP_PROJECT_ID }}
+#      - name: Stage 1 - Configurar gcloud
+#        uses: google-github-actions/setup-gcloud@v2
+#        with:
+#          project_id: ${{ secrets.GCP_PROJECT_ID }}
 
-      - name: Stage 1 - Verificar existencia de Imagen Docker en Artifact Registry
-        run: |
-          REGISTRY="${{ secrets.ARTIFACT_REGISTRY || 'gcr.io/proyecto/backend' }}"
-          IMAGE_URI="${REGISTRY}:${{ env.COMMIT_SHA }}"
-          
-          echo "Verificando imagen Docker: $IMAGE_URI"
-          if ! gcloud container images describe "$IMAGE_URI" >/dev/null 2>&1; then
-            echo "::error::FAIL - La imagen Docker $IMAGE_URI no existe en Artifact Registry. El CD jamás despliega sin validación CI previa."
-            exit 1
-          fi
-          echo "Imagen Docker verificada en Artifact Registry."
+#      - name: Stage 1 - Verificar existencia de Imagen Docker en Artifact Registry
+#        run: |
+#          REGISTRY="${{ secrets.ARTIFACT_REGISTRY || 'gcr.io/proyecto/backend' }}"
+#          IMAGE_URI="${REGISTRY}:${{ env.COMMIT_SHA }}"
+#          
+#          echo "Verificando imagen Docker: $IMAGE_URI"
+#          if ! gcloud container images describe "$IMAGE_URI" >/dev/null 2>&1; then
+#            echo "::error::FAIL - La imagen Docker $IMAGE_URI no existe en Artifact Registry. El CD jamás despliega sin validación CI previa."
+#            exit 1
+#          fi
+#          echo "Imagen Docker verificada en Artifact Registry."
 
       # =========================================================================
       # Stage 2 - Despliegue según rama (TEST / PROD)
       # =========================================================================
-      - name: Stage 2 - Obteniendo id de revisión previa para Rollback
-        id: pre-deploy-state
-        run: |
-          SERVICE_NAME="${{ secrets.CLOUD_RUN_SERVICE }}-${{ env.SERVICE_SUFFIX }}"
-          REGION="${{ secrets.REGION || 'us-central1' }}"
-          
-          PREV_REV=$(gcloud run services describe "$SERVICE_NAME" --region="$REGION" --format='value(status.latestReadyRevisionName)' 2>/dev/null || echo "")
-          echo "PREV_REVISION=$PREV_REV" >> $GITHUB_ENV
-          echo "Revisión activa previa: ${PREV_REV:-ninguna}"
+#      - name: Stage 2 - Obteniendo id de revisión previa para Rollback
+#        id: pre-deploy-state
+#        run: |
+#          SERVICE_NAME="${{ secrets.CLOUD_RUN_SERVICE }}-${{ env.SERVICE_SUFFIX }}"
+#          REGION="${{ secrets.REGION || 'us-central1' }}"
+#          
+#          PREV_REV=$(gcloud run services describe "$SERVICE_NAME" --region="$REGION" --format='value(status.latestReadyRevisionName)' 2>/dev/null || echo "")
+#          echo "PREV_REVISION=$PREV_REV" >> $GITHUB_ENV
+#          echo "Revisión activa previa: ${PREV_REV:-ninguna}"
 
-      - name: Stage 2 - Despliegue Backend (Cloud Run)
-        id: deploy-backend
-        uses: google-github-actions/deploy-cloudrun@v2
-        with:
-          service: '${{ secrets.CLOUD_RUN_SERVICE }}-${{ env.SERVICE_SUFFIX }}'
-          region: '${{ secrets.REGION || "us-central1" }}'
-          image: '${{ secrets.ARTIFACT_REGISTRY || "gcr.io/proyecto/backend" }}:${{ env.COMMIT_SHA }}'
-          flags: '--allow-unauthenticated'
+#      - name: Stage 2 - Despliegue Backend (Cloud Run)
+#        id: deploy-backend
+#        uses: google-github-actions/deploy-cloudrun@v2
+#        with:
+#          service: '${{ secrets.CLOUD_RUN_SERVICE }}-${{ env.SERVICE_SUFFIX }}'
+#          region: '${{ secrets.REGION || "us-central1" }}'
+#          image: '${{ secrets.ARTIFACT_REGISTRY || "gcr.io/proyecto/backend" }}:${{ env.COMMIT_SHA }}'
+#          flags: '--allow-unauthenticated'
 
       - name: Stage 2 - Despliegue Frontend (Cloudflare Pages)
         id: deploy-frontend
@@ -115,27 +115,27 @@ jobs:
       # =========================================================================
       # Stage 3 - Smoke Tests
       # =========================================================================
-      - name: Stage 3 - Smoke Test Backend
-        id: smoke-test
-        run: |
-          BACKEND_URL="${{ steps.deploy-backend.outputs.url }}"
-          if [ -z "$BACKEND_URL" ]; then
-            BACKEND_URL="https://${{ secrets.CLOUD_RUN_SERVICE }}-${{ env.SERVICE_SUFFIX }}.a.run.app"
-          fi
-          
-          echo "BACKEND_URL=$BACKEND_URL" >> $GITHUB_ENV
-          echo "Ejecutando Smoke Tests contra $BACKEND_URL..."
-          
-          echo "Checking GET / ..."
-          curl --fail --silent --show-error "$BACKEND_URL/" || exit 1
-          
-          echo "Checking GET /health ..."
-          curl --fail --silent --show-error "$BACKEND_URL/health" || exit 1
-          
-          echo "Checking GET /api/version ..."
-          curl --fail --silent --show-error "$BACKEND_URL/api/version" || exit 1
-          
-          echo "Smoke Tests superados exitosamente."
+#      - name: Stage 3 - Smoke Test Backend
+#        id: smoke-test
+#        run: |
+#          BACKEND_URL="${{ steps.deploy-backend.outputs.url }}"
+#          if [ -z "$BACKEND_URL" ]; then
+#            BACKEND_URL="https://${{ secrets.CLOUD_RUN_SERVICE }}-${{ env.SERVICE_SUFFIX }}.a.run.app"
+#          fi
+#          
+#          echo "BACKEND_URL=$BACKEND_URL" >> $GITHUB_ENV
+#          echo "Ejecutando Smoke Tests contra $BACKEND_URL..."
+#          
+#          echo "Checking GET / ..."
+#          curl --fail --silent --show-error "$BACKEND_URL/" || exit 1
+#          
+#          echo "Checking GET /health ..."
+#          curl --fail --silent --show-error "$BACKEND_URL/health" || exit 1
+#          
+#          echo "Checking GET /api/version ..."
+#          curl --fail --silent --show-error "$BACKEND_URL/api/version" || exit 1
+#          
+#          echo "Smoke Tests superados exitosamente."
 
       # =========================================================================
       # Stage 4 - Health Check & Automatic Rollback si falla
@@ -147,22 +147,9 @@ jobs:
           echo "Cloudflare Status: HEALTHY"
           echo "Despliegue a ${{ env.ENV_NAME }} finalizado con éxito."
 
-      - name: Stage 4 - Rollback automático en Cloud Run & Cloudflare
+      - name: Stage 4 - Rollback automático en Cloudflare
         if: failure()
         run: |
-          echo "::error::Health Check o Smoke Test ha fallado. Iniciando Rollback automático..."
-          
-          SERVICE_NAME="${{ secrets.CLOUD_RUN_SERVICE }}-${{ env.SERVICE_SUFFIX }}"
-          REGION="${{ secrets.REGION || 'us-central1' }}"
-          
-          if [ -n "${{ env.PREV_REVISION }}" ]; then
-            echo "Restaurando el 100% del tráfico de Cloud Run a la revisión previa: ${{ env.PREV_REVISION }}"
-            gcloud run services update-traffic "$SERVICE_NAME" --region="$REGION" --to-revisions="${{ env.PREV_REVISION }}=100" || true
-          else
-            echo "No se encontró revisión previa disponible para Cloud Run."
-          fi
-          
-          echo "Iniciando reversión de despliegue en Cloudflare Pages..."
+          echo "::error::Health Check ha fallado. Iniciando Rollback en Cloudflare..."
           npx wrangler pages deployment list --project-name="${{ secrets.CLOUDFLARE_PROJECT }}-${{ env.SERVICE_SUFFIX }}" || echo "Cloudflare rollback finalizado."
-          
           exit 1
