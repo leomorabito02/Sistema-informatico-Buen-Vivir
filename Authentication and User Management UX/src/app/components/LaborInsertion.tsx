@@ -1,23 +1,33 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { LogOut, Briefcase, Users, Plus, Edit, Trash2, Eye, MapPin, DollarSign, Clock, AlertCircle, Monitor } from 'lucide-react';
+import { LogOut, Briefcase, Users, Plus, Edit, Trash2, Eye, MapPin, DollarSign, Clock, AlertCircle, Monitor, CalendarClock, Check, X as XIcon, ArrowLeft } from 'lucide-react';
 import { Dialog } from 'primereact/dialog';
 import { InputText } from 'primereact/inputtext';
 import { Dropdown } from 'primereact/dropdown';
 import { InputTextarea } from 'primereact/inputtextarea';
 import { Button } from 'primereact/button';
 import { Sidebar } from 'primereact/sidebar';
+import { Toast, ToastState } from './base';
 
 interface LaborInsertionProps {
   userRole: 'admin' | 'voluntario' | 'empresa';
   onLogout: () => void;
 }
 
+const jobStatusStyles: Record<string, string> = {
+  Pendiente: 'bg-secondary/10 text-secondary',
+  Activa: 'bg-primary/10 text-primary',
+  Rechazada: 'bg-destructive/10 text-destructive',
+};
+
 export function LaborInsertion({ userRole, onLogout }: LaborInsertionProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [showJobModal, setShowJobModal] = useState(false);
   const [showCandidateSidebar, setShowCandidateSidebar] = useState(false);
   const [selectedJob, setSelectedJob] = useState<any>(null);
+  const [toast, setToast] = useState<ToastState | null>(null);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [jobToDelete, setJobToDelete] = useState<any>(null);
 
   const [newJob, setNewJob] = useState({
     title: '',
@@ -28,7 +38,8 @@ export function LaborInsertion({ userRole, onLogout }: LaborInsertionProps) {
     description: '',
     requirements: '',
     schedule: '',
-    modality: 'Presencial'
+    modality: 'Presencial',
+    deadline: '',
   });
 
   const [jobs, setJobs] = useState([
@@ -46,6 +57,7 @@ export function LaborInsertion({ userRole, onLogout }: LaborInsertionProps) {
       schedule: 'Lunes a Viernes 06:00 a 14:00',
       modality: 'Presencial',
       postDate: '2026-05-20',
+      deadline: '2026-06-20',
     },
     {
       id: 2,
@@ -56,11 +68,12 @@ export function LaborInsertion({ userRole, onLogout }: LaborInsertionProps) {
       description: 'Se busca jardinero para mantenimiento de áreas verdes.',
       requirements: ['Plantación', 'Cuidado de plantas'],
       candidates: [3],
-      status: 'Activa',
+      status: 'Pendiente',
       type: 'Empleo',
       schedule: 'Flexible 8 horas',
       modality: 'Presencial',
       postDate: '2026-05-18',
+      deadline: '2026-06-18',
     },
     {
       id: 3,
@@ -76,6 +89,7 @@ export function LaborInsertion({ userRole, onLogout }: LaborInsertionProps) {
       schedule: 'Lunes a Sábados 09:00 a 13:00',
       modality: 'Presencial',
       postDate: '2026-05-15',
+      deadline: '2026-06-10',
     }
   ]);
 
@@ -116,14 +130,16 @@ export function LaborInsertion({ userRole, onLogout }: LaborInsertionProps) {
       description: newJob.description,
       requirements: newJob.requirements.split(',').map(r => r.trim()).filter(r => r),
       candidates: [],
-      status: 'Activa',
+      status: 'Pendiente',
       type: newJob.type,
       schedule: newJob.schedule,
       modality: newJob.modality,
-      postDate: new Date().toISOString().split('T')[0]
+      postDate: new Date().toISOString().split('T')[0],
+      deadline: newJob.deadline,
     };
     setJobs([job, ...jobs]);
     setShowJobModal(false);
+    setToast({ type: 'success', message: 'Oferta laboral enviada. Queda pendiente de aprobación del administrador.' });
     setNewJob({
       title: '',
       company: userRole === 'empresa' ? 'Mi Empresa Mock' : '',
@@ -133,12 +149,35 @@ export function LaborInsertion({ userRole, onLogout }: LaborInsertionProps) {
       description: '',
       requirements: '',
       schedule: '',
-      modality: 'Presencial'
+      modality: 'Presencial',
+      deadline: '',
     });
   };
 
+  const handleApproveJob = (job: any) => {
+    setJobs(jobs.map(j => j.id === job.id ? { ...j, status: 'Activa' } : j));
+    setToast({ type: 'success', message: `La oferta "${job.title}" fue aprobada y ya es visible públicamente.` });
+  };
+
+  const handleRejectJob = (job: any) => {
+    setJobs(jobs.map(j => j.id === job.id ? { ...j, status: 'Rechazada' } : j));
+    setToast({ type: 'success', message: `La oferta "${job.title}" fue rechazada. Se notificó a la empresa.` });
+  };
+
+  const handleAskDeleteJob = (job: any) => {
+    setJobToDelete(job);
+    setShowDeleteModal(true);
+  };
+
+  const confirmDeleteJob = () => {
+    setJobs(jobs.filter(j => j.id !== jobToDelete.id));
+    setShowDeleteModal(false);
+    setToast({ type: 'success', message: 'Oferta laboral eliminada correctamente' });
+    setJobToDelete(null);
+  };
+
   const visibleJobs = jobs.filter(job => {
-    const matchesSearch = job.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
+    const matchesSearch = job.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
                           job.company.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesRole = userRole === 'empresa' ? job.company === 'Mi Empresa Mock' : true;
     return matchesSearch && matchesRole;
@@ -149,6 +188,8 @@ export function LaborInsertion({ userRole, onLogout }: LaborInsertionProps) {
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
+      <Toast toast={toast} onClose={() => setToast(null)} />
+
       {/* Header */}
       <header className="bg-card border-b border-border p-6 shadow-sm">
         <div className="flex items-center justify-between">
@@ -164,9 +205,10 @@ export function LaborInsertion({ userRole, onLogout }: LaborInsertionProps) {
           <div className="flex items-center gap-3">
             <Link
               to="/dashboard"
-              className="px-4 py-2 rounded-lg border border-border hover:bg-secondary transition-colors font-medium"
+              className="px-4 py-2 rounded-lg border border-border hover:bg-secondary transition-colors font-medium flex items-center gap-2"
             >
-              Volver al Dashboard
+              <ArrowLeft className="w-4 h-4" />
+              Volver
             </Link>
             <Button
               onClick={onLogout}
@@ -193,8 +235,8 @@ export function LaborInsertion({ userRole, onLogout }: LaborInsertionProps) {
 
           <div className="bg-card rounded-xl border border-border p-6 shadow-sm">
             <div className="flex items-center justify-between mb-4">
-              <div className="w-12 h-12 rounded-lg bg-blue-500/10 flex items-center justify-center">
-                <Users className="w-6 h-6 text-blue-500" />
+              <div className="w-12 h-12 rounded-lg bg-secondary/10 flex items-center justify-center">
+                <Users className="w-6 h-6 text-secondary" />
               </div>
               <span className="text-4xl font-bold text-foreground">{totalCandidatesForVisible}</span>
             </div>
@@ -203,8 +245,8 @@ export function LaborInsertion({ userRole, onLogout }: LaborInsertionProps) {
 
           <div className="bg-card rounded-xl border border-border p-6 shadow-sm">
             <div className="flex items-center justify-between mb-4">
-              <div className="w-12 h-12 rounded-lg bg-green-500/10 flex items-center justify-center">
-                <AlertCircle className="w-6 h-6 text-green-500" />
+              <div className="w-12 h-12 rounded-lg bg-[#1D1D1B]/10 flex items-center justify-center">
+                <AlertCircle className="w-6 h-6 text-[#1D1D1B]" />
               </div>
               <span className="text-4xl font-bold text-foreground">0</span>
             </div>
@@ -245,9 +287,14 @@ export function LaborInsertion({ userRole, onLogout }: LaborInsertionProps) {
               visibleJobs.map(job => (
                 <div key={job.id} className="bg-background rounded-xl border border-border p-6 hover:border-primary/50 transition-all hover:shadow-md flex flex-col h-full">
                   <div className="mb-4">
-                    <span className={`inline-block px-3 py-1 rounded-full text-xs font-bold mb-3 ${job.type === 'Empleo' ? 'bg-blue-100 text-blue-700' : 'bg-purple-100 text-purple-700'}`}>
-                      {job.type}
-                    </span>
+                    <div className="flex items-center gap-2 mb-3">
+                      <span className="inline-block px-3 py-1 rounded-full text-xs font-bold bg-primary/10 text-primary">
+                        {job.type}
+                      </span>
+                      <span className={`inline-block px-3 py-1 rounded-full text-xs font-bold ${jobStatusStyles[job.status] ?? ''}`}>
+                        {job.status}
+                      </span>
+                    </div>
                     <h3 className="text-xl font-bold text-foreground leading-tight">{job.title}</h3>
                     {userRole !== 'empresa' && <p className="text-sm text-primary font-semibold mt-1">{job.company}</p>}
                   </div>
@@ -271,27 +318,61 @@ export function LaborInsertion({ userRole, onLogout }: LaborInsertionProps) {
                       </div>
                       <span className="font-medium">{job.schedule}</span>
                     </div>
+                    <div className="flex items-center gap-3 text-sm text-muted-foreground">
+                      <div className="w-8 h-8 rounded-full bg-secondary flex items-center justify-center flex-shrink-0">
+                        <CalendarClock className="w-4 h-4 text-foreground" />
+                      </div>
+                      <span className="font-medium">Cierra: {job.deadline || 'Sin definir'}</span>
+                    </div>
                     <div className="flex items-center gap-3 text-sm font-medium text-foreground">
-                      <div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0">
-                        <DollarSign className="w-4 h-4 text-green-700" />
+                      <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                        <DollarSign className="w-4 h-4 text-primary" />
                       </div>
                       <span>{job.salary}</span>
                     </div>
                   </div>
 
-                  <div className="pt-4 border-t border-border mt-auto flex items-center justify-between">
+                  {userRole === 'admin' && job.status === 'Pendiente' && (
+                    <div className="flex gap-2 mb-4">
+                      <button
+                        onClick={() => handleApproveJob(job)}
+                        className="flex-1 px-3 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-semibold hover:opacity-90 transition-opacity flex items-center justify-center gap-1"
+                      >
+                        <Check className="w-4 h-4" /> Aprobar
+                      </button>
+                      <button
+                        onClick={() => handleRejectJob(job)}
+                        className="flex-1 px-3 py-2 rounded-lg border border-destructive text-destructive text-sm font-semibold hover:bg-destructive/10 transition-colors flex items-center justify-center gap-1"
+                      >
+                        <XIcon className="w-4 h-4" /> Rechazar
+                      </button>
+                    </div>
+                  )}
+
+                  <div className="pt-4 border-t border-border mt-auto flex items-center justify-between gap-2">
                     <div className="flex items-center gap-2 text-sm font-bold text-primary bg-primary/10 px-3 py-1.5 rounded-lg">
                       <Users className="w-4 h-4" />
                       <span>{job.candidates.length} Postulantes</span>
                     </div>
-                    <Button 
-                      onClick={() => {
-                        setSelectedJob(job);
-                        setShowCandidateSidebar(true);
-                      }}
-                      label="Ver Detalle" 
-                      className="p-button-text p-button-sm font-bold p-0 text-foreground hover:text-primary transition-colors hover:bg-transparent" 
-                    />
+                    <div className="flex items-center gap-1">
+                      <Button
+                        onClick={() => {
+                          setSelectedJob(job);
+                          setShowCandidateSidebar(true);
+                        }}
+                        label="Ver Detalle"
+                        className="p-button-text p-button-sm font-bold p-0 text-foreground hover:text-primary transition-colors hover:bg-transparent"
+                      />
+                      {userRole === 'admin' && (
+                        <button
+                          onClick={() => handleAskDeleteJob(job)}
+                          className="p-2 rounded-lg hover:bg-destructive/10 text-destructive transition-colors"
+                          title="Eliminar oferta"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      )}
+                    </div>
                   </div>
                 </div>
               ))
@@ -440,13 +521,23 @@ export function LaborInsertion({ userRole, onLogout }: LaborInsertionProps) {
             </div>
             <div className="flex flex-col gap-2">
               <label className="font-bold text-sm text-muted-foreground uppercase">Salario (Opcional)</label>
-              <InputText 
-                placeholder="Ej: $450.000 o A convenir" 
+              <InputText
+                placeholder="Ej: $450.000 o A convenir"
                 value={newJob.salary}
                 onChange={(e) => setNewJob({...newJob, salary: e.target.value})}
-                className="w-full p-3" 
+                className="w-full p-3"
               />
             </div>
+          </div>
+
+          <div className="flex flex-col gap-2">
+            <label className="font-bold text-sm text-muted-foreground uppercase">Fecha Límite de Postulación</label>
+            <InputText
+              type="date"
+              value={newJob.deadline}
+              onChange={(e) => setNewJob({...newJob, deadline: e.target.value})}
+              className="w-full p-3 md:w-1/2"
+            />
           </div>
 
           <div className="flex flex-col gap-2">
@@ -479,16 +570,42 @@ export function LaborInsertion({ userRole, onLogout }: LaborInsertionProps) {
               onClick={() => setShowJobModal(false)} 
               className="px-6 font-bold"
             />
-            <Button 
-              label="Publicar Oferta" 
-              icon="pi pi-check" 
-              onClick={handleCreateJob} 
-              disabled={!newJob.title || !newJob.location}
+            <Button
+              label="Publicar Oferta"
+              icon="pi pi-check"
+              onClick={handleCreateJob}
+              disabled={!newJob.title || !newJob.location || !newJob.company || !newJob.description || !newJob.deadline}
               className="px-6 font-bold bg-primary text-primary-foreground border-none"
             />
           </div>
         </div>
       </Dialog>
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteModal && jobToDelete && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+          <div className="bg-card rounded-lg border border-border w-full max-w-sm p-6">
+            <h2 className="text-xl font-semibold mb-3">Eliminar Oferta Laboral</h2>
+            <p className="text-sm text-muted-foreground mb-6">
+              ¿Confirmás que querés eliminar <strong className="text-foreground">{jobToDelete.title}</strong>?
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowDeleteModal(false)}
+                className="flex-1 px-4 py-2.5 rounded-lg border border-border hover:bg-secondary transition-colors"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={confirmDeleteJob}
+                className="flex-1 px-4 py-2.5 bg-destructive text-destructive-foreground rounded-lg hover:opacity-90 transition-opacity"
+              >
+                Eliminar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

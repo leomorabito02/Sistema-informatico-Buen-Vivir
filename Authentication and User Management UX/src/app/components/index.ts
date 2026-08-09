@@ -36,10 +36,15 @@ export { PersonalPromotion } from './PersonalPromotion';
 
 // Módulo de Notificaciones (NUEVO)
 export { NotificationCenter } from './NotificationCenter';
+export { NotificationSettings } from './NotificationSettings';
 
 // Otros Módulos
 export { UserManagement } from './UserManagement';
 export { VolunteerUserManagement } from './VolunteerUserManagement';
 export { TeacherPortal } from './TeacherPortal';
 export { ParticipantTracking } from './ParticipantTracking';
+export { AttendanceTracking } from './AttendanceTracking';
 export { CVGenerator } from './CVGenerator';
+export { JobOffers } from './JobOffers';
+export { ForgotPassword } from './ForgotPassword';
+export { AuditLog } from './AuditLog';

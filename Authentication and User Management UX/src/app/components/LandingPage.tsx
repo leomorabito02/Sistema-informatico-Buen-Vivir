@@ -1,14 +1,58 @@
 import { Link } from 'react-router-dom';
-import { Leaf, Briefcase, Megaphone, LogIn, Users, BookOpen, Heart, TrendingUp, Award, MapPin, Clock, Phone } from 'lucide-react';
+import { useState } from 'react';
+import {
+  Briefcase, Megaphone, LogIn, BookOpen, Heart, MapPin, Clock, Phone,
+  UtensilsCrossed, Hammer, Sprout, Laptop, Scissors, HeartPulse, Briefcase as BriefcaseIcon, Mic,
+  Wheat, Leaf as LeafIcon, Salad, X, User, CheckCircle2, Mail
+} from 'lucide-react';
 import { Button } from 'primereact/button';
 
-const logoImg = new URL('./logo.png', import.meta.url).href;
+interface LibraryMaterial {
+  title: string;
+  actionLabel: string;
+}
 
 export function LandingPage() {
+  const [downloadTarget, setDownloadTarget] = useState<LibraryMaterial | null>(null);
+  const [contactForm, setContactForm] = useState({ nombre: '', apellido: '', email: '', telefono: '' });
+  const [formError, setFormError] = useState('');
+  const [downloadReady, setDownloadReady] = useState(false);
+
+  const openDownloadModal = (material: LibraryMaterial) => {
+    setDownloadTarget(material);
+    setContactForm({ nombre: '', apellido: '', email: '', telefono: '' });
+    setFormError('');
+    setDownloadReady(false);
+  };
+
+  const closeDownloadModal = () => {
+    setDownloadTarget(null);
+  };
+
+  const handleConfirmDownload = (e: React.FormEvent) => {
+    e.preventDefault();
+    const { nombre, apellido, email, telefono } = contactForm;
+    if (!nombre.trim() || !apellido.trim() || !email.trim() || !telefono.trim()) {
+      setFormError('Completá nombre, apellido, email y teléfono para continuar.');
+      return;
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
+      setFormError('Ingresá un email válido.');
+      return;
+    }
+    const phoneDigits = telefono.replace(/[\s()-]/g, '');
+    if (!/^\+?\d{6,15}$/.test(phoneDigits)) {
+      setFormError('Ingresá un número de teléfono válido.');
+      return;
+    }
+    setFormError('');
+    setDownloadReady(true);
+  };
+
   return (
     <div className="min-h-screen bg-background">
       {/* Hero Section */}
-      <header className="relative bg-gradient-to-br from-primary to-[#1a3a1f] text-white overflow-hidden">
+      <header className="relative bg-gradient-to-br from-primary to-[#1D1D1B] text-white overflow-hidden">
         <div className="absolute inset-0 opacity-10">
           <div className="absolute top-0 left-0 w-96 h-96 bg-white rounded-full -translate-x-1/2 -translate-y-1/2" />
           <div className="absolute bottom-0 right-0 w-96 h-96 bg-white rounded-full translate-x-1/2 translate-y-1/2" />
@@ -203,82 +247,82 @@ export function LandingPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
               {/* Gastronomía */}
               <div className="bg-card rounded-lg border border-border p-6 hover:border-primary hover:shadow-lg transition-all">
-                <div className="w-12 h-12 rounded-full bg-orange-100 flex items-center justify-center mb-4">
-                  <span className="text-2xl">🍳</span>
+                <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mb-4">
+                  <UtensilsCrossed className="w-6 h-6 text-primary" />
                 </div>
                 <h4 className="text-lg font-semibold mb-2">Gastronomía</h4>
                 <p className="text-sm text-muted-foreground mb-4">Técnicas culinarias, nutrición y seguridad alimentaria</p>
-                <span className="text-xs bg-orange-100 text-orange-700 px-3 py-1 rounded">12 recursos</span>
+                <span className="text-xs bg-primary/10 text-primary px-3 py-1 rounded">12 recursos</span>
               </div>
 
               {/* Oficios */}
               <div className="bg-card rounded-lg border border-border p-6 hover:border-primary hover:shadow-lg transition-all">
-                <div className="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center mb-4">
-                  <span className="text-2xl">🔨</span>
+                <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mb-4">
+                  <Hammer className="w-6 h-6 text-primary" />
                 </div>
                 <h4 className="text-lg font-semibold mb-2">Oficios y Construcción</h4>
                 <p className="text-sm text-muted-foreground mb-4">Carpintería, electricidad, plomería y más</p>
-                <span className="text-xs bg-blue-100 text-blue-700 px-3 py-1 rounded">8 recursos</span>
+                <span className="text-xs bg-primary/10 text-primary px-3 py-1 rounded">8 recursos</span>
               </div>
 
               {/* Ecología */}
               <div className="bg-card rounded-lg border border-border p-6 hover:border-primary hover:shadow-lg transition-all">
-                <div className="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center mb-4">
-                  <span className="text-2xl">🌱</span>
+                <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mb-4">
+                  <Sprout className="w-6 h-6 text-primary" />
                 </div>
                 <h4 className="text-lg font-semibold mb-2">Ecología y Sostenibilidad</h4>
                 <p className="text-sm text-muted-foreground mb-4">Agricultura orgánica, reciclaje y energías renovables</p>
-                <span className="text-xs bg-green-100 text-green-700 px-3 py-1 rounded">10 recursos</span>
+                <span className="text-xs bg-primary/10 text-primary px-3 py-1 rounded">10 recursos</span>
               </div>
 
               {/* Tecnología */}
               <div className="bg-card rounded-lg border border-border p-6 hover:border-primary hover:shadow-lg transition-all">
-                <div className="w-12 h-12 rounded-full bg-purple-100 flex items-center justify-center mb-4">
-                  <span className="text-2xl">💻</span>
+                <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mb-4">
+                  <Laptop className="w-6 h-6 text-primary" />
                 </div>
                 <h4 className="text-lg font-semibold mb-2">Tecnología Digital</h4>
                 <p className="text-sm text-muted-foreground mb-4">Informática, herramientas web y seguridad digital</p>
-                <span className="text-xs bg-purple-100 text-purple-700 px-3 py-1 rounded">9 recursos</span>
+                <span className="text-xs bg-primary/10 text-primary px-3 py-1 rounded">9 recursos</span>
               </div>
 
               {/* Arte y Diseño */}
               <div className="bg-card rounded-lg border border-border p-6 hover:border-primary hover:shadow-lg transition-all">
-                <div className="w-12 h-12 rounded-full bg-pink-100 flex items-center justify-center mb-4">
-                  <span className="text-2xl">✂️</span>
+                <div className="w-12 h-12 rounded-full bg-secondary/10 flex items-center justify-center mb-4">
+                  <Scissors className="w-6 h-6 text-secondary" />
                 </div>
                 <h4 className="text-lg font-semibold mb-2">Arte y Diseño</h4>
                 <p className="text-sm text-muted-foreground mb-4">Costura, diseño de moda y expresión creativa</p>
-                <span className="text-xs bg-pink-100 text-pink-700 px-3 py-1 rounded">7 recursos</span>
+                <span className="text-xs bg-secondary/10 text-secondary px-3 py-1 rounded">7 recursos</span>
               </div>
 
               {/* Bienestar */}
               <div className="bg-card rounded-lg border border-border p-6 hover:border-primary hover:shadow-lg transition-all">
-                <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center mb-4">
-                  <span className="text-2xl">❤️</span>
+                <div className="w-12 h-12 rounded-full bg-secondary/10 flex items-center justify-center mb-4">
+                  <HeartPulse className="w-6 h-6 text-secondary" />
                 </div>
                 <h4 className="text-lg font-semibold mb-2">Salud y Bienestar</h4>
                 <p className="text-sm text-muted-foreground mb-4">Nutrición, ejercicio y desarrollo personal</p>
-                <span className="text-xs bg-red-100 text-red-700 px-3 py-1 rounded">11 recursos</span>
+                <span className="text-xs bg-secondary/10 text-secondary px-3 py-1 rounded">11 recursos</span>
               </div>
 
               {/* Administración */}
               <div className="bg-card rounded-lg border border-border p-6 hover:border-primary hover:shadow-lg transition-all">
-                <div className="w-12 h-12 rounded-full bg-indigo-100 flex items-center justify-center mb-4">
-                  <span className="text-2xl">📊</span>
+                <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mb-4">
+                  <BriefcaseIcon className="w-6 h-6 text-primary" />
                 </div>
                 <h4 className="text-lg font-semibold mb-2">Gestión y Negocios</h4>
                 <p className="text-sm text-muted-foreground mb-4">Emprendimiento, finanzas y administración</p>
-                <span className="text-xs bg-indigo-100 text-indigo-700 px-3 py-1 rounded">6 recursos</span>
+                <span className="text-xs bg-primary/10 text-primary px-3 py-1 rounded">6 recursos</span>
               </div>
 
               {/* Comunicación */}
               <div className="bg-card rounded-lg border border-border p-6 hover:border-primary hover:shadow-lg transition-all">
-                <div className="w-12 h-12 rounded-full bg-cyan-100 flex items-center justify-center mb-4">
-                  <span className="text-2xl">🎤</span>
+                <div className="w-12 h-12 rounded-full bg-secondary/10 flex items-center justify-center mb-4">
+                  <Mic className="w-6 h-6 text-secondary" />
                 </div>
                 <h4 className="text-lg font-semibold mb-2">Comunicación</h4>
                 <p className="text-sm text-muted-foreground mb-4">Oralidad, escritura y habilidades interpersonales</p>
-                <span className="text-xs bg-cyan-100 text-cyan-700 px-3 py-1 rounded">5 recursos</span>
+                <span className="text-xs bg-secondary/10 text-secondary px-3 py-1 rounded">5 recursos</span>
               </div>
             </div>
           </div>
@@ -290,12 +334,12 @@ export function LandingPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
               {/* Material 1 */}
               <div className="bg-card rounded-lg border border-border overflow-hidden hover:border-primary hover:shadow-xl transition-all">
-                <div className="h-40 bg-gradient-to-br from-orange-100 to-yellow-100 flex items-center justify-center">
-                  <span className="text-6xl">🍞</span>
+                <div className="h-40 bg-primary/10 flex items-center justify-center">
+                  <Wheat className="w-14 h-14 text-primary" />
                 </div>
                 <div className="p-6">
                   <div className="flex items-center justify-between mb-3">
-                    <span className="px-3 py-1 rounded text-xs font-medium bg-orange-100 text-orange-700">PDF</span>
+                    <span className="px-3 py-1 rounded text-xs font-medium bg-primary/10 text-primary">PDF</span>
                     <span className="text-xs text-muted-foreground">5 MB</span>
                   </div>
                   <h4 className="text-lg font-semibold mb-2">Guía Completa de Panadería Artesanal</h4>
@@ -303,21 +347,20 @@ export function LandingPage() {
                     Manual profesional con técnicas de amasado, fermentación, horneado y presentación de panes artesanales
                   </p>
                   <div className="flex items-center justify-between text-xs text-muted-foreground mb-4">
-                    <span>📚 Gastronomía</span>
-                    
+                    <span className="flex items-center gap-1"><UtensilsCrossed className="w-3.5 h-3.5" /> Gastronomía</span>
                   </div>
-                  <Button label="Descargar Material" className="w-full p-button-outlined" />
+                  <Button label="Descargar Material" className="w-full p-button-outlined" onClick={() => openDownloadModal({ title: 'Guía Completa de Panadería Artesanal', actionLabel: 'Descargar Material' })} />
                 </div>
               </div>
 
               {/* Material 2 */}
               <div className="bg-card rounded-lg border border-border overflow-hidden hover:border-primary hover:shadow-xl transition-all">
-                <div className="h-40 bg-gradient-to-br from-green-100 to-lime-100 flex items-center justify-center">
-                  <span className="text-6xl">🌿</span>
+                <div className="h-40 bg-primary/10 flex items-center justify-center">
+                  <LeafIcon className="w-14 h-14 text-primary" />
                 </div>
                 <div className="p-6">
                   <div className="flex items-center justify-between mb-3">
-                    <span className="px-3 py-1 rounded text-xs font-medium bg-green-100 text-green-700">Guía</span>
+                    <span className="px-3 py-1 rounded text-xs font-medium bg-primary/10 text-primary">Guía</span>
                     <span className="text-xs text-muted-foreground">8 MB</span>
                   </div>
                   <h4 className="text-lg font-semibold mb-2">Manual de Huerta Orgánica</h4>
@@ -325,21 +368,20 @@ export function LandingPage() {
                     Cultivo sustentable en espacios reducidos, preparación de compost, riego eficiente y control biológico de plagas
                   </p>
                   <div className="flex items-center justify-between text-xs text-muted-foreground mb-4">
-                    <span>🌱 Ecología</span>
-                    
+                    <span className="flex items-center gap-1"><Sprout className="w-3.5 h-3.5" /> Ecología</span>
                   </div>
-                  <Button label="Descargar Material" className="w-full p-button-outlined" />
+                  <Button label="Descargar Material" className="w-full p-button-outlined" onClick={() => openDownloadModal({ title: 'Manual de Huerta Orgánica', actionLabel: 'Descargar Material' })} />
                 </div>
               </div>
 
               {/* Material 3 */}
               <div className="bg-card rounded-lg border border-border overflow-hidden hover:border-primary hover:shadow-xl transition-all">
-                <div className="h-40 bg-gradient-to-br from-blue-100 to-cyan-100 flex items-center justify-center">
-                  <span className="text-6xl">💻</span>
+                <div className="h-40 bg-primary/10 flex items-center justify-center">
+                  <Laptop className="w-14 h-14 text-primary" />
                 </div>
                 <div className="p-6">
                   <div className="flex items-center justify-between mb-3">
-                    <span className="px-3 py-1 rounded text-xs font-medium bg-blue-100 text-blue-700">Vídeo</span>
+                    <span className="px-3 py-1 rounded text-xs font-medium bg-primary/10 text-primary">Vídeo</span>
                     <span className="text-xs text-muted-foreground">120 min</span>
                   </div>
                   <h4 className="text-lg font-semibold mb-2">Informática Básica para Principiantes</h4>
@@ -347,21 +389,20 @@ export function LandingPage() {
                     Serie de videos sobre sistema operativo, navegador web, email y herramientas de productividad esenciales
                   </p>
                   <div className="flex items-center justify-between text-xs text-muted-foreground mb-4">
-                    <span>💻 Tecnología</span>
-                    
+                    <span className="flex items-center gap-1"><Laptop className="w-3.5 h-3.5" /> Tecnología</span>
                   </div>
-                  <Button label="Ver Vídeo" className="w-full p-button-outlined" />
+                  <Button label="Ver Vídeo" className="w-full p-button-outlined" onClick={() => openDownloadModal({ title: 'Informática Básica para Principiantes', actionLabel: 'Ver Vídeo' })} />
                 </div>
               </div>
 
               {/* Material 4 */}
               <div className="bg-card rounded-lg border border-border overflow-hidden hover:border-primary hover:shadow-xl transition-all">
-                <div className="h-40 bg-gradient-to-br from-pink-100 to-rose-100 flex items-center justify-center">
-                  <span className="text-6xl">✂️</span>
+                <div className="h-40 bg-secondary/10 flex items-center justify-center">
+                  <Scissors className="w-14 h-14 text-secondary" />
                 </div>
                 <div className="p-6">
                   <div className="flex items-center justify-between mb-3">
-                    <span className="px-3 py-1 rounded text-xs font-medium bg-pink-100 text-pink-700">Guía</span>
+                    <span className="px-3 py-1 rounded text-xs font-medium bg-secondary/10 text-secondary">Guía</span>
                     <span className="text-xs text-muted-foreground">6 MB</span>
                   </div>
                   <h4 className="text-lg font-semibold mb-2">Técnicas de Costura y Diseño</h4>
@@ -369,21 +410,20 @@ export function LandingPage() {
                     Puntadas básicas, uso de máquina de coser, lectura de patrones y adaptación de tallas para crear prendas
                   </p>
                   <div className="flex items-center justify-between text-xs text-muted-foreground mb-4">
-                    <span>👗 Arte y Diseño</span>
-                    
+                    <span className="flex items-center gap-1"><Scissors className="w-3.5 h-3.5" /> Arte y Diseño</span>
                   </div>
-                  <Button label="Descargar Material" className="w-full p-button-outlined" />
+                  <Button label="Descargar Material" className="w-full p-button-outlined" onClick={() => openDownloadModal({ title: 'Técnicas de Costura y Diseño', actionLabel: 'Descargar Material' })} />
                 </div>
               </div>
 
               {/* Material 5 */}
               <div className="bg-card rounded-lg border border-border overflow-hidden hover:border-primary hover:shadow-xl transition-all">
-                <div className="h-40 bg-gradient-to-br from-purple-100 to-indigo-100 flex items-center justify-center">
-                  <span className="text-6xl">📊</span>
+                <div className="h-40 bg-primary/10 flex items-center justify-center">
+                  <BriefcaseIcon className="w-14 h-14 text-primary" />
                 </div>
                 <div className="p-6">
                   <div className="flex items-center justify-between mb-3">
-                    <span className="px-3 py-1 rounded text-xs font-medium bg-purple-100 text-purple-700">PDF</span>
+                    <span className="px-3 py-1 rounded text-xs font-medium bg-primary/10 text-primary">PDF</span>
                     <span className="text-xs text-muted-foreground">4 MB</span>
                   </div>
                   <h4 className="text-lg font-semibold mb-2">Guía de Emprendimiento</h4>
@@ -391,21 +431,20 @@ export function LandingPage() {
                     Pasos para crear un negocio, plan de negocios, finanzas básicas, marketing y gestión de clientes
                   </p>
                   <div className="flex items-center justify-between text-xs text-muted-foreground mb-4">
-                    <span>💼 Negocios</span>
-                   
+                    <span className="flex items-center gap-1"><BriefcaseIcon className="w-3.5 h-3.5" /> Negocios</span>
                   </div>
-                  <Button label="Descargar Material" className="w-full p-button-outlined" />
+                  <Button label="Descargar Material" className="w-full p-button-outlined" onClick={() => openDownloadModal({ title: 'Guía de Emprendimiento', actionLabel: 'Descargar Material' })} />
                 </div>
               </div>
 
               {/* Material 6 */}
               <div className="bg-card rounded-lg border border-border overflow-hidden hover:border-primary hover:shadow-xl transition-all">
-                <div className="h-40 bg-gradient-to-br from-red-100 to-orange-100 flex items-center justify-center">
-                  <span className="text-6xl">❤️</span>
+                <div className="h-40 bg-secondary/10 flex items-center justify-center">
+                  <Salad className="w-14 h-14 text-secondary" />
                 </div>
                 <div className="p-6">
                   <div className="flex items-center justify-between mb-3">
-                    <span className="px-3 py-1 rounded text-xs font-medium bg-red-100 text-red-700">Vídeo</span>
+                    <span className="px-3 py-1 rounded text-xs font-medium bg-secondary/10 text-secondary">Vídeo</span>
                     <span className="text-xs text-muted-foreground">90 min</span>
                   </div>
                   <h4 className="text-lg font-semibold mb-2">Nutrición y Alimentación Saludable</h4>
@@ -413,10 +452,9 @@ export function LandingPage() {
                     Pirámide nutricional, macronutrientes, recetas saludables, presupuesto alimentario y compras inteligentes
                   </p>
                   <div className="flex items-center justify-between text-xs text-muted-foreground mb-4">
-                    <span>🥗 Salud</span>
-                   
+                    <span className="flex items-center gap-1"><HeartPulse className="w-3.5 h-3.5" /> Salud</span>
                   </div>
-                  <Button label="Ver Vídeo" className="w-full p-button-outlined" />
+                  <Button label="Ver Vídeo" className="w-full p-button-outlined" onClick={() => openDownloadModal({ title: 'Nutrición y Alimentación Saludable', actionLabel: 'Ver Vídeo' })} />
                 </div>
               </div>
             </div>
@@ -565,6 +603,133 @@ export function LandingPage() {
           </div>
         </div>
       </footer>
+
+      {/* Download Contact Modal (HU-25) */}
+      {downloadTarget && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+          <div className="bg-card rounded-lg border border-border w-full max-w-md">
+            <div className="border-b border-border p-6 flex items-start justify-between">
+              <div>
+                <h2 className="text-xl font-semibold mb-1">
+                  {downloadReady ? '¡Listo!' : 'Antes de continuar'}
+                </h2>
+                <p className="text-sm text-muted-foreground">{downloadTarget.title}</p>
+              </div>
+              <button
+                onClick={closeDownloadModal}
+                className="p-2 rounded-lg hover:bg-secondary transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="p-6">
+              {!downloadReady ? (
+                <form onSubmit={handleConfirmDownload} className="space-y-4">
+                  <p className="text-sm text-muted-foreground">
+                    Dejanos tus datos de contacto para habilitar la descarga de este material gratuito.
+                  </p>
+
+                  <div>
+                    <label className="block mb-2 text-sm">Nombre</label>
+                    <div className="relative">
+                      <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                      <input
+                        type="text"
+                        value={contactForm.nombre}
+                        onChange={(e) => setContactForm({ ...contactForm, nombre: e.target.value })}
+                        className="w-full pl-9 pr-4 py-2.5 rounded-lg border border-border bg-input-background focus:outline-none focus:ring-2 focus:ring-primary"
+                        placeholder="Tu nombre"
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block mb-2 text-sm">Apellido</label>
+                    <div className="relative">
+                      <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                      <input
+                        type="text"
+                        value={contactForm.apellido}
+                        onChange={(e) => setContactForm({ ...contactForm, apellido: e.target.value })}
+                        className="w-full pl-9 pr-4 py-2.5 rounded-lg border border-border bg-input-background focus:outline-none focus:ring-2 focus:ring-primary"
+                        placeholder="Tu apellido"
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block mb-2 text-sm">Email</label>
+                    <div className="relative">
+                      <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                      <input
+                        type="email"
+                        value={contactForm.email}
+                        onChange={(e) => setContactForm({ ...contactForm, email: e.target.value })}
+                        className="w-full pl-9 pr-4 py-2.5 rounded-lg border border-border bg-input-background focus:outline-none focus:ring-2 focus:ring-primary"
+                        placeholder="tu@email.com"
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block mb-2 text-sm">Teléfono</label>
+                    <div className="relative">
+                      <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                      <input
+                        type="tel"
+                        value={contactForm.telefono}
+                        onChange={(e) => setContactForm({ ...contactForm, telefono: e.target.value })}
+                        className="w-full pl-9 pr-4 py-2.5 rounded-lg border border-border bg-input-background focus:outline-none focus:ring-2 focus:ring-primary"
+                        placeholder="+54 9 3547 XXX-XXX"
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  {formError && (
+                    <p className="text-sm text-destructive">{formError}</p>
+                  )}
+
+                  <div className="flex gap-3 pt-2">
+                    <button
+                      type="button"
+                      onClick={closeDownloadModal}
+                      className="flex-1 px-4 py-2.5 rounded-lg border border-border hover:bg-secondary transition-colors text-sm"
+                    >
+                      Cancelar
+                    </button>
+                    <button
+                      type="submit"
+                      className="flex-1 px-4 py-2.5 bg-primary text-primary-foreground rounded-lg hover:opacity-90 transition-opacity text-sm"
+                    >
+                      Continuar
+                    </button>
+                  </div>
+                </form>
+              ) : (
+                <div className="text-center py-4">
+                  <div className="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
+                    <CheckCircle2 className="w-7 h-7 text-primary" />
+                  </div>
+                  <p className="text-muted-foreground mb-6">
+                    ¡Gracias, {contactForm.nombre}! Ya podés {downloadTarget.actionLabel.toLowerCase()}.
+                  </p>
+                  <button
+                    onClick={closeDownloadModal}
+                    className="w-full px-4 py-2.5 bg-primary text-primary-foreground rounded-lg hover:opacity-90 transition-opacity text-sm"
+                  >
+                    {downloadTarget.actionLabel}
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

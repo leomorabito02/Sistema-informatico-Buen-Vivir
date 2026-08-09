@@ -2,20 +2,26 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { useState } from 'react';
 import { LandingPage } from './components/LandingPage';
 import { Login } from './components/Login';
+import { ForgotPassword } from './components/ForgotPassword';
 import { Register } from './components/Register';
 import { Dashboard } from './components/Dashboard';
 import { UserManagement } from './components/UserManagement';
+import { AuditLog } from './components/AuditLog';
 import { VolunteerUserManagement } from './components/VolunteerUserManagement';
+import { AttendanceTracking } from './components/AttendanceTracking';
 import { CourseCatalog } from './components/CourseCatalog';
 import { CourseDetail } from './components/CourseDetail';
 import { ProgressTracking } from './components/ProgressTracking';
 import { TeacherPortal } from './components/TeacherPortal';
 import { PublicJobOffers } from './components/PublicJobOffers';
+import { JobOffers } from './components/JobOffers';
 import { PublicCampaigns } from './components/PublicCampaigns';
 import { ParticipantTracking } from './components/ParticipantTracking';
 import { CVGenerator } from './components/CVGenerator';
 import { CampaignManagement } from './components/CampaignManagement';
 import { LaborInsertion } from './components/LaborInsertion';
+import { NotificationCenter } from './components/NotificationCenter';
+import { NotificationSettings } from './components/NotificationSettings';
 
 export default function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -55,6 +61,7 @@ export default function App() {
             <Register />
           }
         />
+        <Route path="/recuperar-password" element={<ForgotPassword />} />
 
         {/* Protected Routes */}
         <Route
@@ -75,13 +82,28 @@ export default function App() {
             <Navigate to="/dashboard" />
           }
         />
-
+        <Route
+          path="/log-auditoria"
+          element={
+            isAuthenticated && userRole === 'admin' ?
+            <AuditLog onLogout={handleLogout} /> :
+            <Navigate to="/dashboard" />
+          }
+        />
         {/* Volunteer Routes */}
         <Route
           path="/seguimiento-participantes"
           element={
             isAuthenticated && (userRole === 'admin' || userRole === 'voluntario') ?
             <ParticipantTracking userRole={userRole} onLogout={handleLogout} /> :
+            <Navigate to="/dashboard" />
+          }
+        />
+        <Route
+          path="/asistencia-general"
+          element={
+            isAuthenticated && (userRole === 'admin' || userRole === 'voluntario') ?
+            <AttendanceTracking onLogout={handleLogout} /> :
             <Navigate to="/dashboard" />
           }
         />
@@ -102,6 +124,14 @@ export default function App() {
           element={
             isAuthenticated && userRole === 'participante' ?
             <CVGenerator onLogout={handleLogout} /> :
+            <Navigate to="/dashboard" />
+          }
+        />
+        <Route
+          path="/ofertas-laborales"
+          element={
+            isAuthenticated && userRole === 'participante' ?
+            <JobOffers onLogout={handleLogout} /> :
             <Navigate to="/dashboard" />
           }
         />
@@ -159,6 +189,24 @@ export default function App() {
             isAuthenticated && userRole === 'voluntario' ?
             <VolunteerUserManagement onLogout={handleLogout} /> :
             <Navigate to="/dashboard" />
+          }
+        />
+
+        {/* Notifications - any authenticated role */}
+        <Route
+          path="/notificaciones"
+          element={
+            isAuthenticated ?
+            <NotificationCenter onLogout={handleLogout} /> :
+            <Navigate to="/login" />
+          }
+        />
+        <Route
+          path="/configuracion-notificaciones"
+          element={
+            isAuthenticated ?
+            <NotificationSettings onLogout={handleLogout} /> :
+            <Navigate to="/login" />
           }
         />
       </Routes>

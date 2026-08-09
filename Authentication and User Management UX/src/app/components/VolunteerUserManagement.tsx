@@ -1,20 +1,28 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Leaf, Search, Plus, Edit, Trash2, Eye, LogOut, X, User, Mail, Phone } from 'lucide-react';
+import { Search, Plus, Edit, Trash2, Eye, LogOut, X, User, Mail, Phone, IdCard, MapPin, Calendar, AlertCircle, ArrowLeft } from 'lucide-react';
+import { Toast, ToastState } from './base';
 
 interface VolunteerUserManagementProps {
   onLogout: () => void;
 }
+
+const emptyForm = { name: '', email: '', phone: '', dni: '', address: '', birthDate: '' };
 
 export function VolunteerUserManagement({ onLogout }: VolunteerUserManagementProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [showModal, setShowModal] = useState(false);
   const [modalMode, setModalMode] = useState<'create' | 'edit' | 'view'>('create');
   const [selectedUser, setSelectedUser] = useState<any>(null);
+  const [formData, setFormData] = useState(emptyForm);
+  const [formError, setFormError] = useState('');
+  const [toast, setToast] = useState<ToastState | null>(null);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [userToDelete, setUserToDelete] = useState<any>(null);
   const [usersList, setUsersList] = useState([
-    { id: 1, name: 'María González', email: 'maria@email.com', phone: '+54 9 11 1234-5678', role: 'participante', courses: 3 },
-    { id: 2, name: 'Juan Pérez', email: 'juan@email.com', phone: '+54 9 11 2345-6789', role: 'participante', courses: 5 },
-    { id: 3, name: 'Ana Martínez', email: 'ana@email.com', phone: '+54 9 11 3456-7890', role: 'participante', courses: 2 },
+    { id: 1, name: 'María González', email: 'maria@email.com', phone: '+54 9 11 1234-5678', role: 'participante', courses: 3, dni: '30111222', address: 'Belgrano 123, Alta Gracia', birthDate: '1997-03-12' },
+    { id: 2, name: 'Juan Pérez', email: 'juan@email.com', phone: '+54 9 11 2345-6789', role: 'participante', courses: 5, dni: '28555444', address: 'San Martín 456, Alta Gracia', birthDate: '1990-07-22' },
+    { id: 3, name: 'Ana Martínez', email: 'ana@email.com', phone: '+54 9 11 3456-7890', role: 'participante', courses: 2, dni: '33222111', address: 'Sarmiento 789, Alta Gracia', birthDate: '2000-01-05' },
   ]);
 
   const filteredUsers = usersList.filter(user => {
@@ -26,33 +34,64 @@ export function VolunteerUserManagement({ onLogout }: VolunteerUserManagementPro
   const handleCreateUser = () => {
     setModalMode('create');
     setSelectedUser(null);
+    setFormData(emptyForm);
+    setFormError('');
     setShowModal(true);
   };
 
   const handleEditUser = (user: any) => {
     setModalMode('edit');
     setSelectedUser(user);
+    setFormData({ name: user.name, email: user.email, phone: user.phone, dni: user.dni || '', address: user.address || '', birthDate: user.birthDate || '' });
+    setFormError('');
     setShowModal(true);
   };
 
   const handleViewUser = (user: any) => {
     setModalMode('view');
     setSelectedUser(user);
+    setFormData({ name: user.name, email: user.email, phone: user.phone, dni: user.dni || '', address: user.address || '', birthDate: user.birthDate || '' });
     setShowModal(true);
   };
 
-  const handleDeleteUser = (userId: number) => {
-    setUsersList(usersList.filter(u => u.id !== userId));
+  const handleAskDelete = (user: any) => {
+    setUserToDelete(user);
+    setShowDeleteModal(true);
   };
 
-  const handleSaveUser = () => {
-    // Simular guardado de usuario
+  const confirmDeleteUser = () => {
+    setUsersList(usersList.filter(u => u.id !== userToDelete.id));
+    setShowDeleteModal(false);
+    setToast({ type: 'success', message: `${userToDelete.name} fue eliminado/a del sistema.` });
+    setUserToDelete(null);
+  };
+
+  const handleSaveUser = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!formData.name.trim() || !formData.email.trim() || !formData.phone.trim() ||
+        !formData.dni.trim() || !formData.address.trim() || !formData.birthDate.trim()) {
+      setFormError('Completá todos los campos obligatorios.');
+      return;
+    }
+
+    if (modalMode === 'create') {
+      const newUser = { id: Date.now(), ...formData, role: 'participante', courses: 0 };
+      setUsersList([newUser, ...usersList]);
+      setToast({ type: 'success', message: 'Participante creado correctamente.' });
+    } else if (modalMode === 'edit') {
+      setUsersList(usersList.map(u => u.id === selectedUser.id ? { ...u, ...formData } : u));
+      setToast({ type: 'success', message: 'Cambios guardados correctamente' });
+    }
+
+    setFormError('');
     setShowModal(false);
     setSelectedUser(null);
   };
 
   return (
     <div className="min-h-screen bg-background">
+      <Toast toast={toast} onClose={() => setToast(null)} />
+
       {/* Header */}
       <header className="bg-primary/90 text-white border-b-2 border-primary p-6">
         <div className="flex items-center justify-between">
@@ -68,8 +107,9 @@ export function VolunteerUserManagement({ onLogout }: VolunteerUserManagementPro
           <div className="flex items-center gap-3">
             <Link
               to="/dashboard"
-              className="px-4 py-2 rounded-lg border border-white hover:bg-white/10 transition-colors text-white"
+              className="px-4 py-2 rounded-lg border border-white hover:bg-white/10 transition-colors text-white flex items-center gap-2"
             >
+              <ArrowLeft className="w-4 h-4" />
               Volver
             </Link>
             <button
@@ -156,7 +196,7 @@ export function VolunteerUserManagement({ onLogout }: VolunteerUserManagementPro
                           <Edit className="w-4 h-4" />
                         </button>
                         <button
-                          onClick={() => handleDeleteUser(user.id)}
+                          onClick={() => handleAskDelete(user)}
                           className="p-2 rounded-lg hover:bg-destructive/10 text-destructive transition-colors"
                           title="Eliminar"
                         >
@@ -191,13 +231,7 @@ export function VolunteerUserManagement({ onLogout }: VolunteerUserManagementPro
             </div>
 
             <div className="p-6">
-              <form
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  handleSaveUser();
-                }}
-                className="space-y-4"
-              >
+              <form onSubmit={handleSaveUser} className="space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className="block mb-2">Nombre Completo</label>
@@ -205,7 +239,8 @@ export function VolunteerUserManagement({ onLogout }: VolunteerUserManagementPro
                       <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
                       <input
                         type="text"
-                        defaultValue={selectedUser?.name}
+                        value={formData.name}
+                        onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                         disabled={modalMode === 'view'}
                         className="w-full pl-10 pr-4 py-3 rounded-lg border border-border bg-input-background focus:outline-none focus:ring-2 focus:ring-primary disabled:opacity-50"
                         placeholder="Juan Pérez"
@@ -219,7 +254,8 @@ export function VolunteerUserManagement({ onLogout }: VolunteerUserManagementPro
                       <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
                       <input
                         type="email"
-                        defaultValue={selectedUser?.email}
+                        value={formData.email}
+                        onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                         disabled={modalMode === 'view'}
                         className="w-full pl-10 pr-4 py-3 rounded-lg border border-border bg-input-background focus:outline-none focus:ring-2 focus:ring-primary disabled:opacity-50"
                         placeholder="email@ejemplo.com"
@@ -233,7 +269,8 @@ export function VolunteerUserManagement({ onLogout }: VolunteerUserManagementPro
                       <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
                       <input
                         type="tel"
-                        defaultValue={selectedUser?.phone}
+                        value={formData.phone}
+                        onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                         disabled={modalMode === 'view'}
                         className="w-full pl-10 pr-4 py-3 rounded-lg border border-border bg-input-background focus:outline-none focus:ring-2 focus:ring-primary disabled:opacity-50"
                         placeholder="+54 9 11 XXXX-XXXX"
@@ -242,23 +279,63 @@ export function VolunteerUserManagement({ onLogout }: VolunteerUserManagementPro
                   </div>
 
                   <div>
-                    <label className="block mb-2">Cursos Inscritos</label>
-                    <input
-                      type="number"
-                      defaultValue={selectedUser?.courses || 0}
-                      disabled={modalMode === 'view'}
-                      className="w-full px-4 py-3 rounded-lg border border-border bg-input-background focus:outline-none focus:ring-2 focus:ring-primary disabled:opacity-50"
-                      placeholder="0"
-                    />
+                    <label className="block mb-2">DNI</label>
+                    <div className="relative">
+                      <IdCard className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                      <input
+                        type="text"
+                        value={formData.dni}
+                        onChange={(e) => setFormData({ ...formData, dni: e.target.value })}
+                        disabled={modalMode === 'view'}
+                        className="w-full pl-10 pr-4 py-3 rounded-lg border border-border bg-input-background focus:outline-none focus:ring-2 focus:ring-primary disabled:opacity-50"
+                        placeholder="30111222"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block mb-2">Fecha de Nacimiento</label>
+                    <div className="relative">
+                      <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                      <input
+                        type="date"
+                        value={formData.birthDate}
+                        onChange={(e) => setFormData({ ...formData, birthDate: e.target.value })}
+                        disabled={modalMode === 'view'}
+                        className="w-full pl-10 pr-4 py-3 rounded-lg border border-border bg-input-background focus:outline-none focus:ring-2 focus:ring-primary disabled:opacity-50"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="md:col-span-2">
+                    <label className="block mb-2">Dirección</label>
+                    <div className="relative">
+                      <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                      <input
+                        type="text"
+                        value={formData.address}
+                        onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                        disabled={modalMode === 'view'}
+                        className="w-full pl-10 pr-4 py-3 rounded-lg border border-border bg-input-background focus:outline-none focus:ring-2 focus:ring-primary disabled:opacity-50"
+                        placeholder="Calle 123, Alta Gracia"
+                      />
+                    </div>
                   </div>
                 </div>
 
                 <div className="bg-secondary rounded-lg p-4">
                   <p className="text-sm text-muted-foreground">
-                    <strong className="text-foreground">Información:</strong> Los participantes registrados por aquí podrán acceder 
+                    <strong className="text-foreground">Información:</strong> Los participantes registrados por aquí podrán acceder
                     a los cursos y seguimiento de asistencia.
                   </p>
                 </div>
+
+                {formError && (
+                  <div className="flex items-start gap-2 text-sm text-destructive bg-destructive/10 border border-destructive/20 rounded-lg p-3">
+                    <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
+                    <span>{formError}</span>
+                  </div>
+                )}
 
                 {modalMode !== 'view' && (
                   <div className="flex justify-end gap-3 pt-4">
@@ -278,6 +355,32 @@ export function VolunteerUserManagement({ onLogout }: VolunteerUserManagementPro
                   </div>
                 )}
               </form>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+          <div className="bg-card rounded-lg border border-border w-full max-w-sm p-6">
+            <h2 className="text-xl font-semibold mb-3">Eliminar Participante</h2>
+            <p className="text-sm text-muted-foreground mb-6">
+              ¿Confirmás que querés eliminar a <strong className="text-foreground">{userToDelete?.name}</strong>?
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowDeleteModal(false)}
+                className="flex-1 px-4 py-2.5 rounded-lg border border-border hover:bg-secondary transition-colors"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={confirmDeleteUser}
+                className="flex-1 px-4 py-2.5 bg-destructive text-destructive-foreground rounded-lg hover:opacity-90 transition-opacity"
+              >
+                Eliminar
+              </button>
             </div>
           </div>
         </div>

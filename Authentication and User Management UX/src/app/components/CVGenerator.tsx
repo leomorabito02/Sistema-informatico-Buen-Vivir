@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Leaf, LogOut, Download, FileText, User, Mail, Phone, MapPin, Briefcase, GraduationCap, Award, Languages } from 'lucide-react';
+import { LogOut, Download, FileText, User, Mail, Phone, MapPin, GraduationCap, Award, AlertCircle, ArrowLeft } from 'lucide-react';
+import { Toast, ToastState } from './base';
 
 interface CVGeneratorProps {
   onLogout: () => void;
@@ -8,6 +9,8 @@ interface CVGeneratorProps {
 
 export function CVGenerator({ onLogout }: CVGeneratorProps) {
   const [showPreview, setShowPreview] = useState(false);
+  const [toast, setToast] = useState<ToastState | null>(null);
+  const [serviceError, setServiceError] = useState(false);
 
   const participantData = {
     personalInfo: {
@@ -65,15 +68,26 @@ export function CVGenerator({ onLogout }: CVGeneratorProps) {
   };
 
   const handleGenerateCV = () => {
+    setServiceError(false);
     setShowPreview(true);
   };
 
   const handleDownloadPDF = () => {
-    alert('Generando PDF... Esta funcionalidad se integrará con un servicio de generación de CVs');
+    // Mock: simula una falla ocasional del servicio externo RxResume para ilustrar el manejo de error (HU-59).
+    const rxResumeAvailable = Math.random() > 0.15;
+    if (!rxResumeAvailable) {
+      setServiceError(true);
+      setToast({ type: 'error', message: 'El servicio de generación de CV (RxResume) no está disponible en este momento. Intentá nuevamente en unos minutos.' });
+      return;
+    }
+    setServiceError(false);
+    setToast({ type: 'success', message: 'Tu CV fue generado con RxResume y está listo para descargar.' });
   };
 
   return (
     <div className="min-h-screen bg-background">
+      <Toast toast={toast} onClose={() => setToast(null)} />
+
       {/* Header */}
       <header className="bg-card border-b border-border p-6">
         <div className="flex items-center justify-between">
@@ -89,8 +103,9 @@ export function CVGenerator({ onLogout }: CVGeneratorProps) {
           <div className="flex items-center gap-3">
             <Link
               to="/dashboard"
-              className="px-4 py-2 rounded-lg border border-border hover:bg-secondary transition-colors"
+              className="px-4 py-2 rounded-lg border border-border hover:bg-secondary transition-colors flex items-center gap-2"
             >
+              <ArrowLeft className="w-4 h-4" />
               Volver
             </Link>
             <button
@@ -116,7 +131,8 @@ export function CVGenerator({ onLogout }: CVGeneratorProps) {
                   <div>
                     <h3 className="text-lg mb-2">¿Cómo funciona el generador de CV?</h3>
                     <p className="text-muted-foreground mb-2">
-                      Nuestro sistema genera automáticamente tu currículum vitae utilizando:
+                      El sistema se integra con <strong className="text-foreground">RxResume</strong>, un servicio externo de generación de currículums,
+                      y compila automáticamente tu CV a partir de:
                     </p>
                     <ul className="list-disc list-inside space-y-1 text-muted-foreground">
                       <li>Tu información personal registrada en el sistema</li>
@@ -189,8 +205,8 @@ export function CVGenerator({ onLogout }: CVGeneratorProps) {
                           </div>
                           <span className={`inline-flex px-3 py-1 rounded-full text-xs ${
                             course.status === 'Completado'
-                              ? 'bg-[#66bb6a]/10 text-[#2d7a3e]'
-                              : 'bg-[#f59e0b]/10 text-[#d97706]'
+                              ? 'bg-primary/10 text-primary'
+                              : 'bg-secondary/10 text-secondary'
                           }`}>
                             {course.status}
                           </span>
@@ -244,12 +260,19 @@ export function CVGenerator({ onLogout }: CVGeneratorProps) {
                   </button>
                 </div>
 
+                {serviceError && (
+                  <div className="flex items-start gap-2 text-sm text-destructive bg-destructive/10 border-b border-destructive/20 p-4">
+                    <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
+                    <span>No pudimos generar el PDF porque el servicio RxResume no respondió. Probá de nuevo en unos minutos.</span>
+                  </div>
+                )}
+
                 <div className="p-12 bg-white text-black">
                   {/* CV Content */}
                   <div className="max-w-3xl mx-auto">
                     {/* Header */}
                     <div className="text-center mb-8 pb-6 border-b-2 border-gray-300">
-                      <h1 className="text-4xl mb-2" style={{ color: '#2d7a3e' }}>
+                      <h1 className="text-4xl mb-2" style={{ color: '#485839' }}>
                         {participantData.personalInfo.name}
                       </h1>
                       <div className="flex flex-wrap justify-center gap-4 text-sm text-gray-600">
@@ -263,17 +286,17 @@ export function CVGenerator({ onLogout }: CVGeneratorProps) {
 
                     {/* Profile Summary */}
                     <div className="mb-6">
-                      <h2 className="text-xl mb-3" style={{ color: '#2d7a3e' }}>PERFIL PROFESIONAL</h2>
+                      <h2 className="text-xl mb-3" style={{ color: '#485839' }}>PERFIL PROFESIONAL</h2>
                       <p className="text-gray-700">{participantData.summary}</p>
                     </div>
 
                     {/* Skills */}
                     <div className="mb-6">
-                      <h2 className="text-xl mb-3" style={{ color: '#2d7a3e' }}>HABILIDADES</h2>
+                      <h2 className="text-xl mb-3" style={{ color: '#485839' }}>HABILIDADES</h2>
                       <div className="grid grid-cols-2 gap-2">
                         {participantData.skills.map((skill, index) => (
                           <div key={index} className="flex items-center gap-2">
-                            <span className="w-2 h-2 rounded-full" style={{ backgroundColor: '#2d7a3e' }} />
+                            <span className="w-2 h-2 rounded-full" style={{ backgroundColor: '#485839' }} />
                             <span className="text-gray-700">{skill}</span>
                           </div>
                         ))}
@@ -282,7 +305,7 @@ export function CVGenerator({ onLogout }: CVGeneratorProps) {
 
                     {/* Education */}
                     <div className="mb-6">
-                      <h2 className="text-xl mb-3" style={{ color: '#2d7a3e' }}>FORMACIÓN</h2>
+                      <h2 className="text-xl mb-3" style={{ color: '#485839' }}>FORMACIÓN</h2>
                       <div className="space-y-4">
                         {participantData.courses.map((course, index) => (
                           <div key={index}>
@@ -297,7 +320,7 @@ export function CVGenerator({ onLogout }: CVGeneratorProps) {
                     {/* Experience */}
                     {participantData.experience.length > 0 && (
                       <div className="mb-6">
-                        <h2 className="text-xl mb-3" style={{ color: '#2d7a3e' }}>EXPERIENCIA LABORAL</h2>
+                        <h2 className="text-xl mb-3" style={{ color: '#485839' }}>EXPERIENCIA LABORAL</h2>
                         <div className="space-y-4">
                           {participantData.experience.map((exp, index) => (
                             <div key={index}>
@@ -312,7 +335,7 @@ export function CVGenerator({ onLogout }: CVGeneratorProps) {
 
                     {/* Languages */}
                     <div>
-                      <h2 className="text-xl mb-3" style={{ color: '#2d7a3e' }}>IDIOMAS</h2>
+                      <h2 className="text-xl mb-3" style={{ color: '#485839' }}>IDIOMAS</h2>
                       <div className="space-y-1">
                         {participantData.languages.map((lang, index) => (
                           <p key={index} className="text-gray-700">

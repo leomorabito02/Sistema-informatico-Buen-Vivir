@@ -1,6 +1,6 @@
 import React from 'react';
 import { Card, CardHeader, CardBody } from './base';
-import { CheckCircle, Clock, Target, Award, Plus } from 'lucide-react';
+import { CheckCircle, Clock, Target, Award, Plus, Star } from 'lucide-react';
 
 interface Milestone {
   id: number;
@@ -70,9 +70,9 @@ export function PersonalPromotion({ participantName, userId }: PersonalPromotion
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg p-6 text-white">
+      <div className="bg-gradient-to-r from-primary to-[#1D1D1B] rounded-lg p-6 text-white">
         <h1 className="text-3xl font-bold mb-2">Proceso de Promoción Personal</h1>
-        <p className="text-blue-100">Seguimiento de hitos y avances de {participantName}</p>
+        <p className="text-white/80">Seguimiento de hitos y avances de {participantName}</p>
       </div>
 
       {/* Key Indicators */}
@@ -183,9 +183,13 @@ export function PersonalPromotion({ participantName, userId }: PersonalPromotion
                   <div key={index} className="flex items-center gap-3">
                     <div className="w-2 h-2 rounded-full bg-blue-600"></div>
                     <span className="text-gray-700">{skill}</span>
-                    <div className="ml-auto flex text-yellow-400">
-                      {'★'.repeat(3 + (index % 2))}
-                      {'☆'.repeat(2 - (index % 2))}
+                    <div className="ml-auto flex gap-0.5">
+                      {Array.from({ length: 5 }).map((_, i) => (
+                        <Star
+                          key={i}
+                          className={`w-4 h-4 ${i < 3 + (index % 2) ? 'fill-secondary text-secondary' : 'text-border'}`}
+                        />
+                      ))}
                     </div>
                   </div>
                 )

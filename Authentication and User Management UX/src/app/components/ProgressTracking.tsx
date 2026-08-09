@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 import { useState } from 'react';
-import { Leaf, LogOut, BookOpen, Award, TrendingUp, Sparkles, Download, Calendar, X } from 'lucide-react';
+import { LogOut, BookOpen, Award, TrendingUp, Sparkles, Download, Calendar, X, ChefHat, Laptop, Sprout, CheckCircle2, Star, Plus, ArrowLeft } from 'lucide-react';
 import { Button } from 'primereact/button';
 
 interface ProgressTrackingProps {
@@ -21,7 +21,7 @@ export function ProgressTracking({ userRole, onLogout }: ProgressTrackingProps) 
       completedActivities: 7,
       lastActivity: 'Hace 2 horas',
       nextActivity: 'Técnicas de horneado',
-      image: '🍞'
+      icon: ChefHat
     },
     {
       id: 2,
@@ -32,7 +32,7 @@ export function ProgressTracking({ userRole, onLogout }: ProgressTrackingProps) 
       completedActivities: 9,
       lastActivity: 'Hace 1 día',
       nextActivity: 'Hojas de cálculo avanzadas',
-      image: '💻'
+      icon: Laptop
     },
     {
       id: 3,
@@ -43,7 +43,7 @@ export function ProgressTracking({ userRole, onLogout }: ProgressTrackingProps) 
       completedActivities: 3,
       lastActivity: 'Hace 3 días',
       nextActivity: 'Compostaje y fertilización',
-      image: '🌱'
+      icon: Sprout
     },
   ];
 
@@ -127,8 +127,9 @@ export function ProgressTracking({ userRole, onLogout }: ProgressTrackingProps) 
           <div className="flex items-center gap-3">
             <Link
               to="/dashboard"
-              className="px-4 py-2 rounded-lg border border-border hover:bg-secondary transition-colors"
+              className="px-4 py-2 rounded-lg border border-border hover:bg-secondary transition-colors flex items-center gap-2"
             >
+              <ArrowLeft className="w-4 h-4" />
               Volver
             </Link>
             <button
@@ -158,7 +159,7 @@ export function ProgressTracking({ userRole, onLogout }: ProgressTrackingProps) 
 
           <div className="bg-card rounded-lg border border-border p-6">
             <div className="flex items-center justify-between mb-4">
-              <div className="w-12 h-12 rounded-lg bg-[#66bb6a] flex items-center justify-center">
+              <div className="w-12 h-12 rounded-lg bg-secondary flex items-center justify-center">
                 <TrendingUp className="w-6 h-6 text-white" />
               </div>
               <span className="text-3xl">{totalProgress}%</span>
@@ -168,7 +169,7 @@ export function ProgressTracking({ userRole, onLogout }: ProgressTrackingProps) 
 
           <div className="bg-card rounded-lg border border-border p-6">
             <div className="flex items-center justify-between mb-4">
-              <div className="w-12 h-12 rounded-lg bg-[#81c784] flex items-center justify-center">
+              <div className="w-12 h-12 rounded-lg bg-[#1D1D1B] flex items-center justify-center">
                 <Award className="w-6 h-6 text-white" />
               </div>
               <span className="text-3xl">{certificates.length}</span>
@@ -178,7 +179,7 @@ export function ProgressTracking({ userRole, onLogout }: ProgressTrackingProps) 
 
           <div className="bg-card rounded-lg border border-border p-6">
             <div className="flex items-center justify-between mb-4">
-              <div className="w-12 h-12 rounded-lg bg-[#a5d6a7] flex items-center justify-center">
+              <div className="w-12 h-12 rounded-lg bg-primary/70 flex items-center justify-center">
                 <Sparkles className="w-6 h-6 text-white" />
               </div>
               <span className="text-3xl">{suggestedSkills.length}</span>
@@ -209,7 +210,9 @@ export function ProgressTracking({ userRole, onLogout }: ProgressTrackingProps) 
                     className="block p-4 rounded-lg border border-border hover:border-primary hover:bg-primary/5 transition-all"
                   >
                     <div className="flex items-start gap-4">
-                      <div className="text-4xl flex-shrink-0">{course.image}</div>
+                      <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
+                        <course.icon className="w-6 h-6 text-primary" />
+                      </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-start justify-between mb-2">
                           <div className="flex-1 min-w-0">
@@ -330,13 +333,13 @@ export function ProgressTracking({ userRole, onLogout }: ProgressTrackingProps) 
                   <div key={item.id} className="flex gap-4">
                     <div className="flex flex-col items-center">
                       <div className={`w-10 h-10 rounded-full flex items-center justify-center text-primary-foreground flex-shrink-0 ${
-                        item.type === 'completion' ? 'bg-green-500' :
-                        item.type === 'milestone' ? 'bg-blue-500' :
-                        'bg-purple-500'
+                        item.type === 'completion' ? 'bg-primary' :
+                        item.type === 'milestone' ? 'bg-secondary' :
+                        'bg-[#1D1D1B]'
                       }`}>
-                        {item.type === 'completion' && '✓'}
-                        {item.type === 'milestone' && '⭐'}
-                        {item.type === 'enrollment' && '+'}
+                        {item.type === 'completion' && <CheckCircle2 className="w-5 h-5" />}
+                        {item.type === 'milestone' && <Star className="w-5 h-5" />}
+                        {item.type === 'enrollment' && <Plus className="w-5 h-5" />}
                       </div>
                       {index < timeline.length - 1 && (
                         <div className="w-0.5 flex-1 bg-border mt-2" />

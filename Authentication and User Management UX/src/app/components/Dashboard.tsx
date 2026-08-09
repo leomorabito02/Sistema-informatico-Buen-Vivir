@@ -1,8 +1,8 @@
 import { Link } from 'react-router-dom';
-import { Leaf, BookOpen, Users, BarChart3, LogOut, Menu, Bell, Settings, GraduationCap, Award, TrendingUp, Megaphone, Clock, Target, CheckCircle, AlertCircle, Phone, FileText } from 'lucide-react';
+import { BookOpen, Users, BarChart3, LogOut, Bell, Settings, GraduationCap, Award, TrendingUp, Megaphone, Clock, Target, CheckCircle, AlertCircle, Briefcase, Sparkles, Download, Filter } from 'lucide-react';
 import { Button } from 'primereact/button';
 import { useState } from 'react';
-import { Card, CardHeader, CardBody } from './base';
+import { Card, CardHeader, CardBody, Toast, ToastState } from './base';
 
 interface DashboardProps {
   userRole: 'admin' | 'participante' | 'voluntario' | 'empresa' | 'docente';
@@ -11,10 +11,10 @@ interface DashboardProps {
 
 // Mock data for recent activities
 const recentActivities = [
-  { id: 1, title: 'Cursó completado: Gastronomía Básica', timestamp: 'Hace 2 horas', type: 'success' },
-  { id: 2, title: 'Nueva oferta laboral disponible en tu área', timestamp: 'Ayer', type: 'info' },
-  { id: 3, title: 'Recordatorio: Tarea vencida en Agricultura', timestamp: 'Ayer', type: 'warning' },
-  { id: 4, title: 'Certificado descargado: Oficios', timestamp: 'Hace 3 días', type: 'success' },
+  { id: 1, title: 'Cursó completado: Gastronomía Básica', timestamp: 'Hace 2 horas', type: 'success', module: 'Educación' },
+  { id: 2, title: 'Nueva oferta laboral disponible en tu área', timestamp: 'Ayer', type: 'info', module: 'Inserción Laboral' },
+  { id: 3, title: 'Recordatorio: Tarea vencida en Agricultura', timestamp: 'Ayer', type: 'warning', module: 'Educación' },
+  { id: 4, title: 'Certificado descargado: Oficios', timestamp: 'Hace 3 días', type: 'success', module: 'Educación' },
 ];
 
 const upcomingCourses = [
@@ -23,32 +23,50 @@ const upcomingCourses = [
   { id: 3, name: 'Sostenibilidad Ambiental', startDate: '2026-07-01', duration: '4 semanas', progress: 0 },
 ];
 
+// Evolución mensual mock de los indicadores principales del admin (HU-53)
+const evolutionData: Record<string, number[]> = {
+  'Participantes Activos': [180, 195, 210, 225, 236, 248],
+  'Cursos Abiertos': [7, 8, 9, 10, 11, 12],
+  'Cursos Completados': [3, 5, 6, 8, 9, 11],
+  'Habilidades Desarrolladas': [40, 52, 61, 70, 83, 94],
+  'Inserciones Laborales': [2, 4, 5, 7, 8, 9],
+};
+const evolutionMonths = ['Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago'];
+const modules = ['Todos', 'Educación', 'Inserción Laboral', 'Promoción Humana', 'Campañas'];
+const periods = ['Últimos 30 días', 'Últimos 3 meses', 'Últimos 6 meses', 'Este año'];
+
 export function Dashboard({ userRole, onLogout }: DashboardProps) {
+  const [chartIndicator, setChartIndicator] = useState('Participantes Activos');
+  const [moduleFilter, setModuleFilter] = useState('Todos');
+  const [periodFilter, setPeriodFilter] = useState('Últimos 6 meses');
+  const [toast, setToast] = useState<ToastState | null>(null);
+
   const stats = {
     participante: [
       { label: 'Cursos Inscritos', value: '5', icon: BookOpen, color: 'bg-primary' },
-      { label: 'Progreso Promedio', value: '68%', icon: TrendingUp, color: 'bg-[#66bb6a]' },
-      { label: 'Certificados', value: '2', icon: Award, color: 'bg-[#81c784]' },
-      { label: 'Horas de Estudio', value: '127', icon: GraduationCap, color: 'bg-[#a5d6a7]' },
+      { label: 'Progreso Promedio', value: '68%', icon: TrendingUp, color: 'bg-secondary' },
+      { label: 'Certificados', value: '2', icon: Award, color: 'bg-[#1D1D1B]' },
+      { label: 'Horas de Estudio', value: '127', icon: GraduationCap, color: 'bg-primary/70' },
     ],
     admin: [
-      { label: 'Total Participantes', value: '248', icon: Users, color: 'bg-primary' },
-      { label: 'Cursos Activos', value: '12', icon: BookOpen, color: 'bg-[#66bb6a]' },
-      { label: 'Voluntarios', value: '32', icon: Users, color: 'bg-[#81c784]' },
-      { label: 'Tasa de Asistencia', value: '85%', icon: BarChart3, color: 'bg-[#a5d6a7]' },
+      { label: 'Participantes Activos', value: '248', icon: Users, color: 'bg-primary' },
+      { label: 'Cursos Abiertos', value: '12', icon: BookOpen, color: 'bg-secondary' },
+      { label: 'Cursos Completados', value: '11', icon: CheckCircle, color: 'bg-[#1D1D1B]' },
+      { label: 'Habilidades Desarrolladas', value: '94', icon: Sparkles, color: 'bg-primary/70' },
+      { label: 'Inserciones Laborales', value: '9', icon: Briefcase, color: 'bg-secondary/70' },
     ],
     voluntario: [
       { label: 'Participantes Asignados', value: '15', icon: Users, color: 'bg-primary' },
-      { label: 'Sesiones Esta Semana', value: '8', icon: BookOpen, color: 'bg-[#66bb6a]' },
-      { label: 'Tarea Pendientes', value: '3', icon: BarChart3, color: 'bg-[#81c784]' },
+      { label: 'Sesiones Esta Semana', value: '8', icon: BookOpen, color: 'bg-secondary' },
+      { label: 'Tarea Pendientes', value: '3', icon: BarChart3, color: 'bg-[#1D1D1B]' },
     ],
     docente: [
       { label: 'Mis Cursos', value: '3', icon: BookOpen, color: 'bg-primary' },
     ],
     empresa: [
       { label: 'Ofertas Activas', value: '7', icon: BookOpen, color: 'bg-primary' },
-      { label: 'Candidatos', value: '23', icon: Users, color: 'bg-[#66bb6a]' },
-      { label: 'Contrataciones', value: '5', icon: Award, color: 'bg-[#81c784]' },
+      { label: 'Candidatos', value: '23', icon: Users, color: 'bg-secondary' },
+      { label: 'Contrataciones', value: '5', icon: Award, color: 'bg-[#1D1D1B]' },
     ],
   };
 
@@ -58,25 +76,27 @@ export function Dashboard({ userRole, onLogout }: DashboardProps) {
     participante: [
       { label: 'Catálogo de Cursos', path: '/courses', icon: BookOpen },
       { label: 'Mi Progreso', path: '/progress', icon: TrendingUp },
+      { label: 'Ofertas Laborales', path: '/ofertas-laborales', icon: Briefcase },
       { label: 'Generar CV', path: '/generar-cv', icon: Award },
     ],
     admin: [
       { label: 'Dashboard', path: '/dashboard', icon: BarChart3 },
       { label: 'Gestión de Usuarios', path: '/users', icon: Users },
       { label: 'Seguimiento', path: '/seguimiento-participantes', icon: TrendingUp },
+      { label: 'Registro de Asistencia', path: '/asistencia-general', icon: CheckCircle },
       { label: 'Cursos', path: '/courses', icon: BookOpen },
       { label: 'Campañas', path: '/gestion-campanas', icon: Megaphone },
       { label: 'Inserción Laboral', path: '/insercion-laboral', icon: Award },
     ],
     voluntario: [
       { label: 'Cursos', path: '/courses', icon: BookOpen },
-      { label: 'Registrar Asistencia', path: '/seguimiento-participantes', icon: TrendingUp },
+      { label: 'Seguimiento', path: '/seguimiento-participantes', icon: TrendingUp },
+      { label: 'Registro de Asistencia', path: '/asistencia-general', icon: CheckCircle },
       { label: 'Ver Trabajos', path: '/insercion-laboral', icon: Award },
       { label: 'Gestión de Participantes', path: '/gestion-participantes', icon: Users },
     ],
     docente: [
-      { label: 'Portal Docente', path: '/teacher-portal', icon: GraduationCap },
-      { label: 'Mis Cursos', path: '/courses', icon: BookOpen },
+      { label: 'Mis Cursos', path: '/teacher-portal', icon: GraduationCap },
     ],
     empresa: [
       { label: 'Ofertas Laborales', path: '/insercion-laboral', icon: BookOpen },
@@ -87,6 +107,8 @@ export function Dashboard({ userRole, onLogout }: DashboardProps) {
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
+      <Toast toast={toast} onClose={() => setToast(null)} />
+
       {/* Top Navigation Bar */}
       <header className="bg-primary/90 text-white border-b-2 border-primary p-4">
         <div className="flex items-center justify-between">
@@ -116,10 +138,13 @@ export function Dashboard({ userRole, onLogout }: DashboardProps) {
 
           {/* Right Side Actions */}
           <div className="flex items-center gap-4">
-            <Button icon={<Bell className="w-5 h-5 text-white" />} className="relative p-2 rounded-lg hover:bg-white/10 transition-colors p-button-text">
+            <Link to="/notificaciones" className="relative p-2 rounded-lg hover:bg-white/10 transition-colors">
+              <Bell className="w-5 h-5 text-white" />
               <span className="absolute top-1 right-1 w-2 h-2 bg-destructive rounded-full"></span>
-            </Button>
-            <Button icon={<Settings className="w-5 h-5 text-white" />} className="p-2 rounded-lg hover:bg-white/10 transition-colors p-button-text" />
+            </Link>
+            <Link to="/configuracion-notificaciones" className="p-2 rounded-lg hover:bg-white/10 transition-colors">
+              <Settings className="w-5 h-5 text-white" />
+            </Link>
             <Button
               onClick={onLogout}
               icon={<LogOut className="w-4 h-4 mr-2" />}
@@ -136,7 +161,37 @@ export function Dashboard({ userRole, onLogout }: DashboardProps) {
 
         {/* Stats Grid */}
         <div className="p-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+          {userRole === 'admin' && (
+            <div className="bg-card rounded-lg border border-border p-4 mb-6 flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4">
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Filter className="w-4 h-4" />
+                Filtros:
+              </div>
+              <select
+                value={periodFilter}
+                onChange={(e) => setPeriodFilter(e.target.value)}
+                className="px-3 py-2 rounded-lg border border-border bg-input-background text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+              >
+                {periods.map((p) => <option key={p} value={p}>{p}</option>)}
+              </select>
+              <select
+                value={moduleFilter}
+                onChange={(e) => setModuleFilter(e.target.value)}
+                className="px-3 py-2 rounded-lg border border-border bg-input-background text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+              >
+                {modules.map((m) => <option key={m} value={m}>{m}</option>)}
+              </select>
+              <button
+                onClick={() => setToast({ type: 'success', message: `Reporte del dashboard (${periodFilter}, módulo: ${moduleFilter}) exportado en PDF.` })}
+                className="ml-auto px-4 py-2 rounded-lg border border-border hover:bg-secondary transition-colors text-sm flex items-center gap-2"
+              >
+                <Download className="w-4 h-4" />
+                Exportar PDF
+              </button>
+            </div>
+          )}
+
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-6 mb-8">
             {currentStats.map((stat) => (
               <div key={stat.label} className="bg-card rounded-lg border border-border p-6">
                 <div className="flex items-center justify-between mb-4">
@@ -150,6 +205,45 @@ export function Dashboard({ userRole, onLogout }: DashboardProps) {
             ))}
           </div>
 
+          {/* Evolution Chart (HU-53) */}
+          {userRole === 'admin' && (
+            <Card className="mb-6">
+              <CardHeader>
+                <div className="flex items-center justify-between flex-wrap gap-3">
+                  <h2 className="text-lg font-semibold flex items-center gap-2">
+                    <BarChart3 size={20} className="text-primary" />
+                    Evolución de Indicadores
+                  </h2>
+                  <select
+                    value={chartIndicator}
+                    onChange={(e) => setChartIndicator(e.target.value)}
+                    className="px-3 py-2 rounded-lg border border-border bg-input-background text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                  >
+                    {Object.keys(evolutionData).map((key) => <option key={key} value={key}>{key}</option>)}
+                  </select>
+                </div>
+              </CardHeader>
+              <CardBody>
+                <div className="flex items-end justify-between gap-3 h-40">
+                  {evolutionData[chartIndicator].map((value, idx) => {
+                    const max = Math.max(...evolutionData[chartIndicator]);
+                    const heightPct = Math.max(8, Math.round((value / max) * 100));
+                    return (
+                      <div key={idx} className="flex-1 flex flex-col items-center justify-end h-full gap-2">
+                        <span className="text-xs text-muted-foreground">{value}</span>
+                        <div
+                          className="w-full bg-primary rounded-t-md transition-all"
+                          style={{ height: `${heightPct}%` }}
+                        />
+                        <span className="text-xs text-muted-foreground">{evolutionMonths[idx]}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </CardBody>
+            </Card>
+          )}
+
           {/* Recent Activity & Upcoming Courses */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
             {/* Actividad Reciente */}
@@ -157,26 +251,28 @@ export function Dashboard({ userRole, onLogout }: DashboardProps) {
               <Card>
                 <CardHeader>
                   <h2 className="text-lg font-semibold flex items-center gap-2">
-                    <Clock size={20} className="text-blue-600" />
+                    <Clock size={20} className="text-primary" />
                     Actividad Reciente
                   </h2>
                 </CardHeader>
                 <CardBody>
                   <div className="space-y-3">
-                    {recentActivities.map((activity) => (
-                      <div key={activity.id} className="flex items-start gap-3 pb-3 border-b border-gray-100 last:border-0">
+                    {recentActivities
+                      .filter((activity) => userRole !== 'admin' || moduleFilter === 'Todos' || activity.module === moduleFilter)
+                      .map((activity) => (
+                      <div key={activity.id} className="flex items-start gap-3 pb-3 border-b border-border last:border-0">
                         <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
-                          activity.type === 'success' ? 'bg-green-100' :
-                          activity.type === 'warning' ? 'bg-yellow-100' :
-                          'bg-blue-100'
+                          activity.type === 'success' ? 'bg-primary/10' :
+                          activity.type === 'warning' ? 'bg-secondary/10' :
+                          'bg-[#1D1D1B]/10'
                         }`}>
-                          {activity.type === 'success' && <CheckCircle size={16} className="text-green-600" />}
-                          {activity.type === 'warning' && <AlertCircle size={16} className="text-yellow-600" />}
-                          {activity.type === 'info' && <BookOpen size={16} className="text-blue-600" />}
+                          {activity.type === 'success' && <CheckCircle size={16} className="text-primary" />}
+                          {activity.type === 'warning' && <AlertCircle size={16} className="text-secondary" />}
+                          {activity.type === 'info' && <BookOpen size={16} className="text-[#1D1D1B]" />}
                         </div>
                         <div className="flex-1">
-                          <p className="text-sm font-medium text-gray-900">{activity.title}</p>
-                          <p className="text-xs text-gray-500">{activity.timestamp}</p>
+                          <p className="text-sm font-medium text-foreground">{activity.title}</p>
+                          <p className="text-xs text-muted-foreground">{activity.timestamp}</p>
                         </div>
                       </div>
                     ))}
@@ -190,7 +286,7 @@ export function Dashboard({ userRole, onLogout }: DashboardProps) {
               <Card>
                 <CardHeader>
                   <h2 className="text-lg font-semibold flex items-center gap-2">
-                    <Target size={20} className="text-purple-600" />
+                    <Target size={20} className="text-secondary" />
                     Próximos Cursos
                   </h2>
                 </CardHeader>
@@ -198,15 +294,15 @@ export function Dashboard({ userRole, onLogout }: DashboardProps) {
                   <div className="space-y-3">
                     {upcomingCourses.map((course) => (
                       <div key={course.id} className="text-sm">
-                        <p className="font-medium text-gray-900 mb-1">{course.name}</p>
-                        <p className="text-xs text-gray-500 mb-2">Inicia: {course.startDate}</p>
-                        <div className="w-full bg-gray-200 rounded-full h-1.5">
+                        <p className="font-medium text-foreground mb-1">{course.name}</p>
+                        <p className="text-xs text-muted-foreground mb-2">Inicia: {course.startDate}</p>
+                        <div className="w-full bg-muted rounded-full h-1.5">
                           <div
-                            className="bg-blue-600 h-1.5 rounded-full"
+                            className="bg-secondary h-1.5 rounded-full"
                             style={{ width: `${course.progress}%` }}
                           ></div>
                         </div>
-                        <p className="text-xs text-gray-500 mt-1">{course.progress}% completado</p>
+                        <p className="text-xs text-muted-foreground mt-1">{course.progress}% completado</p>
                       </div>
                     ))}
                   </div>

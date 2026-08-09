@@ -1,14 +1,13 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { User, Mail, Lock, Phone, Leaf, Eye, EyeOff } from 'lucide-react';
+import { User, Mail, Lock, Phone, CheckCircle2, Clock } from 'lucide-react';
 import { InputText } from 'primereact/inputtext';
 import { Password } from 'primereact/password';
 import { Dropdown } from 'primereact/dropdown';
 import { Button } from 'primereact/button';
 
 export function Register() {
-  const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [registered, setRegistered] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -18,8 +17,11 @@ export function Register() {
     role: 'participante'
   });
 
+  const needsApproval = formData.role === 'voluntario' || formData.role === 'docente' || formData.role === 'empresa';
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    setRegistered(true);
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
@@ -47,6 +49,27 @@ export function Register() {
 
           {/* Registration Form */}
           <div className="bg-card rounded-lg border border-border p-8 shadow-sm">
+            {registered ? (
+              <div className="text-center py-4">
+                <div className="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
+                  {needsApproval ? <Clock className="w-7 h-7 text-primary" /> : <CheckCircle2 className="w-7 h-7 text-primary" />}
+                </div>
+                <h3 className="text-lg mb-2">
+                  {needsApproval ? 'Cuenta pendiente de aprobación' : '¡Cuenta creada!'}
+                </h3>
+                <p className="text-sm text-muted-foreground mb-6">
+                  {needsApproval
+                    ? 'Tu cuenta fue registrada y quedó pendiente de aprobación del administrador. Te notificaremos por email en cuanto sea revisada.'
+                    : 'Tu cuenta fue creada correctamente. Ya podés iniciar sesión.'}
+                </p>
+                <Link
+                  to="/login"
+                  className="inline-block px-6 py-3 bg-primary text-primary-foreground rounded-lg hover:opacity-90 transition-opacity"
+                >
+                  Ir a Iniciar Sesión
+                </Link>
+              </div>
+            ) : (
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
                 <label className="block mb-2">Nombre Completo</label>
@@ -112,9 +135,9 @@ export function Register() {
                 />
                 <p className="text-xs text-muted-foreground mt-1">
                   {formData.role === 'voluntario' && 'Los voluntarios deben ser aprobados por los coordinadores'}
-                  {formData.role === 'docente' && 'Los docentes tendrán acceso al portal educativo'}
+                  {formData.role === 'docente' && 'Los docentes deben ser aprobados por el coordinador/administrador antes de tener acceso al portal educativo'}
                   {formData.role === 'participante' && 'Podrás acceder a cursos y talleres'}
-                  {formData.role === 'empresa' && 'Colabora con oportunidades laborales'}
+                  {formData.role === 'empresa' && 'Tu cuenta quedará pendiente de aprobación del administrador antes de poder publicar ofertas laborales'}
                 </p>
               </div>
 
@@ -167,8 +190,10 @@ export function Register() {
                 className="w-full py-3 bg-primary text-primary-foreground hover:opacity-90 transition-opacity border-none"
               />
             </form>
+            )}
           </div>
 
+          {!registered && (
           <p className="text-center mt-6 text-sm text-muted-foreground">
             ¿Ya tienes cuenta?{' '}
             <Link to="/login" className="text-primary hover:underline">
@@ -183,6 +208,7 @@ export function Register() {
               Volver a la pantalla principal
             </Link>
           </p>
+          )}
         </div>
       </div>
     </div>

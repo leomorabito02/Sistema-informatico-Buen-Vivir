@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Leaf, LogOut, Plus, Search, Edit, Trash2, Eye, X, Upload, Calendar } from 'lucide-react';
+import { LogOut, Plus, Search, Edit, Trash2, Eye, X, Upload, Calendar, Megaphone, ArrowLeft } from 'lucide-react';
+import { Toast, ToastState } from './base';
 
 interface CampaignManagementProps {
   userRole: 'admin' | 'voluntario';
@@ -12,8 +13,9 @@ export function CampaignManagement({ userRole, onLogout }: CampaignManagementPro
   const [showModal, setShowModal] = useState(false);
   const [modalMode, setModalMode] = useState<'create' | 'edit'>('create');
   const [selectedCampaign, setSelectedCampaign] = useState<any>(null);
+  const [toast, setToast] = useState<ToastState | null>(null);
 
-  const campaigns = [
+  const initialCampaigns = [
     {
       id: 1,
       title: 'Día Mundial del Medio Ambiente',
@@ -76,6 +78,8 @@ export function CampaignManagement({ userRole, onLogout }: CampaignManagementPro
     },
   ];
 
+  const [campaigns, setCampaigns] = useState(initialCampaigns);
+
   const filteredCampaigns = campaigns.filter(campaign =>
     campaign.title.toLowerCase().includes(searchQuery.toLowerCase())
   );
@@ -92,8 +96,45 @@ export function CampaignManagement({ userRole, onLogout }: CampaignManagementPro
     setShowModal(true);
   };
 
+  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const data = new FormData(e.currentTarget);
+    const title = String(data.get('title') || '').trim();
+    const category = String(data.get('category') || '');
+    const date = String(data.get('date') || '');
+    const description = String(data.get('description') || '').trim();
+    const status = String(data.get('status') || 'Borrador');
+
+    if (!title || !category || !date || !description) return;
+
+    if (modalMode === 'create') {
+      const newCampaign = {
+        id: Date.now(),
+        title,
+        description,
+        date,
+        category,
+        status,
+        views: 0,
+        createdBy: 'Vos',
+      };
+      setCampaigns([newCampaign, ...campaigns]);
+      setToast({ type: 'success', message: 'Campaña creada correctamente' });
+    } else {
+      setCampaigns(campaigns.map((c) =>
+        c.id === selectedCampaign.id ? { ...c, title, description, date, category, status } : c
+      ));
+      setToast({ type: 'success', message: 'Campaña editada correctamente' });
+    }
+
+    setShowModal(false);
+    setSelectedCampaign(null);
+  };
+
   return (
     <div className="min-h-screen bg-background">
+      <Toast toast={toast} onClose={() => setToast(null)} />
+
       {/* Header */}
       <header className="bg-primary/90 text-white border-b-2 border-primary p-6">
         <div className="flex items-center justify-between">
@@ -109,8 +150,9 @@ export function CampaignManagement({ userRole, onLogout }: CampaignManagementPro
           <div className="flex items-center gap-3">
             <Link
               to="/dashboard"
-              className="px-4 py-2 rounded-lg border border-white hover:bg-white/10 transition-colors text-white"
+              className="px-4 py-2 rounded-lg border border-white hover:bg-white/10 transition-colors text-white flex items-center gap-2"
             >
+              <ArrowLeft className="w-4 h-4" />
               Volver
             </Link>
             <button
@@ -153,8 +195,8 @@ export function CampaignManagement({ userRole, onLogout }: CampaignManagementPro
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
           {filteredCampaigns.map((campaign) => (
             <div key={campaign.id} className="bg-card rounded-lg border border-border overflow-hidden h-full flex flex-col">
-              <div className="aspect-square bg-gradient-to-br from-primary to-[#1a3a1f] flex items-center justify-center flex-shrink-0">
-                <span className="text-4xl">📢</span>
+              <div className="aspect-square bg-gradient-to-br from-primary to-[#1D1D1B] flex items-center justify-center flex-shrink-0">
+                <Megaphone className="w-10 h-10 text-white/90" />
               </div>
               <div className="p-4 flex flex-col flex-1">
                 <div className="flex items-center justify-between mb-2 gap-2">
@@ -163,8 +205,8 @@ export function CampaignManagement({ userRole, onLogout }: CampaignManagementPro
                   </span>
                   <span className={`inline-flex px-2 py-1 rounded text-xs whitespace-nowrap ${
                     campaign.status === 'Publicada'
-                      ? 'bg-[#66bb6a]/10 text-[#2d7a3e]'
-                      : 'bg-[#f59e0b]/10 text-[#d97706]'
+                      ? 'bg-primary/10 text-primary'
+                      : 'bg-secondary/10 text-secondary'
                   }`}>
                     {campaign.status}
                   </span>
@@ -175,7 +217,6 @@ export function CampaignManagement({ userRole, onLogout }: CampaignManagementPro
 
                 <div className="flex items-center justify-between text-xs text-muted-foreground mb-3 pb-3 border-t border-border">
                   <span className="truncate">{campaign.date}</span>
-                  <span className="flex-shrink-0 ml-2">{campaign.views}</span>
                 </div>
 
                 <div className="flex gap-1">
@@ -226,11 +267,12 @@ export function CampaignManagement({ userRole, onLogout }: CampaignManagementPro
             </div>
 
             <div className="p-6">
-              <form className="space-y-4">
+              <form className="space-y-4" onSubmit={handleSubmit}>
                 <div>
                   <label className="block mb-2">Título de la Campaña</label>
                   <input
                     type="text"
+                    name="title"
                     defaultValue={selectedCampaign?.title}
                     className="w-full px-4 py-3 rounded-lg border border-border bg-input-background focus:outline-none focus:ring-2 focus:ring-primary"
                     placeholder="Ej: Día Mundial del Medio Ambiente"
@@ -241,6 +283,7 @@ export function CampaignManagement({ userRole, onLogout }: CampaignManagementPro
                 <div>
                   <label className="block mb-2">Categoría</label>
                   <select
+                    name="category"
                     defaultValue={selectedCampaign?.category}
                     className="w-full px-4 py-3 rounded-lg border border-border bg-input-background focus:outline-none focus:ring-2 focus:ring-primary"
                     required
@@ -258,6 +301,7 @@ export function CampaignManagement({ userRole, onLogout }: CampaignManagementPro
                   <label className="block mb-2">Fecha del Evento</label>
                   <input
                     type="date"
+                    name="date"
                     className="w-full px-4 py-3 rounded-lg border border-border bg-input-background focus:outline-none focus:ring-2 focus:ring-primary"
                     required
                   />
@@ -266,6 +310,7 @@ export function CampaignManagement({ userRole, onLogout }: CampaignManagementPro
                 <div>
                   <label className="block mb-2">Descripción Breve</label>
                   <textarea
+                    name="description"
                     defaultValue={selectedCampaign?.description}
                     className="w-full px-4 py-3 rounded-lg border border-border bg-input-background focus:outline-none focus:ring-2 focus:ring-primary min-h-[80px]"
                     placeholder="Una breve descripción para la lista..."
@@ -294,6 +339,7 @@ export function CampaignManagement({ userRole, onLogout }: CampaignManagementPro
                 <div>
                   <label className="block mb-2">Estado</label>
                   <select
+                    name="status"
                     defaultValue={selectedCampaign?.status || 'Borrador'}
                     className="w-full px-4 py-3 rounded-lg border border-border bg-input-background focus:outline-none focus:ring-2 focus:ring-primary"
                     required

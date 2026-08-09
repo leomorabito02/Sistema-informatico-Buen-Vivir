@@ -1,10 +1,65 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Leaf, LogOut, Upload, BookOpen, FileText, Users, BarChart3, CheckCircle, Clock, X, Download } from 'lucide-react';
+import { LogOut, Upload, BookOpen, FileText, Users, CheckCircle, Clock, X, ChefHat, Cookie, ChevronLeft, ChevronRight, ArrowLeft } from 'lucide-react';
 import { Dropdown } from 'primereact/dropdown';
 
 interface TeacherPortalProps {
   onLogout: () => void;
+}
+
+const welcomePhotos = [
+  { caption: 'Clase de Panadería Artesanal', icon: ChefHat },
+  { caption: 'Alumnos practicando en el aula-taller', icon: Users },
+  { caption: 'Presentación de trabajos finales', icon: BookOpen },
+];
+
+function WelcomeCarousel() {
+  const [index, setIndex] = useState(0);
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setIndex((i) => (i + 1) % welcomePhotos.length);
+    }, 5000);
+    return () => clearInterval(timer);
+  }, []);
+
+  const goTo = (i: number) => setIndex((i + welcomePhotos.length) % welcomePhotos.length);
+  const Photo = welcomePhotos[index].icon;
+
+  return (
+    <div className="relative rounded-lg overflow-hidden border border-border mb-8 h-56 bg-gradient-to-br from-primary to-[#1D1D1B] flex items-center justify-center">
+      <div className="flex flex-col items-center text-white">
+        <Photo className="w-16 h-16 mb-3 text-white/90" />
+        <p className="text-lg">{welcomePhotos[index].caption}</p>
+      </div>
+
+      <button
+        onClick={() => goTo(index - 1)}
+        className="absolute left-3 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center transition-colors"
+        aria-label="Foto anterior"
+      >
+        <ChevronLeft className="w-5 h-5 text-white" />
+      </button>
+      <button
+        onClick={() => goTo(index + 1)}
+        className="absolute right-3 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center transition-colors"
+        aria-label="Foto siguiente"
+      >
+        <ChevronRight className="w-5 h-5 text-white" />
+      </button>
+
+      <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-2">
+        {welcomePhotos.map((_, i) => (
+          <button
+            key={i}
+            onClick={() => goTo(i)}
+            className={`w-2 h-2 rounded-full transition-colors ${i === index ? 'bg-white' : 'bg-white/40'}`}
+            aria-label={`Ir a la foto ${i + 1}`}
+          />
+        ))}
+      </div>
+    </div>
+  );
 }
 
 export function TeacherPortal({ onLogout }: TeacherPortalProps) {
@@ -17,7 +72,7 @@ export function TeacherPortal({ onLogout }: TeacherPortalProps) {
       students: 24,
       materials: 12,
       avgProgress: 68,
-      image: '🍞'
+      icon: ChefHat
     },
     {
       id: 2,
@@ -25,7 +80,7 @@ export function TeacherPortal({ onLogout }: TeacherPortalProps) {
       students: 18,
       materials: 8,
       avgProgress: 45,
-      image: '🎂'
+      icon: Cookie
     },
   ];
 
@@ -90,8 +145,9 @@ export function TeacherPortal({ onLogout }: TeacherPortalProps) {
             </button>
             <Link
               to="/dashboard"
-              className="px-4 py-2 rounded-lg border border-border hover:bg-secondary transition-colors"
+              className="px-4 py-2 rounded-lg border border-border hover:bg-secondary transition-colors flex items-center gap-2"
             >
+              <ArrowLeft className="w-4 h-4" />
               Volver
             </Link>
             <button
@@ -107,6 +163,9 @@ export function TeacherPortal({ onLogout }: TeacherPortalProps) {
 
       {/* Main Content */}
       <main className="p-6">
+        {/* Welcome Carousel */}
+        <WelcomeCarousel />
+
         {/* Stats */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
           <div className="bg-card rounded-lg border border-border p-6">
@@ -121,7 +180,7 @@ export function TeacherPortal({ onLogout }: TeacherPortalProps) {
 
           <div className="bg-card rounded-lg border border-border p-6">
             <div className="flex items-center justify-between mb-4">
-              <div className="w-12 h-12 rounded-lg bg-[#81c784] flex items-center justify-center">
+              <div className="w-12 h-12 rounded-lg bg-secondary flex items-center justify-center">
                 <FileText className="w-6 h-6 text-white" />
               </div>
               <span className="text-3xl">{myMaterials.length}</span>
@@ -144,7 +203,9 @@ export function TeacherPortal({ onLogout }: TeacherPortalProps) {
                     className="block p-4 rounded-lg border border-border hover:border-primary hover:bg-primary/5 transition-all"
                   >
                     <div className="flex items-center gap-4">
-                      <div className="text-4xl">{course.image}</div>
+                      <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
+                        <course.icon className="w-6 h-6 text-primary" />
+                      </div>
                       <div className="flex-1">
                         <h3 className="mb-2">{course.title}</h3>
                       </div>
@@ -172,8 +233,8 @@ export function TeacherPortal({ onLogout }: TeacherPortalProps) {
                       </div>
                       <span className={`inline-flex px-3 py-1 rounded-full text-xs ${
                         material.status === 'Aprobado'
-                          ? 'bg-[#66bb6a]/10 text-[#2d7a3e]'
-                          : 'bg-[#f59e0b]/10 text-[#d97706]'
+                          ? 'bg-primary/10 text-primary'
+                          : 'bg-secondary/10 text-secondary'
                       }`}>
                         {material.status}
                       </span>
@@ -206,7 +267,7 @@ export function TeacherPortal({ onLogout }: TeacherPortalProps) {
                   <p>Tamaño máximo por archivo: 100 MB</p>
                 </div>
                 <div className="flex items-start gap-2">
-                  <Clock className="w-4 h-4 text-[#f59e0b] flex-shrink-0 mt-0.5" />
+                  <Clock className="w-4 h-4 text-secondary flex-shrink-0 mt-0.5" />
                   <p>Los materiales son revisados por administradores antes de publicarse</p>
                 </div>
               </div>

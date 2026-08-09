@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { Leaf, ArrowLeft, Clock, Users, BookOpen, CheckCircle, Circle, LogOut, User, Calendar, FileText, Download } from 'lucide-react';
+import { ArrowLeft, Clock, Users, BookOpen, CheckCircle, Circle, LogOut, User, Calendar, FileText, Download, ChefHat } from 'lucide-react';
+import { Toast, ToastState } from './base';
 
 interface CourseDetailProps {
   userRole: 'admin' | 'participante' | 'voluntario' | 'empresa' | 'docente';
@@ -11,8 +12,9 @@ export function CourseDetail({ userRole, onLogout }: CourseDetailProps) {
   const { id } = useParams();
   const [isEnrolled, setIsEnrolled] = useState(false);
   const [showEnrollModal, setShowEnrollModal] = useState(false);
+  const [toast, setToast] = useState<ToastState | null>(null);
 
-  const course = {
+  const initialCourse = {
     id: 1,
     title: 'Panadería Artesanal',
     description: 'Aprende las técnicas tradicionales y modernas de panadería. Este curso te enseñará desde los fundamentos básicos hasta técnicas avanzadas de fermentación y horneado.',
@@ -22,7 +24,6 @@ export function CourseDetail({ userRole, onLogout }: CourseDetailProps) {
     duration: '8 semanas',
     enrolled: 24,
     maxStudents: 30,
-    image: '🍞',
     startDate: '15 de Junio, 2026',
     schedule: 'Martes y Jueves, 14:00 - 17:00',
     modules: [
@@ -72,28 +73,47 @@ export function CourseDetail({ userRole, onLogout }: CourseDetailProps) {
     ]
   };
 
+  const [modules, setModules] = useState(initialCourse.modules);
+  const course = { ...initialCourse, modules };
+
   const totalActivities = course.modules.reduce((sum, module) => sum + module.activities.length, 0);
   const completedActivities = course.modules.reduce(
     (sum, module) => sum + module.activities.filter(a => a.completed).length,
     0
   );
-  const progress = Math.round((completedActivities / totalActivities) * 100);
+  const progress = totalActivities > 0 ? Math.round((completedActivities / totalActivities) * 100) : 0;
 
   const handleEnroll = () => {
+    if (isEnrolled) {
+      setToast({ type: 'error', message: 'El participante ya se encuentra inscripto en el curso' });
+      return;
+    }
     if (userRole === 'participante') {
       setShowEnrollModal(true);
     } else {
       setIsEnrolled(true);
+      setToast({ type: 'success', message: 'Se inscribe al participante correctamente' });
     }
   };
 
   const confirmEnroll = () => {
     setIsEnrolled(true);
     setShowEnrollModal(false);
+    setToast({ type: 'success', message: 'Se inscribe al participante correctamente' });
+  };
+
+  const toggleActivity = (moduleId: number, activityId: number) => {
+    setModules(modules.map((m) =>
+      m.id === moduleId
+        ? { ...m, activities: m.activities.map((a) => a.id === activityId ? { ...a, completed: !a.completed } : a) }
+        : m
+    ));
   };
 
   return (
     <div className="min-h-screen bg-background">
+      <Toast toast={toast} onClose={() => setToast(null)} />
+
       {/* Header */}
       <header className="bg-card border-b border-border p-6">
         <div className="flex items-center justify-between">
@@ -132,8 +152,8 @@ export function CourseDetail({ userRole, onLogout }: CourseDetailProps) {
           <div className="lg:col-span-2 space-y-6">
             {/* Course Header */}
             <div className="bg-card rounded-lg border border-border overflow-hidden">
-              <div className="aspect-video bg-gradient-to-br from-primary to-[#1a3a1f] flex items-center justify-center">
-                <span className="text-9xl">{course.image}</span>
+              <div className="aspect-video bg-gradient-to-br from-primary to-[#1D1D1B] flex items-center justify-center">
+                <ChefHat className="w-24 h-24 text-white/90" />
               </div>
               <div className="p-6">
                 <div className="flex items-center gap-3 mb-4">
@@ -141,7 +161,7 @@ export function CourseDetail({ userRole, onLogout }: CourseDetailProps) {
                     {course.area}
                   </span>
                   {isEnrolled && (
-                    <span className="inline-flex px-3 py-1 rounded-full text-sm bg-[#66bb6a]/10 text-[#2d7a3e]">
+                    <span className="inline-flex px-3 py-1 rounded-full text-sm bg-primary/10 text-primary">
                       Inscrito
                     </span>
                   )}
@@ -228,9 +248,13 @@ export function CourseDetail({ userRole, onLogout }: CourseDetailProps) {
                       </div>
                       <div className="p-4 space-y-2">
                         {module.activities.map((activity) => (
-                          <div
+                          <button
                             key={activity.id}
-                            className="flex items-center gap-3 p-3 rounded-lg hover:bg-muted transition-colors"
+                            type="button"
+                            onClick={() => toggleActivity(module.id, activity.id)}
+                            disabled={userRole === 'participante'}
+                            className="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-muted transition-colors text-left disabled:cursor-default"
+                            title={userRole === 'participante' ? undefined : 'Marcar actividad como completada'}
                           >
                             {activity.completed ? (
                               <CheckCircle className="w-5 h-5 text-primary flex-shrink-0" />
@@ -240,7 +264,7 @@ export function CourseDetail({ userRole, onLogout }: CourseDetailProps) {
                             <span className={activity.completed ? 'text-muted-foreground line-through' : ''}>
                               {activity.title}
                             </span>
-                          </div>
+                          </button>
                         ))}
                       </div>
                     </div>

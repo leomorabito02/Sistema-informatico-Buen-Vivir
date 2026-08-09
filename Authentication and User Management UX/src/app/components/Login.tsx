@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Mail, Lock, Eye, EyeOff, Leaf, Shield } from 'lucide-react';
+import { Mail, Lock, Shield, AlertCircle, Lock as LockIcon } from 'lucide-react';
 import { InputText } from 'primereact/inputtext';
 import { Password } from 'primereact/password';
 import { Dropdown } from 'primereact/dropdown';
@@ -10,16 +10,37 @@ interface LoginProps {
   onLogin: (role: 'admin' | 'participante' | 'voluntario' | 'empresa' | 'docente') => void;
 }
 
+const MAX_ATTEMPTS = 5;
+
 export function Login({ onLogin }: LoginProps) {
-  const [showPassword, setShowPassword] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [show2FA, setShow2FA] = useState(false);
   const [twoFactorCode, setTwoFactorCode] = useState('');
   const [selectedRole, setSelectedRole] = useState<'admin' | 'participante' | 'voluntario' | 'empresa' | 'docente'>('participante');
+  const [loginError, setLoginError] = useState('');
+  const [failedAttempts, setFailedAttempts] = useState(0);
+  const [locked, setLocked] = useState(false);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (locked) return;
+
+    // Validación mock: sin backend real, se simula credencial inválida cuando falta el email
+    // o la contraseña tiene menos de 4 caracteres, sin indicar cuál de los dos es incorrecto.
+    if (!email.trim() || password.trim().length < 4) {
+      const attempts = failedAttempts + 1;
+      setFailedAttempts(attempts);
+      if (attempts >= MAX_ATTEMPTS) {
+        setLocked(true);
+        setLoginError('Tu cuenta fue bloqueada temporalmente por demasiados intentos fallidos. Intentá nuevamente más tarde.');
+      } else {
+        setLoginError('Email o contraseña incorrectos.');
+      }
+      return;
+    }
+
+    setLoginError('');
     if (!show2FA) {
       setShow2FA(true);
     } else {
@@ -107,15 +128,23 @@ export function Login({ onLogin }: LoginProps) {
                       <input type="checkbox" className="rounded border-border" />
                       <span>Recordarme</span>
                     </label>
-                    <a href="#" className="text-primary hover:underline">
+                    <Link to="/recuperar-password" className="text-primary hover:underline">
                       ¿Olvidaste tu contraseña?
-                    </a>
+                    </Link>
                   </div>
+
+                  {loginError && (
+                    <div className="flex items-start gap-2 text-sm text-destructive bg-destructive/10 border border-destructive/20 rounded-md p-3">
+                      <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
+                      <span>{loginError}</span>
+                    </div>
+                  )}
 
                   <Button
                     type="submit"
-                    label="Continuar"
-                    className="w-full py-3 bg-primary text-primary-foreground hover:opacity-90 transition-opacity border-none"
+                    label={locked ? 'Cuenta bloqueada' : 'Continuar'}
+                    disabled={locked}
+                    className="w-full py-3 bg-primary text-primary-foreground hover:opacity-90 transition-opacity border-none disabled:opacity-50 disabled:cursor-not-allowed"
                   />
                 </>
               ) : (

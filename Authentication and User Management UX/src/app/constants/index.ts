@@ -125,14 +125,14 @@ export const FORMATIVE_AREAS = [
 // ============================================================================
 
 export const COLORS = {
-  PRIMARY: '#16a34a', // green-600
-  SECONDARY: '#0ea5e9', // sky-500
-  ACCENT: '#ec4899', // pink-500
-  SUCCESS: '#22c55e', // green-500
-  WARNING: '#f59e0b', // amber-500
-  ERROR: '#ef4444', // red-500
-  NEUTRAL: '#6b7280', // gray-500
-  MUTED: '#9ca3af', // gray-400
+  PRIMARY: '#485839', // identidad Buen Vivir - verde oliva
+  SECONDARY: '#9A5B43', // identidad Buen Vivir - terracota
+  ACCENT: '#485839',
+  SUCCESS: '#485839',
+  WARNING: '#9A5B43',
+  ERROR: '#d32f2f',
+  NEUTRAL: '#1D1D1B',
+  MUTED: '#E7E6DA',
 } as const;
 
 export const BREAKPOINTS = {

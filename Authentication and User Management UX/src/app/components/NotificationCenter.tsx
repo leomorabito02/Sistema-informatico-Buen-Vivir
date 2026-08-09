@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
-import { Bell, X, CheckCircle, AlertCircle, BookOpen, Briefcase, Heart, Settings } from 'lucide-react';
-import { Card, CardHeader, CardBody } from './base';
+import { useState } from 'react';
+import { Link } from 'react-router-dom';
+import { Bell, X, CheckCircle, AlertCircle, BookOpen, Briefcase, Heart, Settings, LogOut, ArrowLeft } from 'lucide-react';
+import { Card, CardBody } from './base';
 
 interface Notification {
   id: number;
@@ -22,7 +23,7 @@ const mockNotifications: Notification[] = [
     timestamp: 'Hace 2 horas',
     read: false,
     category: 'course',
-    actionUrl: '/certificates/panaderia',
+    actionUrl: '/progress',
   },
   {
     id: 2,
@@ -32,7 +33,7 @@ const mockNotifications: Notification[] = [
     timestamp: 'Hace 5 horas',
     read: false,
     category: 'job',
-    actionUrl: '/ofertas-laborales/45',
+    actionUrl: '/ofertas-laborales',
   },
   {
     id: 3,
@@ -72,17 +73,11 @@ const mockNotifications: Notification[] = [
   },
 ];
 
-const notificationStats = [
-  { label: 'No leídas', value: 2, color: 'bg-blue-100 text-blue-700' },
-  { label: 'Esta Semana', value: 5, color: 'bg-green-100 text-green-700' },
-  { label: 'Alertas', value: 1, color: 'bg-red-100 text-red-700' },
-];
-
 interface NotificationCenterProps {
-  onClose?: () => void;
+  onLogout: () => void;
 }
 
-export function NotificationCenter({ onClose }: NotificationCenterProps) {
+export function NotificationCenter({ onLogout }: NotificationCenterProps) {
   const [notifications, setNotifications] = useState(mockNotifications);
   const [selectedFilter, setSelectedFilter] = useState<'all' | 'unread' | 'course' | 'job' | 'campaign'>('all');
 
@@ -93,6 +88,12 @@ export function NotificationCenter({ onClose }: NotificationCenterProps) {
     if (selectedFilter === 'campaign') return notif.category === 'campaign';
     return true;
   });
+
+  const notificationStats = [
+    { label: 'No leídas', value: notifications.filter(n => !n.read).length },
+    { label: 'Esta Semana', value: notifications.length },
+    { label: 'Alertas', value: notifications.filter(n => n.type === 'alert').length },
+  ];
 
   const markAsRead = (id: number) => {
     setNotifications(notifications.map((n) => (n.id === id ? { ...n, read: true } : n)));
@@ -109,144 +110,151 @@ export function NotificationCenter({ onClose }: NotificationCenterProps) {
   const getNotificationIcon = (type: Notification['type']) => {
     switch (type) {
       case 'success':
-        return <CheckCircle size={20} className="text-green-600" />;
+        return <CheckCircle size={20} className="text-primary" />;
       case 'warning':
-        return <AlertCircle size={20} className="text-yellow-600" />;
+        return <AlertCircle size={20} className="text-secondary" />;
       case 'alert':
-        return <AlertCircle size={20} className="text-red-600" />;
+        return <AlertCircle size={20} className="text-destructive" />;
       default:
-        return <Bell size={20} className="text-blue-600" />;
+        return <Bell size={20} className="text-[#1D1D1B]" />;
     }
   };
 
   const getCategoryIcon = (category: Notification['category']) => {
     switch (category) {
       case 'course':
-        return <BookOpen size={16} className="text-blue-600" />;
+        return <BookOpen size={16} className="text-primary" />;
       case 'job':
-        return <Briefcase size={16} className="text-green-600" />;
+        return <Briefcase size={16} className="text-primary" />;
       case 'campaign':
-        return <Heart size={16} className="text-pink-600" />;
+        return <Heart size={16} className="text-secondary" />;
       default:
-        return <Settings size={16} className="text-gray-600" />;
+        return <Settings size={16} className="text-muted-foreground" />;
     }
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-6">
+    <div className="min-h-screen bg-background">
       {/* Header */}
-      <div className="bg-white border-b border-gray-200 sticky top-0 z-40">
-        <div className="max-w-6xl mx-auto px-6 py-6">
-          <div className="flex items-center justify-between mb-6">
-            <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-lg bg-blue-100 flex items-center justify-center">
-                <Bell size={24} className="text-blue-600" />
-              </div>
-              <div>
-                <h1 className="text-3xl font-bold text-gray-900">Centro de Notificaciones</h1>
-                <p className="text-gray-600">Gestiona todas tus notificaciones en un solo lugar</p>
-              </div>
+      <header className="bg-card border-b border-border p-6">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <Link to="/dashboard" className="w-10 h-10 rounded-lg bg-primary flex items-center justify-center">
+              <img src="/logo.png" alt="Buen Vivir" className="w-8 h-8 object-contain" />
+            </Link>
+            <div>
+              <h1 className="text-2xl flex items-center gap-2">
+                <Bell className="w-6 h-6 text-primary" />
+                Centro de Notificaciones
+              </h1>
+              <p className="text-sm text-muted-foreground">Gestioná todas tus notificaciones en un solo lugar</p>
             </div>
-            {onClose && (
-              <button
-                onClick={onClose}
-                className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
-              >
-                <X size={24} className="text-gray-600" />
-              </button>
-            )}
           </div>
+          <div className="flex items-center gap-3">
+            <Link
+              to="/configuracion-notificaciones"
+              className="px-4 py-2 rounded-lg border border-border hover:bg-secondary transition-colors flex items-center gap-2"
+            >
+              <Settings className="w-4 h-4" />
+              Configurar
+            </Link>
+            <Link to="/dashboard" className="px-4 py-2 rounded-lg border border-border hover:bg-secondary transition-colors flex items-center gap-2">
+              <ArrowLeft className="w-4 h-4" />
+              Volver
+            </Link>
+            <button
+              onClick={onLogout}
+              className="px-4 py-2 rounded-lg bg-destructive text-destructive-foreground hover:opacity-90 transition-opacity flex items-center gap-2"
+            >
+              <LogOut className="w-4 h-4" />
+              Salir
+            </button>
+          </div>
+        </div>
+      </header>
 
-          {/* Stats */}
-          <div className="grid grid-cols-3 gap-4 mb-6">
-            {notificationStats.map((stat) => (
-              <div key={stat.label} className={`px-4 py-2 rounded-lg ${stat.color}`}>
-                <p className="font-bold">{stat.value}</p>
-                <p className="text-xs">{stat.label}</p>
-              </div>
-            ))}
-          </div>
+      <main className="p-6 max-w-5xl mx-auto">
+        {/* Stats */}
+        <div className="grid grid-cols-3 gap-4 mb-6">
+          {notificationStats.map((stat) => (
+            <div key={stat.label} className="bg-card rounded-lg border border-border px-4 py-3">
+              <p className="text-2xl font-semibold text-primary">{stat.value}</p>
+              <p className="text-xs text-muted-foreground">{stat.label}</p>
+            </div>
+          ))}
+        </div>
 
-          {/* Filters */}
-          <div className="flex gap-2 overflow-x-auto pb-2">
-            {['all', 'unread', 'course', 'job', 'campaign'].map((filter) => (
-              <button
-                key={filter}
-                onClick={() => setSelectedFilter(filter as any)}
-                className={`px-4 py-2 rounded-lg whitespace-nowrap transition-colors ${
-                  selectedFilter === filter
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-white text-gray-700 border border-gray-200 hover:border-blue-600'
-                }`}
-              >
-                {filter === 'all' && 'Todas'}
-                {filter === 'unread' && 'No Leídas'}
-                {filter === 'course' && 'Cursos'}
-                {filter === 'job' && 'Empleabilidad'}
-                {filter === 'campaign' && 'Campañas'}
-              </button>
-            ))}
-          </div>
+        {/* Filters */}
+        <div className="flex gap-2 overflow-x-auto pb-2 mb-4">
+          {['all', 'unread', 'course', 'job', 'campaign'].map((filter) => (
+            <button
+              key={filter}
+              onClick={() => setSelectedFilter(filter as any)}
+              className={`px-4 py-2 rounded-lg whitespace-nowrap transition-colors text-sm ${
+                selectedFilter === filter
+                  ? 'bg-primary text-primary-foreground'
+                  : 'bg-card text-foreground border border-border hover:border-primary'
+              }`}
+            >
+              {filter === 'all' && 'Todas'}
+              {filter === 'unread' && 'No Leídas'}
+              {filter === 'course' && 'Cursos'}
+              {filter === 'job' && 'Empleabilidad'}
+              {filter === 'campaign' && 'Campañas'}
+            </button>
+          ))}
         </div>
 
         {/* Mark All As Read */}
         {notifications.some((n) => !n.read) && (
-          <div className="bg-blue-50 border-t border-blue-200 px-6 py-3">
+          <div className="bg-primary/5 border border-primary/20 rounded-lg px-4 py-3 mb-6">
             <button
               onClick={markAllAsRead}
-              className="text-blue-700 text-sm font-medium hover:text-blue-800"
+              className="text-primary text-sm font-medium hover:underline"
             >
               Marcar todas como leídas
             </button>
           </div>
         )}
-      </div>
 
-      {/* Notifications List */}
-      <div className="max-w-6xl mx-auto px-6 pt-6">
+        {/* Notifications List */}
         <div className="space-y-4">
           {filteredNotifications.length > 0 ? (
             filteredNotifications.map((notification) => (
               <Card
                 key={notification.id}
-                className={`${
-                  !notification.read ? 'border-l-4 border-l-blue-600 bg-blue-50' : ''
-                }`}
+                className={`bg-card ${!notification.read ? 'border-l-4 border-l-primary' : ''}`}
               >
                 <CardBody className="p-4">
                   <div className="flex items-start gap-4">
                     <div className="flex-shrink-0 mt-1">{getNotificationIcon(notification.type)}</div>
 
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-start justify-between gap-4">
-                        <div className="flex-1">
-                          <h3 className={`font-semibold ${!notification.read ? 'text-gray-900' : 'text-gray-700'}`}>
-                            {notification.title}
-                          </h3>
-                          <p className="text-gray-600 text-sm mt-1">{notification.message}</p>
-                          <div className="flex items-center gap-4 mt-3">
-                            <span className="text-xs text-gray-500">{notification.timestamp}</span>
-                            <div className="flex items-center gap-2">
-                              {getCategoryIcon(notification.category)}
-                              <span className="text-xs text-gray-600">
-                                {notification.category === 'course' && 'Curso'}
-                                {notification.category === 'job' && 'Oferta Laboral'}
-                                {notification.category === 'campaign' && 'Campaña'}
-                                {notification.category === 'system' && 'Sistema'}
-                              </span>
-                            </div>
-                          </div>
+                      <h3 className={`font-semibold ${!notification.read ? 'text-foreground' : 'text-muted-foreground'}`}>
+                        {notification.title}
+                      </h3>
+                      <p className="text-muted-foreground text-sm mt-1">{notification.message}</p>
+                      <div className="flex items-center gap-4 mt-3">
+                        <span className="text-xs text-muted-foreground">{notification.timestamp}</span>
+                        <div className="flex items-center gap-2">
+                          {getCategoryIcon(notification.category)}
+                          <span className="text-xs text-muted-foreground">
+                            {notification.category === 'course' && 'Curso'}
+                            {notification.category === 'job' && 'Oferta Laboral'}
+                            {notification.category === 'campaign' && 'Campaña'}
+                            {notification.category === 'system' && 'Sistema'}
+                          </span>
                         </div>
                       </div>
 
                       {notification.actionUrl && (
                         <div className="mt-3">
-                          <a
-                            href={notification.actionUrl}
-                            className="text-sm text-blue-600 hover:text-blue-800 font-medium"
+                          <Link
+                            to={notification.actionUrl}
+                            className="text-sm text-primary hover:underline font-medium"
                           >
                             Ver más →
-                          </a>
+                          </Link>
                         </div>
                       )}
                     </div>
@@ -255,14 +263,14 @@ export function NotificationCenter({ onClose }: NotificationCenterProps) {
                       {!notification.read && (
                         <button
                           onClick={() => markAsRead(notification.id)}
-                          className="px-3 py-1 text-xs bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
+                          className="px-3 py-1 text-xs bg-primary text-primary-foreground rounded hover:opacity-90 transition-opacity"
                         >
                           Marcar leída
                         </button>
                       )}
                       <button
                         onClick={() => deleteNotification(notification.id)}
-                        className="p-1 text-gray-400 hover:text-gray-600 transition-colors"
+                        className="p-1 text-muted-foreground hover:text-foreground transition-colors"
                       >
                         <X size={16} />
                       </button>
@@ -273,13 +281,13 @@ export function NotificationCenter({ onClose }: NotificationCenterProps) {
             ))
           ) : (
             <div className="text-center py-12">
-              <Bell size={48} className="mx-auto text-gray-300 mb-4" />
-              <p className="text-gray-500 text-lg">No hay notificaciones</p>
-              <p className="text-gray-400 text-sm">Volveremos aquí cuando tengas nuevas notificaciones</p>
+              <Bell size={48} className="mx-auto text-muted-foreground/30 mb-4" />
+              <p className="text-muted-foreground text-lg">No hay notificaciones</p>
+              <p className="text-muted-foreground/70 text-sm">Volveremos aquí cuando tengas nuevas notificaciones</p>
             </div>
           )}
         </div>
-      </div>
+      </main>
     </div>
   );
 }
