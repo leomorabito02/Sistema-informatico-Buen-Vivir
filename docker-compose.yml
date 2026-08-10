@@ -1,103 +1,30 @@
-version: '3.8'
-
 services:
-  # Microservicio Auth
   auth-service:
     build:
       context: ./auth
       dockerfile: Dockerfile
-    container_name: buenvivir-auth
+    env_file:
+      - ./auth/.env
     ports:
       - "8081:8080"
-    environment:
-      PORT: "8080"
+    restart: on-failure
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    read_only: true
+    tmpfs:
+      - /tmp
+    mem_limit: 256m
+    cpus: "0.5"
 
-      JWT_SECRET: "local-dev-secret-key"
-
-  # Microservicio Campaigns
-  campaigns-service:
-    build:
-      context: ./campaigns
-      dockerfile: Dockerfile
-    container_name: buenvivir-campaigns
+  api-gateway:
+    image: nginx:alpine
+    container_name: buenvivir-api-gateway
     ports:
-      - "8082:8080"
-    environment:
-      PORT: "8080"
-
-  # Microservicio Dashboard
-  dashboard-service:
-    build:
-      context: ./dashboard
-      dockerfile: Dockerfile
-    container_name: buenvivir-dashboard
-    ports:
-      - "8083:8080"
-    environment:
-      PORT: "8080"
-
-  # Microservicio Education
-  education-service:
-    build:
-      context: ./education
-      dockerfile: Dockerfile
-    container_name: buenvivir-education
-    ports:
-      - "8084:8080"
-    environment:
-      PORT: "8080"
-
-  # Microservicio Human Promotion
-  human-promotion-service:
-    build:
-      context: ./human-promotion
-      dockerfile: Dockerfile
-    container_name: buenvivir-human-promotion
-    ports:
-      - "8085:8080"
-    environment:
-      PORT: "8080"
-
-  # Microservicio Labor Integration
-  labor-integration-service:
-    build:
-      context: ./labor-integration
-      dockerfile: Dockerfile
-    container_name: buenvivir-labor-integration
-    ports:
-      - "8086:8080"
-    environment:
-      PORT: "8080"
-
-  # Microservicio Notifications
-  notifications-service:
-    build:
-      context: ./notifications
-      dockerfile: Dockerfile
-    container_name: buenvivir-notifications
-    ports:
-      - "8087:8080"
-    environment:
-      PORT: "8080"
-
-  # Microservicio RxResume
-  rxresume-service:
-    build:
-      context: ./rxresume
-      dockerfile: Dockerfile
-    container_name: buenvivir-rxresume
-    ports:
-      - "8088:8080"
-    environment:
-      PORT: "8080"
-
-  # Frontend Angular PWA
-  frontend-pwa:
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile
-    container_name: buenvivir-frontend
-    ports:
-      - "4200:80"
+      - "8080:80"
+    volumes:
+      - ./api-gateway/nginx.conf:/etc/nginx/nginx.conf:ro
     depends_on:
       - auth-service
+    restart: on-failure
