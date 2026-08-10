@@ -1,0 +1,42 @@
+<header class="hero-header">
+  <div class="hero-bg-circles"></div>
+
+  <nav class="hero-nav">
+    <div class="hero-nav-inner container">
+      <div class="flex items-center gap-3">
+        <div class="logo-wrapper">
+          <img src="assets/logo.png" alt="Logo Buen Vivir" class="logo-img">
+        </div>
+        <span class="logo-name">Buen Vivir</span>
+      </div>
+
+      <div class="hero-nav-actions">
+        <a routerLink="/register" [queryParams]="{role: 'empresa'}" class="btn btn-outline-white">
+          <lucide-angular [img]="BriefcaseIcon" class="icon-md icon-mr"></lucide-angular>
+          Ofrecer Empleo
+        </a>
+        <a routerLink="/login" class="btn btn-white">
+          <lucide-angular [img]="LogInIcon" class="icon-md icon-mr"></lucide-angular>
+          Iniciar Sesión
+        </a>
+      </div>
+    </div>
+  </nav>
+
+  <div class="hero-body">
+    <div class="hero-text">
+      <h1 class="hero-title">Centro de Ecología Integral</h1>
+      <p class="hero-subtitle">La Otra Orilla - Alta Gracia</p>
+      <p class="hero-desc">
+        Plataforma de acompañamiento integral para personas en situación de vulnerabilidad.
+        Transformamos vidas a través de la educación, el trabajo digno y el desarrollo personal.
+      </p>
+      <div class="hero-actions">
+        <a routerLink="/campanas-publico" class="btn btn-outline-white btn-lg">
+          <lucide-angular [img]="MegaphoneIcon" class="icon-md icon-mr"></lucide-angular>
+          Campañas y Concientización
+        </a>
+      </div>
+    </div>
+  </div>
+</header>
