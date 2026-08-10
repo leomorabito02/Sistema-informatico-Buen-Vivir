@@ -1,3 +1,7 @@
+# Ejecución:
+docker compose up --build
+docker compose down
+
 
 # Poblar la base de datos con datos iniciales
 set -a && source .env && set +a && go run cmd/migrate/main.go
