@@ -3,7 +3,7 @@ info:
   title: Sistema Informático Buen Vivir API Gateway
   description: API Gateway de Google Cloud para el Sistema Informático Buen Vivir
   version: 1.0.0
-host: buenvivir-gateway.apigateway.project-id.gateway.dev
+host: ${GATEWAY_HOST}
 schemes:
   - https
 produces:
@@ -16,7 +16,7 @@ paths:
       summary: Autenticación de usuarios
       operationId: authLogin
       x-google-backend:
-        address: https://auth-service-url-cloudrun.a.run.app
+        address: ${AUTH_SERVICE_URL}
         path_translation: APPEND_PATH_TO_ADDRESS
       responses:
         '200':
@@ -29,8 +29,29 @@ paths:
       summary: Listar campañas
       operationId: getCampaigns
       x-google-backend:
-        address: https://campaigns-service-url-cloudrun.a.run.app
+        address: ${CAMPAIGNS_SERVICE_URL}
         path_translation: APPEND_PATH_TO_ADDRESS
+      security:
+        - firebase: []
+        - jwt: []
       responses:
         '200':
           description: Lista de campañas
+
+securityDefinitions:
+  # Validación de tokens JWT internos generados por nuestro Backend
+  jwt:
+    type: apiKey
+    name: Authorization
+    in: header
+    x-google-issuer: "buenvivir-auth"
+    x-google-jwks_uri: "${AUTH_SERVICE_URL}/.well-known/jwks.json"
+    
+  # Validación directa de Firebase Auth (Opcional si el gateway valida el login inicial)
+  firebase:
+    authorizationUrl: ""
+    flow: "implicit"
+    type: "oauth2"
+    x-google-issuer: "https://securetoken.google.com/${FIREBASE_PROJECT_ID}"
+    x-google-jwks_uri: "https://www.googleapis.com/service_accounts/v1/metadata/x509/securetoken@system.gserviceaccount.com"
+    x-google-audiences: "${FIREBASE_PROJECT_ID}"
