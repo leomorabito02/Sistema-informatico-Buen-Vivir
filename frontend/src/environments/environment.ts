@@ -2,11 +2,12 @@ export const environment = {
   production: false,
   apiUrl: (window as any).__env?.apiUrl,
   firebase: {
-    projectId: 'your_project_id',
-    appId: 'your_app_id',
-    storageBucket: 'your_storage_bucket',
-    apiKey: 'your_api_key',
-    authDomain: 'your_auth_domain',
-    messagingSenderId: 'your_messaging_sender_id',
+    projectId: 'ceibuenvivir',
+    appId: '1:429506836254:web:45f5eb50d86f074323bb0f',
+    storageBucket: 'ceibuenvivir.firebasestorage.app',
+    apiKey: 'AIzaSyDMdBkILiOSgqTq5ZD2VmrsPtYm7aU5bzc',
+    authDomain: 'ceibuenvivir.firebaseapp.com',
+    messagingSenderId: '429506836254',
+    measurementId: 'G-4C2KCQ3MNT'
   }
 };

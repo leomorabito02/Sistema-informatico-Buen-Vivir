@@ -1,1 +1,65 @@
-<p>header works!</p>
+<header class="app-header">
+  <div class="header-left">
+    <div class="logo-container">
+      <!-- Using a placeholder logo similar to the image -->
+      <img src="assets/logo.png" alt="Buen Vivir Logo" class="logo-img" />
+    </div>
+    <div class="brand-info">
+      <h1 class="brand-name">Buen Vivir</h1>
+      <span class="user-role">{{ roleName | titlecase }}</span>
+    </div>
+  </div>
+
+  <nav class="header-center">
+    <!-- Links for Participante -->
+    <ng-container *ngIf="roleName === 'participante'">
+      <a routerLink="/dashboard/cursos" routerLinkActive="active">Catálogo de Cursos</a>
+      <a routerLink="/dashboard/progreso" routerLinkActive="active">Mi Progreso</a>
+      <a routerLink="/dashboard/ofertas" routerLinkActive="active">Ofertas Laborales</a>
+      <a routerLink="/dashboard/cv" routerLinkActive="active">Generar CV</a>
+    </ng-container>
+
+    <!-- Links for Responsable -->
+    <ng-container *ngIf="roleName === 'responsable'">
+      <a routerLink="/dashboard/usuarios" routerLinkActive="active">Gestión de usuarios</a>
+      <a routerLink="/dashboard/seguimiento" routerLinkActive="active">Seguimiento</a>
+      <a routerLink="/dashboard/asistencia" routerLinkActive="active">Registro de asistencia</a>
+      <a routerLink="/dashboard/cursos" routerLinkActive="active">Cursos</a>
+      <a routerLink="/dashboard/campanas" routerLinkActive="active">Campañas</a>
+      <a routerLink="/dashboard/insercion" routerLinkActive="active">Inserción laboral</a>
+    </ng-container>
+
+    <!-- Links for Voluntario -->
+    <ng-container *ngIf="roleName === 'voluntario'">
+      <a routerLink="/dashboard/cursos" routerLinkActive="active">Cursos</a>
+      <a routerLink="/dashboard/seguimiento" routerLinkActive="active">Seguimiento</a>
+      <a routerLink="/dashboard/asistencia" routerLinkActive="active">Registro de asistencia</a>
+      <a routerLink="/dashboard/insercion" routerLinkActive="active">Inserción laboral</a>
+      <a routerLink="/dashboard/participantes" routerLinkActive="active">Gestión de participantes</a>
+    </ng-container>
+
+    <!-- Links for Docente -->
+    <ng-container *ngIf="roleName === 'docente'">
+      <a routerLink="/dashboard/mis-cursos" routerLinkActive="active">Mis cursos</a>
+    </ng-container>
+
+    <!-- Links for Empresa -->
+    <ng-container *ngIf="roleName === 'empresa'">
+      <a routerLink="/dashboard/ofertas" routerLinkActive="active">Ofertas laborales</a>
+    </ng-container>
+  </nav>
+
+  <div class="header-right">
+    <button class="icon-btn" aria-label="Notificaciones" title="Notificaciones (No implementado)">
+      <lucide-icon [img]="Bell" size="20"></lucide-icon>
+      <span class="notification-dot"></span>
+    </button>
+    <button class="icon-btn" aria-label="Ajustes" title="Perfil (No implementado)">
+      <lucide-icon [img]="Settings" size="20"></lucide-icon>
+    </button>
+    <button class="btn-logout" (click)="logout()">
+      <lucide-icon [img]="LogOut" size="18"></lucide-icon>
+      <span>Salir</span>
+    </button>
+  </div>
+</header>

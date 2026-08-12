@@ -182,6 +182,36 @@ func (c *AuthController) GetMe(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+func (c *AuthController) UpdateMyProfile(w http.ResponseWriter, r *http.Request) {
+	userID, ok := r.Context().Value(middlewares.UserIDKey).(string)
+	if !ok {
+		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		return
+	}
+	roleID, ok := r.Context().Value(middlewares.RoleIDKey).(string)
+	if !ok {
+		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	var data map[string]interface{}
+	if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
+		http.Error(w, "Cuerpo de solicitud inválido", http.StatusBadRequest)
+		return
+	}
+
+	if err := c.authService.UpdateMyProfile(r.Context(), roleID, userID, data); err != nil {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(map[string]string{"error": err.Error()})
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(map[string]string{"message": "Perfil actualizado correctamente"})
+}
+
 func (c *AuthController) HealthCheck(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)

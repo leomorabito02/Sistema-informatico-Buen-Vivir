@@ -16,7 +16,7 @@
 
         <form [formGroup]="loginForm" (ngSubmit)="onSubmit()" class="auth-form">
           <div class="form-group">
-            <label class="form-label">Tipo de Usuario (Demo)</label>
+            <label class="form-label">Tipo de Usuario</label>
             <select
               class="form-select"
               [value]="selectedRole"
@@ -27,7 +27,7 @@
           </div>
 
           <div class="form-group">
-            <label class="form-label">Email o Usuario</label>
+            <label class="form-label">Email</label>
             <div class="input-wrapper">
               <lucide-angular [img]="MailIcon" class="input-icon"></lucide-angular>
               <input
@@ -52,7 +52,17 @@
                 [ngClass]="{'invalid': loginForm.get('password')?.invalid && loginForm.get('password')?.touched}"
                 placeholder="••••••••"
                 required
+                [type]="showPassword ? 'text' : 'password'"
               />
+              <button
+                class="password-toggle-btn"
+                type="button"
+                [attr.aria-label]="showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'"
+                [attr.aria-pressed]="showPassword"
+                (click)="togglePasswordVisibility()"
+              >
+                <lucide-angular [img]="showPassword ? EyeOffIcon : EyeIcon" class="w-5 h-5 text-muted-foreground"></lucide-angular>
+              </button>
             </div>
           </div>
 

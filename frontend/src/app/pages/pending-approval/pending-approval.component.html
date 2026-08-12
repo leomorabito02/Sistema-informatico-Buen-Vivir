@@ -3,31 +3,130 @@
     <div class="bg-white py-8 px-4 shadow-xl shadow-slate-200/50 sm:rounded-2xl sm:px-10 border border-slate-100 text-center">
       
       <div class="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-amber-100 mb-6">
-        <lucide-icon [img]="ClockIcon" class="h-8 w-8 text-amber-600"></lucide-icon>
+        <lucide-angular [img]="ClockIcon" class="h-8 w-8 text-amber-600"></lucide-angular>
       </div>
 
       <h2 class="mt-2 text-2xl font-bold tracking-tight text-slate-900 mb-2">
         Solicitud Pendiente
       </h2>
       
-      <p class="text-sm text-slate-500 mb-8 leading-relaxed">
+      <p class="text-sm text-slate-500 mb-6 leading-relaxed">
         Tu cuenta ha sido creada exitosamente, pero aún requiere la aprobación de un administrador para poder acceder al sistema. Te avisaremos cuando tu solicitud sea aceptada.
       </p>
 
-      <div class="mt-6">
+      <div *ngIf="successMessage" class="mb-6 p-4 rounded-xl bg-green-50 border border-green-100 text-green-700 flex items-center gap-3 text-sm text-left">
+        <lucide-angular [img]="CheckCircleIcon" class="h-5 w-5 flex-shrink-0"></lucide-angular>
+        <span>{{ successMessage }}</span>
+      </div>
+
+      <div *ngIf="errorMessage" class="mb-6 p-4 rounded-xl bg-red-50 border border-red-100 text-red-700 text-sm text-left">
+        {{ errorMessage }}
+      </div>
+
+      <!-- Button to toggle form -->
+      <div *ngIf="needsExtraData() && !showForm && !formSaved" class="mb-6">
+        <button
+          (click)="toggleForm()"
+          class="flex w-full justify-center items-center gap-2 rounded-xl bg-indigo-600 px-4 py-3 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 transition-all duration-200"
+        >
+          <lucide-angular [img]="FileEditIcon" class="h-4 w-4"></lucide-angular>
+          Completar Datos Faltantes
+        </button>
+      </div>
+
+      <!-- Form Section -->
+      <div *ngIf="showForm" class="text-left mb-6 animate-in slide-in-from-top-4 duration-300">
+        <div class="border-t border-slate-200 pt-6 mt-2">
+          <h3 class="text-lg font-semibold text-slate-900 mb-4">Datos del Perfil</h3>
+          
+          <form [formGroup]="profileForm" (ngSubmit)="onSubmit()" class="space-y-4">
+            
+            <!-- Participant Fields -->
+            <ng-container *ngIf="roleId === 'role_participant'">
+              <div>
+                <label class="block text-sm font-medium text-slate-700 mb-1">Fecha de Nacimiento</label>
+                <input type="date" formControlName="birthdate" class="block w-full rounded-lg border-0 py-2 px-3 text-slate-900 shadow-sm ring-1 ring-inset ring-slate-300 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6">
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-slate-700 mb-1">DNI</label>
+                <input type="text" formControlName="dni" placeholder="Ej: 12345678" class="block w-full rounded-lg border-0 py-2 px-3 text-slate-900 shadow-sm ring-1 ring-inset ring-slate-300 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6">
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-slate-700 mb-1">Dirección</label>
+                <input type="text" formControlName="address" class="block w-full rounded-lg border-0 py-2 px-3 text-slate-900 shadow-sm ring-1 ring-inset ring-slate-300 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6">
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-slate-700 mb-1">Género</label>
+                <select formControlName="gender" class="block w-full rounded-lg border-0 py-2 px-3 text-slate-900 shadow-sm ring-1 ring-inset ring-slate-300 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6">
+                  <option value="">Seleccionar...</option>
+                  <option value="male">Masculino</option>
+                  <option value="female">Femenino</option>
+                  <option value="other">Otro</option>
+                </select>
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-slate-700 mb-1">Nombre de Contacto de Emergencia</label>
+                <input type="text" formControlName="emergency_contact_name" class="block w-full rounded-lg border-0 py-2 px-3 text-slate-900 shadow-sm ring-1 ring-inset ring-slate-300 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6">
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-slate-700 mb-1">Teléfono de Contacto de Emergencia</label>
+                <input type="text" formControlName="emergency_contact_phone" class="block w-full rounded-lg border-0 py-2 px-3 text-slate-900 shadow-sm ring-1 ring-inset ring-slate-300 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6">
+              </div>
+            </ng-container>
+
+            <!-- Company Fields -->
+            <ng-container *ngIf="roleId === 'role_company'">
+              <div>
+                <label class="block text-sm font-medium text-slate-700 mb-1">Nombre de la Empresa</label>
+                <input type="text" formControlName="business_name" class="block w-full rounded-lg border-0 py-2 px-3 text-slate-900 shadow-sm ring-1 ring-inset ring-slate-300 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6">
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-slate-700 mb-1">CUIT</label>
+                <input type="text" formControlName="cuit" class="block w-full rounded-lg border-0 py-2 px-3 text-slate-900 shadow-sm ring-1 ring-inset ring-slate-300 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6">
+              </div>
+            </ng-container>
+
+            <!-- Teacher Fields -->
+            <ng-container *ngIf="roleId === 'role_teacher'">
+              <div>
+                <label class="block text-sm font-medium text-slate-700 mb-1">Especialización</label>
+                <input type="text" formControlName="specialization" class="block w-full rounded-lg border-0 py-2 px-3 text-slate-900 shadow-sm ring-1 ring-inset ring-slate-300 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6">
+              </div>
+            </ng-container>
+
+            <div class="pt-4 flex gap-3">
+              <button
+                type="button"
+                (click)="toggleForm()"
+                class="flex-1 rounded-xl bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 shadow-sm ring-1 ring-inset ring-slate-300 hover:bg-slate-50 transition-all"
+              >
+                Cancelar
+              </button>
+              <button
+                type="submit"
+                [disabled]="loading"
+                class="flex-1 flex justify-center items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <lucide-angular [img]="SaveIcon" class="h-4 w-4"></lucide-angular>
+                {{ loading ? 'Guardando...' : 'Guardar' }}
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <div class="mt-6 border-t border-slate-100 pt-6">
         <button
           (click)="goBack()"
-          class="flex w-full justify-center items-center gap-2 rounded-xl bg-slate-900 px-4 py-3 text-sm font-semibold text-white shadow-sm hover:bg-slate-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900 transition-all duration-200"
+          class="flex w-full justify-center items-center gap-2 rounded-xl bg-slate-900 px-4 py-3 text-sm font-semibold text-white shadow-sm hover:bg-slate-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900 transition-all duration-200 mb-3"
         >
-          <lucide-icon [img]="ArrowLeftIcon" class="h-4 w-4"></lucide-icon>
+          <lucide-angular [img]="ArrowLeftIcon" class="h-4 w-4"></lucide-angular>
           Volver al inicio
         </button>
-        <br>
         <button
           (click)="logout()"
-          class="flex w-full justify-center items-center gap-2 rounded-xl bg-slate-900 px-4 py-3 text-sm font-semibold text-white shadow-sm hover:bg-slate-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900 transition-all duration-200"
+          class="flex w-full justify-center items-center gap-2 rounded-xl bg-white px-4 py-3 text-sm font-semibold text-slate-700 shadow-sm ring-1 ring-inset ring-slate-300 hover:bg-slate-50 transition-all duration-200"
         >
-          <lucide-icon [img]="ArrowLeftIcon" class="h-4 w-4"></lucide-icon>
           Cerrar Sesión
         </button>
       </div>

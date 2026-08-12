@@ -4,6 +4,7 @@ import { Auth, signInWithPopup, GoogleAuthProvider } from '@angular/fire/auth';
 import { environment } from '../../environments/environment';
 import { Observable, from, switchMap } from 'rxjs';
 import { Router } from '@angular/router';
+import { LoginResponse, RegisterRequest, User } from '../core/models/auth.model';
 
 @Injectable({
   providedIn: 'root'
@@ -27,8 +28,8 @@ export class AuthService {
     email: string,
     password: string,
     role: string
-  ): Observable<any> {
-    return this.http.post(
+  ): Observable<LoginResponse> {
+    return this.http.post<LoginResponse>(
       `${this.apiUrl}/api/v1/auth/login`,
       {
         email,
@@ -44,8 +45,8 @@ export class AuthService {
   /**
    * Register a new user via API Gateway.
    */
-  registerWithEmail(userData: any): Observable<any> {
-    return this.http.post(
+  registerWithEmail(userData: RegisterRequest): Observable<LoginResponse> {
+    return this.http.post<LoginResponse>(
       `${this.apiUrl}/api/v1/auth/register`,
       userData,
       {
@@ -61,7 +62,7 @@ export class AuthService {
    * The backend creates the application session and sets the
    * authentication cookies.
    */
-  loginWithGoogle(role: string): Observable<any> {
+  loginWithGoogle(role: string): Observable<LoginResponse> {
     const provider = new GoogleAuthProvider();
 
     return from(signInWithPopup(this.auth, provider)).pipe(
@@ -69,7 +70,7 @@ export class AuthService {
         from(credential.user.getIdToken())
       ),
       switchMap(token =>
-        this.http.post(
+        this.http.post<LoginResponse>(
           `${this.apiUrl}/api/v1/auth/login`,
           {
             googleToken: token,
@@ -88,9 +89,19 @@ export class AuthService {
    *
    * The browser automatically sends the HttpOnly authentication cookie.
    */
-  isAuthenticated(): Observable<any> {
-    return this.http.get(
+  isAuthenticated(): Observable<{user: User}> {
+    return this.http.get<{user: User}>(
       `${this.apiUrl}/api/v1/auth/me`,
+      {
+        withCredentials: true
+      }
+    );
+  }
+
+  updateProfile(data: any): Observable<any> {
+    return this.http.put<any>(
+      `${this.apiUrl}/api/v1/profile/me`,
+      data,
       {
         withCredentials: true
       }

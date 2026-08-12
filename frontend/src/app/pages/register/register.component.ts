@@ -2,7 +2,7 @@ import { Component, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators, AbstractControl, ValidationErrors } from '@angular/forms';
 import { Router, RouterLink, ActivatedRoute } from '@angular/router';
-import { LucideAngularModule, User, Mail, Lock, Phone, CheckCircle2, Clock, AlertCircle } from 'lucide-angular';
+import { LucideAngularModule, User, Mail, Lock, Phone, CheckCircle2, Clock, AlertCircle, Eye, EyeOff } from 'lucide-angular';
 import { AuthService } from '../../services/auth.service';
 
 function passwordMatchValidator(control: AbstractControl): ValidationErrors | null {
@@ -30,6 +30,8 @@ export class RegisterComponent {
   readonly CheckCircle2Icon = CheckCircle2;
   readonly ClockIcon = Clock;
   readonly AlertCircleIcon = AlertCircle;
+  readonly EyeIcon = Eye;
+  readonly EyeOffIcon = EyeOff;
 
   private fb = inject(FormBuilder);
   private authService = inject(AuthService);
@@ -77,6 +79,7 @@ export class RegisterComponent {
   onSubmit() {
     if (this.registerForm.invalid) {
       this.registerForm.markAllAsTouched();
+      this.registerError = 'Por favor, completa todos los campos correctamente y acepta los términos.';
       return;
     }
 
@@ -105,5 +108,16 @@ export class RegisterComponent {
         console.error('Registration error', err);
       }
     });
+  }
+
+  showPassword = false;
+  showConfirmPassword = false;
+
+  togglePasswordVisibility(): void {
+    this.showPassword = !this.showPassword;
+  }
+
+  toggleConfirmPasswordVisibility(): void {
+    this.showConfirmPassword = !this.showConfirmPassword;
   }
 }
