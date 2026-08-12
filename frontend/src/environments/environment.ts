@@ -1,6 +1,6 @@
 export const environment = {
-  production: true,
-  apiUrl: 'http://localhost:80', // TODO: change for production
+  production: false,
+  apiUrl: (window as any).__env?.apiUrl,
   firebase: {
     projectId: 'your_project_id',
     appId: 'your_app_id',

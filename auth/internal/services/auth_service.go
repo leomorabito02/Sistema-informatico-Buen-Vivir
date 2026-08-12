@@ -19,6 +19,7 @@ type AuthService interface {
 	Register(ctx context.Context, req *dto.RegisterRequest) (*dto.LoginResponse, error)
 	LoginWithGoogle(ctx context.Context, req *dto.GoogleLoginRequest) (*dto.LoginResponse, error)
 	Login(ctx context.Context, req *dto.LoginRequest) (*dto.LoginResponse, error)
+	GetApprovalStatus(ctx context.Context, roleID, userID string) string
 }
 
 type authService struct {
@@ -67,7 +68,10 @@ func (s *authService) Register(ctx context.Context, req *dto.RegisterRequest) (*
 
 	user = &models.User{
 		UserID:       "usr-" + utils.GenerateRandomString(10),
+		FirstName:    req.FirstName,
+		LastName:     req.LastName,
 		Email:        req.Email,
+		Phone:        req.Phone,
 		PasswordHash: hashedPassword,
 		RoleID:       roleID,
 		Status:       "active",
@@ -172,11 +176,14 @@ func (s *authService) LoginWithGoogle(ctx context.Context, req *dto.GoogleLoginR
 		return nil, errors.New("error al guardar sesión")
 	}
 
+	approvalStatus := s.GetApprovalStatus(ctx, user.RoleID, user.UserID)
+
 	// 4. Retornar respuesta
 	return &dto.LoginResponse{
-		Token:        accessToken, 
-		RefreshToken: refreshToken,
-		User:         user,
+		Token:          accessToken, 
+		RefreshToken:   refreshToken,
+		User:           user,
+		ApprovalStatus: approvalStatus,
 	}, nil
 }
 
@@ -220,10 +227,13 @@ func (s *authService) Login(ctx context.Context, req *dto.LoginRequest) (*dto.Lo
 		return nil, errors.New("error al guardar sesión")
 	}
 
+	approvalStatus := s.GetApprovalStatus(ctx, user.RoleID, user.UserID)
+
 	return &dto.LoginResponse{
-		Token:        accessToken,
-		RefreshToken: refreshToken,
-		User:         user,
+		Token:          accessToken,
+		RefreshToken:   refreshToken,
+		User:           user,
+		ApprovalStatus: approvalStatus,
 	}, nil
 }
 
@@ -277,4 +287,27 @@ func (s *authService) createRoleProfileTx(tx *gorm.DB, userID, roleID string) er
 		// Para role_admin, role_dev u otros roles que no requieren tabla extra
 		return nil
 	}
+}
+
+func (s *authService) GetApprovalStatus(ctx context.Context, roleID, userID string) string {
+	var status string
+	var tableName string
+
+	switch roleID {
+	case "role_teacher":
+		tableName = "teachers"
+	case "role_volunteer":
+		tableName = "volunteers"
+	case "role_participant":
+		tableName = "participants"
+	case "role_company":
+		tableName = "companies"
+	default:
+		return "accepted"
+	}
+
+	if err := s.db.WithContext(ctx).Table(tableName).Where("user_id = ?", userID).Select("approval_status").Scan(&status).Error; err != nil || status == "" {
+		return "accepted"
+	}
+	return status
 }

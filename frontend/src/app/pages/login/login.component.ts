@@ -9,7 +9,8 @@ import { AuthService } from '../../services/auth.service';
   selector: 'app-login',
   standalone: true,
   imports: [CommonModule, ReactiveFormsModule, RouterLink, LucideAngularModule],
-  templateUrl: './login.component.html'
+  templateUrl: './login.component.html',
+  styleUrl: './login.component.css'
 })
 export class LoginComponent {
   readonly MailIcon = Mail;
@@ -22,18 +23,18 @@ export class LoginComponent {
   private router = inject(Router);
 
   loginForm: FormGroup;
-  selectedRole = 'participante';
+  selectedRole = 'participant';
   loginError = '';
   locked = false;
   failedAttempts = 0;
   MAX_ATTEMPTS = 5;
 
   roles = [
-    { label: 'Responsable (ve todo)', value: 'admin' },
-    { label: 'Voluntario (seguimiento y campañas)', value: 'voluntario' },
-    { label: 'Participante (cursos y CV)', value: 'participante' },
-    { label: 'Docente (subir contenido)', value: 'docente' },
-    { label: 'Empresa', value: 'empresa' }
+    { label: 'Responsable', value: 'admin' },
+    { label: 'Voluntario', value: 'volunteer' },
+    { label: 'Participante', value: 'participant' },
+    { label: 'Docente', value: 'teacher' },
+    { label: 'Empresa', value: 'company' }
   ];
 
   constructor() {
@@ -60,7 +61,11 @@ export class LoginComponent {
     this.authService.loginWithEmail(email, password, this.selectedRole).subscribe({
       next: (res) => {
         this.loginError = '';
-        this.router.navigate(['/dashboard']);
+        if (res.approval_status === 'pending') {
+          this.router.navigate(['/pending-approval']);
+        } else {
+          this.router.navigate(['/dashboard']);
+        }
       },
       error: (err) => {
         this.handleFailedAttempt();
@@ -82,7 +87,11 @@ export class LoginComponent {
     this.authService.loginWithGoogle(this.selectedRole).subscribe({
       next: (res) => {
         this.loginError = '';
-        this.router.navigate(['/dashboard']);
+        if (res.approval_status === 'pending') {
+          this.router.navigate(['/pending-approval']);
+        } else {
+          this.router.navigate(['/dashboard']);
+        }
       },
       error: (err) => {
         this.loginError = 'Hubo un error al iniciar sesión con Google.';
