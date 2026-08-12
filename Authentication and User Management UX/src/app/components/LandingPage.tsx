@@ -87,7 +87,7 @@ export function LandingPage() {
               La Otra Orilla - Alta Gracia
             </p>
             <p className="text-lg mb-8 text-white/80">
-              Plataforma de acompañamiento integral para personas en situación de vulnerabilidad.
+              Plataforma de acompañamiento integral para personas del Centro Barrial "La otra orilla".
               Transformamos vidas a través de la educación, el trabajo digno y el desarrollo personal.
             </p>
             <div className="flex flex-wrap gap-4">  

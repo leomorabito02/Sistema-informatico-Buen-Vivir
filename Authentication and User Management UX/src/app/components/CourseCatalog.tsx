@@ -343,11 +343,11 @@ export function CourseCatalog({ userRole, onLogout }: CourseCatalogProps) {
                     <span className="flex items-center gap-1.5 col-span-2 truncate"><BarChart3 className="w-3.5 h-3.5 flex-shrink-0" /> {course.teacher}</span>
                   </div>
 
-                  {/* Suggested Skills - generadas por Gemini (fallback OpenAI) */}
+                  {/* Suggested Skills*/}
                   {course.suggestedSkills && (
                     <div className="mb-4">
                       <p className="text-[10px] text-muted-foreground mb-1.5 flex items-center gap-1">
-                        <Sparkles className="w-3 h-3" /> Sugeridas por IA (Gemini, fallback OpenAI)
+                        <Sparkles className="w-3 h-3" /> Sugeridas por IA 
                       </p>
                       <div className="flex flex-wrap gap-1.5">
                         {course.suggestedSkills.slice(0, 2).map((skill: string, idx: number) => {
