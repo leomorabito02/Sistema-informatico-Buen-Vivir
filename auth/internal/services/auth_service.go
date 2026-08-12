@@ -20,6 +20,7 @@ type AuthService interface {
 	LoginWithGoogle(ctx context.Context, req *dto.GoogleLoginRequest) (*dto.LoginResponse, error)
 	Login(ctx context.Context, req *dto.LoginRequest) (*dto.LoginResponse, error)
 	GetApprovalStatus(ctx context.Context, roleID, userID string) string
+	UpdateMyProfile(ctx context.Context, roleID, userID string, data map[string]interface{}) error
 }
 
 type authService struct {
@@ -158,6 +159,17 @@ func (s *authService) LoginWithGoogle(ctx context.Context, req *dto.GoogleLoginR
 		}
 	}
 
+	if user.Status != "active" {
+		return nil, errors.New("la cuenta de usuario no está activa")
+	}
+
+	if user.RoleID != "role_admin" && user.RoleID != "role_dev" {
+		approvalStatus := s.GetApprovalStatus(ctx, user.RoleID, user.UserID)
+		if approvalStatus != "active" && approvalStatus != "accepted" {
+			return nil, errors.New("el perfil aún no está activo o aprobado")
+		}
+	}
+
 	isExternal := false
 	if user.RoleID == "role_teacher" {
 		var isExt bool
@@ -208,6 +220,17 @@ func (s *authService) Login(ctx context.Context, req *dto.LoginRequest) (*dto.Lo
 
 	if user.RoleID != roleID {
 		return nil, errors.New("rol incorrecto para este usuario")
+	}
+
+	if user.Status != "active" {
+		return nil, errors.New("la cuenta de usuario no está activa")
+	}
+
+	if user.RoleID != "role_admin" && user.RoleID != "role_dev" {
+		approvalStatus := s.GetApprovalStatus(ctx, user.RoleID, user.UserID)
+		if approvalStatus != "active" && approvalStatus != "accepted" {
+			return nil, errors.New("el perfil aún no está activo o aprobado")
+		}
 	}
 
 	isExternal := false

@@ -92,6 +92,7 @@ func main() {
 			r.Use(middlewares.AuthMiddleware(jwtService))
 			
 			r.Get("/auth/me", authController.GetMe)
+			r.Put("/profile/me", authController.UpdateMyProfile)
 
 			// Users CRUD
 			r.Route("/users", func(r chi.Router) {
