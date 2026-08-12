@@ -1,0 +1,36 @@
+<div class="min-h-screen bg-slate-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
+  <div class="sm:mx-auto sm:w-full sm:max-w-md">
+    <div class="bg-white py-8 px-4 shadow-xl shadow-slate-200/50 sm:rounded-2xl sm:px-10 border border-slate-100 text-center">
+      
+      <div class="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-amber-100 mb-6">
+        <lucide-icon [img]="ClockIcon" class="h-8 w-8 text-amber-600"></lucide-icon>
+      </div>
+
+      <h2 class="mt-2 text-2xl font-bold tracking-tight text-slate-900 mb-2">
+        Solicitud Pendiente
+      </h2>
+      
+      <p class="text-sm text-slate-500 mb-8 leading-relaxed">
+        Tu cuenta ha sido creada exitosamente, pero aún requiere la aprobación de un administrador para poder acceder al sistema. Te avisaremos cuando tu solicitud sea aceptada.
+      </p>
+
+      <div class="mt-6">
+        <button
+          (click)="goBack()"
+          class="flex w-full justify-center items-center gap-2 rounded-xl bg-slate-900 px-4 py-3 text-sm font-semibold text-white shadow-sm hover:bg-slate-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900 transition-all duration-200"
+        >
+          <lucide-icon [img]="ArrowLeftIcon" class="h-4 w-4"></lucide-icon>
+          Volver al inicio
+        </button>
+        <br>
+        <button
+          (click)="logout()"
+          class="flex w-full justify-center items-center gap-2 rounded-xl bg-slate-900 px-4 py-3 text-sm font-semibold text-white shadow-sm hover:bg-slate-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900 transition-all duration-200"
+        >
+          <lucide-icon [img]="ArrowLeftIcon" class="h-4 w-4"></lucide-icon>
+          Cerrar Sesión
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

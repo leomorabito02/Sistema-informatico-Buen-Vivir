@@ -1,28 +1,24 @@
-<div class="min-h-screen flex">
-  <!-- Left side - Login form -->
-  <div class="flex-1 flex items-center justify-center p-8 bg-background">
-    <div class="w-full max-w-md">
+<div class="auth-container">
+  <div class="auth-content">
+    <div class="auth-wrapper">
       <!-- Logo and Title -->
-      <div class="text-center mb-8">
-        <div class="w-24 h-24 mx-auto rounded-full overflow-hidden bg-primary flex items-center justify-center mb-4 shadow-md">
-          <!-- TODO: add actual logo, fallback to an empty/colored div -->
-          <div class="w-full h-full object-cover flex items-center justify-center text-white text-3xl font-bold">BV</div>
+      <div class="auth-header">
+        <div class="auth-logo-container">
+          <img src="assets/logo.png" alt="Logo Buen Vivir" class="auth-logo">
         </div>
-        <h1 class="text-3xl mb-2 font-semibold">Buen Vivir</h1>
-        <p class="text-muted-foreground">
-          Centro de Ecología Integral
-        </p>
+        <h1 class="auth-title">Buen Vivir</h1>
+        <p class="auth-subtitle">Centro de Ecología Integral</p>
       </div>
 
       <!-- Login Form -->
-      <div class="bg-card rounded-lg border border-border p-8 shadow-sm">
-        <h2 class="text-2xl mb-6 font-semibold">Iniciar Sesión</h2>
+      <div class="auth-card">
+        <h2 class="auth-card-title">Iniciar Sesión</h2>
 
-        <form [formGroup]="loginForm" (ngSubmit)="onSubmit()" class="space-y-4">
-          <div>
-            <label class="block mb-2 text-sm font-medium">Tipo de Usuario</label>
+        <form [formGroup]="loginForm" (ngSubmit)="onSubmit()" class="auth-form">
+          <div class="form-group">
+            <label class="form-label">Tipo de Usuario (Demo)</label>
             <select
-              class="w-full border border-border rounded-md py-3 px-4 bg-background focus:outline-none focus:ring-2 focus:ring-primary"
+              class="form-select"
               [value]="selectedRole"
               (change)="onRoleChange($event)"
             >
@@ -30,72 +26,72 @@
             </select>
           </div>
 
-          <div>
-            <label class="block mb-2 text-sm font-medium">Email o Usuario</label>
-            <div class="relative">
-              <lucide-angular [img]="MailIcon" class="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground z-10"></lucide-angular>
+          <div class="form-group">
+            <label class="form-label">Email o Usuario</label>
+            <div class="input-wrapper">
+              <lucide-angular [img]="MailIcon" class="input-icon"></lucide-angular>
               <input
                 type="email"
                 formControlName="email"
-                class="w-full pl-10 pr-4 py-3 border border-border rounded-md bg-background focus:outline-none focus:ring-2 focus:ring-primary"
+                class="form-input"
+                [ngClass]="{'invalid': loginForm.get('email')?.invalid && loginForm.get('email')?.touched}"
                 placeholder="tu@email.com"
                 required
               />
             </div>
           </div>
 
-          <div>
-            <label class="block mb-2 text-sm font-medium">Contraseña</label>
-            <div class="relative">
-              <lucide-angular [img]="LockIcon" class="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground z-10"></lucide-angular>
+          <div class="form-group">
+            <label class="form-label">Contraseña</label>
+            <div class="input-wrapper">
+              <lucide-angular [img]="LockIcon" class="input-icon"></lucide-angular>
               <input
                 type="password"
                 formControlName="password"
-                class="w-full pl-10 pr-12 py-3 border border-border rounded-md bg-transparent focus:outline-none focus:ring-2 focus:ring-primary"
+                class="form-input"
+                [ngClass]="{'invalid': loginForm.get('password')?.invalid && loginForm.get('password')?.touched}"
                 placeholder="••••••••"
                 required
               />
             </div>
           </div>
 
-          <div class="flex items-center justify-between text-sm">
-            <label class="flex items-center gap-2 cursor-pointer">
-              <input type="checkbox" class="rounded border-border focus:ring-primary text-primary w-4 h-4" />
+          <div class="flex-between">
+            <label class="checkbox-label">
+              <input type="checkbox" class="checkbox-input" />
               <span>Recordarme</span>
             </label>
-            <a routerLink="/recuperar-password" class="text-primary hover:underline font-medium">
+            <a routerLink="/recuperar-password" class="auth-link">
               ¿Olvidaste tu contraseña?
             </a>
           </div>
 
-          <div *ngIf="loginError" class="flex items-start gap-2 text-sm text-destructive bg-destructive/10 border border-destructive/20 rounded-md p-3">
-            <lucide-angular [img]="AlertCircleIcon" class="w-4 h-4 flex-shrink-0 mt-0.5"></lucide-angular>
+          <div *ngIf="loginError" class="error-msg">
+            <lucide-angular [img]="AlertCircleIcon" class="error-icon"></lucide-angular>
             <span>{{ loginError }}</span>
           </div>
 
           <button
             type="submit"
-            [disabled]="locked"
-            class="w-full py-3 bg-primary text-primary-foreground font-medium rounded-md hover:opacity-90 transition-opacity border-none disabled:opacity-50 disabled:cursor-not-allowed"
+            [disabled]="locked || loginForm.invalid"
+            class="btn-submit"
           >
             {{ locked ? 'Cuenta bloqueada' : 'Continuar' }}
           </button>
         </form>
 
-        <div class="relative my-6">
-          <div class="absolute inset-0 flex items-center">
-            <div class="w-full border-t border-border"></div>
-          </div>
-          <div class="relative flex justify-center text-sm">
-            <span class="px-2 bg-card text-muted-foreground">O continúa con</span>
+        <div class="auth-divider">
+          <div class="auth-divider-line"></div>
+          <div class="auth-divider-text">
+            <span>O continúa con</span>
           </div>
         </div>
 
         <button
           (click)="handleGoogleLogin()"
-          class="w-full py-3 border border-border rounded-lg hover:bg-secondary transition-colors flex items-center justify-center gap-3 bg-transparent text-foreground font-medium"
+          class="btn-google"
         >
-          <svg class="w-5 h-5 mr-2" viewBox="0 0 24 24">
+          <svg class="google-icon" viewBox="0 0 24 24">
             <path
               fill="#4285F4"
               d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
@@ -117,16 +113,12 @@
         </button>
       </div>
 
-      <p class="text-center mt-6 text-sm text-muted-foreground">
+      <div class="auth-footer">
         ¿No tienes cuenta?
-        <a routerLink="/register" class="text-primary hover:underline font-medium">
-          Regístrate aquí
-        </a>
+        <a routerLink="/register" class="auth-link">Regístrate aquí</a>
         <br /><br />
-        <a routerLink="/" class="text-primary hover:underline font-medium">
-          Volver a la pantalla principal
-        </a>
-      </p>
+        <a routerLink="/" class="auth-link">Volver a la pantalla principal</a>
+      </div>
     </div>
   </div>
 </div>

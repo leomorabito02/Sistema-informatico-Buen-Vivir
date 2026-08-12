@@ -24,19 +24,26 @@ type JWTService interface {
 func AuthMiddleware(jwtService JWTService) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			authHeader := r.Header.Get("Authorization")
-			if authHeader == "" {
-				http.Error(w, "Authorization header is required", http.StatusUnauthorized)
-				return
+			var tokenString string
+			
+			// Primero intentar extraer de la cookie "access_token"
+			cookie, err := r.Cookie("access_token")
+			if err == nil && cookie.Value != "" {
+				tokenString = cookie.Value
+			} else {
+				// Fallback: Authorization header
+				authHeader := r.Header.Get("Authorization")
+				if authHeader == "" {
+					http.Error(w, "Unauthorized: missing token", http.StatusUnauthorized)
+					return
+				}
+				parts := strings.Split(authHeader, " ")
+				if len(parts) != 2 || parts[0] != "Bearer" {
+					http.Error(w, "Invalid token format", http.StatusUnauthorized)
+					return
+				}
+				tokenString = parts[1]
 			}
-
-			parts := strings.Split(authHeader, " ")
-			if len(parts) != 2 || parts[0] != "Bearer" {
-				http.Error(w, "Invalid token format", http.StatusUnauthorized)
-				return
-			}
-
-			tokenString := parts[1]
 
 			claims, err := jwtService.ValidateToken(tokenString)
 			if err != nil {

@@ -6,7 +6,7 @@ import { ImpactComponent } from '../../components/landing/impact/impact.componen
 import { HowItWorksComponent } from '../../components/landing/how-it-works/how-it-works.component';
 import { LibraryComponent } from '../../components/landing/library/library.component';
 import { LocationComponent } from '../../components/landing/location/location.component';
-import { FooterComponent } from '../../components/shared/footer/footer.component';
+import { FooterComponent } from '../../components/layout/footer/footer.component';
 
 @Component({
   selector: 'app-landing',
