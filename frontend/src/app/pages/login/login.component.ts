@@ -2,7 +2,7 @@ import { Component, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
-import { LucideAngularModule, Mail, Lock, Shield, AlertCircle } from 'lucide-angular';
+import { LucideAngularModule, Mail, Lock, Shield, AlertCircle, Eye, EyeOff } from 'lucide-angular';
 import { AuthService } from '../../services/auth.service';
 
 @Component({
@@ -17,13 +17,15 @@ export class LoginComponent {
   readonly LockIcon = Lock;
   readonly ShieldIcon = Shield;
   readonly AlertCircleIcon = AlertCircle;
+  readonly EyeIcon = Eye;
+  readonly EyeOffIcon = EyeOff;
 
   private fb = inject(FormBuilder);
   private authService = inject(AuthService);
   private router = inject(Router);
 
   loginForm: FormGroup;
-  selectedRole = 'participant';
+  selectedRole = 'admin';
   loginError = '';
   locked = false;
   failedAttempts = 0;
@@ -97,5 +99,11 @@ export class LoginComponent {
         this.loginError = 'Hubo un error al iniciar sesión con Google.';
       }
     });
+  }
+
+  showPassword = false;
+
+  togglePasswordVisibility(): void {
+    this.showPassword = !this.showPassword;
   }
 }

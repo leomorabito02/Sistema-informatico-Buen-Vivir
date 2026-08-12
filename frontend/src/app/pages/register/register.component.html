@@ -106,12 +106,21 @@
             <div class="input-wrapper">
               <lucide-angular [img]="LockIcon" class="input-icon"></lucide-angular>
               <input
-                type="password"
+                [type]="showPassword ? 'text' : 'password'"
                 formControlName="password"
                 class="form-input"
                 [ngClass]="{'invalid': registerForm.get('password')?.invalid && registerForm.get('password')?.touched}"
                 placeholder="••••••••"
               />
+              <button
+                class="password-toggle-btn"
+                type="button"
+                [attr.aria-label]="showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'"
+                [attr.aria-pressed]="showPassword"
+                (click)="togglePasswordVisibility()"
+              >
+                <lucide-angular [img]="showPassword ? EyeOffIcon : EyeIcon" class="w-5 h-5 text-muted-foreground"></lucide-angular>
+              </button>
             </div>
             <p *ngIf="registerForm.get('password')?.invalid && registerForm.get('password')?.touched" class="input-error">
               La contraseña debe tener al menos 8 caracteres.
@@ -123,12 +132,21 @@
             <div class="input-wrapper">
               <lucide-angular [img]="LockIcon" class="input-icon"></lucide-angular>
               <input
-                type="password"
+                [type]="showConfirmPassword ? 'text' : 'password'"
                 formControlName="confirmPassword"
                 class="form-input"
                 [ngClass]="{'invalid': registerForm.hasError('passwordMismatch') && registerForm.get('confirmPassword')?.touched}"
                 placeholder="••••••••"
               />
+              <button
+                class="password-toggle-btn"
+                type="button"
+                [attr.aria-label]="showConfirmPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'"
+                [attr.aria-pressed]="showConfirmPassword"
+                (click)="toggleConfirmPasswordVisibility()"
+              >
+                <lucide-angular [img]="showConfirmPassword ? EyeOffIcon : EyeIcon" class="w-5 h-5 text-muted-foreground"></lucide-angular>
+              </button>
             </div>
             <p *ngIf="registerForm.hasError('passwordMismatch') && registerForm.get('confirmPassword')?.touched" class="input-error">
               Las contraseñas no coinciden.
