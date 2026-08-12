@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/json"
 	"log/slog"
 	"net/http"
 	"os"
@@ -85,25 +84,14 @@ func main() {
 			r.With(middlewares.StrictRateLimiter()).Post("/register", authController.Register)
 			r.With(middlewares.StrictRateLimiter()).Post("/login", authController.Login)
 			r.With(middlewares.StrictRateLimiter()).Post("/google", authController.LoginWithGoogle)
+			r.With(middlewares.StrictRateLimiter()).Post("/logout", authController.Logout)
 		})
 		
 		// Protected Routes
 		r.Group(func(r chi.Router) {
 			r.Use(middlewares.AuthMiddleware(jwtService))
 			
-			r.Get("/auth/me", func(w http.ResponseWriter, req *http.Request) {
-				userID, ok := req.Context().Value(middlewares.UserIDKey).(string)
-				if !ok {
-					http.Error(w, "unauthorized", http.StatusUnauthorized)
-					return
-				}
-
-				w.Header().Set("Content-Type", "application/json")
-
-				_ = json.NewEncoder(w).Encode(map[string]any{
-					"user_id": userID,
-				})
-			})
+			r.Get("/auth/me", authController.GetMe)
 
 			// Users CRUD
 			r.Route("/users", func(r chi.Router) {
