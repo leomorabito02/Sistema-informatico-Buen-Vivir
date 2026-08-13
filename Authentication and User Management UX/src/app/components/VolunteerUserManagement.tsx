@@ -157,7 +157,7 @@ export function VolunteerUserManagement({ onLogout }: VolunteerUserManagementPro
                   <th className="text-left p-4">Nombre</th>
                   <th className="text-left p-4">Email</th>
                   <th className="text-left p-4">Teléfono</th>
-                  <th className="text-left p-4">Cursos Inscritos</th>
+                  <th className="text-left p-4">Cursos Inscriptos</th>
                   <th className="text-left p-4">Acciones</th>
                 </tr>
               </thead>

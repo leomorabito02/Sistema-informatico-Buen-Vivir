@@ -144,7 +144,6 @@ export function NotificationCenter({ onLogout }: NotificationCenterProps) {
             </Link>
             <div>
               <h1 className="text-2xl flex items-center gap-2">
-                <Bell className="w-6 h-6 text-primary" />
                 Centro de Notificaciones
               </h1>
               <p className="text-sm text-muted-foreground">Gestioná todas tus notificaciones en un solo lugar</p>

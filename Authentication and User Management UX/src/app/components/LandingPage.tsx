@@ -165,7 +165,7 @@ export function LandingPage() {
 
           <div className="grid grid-cols-2 md:grid-cols-3 gap-8">
             <div className="text-center">
-              <div className="text-5xl text-primary mb-2">248</div>
+              <div className="text-5xl text-primary mb-2">30</div>
               <div className="text-muted-foreground">Participantes Activos</div>
             </div>
             <div className="text-center">
@@ -173,7 +173,7 @@ export function LandingPage() {
               <div className="text-muted-foreground">Cursos Disponibles</div>
             </div>
             <div className="text-center">
-              <div className="text-5xl text-primary mb-2">32</div>
+              <div className="text-5xl text-primary mb-2">+15</div>
               <div className="text-muted-foreground">Voluntarios</div>
             </div>
           </div>
@@ -329,7 +329,7 @@ export function LandingPage() {
 
           {/* Featured Materials */}
           <div className="mb-20">
-            <h3 className="text-3xl font-semibold mb-12 text-center">Recursos Destacados</h3>
+            <h3 className="text-3xl font-semibold mb-12 text-center">Recursos Públicos</h3>
             
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
               {/* Material 1 */}

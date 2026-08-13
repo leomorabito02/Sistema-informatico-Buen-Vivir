@@ -93,7 +93,6 @@ export function NotificationSettings({ onLogout }: NotificationSettingsProps) {
             </Link>
             <div>
               <h1 className="text-2xl flex items-center gap-2">
-                <Settings className="w-6 h-6 text-primary" />
                 Configuración de Notificaciones
               </h1>
               <p className="text-sm text-muted-foreground">Elegí qué avisos querés recibir y por qué medio</p>

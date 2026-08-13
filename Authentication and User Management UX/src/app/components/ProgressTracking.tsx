@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { LogOut, BookOpen, Award, TrendingUp, Sparkles, Download, Calendar, X, ChefHat, Laptop, Sprout, CheckCircle2, Star, Plus, ArrowLeft } from 'lucide-react';
 import { Button } from 'primereact/button';
 
+
 interface ProgressTrackingProps {
   userRole: 'admin' | 'participante' | 'voluntario' | 'empresa' | 'docente';
   onLogout: () => void;

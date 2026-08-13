@@ -11,11 +11,8 @@ interface DashboardProps {
 
 // Mock data for recent activities
 const recentActivities = [
-  { id: 1, title: 'Cursó completado: Gastronomía Básica', timestamp: 'Hace 2 horas', type: 'success', module: 'Educación' },
-  { id: 2, title: 'Nueva oferta laboral disponible en tu área', timestamp: 'Ayer', type: 'info', module: 'Inserción Laboral' },
-  { id: 3, title: 'Recordatorio: Tarea vencida en Agricultura', timestamp: 'Ayer', type: 'warning', module: 'Educación' },
-  { id: 4, title: 'Certificado descargado: Oficios', timestamp: 'Hace 3 días', type: 'success', module: 'Educación' },
 ];
+
 
 const upcomingCourses = [
   { id: 1, name: 'Gastronomía Avanzada', startDate: '2026-06-01', duration: '8 semanas', progress: 85 },
@@ -25,10 +22,10 @@ const upcomingCourses = [
 
 // Evolución mensual mock de los indicadores principales del admin (HU-53)
 const evolutionData: Record<string, number[]> = {
-  'Participantes Activos': [180, 195, 210, 225, 236, 248],
+  'Participantes Activos': [10, 15, 17, 25, 28, 30],
   'Cursos Abiertos': [7, 8, 9, 10, 11, 12],
   'Cursos Completados': [3, 5, 6, 8, 9, 11],
-  'Habilidades Desarrolladas': [40, 52, 61, 70, 83, 94],
+  'Habilidades Desarrolladas': [5, 10, 15, 17, 20, 20],
   'Inserciones Laborales': [2, 4, 5, 7, 8, 9],
 };
 const evolutionMonths = ['Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago'];
@@ -43,17 +40,17 @@ export function Dashboard({ userRole, onLogout }: DashboardProps) {
 
   const stats = {
     participante: [
-      { label: 'Cursos Inscritos', value: '5', icon: BookOpen, color: 'bg-primary' },
+      { label: 'Cursos Inscriptos ', value: '5', icon: BookOpen, color: 'bg-primary' },
       { label: 'Progreso Promedio', value: '68%', icon: TrendingUp, color: 'bg-secondary' },
       { label: 'Certificados', value: '2', icon: Award, color: 'bg-[#1D1D1B]' },
       { label: 'Horas de Estudio', value: '127', icon: GraduationCap, color: 'bg-primary/70' },
     ],
     admin: [
-      { label: 'Participantes Activos', value: '248', icon: Users, color: 'bg-primary' },
-      { label: 'Cursos Abiertos', value: '12', icon: BookOpen, color: 'bg-secondary' },
-      { label: 'Cursos Completados', value: '11', icon: CheckCircle, color: 'bg-[#1D1D1B]' },
-      { label: 'Habilidades Desarrolladas', value: '94', icon: Sparkles, color: 'bg-primary/70' },
-      { label: 'Inserciones Laborales', value: '9', icon: Briefcase, color: 'bg-secondary/70' },
+      { label: 'Participantes Activos', value: '30', icon: Users, color: 'bg-primary' },
+      { label: 'Cursos Abiertos', value: '5', icon: BookOpen, color: 'bg-secondary' },
+      { label: 'Cursos Completados', value: '10', icon: CheckCircle, color: 'bg-[#1D1D1B]' },
+      { label: 'Habilidades Desarrolladas', value: '30', icon: Sparkles, color: 'bg-primary/70' },
+      { label: 'Inserciones Laborales', value: '10', icon: Briefcase, color: 'bg-secondary/70' },
     ],
     voluntario: [
       { label: 'Participantes Asignados', value: '15', icon: Users, color: 'bg-primary' },

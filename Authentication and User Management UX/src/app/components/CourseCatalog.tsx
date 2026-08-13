@@ -244,21 +244,21 @@ export function CourseCatalog({ userRole, onLogout }: CourseCatalogProps) {
       <Toast toast={toast} onClose={() => setToast(null)} />
 
       {/* Header */}
-      <header className="bg-card border-b border-border p-6">
+      <header className="bg-primary/90 text-white border-b-2 border-primary p-6">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <Link to="/dashboard" className="w-10 h-10 rounded-lg bg-primary flex items-center justify-center">
+            <Link to="/dashboard" className="w-10 h-10 rounded-lg bg-white/20 flex items-center justify-center">
               <img src="/logo.png" alt="Buen Vivir" className="w-8 h-8 object-contain" />
             </Link>
             <div>
-              <h1 className="text-3xl font-bold">Catálogo de Cursos</h1>
-              <p className="text-sm text-muted-foreground">Formación práctica para transformar tu futuro</p>
+              <h1 className="text-3xl font-bold text-white">Catálogo de Cursos</h1>
+              <p className="text-sm text-white/70">Formación práctica para transformar tu futuro</p>
             </div>
           </div>
           <div className="flex items-center gap-3">
             <Link
               to="/dashboard"
-              className="px-4 py-2 rounded-lg border border-border hover:bg-secondary transition-colors flex items-center gap-2"
+              className="px-4 py-2 rounded-lg border border-white hover:bg-white/10 transition-colors text-white flex items-center gap-2"
             >
               <ArrowLeft className="w-4 h-4" />
               Volver
@@ -513,13 +513,6 @@ export function CourseCatalog({ userRole, onLogout }: CourseCatalogProps) {
                     <p className="text-sm text-muted-foreground mb-1">Haz clic o arrastra archivos aquí</p>
                     <p className="text-xs text-muted-foreground">PDF, DOCX, imágenes hasta 10MB cada uno</p>
                   </div>
-                </div>
-
-                <div className="bg-white border border-border rounded-lg p-4">
-                  <p className="text-sm text-muted-foreground mb-2">
-                    <strong className="text-foreground">Nota:</strong> El contenido del curso se gestiona a través de Contentful (CMS headless).
-                    Una vez creado el curso, podrás gestionar las actividades y materiales desde el panel de contenido.
-                  </p>
                 </div>
 
                 <div className="flex justify-end gap-3 pt-4">

@@ -124,28 +124,28 @@ export function TeacherPortal({ onLogout }: TeacherPortalProps) {
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
-      <header className="bg-card border-b border-border p-6">
+      <header className="bg-primary/90 text-white border-b-2 border-primary p-6">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <Link to="/dashboard" className="w-10 h-10 rounded-lg bg-primary flex items-center justify-center">
+            <Link to="/dashboard" className="w-10 h-10 rounded-lg bg-white/20 flex items-center justify-center">
               <img src="/logo.png" alt="Buen Vivir" className="w-8 h-8 object-contain" />
             </Link>
             <div>
-              <h1 className="text-2xl">Portal Docente</h1>
-              <p className="text-sm text-muted-foreground">Gestiona tus cursos y materiales educativos</p>
+              <h1 className="text-2xl text-white">Portal Docente</h1>
+              <p className="text-sm text-white/70">Gestiona tus cursos y materiales educativos</p>
             </div>
           </div>
           <div className="flex items-center gap-3">
             <button
               onClick={() => setShowUploadModal(true)}
-              className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:opacity-90 transition-opacity flex items-center gap-2"
+              className="px-4 py-2 bg-white/20 text-white rounded-lg hover:bg-white/30 transition-colors flex items-center gap-2"
             >
               <Upload className="w-4 h-4" />
               Subir Material
             </button>
             <Link
               to="/dashboard"
-              className="px-4 py-2 rounded-lg border border-border hover:bg-secondary transition-colors flex items-center gap-2"
+              className="px-4 py-2 rounded-lg border border-white hover:bg-white/10 transition-colors text-white flex items-center gap-2"
             >
               <ArrowLeft className="w-4 h-4" />
               Volver

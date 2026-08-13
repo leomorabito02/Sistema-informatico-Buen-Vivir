@@ -191,21 +191,21 @@ export function LaborInsertion({ userRole, onLogout }: LaborInsertionProps) {
       <Toast toast={toast} onClose={() => setToast(null)} />
 
       {/* Header */}
-      <header className="bg-card border-b border-border p-6 shadow-sm">
+      <header className="bg-primary/90 text-white border-b-2 border-primary p-6 shadow-sm">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <Link to="/dashboard" className="w-10 h-10 rounded-lg bg-primary flex items-center justify-center shadow-md">
+            <Link to="/dashboard" className="w-10 h-10 rounded-lg bg-white/20 flex items-center justify-center shadow-md">
               <img src="/logo.png" alt="Buen Vivir" className="w-8 h-8 object-contain" />
             </Link>
             <div>
-              <h1 className="text-2xl font-bold text-foreground">Gestión de Ofertas Laborales</h1>
-              <p className="text-sm text-muted-foreground font-medium">Panel de {userRole === 'empresa' ? 'Empresa' : 'Administración'}</p>
+              <h1 className="text-2xl font-bold text-white">Gestión de Ofertas Laborales</h1>
+              <p className="text-sm text-white/70 font-medium">Panel de {userRole === 'empresa' ? 'Empresa' : 'Administración'}</p>
             </div>
           </div>
           <div className="flex items-center gap-3">
             <Link
               to="/dashboard"
-              className="px-4 py-2 rounded-lg border border-border hover:bg-secondary transition-colors font-medium flex items-center gap-2"
+              className="px-4 py-2 rounded-lg border border-white hover:bg-white/10 transition-colors text-white font-medium flex items-center gap-2"
             >
               <ArrowLeft className="w-4 h-4" />
               Volver

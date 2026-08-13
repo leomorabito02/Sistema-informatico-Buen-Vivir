@@ -172,21 +172,21 @@ export function ParticipantTracking({ userRole, onLogout }: ParticipantTrackingP
       <Toast toast={toast} onClose={() => setToast(null)} />
 
       {/* Header */}
-      <header className="bg-card border-b border-border p-6">
+      <header className="bg-primary/90 text-white border-b-2 border-primary p-6">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <Link to="/dashboard" className="w-10 h-10 rounded-lg bg-primary flex items-center justify-center">
+            <Link to="/dashboard" className="w-10 h-10 rounded-lg bg-white/20 flex items-center justify-center">
               <img src="/logo.png" alt="Buen Vivir" className="w-8 h-8 object-contain" />
             </Link>
             <div>
-              <h1 className="text-2xl">Seguimiento de Participantes</h1>
-              <p className="text-sm text-muted-foreground">Gestión de fichas y procesos personales</p>
+              <h1 className="text-2xl text-white">Seguimiento de Participantes</h1>
+              <p className="text-sm text-white/70">Gestión de fichas y procesos personales</p>
             </div>
           </div>
           <div className="flex items-center gap-3">
             <Link
               to="/dashboard"
-              className="px-4 py-2 rounded-lg border border-border hover:bg-secondary transition-colors flex items-center gap-2"
+              className="px-4 py-2 rounded-lg border border-white hover:bg-white/10 transition-colors text-white flex items-center gap-2"
             >
               <ArrowLeft className="w-4 h-4" />
               Volver
@@ -242,7 +242,6 @@ export function ParticipantTracking({ userRole, onLogout }: ParticipantTrackingP
                   </div>
                 </div>
                 <div className="flex items-start gap-2">
-                  <p className="text-xs text-muted-foreground">Actualizado {participant.lastUpdate}</p>
                   <button
                     onClick={() => handleEditFicha(participant)}
                     className="p-1 rounded hover:bg-secondary transition-colors flex-shrink-0"
@@ -273,7 +272,6 @@ export function ParticipantTracking({ userRole, onLogout }: ParticipantTrackingP
               </div>
 
               <div className="flex items-center justify-between text-sm text-muted-foreground mb-4">
-                <span>Actualizado {participant.lastUpdate}</span>
               </div>
 
               <div className="flex gap-2">
