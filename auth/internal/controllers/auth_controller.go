@@ -10,6 +10,7 @@ import (
 	"auth/internal/dto"
 	"auth/internal/middlewares"
 	"auth/internal/services"
+	"auth/internal/utils"
 )
 
 // AuthController representa el Controlador (C de MVC)
@@ -21,7 +22,7 @@ type AuthController struct {
 func NewAuthController(authService services.AuthService) *AuthController {
 	return &AuthController{
 		authService: authService,
-		validate:    validator.New(),
+		validate:    utils.GetValidator(),
 	}
 }
 
@@ -68,9 +69,12 @@ func (c *AuthController) clearAuthCookies(w http.ResponseWriter) {
 }
 
 func (c *AuthController) Register(w http.ResponseWriter, r *http.Request) {
+	r.Body = http.MaxBytesReader(w, r.Body, 1<<20) // 1 MB max body
 	var req dto.RegisterRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "Cuerpo de solicitud inválido", http.StatusBadRequest)
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(map[string]string{"error": "El formato de la solicitud de registro es inválido."})
 		return
 	}
 
@@ -82,7 +86,7 @@ func (c *AuthController) Register(w http.ResponseWriter, r *http.Request) {
 	if err := c.validate.Struct(req); err != nil {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(map[string]string{"error": "Datos inválidos: revise formato de email, contraseña y campos requeridos."})
+		json.NewEncoder(w).Encode(map[string]string{"error": "Datos de registro inválidos: revise nombre, apellido, email, teléfono y contraseña (mínimo 8 caracteres, con mayúscula, minúscula y carácter especial)."})
 		return
 	}
 
@@ -100,15 +104,14 @@ func (c *AuthController) Register(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(resp)
 }
 
-func (c *AuthController) Login(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		http.Error(w, "Método no permitido", http.StatusMethodNotAllowed)
-		return
-	}
-
-	var req dto.LoginRequest
+// CheckCredentials handles step 1 of login: validates email + password and returns available accounts/roles.
+func (c *AuthController) CheckCredentials(w http.ResponseWriter, r *http.Request) {
+	r.Body = http.MaxBytesReader(w, r.Body, 1<<20) // 1 MB max body
+	var req dto.CheckCredentialsRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "Cuerpo de solicitud inválido", http.StatusBadRequest)
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(map[string]string{"error": "El formato de la solicitud de inicio de sesión es inválido."})
 		return
 	}
 
@@ -117,7 +120,62 @@ func (c *AuthController) Login(w http.ResponseWriter, r *http.Request) {
 	if err := c.validate.Struct(req); err != nil {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(map[string]string{"error": "Credenciales inválidas."})
+		json.NewEncoder(w).Encode(map[string]string{"error": "Debe ingresar un correo electrónico válido y su contraseña."})
+		return
+	}
+
+	resp, err := c.authService.CheckCredentials(r.Context(), &req)
+	if err != nil {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusUnauthorized)
+		json.NewEncoder(w).Encode(map[string]string{"error": err.Error()})
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(resp)
+}
+
+// CheckGoogleCredentials handles step 1 of Google login: validates Firebase token and returns available accounts/roles.
+func (c *AuthController) CheckGoogleCredentials(w http.ResponseWriter, r *http.Request) {
+	r.Body = http.MaxBytesReader(w, r.Body, 1<<20) // 1 MB max body
+	var req dto.GoogleLoginRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(map[string]string{"error": "El formato de la solicitud de Google es inválido."})
+		return
+	}
+
+	resp, err := c.authService.CheckGoogleCredentials(r.Context(), &req)
+	if err != nil {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusUnauthorized)
+		json.NewEncoder(w).Encode(map[string]string{"error": err.Error()})
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(resp)
+}
+
+// Login handles step 2: given a user_id and role_id (no password), issues the JWT token.
+func (c *AuthController) Login(w http.ResponseWriter, r *http.Request) {
+	r.Body = http.MaxBytesReader(w, r.Body, 1<<20) // 1 MB max body
+	var req dto.LoginRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(map[string]string{"error": "El formato de la solicitud de selección de rol es inválido."})
+		return
+	}
+
+	if err := c.validate.Struct(req); err != nil {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(map[string]string{"error": "El usuario y el rol son obligatorios."})
 		return
 	}
 
@@ -130,27 +188,11 @@ func (c *AuthController) Login(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	c.setAuthCookies(w, resp.Token, resp.RefreshToken)
-	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(resp)
-}
-
-func (c *AuthController) LoginWithGoogle(w http.ResponseWriter, r *http.Request) {
-	var req dto.GoogleLoginRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "Cuerpo de solicitud inválido", http.StatusBadRequest)
+	if resp.UserStatus == "blocked" {
+		w.WriteHeader(http.StatusOK)
+		json.NewEncoder(w).Encode(resp)
 		return
 	}
-
-	resp, err := c.authService.LoginWithGoogle(r.Context(), &req)
-	if err != nil {
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusUnauthorized)
-		json.NewEncoder(w).Encode(map[string]string{"error": err.Error()})
-		return
-	}
-
-	w.Header().Set("Content-Type", "application/json")
 	c.setAuthCookies(w, resp.Token, resp.RefreshToken)
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(resp)
@@ -170,14 +212,14 @@ func (c *AuthController) GetMe(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	roleID, _ := r.Context().Value(middlewares.RoleIDKey).(string)
-	
+
 	status := c.authService.GetApprovalStatus(r.Context(), roleID, userID)
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(map[string]any{
-		"user_id": userID,
-		"role_id": roleID,
+		"user_id":         userID,
+		"role_id":         roleID,
 		"approval_status": status,
 	})
 }
@@ -194,6 +236,7 @@ func (c *AuthController) UpdateMyProfile(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
+	r.Body = http.MaxBytesReader(w, r.Body, 1<<20) // 1 MB max body
 	var data map[string]interface{}
 	if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
 		http.Error(w, "Cuerpo de solicitud inválido", http.StatusBadRequest)

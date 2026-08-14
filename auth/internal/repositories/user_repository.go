@@ -10,6 +10,7 @@ import (
 
 type UserRepository interface {
 	FindByEmail(ctx context.Context, email string) (*models.User, error)
+	FindAllByEmail(ctx context.Context, email string) ([]models.User, error)
 	FindByID(ctx context.Context, id string) (*models.User, error)
 	FindAll(ctx context.Context) ([]models.User, error)
 	Create(ctx context.Context, user *models.User) error
@@ -34,6 +35,18 @@ func (r *userRepository) FindByEmail(ctx context.Context, email string) (*models
 		return nil, err
 	}
 	return &user, nil
+}
+
+// FindAllByEmail returns all user accounts associated with the given email (one per role in the current schema)
+func (r *userRepository) FindAllByEmail(ctx context.Context, email string) ([]models.User, error) {
+	var users []models.User
+	if err := r.db.WithContext(ctx).Where("email = ?", email).Find(&users).Error; err != nil {
+		return nil, err
+	}
+	if len(users) == 0 {
+		return nil, errors.New("usuario no encontrado")
+	}
+	return users, nil
 }
 
 func (r *userRepository) FindByID(ctx context.Context, id string) (*models.User, error) {

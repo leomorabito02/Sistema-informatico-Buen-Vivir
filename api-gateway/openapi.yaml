@@ -37,19 +37,7 @@ paths:
         '400':
           description: Datos inválidos
 
-  /api/v1/campaigns:
-    get:
-      summary: Listar campañas
-      operationId: getCampaigns
-      x-google-backend:
-        address: ${CAMPAIGNS_SERVICE_URL}
-        path_translation: APPEND_PATH_TO_ADDRESS
-      security:
-        - firebase: []
-        - jwt: []
-      responses:
-        '200':
-          description: Lista de campañas
+
 
 securityDefinitions:
   # Validación de tokens JWT internos generados por nuestro Backend

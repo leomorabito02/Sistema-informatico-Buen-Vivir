@@ -26,6 +26,14 @@ export const routes: Routes = [
     loadComponent: () => import('./pages/pending-approval/pending-approval.component').then(m => m.PendingApprovalComponent)
   },
   {
+    path: 'account-notice',
+    loadComponent: () => import('./pages/account-notice/account-notice.component').then(m => m.AccountNoticeComponent)
+  },
+  {
+    path: 'select-role',
+    loadComponent: () => import('./pages/select-role/select-role.component').then(m => m.SelectRoleComponent)
+  },
+  {
     path: 'dashboard',
     component: DashboardComponent,
     canActivate: [authGuard]
