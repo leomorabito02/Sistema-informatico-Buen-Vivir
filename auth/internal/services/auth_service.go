@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log/slog"
 	"strings"
 	"time"
 
@@ -17,7 +18,8 @@ import (
 
 type AuthService interface {
 	Register(ctx context.Context, req *dto.RegisterRequest) (*dto.LoginResponse, error)
-	LoginWithGoogle(ctx context.Context, req *dto.GoogleLoginRequest) (*dto.LoginResponse, error)
+	CheckCredentials(ctx context.Context, req *dto.CheckCredentialsRequest) (*dto.CheckCredentialsResponse, error)
+	CheckGoogleCredentials(ctx context.Context, req *dto.GoogleLoginRequest) (*dto.CheckCredentialsResponse, error)
 	Login(ctx context.Context, req *dto.LoginRequest) (*dto.LoginResponse, error)
 	GetApprovalStatus(ctx context.Context, roleID, userID string) string
 	UpdateMyProfile(ctx context.Context, roleID, userID string, data map[string]interface{}) error
@@ -49,12 +51,16 @@ func NewAuthService(
 
 func (s *authService) Register(ctx context.Context, req *dto.RegisterRequest) (*dto.LoginResponse, error) {
 	if req.Email == "" || req.Password == "" || req.Role == "" {
-		return nil, errors.New("email, contraseña y rol son obligatorios")
+		return nil, errors.New("el correo electrónico, la contraseña y el rol son obligatorios")
+	}
+
+	if err := utils.ValidatePasswordComplexity(req.Password); err != nil {
+		return nil, err
 	}
 
 	user, err := s.userRepo.FindByEmail(ctx, req.Email)
 	if err == nil && user != nil {
-		return nil, errors.New("el usuario ya existe")
+		return nil, errors.New("ya existe una cuenta registrada con este correo electrónico")
 	}
 
 	roleID := req.Role
@@ -80,10 +86,10 @@ func (s *authService) Register(ctx context.Context, req *dto.RegisterRequest) (*
 
 	err = s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		if err := tx.Create(user).Error; err != nil {
-			return errors.New("error al crear el usuario")
+			return errors.New("error al guardar los datos del usuario")
 		}
 		if err := s.createRoleProfileTx(tx, user.UserID, roleID); err != nil {
-			return errors.New("error al crear el perfil de rol")
+			return errors.New("error al crear el perfil asociado al rol seleccionado")
 		}
 		return nil
 	})
@@ -93,11 +99,11 @@ func (s *authService) Register(ctx context.Context, req *dto.RegisterRequest) (*
 
 	accessToken, refreshToken, err := s.jwtService.GenerateTokenPair(user.UserID, user.RoleID, false)
 	if err != nil {
-		return nil, errors.New("error generando token")
+		return nil, errors.New("error al generar la sesión de autenticación")
 	}
 
 	if err := s.saveRefreshToken(ctx, user.UserID, refreshToken); err != nil {
-		return nil, errors.New("error al guardar sesión")
+		return nil, errors.New("error al guardar el estado de la sesión")
 	}
 
 	return &dto.LoginResponse{
@@ -107,129 +113,175 @@ func (s *authService) Register(ctx context.Context, req *dto.RegisterRequest) (*
 	}, nil
 }
 
-func (s *authService) LoginWithGoogle(ctx context.Context, req *dto.GoogleLoginRequest) (resp *dto.LoginResponse, err error) {
-	// try-catch idiomático en Go (panic recovery)
+// CheckCredentials validates email and password and returns all accounts associated with the email.
+// No token is issued at this step.
+func (s *authService) CheckCredentials(ctx context.Context, req *dto.CheckCredentialsRequest) (*dto.CheckCredentialsResponse, error) {
+	if req.Email == "" || req.Password == "" {
+		return nil, errors.New("el correo electrónico y la contraseña son obligatorios")
+	}
+
+	users, err := s.userRepo.FindAllByEmail(ctx, req.Email)
+	if err != nil {
+		return nil, errors.New("no existe ninguna cuenta registrada con este correo electrónico")
+	}
+
+	// Validate password against the first account (all accounts with the same email share the same password hash)
+	if !utils.CheckPasswordHash(req.Password, users[0].PasswordHash) {
+		slog.Warn("security: failed login attempt", slog.String("event", "invalid_password"), slog.String("email_hash", utils.HashToken(req.Email)))
+		return nil, errors.New("la contraseña ingresada es incorrecta")
+	}
+
+	roleNames := map[string]string{
+		"role_admin":       "Responsable",
+		"role_dev":         "Desarrollador",
+		"role_participant": "Participante",
+		"role_company":     "Empresa",
+		"role_teacher":     "Docente",
+		"role_volunteer":   "Voluntario",
+	}
+
+	accounts := make([]dto.AvailableAccount, 0, len(users))
+	for _, u := range users {
+		roleName := roleNames[u.RoleID]
+		if roleName == "" {
+			roleName = u.RoleID
+		}
+		accounts = append(accounts, dto.AvailableAccount{
+			UserID:   u.UserID,
+			RoleID:   u.RoleID,
+			RoleName: roleName,
+			Status:   u.Status,
+		})
+	}
+
+	userIDs := make([]string, 0, len(accounts))
+	for _, a := range accounts {
+		userIDs = append(userIDs, a.UserID)
+	}
+	loginNonce, err := utils.GetNonceStore().Generate(userIDs, 2*time.Minute)
+	if err != nil {
+		return nil, errors.New("error generando sesión temporal, intente nuevamente")
+	}
+
+	return &dto.CheckCredentialsResponse{Accounts: accounts, LoginNonce: loginNonce}, nil
+}
+
+// CheckGoogleCredentials validates a Firebase ID token and returns available accounts linked to the Google account.
+// Google login requires that an account with the email exists AND has a matching google_auth_id linked.
+func (s *authService) CheckGoogleCredentials(ctx context.Context, req *dto.GoogleLoginRequest) (resp *dto.CheckCredentialsResponse, err error) {
 	defer func() {
 		if r := recover(); r != nil {
 			err = fmt.Errorf("error crítico inesperado: %v", r)
 		}
 	}()
 
-	// 1. Verificar el token con Firebase
 	fbToken, err := s.firebaseService.VerifyIDToken(ctx, req.IDToken)
 	if err != nil {
-		return nil, errors.New("token de google inválido")
+		return nil, errors.New("el token de autenticación de Google es inválido o expiró")
 	}
 
 	email, ok := fbToken.Claims["email"].(string)
 	if !ok || email == "" {
-		return nil, errors.New("email no proporcionado por google")
+		return nil, errors.New("no se pudo obtener la dirección de correo electrónico desde Google")
 	}
 
-	// 2. Buscar usuario
-	user, err := s.userRepo.FindByEmail(ctx, email)
-	if err != nil {
-		// Si no existe, creamos un registro básico dentro de una transacción en el repositorio
-		roleID := req.Role
-		if !strings.HasPrefix(roleID, "role_") {
-			roleID = "role_" + roleID
-		}
+	googleAuthID := strings.TrimSpace(req.GoogleID)
+	if googleAuthID == "" {
+		googleAuthID = fbToken.UID
+	}
 
-		user = &models.User{
-			UserID:       "gen-" + email, // En un caso real usarías un UUID
-			Email:        email,
-			GoogleAuthID: req.GoogleID,
-			FirstName:    "Google",
-			LastName:     "User",
-			Status:       "active",
-			RoleID:       roleID,
-		}
+	// 1. Verificar que exista un usuario con este correo electrónico
+	users, err := s.userRepo.FindAllByEmail(ctx, email)
+	if err != nil || len(users) == 0 {
+		return nil, errors.New("no existe ninguna cuenta registrada con este correo electrónico. Debe registrarse primero")
+	}
 
-		txErr := s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-			if err := tx.Create(user).Error; err != nil {
-				return errors.New("error al crear el usuario mediante google")
-			}
-			if err := s.createRoleProfileTx(tx, user.UserID, roleID); err != nil {
-				return errors.New("error al crear el perfil de rol mediante google")
-			}
-			return nil
+	// 2. Verificar que el google_auth_id coincida y esté vinculado
+	matchingUsers := make([]models.User, 0)
+	for _, u := range users {
+		if u.GoogleAuthID != "" && u.GoogleAuthID == googleAuthID {
+			matchingUsers = append(matchingUsers, u)
+		}
+	}
+
+	if len(matchingUsers) == 0 {
+		slog.Warn("security: google login denied — google_auth_id not linked", slog.String("event", "google_auth_not_linked"), slog.String("email_hash", utils.HashToken(email)))
+		return nil, errors.New("la cuenta de Google no está vinculada a este usuario. Debe vincularla desde la configuración de su cuenta")
+	}
+
+	roleNames := map[string]string{
+		"role_admin":       "Responsable",
+		"role_dev":         "Desarrollador",
+		"role_participant": "Participante",
+		"role_company":     "Empresa",
+		"role_teacher":     "Docente",
+		"role_volunteer":   "Voluntario",
+	}
+
+	accounts := make([]dto.AvailableAccount, 0, len(matchingUsers))
+	for _, u := range matchingUsers {
+		roleName := roleNames[u.RoleID]
+		if roleName == "" {
+			roleName = u.RoleID
+		}
+		accounts = append(accounts, dto.AvailableAccount{
+			UserID:   u.UserID,
+			RoleID:   u.RoleID,
+			RoleName: roleName,
+			Status:   u.Status,
 		})
-		if txErr != nil {
-			return nil, txErr
-		}
 	}
 
-	if user.Status != "active" {
-		return nil, errors.New("la cuenta de usuario no está activa")
+	googleUserIDs := make([]string, 0, len(matchingUsers))
+	for _, u := range matchingUsers {
+		googleUserIDs = append(googleUserIDs, u.UserID)
+	}
+	googleNonce, nonceErr := utils.GetNonceStore().Generate(googleUserIDs, 2*time.Minute)
+	if nonceErr != nil {
+		return nil, errors.New("error generando sesión temporal, intente nuevamente")
 	}
 
-	if user.RoleID != "role_admin" && user.RoleID != "role_dev" {
-		approvalStatus := s.GetApprovalStatus(ctx, user.RoleID, user.UserID)
-		if approvalStatus != "active" && approvalStatus != "accepted" {
-			return nil, errors.New("el perfil aún no está activo o aprobado")
-		}
+	return &dto.CheckCredentialsResponse{Accounts: accounts, LoginNonce: googleNonce}, nil
+}
+
+// Login is step 2: given a user_id, role_id and a valid login nonce, issue the JWT token.
+func (s *authService) Login(ctx context.Context, req *dto.LoginRequest) (*dto.LoginResponse, error) {
+	if req.UserID == "" || req.RoleID == "" {
+		return nil, errors.New("el identificador de usuario y el rol son obligatorios")
 	}
 
-	isExternal := false
-	if user.RoleID == "role_teacher" {
-		var isExt bool
-		if err := s.db.WithContext(ctx).Table("teachers").Where("user_id = ?", user.UserID).Select("is_external").Scan(&isExt).Error; err == nil {
-			isExternal = isExt
-		}
+	// Validate and consume the single-use login nonce (A04: prevents Step 2 bypass)
+	if !utils.GetNonceStore().Consume(req.LoginNonce, req.UserID) {
+		slog.Warn("security: login step 2 rejected — invalid or expired nonce",
+			slog.String("event", "invalid_login_nonce"),
+			slog.String("user_id", req.UserID),
+		)
+		return nil, errors.New("la sesión de verificación expiró o es inválida. Por favor, iniciá sesión nuevamente")
 	}
 
-	// 3. Generar nuestros propios JWTs
-	accessToken, refreshToken, err := s.jwtService.GenerateTokenPair(user.UserID, user.RoleID, isExternal)
+	user, err := s.userRepo.FindByID(ctx, req.UserID)
 	if err != nil {
-		return nil, errors.New("error generando tokens internos")
+		return nil, errors.New("el usuario especificado no fue encontrado")
 	}
 
-	if err := s.saveRefreshToken(ctx, user.UserID, refreshToken); err != nil {
-		return nil, errors.New("error al guardar sesión")
+	if user.RoleID != req.RoleID {
+		slog.Warn("security: role mismatch on login step 2", slog.String("event", "role_mismatch"), slog.String("user_id", req.UserID), slog.String("requested_role", req.RoleID))
+		return nil, errors.New("el rol seleccionado no corresponde a este usuario")
+	}
+
+	statusLower := strings.ToLower(strings.TrimSpace(user.Status))
+	if statusLower != "active" {
+		slog.Warn("security: login attempt on blocked account", slog.String("event", "account_blocked"), slog.String("user_id", user.UserID), slog.String("role_id", user.RoleID))
+		return &dto.LoginResponse{
+			User:       user,
+			UserStatus: "blocked",
+		}, nil
 	}
 
 	approvalStatus := s.GetApprovalStatus(ctx, user.RoleID, user.UserID)
-
-	// 4. Retornar respuesta
-	return &dto.LoginResponse{
-		Token:          accessToken, 
-		RefreshToken:   refreshToken,
-		User:           user,
-		ApprovalStatus: approvalStatus,
-	}, nil
-}
-
-func (s *authService) Login(ctx context.Context, req *dto.LoginRequest) (*dto.LoginResponse, error) {
-	if req.Email == "" || req.Password == "" || req.Role == "" {
-		return nil, errors.New("email, contraseña y rol son obligatorios")
-	}
-
-	user, err := s.userRepo.FindByEmail(ctx, req.Email)
-	if err != nil {
-		return nil, errors.New("credenciales inválidas")
-	}
-
-	if !utils.CheckPasswordHash(req.Password, user.PasswordHash) {
-		return nil, errors.New("credenciales inválidas")
-	}
-
-	roleID := req.Role
-	if !strings.HasPrefix(roleID, "role_") {
-		roleID = "role_" + roleID
-	}
-
-	if user.RoleID != roleID {
-		return nil, errors.New("rol incorrecto para este usuario")
-	}
-
-	if user.Status != "active" {
-		return nil, errors.New("la cuenta de usuario no está activa")
-	}
-
 	if user.RoleID != "role_admin" && user.RoleID != "role_dev" {
-		approvalStatus := s.GetApprovalStatus(ctx, user.RoleID, user.UserID)
-		if approvalStatus != "active" && approvalStatus != "accepted" {
-			return nil, errors.New("el perfil aún no está activo o aprobado")
+		if approvalStatus != "active" && approvalStatus != "accepted" && approvalStatus != "pending" {
+			return nil, errors.New("el perfil aún no está aprobado")
 		}
 	}
 
@@ -250,13 +302,12 @@ func (s *authService) Login(ctx context.Context, req *dto.LoginRequest) (*dto.Lo
 		return nil, errors.New("error al guardar sesión")
 	}
 
-	approvalStatus := s.GetApprovalStatus(ctx, user.RoleID, user.UserID)
-
 	return &dto.LoginResponse{
 		Token:          accessToken,
 		RefreshToken:   refreshToken,
 		User:           user,
 		ApprovalStatus: approvalStatus,
+		UserStatus:     user.Status,
 	}, nil
 }
 
@@ -266,12 +317,10 @@ func (s *authService) saveRefreshToken(ctx context.Context, userID, token string
 		RefreshTokenID: "rt-" + utils.GenerateRandomString(16),
 		UserID:         userID,
 		TokenHash:      tokenHash,
-		ExpiresAt:      time.Now().Add(7 * 24 * time.Hour), // O leer de env
+		ExpiresAt:      time.Now().Add(7 * 24 * time.Hour),
 	}
-	// Revocar tokens anteriores es una buena práctica (opcional, pero pedido implícitamente por rotación)
 	_ = s.refreshTokenRepo.RevokeAllForUser(ctx, userID)
 
-	// Limpieza en segundo plano de tokens expirados
 	go func() {
 		_ = s.refreshTokenRepo.DeleteExpired(context.Background())
 	}()
@@ -307,7 +356,6 @@ func (s *authService) createRoleProfileTx(tx *gorm.DB, userID, roleID string) er
 			ApprovalStatus: status,
 		}).Error
 	default:
-		// Para role_admin, role_dev u otros roles que no requieren tabla extra
 		return nil
 	}
 }

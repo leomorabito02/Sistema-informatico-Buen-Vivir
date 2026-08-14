@@ -15,6 +15,25 @@ function passwordMatchValidator(control: AbstractControl): ValidationErrors | nu
   return null;
 }
 
+function passwordComplexityValidator(control: AbstractControl): ValidationErrors | null {
+  const value = control.value || '';
+  if (!value) return null;
+
+  if (value.length < 8) {
+    return { minlength: { requiredLength: 8, actualLength: value.length } };
+  }
+  if (!/[A-Z]/.test(value)) {
+    return { missingUpper: true };
+  }
+  if (!/[a-z]/.test(value)) {
+    return { missingLower: true };
+  }
+  if (!/[^a-zA-Z0-9]/.test(value)) {
+    return { missingSpecial: true };
+  }
+  return null;
+}
+
 @Component({
   selector: 'app-register',
   standalone: true,
@@ -56,8 +75,7 @@ export class RegisterComponent {
       email: ['', [Validators.required, Validators.email]],
       phone: ['', [Validators.required]],
       role: ['participant', [Validators.required]],
-      // Password must be at least 8 chars long. Can add pattern validator for stronger checks.
-      password: ['', [Validators.required, Validators.minLength(8)]],
+      password: ['', [Validators.required, passwordComplexityValidator]],
       confirmPassword: ['', [Validators.required]],
       terms: [false, [Validators.requiredTrue]]
     }, { validators: passwordMatchValidator });
@@ -79,14 +97,39 @@ export class RegisterComponent {
   onSubmit() {
     if (this.registerForm.invalid) {
       this.registerForm.markAllAsTouched();
-      this.registerError = 'Por favor, completa todos los campos correctamente y acepta los términos.';
+
+      const fn = this.registerForm.get('firstName');
+      const ln = this.registerForm.get('lastName');
+      const email = this.registerForm.get('email');
+      const phone = this.registerForm.get('phone');
+      const pass = this.registerForm.get('password');
+      const terms = this.registerForm.get('terms');
+
+      if (fn?.hasError('required') || ln?.hasError('required') || email?.hasError('required') || phone?.hasError('required') || pass?.hasError('required')) {
+        this.registerError = 'Por favor, completá todos los campos obligatorios.';
+      } else if (email?.hasError('email')) {
+        this.registerError = 'Por favor, ingresá una dirección de correo electrónico válida.';
+      } else if (pass?.hasError('minlength')) {
+        this.registerError = 'La contraseña debe tener al menos 8 caracteres.';
+      } else if (pass?.hasError('missingUpper')) {
+        this.registerError = 'La contraseña debe incluir al menos una letra mayúscula.';
+      } else if (pass?.hasError('missingLower')) {
+        this.registerError = 'La contraseña debe incluir al menos una letra minúscula.';
+      } else if (pass?.hasError('missingSpecial')) {
+        this.registerError = 'La contraseña debe incluir al menos un carácter especial (ej: !@#$%^&*).';
+      } else if (this.registerForm.hasError('passwordMismatch')) {
+        this.registerError = 'Las contraseñas no coinciden.';
+      } else if (terms?.hasError('requiredTrue')) {
+        this.registerError = 'Debés aceptar los términos y condiciones para continuar.';
+      } else {
+        this.registerError = 'Por favor, revisá los campos del formulario.';
+      }
       return;
     }
 
     this.loading = true;
     this.registerError = '';
     
-    // Only send backend-required fields
     const formData = {
       first_name: this.registerForm.value.firstName,
       last_name: this.registerForm.value.lastName,
@@ -103,8 +146,8 @@ export class RegisterComponent {
       },
       error: (err) => {
         this.loading = false;
-        // Generic error message as per security best practices
-        this.registerError = 'Ocurrió un error al registrarse. Revise los datos o intente nuevamente.';
+        const apiError = err.error?.error;
+        this.registerError = apiError || 'Ocurrió un error al procesar el registro. Verificá los datos e intentá nuevamente.';
         console.error('Registration error', err);
       }
     });

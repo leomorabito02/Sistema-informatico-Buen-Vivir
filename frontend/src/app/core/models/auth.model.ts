@@ -17,17 +17,30 @@ export interface User {
   role_id: string;
   role?: Role;
   twofa_enabled: boolean;
-  twofa_secret?: string;
-  twofa_seed?: string;
   created_at: string;
   updated_at: string;
 }
 
+/** Step 1 response: list of accounts associated with the email */
+export interface AvailableAccount {
+  user_id: string;
+  role_id: string;
+  role_name: string;
+  status: string;
+}
+
+export interface CheckCredentialsResponse {
+  accounts: AvailableAccount[];
+  login_nonce: string;
+}
+
+/** Step 2 response: JWT token after selecting account/role */
 export interface LoginResponse {
   token: string;
   refresh_token?: string;
   user: User;
   approval_status?: string;
+  user_status?: string;
 }
 
 export interface RegisterRequest {

@@ -2,8 +2,9 @@ import { Component, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
-import { LucideAngularModule, Mail, Lock, Shield, AlertCircle, Eye, EyeOff } from 'lucide-angular';
+import { LucideAngularModule, Mail, Lock, AlertCircle, Eye, EyeOff } from 'lucide-angular';
 import { AuthService } from '../../services/auth.service';
+import { AvailableAccount } from '../../core/models/auth.model';
 
 @Component({
   selector: 'app-login',
@@ -15,7 +16,6 @@ import { AuthService } from '../../services/auth.service';
 export class LoginComponent {
   readonly MailIcon = Mail;
   readonly LockIcon = Lock;
-  readonly ShieldIcon = Shield;
   readonly AlertCircleIcon = AlertCircle;
   readonly EyeIcon = Eye;
   readonly EyeOffIcon = EyeOff;
@@ -25,19 +25,11 @@ export class LoginComponent {
   private router = inject(Router);
 
   loginForm: FormGroup;
-  selectedRole = 'admin';
   loginError = '';
   locked = false;
   failedAttempts = 0;
   MAX_ATTEMPTS = 5;
-
-  roles = [
-    { label: 'Responsable', value: 'admin' },
-    { label: 'Voluntario', value: 'volunteer' },
-    { label: 'Participante', value: 'participant' },
-    { label: 'Docente', value: 'teacher' },
-    { label: 'Empresa', value: 'company' }
-  ];
+  showPassword = false;
 
   constructor() {
     this.loginForm = this.fb.group({
@@ -46,64 +38,120 @@ export class LoginComponent {
     });
   }
 
-  onRoleChange(event: any) {
-    this.selectedRole = event.target.value;
+  togglePasswordVisibility(): void {
+    this.showPassword = !this.showPassword;
   }
 
   onSubmit() {
     if (this.locked) return;
 
     if (this.loginForm.invalid) {
-      this.handleFailedAttempt();
+      this.loginForm.markAllAsTouched();
+      const emailCtrl = this.loginForm.get('email');
+      const passCtrl = this.loginForm.get('password');
+
+      if (emailCtrl?.hasError('required') || passCtrl?.hasError('required')) {
+        this.loginError = 'Por favor, ingresá tu email y contraseña.';
+      } else if (emailCtrl?.hasError('email')) {
+        this.loginError = 'Por favor, ingresá un correo electrónico válido.';
+      } else if (passCtrl?.hasError('minlength')) {
+        this.loginError = 'La contraseña debe tener al menos 4 caracteres.';
+      } else {
+        this.loginError = 'Por favor, completá los campos del formulario correctamente.';
+      }
       return;
     }
 
     const { email, password } = this.loginForm.value;
-    
-    this.authService.loginWithEmail(email, password, this.selectedRole).subscribe({
+
+    this.authService.checkCredentials(email, password).subscribe({
       next: (res) => {
         this.loginError = '';
-        if (res.approval_status === 'pending') {
+        this.handleAccountsResponse(res.accounts, res.login_nonce);
+      },
+      error: (err) => {
+        const errorMsg = err.error?.error || '';
+        if (err.error?.user_status === 'blocked' || errorMsg.includes('activa') || errorMsg.includes('bloque')) {
+          this.loginError = '';
+          this.router.navigate(['/account-notice']);
+        } else {
+          this.handleFailedAttempt(errorMsg);
+        }
+      }
+    });
+  }
+
+  handleGoogleLogin() {
+    this.authService.checkGoogleCredentials().subscribe({
+      next: (res) => {
+        this.loginError = '';
+        this.handleAccountsResponse(res.accounts, res.login_nonce);
+      },
+      error: (err) => {
+        const errorMsg = err.error?.error;
+        this.loginError = errorMsg || 'Hubo un error al iniciar sesión con Google. Intentá nuevamente.';
+      }
+    });
+  }
+
+  /**
+   * If only one account is available, log in directly.
+   * If multiple accounts exist, navigate to role selection screen.
+   * The loginNonce must be forwarded to Step 2 in both paths.
+   */
+  private handleAccountsResponse(accounts: AvailableAccount[], loginNonce: string) {
+    if (!accounts || accounts.length === 0) {
+      this.handleFailedAttempt('No se encontraron cuentas activas asociadas a este correo electrónico.');
+      return;
+    }
+
+    if (accounts.length === 1) {
+      // Single account — log in directly
+      this.loginWithAccount(accounts[0], loginNonce);
+    } else {
+      // Multiple accounts — navigate to role selection, carry nonce in router state
+      this.router.navigate(['/select-role'], { state: { accounts, loginNonce } });
+    }
+  }
+
+  /**
+   * Initiates step 2: select account/role and receive the JWT.
+   */
+  private loginWithAccount(account: AvailableAccount, loginNonce: string) {
+    if (account.status !== 'active') {
+      this.router.navigate(['/account-notice']);
+      return;
+    }
+
+    this.authService.loginWithAccount(account.user_id, account.role_id, loginNonce).subscribe({
+      next: (res) => {
+        this.loginError = '';
+        if (res.user_status === 'blocked') {
+          this.router.navigate(['/account-notice']);
+        } else if (res.approval_status === 'pending') {
           this.router.navigate(['/pending-approval']);
         } else {
           this.router.navigate(['/dashboard']);
         }
       },
       error: (err) => {
-        this.handleFailedAttempt();
+        const errorMsg = err.error?.error || '';
+        if (errorMsg.includes('activa') || errorMsg.includes('bloque')) {
+          this.router.navigate(['/account-notice']);
+        } else {
+          this.handleFailedAttempt(errorMsg);
+        }
       }
     });
   }
 
-  handleFailedAttempt() {
+  handleFailedAttempt(specificError?: string) {
     this.failedAttempts++;
     if (this.failedAttempts >= this.MAX_ATTEMPTS) {
       this.locked = true;
       this.loginError = 'Tu cuenta fue bloqueada temporalmente por demasiados intentos fallidos. Intentá nuevamente más tarde.';
     } else {
-      this.loginError = 'Email o contraseña incorrectos.';
+      this.loginError = specificError || 'Email o contraseña incorrectos.';
     }
-  }
-
-  handleGoogleLogin() {
-    this.authService.loginWithGoogle(this.selectedRole).subscribe({
-      next: (res) => {
-        this.loginError = '';
-        if (res.approval_status === 'pending') {
-          this.router.navigate(['/pending-approval']);
-        } else {
-          this.router.navigate(['/dashboard']);
-        }
-      },
-      error: (err) => {
-        this.loginError = 'Hubo un error al iniciar sesión con Google.';
-      }
-    });
-  }
-
-  showPassword = false;
-
-  togglePasswordVisibility(): void {
-    this.showPassword = !this.showPassword;
   }
 }

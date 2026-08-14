@@ -2,7 +2,7 @@ import { Component, inject, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, RouterLink } from '@angular/router';
 import { FormBuilder, FormGroup, ReactiveFormsModule } from '@angular/forms';
-import { LucideAngularModule, Clock, ArrowLeft, Save, FileEdit, CheckCircle } from 'lucide-angular';
+import { LucideAngularModule, Clock, ArrowLeft, Save, FileEdit, CheckCircle, AlertCircle, LogOut } from 'lucide-angular';
 import { AuthService } from '../../services/auth.service';
 
 @Component({
@@ -18,7 +18,9 @@ export class PendingApprovalComponent implements OnInit {
   readonly SaveIcon = Save;
   readonly FileEditIcon = FileEdit;
   readonly CheckCircleIcon = CheckCircle;
-  
+  readonly AlertCircleIcon = AlertCircle;
+  readonly LogOutIcon = LogOut;
+
   private router = inject(Router);
   private authService = inject(AuthService);
   private fb = inject(FormBuilder);
@@ -31,10 +33,19 @@ export class PendingApprovalComponent implements OnInit {
   errorMessage = '';
   formSaved = false;
 
+  roleLabels: Record<string, string> = {
+    'role_participant': 'Participante',
+    'role_company': 'Empresa',
+    'role_teacher': 'Docente',
+    'role_volunteer': 'Voluntario',
+    'role_admin': 'Responsable',
+    'role_dev': 'Desarrollador'
+  };
+
   ngOnInit() {
     this.authService.isAuthenticated().subscribe({
       next: (res: any) => {
-        this.roleId = res.role_id;
+        this.roleId = res.role_id || '';
         this.buildForm();
       },
       error: () => {
@@ -60,13 +71,28 @@ export class PendingApprovalComponent implements OnInit {
       });
     } else if (this.roleId === 'role_teacher') {
       this.profileForm = this.fb.group({
-        specialization: ['']
+        specialization: [''],
+        is_external: [false]
+      });
+    } else if (this.roleId === 'role_volunteer') {
+      this.profileForm = this.fb.group({
+        phone: [''],
+        notes: ['']
+      });
+    } else {
+      this.profileForm = this.fb.group({
+        phone: [''],
+        notes: ['']
       });
     }
   }
 
+  getRoleName(): string {
+    return this.roleLabels[this.roleId] || 'Usuario';
+  }
+
   needsExtraData(): boolean {
-    return this.roleId === 'role_participant' || this.roleId === 'role_company' || this.roleId === 'role_teacher';
+    return true;
   }
 
   toggleForm() {
@@ -74,13 +100,12 @@ export class PendingApprovalComponent implements OnInit {
   }
 
   onSubmit() {
-    if (this.profileForm.invalid) return;
+    if (!this.profileForm || this.profileForm.invalid) return;
 
     this.loading = true;
     this.errorMessage = '';
     this.successMessage = '';
 
-    // Convert date string to ISO date format for backend if necessary
     const data = { ...this.profileForm.value };
     if (data.birthdate) {
       data.birthdate = new Date(data.birthdate).toISOString();
@@ -90,7 +115,7 @@ export class PendingApprovalComponent implements OnInit {
       next: () => {
         this.loading = false;
         this.formSaved = true;
-        this.successMessage = 'Datos guardados correctamente.';
+        this.successMessage = 'Datos del perfil actualizados correctamente.';
         this.showForm = false;
       },
       error: (err) => {
@@ -101,7 +126,7 @@ export class PendingApprovalComponent implements OnInit {
   }
 
   goBack() {
-    this.router.navigate(['/login']);
+    this.router.navigate(['/']);
   }
 
   logout() {

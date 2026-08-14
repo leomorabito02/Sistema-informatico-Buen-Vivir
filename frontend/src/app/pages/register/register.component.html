@@ -123,7 +123,11 @@
               </button>
             </div>
             <p *ngIf="registerForm.get('password')?.invalid && registerForm.get('password')?.touched" class="input-error">
-              La contraseña debe tener al menos 8 caracteres.
+              <span *ngIf="registerForm.get('password')?.hasError('required')">La contraseña es obligatoria.</span>
+              <span *ngIf="registerForm.get('password')?.hasError('minlength')">La contraseña debe tener al menos 8 caracteres.</span>
+              <span *ngIf="registerForm.get('password')?.hasError('missingUpper')">Debe incluir al menos una letra mayúscula.</span>
+              <span *ngIf="registerForm.get('password')?.hasError('missingLower')">Debe incluir al menos una letra minúscula.</span>
+              <span *ngIf="registerForm.get('password')?.hasError('missingSpecial')">Debe incluir al menos un carácter especial (ej: !&#64;#$%^&*).</span>
             </p>
           </div>
 

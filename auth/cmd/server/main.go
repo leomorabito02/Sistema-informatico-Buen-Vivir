@@ -82,8 +82,11 @@ func main() {
 	r.Route("/api/v1", func(r chi.Router) {
 		r.Route("/auth", func(r chi.Router) {
 			r.With(middlewares.StrictRateLimiter()).Post("/register", authController.Register)
+			// Step 1: validate credentials, returns list of available accounts/roles
+			r.With(middlewares.StrictRateLimiter()).Post("/check-credentials", authController.CheckCredentials)
+			r.With(middlewares.StrictRateLimiter()).Post("/google-check-credentials", authController.CheckGoogleCredentials)
+			// Step 2: select account/role, receive JWT
 			r.With(middlewares.StrictRateLimiter()).Post("/login", authController.Login)
-			r.With(middlewares.StrictRateLimiter()).Post("/google", authController.LoginWithGoogle)
 			r.With(middlewares.StrictRateLimiter()).Post("/logout", authController.Logout)
 		})
 		
@@ -142,7 +145,7 @@ func main() {
 			// Permissions CRUD
 			r.With(middlewares.RequireRole("role_admin", "role_dev")).Route("/permissions", func(r chi.Router) {
 				r.Post("/", permissionController.CreatePermission)
-				r.Get("/", permissionController.GetAllPermissions)
+				r.With(middlewares.RequirePermissionMiddleware(permissionService, "read", "permissions")).Get("/", permissionController.GetAllPermissions)
 				r.Get("/{id}", permissionController.GetPermission)
 				r.Put("/{id}", permissionController.UpdatePermission)
 				r.Delete("/{id}", permissionController.DeletePermission)

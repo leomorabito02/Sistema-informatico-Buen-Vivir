@@ -13,6 +13,27 @@ import (
 
 // SetupMiddlewares configures global middlewares for the application
 func SetupMiddlewares(r *chi.Mux) {
+	// CORS Configuration (Must be registered first to process OPTIONS preflight requests)
+	allowedOriginsEnv := os.Getenv("CORS_ALLOWED_ORIGINS")
+	var allowedOrigins []string
+	if allowedOriginsEnv != "" {
+		for _, o := range strings.Split(allowedOriginsEnv, ",") {
+			if trimmed := strings.TrimSpace(o); trimmed != "" {
+				allowedOrigins = append(allowedOrigins, trimmed)
+			}
+		}
+	}
+
+	corsMiddleware := cors.New(cors.Options{
+		AllowedOrigins:   allowedOrigins,
+		AllowedMethods:   []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
+		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-CSRF-Token", "X-Requested-With"},
+		ExposedHeaders:   []string{"Link", "Set-Cookie"},
+		AllowCredentials: true,
+		MaxAge:           300,
+	})
+	r.Use(corsMiddleware.Handler)
+
 	// Standard chi middlewares
 	r.Use(middleware.RequestID)
 	r.Use(middleware.RealIP)
@@ -33,27 +54,22 @@ func SetupMiddlewares(r *chi.Mux) {
 	// Security Headers (OWASP)
 	r.Use(func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+			// Prevent MIME sniffing (A05)
 			w.Header().Set("X-Content-Type-Options", "nosniff")
+			// Prevent clickjacking (A05)
 			w.Header().Set("X-Frame-Options", "DENY")
-			w.Header().Set("X-XSS-Protection", "1; mode=block")
-			w.Header().Set("Strict-Transport-Security", "max-age=31536000; includeSubDomains")
+			// HSTS: enforce HTTPS for 1 year including subdomains (A02/A05)
+			w.Header().Set("Strict-Transport-Security", "max-age=31536000; includeSubDomains; preload")
+			// CSP: restrict resource origins to known domains (A03/A05)
+			w.Header().Set("Content-Security-Policy",
+				"default-src 'self'; "+
+					"connect-src 'self' http://localhost:4200 https://ceibuenvivir.org https://testing.ceibuenvivir.pages.dev; "+
+					"frame-ancestors 'none';")
+			// Prevent referrer leakage (A01)
+			w.Header().Set("Referrer-Policy", "strict-origin-when-cross-origin")
+			// Disable unnecessary browser features (A05)
+			w.Header().Set("Permissions-Policy", "geolocation=(), microphone=(), camera=()")
 			next.ServeHTTP(w, req)
 		})
 	})
-
-	// CORS Configuration
-	allowedOriginsEnv := os.Getenv("CORS_ALLOWED_ORIGINS")
-	var allowedOrigins []string
-	allowedOrigins = strings.Split(allowedOriginsEnv, ",")
-	
-
-	corsMiddleware := cors.New(cors.Options{
-		AllowedOrigins:   allowedOrigins,
-		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
-		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-CSRF-Token"},
-		ExposedHeaders:   []string{"Link"},
-		AllowCredentials: true,
-		MaxAge:           300, 
-	})
-	r.Use(corsMiddleware.Handler)
 }
