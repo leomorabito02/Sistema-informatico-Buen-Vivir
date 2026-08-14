@@ -1,135 +1,151 @@
-<div class="min-h-screen bg-slate-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
-  <div class="sm:mx-auto sm:w-full sm:max-w-md">
-    <div class="bg-white py-8 px-4 shadow-xl shadow-slate-200/50 sm:rounded-2xl sm:px-10 border border-slate-100 text-center">
+<div class="auth-container">
+  <div class="auth-content">
+    <div class="auth-wrapper">
       
-      <div class="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-amber-100 mb-6">
-        <lucide-angular [img]="ClockIcon" class="h-8 w-8 text-amber-600"></lucide-angular>
+      <!-- Logo and Title -->
+      <div class="auth-header">
+        <div class="auth-logo-container">
+          <img src="assets/logo.png" alt="Logo Buen Vivir" class="auth-logo" />
+        </div>
+        <h1 class="auth-title">Buen Vivir</h1>
+        <p class="auth-subtitle">Centro de Ecología Integral</p>
       </div>
 
-      <h2 class="mt-2 text-2xl font-bold tracking-tight text-slate-900 mb-2">
-        Solicitud Pendiente
-      </h2>
-      
-      <p class="text-sm text-slate-500 mb-6 leading-relaxed">
-        Tu cuenta ha sido creada exitosamente, pero aún requiere la aprobación de un administrador para poder acceder al sistema. Te avisaremos cuando tu solicitud sea aceptada.
-      </p>
+      <!-- Main Card -->
+      <div class="auth-card">
+        
+        <div class="pending-badge-header">
+          <div class="clock-icon-circle">
+            <lucide-angular [img]="ClockIcon" class="clock-icon"></lucide-angular>
+          </div>
+          <span class="role-pill" *ngIf="roleId">Rol: {{ getRoleName() }}</span>
+        </div>
 
-      <div *ngIf="successMessage" class="mb-6 p-4 rounded-xl bg-green-50 border border-green-100 text-green-700 flex items-center gap-3 text-sm text-left">
-        <lucide-angular [img]="CheckCircleIcon" class="h-5 w-5 flex-shrink-0"></lucide-angular>
-        <span>{{ successMessage }}</span>
-      </div>
+        <h2 class="auth-card-title text-center">Solicitud Pendiente de Aprobación</h2>
 
-      <div *ngIf="errorMessage" class="mb-6 p-4 rounded-xl bg-red-50 border border-red-100 text-red-700 text-sm text-left">
-        {{ errorMessage }}
-      </div>
+        <p class="pending-description">
+          Tu cuenta ha sido registrada exitosamente. Un administrador revisará tu solicitud para darte acceso definitivo. Mientras esperás la aprobación, podés completar o modificar tus datos de perfil.
+        </p>
 
-      <!-- Button to toggle form -->
-      <div *ngIf="needsExtraData() && !showForm && !formSaved" class="mb-6">
-        <button
-          (click)="toggleForm()"
-          class="flex w-full justify-center items-center gap-2 rounded-xl bg-indigo-600 px-4 py-3 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 transition-all duration-200"
-        >
-          <lucide-angular [img]="FileEditIcon" class="h-4 w-4"></lucide-angular>
-          Completar Datos Faltantes
-        </button>
-      </div>
+        <!-- Feedback Alert Messages -->
+        <div *ngIf="successMessage" class="success-msg mb-4">
+          <lucide-angular [img]="CheckCircleIcon" class="msg-icon"></lucide-angular>
+          <span>{{ successMessage }}</span>
+        </div>
 
-      <!-- Form Section -->
-      <div *ngIf="showForm" class="text-left mb-6 animate-in slide-in-from-top-4 duration-300">
-        <div class="border-t border-slate-200 pt-6 mt-2">
-          <h3 class="text-lg font-semibold text-slate-900 mb-4">Datos del Perfil</h3>
+        <div *ngIf="errorMessage" class="error-msg mb-4">
+          <lucide-angular [img]="AlertCircleIcon" class="msg-icon"></lucide-angular>
+          <span>{{ errorMessage }}</span>
+        </div>
+
+        <!-- Toggle Form Button -->
+        <div *ngIf="!showForm && roleId != 'role_volunteer'">
+          <button (click)="toggleForm()" class="btn-outline-primary w-full py-3">
+            <lucide-angular [img]="FileEditIcon" class="w-4 h-4 mr-2 inline-block"></lucide-angular>
+            {{ formSaved ? 'Modificar datos del perfil' : 'Completar datos faltantes' }}
+          </button>
+        </div>
+
+        <!-- Form Section -->
+        <div *ngIf="showForm" class="profile-form-section">
+          <h3 class="form-section-title">Datos del Perfil ({{ getRoleName() }})</h3>
           
-          <form [formGroup]="profileForm" (ngSubmit)="onSubmit()" class="space-y-4">
-            
-            <!-- Participant Fields -->
+          <form [formGroup]="profileForm" (ngSubmit)="onSubmit()" class="auth-form">
+
+            <!-- Participant Model Fields (participant_model.go) -->
             <ng-container *ngIf="roleId === 'role_participant'">
-              <div>
-                <label class="block text-sm font-medium text-slate-700 mb-1">Fecha de Nacimiento</label>
-                <input type="date" formControlName="birthdate" class="block w-full rounded-lg border-0 py-2 px-3 text-slate-900 shadow-sm ring-1 ring-inset ring-slate-300 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6">
+              <div class="form-group">
+                <label class="form-label">Fecha de Nacimiento</label>
+                <input type="date" formControlName="birthdate" class="form-input" />
               </div>
-              <div>
-                <label class="block text-sm font-medium text-slate-700 mb-1">DNI</label>
-                <input type="text" formControlName="dni" placeholder="Ej: 12345678" class="block w-full rounded-lg border-0 py-2 px-3 text-slate-900 shadow-sm ring-1 ring-inset ring-slate-300 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6">
+              <div class="form-group">
+                <label class="form-label">DNI</label>
+                <input type="text" formControlName="dni" placeholder="Ej: 12345678" class="form-input" />
               </div>
-              <div>
-                <label class="block text-sm font-medium text-slate-700 mb-1">Dirección</label>
-                <input type="text" formControlName="address" class="block w-full rounded-lg border-0 py-2 px-3 text-slate-900 shadow-sm ring-1 ring-inset ring-slate-300 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6">
+              <div class="form-group">
+                <label class="form-label">Dirección</label>
+                <input type="text" formControlName="address" placeholder="Ej: Av. Siempreviva 742" class="form-input" />
               </div>
-              <div>
-                <label class="block text-sm font-medium text-slate-700 mb-1">Género</label>
-                <select formControlName="gender" class="block w-full rounded-lg border-0 py-2 px-3 text-slate-900 shadow-sm ring-1 ring-inset ring-slate-300 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6">
+              <div class="form-group">
+                <label class="form-label">Género</label>
+                <select formControlName="gender" class="form-select">
                   <option value="">Seleccionar...</option>
                   <option value="male">Masculino</option>
                   <option value="female">Femenino</option>
                   <option value="other">Otro</option>
                 </select>
               </div>
-              <div>
-                <label class="block text-sm font-medium text-slate-700 mb-1">Nombre de Contacto de Emergencia</label>
-                <input type="text" formControlName="emergency_contact_name" class="block w-full rounded-lg border-0 py-2 px-3 text-slate-900 shadow-sm ring-1 ring-inset ring-slate-300 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6">
+              <div class="form-group">
+                <label class="form-label">Contacto de Emergencia (Nombre)</label>
+                <input type="text" formControlName="emergency_contact_name" placeholder="Nombre completo" class="form-input" />
               </div>
-              <div>
-                <label class="block text-sm font-medium text-slate-700 mb-1">Teléfono de Contacto de Emergencia</label>
-                <input type="text" formControlName="emergency_contact_phone" class="block w-full rounded-lg border-0 py-2 px-3 text-slate-900 shadow-sm ring-1 ring-inset ring-slate-300 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6">
+              <div class="form-group">
+                <label class="form-label">Contacto de Emergencia (Teléfono)</label>
+                <input type="text" formControlName="emergency_contact_phone" placeholder="Ej: +54 9 11 1234-5678" class="form-input" />
               </div>
             </ng-container>
 
-            <!-- Company Fields -->
+            <!-- Company Model Fields (company_model.go) -->
             <ng-container *ngIf="roleId === 'role_company'">
-              <div>
-                <label class="block text-sm font-medium text-slate-700 mb-1">Nombre de la Empresa</label>
-                <input type="text" formControlName="business_name" class="block w-full rounded-lg border-0 py-2 px-3 text-slate-900 shadow-sm ring-1 ring-inset ring-slate-300 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6">
+              <div class="form-group">
+                <label class="form-label">Razón Social / Nombre Fantasía</label>
+                <input type="text" formControlName="business_name" placeholder="Ej: Empresa S.A." class="form-input" />
               </div>
-              <div>
-                <label class="block text-sm font-medium text-slate-700 mb-1">CUIT</label>
-                <input type="text" formControlName="cuit" class="block w-full rounded-lg border-0 py-2 px-3 text-slate-900 shadow-sm ring-1 ring-inset ring-slate-300 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6">
+              <div class="form-group">
+                <label class="form-label">CUIT</label>
+                <input type="text" formControlName="cuit" placeholder="Ej: 30-12345678-9" class="form-input" />
               </div>
             </ng-container>
 
-            <!-- Teacher Fields -->
+            <!-- Teacher Model Fields (teacher_model.go) -->
             <ng-container *ngIf="roleId === 'role_teacher'">
-              <div>
-                <label class="block text-sm font-medium text-slate-700 mb-1">Especialización</label>
-                <input type="text" formControlName="specialization" class="block w-full rounded-lg border-0 py-2 px-3 text-slate-900 shadow-sm ring-1 ring-inset ring-slate-300 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6">
+              <div class="form-group">
+                <label class="form-label">Especialización</label>
+                <input type="text" formControlName="specialization" placeholder="Ej: Ecología, Botánica" class="form-input" />
+              </div>
+              <div class="form-group">
+                <label class="checkbox-label">
+                  <input type="checkbox" formControlName="is_external" class="checkbox-input" />
+                  <span>Docente Externo a BuenVivir</span>
+                </label>
               </div>
             </ng-container>
 
-            <div class="pt-4 flex gap-3">
-              <button
-                type="button"
-                (click)="toggleForm()"
-                class="flex-1 rounded-xl bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 shadow-sm ring-1 ring-inset ring-slate-300 hover:bg-slate-50 transition-all"
-              >
+            <!-- Form Action Buttons -->
+            <div class="form-buttons-row">
+              <button type="button" (click)="toggleForm()" class="btn-cancel">
                 Cancelar
               </button>
-              <button
-                type="submit"
-                [disabled]="loading"
-                class="flex-1 flex justify-center items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                <lucide-angular [img]="SaveIcon" class="h-4 w-4"></lucide-angular>
+              <button type="submit" [disabled]="loading" class="btn-submit">
+                <lucide-angular [img]="SaveIcon" class="w-4 h-4 mr-2 inline-block"></lucide-angular>
                 {{ loading ? 'Guardando...' : 'Guardar' }}
               </button>
             </div>
+
           </form>
         </div>
+
+        <div class="auth-divider">
+          <div class="auth-divider-line"></div>
+        </div>
+
+        <div class="auth-actions-stack">
+          <button (click)="goBack()" class="btn-google">
+            <lucide-angular [img]="ArrowLeftIcon" class="w-4 h-4 mr-2 inline-block"></lucide-angular>
+            Volver a la pantalla principal
+          </button>
+          <button (click)="logout()" class="btn-logout">
+            <lucide-angular [img]="LogOutIcon" class="w-4 h-4 mr-2 inline-block"></lucide-angular>
+            Cerrar Sesión
+          </button>
+        </div>
+
       </div>
 
-      <div class="mt-6 border-t border-slate-100 pt-6">
-        <button
-          (click)="goBack()"
-          class="flex w-full justify-center items-center gap-2 rounded-xl bg-slate-900 px-4 py-3 text-sm font-semibold text-white shadow-sm hover:bg-slate-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900 transition-all duration-200 mb-3"
-        >
-          <lucide-angular [img]="ArrowLeftIcon" class="h-4 w-4"></lucide-angular>
-          Volver al inicio
-        </button>
-        <button
-          (click)="logout()"
-          class="flex w-full justify-center items-center gap-2 rounded-xl bg-white px-4 py-3 text-sm font-semibold text-slate-700 shadow-sm ring-1 ring-inset ring-slate-300 hover:bg-slate-50 transition-all duration-200"
-        >
-          Cerrar Sesión
-        </button>
+      <div class="auth-footer">
+        <a routerLink="/" class="auth-link">Volver al inicio</a>
       </div>
+
     </div>
   </div>
 </div>

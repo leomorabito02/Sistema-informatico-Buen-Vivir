@@ -4,7 +4,7 @@ import { Auth, signInWithPopup, GoogleAuthProvider } from '@angular/fire/auth';
 import { environment } from '../../environments/environment';
 import { Observable, from, switchMap } from 'rxjs';
 import { Router } from '@angular/router';
-import { LoginResponse, RegisterRequest, User } from '../core/models/auth.model';
+import { CheckCredentialsResponse, LoginResponse, RegisterRequest, User } from '../core/models/auth.model';
 
 @Injectable({
   providedIn: 'root'
@@ -19,26 +19,45 @@ export class AuthService {
   constructor() {}
 
   /**
-   * Login using email and password via API Gateway.
-   *
-   * The backend is responsible for setting the authentication
-   * and refresh cookies using Set-Cookie.
+   * Step 1: Validates email and password. Returns a list of available accounts/roles.
+   * No token is issued at this point.
    */
-  loginWithEmail(
-    email: string,
-    password: string,
-    role: string
-  ): Observable<LoginResponse> {
+  checkCredentials(email: string, password: string): Observable<CheckCredentialsResponse> {
+    return this.http.post<CheckCredentialsResponse>(
+      `${this.apiUrl}/api/v1/auth/check-credentials`,
+      { email, password },
+      { withCredentials: true }
+    );
+  }
+
+  /**
+   * Step 1 (Google): Validates Firebase ID token. Returns a list of available accounts/roles.
+   * No token is issued at this point.
+   */
+  checkGoogleCredentials(): Observable<CheckCredentialsResponse> {
+    const provider = new GoogleAuthProvider();
+
+    return from(signInWithPopup(this.auth, provider)).pipe(
+      switchMap(credential => from(credential.user.getIdToken().then(idToken => ({ idToken, googleId: credential.user.uid })))),
+      switchMap(({ idToken, googleId }) =>
+        this.http.post<CheckCredentialsResponse>(
+          `${this.apiUrl}/api/v1/auth/google-check-credentials`,
+          { id_token: idToken, google_id: googleId },
+          { withCredentials: true }
+        )
+      )
+    );
+  }
+
+  /**
+   * Step 2: Given a user_id, role_id and a single-use login nonce, issues the JWT token and sets auth cookies.
+   * The nonce is obtained from the Step 1 (checkCredentials) response and is valid for 2 minutes.
+   */
+  loginWithAccount(userId: string, roleId: string, loginNonce: string): Observable<LoginResponse> {
     return this.http.post<LoginResponse>(
       `${this.apiUrl}/api/v1/auth/login`,
-      {
-        email,
-        password,
-        role
-      },
-      {
-        withCredentials: true
-      }
+      { user_id: userId, role_id: roleId, login_nonce: loginNonce },
+      { withCredentials: true }
     );
   }
 
@@ -49,52 +68,18 @@ export class AuthService {
     return this.http.post<LoginResponse>(
       `${this.apiUrl}/api/v1/auth/register`,
       userData,
-      {
-        withCredentials: true
-      }
-    );
-  }
-
-  /**
-   * Login using Google via Firebase Auth and send the Firebase ID token
-   * to the backend.
-   *
-   * The backend creates the application session and sets the
-   * authentication cookies.
-   */
-  loginWithGoogle(role: string): Observable<LoginResponse> {
-    const provider = new GoogleAuthProvider();
-
-    return from(signInWithPopup(this.auth, provider)).pipe(
-      switchMap(credential =>
-        from(credential.user.getIdToken())
-      ),
-      switchMap(token =>
-        this.http.post<LoginResponse>(
-          `${this.apiUrl}/api/v1/auth/login`,
-          {
-            googleToken: token,
-            role
-          },
-          {
-            withCredentials: true
-          }
-        )
-      )
+      { withCredentials: true }
     );
   }
 
   /**
    * Checks whether the current session is valid.
-   *
    * The browser automatically sends the HttpOnly authentication cookie.
    */
   isAuthenticated(): Observable<{user: User}> {
     return this.http.get<{user: User}>(
       `${this.apiUrl}/api/v1/auth/me`,
-      {
-        withCredentials: true
-      }
+      { withCredentials: true }
     );
   }
 
@@ -102,33 +87,26 @@ export class AuthService {
     return this.http.put<any>(
       `${this.apiUrl}/api/v1/profile/me`,
       data,
-      {
-        withCredentials: true
-      }
+      { withCredentials: true }
     );
   }
 
   /**
    * Logs out the current session.
-   *
-   * The backend is responsible for invalidating the session
-   * and clearing the authentication cookies.
+   * The backend is responsible for invalidating the session and clearing the cookies.
    */
   logout(): void {
     this.http.post(
       `${this.apiUrl}/api/v1/auth/logout`,
       {},
-      {
-        withCredentials: true
-      }
+      { withCredentials: true }
     ).subscribe({
       next: () => {
         this.auth.signOut();
         this.router.navigate(['/login']);
       },
       error: () => {
-        // Even if the backend request fails, clear the Firebase session
-        // and redirect the user.
+        // Even if the backend request fails, clear the Firebase session and redirect
         this.auth.signOut();
         this.router.navigate(['/login']);
       }

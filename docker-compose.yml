@@ -15,8 +15,8 @@ services:
     read_only: true
     tmpfs:
       - /tmp
-    mem_limit: 256m
-    cpus: "0.5"
+    mem_limit: 1024m
+    cpus: "1"
 
   api-gateway:
     image: nginx:alpine

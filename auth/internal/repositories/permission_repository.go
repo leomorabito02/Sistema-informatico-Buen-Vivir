@@ -14,6 +14,7 @@ type PermissionRepository interface {
 	Create(ctx context.Context, permission *models.Permission) error
 	Update(ctx context.Context, permission *models.Permission) error
 	Delete(ctx context.Context, id string) error
+	CheckRolePermission(ctx context.Context, roleID, action, resource string, count *int64) error
 }
 
 type permissionRepository struct {
@@ -74,4 +75,11 @@ func (r *permissionRepository) Delete(ctx context.Context, id string) error {
 		}()
 		return tx.Where("permission_id = ?", id).Delete(&models.Permission{}).Error
 	})
+}
+
+func (r *permissionRepository) CheckRolePermission(ctx context.Context, roleID, action, resource string, count *int64) error {
+	return r.db.WithContext(ctx).Table("role_permissions").
+		Joins("JOIN permissions ON permissions.permission_id = role_permissions.permission_id").
+		Where("role_permissions.role_id = ? AND permissions.action = ? AND permissions.resource = ?", roleID, action, resource).
+		Count(count).Error
 }

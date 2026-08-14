@@ -26,22 +26,33 @@ type jwtService struct {
 
 func NewJWTService() JWTService {
 	accessSecret := os.Getenv("JWT_SECRET")
-	if accessSecret == "" {
-		accessSecret = "fallback-access-secret" // Solo para dev
-	}
 	refreshSecret := os.Getenv("JWT_REFRESH_SECRET")
-	if refreshSecret == "" {
-		refreshSecret = "fallback-refresh-secret" // Solo para dev
+
+	insecureDefaults := map[string]bool{
+		"":                       true,
+		"fallback-access-secret":  true,
+		"fallback-refresh-secret": true,
+		"super-secret-access-key":  true,
+		"super-secret-refresh-key": true,
+	}
+
+	if insecureDefaults[accessSecret] {
+		fmt.Fprintln(os.Stderr, "FATAL: JWT_SECRET is not set or uses an insecure default. Set a strong secret in environment variables.")
+		os.Exit(1)
+	}
+	if insecureDefaults[refreshSecret] {
+		fmt.Fprintln(os.Stderr, "FATAL: JWT_REFRESH_SECRET is not set or uses an insecure default. Set a strong secret in environment variables.")
+		os.Exit(1)
 	}
 
 	accessMin, _ := strconv.Atoi(os.Getenv("JWT_EXPIRATION_MINUTES"))
 	if accessMin == 0 {
-		accessMin = 15 // 15 mins default
+		accessMin = 15
 	}
 
 	refreshDays, _ := strconv.Atoi(os.Getenv("JWT_REFRESH_EXPIRATION_DAYS"))
 	if refreshDays == 0 {
-		refreshDays = 7 // 7 days default
+		refreshDays = 7
 	}
 
 	return &jwtService{

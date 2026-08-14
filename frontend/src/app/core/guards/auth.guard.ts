@@ -9,6 +9,9 @@ export const authGuard: CanActivateFn = () => {
 
   return authService.isAuthenticated().pipe(
     map((res: any) => {
+      if (res.user_status === 'blocked' || res.user?.status === 'blocked') {
+        return router.createUrlTree(['/account-notice']);
+      }
       if (res.approval_status === 'pending') {
         return router.createUrlTree(['/pending-approval']);
       }

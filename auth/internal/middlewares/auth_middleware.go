@@ -65,7 +65,9 @@ func AuthMiddleware(jwtService JWTService) func(http.Handler) http.Handler {
 }
 
 // RequirePermissionMiddleware verifica si el usuario en el contexto tiene permisos
-func RequirePermissionMiddleware(requiredAction, requiredResource string) func(http.Handler) http.Handler {
+func RequirePermissionMiddleware(permissionService interface{
+	CheckPermission(ctx context.Context, roleID, action, resource string) (bool, error)
+}, requiredAction, requiredResource string) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			
@@ -75,12 +77,17 @@ func RequirePermissionMiddleware(requiredAction, requiredResource string) func(h
 				http.Error(w, "Unauthorized", http.StatusUnauthorized)
 				return
 			}
-			// userID := userIDVal.(string)
+			roleIDVal := r.Context().Value(RoleIDKey)
+			if roleIDVal == nil {
+				http.Error(w, "Unauthorized: missing role", http.StatusUnauthorized)
+				return
+			}
+			roleID := roleIDVal.(string)
 
-			// TODO: Consultar BD o caché para verificar si el rol tiene {requiredAction} sobre {requiredResource}
-			hasPermission := true // Mock
+			// Consultar BD para verificar si el rol tiene {requiredAction} sobre {requiredResource}
+			hasPermission, err := permissionService.CheckPermission(r.Context(), roleID, requiredAction, requiredResource)
 			
-			if !hasPermission {
+			if err != nil || !hasPermission {
 				http.Error(w, "Forbidden: insufficient permissions", http.StatusForbidden)
 				return
 			}

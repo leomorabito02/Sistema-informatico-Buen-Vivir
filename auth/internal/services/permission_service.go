@@ -15,6 +15,7 @@ type PermissionService interface {
 	GetAllPermissions(ctx context.Context) ([]dto.PermissionResponse, error)
 	UpdatePermission(ctx context.Context, id string, req *dto.UpdatePermissionRequest) (*dto.PermissionResponse, error)
 	DeletePermission(ctx context.Context, id string) error
+	CheckPermission(ctx context.Context, roleID, action, resource string) (bool, error)
 }
 
 type permissionService struct {
@@ -99,4 +100,10 @@ func (s *permissionService) DeletePermission(ctx context.Context, id string) err
 		return err
 	}
 	return s.permissionRepo.Delete(ctx, id)
+}
+
+func (s *permissionService) CheckPermission(ctx context.Context, roleID, action, resource string) (bool, error) {
+	var count int64
+	err := s.permissionRepo.CheckRolePermission(ctx, roleID, action, resource, &count)
+	return count > 0, err
 }
