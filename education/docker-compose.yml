@@ -1,0 +1,15 @@
+# Docker Compose SOLO del microservicio de Educación, para levantarlo y
+# probarlo de forma independiente (arquitectura de microservicios de
+# bajo acoplamiento). Cuando quede validado, se integra al
+# docker-compose.yml de la raíz del proyecto junto con el resto de los
+# servicios.
+services:
+  education-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    env_file:
+      - ./.env
+    ports:
+      - "8210:8210"
+    restart: on-failure
