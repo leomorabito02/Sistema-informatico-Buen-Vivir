@@ -39,15 +39,23 @@ func main() {
 	refreshTokenRepo := repositories.NewRefreshTokenRepository(db)
 
 	// 4. Setup Services
-	jwtService := services.NewJWTService()
+	jwtService, err := services.NewJWTServiceFromEnv()
+	if err != nil {
+		slog.Error("JWT initialization failed", "error", err)
+		os.Exit(1)
+	}
 	firebaseService, err := services.NewFirebaseService()
 	if err != nil {
 		slog.Error("Firebase initialization failed", "error", err)
 		os.Exit(1)
 	}
 
+	transactor := repositories.NewGormTransactor(db)
+	querier := repositories.NewGormRoleProfileQuerier(db)
+
 	authService := services.NewAuthService(
-		db,
+		transactor,
+		querier,
 		userRepo,
 		refreshTokenRepo,
 		jwtService,

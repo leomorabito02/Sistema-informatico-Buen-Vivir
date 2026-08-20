@@ -4,6 +4,7 @@ import (
 	"context"
 	"testing"
 
+	"auth/internal/dto"
 	"auth/internal/middlewares"
 	"auth/internal/models"
 	"auth/internal/services"
@@ -156,4 +157,63 @@ func TestUserService_GetAllUsers_NonAdminForbidden(t *testing.T) {
 	assert.Error(t, err)
 	assert.Nil(t, res)
 	assert.Contains(t, err.Error(), "forbidden")
+}
+
+func TestUserService_DeleteUser_AdminSuccess(t *testing.T) {
+	mockRepo := new(MockUserRepository)
+	svc := services.NewUserService(mockRepo)
+
+	ctx := context.WithValue(context.Background(), middlewares.RoleIDKey, "role_admin")
+
+	expectedUser := &models.User{UserID: "usr-123"}
+	mockRepo.On("FindByID", ctx, "usr-123").Return(expectedUser, nil)
+	mockRepo.On("Delete", ctx, "usr-123").Return(nil)
+
+	err := svc.DeleteUser(ctx, "usr-123")
+
+	assert.NoError(t, err)
+	mockRepo.AssertExpectations(t)
+}
+
+func TestUserService_DeleteUser_ForbiddenOtherUser(t *testing.T) {
+	mockRepo := new(MockUserRepository)
+	svc := services.NewUserService(mockRepo)
+
+	ctx := context.WithValue(context.Background(), middlewares.RoleIDKey, "role_participant")
+	ctx = context.WithValue(ctx, middlewares.UserIDKey, "usr-999")
+
+	targetUser := &models.User{UserID: "usr-123"}
+	mockRepo.On("FindByID", ctx, "usr-123").Return(targetUser, nil)
+
+	err := svc.DeleteUser(ctx, "usr-123")
+
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "forbidden")
+	mockRepo.AssertNotCalled(t, "Delete")
+}
+
+func TestUserService_UpdateUser_Success(t *testing.T) {
+	mockRepo := new(MockUserRepository)
+	svc := services.NewUserService(mockRepo)
+
+	ctx := context.WithValue(context.Background(), middlewares.RoleIDKey, "role_admin")
+	
+	existingUser := &models.User{
+		UserID: "usr-123",
+		FirstName: "Old",
+	}
+
+	mockRepo.On("FindByID", ctx, "usr-123").Return(existingUser, nil)
+	mockRepo.On("Update", ctx, mock.AnythingOfType("*models.User")).Return(nil)
+
+	req := &dto.UpdateUserRequest{
+		FirstName: "New",
+	}
+
+	res, err := svc.UpdateUser(ctx, "usr-123", req)
+
+	assert.NoError(t, err)
+	assert.NotNil(t, res)
+	assert.Equal(t, "New", res.FirstName)
+	mockRepo.AssertExpectations(t)
 }

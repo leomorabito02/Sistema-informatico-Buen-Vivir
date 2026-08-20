@@ -24,25 +24,26 @@ type jwtService struct {
 	refreshTTL    time.Duration
 }
 
-func NewJWTService() JWTService {
-	accessSecret := os.Getenv("JWT_SECRET")
-	refreshSecret := os.Getenv("JWT_REFRESH_SECRET")
+func NewJWTServiceFromSecrets(access, refresh string) (JWTService, error) {
+	if access == "" || refresh == "" {
+		return nil, errors.New("jwt: access/refresh secret vacío")
+	}
+	if access == refresh {
+		return nil, errors.New("jwt: access y refresh secret no pueden ser iguales")
+	}
+	if len(access) < 32 || len(refresh) < 32 {
+		return nil, errors.New("jwt: secret con longitud insuficiente (min 32 bytes)")
+	}
 
 	insecureDefaults := map[string]bool{
-		"":                       true,
-		"fallback-access-secret":  true,
-		"fallback-refresh-secret": true,
+		"fallback-access-secret":   true,
+		"fallback-refresh-secret":  true,
 		"super-secret-access-key":  true,
 		"super-secret-refresh-key": true,
 	}
 
-	if insecureDefaults[accessSecret] {
-		fmt.Fprintln(os.Stderr, "FATAL: JWT_SECRET is not set or uses an insecure default. Set a strong secret in environment variables.")
-		os.Exit(1)
-	}
-	if insecureDefaults[refreshSecret] {
-		fmt.Fprintln(os.Stderr, "FATAL: JWT_REFRESH_SECRET is not set or uses an insecure default. Set a strong secret in environment variables.")
-		os.Exit(1)
+	if insecureDefaults[access] || insecureDefaults[refresh] {
+		return nil, errors.New("jwt: secret inseguro por defecto no permitido")
 	}
 
 	accessMin, _ := strconv.Atoi(os.Getenv("JWT_EXPIRATION_MINUTES"))
@@ -56,11 +57,17 @@ func NewJWTService() JWTService {
 	}
 
 	return &jwtService{
-		accessSecret:  []byte(accessSecret),
-		refreshSecret: []byte(refreshSecret),
+		accessSecret:  []byte(access),
+		refreshSecret: []byte(refresh),
 		accessTTL:     time.Duration(accessMin) * time.Minute,
 		refreshTTL:    time.Duration(refreshDays) * 24 * time.Hour,
-	}
+	}, nil
+}
+
+func NewJWTServiceFromEnv() (JWTService, error) {
+	access := os.Getenv("JWT_SECRET")
+	refresh := os.Getenv("JWT_REFRESH_SECRET")
+	return NewJWTServiceFromSecrets(access, refresh)
 }
 
 func (s *jwtService) GenerateTokenPair(userID string, role string, isExternal bool) (string, string, error) {

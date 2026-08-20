@@ -1,3 +1,7 @@
+import { Auth } from '@angular/fire/auth';
+import { provideHttpClientTesting } from '@angular/common/http/testing';
+import { provideHttpClient } from '@angular/common/http';
+import { provideRouter } from '@angular/router';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
 import { HeaderComponent } from './header.component';
@@ -8,6 +12,7 @@ describe('HeaderComponent', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
+      providers: [{ provide: Auth, useValue: {} }, provideRouter([]), provideHttpClient(), provideHttpClientTesting()],
       imports: [HeaderComponent]
     })
     .compileComponents();

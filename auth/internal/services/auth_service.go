@@ -14,7 +14,6 @@ import (
 	"auth/internal/utils"
 
 	"golang.org/x/crypto/bcrypt"
-	"gorm.io/gorm"
 )
 
 type AuthService interface {
@@ -31,7 +30,8 @@ type AuthService interface {
 }
 
 type authService struct {
-	db               *gorm.DB
+	transactor       repositories.Transactor
+	querier          repositories.RoleProfileQuerier
 	userRepo         repositories.UserRepository
 	refreshTokenRepo repositories.RefreshTokenRepository
 	jwtService       JWTService
@@ -39,14 +39,16 @@ type authService struct {
 }
 
 func NewAuthService(
-	db *gorm.DB,
+	transactor repositories.Transactor,
+	querier repositories.RoleProfileQuerier,
 	userRepo repositories.UserRepository,
 	rtRepo repositories.RefreshTokenRepository,
 	jwtService JWTService,
 	fbService FirebaseService,
 ) AuthService {
 	return &authService{
-		db:               db,
+		transactor:       transactor,
+		querier:          querier,
 		userRepo:         userRepo,
 		refreshTokenRepo: rtRepo,
 		jwtService:       jwtService,
@@ -54,7 +56,13 @@ func NewAuthService(
 	}
 }
 
-func (s *authService) Register(ctx context.Context, req *dto.RegisterRequest) (*dto.LoginResponse, error) {
+func (s *authService) Register(ctx context.Context, req *dto.RegisterRequest) (resp *dto.LoginResponse, err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			err = fmt.Errorf("error crítico inesperado: %v", r)
+		}
+	}()
+
 	if req.Email == "" || req.Password == "" || req.Role == "" {
 		return nil, errors.New("el correo electrónico, la contraseña y el rol son obligatorios")
 	}
@@ -89,8 +97,8 @@ func (s *authService) Register(ctx context.Context, req *dto.RegisterRequest) (*
 		Status:       "active",
 	}
 
-	err = s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		if err := tx.Create(user).Error; err != nil {
+	err = s.transactor.RunInTx(ctx, func(tx repositories.Tx) error {
+		if err := tx.Create(user); err != nil {
 			return errors.New("error al guardar los datos del usuario")
 		}
 		if err := s.createRoleProfileTx(tx, user.UserID, roleID); err != nil {
@@ -120,7 +128,13 @@ func (s *authService) Register(ctx context.Context, req *dto.RegisterRequest) (*
 
 // CheckCredentials validates email and password and returns all accounts associated with the email.
 // No token is issued at this step.
-func (s *authService) CheckCredentials(ctx context.Context, req *dto.CheckCredentialsRequest) (*dto.CheckCredentialsResponse, error) {
+func (s *authService) CheckCredentials(ctx context.Context, req *dto.CheckCredentialsRequest) (resp *dto.CheckCredentialsResponse, err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			err = fmt.Errorf("error crítico inesperado: %v", r)
+		}
+	}()
+
 	if req.Email == "" || req.Password == "" {
 		return nil, errors.New("el correo electrónico y la contraseña son obligatorios")
 	}
@@ -289,8 +303,8 @@ func (s *authService) Login(ctx context.Context, req *dto.LoginRequest) (*dto.Lo
 
 	isExternal := false
 	if user.RoleID == "role_teacher" {
-		var isExt bool
-		if err := s.db.WithContext(ctx).Table("teachers").Where("user_id = ?", user.UserID).Select("is_external").Scan(&isExt).Error; err == nil {
+		isExt, err := s.querier.GetIsExternal(ctx, user.UserID)
+		if err == nil {
 			isExternal = isExt
 		}
 	}
@@ -330,7 +344,7 @@ func (s *authService) saveRefreshToken(ctx context.Context, userID, token string
 	return s.refreshTokenRepo.Create(ctx, rt)
 }
 
-func (s *authService) createRoleProfileTx(tx *gorm.DB, userID, roleID string) error {
+func (s *authService) createRoleProfileTx(tx repositories.Tx, userID, roleID string) error {
 	status := "pending"
 	switch roleID {
 	case "role_company":
@@ -338,25 +352,25 @@ func (s *authService) createRoleProfileTx(tx *gorm.DB, userID, roleID string) er
 			CompanyID:      "comp-" + utils.GenerateRandomString(10),
 			UserID:         userID,
 			ApprovalStatus: status,
-		}).Error
+		})
 	case "role_participant":
 		return tx.Create(&models.Participant{
 			ParticipantID:  "part-" + utils.GenerateRandomString(10),
 			UserID:         userID,
 			ApprovalStatus: status,
-		}).Error
+		})
 	case "role_teacher":
 		return tx.Create(&models.Teacher{
 			TeacherID:      "tech-" + utils.GenerateRandomString(10),
 			UserID:         userID,
 			ApprovalStatus: status,
-		}).Error
+		})
 	case "role_volunteer":
 		return tx.Create(&models.Volunteer{
 			VolunteerID:    "vol-" + utils.GenerateRandomString(10),
 			UserID:         userID,
 			ApprovalStatus: status,
-		}).Error
+		})
 	default:
 		return nil
 	}
@@ -379,7 +393,8 @@ func (s *authService) GetApprovalStatus(ctx context.Context, roleID, userID stri
 		return "accepted"
 	}
 
-	if err := s.db.WithContext(ctx).Table(tableName).Where("user_id = ?", userID).Select("approval_status").Scan(&status).Error; err != nil || status == "" {
+	status, err := s.querier.GetApprovalStatus(ctx, tableName, userID)
+	if err != nil || status == "" {
 		return "accepted"
 	}
 	return status
@@ -405,7 +420,6 @@ func (s *authService) GetMyProfile(ctx context.Context, roleID, userID string) (
 		},
 	}
 
-	var roleData map[string]interface{}
 	var tableName string
 	switch roleID {
 	case "role_teacher":
@@ -419,8 +433,10 @@ func (s *authService) GetMyProfile(ctx context.Context, roleID, userID string) (
 	}
 
 	if tableName != "" {
-		s.db.WithContext(ctx).Table(tableName).Where("user_id = ?", userID).Take(&roleData)
-		profile["role_data"] = roleData
+		roleData, err := s.querier.GetRoleData(ctx, tableName, userID)
+		if err == nil {
+			profile["role_data"] = roleData
+		}
 	}
 
 	return profile, nil
