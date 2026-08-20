@@ -13,6 +13,7 @@ import (
 	"auth/internal/repositories"
 	"auth/internal/utils"
 
+	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
 )
 
@@ -23,6 +24,10 @@ type AuthService interface {
 	Login(ctx context.Context, req *dto.LoginRequest) (*dto.LoginResponse, error)
 	GetApprovalStatus(ctx context.Context, roleID, userID string) string
 	UpdateMyProfile(ctx context.Context, roleID, userID string, data map[string]interface{}) error
+	GetMyProfile(ctx context.Context, roleID, userID string) (map[string]interface{}, error)
+	UpdateMyPassword(ctx context.Context, userID, oldPassword, newPassword string) error
+	LinkGoogleAccount(ctx context.Context, userID string, req *dto.LinkGoogleRequest) error
+	UnlinkGoogleAccount(ctx context.Context, userID string) error
 }
 
 type authService struct {
@@ -190,21 +195,18 @@ func (s *authService) CheckGoogleCredentials(ctx context.Context, req *dto.Googl
 		googleAuthID = fbToken.UID
 	}
 
-	// 1. Verificar que exista un usuario con este correo electrónico
-	users, err := s.userRepo.FindAllByEmail(ctx, email)
-	if err != nil || len(users) == 0 {
-		return nil, errors.New("no existe ninguna cuenta registrada con este correo electrónico. Debe registrarse primero")
+	// 1. Buscar usuarios por google_auth_id directamente en la base de datos
+	matchingUsers, err := s.userRepo.FindAllByGoogleID(ctx, googleAuthID)
+	if err != nil || len(matchingUsers) == 0 {
+		matchingUsers, _ = s.userRepo.FindAllByGoogleID(ctx, fbToken.UID)
 	}
 
-	// 2. Verificar que el google_auth_id coincida y esté vinculado
-	matchingUsers := make([]models.User, 0)
-	for _, u := range users {
-		if u.GoogleAuthID != "" && u.GoogleAuthID == googleAuthID {
-			matchingUsers = append(matchingUsers, u)
-		}
-	}
-
+	// 2. Si no se encuentra por google_auth_id, comprobar por correo electrónico para reportar error preciso
 	if len(matchingUsers) == 0 {
+		users, _ := s.userRepo.FindAllByEmail(ctx, email)
+		if len(users) == 0 {
+			return nil, errors.New("no existe ninguna cuenta registrada con este correo electrónico. Debe registrarse primero")
+		}
 		slog.Warn("security: google login denied — google_auth_id not linked", slog.String("event", "google_auth_not_linked"), slog.String("email_hash", utils.HashToken(email)))
 		return nil, errors.New("la cuenta de Google no está vinculada a este usuario. Debe vincularla desde la configuración de su cuenta")
 	}
@@ -381,4 +383,143 @@ func (s *authService) GetApprovalStatus(ctx context.Context, roleID, userID stri
 		return "accepted"
 	}
 	return status
+}
+
+func (s *authService) GetMyProfile(ctx context.Context, roleID, userID string) (map[string]interface{}, error) {
+	user, err := s.userRepo.FindByID(ctx, userID)
+	if err != nil {
+		return nil, errors.New("usuario no encontrado")
+	}
+
+	profile := map[string]interface{}{
+		"user": map[string]interface{}{
+			"user_id":        user.UserID,
+			"first_name":     user.FirstName,
+			"last_name":      user.LastName,
+			"email":          user.Email,
+			"phone":          user.Phone,
+			"created_at":     user.CreatedAt,
+			"role_id":        user.RoleID,
+			"status":         user.Status,
+			"google_auth_id": user.GoogleAuthID,
+		},
+	}
+
+	var roleData map[string]interface{}
+	var tableName string
+	switch roleID {
+	case "role_teacher":
+		tableName = "teachers"
+	case "role_volunteer":
+		tableName = "volunteers"
+	case "role_participant":
+		tableName = "participants"
+	case "role_company":
+		tableName = "companies"
+	}
+
+	if tableName != "" {
+		s.db.WithContext(ctx).Table(tableName).Where("user_id = ?", userID).Take(&roleData)
+		profile["role_data"] = roleData
+	}
+
+	return profile, nil
+}
+
+func (s *authService) UpdateMyPassword(ctx context.Context, userID, oldPassword, newPassword string) error {
+	user, err := s.userRepo.FindByID(ctx, userID)
+	if err != nil {
+		return errors.New("usuario no encontrado")
+	}
+
+	if user.PasswordHash == "" {
+		return errors.New("la cuenta no tiene contraseña configurada (quizás fue creada con Google)")
+	}
+
+	if err := bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(oldPassword)); err != nil {
+		return errors.New("la contraseña actual es incorrecta")
+	}
+
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(newPassword), bcrypt.DefaultCost)
+	if err != nil {
+		return errors.New("error al encriptar la nueva contraseña")
+	}
+
+	user.PasswordHash = string(hashedPassword)
+	if err := s.userRepo.Update(ctx, user); err != nil {
+		return errors.New("error al guardar la nueva contraseña")
+	}
+
+	return nil
+}
+
+func (s *authService) LinkGoogleAccount(ctx context.Context, userID string, req *dto.LinkGoogleRequest) error {
+	fbToken, err := s.firebaseService.VerifyIDToken(ctx, req.IDToken)
+	if err != nil {
+		return errors.New("el token de autenticación de Google es inválido o expiró")
+	}
+
+	googleAuthID := strings.TrimSpace(req.GoogleID)
+	if googleAuthID == "" {
+		googleAuthID = fbToken.UID
+	}
+
+	currentUser, err := s.userRepo.FindByID(ctx, userID)
+	if err != nil {
+		return errors.New("usuario no encontrado")
+	}
+
+	allUsers, _ := s.userRepo.FindAll(ctx)
+	for _, u := range allUsers {
+		if u.GoogleAuthID == googleAuthID && u.Email != currentUser.Email {
+			return errors.New("esta cuenta de Google ya está vinculada a otro usuario")
+		}
+	}
+
+	users, err := s.userRepo.FindAllByEmail(ctx, currentUser.Email)
+	if err != nil {
+		return errors.New("error al obtener las cuentas del usuario")
+	}
+
+	for i := range users {
+		users[i].GoogleAuthID = googleAuthID
+		if err := s.userRepo.Update(ctx, &users[i]); err != nil {
+			return errors.New("error al vincular la cuenta de Google")
+		}
+	}
+
+	return nil
+}
+
+func (s *authService) UnlinkGoogleAccount(ctx context.Context, userID string) error {
+	currentUser, err := s.userRepo.FindByID(ctx, userID)
+	if err != nil {
+		return errors.New("usuario no encontrado")
+	}
+
+	users, err := s.userRepo.FindAllByEmail(ctx, currentUser.Email)
+	if err != nil {
+		return errors.New("error al obtener las cuentas del usuario")
+	}
+
+	hasPassword := false
+	for _, u := range users {
+		if strings.TrimSpace(u.PasswordHash) != "" {
+			hasPassword = true
+			break
+		}
+	}
+
+	if !hasPassword {
+		return errors.New("no podés desvincular la cuenta de Google porque no tenés una contraseña configurada")
+	}
+
+	for i := range users {
+		users[i].GoogleAuthID = ""
+		if err := s.userRepo.Update(ctx, &users[i]); err != nil {
+			return errors.New("error al desvincular la cuenta de Google")
+		}
+	}
+
+	return nil
 }

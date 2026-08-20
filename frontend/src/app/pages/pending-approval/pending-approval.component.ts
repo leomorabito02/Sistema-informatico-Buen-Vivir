@@ -4,6 +4,7 @@ import { Router, RouterLink } from '@angular/router';
 import { FormBuilder, FormGroup, ReactiveFormsModule } from '@angular/forms';
 import { LucideAngularModule, Clock, ArrowLeft, Save, FileEdit, CheckCircle, AlertCircle, LogOut } from 'lucide-angular';
 import { AuthService } from '../../services/auth.service';
+import { ProfileService } from '../../services/profile.service';
 
 @Component({
   selector: 'app-pending-approval',
@@ -23,6 +24,7 @@ export class PendingApprovalComponent implements OnInit {
 
   private router = inject(Router);
   private authService = inject(AuthService);
+  private profileService = inject(ProfileService);
   private fb = inject(FormBuilder);
 
   showForm = false;
@@ -47,9 +49,27 @@ export class PendingApprovalComponent implements OnInit {
       next: (res: any) => {
         this.roleId = res.role_id || '';
         this.buildForm();
+        this.loadExistingData();
       },
       error: () => {
         this.router.navigate(['/login']);
+      }
+    });
+  }
+
+  loadExistingData() {
+    this.profileService.getMyProfile().subscribe({
+      next: (data) => {
+        if (data && data.role_data) {
+          const roleData = { ...data.role_data };
+          if (roleData.birthdate) {
+            roleData.birthdate = roleData.birthdate.split('T')[0];
+          }
+          this.profileForm.patchValue(roleData);
+        }
+      },
+      error: () => {
+        // Ignore error, form stays empty
       }
     });
   }

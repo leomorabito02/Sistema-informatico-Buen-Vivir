@@ -6,6 +6,8 @@ import (
 	"os"
 	"time"
 
+	"auth/internal/models"
+
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
@@ -37,6 +39,10 @@ func InitDatabase() (*gorm.DB, error) {
 	}
 
 	slog.Info("Successfully connected to the database")
+
+	if err := db.AutoMigrate(&models.User{}); err != nil {
+		slog.Warn("Failed to auto-migrate User model", "error", err)
+	}
 
 	return db, nil
 }

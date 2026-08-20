@@ -1,19 +1,44 @@
 package middlewares
 
-import "net/http"
+import (
+	"context"
+	"net/http"
+)
 
 // Middleware envuelve un http.Handler con comportamiento adicional
-// (logging, seguridad, CORS, etc.). Se usa net/http puro, sin un
-// router externo, siguiendo el mismo criterio de no sumar
-// dependencias que no sean estrictamente necesarias.
 type Middleware func(http.Handler) http.Handler
 
-// Chain aplica los middlewares en el orden en que se los pasa: el
-// primero de la lista es el que más "afuera" queda (se ejecuta
-// primero en la request y último en la response).
+// Chain aplica los middlewares en el orden en que se los pasa
 func Chain(h http.Handler, mws ...Middleware) http.Handler {
 	for i := len(mws) - 1; i >= 0; i-- {
 		h = mws[i](h)
 	}
 	return h
+}
+
+type contextKey string
+
+const (
+	UserIDKey contextKey = "userID"
+	RoleIDKey contextKey = "roleID"
+)
+
+// AuthHeaders lee los headers inyectados por el API Gateway (NGINX)
+// y los coloca en el contexto de la request para que la capa de
+// controladores/servicios pueda identificar al usuario autenticado.
+func AuthHeaders(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		userID := r.Header.Get("X-User-ID")
+		roleID := r.Header.Get("X-User-Role")
+
+		ctx := r.Context()
+		if userID != "" {
+			ctx = context.WithValue(ctx, UserIDKey, userID)
+		}
+		if roleID != "" {
+			ctx = context.WithValue(ctx, RoleIDKey, roleID)
+		}
+
+		next.ServeHTTP(w, r.WithContext(ctx))
+	})
 }

@@ -11,6 +11,7 @@ import (
 type UserRepository interface {
 	FindByEmail(ctx context.Context, email string) (*models.User, error)
 	FindAllByEmail(ctx context.Context, email string) ([]models.User, error)
+	FindAllByGoogleID(ctx context.Context, googleID string) ([]models.User, error)
 	FindByID(ctx context.Context, id string) (*models.User, error)
 	FindAll(ctx context.Context) ([]models.User, error)
 	Create(ctx context.Context, user *models.User) error
@@ -45,6 +46,17 @@ func (r *userRepository) FindAllByEmail(ctx context.Context, email string) ([]mo
 	}
 	if len(users) == 0 {
 		return nil, errors.New("usuario no encontrado")
+	}
+	return users, nil
+}
+
+func (r *userRepository) FindAllByGoogleID(ctx context.Context, googleID string) ([]models.User, error) {
+	var users []models.User
+	if err := r.db.WithContext(ctx).Where("google_auth_id = ?", googleID).Find(&users).Error; err != nil {
+		return nil, err
+	}
+	if len(users) == 0 {
+		return nil, errors.New("no se encontró ninguna cuenta vinculada a este usuario de Google")
 	}
 	return users, nil
 }

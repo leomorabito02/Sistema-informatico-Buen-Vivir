@@ -39,8 +39,7 @@ func main() {
 	handler := middlewares.Chain(mux,
 		middlewares.Recoverer,
 		middlewares.Logging,
-		middlewares.SecurityHeaders,
-		middlewares.NewCORS(cfg.CORSAllowedOrigins),
+		middlewares.AuthHeaders,
 	)
 
 	log.Printf("Servicio Education escuchando en :%s (appEnv=%s, contentfulEnvironment=%s)", cfg.Port, cfg.AppEnv, cfg.ContentfulEnvironment)

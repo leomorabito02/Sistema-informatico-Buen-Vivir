@@ -4,30 +4,29 @@ import (
 	"net/http"
 
 	"buenvivir/education/internal/controllers"
+	"buenvivir/education/internal/middlewares"
 )
 
-// withAuth es el punto de enganche del futuro middleware de
-// JWT + RBAC (roles "administrador" y "voluntario" únicamente).
-//
-// TODO(auth): hoy es un pass-through (no valida nada) porque depende
-// de cómo termine resuelto el módulo de Autenticación (auth/), que ya
-// tiene JWTService + AuthMiddleware + RequireRole en
-// auth/internal/middlewares. Cuando esté listo (probablemente
-// reutilizando ese JWTService via un cliente HTTP a auth, o
-// validando el JWT localmente si comparten el secreto/JWKS), envolver
-// acá así:
-//
-//	func withAuth(next http.HandlerFunc) http.HandlerFunc {
-//	    return middlewares.AuthMiddleware(jwtService)(
-//	        middlewares.RequireRole("administrador", "voluntario")(next),
-//	    ).ServeHTTP
-//	}
-//
-// Todos los endpoints de escritura (POST/PUT/DELETE y
-// publicar/despublicar) ya están marcados abajo con withAuth() para
-// que ese cambio sea de una sola línea por endpoint.
+// RequireRole verifica que el rol en el contexto sea uno de los permitidos.
+// Para esto, el middleware AuthHeaders ya tuvo que haber leído X-User-Role.
 func withAuth(next http.HandlerFunc) http.HandlerFunc {
-	return next
+	return func(w http.ResponseWriter, r *http.Request) {
+		roleID, ok := r.Context().Value(middlewares.RoleIDKey).(string)
+		if !ok || roleID == "" {
+			http.Error(w, "Unauthorized", http.StatusUnauthorized)
+			return
+		}
+
+		// Implementamos un RequireRole simple para "administrador" y "voluntario"
+		// Como auth-service usa prefijos, puede ser "role_admin", "role_volunteer"
+		// o el dev "role_dev".
+		if roleID != "role_admin" && roleID != "role_volunteer" && roleID != "role_dev" {
+			http.Error(w, "Forbidden", http.StatusForbidden)
+			return
+		}
+
+		next.ServeHTTP(w, r)
+	}
 }
 
 // RegisterRoutes registra los endpoints HTTP del servicio de

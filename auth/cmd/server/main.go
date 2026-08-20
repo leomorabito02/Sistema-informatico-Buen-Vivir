@@ -6,12 +6,14 @@ import (
 	"os"
 
 	"github.com/go-chi/chi/v5"
+	chi_middleware "github.com/go-chi/chi/v5/middleware"
 
 	"auth/config"
 	"auth/internal/controllers"
 	"auth/internal/middlewares"
 	"auth/internal/repositories"
 	"auth/internal/services"
+
 )
 
 func main() {
@@ -68,16 +70,23 @@ func main() {
 	participantController := controllers.NewParticipantController(participantService)
 	permissionController := controllers.NewPermissionController(permissionService)
 	volunteerController := controllers.NewVolunteerController(volunteerService)
+	tokenValidatorController := controllers.NewTokenValidatorController(jwtService)
 
 	// 6. Setup Router and Middlewares
 	r := chi.NewRouter()
-	middlewares.SetupMiddlewares(r)
+	
+	// Basic standard middlewares (CORS and Security Headers are handled by API Gateway)
+	r.Use(chi_middleware.RequestID)
+	r.Use(chi_middleware.RealIP)
+	r.Use(chi_middleware.Recoverer)
 
 	// DDoS Protection fallback (Global Rate Limiter)
 	r.Use(middlewares.RateLimiter())
 
 	// 7. Define Routes
 	r.Get("/health", authController.HealthCheck)
+	r.Get("/internal/validate-token", tokenValidatorController.ValidateToken)
+
 	
 	r.Route("/api/v1", func(r chi.Router) {
 		r.Route("/auth", func(r chi.Router) {
@@ -95,8 +104,11 @@ func main() {
 			r.Use(middlewares.AuthMiddleware(jwtService))
 			
 			r.Get("/auth/me", authController.GetMe)
+			r.Get("/profile/me", authController.GetMyProfileDetails)
 			r.Put("/profile/me", authController.UpdateMyProfile)
-
+			r.Put("/profile/me/password", authController.UpdateMyPassword)
+			r.Post("/profile/me/link-google", authController.LinkGoogleAccount)
+			r.Post("/profile/me/unlink-google", authController.UnlinkGoogleAccount)
 			// Users CRUD
 			r.Route("/users", func(r chi.Router) {
 				r.Post("/", userController.CreateUser)
