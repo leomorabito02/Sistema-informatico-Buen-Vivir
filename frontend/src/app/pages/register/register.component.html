@@ -9,7 +9,7 @@
         <p class="auth-subtitle">Únete a nuestra comunidad</p>
       </div>
 
-      <div class="auth-card">
+      <p-card styleClass="auth-card p-card-shadow">
         <!-- Success View -->
         <div *ngIf="registered" class="success-view">
           <div class="success-icon-wrapper">
@@ -34,12 +34,13 @@
           <div class="form-grid">
             <div class="form-group">
               <label class="form-label">Nombre</label>
-              <div class="input-wrapper">
-                <lucide-angular [img]="UserIcon" class="input-icon"></lucide-angular>
+              <div class="input-wrapper p-input-icon-left">
+                <i class="pi pi-user input-icon-pi"></i>
                 <input
+                  pInputText
                   type="text"
                   formControlName="firstName"
-                  class="form-input"
+                  class="form-input p-inputtext-sm"
                   [ngClass]="{'invalid': registerForm.get('firstName')?.invalid && registerForm.get('firstName')?.touched}"
                   placeholder="Juan"
                 />
@@ -47,12 +48,13 @@
             </div>
             <div class="form-group">
               <label class="form-label">Apellido</label>
-              <div class="input-wrapper">
-                <lucide-angular [img]="UserIcon" class="input-icon"></lucide-angular>
+              <div class="input-wrapper p-input-icon-left">
+                <i class="pi pi-user input-icon-pi"></i>
                 <input
+                  pInputText
                   type="text"
                   formControlName="lastName"
-                  class="form-input"
+                  class="form-input p-inputtext-sm"
                   [ngClass]="{'invalid': registerForm.get('lastName')?.invalid && registerForm.get('lastName')?.touched}"
                   placeholder="Pérez"
                 />
@@ -62,12 +64,13 @@
 
           <div class="form-group">
             <label class="form-label">Email</label>
-            <div class="input-wrapper">
-              <lucide-angular [img]="MailIcon" class="input-icon"></lucide-angular>
+            <div class="input-wrapper p-input-icon-left">
+              <i class="pi pi-envelope input-icon-pi"></i>
               <input
+                pInputText
                 type="email"
                 formControlName="email"
-                class="form-input"
+                class="form-input p-inputtext-sm"
                 [ngClass]="{'invalid': registerForm.get('email')?.invalid && registerForm.get('email')?.touched}"
                 placeholder="tu@email.com"
               />
@@ -76,12 +79,13 @@
 
           <div class="form-group">
             <label class="form-label">Teléfono</label>
-            <div class="input-wrapper">
-              <lucide-angular [img]="PhoneIcon" class="input-icon"></lucide-angular>
+            <div class="input-wrapper p-input-icon-left">
+              <i class="pi pi-phone input-icon-pi"></i>
               <input
+                pInputText
                 type="tel"
                 formControlName="phone"
-                class="form-input"
+                class="form-input p-inputtext-sm"
                 [ngClass]="{'invalid': registerForm.get('phone')?.invalid && registerForm.get('phone')?.touched}"
                 placeholder="+54 9 11 1234-5678"
               />
@@ -90,7 +94,7 @@
 
           <div class="form-group">
             <label class="form-label">Rol</label>
-            <select formControlName="role" class="form-select">
+            <select formControlName="role" class="form-select p-inputtext-sm">
               <option *ngFor="let role of roles" [value]="role.value">{{ role.label }}</option>
             </select>
             <p class="input-hint">
@@ -103,12 +107,13 @@
 
           <div class="form-group">
             <label class="form-label">Contraseña</label>
-            <div class="input-wrapper">
-              <lucide-angular [img]="LockIcon" class="input-icon"></lucide-angular>
+            <div class="input-wrapper p-input-icon-left">
+              <i class="pi pi-lock input-icon-pi"></i>
               <input
+                pInputText
                 [type]="showPassword ? 'text' : 'password'"
                 formControlName="password"
-                class="form-input"
+                class="form-input p-inputtext-sm"
                 [ngClass]="{'invalid': registerForm.get('password')?.invalid && registerForm.get('password')?.touched}"
                 placeholder="••••••••"
               />
@@ -133,12 +138,13 @@
 
           <div class="form-group">
             <label class="form-label">Confirmar Contraseña</label>
-            <div class="input-wrapper">
-              <lucide-angular [img]="LockIcon" class="input-icon"></lucide-angular>
+            <div class="input-wrapper p-input-icon-left">
+              <i class="pi pi-lock input-icon-pi"></i>
               <input
+                pInputText
                 [type]="showConfirmPassword ? 'text' : 'password'"
                 formControlName="confirmPassword"
-                class="form-input"
+                class="form-input p-inputtext-sm"
                 [ngClass]="{'invalid': registerForm.hasError('passwordMismatch') && registerForm.get('confirmPassword')?.touched}"
                 placeholder="••••••••"
               />
@@ -164,9 +170,8 @@
             </label>
           </div>
 
-          <div *ngIf="registerError" class="error-msg">
-            <lucide-angular [img]="AlertCircleIcon" class="error-icon"></lucide-angular>
-            <span>{{ registerError }}</span>
+          <div *ngIf="registerError" class="error-msg my-2">
+            <p-message severity="error" [text]="registerError" styleClass="w-full"></p-message>
           </div>
 
           <button
@@ -177,7 +182,7 @@
             {{ loading ? 'Creando cuenta...' : 'Crear Cuenta' }}
           </button>
         </form>
-      </div>
+      </p-card>
 
       <div *ngIf="!registered" class="auth-footer">
         ¿Ya tienes cuenta?

@@ -34,10 +34,16 @@ function passwordComplexityValidator(control: AbstractControl): ValidationErrors
   return null;
 }
 
+import { ButtonModule } from 'primeng/button';
+import { CardModule } from 'primeng/card';
+import { InputTextModule } from 'primeng/inputtext';
+import { DropdownModule } from 'primeng/dropdown';
+import { MessageModule } from 'primeng/message';
+
 @Component({
   selector: 'app-register',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, RouterLink, LucideAngularModule],
+  imports: [CommonModule, ReactiveFormsModule, RouterLink, LucideAngularModule, ButtonModule, CardModule, InputTextModule, DropdownModule, MessageModule],
   templateUrl: './register.component.html',
   styleUrl: './register.component.css'
 })

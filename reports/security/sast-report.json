@@ -1,0 +1,11 @@
+{
+  "timestamp": "2026-08-20T15:01:15.380619723-03:00",
+  "tool": "gosec + semgrep SAST Audit",
+  "summary": {
+    "total_files_scanned": 45,
+    "high": 0,
+    "medium": 0,
+    "low": 0
+  },
+  "issues": []
+}

@@ -3,10 +3,12 @@ import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { LucideAngularModule, Briefcase, LogIn, Megaphone } from 'lucide-angular';
 
+import { ButtonModule } from 'primeng/button';
+
 @Component({
   selector: 'app-hero',
   standalone: true,
-  imports: [CommonModule, RouterLink, LucideAngularModule],
+  imports: [CommonModule, RouterLink, LucideAngularModule, ButtonModule],
   templateUrl: './hero.component.html',
   styleUrl: './hero.component.css'
 })

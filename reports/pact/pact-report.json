@@ -1,0 +1,23 @@
+{
+  "timestamp": "2026-08-20T15:20:35.850973137-03:00",
+  "consumer": "Frontend-Angular-Client",
+  "provider": "Auth-Service-Go",
+  "status": "VERIFIED",
+  "contracts": [
+    {
+      "endpoint": "/api/v1/auth/check-credentials",
+      "method": "POST",
+      "matched": true
+    },
+    {
+      "endpoint": "/api/v1/auth/login",
+      "method": "POST",
+      "matched": true
+    },
+    {
+      "endpoint": "/api/v1/profile/me",
+      "method": "GET",
+      "matched": true
+    }
+  ]
+}

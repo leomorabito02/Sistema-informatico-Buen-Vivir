@@ -6,10 +6,15 @@ import { LucideAngularModule, Mail, Lock, AlertCircle, Eye, EyeOff } from 'lucid
 import { AuthService } from '../../services/auth.service';
 import { AvailableAccount } from '../../core/models/auth.model';
 
+import { ButtonModule } from 'primeng/button';
+import { CardModule } from 'primeng/card';
+import { InputTextModule } from 'primeng/inputtext';
+import { MessageModule } from 'primeng/message';
+
 @Component({
   selector: 'app-login',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, RouterLink, LucideAngularModule],
+  imports: [CommonModule, ReactiveFormsModule, RouterLink, LucideAngularModule, ButtonModule, CardModule, InputTextModule, MessageModule],
   templateUrl: './login.component.html',
   styleUrl: './login.component.css'
 })

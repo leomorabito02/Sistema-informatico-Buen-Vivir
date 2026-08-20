@@ -2,10 +2,12 @@ import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { LucideAngularModule, BookOpen, Briefcase, Heart, Megaphone } from 'lucide-angular';
 
+import { CardModule } from 'primeng/card';
+
 @Component({
   selector: 'app-pillars',
   standalone: true,
-  imports: [CommonModule, LucideAngularModule],
+  imports: [CommonModule, LucideAngularModule, CardModule],
   templateUrl: './pillars.component.html',
   styleUrl: './pillars.component.css'
 })

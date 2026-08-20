@@ -1,0 +1,55 @@
+<div class="page-container">
+  <div class="header-section">
+    <div>
+      <h1 class="page-title"><i class="pi pi-briefcase mr-2"></i>Inserción Laboral</h1>
+      <p class="page-subtitle">Seguimiento de egresados vinculados formalmente con empresas aliadas.</p>
+    </div>
+    <p-button label="Nuevo Registro" icon="pi pi-plus" styleClass="p-button-success"></p-button>
+  </div>
+
+  <div class="metrics-grid mb-4">
+    <p-card styleClass="p-card-shadow text-center">
+      <h2 class="metric-number text-primary">{{ linkedParticipantsCount }}</h2>
+      <p class="metric-label">Participantes Vinculados</p>
+    </p-card>
+    <p-card styleClass="p-card-shadow text-center">
+      <h2 class="metric-number text-success">{{ retentionRate }}</h2>
+      <p class="metric-label">Tasa de Retención Laboral</p>
+    </p-card>
+    <p-card styleClass="p-card-shadow text-center">
+      <h2 class="metric-number text-secondary">{{ activeCompaniesCount }}</h2>
+      <p class="metric-label">Empresas Aliadas Activas</p>
+    </p-card>
+  </div>
+
+  <p-card styleClass="p-card-shadow" header="Últimos Procesos de Inserción">
+    <p-table [value]="placements" class="p-datatable-striped">
+      <ng-template pTemplate="header">
+        <tr>
+          <th>Participante</th>
+          <th>Empresa</th>
+          <th>Puesto</th>
+          <th>Fecha Enlace</th>
+          <th>Estado</th>
+          <th>Acciones</th>
+        </tr>
+      </ng-template>
+      <ng-template pTemplate="body" let-item>
+        <tr>
+          <td><span class="p-column-title">Participante</span><strong>{{ item.participant }}</strong></td>
+          <td><span class="p-column-title">Empresa</span>{{ item.company }}</td>
+          <td><span class="p-column-title">Puesto</span>{{ item.role }}</td>
+          <td><span class="p-column-title">Fecha</span>{{ item.date }}</td>
+          <td>
+            <span class="p-column-title">Estado</span>
+            <p-tag [value]="item.status" [severity]="item.status === 'Contratado' ? 'success' : 'info'"></p-tag>
+          </td>
+          <td>
+            <span class="p-column-title">Acciones</span>
+            <p-button icon="pi pi-pencil" styleClass="p-button-outlined p-button-sm"></p-button>
+          </td>
+        </tr>
+      </ng-template>
+    </p-table>
+  </p-card>
+</div>

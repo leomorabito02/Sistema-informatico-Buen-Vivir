@@ -1,0 +1,55 @@
+<div class="page-container">
+  <div class="header-section">
+    <div>
+      <h1 class="page-title"><i class="pi pi-briefcase mr-2"></i>Ofertas Laborales</h1>
+      <p class="page-subtitle">Oportunidades de empleo de empresas aliadas al programa Buen Vivir.</p>
+    </div>
+    <div class="header-actions">
+      <div class="search-box p-input-icon-left">
+        <i class="pi pi-search"></i>
+        <input pInputText type="text" [(ngModel)]="searchTerm" (input)="filterJobs()" placeholder="Buscar empleos..." class="p-inputtext-sm" />
+      </div>
+      <p-button label="Publicar Oferta" icon="pi pi-plus" (onClick)="openNewJobDialog()" styleClass="p-button-success"></p-button>
+    </div>
+  </div>
+
+  <div class="grid-container">
+    <div *ngFor="let job of filteredJobs" class="job-card-wrapper">
+      <p-card [header]="job.title" [subheader]="job.company" styleClass="p-card-shadow job-card">
+        <div class="card-body">
+          <p><i class="pi pi-map-marker text-muted mr-1"></i> {{ job.location }}</p>
+          <div class="tags-row mb-3">
+            <p-tag [value]="job.type" severity="info"></p-tag>
+            <p-tag [value]="job.status" severity="success"></p-tag>
+          </div>
+          <p class="text-xs text-muted"><i class="pi pi-clock mr-1"></i> Publicado: {{ job.date }}</p>
+        </div>
+        <ng-template pTemplate="footer">
+          <p-button label="Postularme" icon="pi pi-send" styleClass="w-full p-button-outlined"></p-button>
+        </ng-template>
+      </p-card>
+    </div>
+  </div>
+
+  <!-- Modal para publicar nueva oferta -->
+  <p-dialog header="Publicar Nueva Oferta Laboral" [(visible)]="showDialog" [modal]="true" [style]="{width: '90vw', maxWidth: '500px'}">
+    <div class="dialog-body">
+      <div class="field mb-3">
+        <label for="title">Título del Puesto</label>
+        <input pInputText id="title" [(ngModel)]="newJob.title" class="w-full" placeholder="Ej: Operario Agrícola" />
+      </div>
+      <div class="field mb-3">
+        <label for="company">Empresa</label>
+        <input pInputText id="company" [(ngModel)]="newJob.company" class="w-full" placeholder="Nombre de la empresa" />
+      </div>
+      <div class="field mb-3">
+        <label for="location">Ubicación</label>
+        <input pInputText id="location" [(ngModel)]="newJob.location" class="w-full" placeholder="Ej: Alta Gracia" />
+      </div>
+    </div>
+    <ng-template pTemplate="footer">
+      <p-button label="Cancelar" icon="pi pi-times" (onClick)="showDialog = false" styleClass="p-button-text"></p-button>
+      <p-button label="Guardar" icon="pi pi-check" (onClick)="saveJob()" styleClass="p-button-success"></p-button>
+    </ng-template>
+  </p-dialog>
+</div>

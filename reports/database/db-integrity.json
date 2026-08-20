@@ -1,0 +1,17 @@
+{
+  "timestamp": "2026-08-20T15:20:35.850000335-03:00",
+  "service": "Auth Service Database",
+  "checks": [
+    {
+      "name": "Unique Email Constraint Assertion",
+      "status": "PASSED",
+      "message": "Unique index on users(email) validated."
+    },
+    {
+      "name": "Foreign Key Integrity Check",
+      "status": "PASSED",
+      "message": "Referential integrity between users and roles verified."
+    }
+  ],
+  "passed": true
+}
