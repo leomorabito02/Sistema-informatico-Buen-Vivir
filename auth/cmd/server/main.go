@@ -4,6 +4,7 @@ import (
 	"log/slog"
 	"net/http"
 	"os"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 	chi_middleware "github.com/go-chi/chi/v5/middleware"
@@ -185,7 +186,15 @@ func main() {
 	// 8. Start Server
 	port := os.Getenv("PORT")
 	slog.Info("Servicio Auth escuchando en el puerto", "port", port)
-	if err := http.ListenAndServe(":"+port, r); err != nil {
+	server := &http.Server{
+		Addr:         ":" + port,
+		Handler:      r,
+		ReadTimeout:  10 * time.Second,
+		WriteTimeout: 10 * time.Second,
+		IdleTimeout:  120 * time.Second,
+	}
+
+	if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 		slog.Error("Error al iniciar el servidor", "error", err)
 		os.Exit(1)
 	}

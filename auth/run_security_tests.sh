@@ -45,6 +45,18 @@ echo ""
 echo "======================================"
 echo " 3) DAST: Dynamic Application Security Testing (OWASP ZAP)"
 echo "======================================"
+echo "Starting Postgres for testing..."
+docker run --name auth_test_db -e POSTGRES_PASSWORD=postgres -e POSTGRES_DB=testdb -p 5432:5432 -d postgres:15-alpine || true
+echo "Waiting for DB to start..."
+sleep 5
+
+export DATABASE_URL="postgres://postgres:postgres@localhost:5432/testdb?sslmode=disable"
+export JWT_SECRET="Kj8mN2pQr5vXz9LbWc3tYs7uFhAe1DgHiJmMpNq4Ovs="
+export JWT_REFRESH_SECRET="iIryYYyBwFeRpmAPXDiz/kN93I44Ll4Yj0bqpKAFp3NLE739aQDtDn2J6IOLcf8rKbiNES+TTvmwbbJFwVYH6B=="
+export PORT="8089"
+export FIREBASE_PROJECT_ID="ceibuenvivir"
+export FIREBASE_AUTH_EMULATOR_HOST="localhost:9099"
+
 echo "Starting Auth API server in background..."
 go run cmd/server/main.go &
 API_PID=$!
@@ -57,15 +69,17 @@ set +e
 # Run ZAP Docker image.
 # We mount the current directory to /zap/wrk to save the report.
 # --network="host" is used to allow the container to access localhost on Linux.
-docker run --rm --network="host" \
+docker run --rm \
+  --add-host host.docker.internal:host-gateway \
   -v $(pwd):/zap/wrk/:rw \
   -t zaproxy/zap-stable \
-  zap-baseline.py -t http://localhost:8080 -r zap_report.html -I
+  zap-baseline.py -t http://host.docker.internal:8089 -r zap_report.html -I
 DAST_EXIT=$?
 set -e
 
-echo "Shutting down Auth API server..."
+echo "Shutting down Auth API server and DB..."
 kill $API_PID || true
+docker rm -f auth_test_db || true
 
 if [ $DAST_EXIT -eq 0 ]; then
   echo "✅ DAST passed."

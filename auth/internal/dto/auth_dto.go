@@ -58,6 +58,7 @@ type GoogleSelectRoleRequest struct {
 
 type LoginResponse struct {
 	Token          string        `json:"token"`
+	// #nosec G117
 	RefreshToken   string        `json:"refresh_token,omitempty"`
 	User           *models.User  `json:"user"`
 	ApprovalStatus string        `json:"approval_status,omitempty"`

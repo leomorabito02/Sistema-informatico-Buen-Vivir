@@ -337,9 +337,9 @@ func (s *authService) saveRefreshToken(ctx context.Context, userID, token string
 	}
 	_ = s.refreshTokenRepo.RevokeAllForUser(ctx, userID)
 
-	go func() {
-		_ = s.refreshTokenRepo.DeleteExpired(context.Background())
-	}()
+	go func(c context.Context) {
+		_ = s.refreshTokenRepo.DeleteExpired(c)
+	}(context.WithoutCancel(ctx))
 
 	return s.refreshTokenRepo.Create(ctx, rt)
 }
