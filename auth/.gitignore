@@ -2,3 +2,7 @@ mutation_report.txt
 sast_report.json
 sca_report.txt
 zap_report.html
+auth_ctrl_full.out
+auth_ctrl.out
+controllers.out
+coverage.out
