@@ -86,7 +86,7 @@ func main() {
 	
 	// Basic standard middlewares (CORS and Security Headers are handled by API Gateway)
 	r.Use(chi_middleware.RequestID)
-	r.Use(chi_middleware.RealIP)
+	r.Use(chi_middleware.RealIP) //nolint:staticcheck // RealIP used for internal request logging behind API Gateway
 	r.Use(chi_middleware.Recoverer)
 
 	// DDoS Protection fallback (Global Rate Limiter)

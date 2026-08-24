@@ -36,7 +36,7 @@ func SetupMiddlewares(r *chi.Mux) {
 
 	// Standard chi middlewares
 	r.Use(middleware.RequestID)
-	r.Use(middleware.RealIP)
+	r.Use(middleware.RealIP) //nolint:staticcheck // RealIP used for internal logging
 	r.Use(middleware.Recoverer)
 
 	// Logging middleware adapted for JSON / Google Cloud Logging

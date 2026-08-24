@@ -31,17 +31,17 @@ func NewFirebaseService() (FirebaseService, error) {
 	credentialsJSON := os.Getenv("FIREBASE_CREDENTIALS_JSON")
 	
 	if credentialsJSON != "" {
-		opt := option.WithCredentialsJSON([]byte(credentialsJSON))
+		opt := option.WithCredentialsJSON([]byte(credentialsJSON)) //nolint:staticcheck // option.WithCredentialsJSON is required for Firebase inline credentials
 		app, err = firebase.NewApp(ctx, nil, opt)
 	} else if credentialsEnv != "" {
 		// Check if it's a raw JSON string instead of a path
 		if len(credentialsEnv) > 0 && credentialsEnv[0] == '{' {
 			// Borramos la variable de entorno para que el SDK base no intente abrirla como archivo (file name too long)
-			os.Unsetenv("GOOGLE_APPLICATION_CREDENTIALS")
-			opt := option.WithCredentialsJSON([]byte(credentialsEnv))
+			_ = os.Unsetenv("GOOGLE_APPLICATION_CREDENTIALS")
+			opt := option.WithCredentialsJSON([]byte(credentialsEnv)) //nolint:staticcheck // option.WithCredentialsJSON is required for Firebase inline credentials
 			app, err = firebase.NewApp(ctx, nil, opt)
 		} else {
-			opt := option.WithCredentialsFile(credentialsEnv)
+			opt := option.WithCredentialsFile(credentialsEnv) //nolint:staticcheck // option.WithCredentialsFile is required for Firebase credential files
 			app, err = firebase.NewApp(ctx, nil, opt)
 		}
 	} else {
