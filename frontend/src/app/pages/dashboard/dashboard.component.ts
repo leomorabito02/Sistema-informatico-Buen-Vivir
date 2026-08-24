@@ -1,7 +1,7 @@
 import { Component, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule } from '@angular/forms';
-import { RouterLink, RouterOutlet } from '@angular/router';
+import { RouterOutlet } from '@angular/router';
 import { LucideAngularModule } from 'lucide-angular';
 import { HeaderComponent } from '../../components/layout/header/header.component';
 import { SidebarComponent } from '../../components/layout/sidebar/sidebar.component';
@@ -13,7 +13,7 @@ import { CardModule } from 'primeng/card';
 @Component({
   selector: 'app-dashboard',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, RouterLink, RouterOutlet, LucideAngularModule, HeaderComponent, SidebarComponent, FooterComponent, ToastModule, CardModule],
+  imports: [CommonModule, ReactiveFormsModule, RouterOutlet, LucideAngularModule, HeaderComponent, SidebarComponent, FooterComponent, ToastModule, CardModule],
   templateUrl: './dashboard.component.html',
   styleUrl: './dashboard.component.css'
 })

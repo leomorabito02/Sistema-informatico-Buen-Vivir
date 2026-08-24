@@ -1,7 +1,19 @@
 allowBuilds:
   '@firebase/util': true
+  '@parcel/watcher': true
   esbuild: true
   lmdb: true
   msgpackr-extract: true
   nice-napi: true
   protobufjs: true
+
+overrides:
+  tar: ">=7.5.21"
+  serialize-javascript: ">=7.0.3"
+  http-proxy-middleware: ">=3.0.7"
+  piscina: ">=4.9.3"
+  sigstore: ">=4.1.1"
+  vite: ">=6.4.3"
+  postcss: ">=8.5.18"
+  image-size: ">=2.0.3"
+
