@@ -1,6 +1,9 @@
 import http from 'k6/http';
 import { check, sleep } from 'k6';
 
+// BASE_URL is injected by the CD pipeline via -e BASE_URL=<cloud_run_url>
+const BASE_URL = __ENV.BASE_URL || 'http://localhost:8080';
+
 export const options = {
   stages: [
     { duration: '10s', target: 20 }, // Ramp-up to 20 users
@@ -9,16 +12,13 @@ export const options = {
   ],
   thresholds: {
     // 95% of requests must complete below 500ms
-    http_req_duration: ['p(95)<500'], 
-    // We expect 0 HTTP failures (since 401/400 is considered valid in this scenario if handled by checks)
+    http_req_duration: ['p(95)<500'],
   },
 };
 
 export default function () {
-  const baseUrl = 'http://localhost:8080';
-
   // 1. Health Endpoint Spike
-  let healthRes = http.get(`${baseUrl}/health`);
+  let healthRes = http.get(`${BASE_URL}/health`);
   check(healthRes, {
     'health check returns 200': (r) => r.status === 200,
   });
@@ -28,15 +28,15 @@ export default function () {
     email: 'loadtest@example.com',
     password: 'wrongpassword123',
   });
-  
+
   const params = {
     headers: {
       'Content-Type': 'application/json',
     },
   };
 
-  let loginRes = http.post(`${baseUrl}/api/v1/auth/login`, loginPayload, params);
-  
+  let loginRes = http.post(`${BASE_URL}/api/v1/auth/login`, loginPayload, params);
+
   // We expect a 401 Unauthorized or 400 Bad Request because the credentials are wrong.
   check(loginRes, {
     'login gracefully rejects': (r) => r.status === 401 || r.status === 400,

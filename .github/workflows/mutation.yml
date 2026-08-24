@@ -1,0 +1,100 @@
+name: Mutation Tests
+
+on:
+  push:
+    branches:
+      - testing
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+env:
+  NODE_VERSION: '20'
+  GO_VERSION: '1.22'
+
+# ============================================================================
+# JOB: mutation-frontend
+# Stryker mutation testing for Angular (Karma/Jasmine).
+# Runs on push to testing AND on PRs to main.
+# ============================================================================
+jobs:
+  mutation-frontend:
+    name: Mutation — Frontend (Stryker)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          run_install: false
+
+      - name: Install dependencies
+        working-directory: frontend
+        run: pnpm install --frozen-lockfile
+
+      - name: Run Stryker mutation tests
+        working-directory: frontend
+        run: npx stryker run
+        # Non-zero exit if mutation score is below threshold defined in stryker.conf.json
+
+      - name: Upload Stryker mutation report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: stryker-report-${{ github.sha }}
+          path: frontend/reports/mutation/
+          retention-days: 14
+
+# ============================================================================
+# JOB: mutation-auth
+# Go mutation testing using go-mutesting.
+# Runs on push to testing AND on PRs to main.
+# ============================================================================
+  mutation-auth:
+    name: Mutation — Auth Service (go-mutesting)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+          cache-dependency-path: auth/go.sum
+
+      - name: Download Go dependencies
+        working-directory: auth
+        run: go mod download
+
+      - name: Install go-mutesting
+        run: go install github.com/zimmski/go-mutesting/cmd/go-mutesting@latest
+
+      - name: Run go-mutesting
+        working-directory: auth
+        run: |
+          go-mutesting ./internal/... > mutation_report.txt || true
+          cat mutation_report.txt
+
+      - name: Upload mutation report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: auth-mutation-report-${{ github.sha }}
+          path: auth/mutation_report.txt
+          retention-days: 14

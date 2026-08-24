@@ -50,7 +50,7 @@ docker run --name auth_test_db -e POSTGRES_PASSWORD=postgres -e POSTGRES_DB=test
 echo "Waiting for DB to start..."
 sleep 5
 
-export DATABASE_URL="postgres://postgres:postgres@localhost:5432/testdb?sslmode=disable"
+export DATABASE_URL_AUTH="postgres://postgres:postgres@localhost:5432/testdb?sslmode=disable"
 export JWT_SECRET="Kj8mN2pQr5vXz9LbWc3tYs7uFhAe1DgHiJmMpNq4Ovs="
 export JWT_REFRESH_SECRET="iIryYYyBwFeRpmAPXDiz/kN93I44Ll4Yj0bqpKAFp3NLE739aQDtDn2J6IOLcf8rKbiNES+TTvmwbbJFwVYH6B=="
 export PORT="8089"

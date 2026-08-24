@@ -14,9 +14,9 @@ import (
 
 // InitDatabase initializes the connection to NeonDB (PostgreSQL) using GORM.
 func InitDatabase() (*gorm.DB, error) {
-	dsn := os.Getenv("DATABASE_URL")
+	dsn := os.Getenv("DATABASE_URL_AUTH")
 	if dsn == "" {
-		return nil, fmt.Errorf("DATABASE_URL environment variable is not set")
+		return nil, fmt.Errorf("DATABASE_URL_AUTH environment variable is not set")
 	}
 
 	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
