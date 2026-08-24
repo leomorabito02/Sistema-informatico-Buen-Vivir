@@ -3,6 +3,7 @@ import { HttpClientTestingModule, HttpTestingController } from '@angular/common/
 import { AuthService } from './auth.service';
 import { Auth } from '@angular/fire/auth';
 import { RouterTestingModule } from '@angular/router/testing';
+import { Router } from '@angular/router';
 import { environment } from '../../environments/environment';
 
 describe('AuthService', () => {
@@ -76,12 +77,53 @@ describe('AuthService', () => {
     req.flush({ message: 'Email already exists' }, { status: 409, statusText: 'Conflict' });
   });
 
+  it('logout should navigate to /login on success', () => {
+    const routerSpy = TestBed.inject(Router);
+    spyOn(routerSpy, 'navigate');
+
+    service.logout();
+
+    const req = httpMock.expectOne(`${environment.apiUrl}/api/v1/auth/logout`);
+    req.flush({});
+
+    expect(authSpy.signOut).toHaveBeenCalled();
+    expect(routerSpy.navigate).toHaveBeenCalledWith(['/login']);
+  });
+
   it('logout should navigate to /login even on error', () => {
+    const routerSpy = TestBed.inject(Router);
+    spyOn(routerSpy, 'navigate');
+
     service.logout();
 
     const req = httpMock.expectOne(`${environment.apiUrl}/api/v1/auth/logout`);
     req.flush('Error', { status: 500, statusText: 'Server Error' });
 
     expect(authSpy.signOut).toHaveBeenCalled();
+    expect(routerSpy.navigate).toHaveBeenCalledWith(['/login']);
+  });
+
+  it('handleError should throw default message when no error details are provided', () => {
+    service.checkCredentials('test@test.com', 'wrong').subscribe({
+      next: () => fail('should have failed'),
+      error: (err) => {
+        expect(err.message).toBe('Ocurrió un error inesperado. Por favor, intente nuevamente.');
+      }
+    });
+
+    const req = httpMock.expectOne(`${environment.apiUrl}/api/v1/auth/check-credentials`);
+    req.flush(null, { status: 500, statusText: 'Internal Server Error' });
+  });
+
+  it('handleError should throw 403 message', () => {
+    service.checkCredentials('test@test.com', 'wrong').subscribe({
+      next: () => fail('should have failed'),
+      error: (err) => {
+        expect(err.message).toBe('No tiene permisos para realizar esta acción.');
+      }
+    });
+
+    const req = httpMock.expectOne(`${environment.apiUrl}/api/v1/auth/check-credentials`);
+    req.flush('Forbidden', { status: 403, statusText: 'Forbidden' });
   });
 });

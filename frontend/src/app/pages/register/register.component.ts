@@ -125,7 +125,7 @@ export class RegisterComponent {
         this.registerError = 'La contraseña debe incluir al menos un carácter especial (ej: !@#$%^&*).';
       } else if (this.registerForm.hasError('passwordMismatch')) {
         this.registerError = 'Las contraseñas no coinciden.';
-      } else if (terms?.hasError('requiredTrue')) {
+      } else if (terms?.hasError('required')) {
         this.registerError = 'Debés aceptar los términos y condiciones para continuar.';
       } else {
         this.registerError = 'Por favor, revisá los campos del formulario.';
