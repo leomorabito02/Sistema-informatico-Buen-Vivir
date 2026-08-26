@@ -6,7 +6,7 @@ go tool cover -func=../reports/coverage/auth.out
 
 ./run_mutation_tests.sh
 
-# test de seguridad backend
+# test de seguridad backend auth
 ./run_security_tests.sh
 
 # test unitarios frontend

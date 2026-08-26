@@ -1,7 +1,7 @@
 import { Component, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators, AbstractControl, ValidationErrors } from '@angular/forms';
-import { Router, RouterLink, ActivatedRoute } from '@angular/router';
+import { RouterLink, ActivatedRoute } from '@angular/router';
 import { LucideAngularModule, User, Mail, Lock, Phone, CheckCircle2, Clock, AlertCircle, Eye, EyeOff } from 'lucide-angular';
 import { AuthService } from '../../services/auth.service';
 
@@ -66,6 +66,8 @@ export class RegisterComponent {
   registered = false;
   registerError = '';
   loading = false;
+  showPassword = false;
+  showConfirmPassword = false;
 
   roles = [
     { label: 'Participante', value: 'participant' },
@@ -95,41 +97,45 @@ export class RegisterComponent {
     });
   }
 
-  get needsApproval() {
-    const role = this.registerForm.get('role')?.value;
+  get needsApproval(): boolean {
+    const role = this.registerForm.controls['role'].value;
     return role === 'volunteer' || role === 'teacher' || role === 'company';
+  }
+
+  private getFirstFormError(): string {
+    const c = this.registerForm.controls;
+    const reqFields = [c['firstName'], c['lastName'], c['email'], c['phone'], c['password']];
+    if (reqFields.some(ctrl => ctrl.hasError('required'))) {
+      return 'Por favor, completá todos los campos obligatorios.';
+    }
+    if (c['email'].hasError('email')) {
+      return 'Por favor, ingresá una dirección de correo electrónico válida.';
+    }
+    if (c['password'].hasError('minlength')) {
+      return 'La contraseña debe tener al menos 8 caracteres.';
+    }
+    if (c['password'].hasError('missingUpper')) {
+      return 'La contraseña debe incluir al menos una letra mayúscula.';
+    }
+    if (c['password'].hasError('missingLower')) {
+      return 'La contraseña debe incluir al menos una letra minúscula.';
+    }
+    if (c['password'].hasError('missingSpecial')) {
+      return 'La contraseña debe incluir al menos un carácter especial (ej: !@#$%^&*).';
+    }
+    if (this.registerForm.hasError('passwordMismatch')) {
+      return 'Las contraseñas no coinciden.';
+    }
+    if (c['terms'].hasError('required')) {
+      return 'Debés aceptar los términos y condiciones para continuar.';
+    }
+    return 'Por favor, revisá los campos del formulario.';
   }
 
   onSubmit() {
     if (this.registerForm.invalid) {
       this.registerForm.markAllAsTouched();
-
-      const fn = this.registerForm.get('firstName');
-      const ln = this.registerForm.get('lastName');
-      const email = this.registerForm.get('email');
-      const phone = this.registerForm.get('phone');
-      const pass = this.registerForm.get('password');
-      const terms = this.registerForm.get('terms');
-
-      if (fn?.hasError('required') || ln?.hasError('required') || email?.hasError('required') || phone?.hasError('required') || pass?.hasError('required')) {
-        this.registerError = 'Por favor, completá todos los campos obligatorios.';
-      } else if (email?.hasError('email')) {
-        this.registerError = 'Por favor, ingresá una dirección de correo electrónico válida.';
-      } else if (pass?.hasError('minlength')) {
-        this.registerError = 'La contraseña debe tener al menos 8 caracteres.';
-      } else if (pass?.hasError('missingUpper')) {
-        this.registerError = 'La contraseña debe incluir al menos una letra mayúscula.';
-      } else if (pass?.hasError('missingLower')) {
-        this.registerError = 'La contraseña debe incluir al menos una letra minúscula.';
-      } else if (pass?.hasError('missingSpecial')) {
-        this.registerError = 'La contraseña debe incluir al menos un carácter especial (ej: !@#$%^&*).';
-      } else if (this.registerForm.hasError('passwordMismatch')) {
-        this.registerError = 'Las contraseñas no coinciden.';
-      } else if (terms?.hasError('required')) {
-        this.registerError = 'Debés aceptar los términos y condiciones para continuar.';
-      } else {
-        this.registerError = 'Por favor, revisá los campos del formulario.';
-      }
+      this.registerError = this.getFirstFormError();
       return;
     }
 
@@ -146,7 +152,7 @@ export class RegisterComponent {
     };
 
     this.authService.registerWithEmail(formData).subscribe({
-      next: (res) => {
+      next: () => {
         this.registered = true;
         this.loading = false;
       },
@@ -158,9 +164,6 @@ export class RegisterComponent {
       }
     });
   }
-
-  showPassword = false;
-  showConfirmPassword = false;
 
   togglePasswordVisibility(): void {
     this.showPassword = !this.showPassword;

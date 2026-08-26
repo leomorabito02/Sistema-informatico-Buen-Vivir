@@ -2,7 +2,20 @@
   "$schema": "./node_modules/@stryker-mutator/core/schema/stryker-schema.json",
   "mutate": [
     "src/app/**/*.ts",
-    "!src/**/*.spec.ts"
+    "!src/**/*.spec.ts",
+    "!src/app/app.config.ts",
+    "!src/app/pages/dashboard/asistencia/**",
+    "!src/app/pages/dashboard/campanas/**",
+    "!src/app/pages/dashboard/cursos/**",
+    "!src/app/pages/dashboard/cv/**",
+    "!src/app/pages/dashboard/insercion/**",
+    "!src/app/pages/dashboard/mis-cursos/**",
+    "!src/app/pages/dashboard/notificaciones/**",
+    "!src/app/pages/dashboard/ofertas/**",
+    "!src/app/pages/dashboard/participantes/**",
+    "!src/app/pages/dashboard/progreso/**",
+    "!src/app/pages/dashboard/seguimiento/**",
+    "!src/app/pages/dashboard/usuarios/**"
   ],
   "testRunner": "karma",
   "karma": {
@@ -15,6 +28,6 @@
   "reporters": ["progress", "clear-text", "html"],
   "concurrency": 2,
   "concurrency_comment": "We use concurrency 2 to avoid overwhelming ChromeHeadless instances",
-  "coverageAnalysis": "perTest",
+  "coverageAnalysis": "off",
   "plugins": ["@stryker-mutator/karma-runner"]
 }

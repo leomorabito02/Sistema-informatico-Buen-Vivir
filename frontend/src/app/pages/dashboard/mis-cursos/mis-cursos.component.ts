@@ -5,6 +5,15 @@ import { ButtonModule } from 'primeng/button';
 import { TagModule } from 'primeng/tag';
 import { CardModule } from 'primeng/card';
 
+interface Course {
+  title: string;
+  teacher: string;
+  schedule: string;
+  status: string;
+  progress: number;
+}
+
+
 @Component({
   selector: 'app-mis-cursos',
   standalone: true,
@@ -13,11 +22,11 @@ import { CardModule } from 'primeng/card';
   styleUrls: ['./mis-cursos.component.css']
 })
 export class MisCursosComponent implements OnInit {
-  assignedCourses: any[] = [];
+  assignedCourses: Course[] = [];
 
   ngOnInit() {}
 
-  getSeverity(status: string): any {
+  getSeverity(status: string): string | undefined {
     switch (status) {
       case 'Activo': return 'success';
       case 'Planificado': return 'info';

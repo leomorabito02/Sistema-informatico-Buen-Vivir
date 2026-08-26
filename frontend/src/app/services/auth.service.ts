@@ -1,11 +1,11 @@
 import { Injectable, inject } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { Auth, signInWithPopup, GoogleAuthProvider } from '@angular/fire/auth';
 import { environment } from '../../environments/environment';
 import { Observable, from, throwError } from 'rxjs';
 import { catchError, switchMap } from 'rxjs/operators';
 import { Router } from '@angular/router';
-import { CheckCredentialsResponse, LoginResponse, RegisterRequest, User } from '../core/models/auth.model';
+import { CheckCredentialsResponse, LoginResponse, MeResponse, RegisterRequest, UpdateCompanyProfile, UpdateParticipantProfile, UpdateTeacherProfile, User } from '../core/models/auth.model';
 
 @Injectable({
   providedIn: 'root'
@@ -84,8 +84,8 @@ export class AuthService {
    * Checks whether the current session is valid.
    * The browser automatically sends the HttpOnly authentication cookie.
    */
-  isAuthenticated(): Observable<{user: User}> {
-    return this.http.get<{user: User}>(
+  isAuthenticated(): Observable<MeResponse> {
+    return this.http.get<MeResponse>(
       `${this.apiUrl}/api/v1/auth/me`,
       { withCredentials: true }
     ).pipe(
@@ -93,8 +93,8 @@ export class AuthService {
     );
   }
 
-  updateProfile(data: any): Observable<any> {
-    return this.http.put<any>(
+  updateProfile(data: UpdateParticipantProfile | UpdateCompanyProfile | UpdateTeacherProfile): Observable<User> {
+    return this.http.put<User>(
       `${this.apiUrl}/api/v1/profile/me`,
       data,
       { withCredentials: true }
@@ -125,10 +125,10 @@ export class AuthService {
     });
   }
 
-  private handleError = (error: any) => {
+  private handleError = (error: HttpErrorResponse) => {
     let errorMessage = 'Ocurrió un error inesperado. Por favor, intente nuevamente.';
-    if (error.error && error.error.message) {
-      errorMessage = error.error.message;
+    if (error.error && (error.error as { message?: string }).message) {
+      errorMessage = (error.error as { message: string }).message;
     } else if (error.status === 401) {
       errorMessage = 'No autorizado. Verifique sus credenciales.';
     } else if (error.status === 403) {

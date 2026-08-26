@@ -1,6 +1,7 @@
 import { CanActivateFn, Router } from '@angular/router';
 import { inject } from '@angular/core';
 import { AuthService } from '../../services/auth.service';
+import { MeResponse } from '../models/auth.model';
 import { catchError, map, of } from 'rxjs';
 
 export const guestGuard: CanActivateFn = () => {
@@ -8,7 +9,7 @@ export const guestGuard: CanActivateFn = () => {
   const router = inject(Router);
 
   return authService.isAuthenticated().pipe(
-    map((res: any) => {
+    map((res: MeResponse) => {
       if (res.approval_status === 'pending') {
         return router.createUrlTree(['/pending-approval']);
       }

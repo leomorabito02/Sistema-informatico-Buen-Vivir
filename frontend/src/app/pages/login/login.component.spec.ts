@@ -31,30 +31,45 @@ describe('LoginComponent', () => {
     fixture.detectChanges();
   });
 
-  it('should create', () => {
+  it('should create with initial default states', () => {
     expect(component).toBeTruthy();
+    expect(component.loginError).toBe('');
+    expect(component.locked).toBeFalse();
+    expect(component.failedAttempts).toBe(0);
+    expect(component.MAX_ATTEMPTS).toBe(5);
+    expect(component.showPassword).toBeFalse();
   });
 
   it('should toggle password visibility', () => {
     expect(component.showPassword).toBeFalse();
     component.togglePasswordVisibility();
     expect(component.showPassword).toBeTrue();
+    component.togglePasswordVisibility();
+    expect(component.showPassword).toBeFalse();
   });
 
   describe('onSubmit validations', () => {
-    it('should set error when fields are empty', () => {
+    it('should set error when required fields are empty independently and mark form touched', () => {
+      component.loginForm.controls['email'].setValue('');
+      component.loginForm.controls['password'].setValue('1234');
+      component.onSubmit();
+      expect(component.loginError).toBe('Por favor, ingresá tu email y contraseña.');
+      expect(component.loginForm.touched).toBeTrue();
+      
+      component.loginForm.controls['email'].setValue('test@test.com');
+      component.loginForm.controls['password'].setValue('');
       component.onSubmit();
       expect(component.loginError).toBe('Por favor, ingresá tu email y contraseña.');
     });
 
-    it('should set error for invalid email', () => {
-      component.loginForm.controls['email'].setValue('invalid');
+    it('should set error for invalid email when password is valid', () => {
+      component.loginForm.controls['email'].setValue('invalid-email');
       component.loginForm.controls['password'].setValue('1234');
       component.onSubmit();
       expect(component.loginError).toBe('Por favor, ingresá un correo electrónico válido.');
     });
 
-    it('should set error for short password', () => {
+    it('should set error for short password when email is valid', () => {
       component.loginForm.controls['email'].setValue('test@test.com');
       component.loginForm.controls['password'].setValue('123');
       component.onSubmit();
@@ -137,6 +152,42 @@ describe('LoginComponent', () => {
       expect(mockRouter.navigate).toHaveBeenCalledWith(['/account-notice']);
     });
 
+    it('should navigate to account-notice if checkCredentials error includes activa', () => {
+      mockAuthService.checkCredentials.and.returnValue(throwError(() => ({ error: { error: 'cuenta no activa' } })));
+      component.onSubmit();
+      expect(mockRouter.navigate).toHaveBeenCalledWith(['/account-notice']);
+    });
+    
+    it('should navigate to account-notice if checkCredentials error includes bloque', () => {
+      mockAuthService.checkCredentials.and.returnValue(throwError(() => ({ error: { error: 'usuario bloqueado' } })));
+      component.onSubmit();
+      expect(mockRouter.navigate).toHaveBeenCalledWith(['/account-notice']);
+    });
+
+    it('should navigate to account-notice if loginWithAccount error includes activa', () => {
+      const account = { user_id: '1', role_id: 'r1', role_name: 'Role 1', status: 'active' };
+      mockAuthService.checkCredentials.and.returnValue(of({ accounts: [account], login_nonce: 'nonce' }));
+      mockAuthService.loginWithAccount.and.returnValue(throwError(() => ({ error: { error: 'cuenta no activa' } })));
+      component.onSubmit();
+      expect(mockRouter.navigate).toHaveBeenCalledWith(['/account-notice']);
+    });
+
+    it('should navigate to account-notice if loginWithAccount error includes bloque', () => {
+      const account = { user_id: '1', role_id: 'r1', role_name: 'Role 1', status: 'active' };
+      mockAuthService.checkCredentials.and.returnValue(of({ accounts: [account], login_nonce: 'nonce' }));
+      mockAuthService.loginWithAccount.and.returnValue(throwError(() => ({ error: { error: 'usuario bloqueado' } })));
+      component.onSubmit();
+      expect(mockRouter.navigate).toHaveBeenCalledWith(['/account-notice']);
+    });
+
+    it('should handle failed attempts correctly with generic message', () => {
+      const account = { user_id: '1', role_id: 'r1', role_name: 'Role 1', status: 'active' };
+      mockAuthService.checkCredentials.and.returnValue(of({ accounts: [account], login_nonce: 'nonce' }));
+      mockAuthService.loginWithAccount.and.returnValue(throwError(() => ({ error: {} })));
+      component.onSubmit();
+      expect(component.loginError).toBe('Email o contraseña incorrectos.');
+    });
+
     it('should handle failed attempts and lock out after MAX_ATTEMPTS', () => {
       mockAuthService.checkCredentials.and.returnValue(throwError(() => ({ error: { error: 'Bad login' } })));
       
@@ -165,10 +216,16 @@ describe('LoginComponent', () => {
       expect(mockRouter.navigate).toHaveBeenCalledWith(['/dashboard']);
     });
 
-    it('should handle google login error', () => {
+    it('should handle google login error with server error message', () => {
       mockAuthService.checkGoogleCredentials.and.returnValue(throwError(() => ({ error: { error: 'Google err' } })));
       component.handleGoogleLogin();
       expect(component.loginError).toBe('Google err');
+    });
+    
+    it('should handle google login error with default message', () => {
+      mockAuthService.checkGoogleCredentials.and.returnValue(throwError(() => ({ error: {} })));
+      component.handleGoogleLogin();
+      expect(component.loginError).toBe('Hubo un error al iniciar sesión con Google. Intentá nuevamente.');
     });
   });
 });

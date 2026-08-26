@@ -23,9 +23,9 @@
         <div class='clearfix'>
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">80% </span>
+                <span class="strong">83.33% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>24/30</span>
+                <span class='fraction'>25/30</span>
             </div>
         
             
@@ -37,16 +37,16 @@
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">66.66% </span>
+                <span class="strong">73.33% </span>
                 <span class="quiet">Functions</span>
-                <span class='fraction'>10/15</span>
+                <span class='fraction'>11/15</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">82.14% </span>
+                <span class="strong">85.71% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>23/28</span>
+                <span class='fraction'>24/28</span>
             </div>
         
             
@@ -214,11 +214,11 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">1x</span>
-<span class="cline-any cline-yes">10x</span>
-<span class="cline-any cline-yes">10x</span>
-<span class="cline-any cline-yes">10x</span>
+<span class="cline-any cline-yes">12x</span>
+<span class="cline-any cline-yes">12x</span>
+<span class="cline-any cline-yes">12x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">10x</span>
+<span class="cline-any cline-yes">12x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -274,7 +274,7 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">2x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -297,7 +297,7 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -328,7 +328,7 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">10x</span>
+<span class="cline-any cline-yes">12x</span>
 <span class="cline-any cline-yes">4x</span>
 <span class="cline-any cline-yes">4x</span>
 <span class="cline-any cline-yes">1x</span>
@@ -340,13 +340,13 @@
 <span class="cline-any cline-yes">4x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">import { Injectable, inject } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { Auth, signInWithPopup, GoogleAuthProvider } from '@angular/fire/auth';
 import { environment } from '../../environments/environment';
 import { Observable, from, throwError } from 'rxjs';
 import { catchError, switchMap } from 'rxjs/operators';
 import { Router } from '@angular/router';
-import { CheckCredentialsResponse, LoginResponse, RegisterRequest, User } from '../core/models/auth.model';
+import { CheckCredentialsResponse, LoginResponse, MeResponse, RegisterRequest, UpdateCompanyProfile, UpdateParticipantProfile, UpdateTeacherProfile, User } from '../core/models/auth.model';
 &nbsp;
 @Injectable({
   providedIn: 'root'
@@ -425,8 +425,8 @@ export class AuthService {
    * Checks whether the current session is valid.
    * The browser automatically sends the HttpOnly authentication cookie.
    */
-  isAuthenticated(): Observable&lt;{user: User}&gt; {
-    return this.http.get&lt;{user: User}&gt;(
+  isAuthenticated(): Observable&lt;MeResponse&gt; {
+    return this.http.get&lt;MeResponse&gt;(
       `${this.apiUrl}/api/v1/auth/me`,
       { withCredentials: true }
     ).pipe(
@@ -434,8 +434,8 @@ export class AuthService {
     );
   }
 &nbsp;
-<span class="fstat-no" title="function not covered" >  updateProfile(</span>data: any): Observable&lt;any&gt; {
-<span class="cstat-no" title="statement not covered" >    return this.http.put&lt;any&gt;(</span>
+  updateProfile(data: UpdateParticipantProfile | UpdateCompanyProfile | UpdateTeacherProfile): Observable&lt;User&gt; {
+    return this.http.put&lt;User&gt;(
       `${this.apiUrl}/api/v1/profile/me`,
       data,
       { withCredentials: true }
@@ -466,10 +466,10 @@ export class AuthService {
     });
   }
 &nbsp;
-  private handleError = (error: any) =&gt; {
+  private handleError = (error: HttpErrorResponse) =&gt; {
     let errorMessage = 'Ocurrió un error inesperado. Por favor, intente nuevamente.';
-    if (error.error &amp;&amp; error.error.message) {
-      errorMessage = error.error.message;
+    if (error.error &amp;&amp; (error.error as { message?: string }).message) {
+      errorMessage = (error.error as { message: string }).message;
     } else if (error.status === 401) {
       errorMessage = 'No autorizado. Verifique sus credenciales.';
     } else if (error.status === 403) {
@@ -484,7 +484,7 @@ export class AuthService {
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2026-08-24T14:58:37.633Z
+                at 2026-08-26T02:16:42.578Z
             </div>
         <script src="../../prettify.js"></script>
         <script>

@@ -7,6 +7,18 @@ import { CardModule } from 'primeng/card';
 import { TagModule } from 'primeng/tag';
 import { InputTextModule } from 'primeng/inputtext';
 
+interface Curso {
+  title: string;
+  category: string;
+  instructor: string;
+  schedule: string;
+  seats: number;
+  status: string;
+  duration?: string;
+  level?: string;
+}
+
+
 @Component({
   selector: 'app-cursos',
   standalone: true,
@@ -16,8 +28,8 @@ import { InputTextModule } from 'primeng/inputtext';
 })
 export class CursosComponent implements OnInit {
   searchTerm: string = '';
-  cursos: any[] = [];
-  filteredCursos: any[] = [];
+  cursos: Curso[] = [];
+  filteredCursos: Curso[] = [];
 
   ngOnInit() {}
 
@@ -30,7 +42,7 @@ export class CursosComponent implements OnInit {
     );
   }
 
-  getSeverity(status: string): any {
+  getSeverity(status: string): string | undefined {
     switch (status) {
       case 'Inscripciones Abiertas': return 'success';
       case 'En Curso': return 'info';

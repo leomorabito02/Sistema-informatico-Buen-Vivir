@@ -7,6 +7,18 @@ import { TagModule } from 'primeng/tag';
 import { InputTextModule } from 'primeng/inputtext';
 import { DialogModule } from 'primeng/dialog';
 
+interface JobOffer {
+  id: number;
+  title: string;
+  company: string;
+  location: string;
+  type: string;
+  date: string;
+  status: string;
+  description?: string;
+}
+
+
 @Component({
   selector: 'app-ofertas',
   standalone: true,
@@ -26,8 +38,8 @@ export class OfertasComponent implements OnInit {
     description: ''
   };
 
-  jobs: any[] = [];
-  filteredJobs: any[] = [];
+  jobs: JobOffer[] = [];
+  filteredJobs: JobOffer[] = [];
 
   ngOnInit() {}
 

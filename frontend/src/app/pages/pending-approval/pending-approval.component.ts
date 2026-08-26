@@ -5,6 +5,7 @@ import { FormBuilder, FormGroup, ReactiveFormsModule } from '@angular/forms';
 import { LucideAngularModule, Clock, ArrowLeft, Save, FileEdit, CheckCircle, AlertCircle, LogOut } from 'lucide-angular';
 import { AuthService } from '../../services/auth.service';
 import { ProfileService } from '../../services/profile.service';
+import { MeResponse } from '../../core/models/auth.model';
 
 @Component({
   selector: 'app-pending-approval',
@@ -46,8 +47,8 @@ export class PendingApprovalComponent implements OnInit {
 
   ngOnInit() {
     this.authService.isAuthenticated().subscribe({
-      next: (res: any) => {
-        this.roleId = res.role_id || '';
+      next: (res: MeResponse) => {
+        this.roleId = res.role_id ?? res.user?.role_id ?? '';
         this.buildForm();
         this.loadExistingData();
       },

@@ -47,23 +47,26 @@ export class LoginComponent {
     this.showPassword = !this.showPassword;
   }
 
+  private getFirstFormError(): string {
+    const c = this.loginForm.controls;
+    if (c['email'].hasError('required') || c['password'].hasError('required')) {
+      return 'Por favor, ingresá tu email y contraseña.';
+    }
+    if (c['email'].hasError('email')) {
+      return 'Por favor, ingresá un correo electrónico válido.';
+    }
+    if (c['password'].hasError('minlength')) {
+      return 'La contraseña debe tener al menos 4 caracteres.';
+    }
+    return 'Por favor, completá los campos del formulario correctamente.';
+  }
+
   onSubmit() {
     if (this.locked) return;
 
     if (this.loginForm.invalid) {
       this.loginForm.markAllAsTouched();
-      const emailCtrl = this.loginForm.get('email');
-      const passCtrl = this.loginForm.get('password');
-
-      if (emailCtrl?.hasError('required') || passCtrl?.hasError('required')) {
-        this.loginError = 'Por favor, ingresá tu email y contraseña.';
-      } else if (emailCtrl?.hasError('email')) {
-        this.loginError = 'Por favor, ingresá un correo electrónico válido.';
-      } else if (passCtrl?.hasError('minlength')) {
-        this.loginError = 'La contraseña debe tener al menos 4 caracteres.';
-      } else {
-        this.loginError = 'Por favor, completá los campos del formulario correctamente.';
-      }
+      this.loginError = this.getFirstFormError();
       return;
     }
 

@@ -7,6 +7,15 @@ import { TagModule } from 'primeng/tag';
 import { InputTextModule } from 'primeng/inputtext';
 import { CardModule } from 'primeng/card';
 
+interface DashboardUser {
+  name: string;
+  email: string;
+  role: string;
+  status: string;
+  createdAt?: string;
+}
+
+
 @Component({
   selector: 'app-usuarios',
   standalone: true,
@@ -17,8 +26,8 @@ import { CardModule } from 'primeng/card';
 export class UsuariosComponent implements OnInit {
   searchTerm: string = '';
 
-  users: any[] = [];
-  filteredUsers: any[] = [];
+  users: DashboardUser[] = [];
+  filteredUsers: DashboardUser[] = [];
 
   ngOnInit() {}
 
@@ -31,7 +40,7 @@ export class UsuariosComponent implements OnInit {
     );
   }
 
-  getRoleSeverity(role: string): any {
+  getRoleSeverity(role: string): string | undefined {
     switch (role) {
       case 'Responsable': return 'danger';
       case 'Docente': return 'warning';
@@ -42,7 +51,7 @@ export class UsuariosComponent implements OnInit {
     }
   }
 
-  getStatusSeverity(status: string): any {
+  getStatusSeverity(status: string): string {
     return status === 'Activo' ? 'success' : 'warning';
   }
 }

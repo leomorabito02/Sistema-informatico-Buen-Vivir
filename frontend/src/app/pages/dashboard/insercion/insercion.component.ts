@@ -5,6 +5,15 @@ import { TableModule } from 'primeng/table';
 import { TagModule } from 'primeng/tag';
 import { ButtonModule } from 'primeng/button';
 
+interface Placement {
+  participantName: string;
+  company: string;
+  position: string;
+  startDate: string;
+  status: string;
+}
+
+
 @Component({
   selector: 'app-insercion',
   standalone: true,
@@ -13,7 +22,7 @@ import { ButtonModule } from 'primeng/button';
   styleUrls: ['./insercion.component.css']
 })
 export class InsercionComponent implements OnInit {
-  placements: any[] = [];
+  placements: Placement[] = [];
   linkedParticipantsCount: number = 0;
   retentionRate: string = '0%';
   activeCompaniesCount: number = 0;

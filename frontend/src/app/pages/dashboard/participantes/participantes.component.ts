@@ -7,6 +7,15 @@ import { TagModule } from 'primeng/tag';
 import { InputTextModule } from 'primeng/inputtext';
 import { CardModule } from 'primeng/card';
 
+interface Participant {
+  name: string;
+  dni: string;
+  course: string;
+  status: string;
+  attendance?: number;
+}
+
+
 @Component({
   selector: 'app-participantes',
   standalone: true,
@@ -17,8 +26,8 @@ import { CardModule } from 'primeng/card';
 export class ParticipantesComponent implements OnInit {
   searchTerm: string = '';
 
-  participants: any[] = [];
-  filteredParticipants: any[] = [];
+  participants: Participant[] = [];
+  filteredParticipants: Participant[] = [];
 
   ngOnInit() {}
 

@@ -5,7 +5,6 @@ set -e
 
 echo "Installing Gremlins (Mutation Testing Tool)..."
 go install github.com/go-gremlins/gremlins/cmd/gremlins@latest
-
 export PATH="$PATH:$(go env GOPATH)/bin"
 
 echo "Running Gremlins Mutation Tests..."

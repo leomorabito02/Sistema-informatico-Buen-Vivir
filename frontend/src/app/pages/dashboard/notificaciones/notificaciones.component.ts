@@ -5,6 +5,16 @@ import { ButtonModule } from 'primeng/button';
 import { TagModule } from 'primeng/tag';
 import { BadgeModule } from 'primeng/badge';
 
+interface Notification {
+  id: number;
+  title: string;
+  message: string;
+  date: string;
+  read: boolean;
+  type?: string;
+}
+
+
 @Component({
   selector: 'app-notificaciones',
   standalone: true,
@@ -13,7 +23,7 @@ import { BadgeModule } from 'primeng/badge';
   styleUrls: ['./notificaciones.component.css']
 })
 export class NotificacionesComponent implements OnInit {
-  notifications: any[] = [];
+  notifications: Notification[] = [];
 
   ngOnInit() {}
 
@@ -21,7 +31,7 @@ export class NotificacionesComponent implements OnInit {
     this.notifications.forEach(n => n.read = true);
   }
 
-  markAsRead(n: any) {
+  markAsRead(n: Notification) {
     n.read = true;
   }
 }

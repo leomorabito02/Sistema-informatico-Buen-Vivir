@@ -2,6 +2,7 @@ import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { AuthService } from '../../../services/auth.service';
+import { MeResponse } from '../../../core/models/auth.model';
 import { LucideAngularModule, Bell, Settings, LogOut } from 'lucide-angular';
 
 @Component({
@@ -23,8 +24,8 @@ export class HeaderComponent implements OnInit {
 
   ngOnInit(): void {
     this.authService.isAuthenticated().subscribe({
-      next: (response: any) => {
-        this.roleName = this.mapRoleIdToName(response.role_id);
+      next: (response: MeResponse) => {
+        this.roleName = this.mapRoleIdToName(response.role_id ?? response.user?.role_id ?? '');
       },
       error: () => {
         this.roleName = '';

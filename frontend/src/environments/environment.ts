@@ -1,6 +1,12 @@
+declare global {
+  interface Window {
+    __env?: { apiUrl?: string };
+  }
+}
+
 export const environment = {
   production: false,
-  apiUrl: (window as any).__env?.apiUrl,
+  apiUrl: window.__env?.apiUrl,
   firebase: {
     projectId: 'ceibuenvivir',
     appId: '1:429506836254:web:45f5eb50d86f074323bb0f',

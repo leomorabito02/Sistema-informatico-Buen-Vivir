@@ -2,7 +2,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { SelectRoleComponent } from './select-role.component';
 import { Router, provideRouter } from '@angular/router';
 import { AuthService } from '../../services/auth.service';
-import { of, throwError } from 'rxjs';
+import { of, throwError, Subject } from 'rxjs';
 
 describe('SelectRoleComponent', () => {
   let component: SelectRoleComponent;
@@ -26,19 +26,70 @@ describe('SelectRoleComponent', () => {
     spyOn(mockRouter, 'getCurrentNavigation').and.returnValue(null as any);
   });
 
-  describe('ngOnInit', () => {
+  describe('ngOnInit and Initial State', () => {
+    it('should have initial default states and roleIcons defined', () => {
+      fixture = TestBed.createComponent(SelectRoleComponent);
+      component = fixture.componentInstance;
+      expect(component.loginError).toBe('');
+      expect(component.loadingAccountId).toBe('');
+      expect(component.roleIcons['role_admin']).toBe('🛡️');
+      expect(component.roleIcons['role_dev']).toBe('💻');
+      expect(component.roleIcons['role_participant']).toBe('🌱');
+      expect(component.roleIcons['role_company']).toBe('🏢');
+      expect(component.roleIcons['role_teacher']).toBe('📚');
+      expect(component.roleIcons['role_volunteer']).toBe('🤝');
+    });
+
     it('should redirect to login if no accounts in state', () => {
       (mockRouter.getCurrentNavigation as jasmine.Spy).and.returnValue(null);
       history.replaceState({}, '');
       
       fixture = TestBed.createComponent(SelectRoleComponent);
       component = fixture.componentInstance;
-      fixture.detectChanges(); // This will trigger ngOnInit
+      fixture.detectChanges();
       
       expect(mockRouter.navigate).toHaveBeenCalledWith(['/login']);
     });
 
-    it('should load accounts from history state', () => {
+    it('should redirect to login if accounts is empty array []', () => {
+      (mockRouter.getCurrentNavigation as jasmine.Spy).and.returnValue(null);
+      history.replaceState({ accounts: [], loginNonce: 'nonce' }, '');
+      
+      fixture = TestBed.createComponent(SelectRoleComponent);
+      component = fixture.componentInstance;
+      fixture.detectChanges();
+      
+      expect(mockRouter.navigate).toHaveBeenCalledWith(['/login']);
+    });
+
+    it('should redirect to login if loginNonce is missing', () => {
+      (mockRouter.getCurrentNavigation as jasmine.Spy).and.returnValue(null);
+      history.replaceState({ accounts: [{ user_id: '1', role_id: 'r1' }] }, '');
+      
+      fixture = TestBed.createComponent(SelectRoleComponent);
+      component = fixture.componentInstance;
+      fixture.detectChanges();
+      
+      expect(mockRouter.navigate).toHaveBeenCalledWith(['/login']);
+    });
+
+    it('should load accounts from router getCurrentNavigation state', () => {
+      const accounts = [{ user_id: '1', role_id: 'r1', role_name: 'Role 1', status: 'active' }];
+      (mockRouter.getCurrentNavigation as jasmine.Spy).and.returnValue({
+        extras: { state: { accounts, loginNonce: 'nav-nonce' } }
+      });
+      history.replaceState({}, '');
+      
+      fixture = TestBed.createComponent(SelectRoleComponent);
+      component = fixture.componentInstance;
+      fixture.detectChanges();
+      
+      expect(component.accounts).toEqual(accounts);
+      expect(component.loginNonce).toBe('nav-nonce');
+      expect(mockRouter.navigate).not.toHaveBeenCalled();
+    });
+
+    it('should load accounts from history state if navigation state is empty', () => {
       const accounts = [{ user_id: '1', role_id: 'r1', role_name: 'Role 1', status: 'active' }];
       history.pushState({ accounts, loginNonce: 'nonce' }, '');
       
@@ -72,11 +123,19 @@ describe('SelectRoleComponent', () => {
 
     it('should login and navigate to dashboard', () => {
       const account = { user_id: '1', role_id: 'r1', role_name: 'Role 1', status: 'active' };
-      mockAuthService.loginWithAccount.and.returnValue(of({ token: 'jwt', user: {} as any }));
+      const subject = new Subject<any>();
+      mockAuthService.loginWithAccount.and.returnValue(subject.asObservable());
+      
+      component.loginError = 'previous error';
       
       component.selectAccount(account);
       
       expect(mockAuthService.loginWithAccount).toHaveBeenCalledWith('1', 'r1', 'nonce');
+      expect(component.loginError).toBe('');
+      expect(component.loadingAccountId).toBe('1');
+      
+      subject.next({ token: 'jwt', user: {} as any });
+      
       expect(mockRouter.navigate).toHaveBeenCalledWith(['/dashboard']);
       expect(component.loadingAccountId).toBe('');
     });
@@ -99,9 +158,18 @@ describe('SelectRoleComponent', () => {
       expect(mockRouter.navigate).toHaveBeenCalledWith(['/pending-approval']);
     });
 
-    it('should navigate to account-notice on specific error message', () => {
+    it('should navigate to account-notice on error containing activa', () => {
       const account = { user_id: '1', role_id: 'r1', role_name: 'Role 1', status: 'active' };
-      mockAuthService.loginWithAccount.and.returnValue(throwError(() => ({ error: { error: 'cuenta no está activa' } })));
+      mockAuthService.loginWithAccount.and.returnValue(throwError(() => ({ error: { error: 'cuenta no activa' } })));
+      
+      component.selectAccount(account);
+      
+      expect(mockRouter.navigate).toHaveBeenCalledWith(['/account-notice']);
+    });
+
+    it('should navigate to account-notice on error containing bloque', () => {
+      const account = { user_id: '1', role_id: 'r1', role_name: 'Role 1', status: 'active' };
+      mockAuthService.loginWithAccount.and.returnValue(throwError(() => ({ error: { error: 'usuario bloqueado' } })));
       
       component.selectAccount(account);
       
@@ -110,12 +178,25 @@ describe('SelectRoleComponent', () => {
 
     it('should show generic error message on other errors', () => {
       const account = { user_id: '1', role_id: 'r1', role_name: 'Role 1', status: 'active' };
-      mockAuthService.loginWithAccount.and.returnValue(throwError(() => ({ error: { error: 'internal error' } })));
+      const subject = new Subject<any>();
+      mockAuthService.loginWithAccount.and.returnValue(subject.asObservable());
+      
+      component.selectAccount(account);
+      
+      subject.error({ error: { error: 'internal error' } });
+      
+      expect(component.loginError).toBe('Ocurrió un error al iniciar sesión. Intentá nuevamente.');
+      expect(mockRouter.navigate).not.toHaveBeenCalled();
+      expect(component.loadingAccountId).toBe('');
+    });
+
+    it('should show generic error message if err.error.error is missing', () => {
+      const account = { user_id: '1', role_id: 'r1', role_name: 'Role 1', status: 'active' };
+      mockAuthService.loginWithAccount.and.returnValue(throwError(() => ({ error: {} })));
       
       component.selectAccount(account);
       
       expect(component.loginError).toBe('Ocurrió un error al iniciar sesión. Intentá nuevamente.');
-      expect(mockRouter.navigate).not.toHaveBeenCalled();
     });
   });
 });

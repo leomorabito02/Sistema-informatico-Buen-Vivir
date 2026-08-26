@@ -5,6 +5,17 @@ import { ButtonModule } from 'primeng/button';
 import { TagModule } from 'primeng/tag';
 import { ProgressBarModule } from 'primeng/progressbar';
 
+interface Campaign {
+  name: string;
+  goal: number;
+  raised: number;
+  status: string;
+  startDate?: string;
+  endDate?: string;
+  volunteers?: number;
+}
+
+
 @Component({
   selector: 'app-campanas',
   standalone: true,
@@ -13,7 +24,7 @@ import { ProgressBarModule } from 'primeng/progressbar';
   styleUrls: ['./campanas.component.css']
 })
 export class CampanasComponent implements OnInit {
-  campaigns: any[] = [];
+  campaigns: Campaign[] = [];
 
   ngOnInit() {}
 }

@@ -15,8 +15,8 @@ export class SelectRoleComponent implements OnInit {
   private authService = inject(AuthService);
   private router = inject(Router);
 
-  accounts: AvailableAccount[] = [];
-  loginNonce = '';
+  accounts!: AvailableAccount[];
+  loginNonce!: string;
   loginError = '';
   loadingAccountId = '';
 

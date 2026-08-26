@@ -4,7 +4,8 @@ import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angula
 import { Auth, signInWithPopup, GoogleAuthProvider } from '@angular/fire/auth';
 import { from, switchMap } from 'rxjs';
 import { ProfileService } from '../../../services/profile.service';
-import { LucideAngularModule, User, Shield, Briefcase, Lock, CheckCircle, AlertCircle, Eye, EyeOff, Link, Unlink } from 'lucide-angular';
+import { User, ProfileResponse } from '../../../core/models/auth.model';
+import { LucideAngularModule, User as UserIcon, Shield, Briefcase, Lock, CheckCircle, AlertCircle, Eye, EyeOff, Link, Unlink } from 'lucide-angular';
 
 @Component({
   selector: 'app-mi-perfil',
@@ -18,7 +19,7 @@ export class MiPerfilComponent implements OnInit {
   private profileService = inject(ProfileService);
   private auth = inject(Auth);
 
-  readonly UserIcon = User;
+  readonly UserIcon = UserIcon;
   readonly ShieldIcon = Shield;
   readonly BriefcaseIcon = Briefcase;
   readonly LockIcon = Lock;
@@ -29,7 +30,7 @@ export class MiPerfilComponent implements OnInit {
   readonly LinkIcon = Link;
   readonly UnlinkIcon = Unlink;
 
-  profileData: any = null;
+  profileData: ProfileResponse | null = null;
   loading = true;
   error = '';
 
@@ -64,7 +65,7 @@ export class MiPerfilComponent implements OnInit {
         this.profileData = data;
         this.loading = false;
       },
-      error: (err) => {
+      error: (_err) => {
         this.error = 'Error al cargar el perfil';
         this.loading = false;
       }
@@ -90,7 +91,7 @@ export class MiPerfilComponent implements OnInit {
     return roleMap[roleId.toLowerCase()] || roleId;
   }
 
-  getRoleKeyLabel(key: any): string {
+  getRoleKeyLabel(key: string): string {
     const k = String(key);
     const labelMap: Record<string, string> = {
       'volunteer_id': 'ID de Voluntario',
@@ -119,8 +120,8 @@ export class MiPerfilComponent implements OnInit {
     return labelMap[k] || k.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
   }
 
-  formatRoleValue(key: any, value: any): string {
-    const k = String(key);
+  formatRoleValue(key: string, value: string | boolean | null | undefined): string {
+    const k = key;
     if (value === null || value === undefined || value === '') return 'No especificado';
     if (typeof value === 'boolean') return value ? 'Sí' : 'No';
 
@@ -154,7 +155,7 @@ export class MiPerfilComponent implements OnInit {
       }
     }
 
-    return value;
+    return String(value);
   }
 
   passwordMatchValidator(g: FormGroup) {
@@ -200,8 +201,8 @@ export class MiPerfilComponent implements OnInit {
       switchMap(credential => from(credential.user.getIdToken().then(idToken => ({ idToken, googleId: credential.user.uid })))),
       switchMap(({ idToken, googleId }) => this.profileService.linkGoogleAccount(idToken, googleId))
     ).subscribe({
-      next: (res) => {
-        this.googleSuccess = res.message || 'Cuenta de Google vinculada correctamente.';
+      next: () => {
+        this.googleSuccess = 'Cuenta de Google vinculada correctamente.';
         this.googleLoading = false;
         this.loadProfile();
       },
@@ -218,8 +219,8 @@ export class MiPerfilComponent implements OnInit {
     this.googleError = '';
 
     this.profileService.unlinkGoogleAccount().subscribe({
-      next: (res) => {
-        this.googleSuccess = res.message || 'Cuenta de Google desvinculada correctamente.';
+      next: () => {
+        this.googleSuccess = 'Cuenta de Google desvinculada correctamente.';
         this.googleLoading = false;
         this.loadProfile();
       },

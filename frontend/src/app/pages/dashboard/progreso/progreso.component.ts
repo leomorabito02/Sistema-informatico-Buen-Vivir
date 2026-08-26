@@ -5,6 +5,18 @@ import { CardModule } from 'primeng/card';
 import { TagModule } from 'primeng/tag';
 import { ButtonModule } from 'primeng/button';
 
+interface CourseProgress {
+  title: string;
+  progress: number;
+  status: string;
+  teacher?: string;
+  modulesDone?: string;
+  attendance?: string;
+  nextClass?: string;
+  completedDate?: string;
+}
+
+
 @Component({
   selector: 'app-progreso',
   standalone: true,
@@ -14,8 +26,8 @@ import { ButtonModule } from 'primeng/button';
 })
 export class ProgresoComponent implements OnInit {
   overallProgress = 0;
-  activeCourses: any[] = [];
-  completedCourses: any[] = [];
+  activeCourses: CourseProgress[] = [];
+  completedCourses: CourseProgress[] = [];
 
   ngOnInit() {}
 }
