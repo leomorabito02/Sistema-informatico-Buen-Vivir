@@ -14,6 +14,10 @@ permissions:
   actions: read
   pull-requests: read
 
+concurrency:
+  group: cd-${{ github.ref }}
+  cancel-in-progress: false
+
 env:
   GO_VERSION: '1.25'
   NODE_VERSION: '22'
@@ -23,6 +27,19 @@ env:
 # Corre en CUALQUIER push, PR o ejecución manual.
 # ============================================================================
 jobs:
+  ci-secrets:
+    name: CI — Secrets Scan (Gitleaks)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Secrets — Gitleaks
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
   ci-frontend:
     name: CI — Frontend (Angular)
     runs-on: ubuntu-latest
@@ -84,11 +101,6 @@ jobs:
       - name: SCA — pnpm audit (block HIGH/CRITICAL)
         working-directory: frontend
         run: pnpm audit --audit-level high || echo "::warning::pnpm audit reported unpatched transitive vulnerabilities in devDependencies (image-size)."
-
-      - name: Secrets — Gitleaks
-        uses: gitleaks/gitleaks-action@v2
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build Angular (production)
         working-directory: frontend
@@ -249,7 +261,7 @@ jobs:
   ci-gate:
     name: CI — Gate (Verificación general)
     runs-on: ubuntu-latest
-    needs: [ci-frontend, ci-auth, ci-api-gateway]
+    needs: [ci-secrets, ci-frontend, ci-auth, ci-api-gateway]
     if: always()
 
     steps:
@@ -425,8 +437,11 @@ jobs:
     name: CD — Auth Service (Cloud Run)
     runs-on: ubuntu-latest
     needs: [cd-setup]
+    environment: ${{ needs.cd-setup.outputs.env_name }}
+    timeout-minutes: 15
     outputs:
       service_url: ${{ steps.deploy.outputs.url }}
+      prev_revision: ${{ steps.pre-deploy.outputs.prev_revision }}
 
     steps:
       - name: Authenticate GCP (Workload Identity)
@@ -438,7 +453,7 @@ jobs:
       - name: Capture previous Cloud Run revision (for rollback)
         id: pre-deploy
         run: |
-          SERVICE="${{ secrets.CLOUD_RUN_SERVICE_AUTH }}-${{ needs.cd-setup.outputs.service_suffix }}"
+          SERVICE="auth-${{ needs.cd-setup.outputs.service_suffix }}"
           REGION="${{ secrets.GCP_REGION }}"
           PREV=$(gcloud run services describe "$SERVICE" --region="$REGION" \
             --format='value(status.latestReadyRevisionName)' 2>/dev/null || echo "")
@@ -449,15 +464,17 @@ jobs:
         id: deploy
         uses: google-github-actions/deploy-cloudrun@v2
         with:
-          service: '${{ secrets.CLOUD_RUN_SERVICE_AUTH }}-${{ needs.cd-setup.outputs.service_suffix }}'
+          service: 'auth-${{ needs.cd-setup.outputs.service_suffix }}'
           region: '${{ secrets.GCP_REGION }}'
           image: '${{ secrets.ARTIFACT_REGISTRY_HOST }}/${{ secrets.GCP_PROJECT_ID }}/${{ secrets.ARTIFACT_REGISTRY_REPO }}/auth:${{ github.sha }}'
-          flags: '--allow-unauthenticated'
+          flags: '--allow-unauthenticated --min-instances=0 --max-instances=1 --cpu=1 --memory=1Gi'
 
   cd-api-gateway:
     name: CD — API Gateway (Google Cloud)
     runs-on: ubuntu-latest
     needs: [cd-setup, cd-auth]
+    environment: ${{ needs.cd-setup.outputs.env_name }}
+    timeout-minutes: 15
 
     steps:
       - name: Checkout repository
@@ -524,6 +541,8 @@ jobs:
     name: CD — Frontend (Cloudflare Pages)
     runs-on: ubuntu-latest
     needs: [cd-setup]
+    environment: ${{ needs.cd-setup.outputs.env_name }}
+    timeout-minutes: 15
 
     steps:
       - name: Download Angular artifact
@@ -540,25 +559,28 @@ jobs:
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           command: >
             pages deploy ./dist-angular
-            --project-name=${{ secrets.CLOUDFLARE_PROJECT }}-${{ needs.cd-setup.outputs.service_suffix }}
+            --project-name=${{ secrets.CLOUDFLARE_PROJECT }}
+            --branch=${{ github.ref_name }}
 
   cd-smoke:
     name: CD — Smoke Tests
     runs-on: ubuntu-latest
     needs: [cd-setup, cd-auth, cd-api-gateway, cd-frontend]
+    environment: ${{ needs.cd-setup.outputs.env_name }}
+    timeout-minutes: 15
 
     steps:
       - name: Smoke test — Auth Service (/health)
         run: |
           AUTH_URL="${{ needs.cd-auth.outputs.service_url }}"
           echo "Testing Auth health: $AUTH_URL/health"
-          curl --fail --silent --show-error --max-time 15 "$AUTH_URL/health"
+          curl --retry 3 --retry-delay 5 --fail --silent --show-error --max-time 15 "$AUTH_URL/health"
           echo "Auth health: OK"
 
       - name: Smoke test — Auth login endpoint (expect 400/422/401)
         run: |
           AUTH_URL="${{ needs.cd-auth.outputs.service_url }}"
-          STATUS=$(curl --silent --output /dev/null --write-out "%{http_code}" \
+          STATUS=$(curl --retry 3 --retry-delay 5 --silent --output /dev/null --write-out "%{http_code}" \
             --max-time 15 -X POST "$AUTH_URL/api/v1/auth/login" \
             -H "Content-Type: application/json" \
             -d '{"email":"smoke@test.com","password":"wrong"}')
@@ -569,10 +591,23 @@ jobs:
           fi
           echo "Auth login endpoint: OK"
 
+      - name: Smoke test — Frontend (Cloudflare)
+        run: |
+          if [ "${{ github.ref_name }}" = "main" ]; then
+            FRONTEND_URL="https://${{ secrets.CLOUDFLARE_PROJECT }}.pages.dev"
+          else
+            FRONTEND_URL="https://${{ github.ref_name }}.${{ secrets.CLOUDFLARE_PROJECT }}.pages.dev"
+          fi
+          echo "Testing Frontend URL: $FRONTEND_URL"
+          curl --retry 3 --retry-delay 5 --fail --silent --show-error --max-time 15 "$FRONTEND_URL"
+          echo "Frontend health: OK"
+
   cd-dast-zap:
     name: CD — DAST (OWASP ZAP)
     runs-on: ubuntu-latest
     needs: [cd-setup, cd-smoke, cd-auth]
+    environment: ${{ needs.cd-setup.outputs.env_name }}
+    timeout-minutes: 15
 
     steps:
       - name: Checkout repository
@@ -590,6 +625,8 @@ jobs:
     name: CD — Load Tests (k6)
     runs-on: ubuntu-latest
     needs: [cd-setup, cd-smoke, cd-auth]
+    environment: ${{ needs.cd-setup.outputs.env_name }}
+    timeout-minutes: 15
     if: needs.cd-setup.outputs.env_name == 'TESTING'
 
     steps:
@@ -606,8 +643,10 @@ jobs:
   cd-rollback:
     name: CD — Rollback (auto)
     runs-on: ubuntu-latest
-    needs: [cd-setup, cd-auth, cd-frontend, cd-smoke]
-    if: failure() && needs.cd-smoke.result == 'failure'
+    needs: [cd-setup, cd-auth, cd-frontend, cd-smoke, cd-dast-zap, cd-load-k6]
+    environment: ${{ needs.cd-setup.outputs.env_name }}
+    timeout-minutes: 15
+    if: always() && (needs.cd-smoke.result == 'failure' || needs.cd-dast-zap.result == 'failure' || needs.cd-load-k6.result == 'failure')
 
     steps:
       - name: Authenticate GCP (Workload Identity)
@@ -618,7 +657,7 @@ jobs:
 
       - name: Rollback Auth (Cloud Run — previous revision)
         run: |
-          SERVICE="${{ secrets.CLOUD_RUN_SERVICE_AUTH }}-${{ needs.cd-setup.outputs.service_suffix }}"
+          SERVICE="auth-${{ needs.cd-setup.outputs.service_suffix }}"
           REGION="${{ secrets.GCP_REGION }}"
           PREV="${{ needs.cd-auth.outputs.prev_revision }}"
           if [ -n "$PREV" ]; then
@@ -634,7 +673,7 @@ jobs:
       - name: Rollback Frontend (Cloudflare Pages)
         run: |
           echo "::error::Smoke tests failed. Cloudflare deployment may need manual rollback."
-          echo "Use: wrangler pages deployment rollback --project-name=${{ secrets.CLOUDFLARE_PROJECT }}-${{ needs.cd-setup.outputs.service_suffix }}"
+          echo "Use: wrangler pages deployment rollback --project-name=${{ secrets.CLOUDFLARE_PROJECT }}"
         continue-on-error: true
 
       - name: Mark CD as failed
