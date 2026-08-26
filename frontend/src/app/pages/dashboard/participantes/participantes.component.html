@@ -1,20 +1,40 @@
 <div class="page-container">
   <div class="header-section">
     <div>
-      <h1 class="page-title"><i class="pi pi-users mr-2"></i>Gestión de Participantes</h1>
-      <p class="page-subtitle">Padrón y seguimiento individual de alumnos inscritos en las actividades.</p>
+      <h1 class="page-title">
+        <i class="pi pi-users mr-2"></i>Gestión de Participantes
+      </h1>
+      <p class="page-subtitle">
+        Padrón y seguimiento individual de alumnos inscritos en las actividades.
+      </p>
     </div>
     <div class="header-actions">
       <div class="search-box p-input-icon-left">
         <i class="pi pi-search"></i>
-        <input pInputText type="text" [(ngModel)]="searchTerm" (input)="filter()" placeholder="Buscar por DNI, nombre o curso..." class="p-inputtext-sm" />
+        <input
+          pInputText
+          type="text"
+          [(ngModel)]="searchTerm"
+          (input)="filter()"
+          placeholder="Buscar por DNI, nombre o curso..."
+          class="p-inputtext-sm"
+        />
       </div>
-      <p-button label="Registrar Participante" icon="pi pi-user-plus" styleClass="p-button-success"></p-button>
+      <p-button
+        label="Registrar Participante"
+        icon="pi pi-user-plus"
+        styleClass="p-button-success"
+      ></p-button>
     </div>
   </div>
 
   <p-card styleClass="p-card-shadow">
-    <p-table [value]="filteredParticipants" [paginator]="true" [rows]="10" class="p-datatable-striped">
+    <p-table
+      [value]="filteredParticipants"
+      [paginator]="true"
+      [rows]="10"
+      class="p-datatable-striped"
+    >
       <ng-template pTemplate="header">
         <tr>
           <th>DNI</th>
@@ -29,17 +49,26 @@
       <ng-template pTemplate="body" let-p>
         <tr>
           <td><span class="p-column-title">DNI</span>{{ p.dni }}</td>
-          <td><span class="p-column-title">Nombre</span><strong>{{ p.name }}</strong></td>
+          <td>
+            <span class="p-column-title">Nombre</span
+            ><strong>{{ p.name }}</strong>
+          </td>
           <td><span class="p-column-title">Email</span>{{ p.email }}</td>
           <td><span class="p-column-title">Teléfono</span>{{ p.phone }}</td>
           <td><span class="p-column-title">Curso</span>{{ p.course }}</td>
           <td>
             <span class="p-column-title">Estado</span>
-            <p-tag [value]="p.status" [severity]="p.status === 'Activo' ? 'success' : 'warning'"></p-tag>
+            <p-tag
+              [value]="p.status"
+              [severity]="p.status === 'Activo' ? 'success' : 'warning'"
+            ></p-tag>
           </td>
           <td>
             <span class="p-column-title">Acciones</span>
-            <p-button icon="pi pi-user-edit" styleClass="p-button-outlined p-button-sm"></p-button>
+            <p-button
+              icon="pi pi-user-edit"
+              styleClass="p-button-outlined p-button-sm"
+            ></p-button>
           </td>
         </tr>
       </ng-template>

@@ -3,7 +3,7 @@
     <div class="auth-wrapper">
       <div class="auth-header">
         <div class="auth-logo-container">
-          <img src="assets/logo.png" alt="Logo Buen Vivir" class="auth-logo">
+          <img src="assets/logo.png" alt="Logo Buen Vivir" class="auth-logo" />
         </div>
         <h1 class="auth-title">Crear Cuenta</h1>
         <p class="auth-subtitle">Únete a nuestra comunidad</p>
@@ -13,24 +13,41 @@
         <!-- Success View -->
         <div *ngIf="registered" class="success-view">
           <div class="success-icon-wrapper">
-            <lucide-angular *ngIf="needsApproval" [img]="ClockIcon" class="success-icon"></lucide-angular>
-            <lucide-angular *ngIf="!needsApproval" [img]="CheckCircle2Icon" class="success-icon"></lucide-angular>
+            <lucide-angular
+              *ngIf="needsApproval"
+              [img]="ClockIcon"
+              class="success-icon"
+            ></lucide-angular>
+            <lucide-angular
+              *ngIf="!needsApproval"
+              [img]="CheckCircle2Icon"
+              class="success-icon"
+            ></lucide-angular>
           </div>
           <h3 class="success-title">
-            {{ needsApproval ? 'Cuenta pendiente de aprobación' : '¡Cuenta creada!' }}
+            {{
+              needsApproval
+                ? "Cuenta pendiente de aprobación"
+                : "¡Cuenta creada!"
+            }}
           </h3>
           <p class="success-text">
-            {{ needsApproval
-              ? 'Tu cuenta fue registrada y quedó pendiente de aprobación del administrador. Te notificaremos por email en cuanto sea revisada.'
-              : 'Tu cuenta fue creada correctamente. Ya podés iniciar sesión.' }}
+            {{
+              needsApproval
+                ? "Tu cuenta fue registrada y quedó pendiente de aprobación del administrador. Te notificaremos por email en cuanto sea revisada."
+                : "Tu cuenta fue creada correctamente. Ya podés iniciar sesión."
+            }}
           </p>
-          <a routerLink="/login" class="btn-success">
-            Ir a Iniciar Sesión
-          </a>
+          <a routerLink="/login" class="btn-success"> Ir a Iniciar Sesión </a>
         </div>
 
         <!-- Form View -->
-        <form *ngIf="!registered" [formGroup]="registerForm" (ngSubmit)="onSubmit()" class="auth-form">
+        <form
+          *ngIf="!registered"
+          [formGroup]="registerForm"
+          (ngSubmit)="onSubmit()"
+          class="auth-form"
+        >
           <div class="form-grid">
             <div class="form-group">
               <label class="form-label">Nombre</label>
@@ -41,7 +58,11 @@
                   type="text"
                   formControlName="firstName"
                   class="form-input p-inputtext-sm"
-                  [ngClass]="{'invalid': registerForm.get('firstName')?.invalid && registerForm.get('firstName')?.touched}"
+                  [ngClass]="{
+                    invalid:
+                      registerForm.get('firstName')?.invalid &&
+                      registerForm.get('firstName')?.touched,
+                  }"
                   placeholder="Juan"
                 />
               </div>
@@ -55,7 +76,11 @@
                   type="text"
                   formControlName="lastName"
                   class="form-input p-inputtext-sm"
-                  [ngClass]="{'invalid': registerForm.get('lastName')?.invalid && registerForm.get('lastName')?.touched}"
+                  [ngClass]="{
+                    invalid:
+                      registerForm.get('lastName')?.invalid &&
+                      registerForm.get('lastName')?.touched,
+                  }"
                   placeholder="Pérez"
                 />
               </div>
@@ -71,7 +96,11 @@
                 type="email"
                 formControlName="email"
                 class="form-input p-inputtext-sm"
-                [ngClass]="{'invalid': registerForm.get('email')?.invalid && registerForm.get('email')?.touched}"
+                [ngClass]="{
+                  invalid:
+                    registerForm.get('email')?.invalid &&
+                    registerForm.get('email')?.touched,
+                }"
                 placeholder="tu@email.com"
               />
             </div>
@@ -86,7 +115,11 @@
                 type="tel"
                 formControlName="phone"
                 class="form-input p-inputtext-sm"
-                [ngClass]="{'invalid': registerForm.get('phone')?.invalid && registerForm.get('phone')?.touched}"
+                [ngClass]="{
+                  invalid:
+                    registerForm.get('phone')?.invalid &&
+                    registerForm.get('phone')?.touched,
+                }"
                 placeholder="+54 9 11 1234-5678"
               />
             </div>
@@ -95,13 +128,26 @@
           <div class="form-group">
             <label class="form-label">Rol</label>
             <select formControlName="role" class="form-select p-inputtext-sm">
-              <option *ngFor="let role of roles" [value]="role.value">{{ role.label }}</option>
+              <option *ngFor="let role of roles" [value]="role.value">
+                {{ role.label }}
+              </option>
             </select>
             <p class="input-hint">
-              <span *ngIf="registerForm.get('role')?.value === 'volunteer'">Los voluntarios deben ser aprobados por los coordinadores</span>
-              <span *ngIf="registerForm.get('role')?.value === 'teacher'">Los docentes deben ser aprobados por el coordinador/administrador antes de tener acceso al portal educativo</span>
-              <span *ngIf="registerForm.get('role')?.value === 'participant'">Podrás acceder a cursos y talleres</span>
-              <span *ngIf="registerForm.get('role')?.value === 'company'">Tu cuenta quedará pendiente de aprobación del administrador antes de poder publicar ofertas laborales</span>
+              <span *ngIf="registerForm.get('role')?.value === 'volunteer'"
+                >Los voluntarios deben ser aprobados por los coordinadores</span
+              >
+              <span *ngIf="registerForm.get('role')?.value === 'teacher'"
+                >Los docentes deben ser aprobados por el
+                coordinador/administrador antes de tener acceso al portal
+                educativo</span
+              >
+              <span *ngIf="registerForm.get('role')?.value === 'participant'"
+                >Podrás acceder a cursos y talleres</span
+              >
+              <span *ngIf="registerForm.get('role')?.value === 'company'"
+                >Tu cuenta quedará pendiente de aprobación del administrador
+                antes de poder publicar ofertas laborales</span
+              >
             </p>
           </div>
 
@@ -114,25 +160,54 @@
                 [type]="showPassword ? 'text' : 'password'"
                 formControlName="password"
                 class="form-input p-inputtext-sm"
-                [ngClass]="{'invalid': registerForm.get('password')?.invalid && registerForm.get('password')?.touched}"
+                [ngClass]="{
+                  invalid:
+                    registerForm.get('password')?.invalid &&
+                    registerForm.get('password')?.touched,
+                }"
                 placeholder="••••••••"
               />
               <button
                 class="password-toggle-btn"
                 type="button"
-                [attr.aria-label]="showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'"
+                [attr.aria-label]="
+                  showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'
+                "
                 [attr.aria-pressed]="showPassword"
                 (click)="togglePasswordVisibility()"
               >
-                <lucide-angular [img]="showPassword ? EyeOffIcon : EyeIcon" class="w-5 h-5 text-muted-foreground"></lucide-angular>
+                <lucide-angular
+                  [img]="showPassword ? EyeOffIcon : EyeIcon"
+                  class="w-5 h-5 text-muted-foreground"
+                ></lucide-angular>
               </button>
             </div>
-            <p *ngIf="registerForm.get('password')?.invalid && registerForm.get('password')?.touched" class="input-error">
-              <span *ngIf="registerForm.get('password')?.hasError('required')">La contraseña es obligatoria.</span>
-              <span *ngIf="registerForm.get('password')?.hasError('minlength')">La contraseña debe tener al menos 8 caracteres.</span>
-              <span *ngIf="registerForm.get('password')?.hasError('missingUpper')">Debe incluir al menos una letra mayúscula.</span>
-              <span *ngIf="registerForm.get('password')?.hasError('missingLower')">Debe incluir al menos una letra minúscula.</span>
-              <span *ngIf="registerForm.get('password')?.hasError('missingSpecial')">Debe incluir al menos un carácter especial (ej: !&#64;#$%^&*).</span>
+            <p
+              *ngIf="
+                registerForm.get('password')?.invalid &&
+                registerForm.get('password')?.touched
+              "
+              class="input-error"
+            >
+              <span *ngIf="registerForm.get('password')?.hasError('required')"
+                >La contraseña es obligatoria.</span
+              >
+              <span *ngIf="registerForm.get('password')?.hasError('minlength')"
+                >La contraseña debe tener al menos 8 caracteres.</span
+              >
+              <span
+                *ngIf="registerForm.get('password')?.hasError('missingUpper')"
+                >Debe incluir al menos una letra mayúscula.</span
+              >
+              <span
+                *ngIf="registerForm.get('password')?.hasError('missingLower')"
+                >Debe incluir al menos una letra minúscula.</span
+              >
+              <span
+                *ngIf="registerForm.get('password')?.hasError('missingSpecial')"
+                >Debe incluir al menos un carácter especial (ej:
+                !&#64;#$%^&*).</span
+              >
             </p>
           </div>
 
@@ -145,41 +220,63 @@
                 [type]="showConfirmPassword ? 'text' : 'password'"
                 formControlName="confirmPassword"
                 class="form-input p-inputtext-sm"
-                [ngClass]="{'invalid': registerForm.hasError('passwordMismatch') && registerForm.get('confirmPassword')?.touched}"
+                [ngClass]="{
+                  invalid:
+                    registerForm.hasError('passwordMismatch') &&
+                    registerForm.get('confirmPassword')?.touched,
+                }"
                 placeholder="••••••••"
               />
               <button
                 class="password-toggle-btn"
                 type="button"
-                [attr.aria-label]="showConfirmPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'"
+                [attr.aria-label]="
+                  showConfirmPassword
+                    ? 'Ocultar contraseña'
+                    : 'Mostrar contraseña'
+                "
                 [attr.aria-pressed]="showConfirmPassword"
                 (click)="toggleConfirmPasswordVisibility()"
               >
-                <lucide-angular [img]="showConfirmPassword ? EyeOffIcon : EyeIcon" class="w-5 h-5 text-muted-foreground"></lucide-angular>
+                <lucide-angular
+                  [img]="showConfirmPassword ? EyeOffIcon : EyeIcon"
+                  class="w-5 h-5 text-muted-foreground"
+                ></lucide-angular>
               </button>
             </div>
-            <p *ngIf="registerForm.hasError('passwordMismatch') && registerForm.get('confirmPassword')?.touched" class="input-error">
+            <p
+              *ngIf="
+                registerForm.hasError('passwordMismatch') &&
+                registerForm.get('confirmPassword')?.touched
+              "
+              class="input-error"
+            >
               Las contraseñas no coinciden.
             </p>
           </div>
 
           <div class="checkbox-container">
-            <input type="checkbox" id="terms" formControlName="terms" class="checkbox-input" />
+            <input
+              type="checkbox"
+              id="terms"
+              formControlName="terms"
+              class="checkbox-input"
+            />
             <label for="terms" class="checkbox-text">
               Acepto los términos y condiciones y la política de privacidad
             </label>
           </div>
 
           <div *ngIf="registerError" class="error-msg my-2">
-            <p-message severity="error" [text]="registerError" styleClass="w-full"></p-message>
+            <p-message
+              severity="error"
+              [text]="registerError"
+              styleClass="w-full"
+            ></p-message>
           </div>
 
-          <button
-            type="submit"
-            [disabled]="loading"
-            class="btn-submit"
-          >
-            {{ loading ? 'Creando cuenta...' : 'Crear Cuenta' }}
+          <button type="submit" [disabled]="loading" class="btn-submit">
+            {{ loading ? "Creando cuenta..." : "Crear Cuenta" }}
           </button>
         </form>
       </p-card>

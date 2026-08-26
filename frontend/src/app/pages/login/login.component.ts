@@ -1,22 +1,43 @@
-import { Component, inject } from '@angular/core';
-import { CommonModule } from '@angular/common';
-import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
-import { Router, RouterLink } from '@angular/router';
-import { LucideAngularModule, Mail, Lock, AlertCircle, Eye, EyeOff } from 'lucide-angular';
-import { AuthService } from '../../services/auth.service';
-import { AvailableAccount } from '../../core/models/auth.model';
+import { Component, inject } from "@angular/core";
+import { CommonModule } from "@angular/common";
+import {
+  FormBuilder,
+  FormGroup,
+  ReactiveFormsModule,
+  Validators,
+} from "@angular/forms";
+import { Router, RouterLink } from "@angular/router";
+import {
+  LucideAngularModule,
+  Mail,
+  Lock,
+  AlertCircle,
+  Eye,
+  EyeOff,
+} from "lucide-angular";
+import { AuthService } from "../../services/auth.service";
+import { AvailableAccount } from "../../core/models/auth.model";
 
-import { ButtonModule } from 'primeng/button';
-import { CardModule } from 'primeng/card';
-import { InputTextModule } from 'primeng/inputtext';
-import { MessageModule } from 'primeng/message';
+import { ButtonModule } from "primeng/button";
+import { CardModule } from "primeng/card";
+import { InputTextModule } from "primeng/inputtext";
+import { MessageModule } from "primeng/message";
 
 @Component({
-  selector: 'app-login',
+  selector: "app-login",
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, RouterLink, LucideAngularModule, ButtonModule, CardModule, InputTextModule, MessageModule],
-  templateUrl: './login.component.html',
-  styleUrl: './login.component.css'
+  imports: [
+    CommonModule,
+    ReactiveFormsModule,
+    RouterLink,
+    LucideAngularModule,
+    ButtonModule,
+    CardModule,
+    InputTextModule,
+    MessageModule,
+  ],
+  templateUrl: "./login.component.html",
+  styleUrl: "./login.component.css",
 })
 export class LoginComponent {
   readonly MailIcon = Mail;
@@ -30,7 +51,7 @@ export class LoginComponent {
   private router = inject(Router);
 
   loginForm: FormGroup;
-  loginError = '';
+  loginError = "";
   locked = false;
   failedAttempts = 0;
   MAX_ATTEMPTS = 5;
@@ -38,8 +59,8 @@ export class LoginComponent {
 
   constructor() {
     this.loginForm = this.fb.group({
-      email: ['', [Validators.required, Validators.email]],
-      password: ['', [Validators.required, Validators.minLength(4)]]
+      email: ["", [Validators.required, Validators.email]],
+      password: ["", [Validators.required, Validators.minLength(4)]],
     });
   }
 
@@ -49,16 +70,16 @@ export class LoginComponent {
 
   private getFirstFormError(): string {
     const c = this.loginForm.controls;
-    if (c['email'].hasError('required') || c['password'].hasError('required')) {
-      return 'Por favor, ingresá tu email y contraseña.';
+    if (c["email"].hasError("required") || c["password"].hasError("required")) {
+      return "Por favor, ingresá tu email y contraseña.";
     }
-    if (c['email'].hasError('email')) {
-      return 'Por favor, ingresá un correo electrónico válido.';
+    if (c["email"].hasError("email")) {
+      return "Por favor, ingresá un correo electrónico válido.";
     }
-    if (c['password'].hasError('minlength')) {
-      return 'La contraseña debe tener al menos 4 caracteres.';
+    if (c["password"].hasError("minlength")) {
+      return "La contraseña debe tener al menos 4 caracteres.";
     }
-    return 'Por favor, completá los campos del formulario correctamente.';
+    return "Por favor, completá los campos del formulario correctamente.";
   }
 
   onSubmit() {
@@ -74,31 +95,37 @@ export class LoginComponent {
 
     this.authService.checkCredentials(email, password).subscribe({
       next: (res) => {
-        this.loginError = '';
+        this.loginError = "";
         this.handleAccountsResponse(res.accounts, res.login_nonce);
       },
       error: (err) => {
-        const errorMsg = err.error?.error || '';
-        if (err.error?.user_status === 'blocked' || errorMsg.includes('activa') || errorMsg.includes('bloque')) {
-          this.loginError = '';
-          this.router.navigate(['/account-notice']);
+        const errorMsg = err.error?.error || "";
+        if (
+          err.error?.user_status === "blocked" ||
+          errorMsg.includes("activa") ||
+          errorMsg.includes("bloque")
+        ) {
+          this.loginError = "";
+          this.router.navigate(["/account-notice"]);
         } else {
           this.handleFailedAttempt(errorMsg);
         }
-      }
+      },
     });
   }
 
   handleGoogleLogin() {
     this.authService.checkGoogleCredentials().subscribe({
       next: (res) => {
-        this.loginError = '';
+        this.loginError = "";
         this.handleAccountsResponse(res.accounts, res.login_nonce);
       },
       error: (err) => {
         const errorMsg = err.error?.error;
-        this.loginError = errorMsg || 'Hubo un error al iniciar sesión con Google. Intentá nuevamente.';
-      }
+        this.loginError =
+          errorMsg ||
+          "Hubo un error al iniciar sesión con Google. Intentá nuevamente.";
+      },
     });
   }
 
@@ -107,9 +134,14 @@ export class LoginComponent {
    * If multiple accounts exist, navigate to role selection screen.
    * The loginNonce must be forwarded to Step 2 in both paths.
    */
-  private handleAccountsResponse(accounts: AvailableAccount[], loginNonce: string) {
+  private handleAccountsResponse(
+    accounts: AvailableAccount[],
+    loginNonce: string,
+  ) {
     if (!accounts || accounts.length === 0) {
-      this.handleFailedAttempt('No se encontraron cuentas activas asociadas a este correo electrónico.');
+      this.handleFailedAttempt(
+        "No se encontraron cuentas activas asociadas a este correo electrónico.",
+      );
       return;
     }
 
@@ -118,7 +150,9 @@ export class LoginComponent {
       this.loginWithAccount(accounts[0], loginNonce);
     } else {
       // Multiple accounts — navigate to role selection, carry nonce in router state
-      this.router.navigate(['/select-role'], { state: { accounts, loginNonce } });
+      this.router.navigate(["/select-role"], {
+        state: { accounts, loginNonce },
+      });
     }
   }
 
@@ -126,40 +160,43 @@ export class LoginComponent {
    * Initiates step 2: select account/role and receive the JWT.
    */
   private loginWithAccount(account: AvailableAccount, loginNonce: string) {
-    if (account.status !== 'active') {
-      this.router.navigate(['/account-notice']);
+    if (account.status !== "active") {
+      this.router.navigate(["/account-notice"]);
       return;
     }
 
-    this.authService.loginWithAccount(account.user_id, account.role_id, loginNonce).subscribe({
-      next: (res) => {
-        this.loginError = '';
-        if (res.user_status === 'blocked') {
-          this.router.navigate(['/account-notice']);
-        } else if (res.approval_status === 'pending') {
-          this.router.navigate(['/pending-approval']);
-        } else {
-          this.router.navigate(['/dashboard']);
-        }
-      },
-      error: (err) => {
-        const errorMsg = err.error?.error || '';
-        if (errorMsg.includes('activa') || errorMsg.includes('bloque')) {
-          this.router.navigate(['/account-notice']);
-        } else {
-          this.handleFailedAttempt(errorMsg);
-        }
-      }
-    });
+    this.authService
+      .loginWithAccount(account.user_id, account.role_id, loginNonce)
+      .subscribe({
+        next: (res) => {
+          this.loginError = "";
+          if (res.user_status === "blocked") {
+            this.router.navigate(["/account-notice"]);
+          } else if (res.approval_status === "pending") {
+            this.router.navigate(["/pending-approval"]);
+          } else {
+            this.router.navigate(["/dashboard"]);
+          }
+        },
+        error: (err) => {
+          const errorMsg = err.error?.error || "";
+          if (errorMsg.includes("activa") || errorMsg.includes("bloque")) {
+            this.router.navigate(["/account-notice"]);
+          } else {
+            this.handleFailedAttempt(errorMsg);
+          }
+        },
+      });
   }
 
   handleFailedAttempt(specificError?: string) {
     this.failedAttempts++;
     if (this.failedAttempts >= this.MAX_ATTEMPTS) {
       this.locked = true;
-      this.loginError = 'Tu cuenta fue bloqueada temporalmente por demasiados intentos fallidos. Intentá nuevamente más tarde.';
+      this.loginError =
+        "Tu cuenta fue bloqueada temporalmente por demasiados intentos fallidos. Intentá nuevamente más tarde.";
     } else {
-      this.loginError = specificError || 'Email o contraseña incorrectos.';
+      this.loginError = specificError || "Email o contraseña incorrectos.";
     }
   }
 }

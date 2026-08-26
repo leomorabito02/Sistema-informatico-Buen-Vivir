@@ -1,10 +1,18 @@
 <div class="page-container">
   <div class="header-section">
     <div>
-      <h1 class="page-title"><i class="pi pi-calendar-plus mr-2"></i>Registro de Asistencia</h1>
-      <p class="page-subtitle">Control e historial de presentes por fecha y comisión de curso.</p>
+      <h1 class="page-title">
+        <i class="pi pi-calendar-plus mr-2"></i>Registro de Asistencia
+      </h1>
+      <p class="page-subtitle">
+        Control e historial de presentes por fecha y comisión de curso.
+      </p>
     </div>
-    <p-button label="Tomar Nueva Asistencia" icon="pi pi-check-square" styleClass="p-button-success"></p-button>
+    <p-button
+      label="Tomar Nueva Asistencia"
+      icon="pi pi-check-square"
+      styleClass="p-button-success"
+    ></p-button>
   </div>
 
   <p-card styleClass="p-card-shadow">
@@ -23,9 +31,22 @@
       <ng-template pTemplate="body" let-log>
         <tr>
           <td><span class="p-column-title">Fecha</span>{{ log.date }}</td>
-          <td><span class="p-column-title">Curso</span><strong>{{ log.course }}</strong></td>
-          <td><span class="p-column-title">Presentes</span><span class="text-success font-semibold">{{ log.presentCount }}</span></td>
-          <td><span class="p-column-title">Ausentes</span><span class="text-danger font-semibold">{{ log.absentCount }}</span></td>
+          <td>
+            <span class="p-column-title">Curso</span
+            ><strong>{{ log.course }}</strong>
+          </td>
+          <td>
+            <span class="p-column-title">Presentes</span
+            ><span class="text-success font-semibold">{{
+              log.presentCount
+            }}</span>
+          </td>
+          <td>
+            <span class="p-column-title">Ausentes</span
+            ><span class="text-danger font-semibold">{{
+              log.absentCount
+            }}</span>
+          </td>
           <td><span class="p-column-title">Total</span>{{ log.total }}</td>
           <td>
             <span class="p-column-title">% Asistencia</span>
@@ -33,7 +54,11 @@
           </td>
           <td>
             <span class="p-column-title">Acciones</span>
-            <p-button icon="pi pi-search" label="Ver Detalle" styleClass="p-button-outlined p-button-sm"></p-button>
+            <p-button
+              icon="pi pi-search"
+              label="Ver Detalle"
+              styleClass="p-button-outlined p-button-sm"
+            ></p-button>
           </td>
         </tr>
       </ng-template>

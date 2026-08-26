@@ -1,21 +1,21 @@
-import { TestBed } from '@angular/core/testing';
-import { AppComponent } from './app.component';
-import { ActivatedRoute } from '@angular/router';
+import { TestBed } from "@angular/core/testing";
+import { AppComponent } from "./app.component";
+import { ActivatedRoute } from "@angular/router";
 
-describe('AppComponent', () => {
+describe("AppComponent", () => {
   beforeEach(async () => {
     await TestBed.configureTestingModule({
       imports: [AppComponent],
       providers: [
         {
           provide: ActivatedRoute,
-          useValue: {}
-        }
-      ]
+          useValue: {},
+        },
+      ],
     }).compileComponents();
   });
 
-  it('should create the app', () => {
+  it("should create the app", () => {
     const fixture = TestBed.createComponent(AppComponent);
     const app = fixture.componentInstance;
     expect(app).toBeTruthy();
@@ -24,6 +24,6 @@ describe('AppComponent', () => {
   it(`should have the 'frontend-buen-vivir' title`, () => {
     const fixture = TestBed.createComponent(AppComponent);
     const app = fixture.componentInstance;
-    expect(app.title).toEqual('frontend-buen-vivir');
+    expect(app.title).toEqual("frontend-buen-vivir");
   });
 });

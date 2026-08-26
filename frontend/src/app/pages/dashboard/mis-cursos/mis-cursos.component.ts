@@ -1,9 +1,9 @@
-import { Component, OnInit } from '@angular/core';
-import { CommonModule } from '@angular/common';
-import { TableModule } from 'primeng/table';
-import { ButtonModule } from 'primeng/button';
-import { TagModule } from 'primeng/tag';
-import { CardModule } from 'primeng/card';
+import { Component, OnInit } from "@angular/core";
+import { CommonModule } from "@angular/common";
+import { TableModule } from "primeng/table";
+import { ButtonModule } from "primeng/button";
+import { TagModule } from "primeng/tag";
+import { CardModule } from "primeng/card";
 
 interface Course {
   title: string;
@@ -13,13 +13,12 @@ interface Course {
   progress: number;
 }
 
-
 @Component({
-  selector: 'app-mis-cursos',
+  selector: "app-mis-cursos",
   standalone: true,
   imports: [CommonModule, TableModule, ButtonModule, TagModule, CardModule],
-  templateUrl: './mis-cursos.component.html',
-  styleUrls: ['./mis-cursos.component.css']
+  templateUrl: "./mis-cursos.component.html",
+  styleUrls: ["./mis-cursos.component.css"],
 })
 export class MisCursosComponent implements OnInit {
   assignedCourses: Course[] = [];
@@ -28,9 +27,12 @@ export class MisCursosComponent implements OnInit {
 
   getSeverity(status: string): string | undefined {
     switch (status) {
-      case 'Activo': return 'success';
-      case 'Planificado': return 'info';
-      default: return undefined;
+      case "Activo":
+        return "success";
+      case "Planificado":
+        return "info";
+      default:
+        return undefined;
     }
   }
 }

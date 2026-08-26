@@ -1,10 +1,19 @@
 <div class="page-container">
   <div class="header-section">
     <div>
-      <h1 class="page-title"><i class="pi pi-eye mr-2"></i>Seguimiento Pedagógico y Social</h1>
-      <p class="page-subtitle">Monitoreo continuo de participantes para acompañar su permanencia en el programa.</p>
+      <h1 class="page-title">
+        <i class="pi pi-eye mr-2"></i>Seguimiento Pedagógico y Social
+      </h1>
+      <p class="page-subtitle">
+        Monitoreo continuo de participantes para acompañar su permanencia en el
+        programa.
+      </p>
     </div>
-    <p-button label="Nuevo Informe" icon="pi pi-plus" styleClass="p-button-success"></p-button>
+    <p-button
+      label="Nuevo Informe"
+      icon="pi pi-plus"
+      styleClass="p-button-success"
+    ></p-button>
   </div>
 
   <p-card styleClass="p-card-shadow">
@@ -22,18 +31,31 @@
       </ng-template>
       <ng-template pTemplate="body" let-item>
         <tr>
-          <td><span class="p-column-title">Participante</span><strong>{{ item.participant }}</strong></td>
+          <td>
+            <span class="p-column-title">Participante</span
+            ><strong>{{ item.participant }}</strong>
+          </td>
           <td><span class="p-column-title">Curso</span>{{ item.course }}</td>
           <td>
             <span class="p-column-title">Estado</span>
-            <p-tag [value]="item.status" [severity]="getSeverity(item.status)"></p-tag>
+            <p-tag
+              [value]="item.status"
+              [severity]="getSeverity(item.status)"
+            ></p-tag>
           </td>
-          <td><span class="p-column-title">Últ. Asistencia</span>{{ item.lastAttendance }}</td>
+          <td>
+            <span class="p-column-title">Últ. Asistencia</span
+            >{{ item.lastAttendance }}
+          </td>
           <td><span class="p-column-title">Tutor</span>{{ item.tutor }}</td>
           <td><span class="p-column-title">Notas</span>{{ item.notes }}</td>
           <td>
             <span class="p-column-title">Acciones</span>
-            <p-button icon="pi pi-comment" label="Contactar" styleClass="p-button-outlined p-button-sm"></p-button>
+            <p-button
+              icon="pi pi-comment"
+              label="Contactar"
+              styleClass="p-button-outlined p-button-sm"
+            ></p-button>
           </td>
         </tr>
       </ng-template>

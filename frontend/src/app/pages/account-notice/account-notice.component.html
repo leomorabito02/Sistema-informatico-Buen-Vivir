@@ -1,11 +1,10 @@
 <div class="auth-container">
   <div class="auth-content">
     <div class="auth-wrapper">
-
       <!-- Header -->
       <div class="auth-header">
         <div class="auth-logo-container">
-          <img src="assets/logo.png" alt="Logo Buen Vivir" class="auth-logo">
+          <img src="assets/logo.png" alt="Logo Buen Vivir" class="auth-logo" />
         </div>
         <h1 class="auth-title">Buen Vivir</h1>
         <p class="auth-subtitle">Centro de Ecología Integral</p>
@@ -14,18 +13,25 @@
       <!-- Notice card -->
       <div class="auth-card">
         <div class="icon-wrapper">
-          <lucide-angular [img]="ShieldAlertIcon" class="notice-icon"></lucide-angular>
+          <lucide-angular
+            [img]="ShieldAlertIcon"
+            class="notice-icon"
+          ></lucide-angular>
         </div>
 
         <h2 class="auth-card-title text-center">Acceso no disponible</h2>
-        
+
         <p class="notice-message">
-          En este momento no es posible procesar el inicio de sesión para su cuenta. 
-          Si requiere mayor información o asistencia, por favor póngase en contacto con el administrador del sistema.
+          En este momento no es posible procesar el inicio de sesión para su
+          cuenta. Si requiere mayor información o asistencia, por favor póngase
+          en contacto con el administrador del sistema.
         </p>
 
         <button (click)="goBackToLogin()" class="btn-submit">
-          <lucide-angular [img]="ArrowLeftIcon" class="btn-icon"></lucide-angular>
+          <lucide-angular
+            [img]="ArrowLeftIcon"
+            class="btn-icon"
+          ></lucide-angular>
           Volver al inicio de sesión
         </button>
       </div>
@@ -33,7 +39,6 @@
       <div class="auth-footer">
         <a routerLink="/" class="auth-link">Volver a la pantalla principal</a>
       </div>
-
     </div>
   </div>
 </div>

@@ -1,10 +1,18 @@
 <div class="page-container">
   <div class="header-section">
     <div>
-      <h1 class="page-title"><i class="pi pi-megaphone mr-2"></i>Gestión de Campañas</h1>
-      <p class="page-subtitle">Iniciativas comunitarias, recolección de insumos y eventos solidarios.</p>
+      <h1 class="page-title">
+        <i class="pi pi-megaphone mr-2"></i>Gestión de Campañas
+      </h1>
+      <p class="page-subtitle">
+        Iniciativas comunitarias, recolección de insumos y eventos solidarios.
+      </p>
     </div>
-    <p-button label="Crear Campaña" icon="pi pi-plus" styleClass="p-button-success"></p-button>
+    <p-button
+      label="Crear Campaña"
+      icon="pi pi-plus"
+      styleClass="p-button-success"
+    ></p-button>
   </div>
 
   <div class="grid-container">
@@ -13,18 +21,38 @@
         <div class="card-body mb-3">
           <div class="flex justify-between items-center mb-2">
             <span class="text-sm text-muted">Meta: {{ camp.goal }}</span>
-            <p-tag [value]="camp.status" [severity]="camp.status === 'Finalizada' ? 'info' : 'success'"></p-tag>
+            <p-tag
+              [value]="camp.status"
+              [severity]="camp.status === 'Finalizada' ? 'info' : 'success'"
+            ></p-tag>
           </div>
-          <p-progressBar [value]="camp.raised" styleClass="mb-2"></p-progressBar>
+          <p-progressBar
+            [value]="camp.raised"
+            styleClass="mb-2"
+          ></p-progressBar>
           <div class="info-footer text-xs text-muted">
-            <span><i class="pi pi-calendar mr-1"></i> {{ camp.startDate }} - {{ camp.endDate }}</span>
-            <span><i class="pi pi-users mr-1"></i> {{ camp.volunteers }} Voluntarios</span>
+            <span
+              ><i class="pi pi-calendar mr-1"></i> {{ camp.startDate }} -
+              {{ camp.endDate }}</span
+            >
+            <span
+              ><i class="pi pi-users mr-1"></i>
+              {{ camp.volunteers }} Voluntarios</span
+            >
           </div>
         </div>
         <ng-template pTemplate="footer">
           <div class="card-footer-buttons">
-            <p-button label="Detalles" icon="pi pi-info-circle" styleClass="p-button-outlined p-button-sm"></p-button>
-            <p-button label="Administrar" icon="pi pi-cog" styleClass="p-button-sm p-button-secondary"></p-button>
+            <p-button
+              label="Detalles"
+              icon="pi pi-info-circle"
+              styleClass="p-button-outlined p-button-sm"
+            ></p-button>
+            <p-button
+              label="Administrar"
+              icon="pi pi-cog"
+              styleClass="p-button-sm p-button-secondary"
+            ></p-button>
           </div>
         </ng-template>
       </p-card>

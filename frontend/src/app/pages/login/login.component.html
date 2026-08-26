@@ -4,7 +4,7 @@
       <!-- Logo and Title -->
       <div class="auth-header">
         <div class="auth-logo-container">
-          <img src="assets/logo.png" alt="Logo Buen Vivir" class="auth-logo">
+          <img src="assets/logo.png" alt="Logo Buen Vivir" class="auth-logo" />
         </div>
         <h1 class="auth-title">Buen Vivir</h1>
         <p class="auth-subtitle">Centro de Ecología Integral</p>
@@ -15,7 +15,6 @@
         <h2 class="auth-card-title">Iniciar Sesión</h2>
 
         <form [formGroup]="loginForm" (ngSubmit)="onSubmit()" class="auth-form">
-
           <div class="form-group">
             <label class="form-label">Email</label>
             <div class="input-wrapper p-input-icon-left">
@@ -25,7 +24,11 @@
                 type="email"
                 formControlName="email"
                 class="form-input p-inputtext-sm"
-                [ngClass]="{'invalid': loginForm.get('email')?.invalid && loginForm.get('email')?.touched}"
+                [ngClass]="{
+                  invalid:
+                    loginForm.get('email')?.invalid &&
+                    loginForm.get('email')?.touched,
+                }"
                 placeholder="tu@email.com"
                 required
               />
@@ -40,7 +43,11 @@
                 pInputText
                 formControlName="password"
                 class="form-input p-inputtext-sm"
-                [ngClass]="{'invalid': loginForm.get('password')?.invalid && loginForm.get('password')?.touched}"
+                [ngClass]="{
+                  invalid:
+                    loginForm.get('password')?.invalid &&
+                    loginForm.get('password')?.touched,
+                }"
                 placeholder="••••••••"
                 required
                 [type]="showPassword ? 'text' : 'password'"
@@ -48,11 +55,16 @@
               <button
                 class="password-toggle-btn"
                 type="button"
-                [attr.aria-label]="showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'"
+                [attr.aria-label]="
+                  showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'
+                "
                 [attr.aria-pressed]="showPassword"
                 (click)="togglePasswordVisibility()"
               >
-                <lucide-angular [img]="showPassword ? EyeOffIcon : EyeIcon" class="w-5 h-5 text-muted-foreground"></lucide-angular>
+                <lucide-angular
+                  [img]="showPassword ? EyeOffIcon : EyeIcon"
+                  class="w-5 h-5 text-muted-foreground"
+                ></lucide-angular>
               </button>
             </div>
           </div>
@@ -68,7 +80,11 @@
           </div>
 
           <div *ngIf="loginError" class="error-msg my-2">
-            <p-message severity="error" [text]="loginError" styleClass="w-full"></p-message>
+            <p-message
+              severity="error"
+              [text]="loginError"
+              styleClass="w-full"
+            ></p-message>
           </div>
 
           <button
@@ -76,7 +92,7 @@
             [disabled]="locked || loginForm.invalid"
             class="btn-submit"
           >
-            {{ locked ? 'Cuenta bloqueada' : 'Continuar' }}
+            {{ locked ? "Cuenta bloqueada" : "Continuar" }}
           </button>
         </form>
 
@@ -87,11 +103,7 @@
           </div>
         </div>
 
-        <button
-          type="button"
-          (click)="handleGoogleLogin()"
-          class="btn-google"
-        >
+        <button type="button" (click)="handleGoogleLogin()" class="btn-google">
           <svg class="google-icon" viewBox="0 0 24 24" width="20" height="20">
             <path
               fill="#4285F4"

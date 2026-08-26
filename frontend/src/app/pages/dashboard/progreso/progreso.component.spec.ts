@@ -1,12 +1,12 @@
-import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { ProgresoComponent } from './progreso.component';
-import { provideHttpClientTesting } from '@angular/common/http/testing';
-import { provideHttpClient } from '@angular/common/http';
-import { provideRouter } from '@angular/router';
-import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
-import { Auth } from '@angular/fire/auth';
+import { ComponentFixture, TestBed } from "@angular/core/testing";
+import { ProgresoComponent } from "./progreso.component";
+import { provideHttpClientTesting } from "@angular/common/http/testing";
+import { provideHttpClient } from "@angular/common/http";
+import { provideRouter } from "@angular/router";
+import { BrowserAnimationsModule } from "@angular/platform-browser/animations";
+import { Auth } from "@angular/fire/auth";
 
-describe('ProgresoComponent', () => {
+describe("ProgresoComponent", () => {
   let component: ProgresoComponent;
   let fixture: ComponentFixture<ProgresoComponent>;
 
@@ -17,8 +17,8 @@ describe('ProgresoComponent', () => {
         provideHttpClient(),
         provideHttpClientTesting(),
         provideRouter([]),
-        { provide: Auth, useValue: {} }
-      ]
+        { provide: Auth, useValue: {} },
+      ],
     }).compileComponents();
 
     fixture = TestBed.createComponent(ProgresoComponent);
@@ -26,7 +26,7 @@ describe('ProgresoComponent', () => {
     fixture.detectChanges();
   });
 
-  it('should create', () => {
+  it("should create", () => {
     expect(component).toBeTruthy();
   });
 });

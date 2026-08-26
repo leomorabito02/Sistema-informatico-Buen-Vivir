@@ -1,12 +1,12 @@
-import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { ParticipantesComponent } from './participantes.component';
-import { provideHttpClientTesting } from '@angular/common/http/testing';
-import { provideHttpClient } from '@angular/common/http';
-import { provideRouter } from '@angular/router';
-import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
-import { Auth } from '@angular/fire/auth';
+import { ComponentFixture, TestBed } from "@angular/core/testing";
+import { ParticipantesComponent } from "./participantes.component";
+import { provideHttpClientTesting } from "@angular/common/http/testing";
+import { provideHttpClient } from "@angular/common/http";
+import { provideRouter } from "@angular/router";
+import { BrowserAnimationsModule } from "@angular/platform-browser/animations";
+import { Auth } from "@angular/fire/auth";
 
-describe('ParticipantesComponent', () => {
+describe("ParticipantesComponent", () => {
   let component: ParticipantesComponent;
   let fixture: ComponentFixture<ParticipantesComponent>;
 
@@ -17,8 +17,8 @@ describe('ParticipantesComponent', () => {
         provideHttpClient(),
         provideHttpClientTesting(),
         provideRouter([]),
-        { provide: Auth, useValue: {} }
-      ]
+        { provide: Auth, useValue: {} },
+      ],
     }).compileComponents();
 
     fixture = TestBed.createComponent(ParticipantesComponent);
@@ -26,7 +26,7 @@ describe('ParticipantesComponent', () => {
     fixture.detectChanges();
   });
 
-  it('should create', () => {
+  it("should create", () => {
     expect(component).toBeTruthy();
   });
 });

@@ -64,7 +64,6 @@ export interface ProfileResponse {
   role_data?: RoleData;
 }
 
-
 export interface LoginResponse {
   token: string;
   refresh_token?: string;

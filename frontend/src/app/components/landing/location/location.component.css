@@ -24,7 +24,9 @@
 }
 
 @media (min-width: 1024px) {
-  .location-grid { grid-template-columns: 2fr 1fr; }
+  .location-grid {
+    grid-template-columns: 2fr 1fr;
+  }
 }
 
 .map-frame {
@@ -98,7 +100,9 @@
   align-self: flex-start;
 }
 
-.maps-btn:hover { background: var(--primary-hover); }
+.maps-btn:hover {
+  background: var(--primary-hover);
+}
 
 .maps-btn lucide-angular {
   width: 1rem;

@@ -1,33 +1,58 @@
 <div class="page-container">
   <div class="header-section">
     <div>
-      <h1 class="page-title"><i class="pi pi-book mr-2"></i>Catálogo de Cursos</h1>
-      <p class="page-subtitle">Explorá los cursos y capacitaciones disponibles para la comunidad.</p>
+      <h1 class="page-title">
+        <i class="pi pi-book mr-2"></i>Catálogo de Cursos
+      </h1>
+      <p class="page-subtitle">
+        Explorá los cursos y capacitaciones disponibles para la comunidad.
+      </p>
     </div>
     <div class="search-box p-input-icon-left">
       <i class="pi pi-search"></i>
-      <input pInputText type="text" [(ngModel)]="searchTerm" (input)="filterCursos()" placeholder="Buscar cursos..." class="p-inputtext-sm" />
+      <input
+        pInputText
+        type="text"
+        [(ngModel)]="searchTerm"
+        (input)="filterCursos()"
+        placeholder="Buscar cursos..."
+        class="p-inputtext-sm"
+      />
     </div>
   </div>
 
   <div class="grid-container">
     <div *ngFor="let curso of filteredCursos" class="course-card-wrapper">
-      <p-card [header]="curso.title" [subheader]="curso.category" styleClass="p-card-shadow course-card">
+      <p-card
+        [header]="curso.title"
+        [subheader]="curso.category"
+        styleClass="p-card-shadow course-card"
+      >
         <div class="card-content">
           <div class="info-row">
             <span><i class="pi pi-clock"></i> {{ curso.duration }}</span>
             <span><i class="pi pi-user"></i> {{ curso.instructor }}</span>
           </div>
           <div class="info-row">
-            <span><i class="pi pi-chart-line"></i> Nivel: {{ curso.level }}</span>
+            <span
+              ><i class="pi pi-chart-line"></i> Nivel: {{ curso.level }}</span
+            >
             <span><i class="pi pi-users"></i> Vacantes: {{ curso.seats }}</span>
           </div>
           <div class="status-badge-container">
-            <p-tag [value]="curso.status" [severity]="getSeverity(curso.status)"></p-tag>
+            <p-tag
+              [value]="curso.status"
+              [severity]="getSeverity(curso.status)"
+            ></p-tag>
           </div>
         </div>
         <ng-template pTemplate="footer">
-          <p-button label="Inscribirme" icon="pi pi-check-circle" [disabled]="curso.seats === 0" styleClass="w-full p-button-success"></p-button>
+          <p-button
+            label="Inscribirme"
+            icon="pi pi-check-circle"
+            [disabled]="curso.seats === 0"
+            styleClass="w-full p-button-success"
+          ></p-button>
         </ng-template>
       </p-card>
     </div>

@@ -1,8 +1,12 @@
 <div class="page-container">
   <div class="header-section">
     <div>
-      <h1 class="page-title"><i class="pi pi-briefcase mr-2"></i>Mis Cursos Asignados</h1>
-      <p class="page-subtitle">Panel docente para la gestión de clases, asistencias y alumnos.</p>
+      <h1 class="page-title">
+        <i class="pi pi-briefcase mr-2"></i>Mis Cursos Asignados
+      </h1>
+      <p class="page-subtitle">
+        Panel docente para la gestión de clases, asistencias y alumnos.
+      </p>
     </div>
   </div>
 
@@ -22,19 +26,38 @@
       <ng-template pTemplate="body" let-course>
         <tr>
           <td><span class="p-column-title">Código</span>{{ course.code }}</td>
-          <td><span class="p-column-title">Curso</span><strong>{{ course.name }}</strong></td>
-          <td><span class="p-column-title">Horario</span>{{ course.schedule }}</td>
+          <td>
+            <span class="p-column-title">Curso</span
+            ><strong>{{ course.name }}</strong>
+          </td>
+          <td>
+            <span class="p-column-title">Horario</span>{{ course.schedule }}
+          </td>
           <td><span class="p-column-title">Aula</span>{{ course.room }}</td>
-          <td><span class="p-column-title">Alumnos</span>{{ course.studentsCount }} alumnos</td>
+          <td>
+            <span class="p-column-title">Alumnos</span
+            >{{ course.studentsCount }} alumnos
+          </td>
           <td>
             <span class="p-column-title">Estado</span>
-            <p-tag [value]="course.status" [severity]="getSeverity(course.status)"></p-tag>
+            <p-tag
+              [value]="course.status"
+              [severity]="getSeverity(course.status)"
+            ></p-tag>
           </td>
           <td>
             <span class="p-column-title">Acciones</span>
             <div class="action-buttons">
-              <p-button icon="pi pi-list" label="Alumnos" styleClass="p-button-outlined p-button-sm"></p-button>
-              <p-button icon="pi pi-check-square" label="Tomar Asistencia" styleClass="p-button-sm p-button-success"></p-button>
+              <p-button
+                icon="pi pi-list"
+                label="Alumnos"
+                styleClass="p-button-outlined p-button-sm"
+              ></p-button>
+              <p-button
+                icon="pi pi-check-square"
+                label="Tomar Asistencia"
+                styleClass="p-button-sm p-button-success"
+              ></p-button>
             </div>
           </td>
         </tr>

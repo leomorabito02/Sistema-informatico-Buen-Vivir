@@ -43,7 +43,9 @@
   font-size: 0.9rem;
 }
 
-.text-success { color: #22c55e; }
+.text-success {
+  color: #22c55e;
+}
 
 @media (max-width: 768px) {
   .header-section {

@@ -36,7 +36,8 @@
 }
 
 @media (max-width: 768px) {
-  .header-section, .header-actions {
+  .header-section,
+  .header-actions {
     flex-direction: column;
     align-items: stretch;
   }

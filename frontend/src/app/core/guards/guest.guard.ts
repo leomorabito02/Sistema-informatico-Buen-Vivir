@@ -1,8 +1,8 @@
-import { CanActivateFn, Router } from '@angular/router';
-import { inject } from '@angular/core';
-import { AuthService } from '../../services/auth.service';
-import { MeResponse } from '../models/auth.model';
-import { catchError, map, of } from 'rxjs';
+import { CanActivateFn, Router } from "@angular/router";
+import { inject } from "@angular/core";
+import { AuthService } from "../../services/auth.service";
+import { MeResponse } from "../models/auth.model";
+import { catchError, map, of } from "rxjs";
 
 export const guestGuard: CanActivateFn = () => {
   const authService = inject(AuthService);
@@ -10,12 +10,11 @@ export const guestGuard: CanActivateFn = () => {
 
   return authService.isAuthenticated().pipe(
     map((res: MeResponse) => {
-      if (res.approval_status === 'pending') {
-        return router.createUrlTree(['/pending-approval']);
+      if (res.approval_status === "pending") {
+        return router.createUrlTree(["/pending-approval"]);
       }
-      return router.createUrlTree(['/dashboard']);
+      return router.createUrlTree(["/dashboard"]);
     }),
-    catchError(() => of(true))
+    catchError(() => of(true)),
   );
 };
-

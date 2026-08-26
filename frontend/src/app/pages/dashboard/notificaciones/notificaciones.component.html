@@ -1,15 +1,30 @@
 <div class="page-container">
   <div class="header-section">
     <div>
-      <h1 class="page-title"><i class="pi pi-bell mr-2"></i>Centro de Notificaciones</h1>
-      <p class="page-subtitle">Novedades, avisos del curso y alertas de tu cuenta.</p>
+      <h1 class="page-title">
+        <i class="pi pi-bell mr-2"></i>Centro de Notificaciones
+      </h1>
+      <p class="page-subtitle">
+        Novedades, avisos del curso y alertas de tu cuenta.
+      </p>
     </div>
-    <p-button label="Marcar todas como leídas" icon="pi pi-check" (onClick)="markAllAsRead()" styleClass="p-button-outlined p-button-sm"></p-button>
+    <p-button
+      label="Marcar todas como leídas"
+      icon="pi pi-check"
+      (onClick)="markAllAsRead()"
+      styleClass="p-button-outlined p-button-sm"
+    ></p-button>
   </div>
 
   <div class="notifications-list">
-    <div *ngFor="let notif of notifications" class="notification-item-wrapper mb-3">
-      <p-card styleClass="p-card-shadow notification-card" [class.unread]="!notif.read">
+    <div
+      *ngFor="let notif of notifications"
+      class="notification-item-wrapper mb-3"
+    >
+      <p-card
+        styleClass="p-card-shadow notification-card"
+        [class.unread]="!notif.read"
+      >
         <div class="notification-content">
           <div class="notification-header">
             <div class="title-row">
@@ -20,7 +35,12 @@
           </div>
           <p class="notification-message">{{ notif.message }}</p>
           <div class="notification-footer" *ngIf="!notif.read">
-            <p-button label="Marcar leída" icon="pi pi-check" (onClick)="markAsRead(notif)" styleClass="p-button-text p-button-sm"></p-button>
+            <p-button
+              label="Marcar leída"
+              icon="pi pi-check"
+              (onClick)="markAsRead(notif)"
+              styleClass="p-button-text p-button-sm"
+            ></p-button>
           </div>
         </div>
       </p-card>

@@ -193,7 +193,8 @@
   border: 1px solid #fecaca;
 }
 
-.loading-state, .error-state {
+.loading-state,
+.error-state {
   text-align: center;
   padding: 3rem;
   color: var(--text-gray);
@@ -282,7 +283,8 @@
   border-color: #f87171;
 }
 
-.btn-google:disabled, .btn-unlink:disabled {
+.btn-google:disabled,
+.btn-unlink:disabled {
   opacity: 0.6;
   cursor: not-allowed;
 }
