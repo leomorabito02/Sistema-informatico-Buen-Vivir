@@ -203,7 +203,7 @@ jobs:
       - name: Push image to Artifact Registry
         if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/testing')
         run: |
-          IMAGE_URI="${{ secrets.ARTIFACT_REGISTRY_REPO }}/auth:${{ github.sha }}"
+          IMAGE_URI="${{ secrets.ARTIFACT_REGISTRY_HOST }}/${{ secrets.GCP_PROJECT_ID }}/${{ secrets.ARTIFACT_REGISTRY_REPO }}/auth:${{ github.sha }}"
           docker tag auth:${{ github.sha }} "$IMAGE_URI"
           docker push "$IMAGE_URI"
 
@@ -412,7 +412,7 @@ jobs:
 
       - name: Verify auth image in Artifact Registry
         run: |
-          IMAGE_URI="${{ secrets.ARTIFACT_REGISTRY_REPO }}/auth:${{ github.sha }}"
+          IMAGE_URI="${{ secrets.ARTIFACT_REGISTRY_HOST }}/${{ secrets.GCP_PROJECT_ID }}/${{ secrets.ARTIFACT_REGISTRY_REPO }}/auth:${{ github.sha }}"
           echo "Verifying image: $IMAGE_URI"
           if ! gcloud artifacts docker images describe "$IMAGE_URI" > /dev/null 2>&1; then
             echo "::error::Image $IMAGE_URI not found in Artifact Registry. CD requires image built by CI."
@@ -450,7 +450,7 @@ jobs:
         with:
           service: '${{ secrets.CLOUD_RUN_SERVICE_AUTH }}-${{ needs.cd-setup.outputs.service_suffix }}'
           region: '${{ secrets.GCP_REGION }}'
-          image: '${{ secrets.ARTIFACT_REGISTRY_REPO }}/auth:${{ github.sha }}'
+          image: '${{ secrets.ARTIFACT_REGISTRY_HOST }}/${{ secrets.GCP_PROJECT_ID }}/${{ secrets.ARTIFACT_REGISTRY_REPO }}/auth:${{ github.sha }}'
           flags: '--allow-unauthenticated'
 
   cd-api-gateway:
