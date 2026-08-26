@@ -24,7 +24,7 @@ env:
 
 # ============================================================================
 # STAGE 1: CI (Continuous Integration - Validaciones y pruebas básicas)
-# Corre en CUALQUIER push, PR o ejecución manual.
+# Corre en CUALQUIER push, PR o ejecución manual
 # ============================================================================
 jobs:
   ci-secrets:
