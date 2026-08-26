@@ -467,7 +467,7 @@ jobs:
           service: 'auth-${{ needs.cd-setup.outputs.service_suffix }}'
           region: '${{ secrets.GCP_REGION }}'
           image: '${{ secrets.ARTIFACT_REGISTRY_HOST }}/${{ secrets.GCP_PROJECT_ID }}/${{ secrets.ARTIFACT_REGISTRY_REPO }}/auth:${{ github.sha }}'
-          flags: '--allow-unauthenticated --min-instances=0 --max-instances=1 --cpu=1 --memory=1Gi'
+          flags: '--allow-unauthenticated --min-instances=0 --max-instances=1 --cpu=1 --memory=1Gi --service-account=${{ secrets.GCP_SERVICE_ACCOUNT }}'
 
   cd-api-gateway:
     name: CD — API Gateway (Google Cloud)
@@ -551,6 +551,17 @@ jobs:
           name: angular-build-${{ github.sha }}
           path: ./dist-angular
 
+      - name: Inject API URL into env.js
+        run: |
+          SUFFIX="${{ needs.cd-setup.outputs.service_suffix }}"
+          if [ "$SUFFIX" = "prod" ]; then
+            export API_URL="https://${{ secrets.GATEWAY_HOST_PROD }}"
+          else
+            export API_URL="https://${{ secrets.GATEWAY_HOST_TESTING }}"
+          fi
+          envsubst < ./dist-angular/assets/env.template.js > ./dist-angular/assets/env.js
+          echo "Injected API_URL: $API_URL into env.js"
+          
       - name: Deploy to Cloudflare Pages
         id: deploy-cf
         uses: cloudflare/wrangler-action@v3
