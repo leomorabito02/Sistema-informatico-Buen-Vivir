@@ -468,6 +468,13 @@ jobs:
           region: '${{ secrets.GCP_REGION }}'
           image: '${{ secrets.ARTIFACT_REGISTRY_HOST }}/${{ secrets.GCP_PROJECT_ID }}/${{ secrets.ARTIFACT_REGISTRY_REPO }}/auth:${{ github.sha }}'
           flags: '--allow-unauthenticated --min-instances=0 --max-instances=1 --cpu=1 --memory=1Gi --service-account=${{ secrets.GCP_SERVICE_ACCOUNT }}'
+          env_vars: |-
+            DATABASE_URL_AUTH=${{ secrets.DATABASE_URL_AUTH }}
+            JWT_SECRET=${{ secrets.JWT_SECRET }}
+            JWT_REFRESH_EXPIRATION_DAYS=${{ secrets.JWT_REFRESH_EXPIRATION_DAYS }}
+            JWT_REFRESH_SECRET=${{ secrets.JWT_REFRESH_SECRET }}
+            GOOGLE_APPLICATION_CREDENTIALS=${{ secrets.GOOGLE_APPLICATION_CREDENTIALS }}
+            CORS_ALLOWED_ORIGINS=${{ secrets.CORS_ALLOWED_ORIGINS }}
 
   cd-api-gateway:
     name: CD — API Gateway (Google Cloud)
@@ -561,7 +568,7 @@ jobs:
           fi
           envsubst < ./dist-angular/assets/env.template.js > ./dist-angular/assets/env.js
           echo "Injected API_URL: $API_URL into env.js"
-          
+
       - name: Deploy to Cloudflare Pages
         id: deploy-cf
         uses: cloudflare/wrangler-action@v3
