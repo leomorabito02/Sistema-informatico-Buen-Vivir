@@ -3,8 +3,6 @@ info:
   title: Sistema Informático Buen Vivir API Gateway
   description: API Gateway de Google Cloud para el Sistema Informático Buen Vivir
   version: 1.0.0
-x-google-endpoints:
-- allowCors: true
 schemes:
 - https
 produces:
@@ -22,10 +20,28 @@ paths:
       responses:
         '200':
           description: OK
+    options:
+      summary: CORS preflight for /api/v1/auth/login
+      operationId: options__api_v1_auth_login
+      x-google-backend:
+        address: ${AUTH_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+      responses:
+        '200':
+          description: OK
   /api/v1/auth/register:
     post:
       summary: POST /api/v1/auth/register
       operationId: post__api_v1_auth_register
+      x-google-backend:
+        address: ${AUTH_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+      responses:
+        '200':
+          description: OK
+    options:
+      summary: CORS preflight for /api/v1/auth/register
+      operationId: options__api_v1_auth_register
       x-google-backend:
         address: ${AUTH_SERVICE_URL}
         path_translation: APPEND_PATH_TO_ADDRESS
@@ -42,6 +58,15 @@ paths:
       responses:
         '200':
           description: OK
+    options:
+      summary: CORS preflight for /api/v1/auth/check-credentials
+      operationId: options__api_v1_auth_check-credentials
+      x-google-backend:
+        address: ${AUTH_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+      responses:
+        '200':
+          description: OK
   /api/v1/auth/google-check-credentials:
     post:
       summary: POST /api/v1/auth/google-check-credentials
@@ -52,10 +77,28 @@ paths:
       responses:
         '200':
           description: OK
+    options:
+      summary: CORS preflight for /api/v1/auth/google-check-credentials
+      operationId: options__api_v1_auth_google-check-credentials
+      x-google-backend:
+        address: ${AUTH_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+      responses:
+        '200':
+          description: OK
   /api/v1/auth/logout:
     post:
       summary: POST /api/v1/auth/logout
       operationId: post__api_v1_auth_logout
+      x-google-backend:
+        address: ${AUTH_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+      responses:
+        '200':
+          description: OK
+    options:
+      summary: CORS preflight for /api/v1/auth/logout
+      operationId: options__api_v1_auth_logout
       x-google-backend:
         address: ${AUTH_SERVICE_URL}
         path_translation: APPEND_PATH_TO_ADDRESS
@@ -74,6 +117,15 @@ paths:
           description: OK
       security:
       - jwt: []
+    options:
+      summary: CORS preflight for /api/v1/auth/me
+      operationId: options__api_v1_auth_me
+      x-google-backend:
+        address: ${AUTH_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+      responses:
+        '200':
+          description: OK
   /api/v1/profile/me:
     get:
       summary: GET /api/v1/profile/me
@@ -97,6 +149,15 @@ paths:
           description: OK
       security:
       - jwt: []
+    options:
+      summary: CORS preflight for /api/v1/profile/me
+      operationId: options__api_v1_profile_me
+      x-google-backend:
+        address: ${AUTH_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+      responses:
+        '200':
+          description: OK
   /api/v1/profile/me/password:
     put:
       summary: PUT /api/v1/profile/me/password
@@ -109,6 +170,15 @@ paths:
           description: OK
       security:
       - jwt: []
+    options:
+      summary: CORS preflight for /api/v1/profile/me/password
+      operationId: options__api_v1_profile_me_password
+      x-google-backend:
+        address: ${AUTH_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+      responses:
+        '200':
+          description: OK
   /api/v1/profile/me/link-google:
     post:
       summary: POST /api/v1/profile/me/link-google
@@ -121,6 +191,15 @@ paths:
           description: OK
       security:
       - jwt: []
+    options:
+      summary: CORS preflight for /api/v1/profile/me/link-google
+      operationId: options__api_v1_profile_me_link-google
+      x-google-backend:
+        address: ${AUTH_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+      responses:
+        '200':
+          description: OK
   /api/v1/profile/me/unlink-google:
     post:
       summary: POST /api/v1/profile/me/unlink-google
@@ -133,6 +212,15 @@ paths:
           description: OK
       security:
       - jwt: []
+    options:
+      summary: CORS preflight for /api/v1/profile/me/unlink-google
+      operationId: options__api_v1_profile_me_unlink-google
+      x-google-backend:
+        address: ${AUTH_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+      responses:
+        '200':
+          description: OK
   /api/v1/users:
     get:
       summary: GET /api/v1/users
@@ -156,6 +244,15 @@ paths:
           description: OK
       security:
       - jwt: []
+    options:
+      summary: CORS preflight for /api/v1/users
+      operationId: options__api_v1_users
+      x-google-backend:
+        address: ${AUTH_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+      responses:
+        '200':
+          description: OK
   /api/v1/users/{id}:
     get:
       summary: GET /api/v1/users/{id}
@@ -195,6 +292,15 @@ paths:
       in: path
       required: true
       type: string
+    options:
+      summary: CORS preflight for /api/v1/users/{id}
+      operationId: options__api_v1_users_id
+      x-google-backend:
+        address: ${AUTH_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+      responses:
+        '200':
+          description: OK
   /api/v1/roles:
     get:
       summary: GET /api/v1/roles
@@ -218,6 +324,15 @@ paths:
           description: OK
       security:
       - jwt: []
+    options:
+      summary: CORS preflight for /api/v1/roles
+      operationId: options__api_v1_roles
+      x-google-backend:
+        address: ${AUTH_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+      responses:
+        '200':
+          description: OK
   /api/v1/roles/{id}:
     get:
       summary: GET /api/v1/roles/{id}
@@ -257,6 +372,15 @@ paths:
       in: path
       required: true
       type: string
+    options:
+      summary: CORS preflight for /api/v1/roles/{id}
+      operationId: options__api_v1_roles_id
+      x-google-backend:
+        address: ${AUTH_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+      responses:
+        '200':
+          description: OK
   /api/v1/companies:
     get:
       summary: GET /api/v1/companies
@@ -280,6 +404,15 @@ paths:
           description: OK
       security:
       - jwt: []
+    options:
+      summary: CORS preflight for /api/v1/companies
+      operationId: options__api_v1_companies
+      x-google-backend:
+        address: ${AUTH_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+      responses:
+        '200':
+          description: OK
   /api/v1/companies/{id}:
     get:
       summary: GET /api/v1/companies/{id}
@@ -319,6 +452,15 @@ paths:
       in: path
       required: true
       type: string
+    options:
+      summary: CORS preflight for /api/v1/companies/{id}
+      operationId: options__api_v1_companies_id
+      x-google-backend:
+        address: ${AUTH_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+      responses:
+        '200':
+          description: OK
   /api/v1/teachers:
     get:
       summary: GET /api/v1/teachers
@@ -342,6 +484,15 @@ paths:
           description: OK
       security:
       - jwt: []
+    options:
+      summary: CORS preflight for /api/v1/teachers
+      operationId: options__api_v1_teachers
+      x-google-backend:
+        address: ${AUTH_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+      responses:
+        '200':
+          description: OK
   /api/v1/teachers/{id}:
     get:
       summary: GET /api/v1/teachers/{id}
@@ -381,6 +532,15 @@ paths:
       in: path
       required: true
       type: string
+    options:
+      summary: CORS preflight for /api/v1/teachers/{id}
+      operationId: options__api_v1_teachers_id
+      x-google-backend:
+        address: ${AUTH_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+      responses:
+        '200':
+          description: OK
   /api/v1/participants:
     get:
       summary: GET /api/v1/participants
@@ -404,6 +564,15 @@ paths:
           description: OK
       security:
       - jwt: []
+    options:
+      summary: CORS preflight for /api/v1/participants
+      operationId: options__api_v1_participants
+      x-google-backend:
+        address: ${AUTH_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+      responses:
+        '200':
+          description: OK
   /api/v1/participants/{id}:
     get:
       summary: GET /api/v1/participants/{id}
@@ -443,6 +612,15 @@ paths:
       in: path
       required: true
       type: string
+    options:
+      summary: CORS preflight for /api/v1/participants/{id}
+      operationId: options__api_v1_participants_id
+      x-google-backend:
+        address: ${AUTH_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+      responses:
+        '200':
+          description: OK
   /api/v1/permissions:
     get:
       summary: GET /api/v1/permissions
@@ -466,6 +644,15 @@ paths:
           description: OK
       security:
       - jwt: []
+    options:
+      summary: CORS preflight for /api/v1/permissions
+      operationId: options__api_v1_permissions
+      x-google-backend:
+        address: ${AUTH_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+      responses:
+        '200':
+          description: OK
   /api/v1/permissions/{id}:
     get:
       summary: GET /api/v1/permissions/{id}
@@ -505,6 +692,15 @@ paths:
       in: path
       required: true
       type: string
+    options:
+      summary: CORS preflight for /api/v1/permissions/{id}
+      operationId: options__api_v1_permissions_id
+      x-google-backend:
+        address: ${AUTH_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+      responses:
+        '200':
+          description: OK
   /api/v1/volunteers:
     get:
       summary: GET /api/v1/volunteers
@@ -528,6 +724,15 @@ paths:
           description: OK
       security:
       - jwt: []
+    options:
+      summary: CORS preflight for /api/v1/volunteers
+      operationId: options__api_v1_volunteers
+      x-google-backend:
+        address: ${AUTH_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+      responses:
+        '200':
+          description: OK
   /api/v1/volunteers/{id}:
     get:
       summary: GET /api/v1/volunteers/{id}
@@ -567,6 +772,15 @@ paths:
       in: path
       required: true
       type: string
+    options:
+      summary: CORS preflight for /api/v1/volunteers/{id}
+      operationId: options__api_v1_volunteers_id
+      x-google-backend:
+        address: ${AUTH_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+      responses:
+        '200':
+          description: OK
 securityDefinitions:
   jwt:
     type: apiKey
