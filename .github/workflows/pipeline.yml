@@ -590,10 +590,14 @@ jobs:
 
     steps:
       - name: Authenticate GCP (Workload Identity)
+        id: auth
         uses: google-github-actions/auth@v2
         with:
           workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
           service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+          token_format: id_token
+          id_token_audience: ${{ needs.cd-auth.outputs.service_url }}
+          id_token_include_email: true
 
       - name: Setup gcloud
         uses: google-github-actions/setup-gcloud@v2
@@ -604,18 +608,16 @@ jobs:
         run: |
           AUTH_URL="${{ needs.cd-auth.outputs.service_url }}"
           echo "Testing Auth health: $AUTH_URL/health"
-          TOKEN=$(gcloud auth print-identity-token --audiences="$AUTH_URL")
-          curl --retry 3 --retry-delay 5 --fail --silent --show-error --max-time 15 -H "Authorization: Bearer $TOKEN" "$AUTH_URL/health"
+          curl --retry 3 --retry-delay 5 --fail --silent --show-error --max-time 15 -H "Authorization: Bearer ${{ steps.auth.outputs.id_token }}" "$AUTH_URL/health"
           echo "Auth health: OK"
 
       - name: Smoke test — Auth login endpoint (expect 400/422/401)
         run: |
           AUTH_URL="${{ needs.cd-auth.outputs.service_url }}"
-          TOKEN=$(gcloud auth print-identity-token --audiences="$AUTH_URL")
           STATUS=$(curl --retry 3 --retry-delay 5 --silent --output /dev/null --write-out "%{http_code}" \
             --max-time 15 -X POST "$AUTH_URL/api/v1/auth/login" \
             -H "Content-Type: application/json" \
-            -H "Authorization: Bearer $TOKEN" \
+            -H "Authorization: Bearer ${{ steps.auth.outputs.id_token }}" \
             -d '{"email":"smoke@test.com","password":"wrong"}')
           echo "Login endpoint status: $STATUS"
           if [ "$STATUS" != "400" ] && [ "$STATUS" != "401" ] && [ "$STATUS" != "422" ]; then
