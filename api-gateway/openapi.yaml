@@ -3,6 +3,8 @@ info:
   title: Sistema Informático Buen Vivir API Gateway
   description: API Gateway de Google Cloud para el Sistema Informático Buen Vivir
   version: 1.0.0
+x-google-endpoints:
+- allowCors: true
 schemes:
 - https
 produces:
