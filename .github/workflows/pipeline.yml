@@ -460,6 +460,12 @@ jobs:
           echo "prev_revision=$PREV" >> $GITHUB_OUTPUT
           echo "Previous revision: ${PREV:-none}"
 
+      - name: Prepare Firebase Credentials
+        run: |
+          echo "FIREBASE_CREDENTIALS_BASE64=$(echo -n "$FIREBASE_JSON" | base64 -w 0)" >> $GITHUB_ENV
+        env:
+          FIREBASE_JSON: ${{ secrets.GOOGLE_APPLICATION_CREDENTIALS }}
+
       - name: Deploy Auth to Cloud Run
         id: deploy
         uses: google-github-actions/deploy-cloudrun@v2
@@ -473,7 +479,7 @@ jobs:
             JWT_SECRET=${{ secrets.JWT_SECRET }}
             JWT_REFRESH_EXPIRATION_DAYS=${{ secrets.JWT_REFRESH_EXPIRATION_DAYS }}
             JWT_REFRESH_SECRET=${{ secrets.JWT_REFRESH_SECRET }}
-            GOOGLE_APPLICATION_CREDENTIALS=${{ secrets.GOOGLE_APPLICATION_CREDENTIALS }}
+            FIREBASE_CREDENTIALS_BASE64=${{ env.FIREBASE_CREDENTIALS_BASE64 }}
             CORS_ALLOWED_ORIGINS=${{ secrets.CORS_ALLOWED_ORIGINS }}
 
   cd-api-gateway:
