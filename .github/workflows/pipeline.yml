@@ -655,9 +655,9 @@ jobs:
         uses: zaproxy/action-baseline@v0.12.0
         with:
           target: '${{ needs.cd-api-gateway.outputs.gateway_url }}'
-          rules_file_name: 'auth/zap.yaml'
+          rules_file_name: 'auth/zap.conf'
           fail_action: ${{ needs.cd-setup.outputs.env_name == 'TESTING' && 'true' || 'false' }}
-          artifact_name: zap-auth-report-${{ github.sha }}
+          artifact_name: zap-auth-report
           allow_issue_writing: false
 
   cd-load-k6:
