@@ -508,13 +508,8 @@ jobs:
         working-directory: api-gateway
         run: |
           SUFFIX="${{ needs.cd-setup.outputs.service_suffix }}"
-          if [ "$SUFFIX" = "prod" ]; then
-            export AUTH_SERVICE_URL="${{ secrets.AUTH_SERVICE_URL_PROD }}"
-            export GATEWAY_HOST="${{ secrets.GATEWAY_HOST_PROD }}"
-          else
-            export AUTH_SERVICE_URL="${{ secrets.AUTH_SERVICE_URL_TESTING }}"
-            export GATEWAY_HOST="${{ secrets.GATEWAY_HOST_TESTING }}"
-          fi
+          AUTH_URL=$(gcloud run services describe "auth-$SUFFIX" --region="${{ secrets.GCP_REGION }}" --format='value(status.url)')
+          export AUTH_SERVICE_URL="$AUTH_URL"
           export FIREBASE_PROJECT_ID="${{ secrets.FIREBASE_PROJECT_ID }}"
           envsubst < openapi.yaml > openapi-resolved.yaml
           echo "openapi.yaml resolved for env: $SUFFIX"
