@@ -482,6 +482,13 @@ jobs:
             FIREBASE_CREDENTIALS_BASE64=${{ env.FIREBASE_CREDENTIALS_BASE64 }}
             CORS_ALLOWED_ORIGINS=${{ secrets.CORS_ALLOWED_ORIGINS }}
 
+      - name: Make Auth Service public
+        run: |
+          gcloud run services add-iam-policy-binding auth-${{ needs.cd-setup.outputs.service_suffix }} \
+            --region="${{ secrets.GCP_REGION }}" \
+            --member="allUsers" \
+            --role="roles/run.invoker"
+
   cd-api-gateway:
     name: CD — API Gateway (Google Cloud)
     runs-on: ubuntu-latest
