@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/go-chi/chi/v5"
-	chi_middleware "github.com/go-chi/chi/v5/middleware"
 
 	"auth/config"
 	"auth/internal/controllers"
@@ -84,10 +83,8 @@ func main() {
 	// 6. Setup Router and Middlewares
 	r := chi.NewRouter()
 	
-	// Basic standard middlewares (CORS and Security Headers are handled by API Gateway)
-	r.Use(chi_middleware.RequestID)
-	r.Use(chi_middleware.RealIP) //nolint:staticcheck // RealIP used for internal request logging behind API Gateway
-	r.Use(chi_middleware.Recoverer)
+	// Middlewares (CORS and Security Headers must be handled here as API Gateway does not support allowCors)
+	middlewares.SetupMiddlewares(r)
 
 	// DDoS Protection fallback (Global Rate Limiter)
 	r.Use(middlewares.RateLimiter())

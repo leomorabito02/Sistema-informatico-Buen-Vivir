@@ -8,8 +8,8 @@ def main():
         del spec['x-google-endpoints']
         
     for path, methods in spec.get('paths', {}).items():
-        if 'options' not in methods:
-            methods['options'] = {
+        # Always overwrite options
+        methods['options'] = {
                 'summary': f'CORS preflight for {path}',
                 'operationId': f'options_{path.replace("/", "_").replace("{", "").replace("}", "")}',
                 'x-google-backend': {
@@ -18,7 +18,15 @@ def main():
                 },
                 'responses': {
                     '200': {
-                        'description': 'OK'
+                        'description': 'OK',
+                        'headers': {
+                            'Access-Control-Allow-Origin': {'type': 'string'},
+                            'Access-Control-Allow-Methods': {'type': 'string'},
+                            'Access-Control-Allow-Headers': {'type': 'string'},
+                            'Access-Control-Expose-Headers': {'type': 'string'},
+                            'Access-Control-Allow-Credentials': {'type': 'boolean'},
+                            'Access-Control-Max-Age': {'type': 'integer'}
+                        }
                     }
                 }
             }
