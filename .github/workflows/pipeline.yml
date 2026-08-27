@@ -488,6 +488,8 @@ jobs:
     needs: [cd-setup, cd-auth]
     environment: ${{ needs.cd-setup.outputs.env_name }}
     timeout-minutes: 30
+    outputs:
+      gateway_url: ${{ steps.deploy-gateway.outputs.gateway_url }}
 
     steps:
       - name: Checkout repository
@@ -515,6 +517,7 @@ jobs:
           echo "openapi.yaml resolved for env: $SUFFIX"
 
       - name: Create or update API Gateway config
+        id: deploy-gateway
         working-directory: api-gateway
         run: |
           SUFFIX="${{ needs.cd-setup.outputs.service_suffix }}"
@@ -544,11 +547,13 @@ jobs:
             --project="${{ secrets.GCP_PROJECT_ID }}"
 
           echo "API Gateway deployed: buenvivir-gateway-$SUFFIX"
+          HOSTNAME=$(gcloud api-gateway gateways describe "buenvivir-gateway-$SUFFIX" --location="$REGION" --project="${{ secrets.GCP_PROJECT_ID }}" --format="value(defaultHostname)")
+          echo "gateway_url=https://$HOSTNAME" >> $GITHUB_OUTPUT
 
   cd-frontend:
     name: CD — Frontend (Cloudflare Pages)
     runs-on: ubuntu-latest
-    needs: [cd-setup]
+    needs: [cd-setup, cd-api-gateway]
     environment: ${{ needs.cd-setup.outputs.env_name }}
     timeout-minutes: 15
 
@@ -561,12 +566,7 @@ jobs:
 
       - name: Inject API URL into env.js
         run: |
-          SUFFIX="${{ needs.cd-setup.outputs.service_suffix }}"
-          if [ "$SUFFIX" = "prod" ]; then
-            export API_URL="https://${{ secrets.GATEWAY_HOST_PROD }}"
-          else
-            export API_URL="https://${{ secrets.GATEWAY_HOST_TESTING }}"
-          fi
+          export API_URL="${{ needs.cd-api-gateway.outputs.gateway_url }}"
           envsubst < ./dist-angular/assets/env.template.js > ./dist-angular/assets/env.js
           echo "Injected API_URL: $API_URL into env.js"
 
@@ -647,6 +647,9 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+
+      - name: Fix permissions for ZAP
+        run: chmod -R 777 .
 
       - name: ZAP Baseline Scan — Auth Service
         uses: zaproxy/action-baseline@v0.12.0
