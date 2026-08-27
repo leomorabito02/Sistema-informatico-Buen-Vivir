@@ -651,10 +651,12 @@ jobs:
       - name: Fix permissions for ZAP
         run: chmod -R 777 .
 
-      - name: ZAP Baseline Scan — Auth Service
-        uses: zaproxy/action-baseline@v0.12.0
+      - name: ZAP API Scan — Auth Service
+        uses: zaproxy/action-api-scan@v0.10.0
         with:
-          target: '${{ needs.cd-api-gateway.outputs.gateway_url }}'
+          target: 'api-gateway/openapi.yaml'
+          format: openapi
+          cmd_options: '-O ${{ needs.cd-api-gateway.outputs.gateway_url }}'
           rules_file_name: 'auth/zap.conf'
           fail_action: ${{ needs.cd-setup.outputs.env_name == 'TESTING' && 'true' || 'false' }}
           artifact_name: zap-auth-report
