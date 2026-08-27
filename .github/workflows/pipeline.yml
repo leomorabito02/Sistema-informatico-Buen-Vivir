@@ -482,13 +482,6 @@ jobs:
             FIREBASE_CREDENTIALS_BASE64=${{ env.FIREBASE_CREDENTIALS_BASE64 }}
             CORS_ALLOWED_ORIGINS=${{ secrets.CORS_ALLOWED_ORIGINS }}
 
-      - name: Make Auth Service public
-        run: |
-          gcloud run services add-iam-policy-binding auth-${{ needs.cd-setup.outputs.service_suffix }} \
-            --region="${{ secrets.GCP_REGION }}" \
-            --member="allUsers" \
-            --role="roles/run.invoker"
-
   cd-api-gateway:
     name: CD — API Gateway (Google Cloud)
     runs-on: ubuntu-latest
@@ -596,19 +589,33 @@ jobs:
     timeout-minutes: 15
 
     steps:
+      - name: Authenticate GCP (Workload Identity)
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+
+      - name: Setup gcloud
+        uses: google-github-actions/setup-gcloud@v2
+        with:
+          project_id: ${{ secrets.GCP_PROJECT_ID }}
+
       - name: Smoke test — Auth Service (/health)
         run: |
           AUTH_URL="${{ needs.cd-auth.outputs.service_url }}"
           echo "Testing Auth health: $AUTH_URL/health"
-          curl --retry 3 --retry-delay 5 --fail --silent --show-error --max-time 15 "$AUTH_URL/health"
+          TOKEN=$(gcloud auth print-identity-token --audiences="$AUTH_URL")
+          curl --retry 3 --retry-delay 5 --fail --silent --show-error --max-time 15 -H "Authorization: Bearer $TOKEN" "$AUTH_URL/health"
           echo "Auth health: OK"
 
       - name: Smoke test — Auth login endpoint (expect 400/422/401)
         run: |
           AUTH_URL="${{ needs.cd-auth.outputs.service_url }}"
+          TOKEN=$(gcloud auth print-identity-token --audiences="$AUTH_URL")
           STATUS=$(curl --retry 3 --retry-delay 5 --silent --output /dev/null --write-out "%{http_code}" \
             --max-time 15 -X POST "$AUTH_URL/api/v1/auth/login" \
             -H "Content-Type: application/json" \
+            -H "Authorization: Bearer $TOKEN" \
             -d '{"email":"smoke@test.com","password":"wrong"}')
           echo "Login endpoint status: $STATUS"
           if [ "$STATUS" != "400" ] && [ "$STATUS" != "401" ] && [ "$STATUS" != "422" ]; then
