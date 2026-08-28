@@ -1,8 +1,7 @@
 (function(window) {
   window.__env = window.__env || {};
 
-  // API URL for pipeline injection
-  // The pipeline should use envsubst to replace this value before serving
-  window.__env.apiUrl = '${API_URL}';
+  // apiUrl is intentionally empty: Cloudflare Pages proxies /api/* to the gateway via _redirects
+  window.__env.apiUrl = '';
 
 })(this);

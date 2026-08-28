@@ -243,7 +243,6 @@ jobs:
           export AUTH_SERVICE_URL="https://auth.example.com"
           export FIREBASE_PROJECT_ID="validate-project"
           envsubst < openapi.yaml > openapi-resolved.yaml
-          cat openapi-resolved.yaml | grep -A3 'x-google-endpoints' || echo '::warning::x-google-endpoints block not found'
 
       - name: Validate OpenAPI spec (swagger-cli)
         working-directory: api-gateway
@@ -514,14 +513,8 @@ jobs:
           AUTH_URL=$(gcloud run services describe "auth-$SUFFIX" --region="${{ secrets.GCP_REGION }}" --format='value(status.url)')
           export AUTH_SERVICE_URL="$AUTH_URL"
           export FIREBASE_PROJECT_ID="${{ secrets.FIREBASE_PROJECT_ID }}"
-          # Resolve gateway hostname for x-google-endpoints
-          GATEWAY_HOSTNAME=$(gcloud api-gateway gateways describe "buenvivir-gateway-$SUFFIX" \
-            --location="${{ secrets.GCP_REGION }}" \
-            --project="${{ secrets.GCP_PROJECT_ID }}" \
-            --format='value(defaultHostname)' 2>/dev/null || echo "")
-          export GATEWAY_HOST="${GATEWAY_HOSTNAME}"
           envsubst < openapi.yaml > openapi-resolved.yaml
-          echo "openapi.yaml resolved for env: $SUFFIX (GATEWAY_HOST=$GATEWAY_HOST)"
+          echo "openapi.yaml resolved for env: $SUFFIX"
 
       - name: Create or update API Gateway config
         id: deploy-gateway
@@ -571,11 +564,13 @@ jobs:
           name: angular-build-${{ github.sha }}
           path: ./dist-angular
 
-      - name: Inject API URL into env.js
+      - name: Inject gateway URL into _redirects (Cloudflare proxy)
         run: |
           export API_URL="${{ needs.cd-api-gateway.outputs.gateway_url }}"
-          envsubst < ./dist-angular/assets/env.template.js > ./dist-angular/assets/env.js
-          echo "Injected API_URL: $API_URL into env.js"
+          envsubst < ./dist-angular/_redirects > ./dist-angular/_redirects.tmp
+          mv ./dist-angular/_redirects.tmp ./dist-angular/_redirects
+          echo "Injected API_URL: $API_URL into _redirects"
+          cat ./dist-angular/_redirects
 
       - name: Deploy to Cloudflare Pages
         id: deploy-cf
