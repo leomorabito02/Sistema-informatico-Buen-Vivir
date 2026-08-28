@@ -535,19 +535,35 @@ jobs:
             --backend-auth-service-account="${{ secrets.GCP_SERVICE_ACCOUNT }}"
 
           # Wait for config to be active before updating gateway
-          for i in $(seq 1 10); do
+          STATE="CREATING"
+          for i in $(seq 1 30); do
             STATE=$(gcloud api-gateway api-configs describe "$CONFIG_ID" --api="$API_ID" \
-              --project="${{ secrets.GCP_PROJECT_ID }}" --format="value(state)" 2>/dev/null)
-            echo "Config state: $STATE (attempt $i/10)"
-            [ "$STATE" = "ACTIVE" ] && break
+              --project="${{ secrets.GCP_PROJECT_ID }}" --format="value(state)" 2>/dev/null || echo "UNKNOWN")
+            echo "Config state: $STATE (attempt $i/30)"
+            if [ "$STATE" = "ACTIVE" ]; then
+              break
+            elif [ "$STATE" = "FAILED" ]; then
+              echo "::error::API Config creation failed!"
+              exit 1
+            fi
             sleep 15
           done
 
-          if ! gcloud api-gateway gateways update "buenvivir-gateway-$SUFFIX" \
-            --api="$API_ID" \
-            --api-config="$CONFIG_ID" \
-            --location="$REGION" \
-            --project="${{ secrets.GCP_PROJECT_ID }}"; then
+          if [ "$STATE" != "ACTIVE" ]; then
+            echo "::error::Timed out waiting for API Config $CONFIG_ID to become ACTIVE (state: $STATE)"
+            exit 1
+          fi
+
+          EXISTING=$(gcloud api-gateway gateways describe "buenvivir-gateway-$SUFFIX" \
+            --location="$REGION" --project="${{ secrets.GCP_PROJECT_ID }}" --format="value(name)" 2>/dev/null || echo "")
+
+          if [ -n "$EXISTING" ]; then
+            gcloud api-gateway gateways update "buenvivir-gateway-$SUFFIX" \
+              --api="$API_ID" \
+              --api-config="$CONFIG_ID" \
+              --location="$REGION" \
+              --project="${{ secrets.GCP_PROJECT_ID }}"
+          else
             gcloud api-gateway gateways create "buenvivir-gateway-$SUFFIX" \
               --api="$API_ID" \
               --api-config="$CONFIG_ID" \
