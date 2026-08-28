@@ -25,7 +25,25 @@ func SetupMiddlewares(r *chi.Mux) {
 	}
 
 	corsMiddleware := cors.New(cors.Options{
-		AllowedOrigins:   allowedOrigins,
+		AllowOriginFunc: func(origin string) bool {
+			if origin == "" {
+				return true
+			}
+			for _, o := range allowedOrigins {
+				if o == origin || o == "*" {
+					return true
+				}
+			}
+			// Default trusted origins and testing subdomains
+			if origin == "http://localhost:4200" ||
+				origin == "http://localhost:8080" ||
+				origin == "https://ceibuenvivir.org" ||
+				strings.HasSuffix(origin, ".ceibuenvivir.pages.dev") ||
+				strings.HasSuffix(origin, ".ceibuenvivir.org") {
+				return true
+			}
+			return false
+		},
 		AllowedMethods:   []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
 		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-CSRF-Token", "X-Requested-With"},
 		ExposedHeaders:   []string{"Link", "Set-Cookie"},
