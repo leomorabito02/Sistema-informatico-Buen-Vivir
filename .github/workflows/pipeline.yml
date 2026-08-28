@@ -24,7 +24,7 @@ env:
 
 # ============================================================================
 # STAGE 1: CI (Continuous Integration - Validaciones y pruebas básicas)
-# Corre en CUALQUIER push, PR o ejecución manual.
+# Corre en CUALQUIER push, PR o ejecución manual
 # ============================================================================
 jobs:
   ci-secrets:
@@ -460,6 +460,12 @@ jobs:
           echo "prev_revision=$PREV" >> $GITHUB_OUTPUT
           echo "Previous revision: ${PREV:-none}"
 
+      - name: Prepare Firebase Credentials
+        run: |
+          echo "FIREBASE_CREDENTIALS_BASE64=$(echo -n "$FIREBASE_JSON" | base64 -w 0)" >> $GITHUB_ENV
+        env:
+          FIREBASE_JSON: ${{ secrets.GOOGLE_APPLICATION_CREDENTIALS }}
+
       - name: Deploy Auth to Cloud Run
         id: deploy
         uses: google-github-actions/deploy-cloudrun@v2
@@ -467,14 +473,23 @@ jobs:
           service: 'auth-${{ needs.cd-setup.outputs.service_suffix }}'
           region: '${{ secrets.GCP_REGION }}'
           image: '${{ secrets.ARTIFACT_REGISTRY_HOST }}/${{ secrets.GCP_PROJECT_ID }}/${{ secrets.ARTIFACT_REGISTRY_REPO }}/auth:${{ github.sha }}'
-          flags: '--allow-unauthenticated --min-instances=0 --max-instances=1 --cpu=1 --memory=1Gi'
+          flags: '--allow-unauthenticated --min-instances=0 --max-instances=1 --cpu=1 --memory=1Gi --service-account=${{ secrets.GCP_SERVICE_ACCOUNT }}'
+          env_vars: |-
+            DATABASE_URL_AUTH=${{ secrets.DATABASE_URL_AUTH }}
+            JWT_SECRET=${{ secrets.JWT_SECRET }}
+            JWT_REFRESH_EXPIRATION_DAYS=${{ secrets.JWT_REFRESH_EXPIRATION_DAYS }}
+            JWT_REFRESH_SECRET=${{ secrets.JWT_REFRESH_SECRET }}
+            FIREBASE_CREDENTIALS_BASE64=${{ env.FIREBASE_CREDENTIALS_BASE64 }}
+            CORS_ALLOWED_ORIGINS=${{ secrets.CORS_ALLOWED_ORIGINS }}
 
   cd-api-gateway:
     name: CD — API Gateway (Google Cloud)
     runs-on: ubuntu-latest
     needs: [cd-setup, cd-auth]
     environment: ${{ needs.cd-setup.outputs.env_name }}
-    timeout-minutes: 15
+    timeout-minutes: 30
+    outputs:
+      gateway_url: ${{ steps.deploy-gateway.outputs.gateway_url }}
 
     steps:
       - name: Checkout repository
@@ -495,18 +510,14 @@ jobs:
         working-directory: api-gateway
         run: |
           SUFFIX="${{ needs.cd-setup.outputs.service_suffix }}"
-          if [ "$SUFFIX" = "prod" ]; then
-            export AUTH_SERVICE_URL="${{ secrets.AUTH_SERVICE_URL_PROD }}"
-            export GATEWAY_HOST="${{ secrets.GATEWAY_HOST_PROD }}"
-          else
-            export AUTH_SERVICE_URL="${{ secrets.AUTH_SERVICE_URL_TESTING }}"
-            export GATEWAY_HOST="${{ secrets.GATEWAY_HOST_TESTING }}"
-          fi
+          AUTH_URL=$(gcloud run services describe "auth-$SUFFIX" --region="${{ secrets.GCP_REGION }}" --format='value(status.url)')
+          export AUTH_SERVICE_URL="$AUTH_URL"
           export FIREBASE_PROJECT_ID="${{ secrets.FIREBASE_PROJECT_ID }}"
           envsubst < openapi.yaml > openapi-resolved.yaml
           echo "openapi.yaml resolved for env: $SUFFIX"
 
       - name: Create or update API Gateway config
+        id: deploy-gateway
         working-directory: api-gateway
         run: |
           SUFFIX="${{ needs.cd-setup.outputs.service_suffix }}"
@@ -523,24 +534,59 @@ jobs:
             --project="${{ secrets.GCP_PROJECT_ID }}" \
             --backend-auth-service-account="${{ secrets.GCP_SERVICE_ACCOUNT }}"
 
-          gcloud api-gateway gateways update "buenvivir-gateway-$SUFFIX" \
-            --api="$API_ID" \
-            --api-config="$CONFIG_ID" \
-            --location="$REGION" \
-            --project="${{ secrets.GCP_PROJECT_ID }}" \
-            || \
-          gcloud api-gateway gateways create "buenvivir-gateway-$SUFFIX" \
-            --api="$API_ID" \
-            --api-config="$CONFIG_ID" \
-            --location="$REGION" \
-            --project="${{ secrets.GCP_PROJECT_ID }}"
+          # Wait for config to be active before updating gateway
+          STATE="CREATING"
+          for i in $(seq 1 30); do
+            STATE=$(gcloud api-gateway api-configs describe "$CONFIG_ID" --api="$API_ID" \
+              --project="${{ secrets.GCP_PROJECT_ID }}" --format="value(state)" 2>/dev/null || echo "UNKNOWN")
+            echo "Config state: $STATE (attempt $i/30)"
+            if [ "$STATE" = "ACTIVE" ]; then
+              break
+            elif [ "$STATE" = "FAILED" ]; then
+              echo "::error::API Config creation failed!"
+              exit 1
+            fi
+            sleep 15
+          done
+
+          if [ "$STATE" != "ACTIVE" ]; then
+            echo "::error::Timed out waiting for API Config $CONFIG_ID to become ACTIVE (state: $STATE)"
+            exit 1
+          fi
+
+          EXISTING=$(gcloud api-gateway gateways describe "buenvivir-gateway-$SUFFIX" \
+            --location="$REGION" --project="${{ secrets.GCP_PROJECT_ID }}" --format="value(name)" 2>/dev/null || echo "")
+
+          if [ -n "$EXISTING" ]; then
+            gcloud api-gateway gateways update "buenvivir-gateway-$SUFFIX" \
+              --api="$API_ID" \
+              --api-config="$CONFIG_ID" \
+              --location="$REGION" \
+              --project="${{ secrets.GCP_PROJECT_ID }}"
+          else
+            gcloud api-gateway gateways create "buenvivir-gateway-$SUFFIX" \
+              --api="$API_ID" \
+              --api-config="$CONFIG_ID" \
+              --location="$REGION" \
+              --project="${{ secrets.GCP_PROJECT_ID }}"
+          fi
 
           echo "API Gateway deployed: buenvivir-gateway-$SUFFIX"
+          HOSTNAME=$(gcloud api-gateway gateways describe "buenvivir-gateway-$SUFFIX" \
+            --location="$REGION" \
+            --project="${{ secrets.GCP_PROJECT_ID }}" \
+            --format="value(defaultHostname)")
+          if [ -z "$HOSTNAME" ]; then
+            echo "::error::Failed to retrieve gateway hostname."
+            exit 1
+          fi
+          echo "gateway_url=https://$HOSTNAME" >> $GITHUB_OUTPUT
+          echo "Gateway URL: https://$HOSTNAME"
 
   cd-frontend:
     name: CD — Frontend (Cloudflare Pages)
     runs-on: ubuntu-latest
-    needs: [cd-setup]
+    needs: [cd-setup, cd-api-gateway]
     environment: ${{ needs.cd-setup.outputs.env_name }}
     timeout-minutes: 15
 
@@ -550,6 +596,17 @@ jobs:
         with:
           name: angular-build-${{ github.sha }}
           path: ./dist-angular
+
+      - name: Inject API URL into env.js
+        run: |
+          export API_URL="${{ needs.cd-api-gateway.outputs.gateway_url }}"
+          if [ -z "$API_URL" ]; then
+            echo "::error::gateway_url output is empty. Cannot inject API_URL."
+            exit 1
+          fi
+          envsubst < ./dist-angular/assets/env.template.js > ./dist-angular/assets/env.js
+          echo "Injected API_URL: $API_URL into env.js"
+          cat ./dist-angular/assets/env.js
 
       - name: Deploy to Cloudflare Pages
         id: deploy-cf
@@ -570,11 +627,26 @@ jobs:
     timeout-minutes: 15
 
     steps:
+      - name: Authenticate GCP (Workload Identity)
+        id: auth
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+          token_format: id_token
+          id_token_audience: ${{ needs.cd-auth.outputs.service_url }}
+          id_token_include_email: true
+
+      - name: Setup gcloud
+        uses: google-github-actions/setup-gcloud@v2
+        with:
+          project_id: ${{ secrets.GCP_PROJECT_ID }}
+
       - name: Smoke test — Auth Service (/health)
         run: |
           AUTH_URL="${{ needs.cd-auth.outputs.service_url }}"
           echo "Testing Auth health: $AUTH_URL/health"
-          curl --retry 3 --retry-delay 5 --fail --silent --show-error --max-time 15 "$AUTH_URL/health"
+          curl --retry 3 --retry-delay 5 --fail --silent --show-error --max-time 15 -H "Authorization: Bearer ${{ steps.auth.outputs.id_token }}" "$AUTH_URL/health"
           echo "Auth health: OK"
 
       - name: Smoke test — Auth login endpoint (expect 400/422/401)
@@ -583,6 +655,7 @@ jobs:
           STATUS=$(curl --retry 3 --retry-delay 5 --silent --output /dev/null --write-out "%{http_code}" \
             --max-time 15 -X POST "$AUTH_URL/api/v1/auth/login" \
             -H "Content-Type: application/json" \
+            -H "Authorization: Bearer ${{ steps.auth.outputs.id_token }}" \
             -d '{"email":"smoke@test.com","password":"wrong"}')
           echo "Login endpoint status: $STATUS"
           if [ "$STATUS" != "400" ] && [ "$STATUS" != "401" ] && [ "$STATUS" != "422" ]; then
@@ -605,7 +678,7 @@ jobs:
   cd-dast-zap:
     name: CD — DAST (OWASP ZAP)
     runs-on: ubuntu-latest
-    needs: [cd-setup, cd-smoke, cd-auth]
+    needs: [cd-setup, cd-smoke, cd-auth, cd-api-gateway]
     environment: ${{ needs.cd-setup.outputs.env_name }}
     timeout-minutes: 15
 
@@ -613,13 +686,19 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: ZAP Baseline Scan — Auth Service
-        uses: zaproxy/action-baseline@v0.12.0
+      - name: Fix permissions for ZAP
+        run: chmod -R 777 .
+
+      - name: ZAP API Scan — Auth Service
+        uses: zaproxy/action-api-scan@v0.10.0
         with:
-          target: '${{ needs.cd-auth.outputs.service_url }}'
-          rules_file_name: 'auth/zap.yaml'
+          target: 'api-gateway/openapi.yaml'
+          format: openapi
+          cmd_options: '-O ${{ needs.cd-api-gateway.outputs.gateway_url }}'
+          rules_file_name: 'auth/zap.conf'
           fail_action: ${{ needs.cd-setup.outputs.env_name == 'TESTING' && 'true' || 'false' }}
-          artifact_name: zap-auth-report-${{ github.sha }}
+          artifact_name: zap-auth-report
+          allow_issue_writing: false
 
   cd-load-k6:
     name: CD — Load Tests (k6)

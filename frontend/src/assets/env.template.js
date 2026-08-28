@@ -1,8 +1,7 @@
 (function(window) {
   window.__env = window.__env || {};
 
-  // API URL for pipeline injection
-  // The pipeline should use envsubst to replace this value before serving
+  // API URL injected by the CD pipeline via envsubst
   window.__env.apiUrl = '${API_URL}';
 
 })(this);
