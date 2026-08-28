@@ -1,8 +1,7 @@
 (function(window) {
   window.__env = window.__env || {};
 
-  // apiUrl is empty: Cloudflare Pages proxies /api/* to the gateway via _redirects.
-  // For local development, configure proxy.conf.json in Angular CLI.
-  window.__env.apiUrl = '';
+  // API URL for local development
+  window.__env.apiUrl = 'http://localhost:8080';
 
 })(this);

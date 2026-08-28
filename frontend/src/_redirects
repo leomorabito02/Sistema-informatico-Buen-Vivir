@@ -1,1 +1,0 @@
-/api/* ${API_URL}/api/:splat 200

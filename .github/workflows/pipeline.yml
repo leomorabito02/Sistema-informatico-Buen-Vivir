@@ -534,21 +534,38 @@ jobs:
             --project="${{ secrets.GCP_PROJECT_ID }}" \
             --backend-auth-service-account="${{ secrets.GCP_SERVICE_ACCOUNT }}"
 
-          gcloud api-gateway gateways update "buenvivir-gateway-$SUFFIX" \
+          # Wait for config to be active before updating gateway
+          for i in $(seq 1 10); do
+            STATE=$(gcloud api-gateway api-configs describe "$CONFIG_ID" --api="$API_ID" \
+              --project="${{ secrets.GCP_PROJECT_ID }}" --format="value(state)" 2>/dev/null)
+            echo "Config state: $STATE (attempt $i/10)"
+            [ "$STATE" = "ACTIVE" ] && break
+            sleep 15
+          done
+
+          if ! gcloud api-gateway gateways update "buenvivir-gateway-$SUFFIX" \
             --api="$API_ID" \
             --api-config="$CONFIG_ID" \
             --location="$REGION" \
-            --project="${{ secrets.GCP_PROJECT_ID }}" \
-            || \
-          gcloud api-gateway gateways create "buenvivir-gateway-$SUFFIX" \
-            --api="$API_ID" \
-            --api-config="$CONFIG_ID" \
-            --location="$REGION" \
-            --project="${{ secrets.GCP_PROJECT_ID }}"
+            --project="${{ secrets.GCP_PROJECT_ID }}"; then
+            gcloud api-gateway gateways create "buenvivir-gateway-$SUFFIX" \
+              --api="$API_ID" \
+              --api-config="$CONFIG_ID" \
+              --location="$REGION" \
+              --project="${{ secrets.GCP_PROJECT_ID }}"
+          fi
 
           echo "API Gateway deployed: buenvivir-gateway-$SUFFIX"
-          HOSTNAME=$(gcloud api-gateway gateways describe "buenvivir-gateway-$SUFFIX" --location="$REGION" --project="${{ secrets.GCP_PROJECT_ID }}" --format="value(defaultHostname)")
+          HOSTNAME=$(gcloud api-gateway gateways describe "buenvivir-gateway-$SUFFIX" \
+            --location="$REGION" \
+            --project="${{ secrets.GCP_PROJECT_ID }}" \
+            --format="value(defaultHostname)")
+          if [ -z "$HOSTNAME" ]; then
+            echo "::error::Failed to retrieve gateway hostname."
+            exit 1
+          fi
           echo "gateway_url=https://$HOSTNAME" >> $GITHUB_OUTPUT
+          echo "Gateway URL: https://$HOSTNAME"
 
   cd-frontend:
     name: CD — Frontend (Cloudflare Pages)
@@ -564,13 +581,16 @@ jobs:
           name: angular-build-${{ github.sha }}
           path: ./dist-angular
 
-      - name: Inject gateway URL into _redirects (Cloudflare proxy)
+      - name: Inject API URL into env.js
         run: |
           export API_URL="${{ needs.cd-api-gateway.outputs.gateway_url }}"
-          envsubst < ./dist-angular/_redirects > ./dist-angular/_redirects.tmp
-          mv ./dist-angular/_redirects.tmp ./dist-angular/_redirects
-          echo "Injected API_URL: $API_URL into _redirects"
-          cat ./dist-angular/_redirects
+          if [ -z "$API_URL" ]; then
+            echo "::error::gateway_url output is empty. Cannot inject API_URL."
+            exit 1
+          fi
+          envsubst < ./dist-angular/assets/env.template.js > ./dist-angular/assets/env.js
+          echo "Injected API_URL: $API_URL into env.js"
+          cat ./dist-angular/assets/env.js
 
       - name: Deploy to Cloudflare Pages
         id: deploy-cf
