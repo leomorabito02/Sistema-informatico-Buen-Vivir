@@ -90,6 +90,14 @@ func main() {
 	r.Use(middlewares.RateLimiter())
 
 	// 7. Define Routes
+
+	// Catch-all OPTIONS handler: lets the CORS middleware (registered above) respond to
+	// any preflight request before route-specific logic runs. Without this, chi returns
+	// 405 Method Not Allowed for paths that only register non-OPTIONS methods.
+	r.Options("/*", func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	})
+
 	r.Get("/health", authController.HealthCheck)
 	r.Get("/internal/validate-token", tokenValidatorController.ValidateToken)
 
