@@ -9,6 +9,9 @@ produces:
 - application/json
 consumes:
 - application/json
+x-google-endpoints:
+- name: ${GATEWAY_HOST}
+  allowCors: true
 paths:
   /api/v1/auth/login:
     post:
