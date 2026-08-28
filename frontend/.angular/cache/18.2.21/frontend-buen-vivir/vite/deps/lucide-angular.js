@@ -24,7 +24,7 @@ import {
   __spreadValues
 } from "./chunk-H45XZUFK.js";
 
-// node_modules/.pnpm/lucide-angular@1.0.0_@angular+common@18.2.14_@angular+core@18.2.14_rxjs@7.8.2_zone.js@0_ef52fb45683237287028cc09f6069c73/node_modules/lucide-angular/fesm2020/lucide-angular.mjs
+// node_modules/.pnpm/lucide-angular@1.0.0_@angul_ef52fb45683237287028cc09f6069c73/node_modules/lucide-angular/fesm2020/lucide-angular.mjs
 var _c0 = ["*"];
 var AArrowDown = [["path", {
   d: "m14 12 4 4 4-4",

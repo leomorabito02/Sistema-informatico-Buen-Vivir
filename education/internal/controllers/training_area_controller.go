@@ -3,6 +3,8 @@ package controllers
 import (
 	"net/http"
 
+	"github.com/go-chi/chi/v5"
+
 	"buenvivir/education/internal/models"
 	"buenvivir/education/internal/services"
 )
@@ -49,7 +51,7 @@ func (c *TrainingAreaController) Update(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	area, err := c.service.UpdateTrainingArea(r.Context(), r.PathValue("id"), input)
+	area, err := c.service.UpdateTrainingArea(r.Context(), chi.URLParam(r, "id"), input)
 	if err != nil {
 		writeError(w, err)
 		return
@@ -59,7 +61,7 @@ func (c *TrainingAreaController) Update(w http.ResponseWriter, r *http.Request) 
 
 // Delete responde DELETE /api/areas-formativas/{id}
 func (c *TrainingAreaController) Delete(w http.ResponseWriter, r *http.Request) {
-	if err := c.service.DeleteTrainingArea(r.Context(), r.PathValue("id")); err != nil {
+	if err := c.service.DeleteTrainingArea(r.Context(), chi.URLParam(r, "id")); err != nil {
 		writeError(w, err)
 		return
 	}

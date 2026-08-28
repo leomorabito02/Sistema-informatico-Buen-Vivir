@@ -33,11 +33,6 @@ func (e *ContentfulAPIError) Error() string {
 	return fmt.Sprintf("contentful respondió %d: %s", e.StatusCode, e.Body)
 }
 
-func IsNotFound(err error) bool {
-	apiErr, ok := err.(*ContentfulAPIError)
-	return ok && apiErr.StatusCode == http.StatusNotFound
-}
-
 func IsConflict(err error) bool {
 	apiErr, ok := err.(*ContentfulAPIError)
 	return ok && apiErr.StatusCode == http.StatusConflict
@@ -78,12 +73,50 @@ func (c *ContentfulClient) Locale() string {
 // junto con sus referencias resueltas (includes) hasta la profundidad
 // indicada.
 func (c *ContentfulClient) ListEntries(ctx context.Context, contentType string, include int) (*models.ContentfulCollection, error) {
+	return c.ListEntriesWhere(ctx, contentType, include, nil)
+}
+
+// ListEntriesWhere es como ListEntries pero acepta filtros adicionales
+// de query (ej. {"fields.responsibleTeacher": "<userId>"}), tal como
+// los soporta la Content Delivery API. Al leer de la CDA, solo
+// devuelve entries ya publicadas.
+func (c *ContentfulClient) ListEntriesWhere(ctx context.Context, contentType string, include int, filters map[string]string) (*models.ContentfulCollection, error) {
 	query := url.Values{}
 	query.Set("content_type", contentType)
 	query.Set("include", fmt.Sprintf("%d", include))
 	query.Set("order", "-sys.createdAt")
+	for k, v := range filters {
+		query.Set(k, v)
+	}
 
 	body, _, err := c.doCDA(ctx, http.MethodGet, "/entries", query)
+	if err != nil {
+		return nil, err
+	}
+
+	var collection models.ContentfulCollection
+	if err := json.Unmarshal(body, &collection); err != nil {
+		return nil, fmt.Errorf("no se pudo parsear la respuesta de Contentful: %w", err)
+	}
+	return &collection, nil
+}
+
+// ListManagementEntriesWhere lista entries vía la Content Management
+// API, que —a diferencia de la CDA— devuelve también las que están en
+// borrador (nunca publicadas o despublicadas). Acepta filtros de query
+// opcionales, ej. {"fields.responsibleTeacher": "<id>"} y
+// {"sys.publishedVersion[exists]": "false"} para quedarse solo con los
+// borradores. La CMA no resuelve "includes" ni aplana los campos: cada
+// field viene envuelto por locale (ver flattenCMAFields).
+func (c *ContentfulClient) ListManagementEntriesWhere(ctx context.Context, contentType string, filters map[string]string) (*models.ContentfulCollection, error) {
+	query := url.Values{}
+	query.Set("content_type", contentType)
+	query.Set("order", "-sys.createdAt")
+	for k, v := range filters {
+		query.Set(k, v)
+	}
+
+	body, _, err := c.doCMA(ctx, http.MethodGet, "/entries?"+query.Encode(), nil, nil)
 	if err != nil {
 		return nil, err
 	}

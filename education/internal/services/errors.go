@@ -22,3 +22,25 @@ func IsValidationError(err error) bool {
 	_, ok := err.(*ValidationError)
 	return ok
 }
+
+// ForbiddenError señala que el usuario autenticado no tiene permiso
+// sobre el recurso puntual solicitado. Es distinto de un rol
+// insuficiente (eso lo corta RequireRole antes de llegar al service):
+// esto es una verificación de ownership, por ejemplo un docente
+// intentando editar un curso del que no es responsable.
+type ForbiddenError struct {
+	Message string
+}
+
+func (e *ForbiddenError) Error() string {
+	return e.Message
+}
+
+func NewForbiddenError(message string) error {
+	return &ForbiddenError{Message: message}
+}
+
+func IsForbiddenError(err error) bool {
+	_, ok := err.(*ForbiddenError)
+	return ok
+}

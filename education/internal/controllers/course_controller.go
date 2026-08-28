@@ -3,6 +3,8 @@ package controllers
 import (
 	"net/http"
 
+	"github.com/go-chi/chi/v5"
+
 	"buenvivir/education/internal/models"
 	"buenvivir/education/internal/services"
 )
@@ -27,7 +29,7 @@ func (c *CourseController) List(w http.ResponseWriter, r *http.Request) {
 
 // Get responde GET /api/cursos/{id}
 func (c *CourseController) Get(w http.ResponseWriter, r *http.Request) {
-	course, err := c.service.GetCourse(r.Context(), r.PathValue("id"))
+	course, err := c.service.GetCourse(r.Context(), chi.URLParam(r, "id"))
 	if err != nil {
 		writeError(w, err)
 		return
@@ -59,7 +61,7 @@ func (c *CourseController) Update(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	course, err := c.service.UpdateCourse(r.Context(), r.PathValue("id"), input)
+	course, err := c.service.UpdateCourse(r.Context(), chi.URLParam(r, "id"), input)
 	if err != nil {
 		writeError(w, err)
 		return
@@ -69,7 +71,7 @@ func (c *CourseController) Update(w http.ResponseWriter, r *http.Request) {
 
 // Delete responde DELETE /api/cursos/{id}
 func (c *CourseController) Delete(w http.ResponseWriter, r *http.Request) {
-	if err := c.service.DeleteCourse(r.Context(), r.PathValue("id")); err != nil {
+	if err := c.service.DeleteCourse(r.Context(), chi.URLParam(r, "id")); err != nil {
 		writeError(w, err)
 		return
 	}
@@ -78,18 +80,18 @@ func (c *CourseController) Delete(w http.ResponseWriter, r *http.Request) {
 
 // Publish responde POST /api/cursos/{id}/publicar
 func (c *CourseController) Publish(w http.ResponseWriter, r *http.Request) {
-	if err := c.service.PublishCourse(r.Context(), r.PathValue("id")); err != nil {
+	if err := c.service.PublishCourse(r.Context(), chi.URLParam(r, "id")); err != nil {
 		writeError(w, err)
 		return
 	}
-	writeJSON(w, http.StatusOK, map[string]string{"id": r.PathValue("id"), "status": "publicado"})
+	writeJSON(w, http.StatusOK, map[string]string{"id": chi.URLParam(r, "id"), "status": "publicado"})
 }
 
 // Unpublish responde POST /api/cursos/{id}/despublicar
 func (c *CourseController) Unpublish(w http.ResponseWriter, r *http.Request) {
-	if err := c.service.UnpublishCourse(r.Context(), r.PathValue("id")); err != nil {
+	if err := c.service.UnpublishCourse(r.Context(), chi.URLParam(r, "id")); err != nil {
 		writeError(w, err)
 		return
 	}
-	writeJSON(w, http.StatusOK, map[string]string{"id": r.PathValue("id"), "status": "despublicado"})
+	writeJSON(w, http.StatusOK, map[string]string{"id": chi.URLParam(r, "id"), "status": "despublicado"})
 }

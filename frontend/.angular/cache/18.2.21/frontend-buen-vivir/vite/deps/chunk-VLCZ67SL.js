@@ -2118,7 +2118,7 @@ var name2 = "firebase";
 var version2 = "10.14.1";
 registerVersion(name2, version2, "app");
 
-// node_modules/.pnpm/@angular+fire@18.0.1_@angular+common@18.2.14_@angular+core@18.2.14_rxjs@7.8.2_zone.js@0_62aaeab3a16ee98f28f9e022a5dbb105/node_modules/@angular/fire/fesm2022/angular-fire.mjs
+// node_modules/.pnpm/@angular+fire@18.0.1_@angul_62aaeab3a16ee98f28f9e022a5dbb105/node_modules/@angular/fire/fesm2022/angular-fire.mjs
 var VERSION2 = new Version("ANGULARFIRE2_VERSION");
 function ɵgetDefaultInstanceOf(identifier, provided, defaultApp) {
   if (provided) {
@@ -2315,7 +2315,7 @@ var ɵzoneWrap = (it, blockUntilFirst) => {
   };
 };
 
-// node_modules/.pnpm/@angular+fire@18.0.1_@angular+common@18.2.14_@angular+core@18.2.14_rxjs@7.8.2_zone.js@0_62aaeab3a16ee98f28f9e022a5dbb105/node_modules/@angular/fire/fesm2022/angular-fire-app.mjs
+// node_modules/.pnpm/@angular+fire@18.0.1_@angul_62aaeab3a16ee98f28f9e022a5dbb105/node_modules/@angular/fire/fesm2022/angular-fire-app.mjs
 var FirebaseApp = class {
   constructor(app) {
     return app;
@@ -2886,4 +2886,4 @@ firebase/app/dist/esm/index.esm.js:
    * limitations under the License.
    *)
 */
-//# sourceMappingURL=chunk-76B3AAFB.js.map
+//# sourceMappingURL=chunk-VLCZ67SL.js.map
