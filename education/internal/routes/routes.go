@@ -1,67 +1,85 @@
 package routes
 
 import (
-	"net/http"
+	"github.com/go-chi/chi/v5"
 
 	"buenvivir/education/internal/controllers"
+	"buenvivir/education/internal/middlewares"
+	"buenvivir/education/internal/services"
 )
 
-// withAuth es el punto de enganche del futuro middleware de
-// JWT + RBAC (roles "administrador" y "voluntario" únicamente).
-//
-// TODO(auth): hoy es un pass-through (no valida nada) porque depende
-// de cómo termine resuelto el módulo de Autenticación (auth/), que ya
-// tiene JWTService + AuthMiddleware + RequireRole en
-// auth/internal/middlewares. Cuando esté listo (probablemente
-// reutilizando ese JWTService via un cliente HTTP a auth, o
-// validando el JWT localmente si comparten el secreto/JWKS), envolver
-// acá así:
-//
-//	func withAuth(next http.HandlerFunc) http.HandlerFunc {
-//	    return middlewares.AuthMiddleware(jwtService)(
-//	        middlewares.RequireRole("administrador", "voluntario")(next),
-//	    ).ServeHTTP
-//	}
-//
-// Todos los endpoints de escritura (POST/PUT/DELETE y
-// publicar/despublicar) ya están marcados abajo con withAuth() para
-// que ese cambio sea de una sola línea por endpoint.
-func withAuth(next http.HandlerFunc) http.HandlerFunc {
-	return next
-}
-
 // RegisterRoutes registra los endpoints HTTP del servicio de
-// Educación. Los de lectura (GET) exponen contenido publicado de
-// Contentful (Content Delivery API) y son públicos. Los de escritura
-// hablan con la Content Management API y, en el futuro, van a requerir
-// autenticación (ver withAuth arriba).
+// Educación sobre un router chi. Los GET de curso/área/material
+// exponen contenido publicado de Contentful (Content Delivery API) y
+// requieren un JWT válido pero ningún rol en particular. Las
+// escrituras (POST/PUT/DELETE, publicar/despublicar) requieren
+// role_admin. El grupo /api/docente es exclusivo de role_teacher
+// interno (is_external=false) y valida ownership sobre cada curso
+// antes de operar (ver DocenteController).
 func RegisterRoutes(
-	mux *http.ServeMux,
+	r chi.Router,
+	jwtService services.JWTService,
 	courseCtrl *controllers.CourseController,
 	trainingAreaCtrl *controllers.TrainingAreaController,
 	materialCtrl *controllers.MaterialController,
 	healthCtrl *controllers.HealthController,
+	docenteCtrl *controllers.DocenteController,
 ) {
-	mux.HandleFunc("GET /api/salud", healthCtrl.Health)
+	r.Get("/api/salud", healthCtrl.Health)
 
-	// -- course --
-	mux.HandleFunc("GET /api/cursos", courseCtrl.List)
-	mux.HandleFunc("GET /api/cursos/{id}", courseCtrl.Get)
-	mux.HandleFunc("POST /api/cursos", withAuth(courseCtrl.Create))
-	mux.HandleFunc("PUT /api/cursos/{id}", withAuth(courseCtrl.Update))
-	mux.HandleFunc("DELETE /api/cursos/{id}", withAuth(courseCtrl.Delete))
-	mux.HandleFunc("POST /api/cursos/{id}/publicar", withAuth(courseCtrl.Publish))
-	mux.HandleFunc("POST /api/cursos/{id}/despublicar", withAuth(courseCtrl.Unpublish))
+	r.Group(func(r chi.Router) {
+		r.Use(middlewares.AuthMiddleware(jwtService))
 
-	// -- trainingArea --
-	mux.HandleFunc("GET /api/areas-formativas", trainingAreaCtrl.List)
-	mux.HandleFunc("POST /api/areas-formativas", withAuth(trainingAreaCtrl.Create))
-	mux.HandleFunc("PUT /api/areas-formativas/{id}", withAuth(trainingAreaCtrl.Update))
-	mux.HandleFunc("DELETE /api/areas-formativas/{id}", withAuth(trainingAreaCtrl.Delete))
+		// -- lectura: cualquier rol autenticado --
+		r.Get("/api/cursos", courseCtrl.List)
+		r.Get("/api/cursos/{id}", courseCtrl.Get)
+		r.Get("/api/areas-formativas", trainingAreaCtrl.List)
+		r.Get("/api/materiales", materialCtrl.List)
 
-	// -- material --
-	mux.HandleFunc("GET /api/materiales", materialCtrl.List)
-	mux.HandleFunc("POST /api/materiales", withAuth(materialCtrl.Create))
-	mux.HandleFunc("PUT /api/materiales/{id}", withAuth(materialCtrl.Update))
-	mux.HandleFunc("DELETE /api/materiales/{id}", withAuth(materialCtrl.Delete))
+		// -- escritura: exclusiva de role_admin --
+		//
+		// OJO: acá NO se puede usar r.Route(prefix, func(r chi.Router){...})
+		// para agrupar estos verbos, porque chi lo resuelve como un Mount
+		// (un subrouter aparte montado en ese prefijo para TODOS los
+		// métodos), que intercepta y tapa el r.Get(mismo path) ya
+		// registrado arriba para cualquier rol autenticado — un GET
+		// terminaría cayendo en el subrouter admin-only y devolviendo 403
+		// en vez de llegar a courseCtrl.List. Por eso cada verbo se
+		// registra suelto, en el mismo router (comparten el mismo árbol
+		// de rutas de chi, cada uno atado a su propio método).
+		r.Group(func(r chi.Router) {
+			r.Use(middlewares.RequireRole("role_admin"))
+
+			r.Post("/api/cursos", courseCtrl.Create)
+			r.Put("/api/cursos/{id}", courseCtrl.Update)
+			r.Delete("/api/cursos/{id}", courseCtrl.Delete)
+			r.Post("/api/cursos/{id}/publicar", courseCtrl.Publish)
+			r.Post("/api/cursos/{id}/despublicar", courseCtrl.Unpublish)
+
+			r.Post("/api/areas-formativas", trainingAreaCtrl.Create)
+			r.Put("/api/areas-formativas/{id}", trainingAreaCtrl.Update)
+			r.Delete("/api/areas-formativas/{id}", trainingAreaCtrl.Delete)
+
+			r.Post("/api/materiales", materialCtrl.Create)
+			r.Put("/api/materiales/{id}", materialCtrl.Update)
+			r.Delete("/api/materiales/{id}", materialCtrl.Delete)
+		})
+
+		// -- docente responsable: role_teacher interno --
+		r.Route("/api/docente", func(r chi.Router) {
+			r.Use(middlewares.RequireRole("role_teacher"))
+			r.Use(middlewares.RequireInternalTeacher)
+
+			r.Get("/cursos", docenteCtrl.ListMyCourses)
+			r.Get("/cursos/borradores", docenteCtrl.ListMyDraftCourses)
+			r.Post("/cursos", docenteCtrl.CreateMyCourse)
+			r.Put("/cursos/{id}", docenteCtrl.UpdateMyCourse)
+			r.Get("/cursos/{cursoId}/actividades", docenteCtrl.ListActivities)
+			r.Post("/cursos/{cursoId}/actividades", docenteCtrl.CreateActivity)
+			r.Post("/actividades/{actividadId}/asistencia", docenteCtrl.RegisterAttendance)
+			r.Get("/actividades/{actividadId}/asistencia", docenteCtrl.ListAttendance)
+			r.Get("/cursos/{cursoId}/inscriptos", docenteCtrl.ListEnrollments)
+			r.Get("/cursos/{cursoId}/progreso", docenteCtrl.GetProgress)
+		})
+	})
 }

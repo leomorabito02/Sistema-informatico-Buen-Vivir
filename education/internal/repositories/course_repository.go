@@ -26,6 +26,17 @@ type CourseRepository interface {
 	Delete(ctx context.Context, id string) error
 	Publish(ctx context.Context, id string) error
 	Unpublish(ctx context.Context, id string) error
+	// ListByResponsibleTeacher filtra por fields.responsibleTeacher en
+	// la CDA, es decir, solo devuelve cursos YA PUBLICADOS de ese
+	// docente. Un curso en borrador no aparece acá aunque el campo
+	// responsibleTeacher ya lo tenga asignado.
+	ListByResponsibleTeacher(ctx context.Context, teacherID string) ([]models.Course, error)
+	// ListDraftsByResponsibleTeacher es el complemento por CMA: devuelve
+	// los cursos de ese docente que TODAVÍA NO están publicados
+	// (borradores). Las referencias vienen solo con su id (la CMA no
+	// resuelve includes), igual que la respuesta de los endpoints de
+	// escritura.
+	ListDraftsByResponsibleTeacher(ctx context.Context, teacherID string) ([]models.Course, error)
 }
 
 type courseRepository struct {
@@ -108,6 +119,42 @@ func (r *courseRepository) Unpublish(ctx context.Context, id string) error {
 	return r.client.UnpublishEntry(ctx, id)
 }
 
+func (r *courseRepository) ListByResponsibleTeacher(ctx context.Context, teacherID string) ([]models.Course, error) {
+	collection, err := r.client.ListEntriesWhere(ctx, courseContentType, courseInclude, map[string]string{
+		"fields.responsibleTeacher": teacherID,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	idx := models.NewIncludesIndex(collection.Includes.Entry, collection.Includes.Asset)
+	courses := make([]models.Course, 0, len(collection.Items))
+	for _, item := range collection.Items {
+		courses = append(courses, courseFromCDAEntry(item, idx))
+	}
+	return courses, nil
+}
+
+// ListDraftsByResponsibleTeacher lee de la CMA (ve borradores) y se
+// queda solo con las entries sin publicar (sys.publishedVersion
+// ausente). Un curso publicado y luego despublicado también cae acá,
+// que es lo correcto: no está en el catálogo.
+func (r *courseRepository) ListDraftsByResponsibleTeacher(ctx context.Context, teacherID string) ([]models.Course, error) {
+	collection, err := r.client.ListManagementEntriesWhere(ctx, courseContentType, map[string]string{
+		"fields.responsibleTeacher":    teacherID,
+		"sys.publishedVersion[exists]": "false",
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	courses := make([]models.Course, 0, len(collection.Items))
+	for _, item := range collection.Items {
+		courses = append(courses, courseFromCMAEntry(r.client.Locale(), item))
+	}
+	return courses, nil
+}
+
 func courseInputToFields(locale string, input models.CourseInput) map[string]any {
 	links := make([]models.ContentfulLink, len(input.MaterialIDs))
 	for i, materialID := range input.MaterialIDs {
@@ -161,6 +208,38 @@ func courseFromCDAEntry(entry models.ContentfulEntry, idx *models.IncludesIndex)
 		if mEntry, found := idx.Entry(materialID); found {
 			c.Material = append(c.Material, materialFromCDAEntry(mEntry, idx))
 		}
+	}
+
+	return c
+}
+
+// courseFromCMAEntry mapea una entry cruda de la Content Management API
+// (campos envueltos por locale, referencias sin resolver) al modelo de
+// dominio. Se usa para listar borradores del docente: trainingArea,
+// material y coverImage quedan solo con su id, igual que la respuesta
+// de los endpoints de escritura.
+func courseFromCMAEntry(locale string, entry models.ContentfulEntry) models.Course {
+	flat := flattenCMAFields(entry.Fields, locale)
+
+	c := models.Course{
+		ID:                 entry.Sys.ID,
+		Title:              rawString(flat, "title"),
+		Description:        flat["description"],
+		ResponsibleTeacher: rawString(flat, "responsibleTeacher"),
+		Mode:               rawString(flat, "mode"),
+		Duration:           rawString(flat, "duration"),
+		CreatedAt:          entry.Sys.CreatedAt,
+		UpdatedAt:          entry.Sys.UpdatedAt,
+	}
+
+	if assetID, ok := rawLink(flat, "coverImage"); ok {
+		c.CoverImage = &models.AssetRef{ID: assetID}
+	}
+	if trainingAreaID, ok := rawLink(flat, "trainingArea"); ok {
+		c.TrainingArea = &models.TrainingArea{ID: trainingAreaID}
+	}
+	for _, materialID := range rawLinks(flat, "material") {
+		c.Material = append(c.Material, models.Material{ID: materialID})
 	}
 
 	return c

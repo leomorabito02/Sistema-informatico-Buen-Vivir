@@ -3,6 +3,8 @@ package controllers
 import (
 	"net/http"
 
+	"github.com/go-chi/chi/v5"
+
 	"buenvivir/education/internal/models"
 	"buenvivir/education/internal/services"
 )
@@ -49,7 +51,7 @@ func (c *MaterialController) Update(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	material, err := c.service.UpdateMaterial(r.Context(), r.PathValue("id"), input)
+	material, err := c.service.UpdateMaterial(r.Context(), chi.URLParam(r, "id"), input)
 	if err != nil {
 		writeError(w, err)
 		return
@@ -59,7 +61,7 @@ func (c *MaterialController) Update(w http.ResponseWriter, r *http.Request) {
 
 // Delete responde DELETE /api/materiales/{id}
 func (c *MaterialController) Delete(w http.ResponseWriter, r *http.Request) {
-	if err := c.service.DeleteMaterial(r.Context(), r.PathValue("id")); err != nil {
+	if err := c.service.DeleteMaterial(r.Context(), chi.URLParam(r, "id")); err != nil {
 		writeError(w, err)
 		return
 	}

@@ -34,7 +34,7 @@ import {
   ɵgetAllInstancesOf,
   ɵgetDefaultInstanceOf,
   ɵzoneWrap
-} from "./chunk-76B3AAFB.js";
+} from "./chunk-VLCZ67SL.js";
 import {
   InjectionToken,
   Injector,
@@ -8325,7 +8325,7 @@ function idToken(auth) {
   }));
 }
 
-// node_modules/.pnpm/@angular+fire@18.0.1_@angular+common@18.2.14_@angular+core@18.2.14_rxjs@7.8.2_zone.js@0_62aaeab3a16ee98f28f9e022a5dbb105/node_modules/@angular/fire/fesm2022/angular-fire-auth.mjs
+// node_modules/.pnpm/@angular+fire@18.0.1_@angul_62aaeab3a16ee98f28f9e022a5dbb105/node_modules/@angular/fire/fesm2022/angular-fire-auth.mjs
 var AUTH_PROVIDER_NAME = "auth";
 var Auth = class {
   constructor(auth) {

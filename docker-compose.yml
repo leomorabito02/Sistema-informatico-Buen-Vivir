@@ -6,7 +6,26 @@ services:
     env_file:
       - ./auth/.env
     ports:
-      - "8081:8080"
+      - "4200:8080"
+    restart: on-failure
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    read_only: true
+    tmpfs:
+      - /tmp
+    mem_limit: 1024m
+    cpus: "1"
+
+  education-service:
+    build:
+      context: ./education
+      dockerfile: Dockerfile
+    env_file:
+      - ./education/.env
+    ports:
+      - "8210:8210"
     restart: on-failure
     security_opt:
       - no-new-privileges:true
@@ -27,4 +46,5 @@ services:
       - ./api-gateway/nginx.conf:/etc/nginx/nginx.conf:ro
     depends_on:
       - auth-service
+      - education-service
     restart: on-failure
