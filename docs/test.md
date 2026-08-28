@@ -1,5 +1,5 @@
 # tests unitarios backend auth
-go test -coverprofile=../reports/coverage/auth.out ./internal/services/...
+go test -coverprofile=../reports/coverage/auth.out ./internal/...
 go tool cover -func=../reports/coverage/auth.out
 
 # test de mutacion backend auth

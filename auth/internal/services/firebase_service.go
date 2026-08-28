@@ -2,6 +2,7 @@ package services
 
 import (
 	"context"
+	"encoding/base64"
 	"fmt"
 	"os"
 
@@ -29,8 +30,17 @@ func NewFirebaseService() (FirebaseService, error) {
 	
 	credentialsEnv := os.Getenv("GOOGLE_APPLICATION_CREDENTIALS")
 	credentialsJSON := os.Getenv("FIREBASE_CREDENTIALS_JSON")
+	credentialsB64 := os.Getenv("FIREBASE_CREDENTIALS_BASE64")
 	
-	if credentialsJSON != "" {
+	if credentialsB64 != "" {
+		decoded, decErr := base64.StdEncoding.DecodeString(credentialsB64)
+		if decErr == nil {
+			opt := option.WithCredentialsJSON(decoded) //nolint:staticcheck
+			app, err = firebase.NewApp(ctx, nil, opt)
+		} else {
+			return nil, fmt.Errorf("error decoding FIREBASE_CREDENTIALS_BASE64: %v", decErr)
+		}
+	} else if credentialsJSON != "" {
 		opt := option.WithCredentialsJSON([]byte(credentialsJSON)) //nolint:staticcheck // option.WithCredentialsJSON is required for Firebase inline credentials
 		app, err = firebase.NewApp(ctx, nil, opt)
 	} else if credentialsEnv != "" {
