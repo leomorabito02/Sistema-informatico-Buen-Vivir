@@ -4,6 +4,7 @@ import (
 	"log/slog"
 	"net/http"
 	"os"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 
@@ -12,6 +13,7 @@ import (
 	"auth/internal/middlewares"
 	"auth/internal/repositories"
 	"auth/internal/services"
+
 )
 
 func main() {
@@ -37,15 +39,23 @@ func main() {
 	refreshTokenRepo := repositories.NewRefreshTokenRepository(db)
 
 	// 4. Setup Services
-	jwtService := services.NewJWTService()
+	jwtService, err := services.NewJWTServiceFromEnv()
+	if err != nil {
+		slog.Error("JWT initialization failed", "error", err)
+		os.Exit(1)
+	}
 	firebaseService, err := services.NewFirebaseService()
 	if err != nil {
 		slog.Error("Firebase initialization failed", "error", err)
 		os.Exit(1)
 	}
 
+	transactor := repositories.NewGormTransactor(db)
+	querier := repositories.NewGormRoleProfileQuerier(db)
+
 	authService := services.NewAuthService(
-		db,
+		transactor,
+		querier,
 		userRepo,
 		refreshTokenRepo,
 		jwtService,
@@ -68,16 +78,29 @@ func main() {
 	participantController := controllers.NewParticipantController(participantService)
 	permissionController := controllers.NewPermissionController(permissionService)
 	volunteerController := controllers.NewVolunteerController(volunteerService)
+	tokenValidatorController := controllers.NewTokenValidatorController(jwtService)
 
 	// 6. Setup Router and Middlewares
 	r := chi.NewRouter()
+	
+	// Middlewares (CORS and Security Headers must be handled here as API Gateway does not support allowCors)
 	middlewares.SetupMiddlewares(r)
 
 	// DDoS Protection fallback (Global Rate Limiter)
 	r.Use(middlewares.RateLimiter())
 
 	// 7. Define Routes
+
+	// Catch-all OPTIONS handler: lets the CORS middleware (registered above) respond to
+	// any preflight request before route-specific logic runs. Without this, chi returns
+	// 405 Method Not Allowed for paths that only register non-OPTIONS methods.
+	r.Options("/*", func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	})
+
 	r.Get("/health", authController.HealthCheck)
+	r.Get("/internal/validate-token", tokenValidatorController.ValidateToken)
+
 	
 	r.Route("/api/v1", func(r chi.Router) {
 		r.Route("/auth", func(r chi.Router) {
@@ -95,8 +118,11 @@ func main() {
 			r.Use(middlewares.AuthMiddleware(jwtService))
 			
 			r.Get("/auth/me", authController.GetMe)
+			r.Get("/profile/me", authController.GetMyProfileDetails)
 			r.Put("/profile/me", authController.UpdateMyProfile)
-
+			r.Put("/profile/me/password", authController.UpdateMyPassword)
+			r.Post("/profile/me/link-google", authController.LinkGoogleAccount)
+			r.Post("/profile/me/unlink-google", authController.UnlinkGoogleAccount)
 			// Users CRUD
 			r.Route("/users", func(r chi.Router) {
 				r.Post("/", userController.CreateUser)
@@ -165,7 +191,15 @@ func main() {
 	// 8. Start Server
 	port := os.Getenv("PORT")
 	slog.Info("Servicio Auth escuchando en el puerto", "port", port)
-	if err := http.ListenAndServe(":"+port, r); err != nil {
+	server := &http.Server{
+		Addr:         ":" + port,
+		Handler:      r,
+		ReadTimeout:  10 * time.Second,
+		WriteTimeout: 10 * time.Second,
+		IdleTimeout:  120 * time.Second,
+	}
+
+	if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 		slog.Error("Error al iniciar el servidor", "error", err)
 		os.Exit(1)
 	}

@@ -14,29 +14,29 @@
 }
 
 .hero-bg-circles::before {
-  content: '';
+  content: "";
   position: absolute;
   top: -8rem;
   left: -8rem;
   width: 24rem;
   height: 24rem;
   border-radius: 50%;
-  background: rgba(255,255,255,0.06);
+  background: rgba(255, 255, 255, 0.06);
 }
 
 .hero-bg-circles::after {
-  content: '';
+  content: "";
   position: absolute;
   bottom: -8rem;
   right: -8rem;
   width: 24rem;
   height: 24rem;
   border-radius: 50%;
-  background: rgba(255,255,255,0.06);
+  background: rgba(255, 255, 255, 0.06);
 }
 
 .hero-nav {
-  border-bottom: 1px solid rgba(255,255,255,0.10);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
   position: relative;
   z-index: 20;
 }
@@ -52,7 +52,7 @@
   width: 2.5rem;
   height: 2.5rem;
   border-radius: 0.5rem;
-  background: rgba(255,255,255,0.15);
+  background: rgba(255, 255, 255, 0.15);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -99,13 +99,13 @@
 
 .hero-subtitle {
   font-size: 1.25rem;
-  color: rgba(255,255,255,0.90);
+  color: rgba(255, 255, 255, 0.9);
   margin: 0 0 0.75rem;
 }
 
 .hero-desc {
   font-size: 1rem;
-  color: rgba(255,255,255,0.80);
+  color: rgba(255, 255, 255, 0.8);
   line-height: 1.7;
   margin: 0 0 2rem;
 }

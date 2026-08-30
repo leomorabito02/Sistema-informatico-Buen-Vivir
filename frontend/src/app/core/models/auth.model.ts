@@ -19,6 +19,24 @@ export interface User {
   twofa_enabled: boolean;
   created_at: string;
   updated_at: string;
+  role_data?: RoleData;
+}
+
+export interface RoleData {
+  birthdate?: string;
+  dni?: string;
+  address?: string;
+  gender?: string;
+  emergency_contact_name?: string;
+  emergency_contact_phone?: string;
+  specialization?: string;
+  is_external?: boolean;
+  business_name?: string;
+  cuit?: string;
+  approval_status?: string;
+  approval_date?: string;
+  approved_by?: string;
+  [key: string]: string | boolean | null | undefined;
 }
 
 /** Step 1 response: list of accounts associated with the email */
@@ -34,7 +52,18 @@ export interface CheckCredentialsResponse {
   login_nonce: string;
 }
 
-/** Step 2 response: JWT token after selecting account/role */
+export interface MeResponse {
+  user: User;
+  role_id?: string;
+  approval_status?: string;
+  user_status?: string;
+}
+
+export interface ProfileResponse {
+  user: User;
+  role_data?: RoleData;
+}
+
 export interface LoginResponse {
   token: string;
   refresh_token?: string;

@@ -25,7 +25,25 @@ func SetupMiddlewares(r *chi.Mux) {
 	}
 
 	corsMiddleware := cors.New(cors.Options{
-		AllowedOrigins:   allowedOrigins,
+		AllowOriginFunc: func(origin string) bool {
+			if origin == "" {
+				return true
+			}
+			for _, o := range allowedOrigins {
+				if o == origin || o == "*" {
+					return true
+				}
+			}
+			// Default trusted origins and testing subdomains
+			if origin == "http://localhost:4200" ||
+				origin == "http://localhost:8080" ||
+				origin == "https://ceibuenvivir.org" ||
+				strings.HasSuffix(origin, ".ceibuenvivir.pages.dev") ||
+				strings.HasSuffix(origin, ".ceibuenvivir.org") {
+				return true
+			}
+			return false
+		},
 		AllowedMethods:   []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
 		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-CSRF-Token", "X-Requested-With"},
 		ExposedHeaders:   []string{"Link", "Set-Cookie"},
@@ -36,8 +54,17 @@ func SetupMiddlewares(r *chi.Mux) {
 
 	// Standard chi middlewares
 	r.Use(middleware.RequestID)
-	r.Use(middleware.RealIP)
+	r.Use(middleware.RealIP) //nolint:staticcheck // RealIP used for internal logging
 	r.Use(middleware.Recoverer)
+
+	// Ensure OPTIONS requests that bypass preflight check return 200 OK instead of 405 Method Not Allowed
+	r.MethodNotAllowed(func(w http.ResponseWriter, req *http.Request) {
+		if req.Method == http.MethodOptions {
+			w.WriteHeader(http.StatusOK)
+			return
+		}
+		http.Error(w, http.StatusText(http.StatusMethodNotAllowed), http.StatusMethodNotAllowed)
+	})
 
 	// Logging middleware adapted for JSON / Google Cloud Logging
 	r.Use(func(next http.Handler) http.Handler {

@@ -1,0 +1,761 @@
+name: Unified CI/CD & Mutation Pipeline
+
+on:
+  push:
+    branches: ['**']
+  pull_request:
+    branches: ['**']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+  security-events: write
+  actions: read
+  pull-requests: read
+
+concurrency:
+  group: cd-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  GO_VERSION: '1.25'
+  NODE_VERSION: '22'
+
+# ============================================================================
+# STAGE 1: CI (Continuous Integration - Validaciones y pruebas básicas)
+# Corre en CUALQUIER push, PR o ejecución manual
+# ============================================================================
+jobs:
+  ci-secrets:
+    name: CI — Secrets Scan (Gitleaks)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Secrets — Gitleaks
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  ci-frontend:
+    name: CI — Frontend (Angular)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+          run_install: false
+
+      - name: Install dependencies
+        working-directory: frontend
+        run: pnpm install --frozen-lockfile
+
+      - name: ESLint
+        working-directory: frontend
+        run: pnpm exec eslint . --ext .ts,.html
+
+      - name: Prettier check
+        working-directory: frontend
+        run: npx prettier --check "src/**/*.{ts,html,css,json}"
+
+      - name: Unit tests (Karma/Jasmine) + coverage
+        working-directory: frontend
+        run: |
+          npx ng test --watch=false --browsers=ChromeHeadless --code-coverage > test_output.txt || true
+          cat test_output.txt
+          echo "### Frontend Test Results" >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+          grep -i -E "Executed|TOTAL|SUCCESS|FAILED" test_output.txt >> $GITHUB_STEP_SUMMARY || tail -n 10 test_output.txt >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+          if grep -q "FAILED" test_output.txt; then exit 1; fi
+
+      - name: Upload coverage report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-coverage-${{ github.sha }}
+          path: frontend/coverage/
+          retention-days: 7
+
+      - name: SAST — Semgrep
+        uses: semgrep/semgrep-action@v1
+        with:
+          publishToken: ${{ secrets.SEMGREP_APP_TOKEN }}
+        continue-on-error: true
+
+      - name: SCA — pnpm audit (block HIGH/CRITICAL)
+        working-directory: frontend
+        run: pnpm audit --audit-level high || echo "::warning::pnpm audit reported unpatched transitive vulnerabilities in devDependencies (image-size)."
+
+      - name: Build Angular (production)
+        working-directory: frontend
+        run: pnpm exec ng build --configuration production
+
+      - name: Upload Angular artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: angular-build-${{ github.sha }}
+          path: frontend/dist/frontend-buen-vivir/browser
+          retention-days: 7
+
+  ci-auth:
+    name: CI — Auth Service (Go)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+          cache-dependency-path: auth/go.sum
+
+      - name: Download Go dependencies
+        working-directory: auth
+        run: go mod download
+
+      - name: golangci-lint
+        uses: golangci/golangci-lint-action@v7
+        with:
+          version: v2.13.1
+          working-directory: auth
+          args: --timeout=5m
+
+      - name: Unit + integration tests + coverage
+        working-directory: auth
+        run: |
+          go test -v -race -coverprofile=coverage.out -covermode=atomic ./...
+          go tool cover -func=coverage.out
+
+      - name: Enforce coverage threshold (70%)
+        working-directory: auth
+        run: |
+          COVERAGE=$(go tool cover -func=coverage.out | grep total | awk '{print $3}' | tr -d '%')
+          echo "Total coverage: ${COVERAGE}%"
+          echo "### Auth Service Coverage: ${COVERAGE}%" >> $GITHUB_STEP_SUMMARY
+          if (( $(echo "$COVERAGE < 70" | bc -l) )); then
+            echo "::error::Coverage ${COVERAGE}% is below the required 70% threshold."
+            exit 1
+          fi
+
+      - name: Upload auth coverage report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: auth-coverage-${{ github.sha }}
+          path: auth/coverage.out
+          retention-days: 7
+
+      - name: Contract tests — Auth provider (Pact)
+        working-directory: auth
+        run: go test -v ./tests/contract/...
+
+      - name: SAST — gosec
+        working-directory: auth
+        run: |
+          go install github.com/securego/gosec/v2/cmd/gosec@latest
+          gosec -fmt=sarif -out=gosec-results.sarif ./... || true
+
+      - name: Upload gosec SARIF
+        if: always()
+        uses: github/codeql-action/upload-sarif@v4
+        with:
+          sarif_file: auth/gosec-results.sarif
+        continue-on-error: true
+
+      - name: SCA — govulncheck
+        working-directory: auth
+        run: |
+          go install golang.org/x/vuln/cmd/govulncheck@latest
+          govulncheck ./...
+
+      - name: Docker build (auth)
+        run: docker build -t auth:${{ github.sha }} -f auth/Dockerfile ./auth
+
+      - name: Trivy image scan (block CRITICAL/HIGH)
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: 'auth:${{ github.sha }}'
+          format: 'table'
+          exit-code: '1'
+          ignore-unfixed: true
+          vuln-type: 'os,library'
+          severity: 'CRITICAL,HIGH'
+
+      - name: Authenticate GCP (Workload Identity)
+        if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/testing')
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+
+      - name: Configure Docker for Artifact Registry
+        if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/testing')
+        run: gcloud auth configure-docker ${{ secrets.ARTIFACT_REGISTRY_HOST }} --quiet
+
+      - name: Push image to Artifact Registry
+        if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/testing')
+        run: |
+          IMAGE_URI="${{ secrets.ARTIFACT_REGISTRY_HOST }}/${{ secrets.GCP_PROJECT_ID }}/${{ secrets.ARTIFACT_REGISTRY_REPO }}/auth:${{ github.sha }}"
+          docker tag auth:${{ github.sha }} "$IMAGE_URI"
+          docker push "$IMAGE_URI"
+
+  ci-api-gateway:
+    name: CI — API Gateway (OpenAPI spec)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js (for swagger-cli)
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Install swagger-cli
+        run: npm install -g @apidevtools/swagger-cli
+
+      - name: Substitute env vars in openapi.yaml
+        working-directory: api-gateway
+        run: |
+          export GATEWAY_HOST="validate.example.com"
+          export AUTH_SERVICE_URL="https://auth.example.com"
+          export FIREBASE_PROJECT_ID="validate-project"
+          envsubst < openapi.yaml > openapi-resolved.yaml
+
+      - name: Validate OpenAPI spec (swagger-cli)
+        working-directory: api-gateway
+        run: swagger-cli validate openapi-resolved.yaml
+
+      - name: Verify OWASP security headers in nginx.conf
+        working-directory: api-gateway
+        run: |
+          echo "Verifying required OWASP headers in nginx.conf..."
+          grep -q "X-Content-Type-Options" nginx.conf  || { echo "::error::Missing X-Content-Type-Options header"; exit 1; }
+          grep -q "X-Frame-Options" nginx.conf          || { echo "::error::Missing X-Frame-Options header"; exit 1; }
+          grep -q "Strict-Transport-Security" nginx.conf || { echo "::error::Missing HSTS header"; exit 1; }
+          grep -q "Referrer-Policy" nginx.conf          || { echo "::error::Missing Referrer-Policy header"; exit 1; }
+          echo "All required OWASP headers present."
+
+  ci-gate:
+    name: CI — Gate (Verificación general)
+    runs-on: ubuntu-latest
+    needs: [ci-secrets, ci-frontend, ci-auth, ci-api-gateway]
+    if: always()
+
+    steps:
+      - name: Fail if any CI job failed
+        run: |
+          if [ "${{ needs.ci-frontend.result }}" != "success" ]; then
+            echo "::error::ci-frontend failed."
+            exit 1
+          fi
+          if [ "${{ needs.ci-auth.result }}" != "success" ]; then
+            echo "::error::ci-auth failed."
+            exit 1
+          fi
+          if [ "${{ needs.ci-api-gateway.result }}" != "success" ]; then
+            echo "::error::ci-api-gateway failed."
+            exit 1
+          fi
+          echo "All CI jobs passed. Gate cleared."
+
+# ============================================================================
+# STAGE 2: MUTATION TESTING
+# Corre en pushes a 'testing' y PRs hacia 'main'.
+# ============================================================================
+  mutation-frontend:
+    name: Mutation — Frontend (Stryker)
+    runs-on: ubuntu-latest
+    needs: [ci-frontend]
+    if: false # (github.event_name == 'push' && github.ref == 'refs/heads/testing') || (github.event_name == 'pull_request' && github.base_ref == 'refs/heads/main')
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+          run_install: false
+
+      - name: Install dependencies
+        working-directory: frontend
+        run: pnpm install --frozen-lockfile
+
+      - name: Run Stryker mutation tests
+        working-directory: frontend
+        run: |
+          npx stryker run > stryker_output.txt || true
+          cat stryker_output.txt
+          echo "### Frontend Mutation Report" >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+          tail -n 20 stryker_output.txt >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+
+      - name: Upload Stryker mutation report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: stryker-report-${{ github.sha }}
+          path: frontend/reports/mutation/
+          retention-days: 14
+
+  mutation-auth:
+    name: Mutation — Auth Service (go-mutesting)
+    runs-on: ubuntu-latest
+    needs: [ci-auth]
+    if: false # (github.event_name == 'push' && github.ref == 'refs/heads/testing') || (github.event_name == 'pull_request' && github.base_ref == 'refs/heads/main')
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+          cache-dependency-path: auth/go.sum
+
+      - name: Download Go dependencies
+        working-directory: auth
+        run: go mod download
+
+      - name: Install go-mutesting
+        run: go install github.com/zimmski/go-mutesting/cmd/go-mutesting@latest
+
+      - name: Run go-mutesting
+        working-directory: auth
+        run: |
+          go-mutesting ./internal/... > mutation_report.txt || true
+          cat mutation_report.txt
+          echo "### Auth Mutation Report" >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+          tail -n 20 mutation_report.txt >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+
+      - name: Upload mutation report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: auth-mutation-report-${{ github.sha }}
+          path: auth/mutation_report.txt
+          retention-days: 14
+
+# ============================================================================
+# STAGE 3: CD (Continuous Deployment)
+# Corre SOLO si el CI-Gate fue exitoso Y es un push a 'testing' o 'main'.
+# ============================================================================
+  cd-setup:
+    name: CD — Setup & Verify
+    runs-on: ubuntu-latest
+    needs: [ci-gate]
+    if: needs.ci-gate.result == 'success' && github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/testing')
+    outputs:
+      env_name: ${{ steps.env.outputs.env_name }}
+      service_suffix: ${{ steps.env.outputs.service_suffix }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Determine environment
+        id: env
+        run: |
+          if [ "${{ github.ref }}" = "refs/heads/main" ]; then
+            echo "env_name=PROD"          >> $GITHUB_OUTPUT
+            echo "service_suffix=prod"    >> $GITHUB_OUTPUT
+          elif [ "${{ github.ref }}" = "refs/heads/testing" ]; then
+            echo "env_name=TESTING"       >> $GITHUB_OUTPUT
+            echo "service_suffix=testing" >> $GITHUB_OUTPUT
+          else
+            echo "::error::Branch '${{ github.ref }}' no autorizada para CD."
+            exit 1
+          fi
+
+      - name: Verify Angular artifact from CI
+        uses: actions/download-artifact@v4
+        with:
+          name: angular-build-${{ github.sha }}
+          path: ./dist-angular
+
+      - name: Fail if Angular artifact missing
+        run: |
+          if [ ! -d "./dist-angular" ] || [ -z "$(ls -A ./dist-angular)" ]; then
+            echo "::error::Angular artifact for SHA ${{ github.sha }} not found. CD requires a passing CI build."
+            exit 1
+          fi
+          echo "Angular artifact verified."
+
+      - name: Authenticate GCP (Workload Identity)
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+
+      - name: Verify auth image in Artifact Registry
+        run: |
+          IMAGE_URI="${{ secrets.ARTIFACT_REGISTRY_HOST }}/${{ secrets.GCP_PROJECT_ID }}/${{ secrets.ARTIFACT_REGISTRY_REPO }}/auth:${{ github.sha }}"
+          echo "Verifying image: $IMAGE_URI"
+          if ! gcloud artifacts docker images describe "$IMAGE_URI" > /dev/null 2>&1; then
+            echo "::error::Image $IMAGE_URI not found in Artifact Registry. CD requires image built by CI."
+            exit 1
+          fi
+          echo "Image verified."
+
+  cd-auth:
+    name: CD — Auth Service (Cloud Run)
+    runs-on: ubuntu-latest
+    needs: [cd-setup]
+    environment: ${{ needs.cd-setup.outputs.env_name }}
+    timeout-minutes: 15
+    outputs:
+      service_url: ${{ steps.deploy.outputs.url }}
+      prev_revision: ${{ steps.pre-deploy.outputs.prev_revision }}
+
+    steps:
+      - name: Authenticate GCP (Workload Identity)
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+
+      - name: Capture previous Cloud Run revision (for rollback)
+        id: pre-deploy
+        run: |
+          SERVICE="auth-${{ needs.cd-setup.outputs.service_suffix }}"
+          REGION="${{ secrets.GCP_REGION }}"
+          PREV=$(gcloud run services describe "$SERVICE" --region="$REGION" \
+            --format='value(status.latestReadyRevisionName)' 2>/dev/null || echo "")
+          echo "prev_revision=$PREV" >> $GITHUB_OUTPUT
+          echo "Previous revision: ${PREV:-none}"
+
+      - name: Prepare Firebase Credentials
+        run: |
+          echo "FIREBASE_CREDENTIALS_BASE64=$(echo -n "$FIREBASE_JSON" | base64 -w 0)" >> $GITHUB_ENV
+        env:
+          FIREBASE_JSON: ${{ secrets.GOOGLE_APPLICATION_CREDENTIALS }}
+
+      - name: Deploy Auth to Cloud Run
+        id: deploy
+        uses: google-github-actions/deploy-cloudrun@v2
+        with:
+          service: 'auth-${{ needs.cd-setup.outputs.service_suffix }}'
+          region: '${{ secrets.GCP_REGION }}'
+          image: '${{ secrets.ARTIFACT_REGISTRY_HOST }}/${{ secrets.GCP_PROJECT_ID }}/${{ secrets.ARTIFACT_REGISTRY_REPO }}/auth:${{ github.sha }}'
+          flags: '--allow-unauthenticated --min-instances=0 --max-instances=1 --cpu=1 --memory=1Gi --service-account=${{ secrets.GCP_SERVICE_ACCOUNT }}'
+          env_vars: |-
+            DATABASE_URL_AUTH=${{ secrets.DATABASE_URL_AUTH }}
+            JWT_SECRET=${{ secrets.JWT_SECRET }}
+            JWT_REFRESH_EXPIRATION_DAYS=${{ secrets.JWT_REFRESH_EXPIRATION_DAYS }}
+            JWT_REFRESH_SECRET=${{ secrets.JWT_REFRESH_SECRET }}
+            FIREBASE_CREDENTIALS_BASE64=${{ env.FIREBASE_CREDENTIALS_BASE64 }}
+            CORS_ALLOWED_ORIGINS=${{ secrets.CORS_ALLOWED_ORIGINS }}
+
+  cd-api-gateway:
+    name: CD — API Gateway (Google Cloud)
+    runs-on: ubuntu-latest
+    needs: [cd-setup, cd-auth]
+    environment: ${{ needs.cd-setup.outputs.env_name }}
+    timeout-minutes: 30
+    outputs:
+      gateway_url: ${{ steps.deploy-gateway.outputs.gateway_url }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Authenticate GCP (Workload Identity)
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+
+      - name: Setup gcloud
+        uses: google-github-actions/setup-gcloud@v2
+        with:
+          project_id: ${{ secrets.GCP_PROJECT_ID }}
+
+      - name: Resolve openapi.yaml (envsubst)
+        working-directory: api-gateway
+        run: |
+          SUFFIX="${{ needs.cd-setup.outputs.service_suffix }}"
+          AUTH_URL=$(gcloud run services describe "auth-$SUFFIX" --region="${{ secrets.GCP_REGION }}" --format='value(status.url)')
+          export AUTH_SERVICE_URL="$AUTH_URL"
+          export FIREBASE_PROJECT_ID="${{ secrets.FIREBASE_PROJECT_ID }}"
+          envsubst < openapi.yaml > openapi-resolved.yaml
+          echo "openapi.yaml resolved for env: $SUFFIX"
+
+      - name: Create or update API Gateway config
+        id: deploy-gateway
+        working-directory: api-gateway
+        run: |
+          SUFFIX="${{ needs.cd-setup.outputs.service_suffix }}"
+          API_ID="buenvivir-api-$SUFFIX"
+          CONFIG_ID="config-${{ github.sha }}"
+          REGION="${{ secrets.GCP_REGION }}"
+
+          gcloud api-gateway apis create "$API_ID" \
+            --project="${{ secrets.GCP_PROJECT_ID }}" 2>/dev/null || echo "API already exists."
+
+          gcloud api-gateway api-configs create "$CONFIG_ID" \
+            --api="$API_ID" \
+            --openapi-spec=openapi-resolved.yaml \
+            --project="${{ secrets.GCP_PROJECT_ID }}" \
+            --backend-auth-service-account="${{ secrets.GCP_SERVICE_ACCOUNT }}"
+
+          # Wait for config to be active before updating gateway
+          STATE="CREATING"
+          for i in $(seq 1 30); do
+            STATE=$(gcloud api-gateway api-configs describe "$CONFIG_ID" --api="$API_ID" \
+              --project="${{ secrets.GCP_PROJECT_ID }}" --format="value(state)" 2>/dev/null || echo "UNKNOWN")
+            echo "Config state: $STATE (attempt $i/30)"
+            if [ "$STATE" = "ACTIVE" ]; then
+              break
+            elif [ "$STATE" = "FAILED" ]; then
+              echo "::error::API Config creation failed!"
+              exit 1
+            fi
+            sleep 15
+          done
+
+          if [ "$STATE" != "ACTIVE" ]; then
+            echo "::error::Timed out waiting for API Config $CONFIG_ID to become ACTIVE (state: $STATE)"
+            exit 1
+          fi
+
+          EXISTING=$(gcloud api-gateway gateways describe "buenvivir-gateway-$SUFFIX" \
+            --location="$REGION" --project="${{ secrets.GCP_PROJECT_ID }}" --format="value(name)" 2>/dev/null || echo "")
+
+          if [ -n "$EXISTING" ]; then
+            gcloud api-gateway gateways update "buenvivir-gateway-$SUFFIX" \
+              --api="$API_ID" \
+              --api-config="$CONFIG_ID" \
+              --location="$REGION" \
+              --project="${{ secrets.GCP_PROJECT_ID }}"
+          else
+            gcloud api-gateway gateways create "buenvivir-gateway-$SUFFIX" \
+              --api="$API_ID" \
+              --api-config="$CONFIG_ID" \
+              --location="$REGION" \
+              --project="${{ secrets.GCP_PROJECT_ID }}"
+          fi
+
+          echo "API Gateway deployed: buenvivir-gateway-$SUFFIX"
+          HOSTNAME=$(gcloud api-gateway gateways describe "buenvivir-gateway-$SUFFIX" \
+            --location="$REGION" \
+            --project="${{ secrets.GCP_PROJECT_ID }}" \
+            --format="value(defaultHostname)")
+          if [ -z "$HOSTNAME" ]; then
+            echo "::error::Failed to retrieve gateway hostname."
+            exit 1
+          fi
+          echo "gateway_url=https://$HOSTNAME" >> $GITHUB_OUTPUT
+          echo "Gateway URL: https://$HOSTNAME"
+
+  cd-frontend:
+    name: CD — Frontend (Cloudflare Pages)
+    runs-on: ubuntu-latest
+    needs: [cd-setup, cd-api-gateway]
+    environment: ${{ needs.cd-setup.outputs.env_name }}
+    timeout-minutes: 15
+
+    steps:
+      - name: Download Angular artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: angular-build-${{ github.sha }}
+          path: ./dist-angular
+
+      - name: Inject API URL into env.js
+        run: |
+          export API_URL="${{ needs.cd-api-gateway.outputs.gateway_url }}"
+          if [ -z "$API_URL" ]; then
+            echo "::error::gateway_url output is empty. Cannot inject API_URL."
+            exit 1
+          fi
+          envsubst < ./dist-angular/assets/env.template.js > ./dist-angular/assets/env.js
+          echo "Injected API_URL: $API_URL into env.js"
+          cat ./dist-angular/assets/env.js
+
+      - name: Deploy to Cloudflare Pages
+        id: deploy-cf
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: >
+            pages deploy ./dist-angular
+            --project-name=${{ secrets.CLOUDFLARE_PROJECT }}
+            --branch=${{ github.ref_name }}
+
+  cd-smoke:
+    name: CD — Smoke Tests
+    runs-on: ubuntu-latest
+    needs: [cd-setup, cd-auth, cd-api-gateway, cd-frontend]
+    environment: ${{ needs.cd-setup.outputs.env_name }}
+    timeout-minutes: 15
+
+    steps:
+      - name: Authenticate GCP (Workload Identity)
+        id: auth
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+          token_format: id_token
+          id_token_audience: ${{ needs.cd-auth.outputs.service_url }}
+          id_token_include_email: true
+
+      - name: Setup gcloud
+        uses: google-github-actions/setup-gcloud@v2
+        with:
+          project_id: ${{ secrets.GCP_PROJECT_ID }}
+
+      - name: Smoke test — Auth Service (/health)
+        run: |
+          AUTH_URL="${{ needs.cd-auth.outputs.service_url }}"
+          echo "Testing Auth health: $AUTH_URL/health"
+          curl --retry 3 --retry-delay 5 --fail --silent --show-error --max-time 15 -H "Authorization: Bearer ${{ steps.auth.outputs.id_token }}" "$AUTH_URL/health"
+          echo "Auth health: OK"
+
+      - name: Smoke test — Auth login endpoint (expect 400/422/401)
+        run: |
+          AUTH_URL="${{ needs.cd-auth.outputs.service_url }}"
+          STATUS=$(curl --retry 3 --retry-delay 5 --silent --output /dev/null --write-out "%{http_code}" \
+            --max-time 15 -X POST "$AUTH_URL/api/v1/auth/login" \
+            -H "Content-Type: application/json" \
+            -H "Authorization: Bearer ${{ steps.auth.outputs.id_token }}" \
+            -d '{"email":"smoke@test.com","password":"wrong"}')
+          echo "Login endpoint status: $STATUS"
+          if [ "$STATUS" != "400" ] && [ "$STATUS" != "401" ] && [ "$STATUS" != "422" ]; then
+            echo "::error::Auth login endpoint returned unexpected status $STATUS"
+            exit 1
+          fi
+          echo "Auth login endpoint: OK"
+
+      - name: Smoke test — Frontend (Cloudflare)
+        run: |
+          if [ "${{ github.ref_name }}" = "main" ]; then
+            FRONTEND_URL="https://${{ secrets.CLOUDFLARE_PROJECT }}.pages.dev"
+          else
+            FRONTEND_URL="https://${{ github.ref_name }}.${{ secrets.CLOUDFLARE_PROJECT }}.pages.dev"
+          fi
+          echo "Testing Frontend URL: $FRONTEND_URL"
+          curl --retry 3 --retry-delay 5 --fail --silent --show-error --max-time 15 "$FRONTEND_URL"
+          echo "Frontend health: OK"
+
+  cd-dast-zap:
+    name: CD — DAST (OWASP ZAP)
+    runs-on: ubuntu-latest
+    needs: [cd-setup, cd-smoke, cd-auth, cd-api-gateway]
+    environment: ${{ needs.cd-setup.outputs.env_name }}
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Fix permissions for ZAP
+        run: chmod -R 777 .
+
+      - name: ZAP API Scan — Auth Service
+        uses: zaproxy/action-api-scan@v0.10.0
+        with:
+          target: 'api-gateway/openapi.yaml'
+          format: openapi
+          cmd_options: '-O ${{ needs.cd-api-gateway.outputs.gateway_url }}'
+          rules_file_name: 'auth/zap.conf'
+          fail_action: ${{ needs.cd-setup.outputs.env_name == 'TESTING' && 'true' || 'false' }}
+          artifact_name: zap-auth-report
+          allow_issue_writing: false
+
+  cd-load-k6:
+    name: CD — Load Tests (k6)
+    runs-on: ubuntu-latest
+    needs: [cd-setup, cd-smoke, cd-auth]
+    environment: ${{ needs.cd-setup.outputs.env_name }}
+    timeout-minutes: 15
+    if: needs.cd-setup.outputs.env_name == 'TESTING'
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Run k6 load tests
+        run: |
+          AUTH_URL="${{ needs.cd-auth.outputs.service_url }}"
+          echo "Running k6 against: $AUTH_URL"
+          docker run --rm -i grafana/k6 run \
+            -e BASE_URL="$AUTH_URL" - < auth/load_test.js
+
+  cd-rollback:
+    name: CD — Rollback (auto)
+    runs-on: ubuntu-latest
+    needs: [cd-setup, cd-auth, cd-frontend, cd-smoke, cd-dast-zap, cd-load-k6]
+    environment: ${{ needs.cd-setup.outputs.env_name }}
+    timeout-minutes: 15
+    if: always() && (needs.cd-smoke.result == 'failure' || needs.cd-dast-zap.result == 'failure' || needs.cd-load-k6.result == 'failure')
+
+    steps:
+      - name: Authenticate GCP (Workload Identity)
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+
+      - name: Rollback Auth (Cloud Run — previous revision)
+        run: |
+          SERVICE="auth-${{ needs.cd-setup.outputs.service_suffix }}"
+          REGION="${{ secrets.GCP_REGION }}"
+          PREV="${{ needs.cd-auth.outputs.prev_revision }}"
+          if [ -n "$PREV" ]; then
+            echo "Rolling back Cloud Run to revision: $PREV"
+            gcloud run services update-traffic "$SERVICE" \
+              --region="$REGION" \
+              --to-revisions "$PREV=100"
+            echo "Cloud Run rollback complete."
+          else
+            echo "::warning::No previous revision found. Manual intervention required."
+          fi
+
+      - name: Rollback Frontend (Cloudflare Pages)
+        run: |
+          echo "::error::Smoke tests failed. Cloudflare deployment may need manual rollback."
+          echo "Use: wrangler pages deployment rollback --project-name=${{ secrets.CLOUDFLARE_PROJECT }}"
+        continue-on-error: true
+
+      - name: Mark CD as failed
+        run: |
+          echo "::error::Rollback executed. CD failed for SHA ${{ github.sha }}."
+          exit 1

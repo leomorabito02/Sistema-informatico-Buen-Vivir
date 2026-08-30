@@ -52,15 +52,13 @@ func GetValidator() *validator.Validate {
 	return validate
 }
 
-// FormatValidationError formats the validator.ValidationErrors into a readable map
 func FormatValidationError(err error) map[string]string {
-	errorsMap := make(map[string]string)
 	if validationErrors, ok := err.(validator.ValidationErrors); ok {
+		errorsMap := make(map[string]string)
 		for _, e := range validationErrors {
 			errorsMap[e.Field()] = e.Tag()
 		}
-	} else {
-		errorsMap["request"] = "Invalid request format"
+		return errorsMap
 	}
-	return errorsMap
+	return nil
 }

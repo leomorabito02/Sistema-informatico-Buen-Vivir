@@ -17,6 +17,8 @@ services:
       - /tmp
     mem_limit: 1024m
     cpus: "1"
+    networks:
+    - buenvivir-net
 
   education-service:
     build:
@@ -36,6 +38,8 @@ services:
       - /tmp
     mem_limit: 1024m
     cpus: "1"
+    networks:
+    - buenvivir-net
 
   api-gateway:
     image: nginx:alpine
@@ -48,3 +52,31 @@ services:
       - auth-service
       - education-service
     restart: on-failure
+    networks:
+      - buenvivir-net
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: buenvivir-frontend
+    ports:
+      - "4200:8080"
+    restart: on-failure
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    read_only: true
+    tmpfs:
+      - /tmp
+      - /var/cache/nginx
+      - /var/run
+    mem_limit: 256m
+    cpus: "0.5"
+    networks:
+      - buenvivir-net
+
+networks:
+  buenvivir-net:
+    driver: bridge

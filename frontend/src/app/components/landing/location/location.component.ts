@@ -1,13 +1,13 @@
-import { Component } from '@angular/core';
-import { CommonModule } from '@angular/common';
-import { LucideAngularModule, MapPin, Clock, Phone } from 'lucide-angular';
+import { Component } from "@angular/core";
+import { CommonModule } from "@angular/common";
+import { LucideAngularModule, MapPin, Clock, Phone } from "lucide-angular";
 
 @Component({
-  selector: 'app-location',
+  selector: "app-location",
   standalone: true,
   imports: [CommonModule, LucideAngularModule],
-  templateUrl: './location.component.html',
-  styleUrl: './location.component.css'
+  templateUrl: "./location.component.html",
+  styleUrl: "./location.component.css",
 })
 export class LocationComponent {
   readonly MapPinIcon = MapPin;

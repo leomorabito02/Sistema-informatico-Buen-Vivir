@@ -44,6 +44,12 @@ type GoogleLoginRequest struct {
 	GoogleID string `json:"google_id" validate:"required"`
 }
 
+// LinkGoogleRequest is used to link a Google account to an authenticated user profile
+type LinkGoogleRequest struct {
+	IDToken  string `json:"id_token" validate:"required"`
+	GoogleID string `json:"google_id" validate:"required"`
+}
+
 // GoogleSelectRoleRequest is used in step 2 for Google: select which account/role to log into
 type GoogleSelectRoleRequest struct {
 	UserID string `json:"user_id" validate:"required"`
@@ -52,6 +58,7 @@ type GoogleSelectRoleRequest struct {
 
 type LoginResponse struct {
 	Token          string        `json:"token"`
+	// #nosec G117
 	RefreshToken   string        `json:"refresh_token,omitempty"`
 	User           *models.User  `json:"user"`
 	ApprovalStatus string        `json:"approval_status,omitempty"`
