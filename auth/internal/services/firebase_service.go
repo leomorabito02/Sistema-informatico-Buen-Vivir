@@ -2,6 +2,7 @@ package services
 
 import (
 	"context"
+	"encoding/base64"
 	"fmt"
 	"os"
 
@@ -29,19 +30,28 @@ func NewFirebaseService() (FirebaseService, error) {
 	
 	credentialsEnv := os.Getenv("GOOGLE_APPLICATION_CREDENTIALS")
 	credentialsJSON := os.Getenv("FIREBASE_CREDENTIALS_JSON")
+	credentialsB64 := os.Getenv("FIREBASE_CREDENTIALS_BASE64")
 	
-	if credentialsJSON != "" {
-		opt := option.WithCredentialsJSON([]byte(credentialsJSON))
+	if credentialsB64 != "" {
+		decoded, decErr := base64.StdEncoding.DecodeString(credentialsB64)
+		if decErr == nil {
+			opt := option.WithCredentialsJSON(decoded) //nolint:staticcheck
+			app, err = firebase.NewApp(ctx, nil, opt)
+		} else {
+			return nil, fmt.Errorf("error decoding FIREBASE_CREDENTIALS_BASE64: %v", decErr)
+		}
+	} else if credentialsJSON != "" {
+		opt := option.WithCredentialsJSON([]byte(credentialsJSON)) //nolint:staticcheck // option.WithCredentialsJSON is required for Firebase inline credentials
 		app, err = firebase.NewApp(ctx, nil, opt)
 	} else if credentialsEnv != "" {
 		// Check if it's a raw JSON string instead of a path
 		if len(credentialsEnv) > 0 && credentialsEnv[0] == '{' {
 			// Borramos la variable de entorno para que el SDK base no intente abrirla como archivo (file name too long)
-			os.Unsetenv("GOOGLE_APPLICATION_CREDENTIALS")
-			opt := option.WithCredentialsJSON([]byte(credentialsEnv))
+			_ = os.Unsetenv("GOOGLE_APPLICATION_CREDENTIALS")
+			opt := option.WithCredentialsJSON([]byte(credentialsEnv)) //nolint:staticcheck // option.WithCredentialsJSON is required for Firebase inline credentials
 			app, err = firebase.NewApp(ctx, nil, opt)
 		} else {
-			opt := option.WithCredentialsFile(credentialsEnv)
+			opt := option.WithCredentialsFile(credentialsEnv) //nolint:staticcheck // option.WithCredentialsFile is required for Firebase credential files
 			app, err = firebase.NewApp(ctx, nil, opt)
 		}
 	} else {

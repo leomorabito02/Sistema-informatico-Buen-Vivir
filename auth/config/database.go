@@ -6,15 +6,17 @@ import (
 	"os"
 	"time"
 
+	"auth/internal/models"
+
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
 
 // InitDatabase initializes the connection to NeonDB (PostgreSQL) using GORM.
 func InitDatabase() (*gorm.DB, error) {
-	dsn := os.Getenv("DATABASE_URL")
+	dsn := os.Getenv("DATABASE_URL_AUTH")
 	if dsn == "" {
-		return nil, fmt.Errorf("DATABASE_URL environment variable is not set")
+		return nil, fmt.Errorf("DATABASE_URL_AUTH environment variable is not set")
 	}
 
 	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
@@ -37,6 +39,10 @@ func InitDatabase() (*gorm.DB, error) {
 	}
 
 	slog.Info("Successfully connected to the database")
+
+	if err := db.AutoMigrate(&models.User{}); err != nil {
+		slog.Warn("Failed to auto-migrate User model", "error", err)
+	}
 
 	return db, nil
 }

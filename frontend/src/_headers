@@ -1,0 +1,8 @@
+/index.html
+  Cache-Control: no-cache, no-store, must-revalidate
+
+/ngsw-worker.js
+  Cache-Control: no-cache, no-store, must-revalidate
+
+/assets/env.js
+  Cache-Control: no-cache, no-store, must-revalidate

@@ -19,12 +19,14 @@
 
 .steps-grid {
   display: grid;
-  grid-template-columns: repeat(1, minmax(0,1fr));
+  grid-template-columns: repeat(1, minmax(0, 1fr));
   gap: 1.5rem;
 }
 
 @media (min-width: 768px) {
-  .steps-grid { grid-template-columns: repeat(3, minmax(0,1fr)); }
+  .steps-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
 }
 
 .step-item {
@@ -42,7 +44,7 @@
 
 .step-inner:hover {
   border-color: var(--primary);
-  box-shadow: 0 8px 24px rgba(72,88,57,0.10);
+  box-shadow: 0 8px 24px rgba(72, 88, 57, 0.1);
 }
 
 .step-number {

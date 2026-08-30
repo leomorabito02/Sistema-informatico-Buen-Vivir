@@ -38,7 +38,7 @@ func (s *authService) UpdateMyProfile(ctx context.Context, roleID, userID string
 		return nil // nothing to update
 	}
 
-	err := s.db.WithContext(ctx).Table(tableName).Where("user_id = ?", userID).Updates(data).Error
+	err := s.querier.UpdateRoleData(ctx, tableName, userID, data)
 	if err != nil {
 		return fmt.Errorf("error actualizando perfil: %w", err)
 	}

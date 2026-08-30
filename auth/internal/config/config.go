@@ -12,7 +12,7 @@ type Config struct {
 
 func LoadConfig() *Config {
 	port := os.Getenv("PORT")
-	dbURL := os.Getenv("DATABASE_URL")
+	dbURL := os.Getenv("DATABASE_URL_AUTH")
 	jwtSecret := os.Getenv("JWT_SECRET")
 	
 

@@ -3,6 +3,7 @@ dist/
 .env
 frontend/node_modules
 frontend/dist
+frontend/.angular/cache/
 auth/bin
 .agents
 .gemini
@@ -10,3 +11,6 @@ Mocks/
 CLAUDE.md
 POSTMAN_EXAMPLES.md
 postman
+reports/coverage/auth.out
+.angular/cache/
+.angular/cache/

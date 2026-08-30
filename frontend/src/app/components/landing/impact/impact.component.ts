@@ -1,12 +1,10 @@
-import { Component } from '@angular/core';
+import { Component } from "@angular/core";
 
 @Component({
-  selector: 'app-impact',
+  selector: "app-impact",
   standalone: true,
   imports: [],
-  templateUrl: './impact.component.html',
-  styleUrl: './impact.component.css'
+  templateUrl: "./impact.component.html",
+  styleUrl: "./impact.component.css",
 })
-export class ImpactComponent {
-
-}
+export class ImpactComponent {}

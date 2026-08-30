@@ -1,0 +1,7 @@
+# Stryker Mutator
+.stryker-tmp/
+reports/mutation/
+audit_report.txt
+semgrep_report.json
+zap_report.html
+

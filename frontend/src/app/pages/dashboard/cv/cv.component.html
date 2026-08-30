@@ -1,0 +1,88 @@
+<div class="page-container">
+  <div class="header-section">
+    <div>
+      <h1 class="page-title">
+        <i class="pi pi-file-pdf mr-2"></i>Generador de Currículum Vitae
+      </h1>
+      <p class="page-subtitle">
+        Completá y exportá tu CV profesional listo para presentar en ofertas de
+        empleo.
+      </p>
+    </div>
+    <p-button
+      label="Descargar CV en PDF"
+      icon="pi pi-download"
+      (onClick)="downloadPdf()"
+      styleClass="p-button-success"
+    ></p-button>
+  </div>
+
+  <div class="cv-layout">
+    <div class="cv-form-section">
+      <p-card header="Datos de tu Curriculum" styleClass="p-card-shadow mb-4">
+        <div class="field mb-3">
+          <label>Nombre y Apellido</label>
+          <input pInputText [(ngModel)]="profile.fullName" class="w-full" />
+        </div>
+        <div class="field-grid mb-3">
+          <div class="field">
+            <label>Correo Electrónico</label>
+            <input pInputText [(ngModel)]="profile.email" class="w-full" />
+          </div>
+          <div class="field">
+            <label>Teléfono</label>
+            <input pInputText [(ngModel)]="profile.phone" class="w-full" />
+          </div>
+        </div>
+        <div class="field mb-3">
+          <label>Perfil Profesional / Resumen</label>
+          <textarea
+            pInputText
+            [(ngModel)]="profile.summary"
+            class="w-full"
+            rows="3"
+          ></textarea>
+        </div>
+        <div class="field mb-3">
+          <label>Habilidades y Competencias</label>
+          <input pInputText [(ngModel)]="profile.skills" class="w-full" />
+        </div>
+        <div class="field mb-3">
+          <label>Experiencia / Prácticas</label>
+          <textarea
+            pInputText
+            [(ngModel)]="profile.experience"
+            class="w-full"
+            rows="2"
+          ></textarea>
+        </div>
+      </p-card>
+    </div>
+
+    <!-- Vista previa CV -->
+    <div class="cv-preview-section">
+      <p-card header="Vista Previa" styleClass="p-card-shadow preview-card">
+        <div class="preview-header">
+          <h2>{{ profile.fullName }}</h2>
+          <p>{{ profile.email }} | {{ profile.phone }}</p>
+          <p class="text-sm text-muted">{{ profile.address }}</p>
+        </div>
+        <hr />
+        <div class="preview-body">
+          <div class="preview-block">
+            <h4>Resumen</h4>
+            <p>{{ profile.summary }}</p>
+          </div>
+          <div class="preview-block">
+            <h4>Habilidades</h4>
+            <p>{{ profile.skills }}</p>
+          </div>
+          <div class="preview-block">
+            <h4>Experiencia Formativa</h4>
+            <p>{{ profile.experience }}</p>
+          </div>
+        </div>
+      </p-card>
+    </div>
+  </div>
+</div>

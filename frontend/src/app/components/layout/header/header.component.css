@@ -3,10 +3,10 @@
   align-items: center;
   justify-content: space-between;
   padding: 10px 24px;
-  background-color: #556B4E; /* Dark green background */
-  color: #FFFFFF;
+  background-color: #556b4e; /* Dark green background */
+  color: #ffffff;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  font-family: 'Inter', sans-serif;
+  font-family: "Inter", sans-serif;
 }
 
 .header-left {
@@ -19,7 +19,7 @@
   width: 40px;
   height: 40px;
   border-radius: 8px;
-  background-color: #43543D; /* Slightly darker green for logo background */
+  background-color: #43543d; /* Slightly darker green for logo background */
   display: flex;
   align-items: center;
   justify-content: center;
@@ -47,7 +47,7 @@
 
 .user-role {
   font-size: 11px;
-  color: #B5C5B1; /* Lighter green for subtitle */
+  color: #b5c5b1; /* Lighter green for subtitle */
   text-transform: capitalize;
 }
 
@@ -58,13 +58,15 @@
 }
 
 .header-center a {
-  color: #FFFFFF;
+  color: #ffffff;
   text-decoration: none;
   font-size: 13px;
   font-weight: 500;
   padding: 6px 12px;
   border-radius: 4px;
-  transition: background-color 0.2s ease, opacity 0.2s ease;
+  transition:
+    background-color 0.2s ease,
+    opacity 0.2s ease;
   opacity: 0.9;
 }
 
@@ -88,7 +90,7 @@
 .icon-btn {
   background: none;
   border: none;
-  color: #FFFFFF;
+  color: #ffffff;
   cursor: pointer;
   padding: 6px;
   display: flex;
@@ -109,16 +111,16 @@
   right: 4px;
   width: 8px;
   height: 8px;
-  background-color: #E53E3E;
+  background-color: #e53e3e;
   border-radius: 50%;
-  border: 2px solid #556B4E;
+  border: 2px solid #556b4e;
 }
 
 .btn-logout {
   display: flex;
   align-items: center;
   gap: 8px;
-  background-color: #E53E3E; /* Red logout button */
+  background-color: #e53e3e; /* Red logout button */
   color: white;
   border: none;
   border-radius: 6px;
@@ -130,5 +132,5 @@
 }
 
 .btn-logout:hover {
-  background-color: #C53030;
+  background-color: #c53030;
 }

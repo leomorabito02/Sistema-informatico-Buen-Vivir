@@ -24,8 +24,14 @@ type JWTService interface {
 func AuthMiddleware(jwtService JWTService) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			// Pass CORS preflight requests without JWT validation
+			if r.Method == http.MethodOptions {
+				next.ServeHTTP(w, r)
+				return
+			}
+
 			var tokenString string
-			
+
 			// Primero intentar extraer de la cookie "access_token"
 			cookie, err := r.Cookie("access_token")
 			if err == nil && cookie.Value != "" {

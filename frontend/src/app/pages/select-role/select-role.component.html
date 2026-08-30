@@ -1,11 +1,10 @@
 <div class="auth-container">
   <div class="auth-content">
     <div class="auth-wrapper">
-
       <!-- Header -->
       <div class="auth-header">
         <div class="auth-logo-container">
-          <img src="assets/logo.png" alt="Logo Buen Vivir" class="auth-logo">
+          <img src="assets/logo.png" alt="Logo Buen Vivir" class="auth-logo" />
         </div>
         <h1 class="auth-title">Buen Vivir</h1>
         <p class="auth-subtitle">Centro de Ecología Integral</p>
@@ -15,7 +14,8 @@
       <div class="auth-card">
         <h2 class="auth-card-title">¿Con qué perfil querés ingresar?</h2>
         <p class="auth-card-description">
-          Tu cuenta tiene múltiples perfiles. Seleccioná con cuál querés continuar.
+          Tu cuenta tiene múltiples perfiles. Seleccioná con cuál querés
+          continuar.
         </p>
 
         <!-- Error message -->
@@ -35,16 +35,21 @@
             [id]="'select-role-' + account.role_id"
           >
             <div class="account-icon">
-              {{ roleIcons[account.role_id] || '👤' }}
+              {{ roleIcons[account.role_id] || "👤" }}
             </div>
             <div class="account-info">
               <span class="account-role-name">{{ account.role_name }}</span>
-              <span class="account-status" [class.status-blocked]="account.status !== 'active'">
-                {{ account.status === 'active' ? 'Activo' : 'Bloqueado' }}
+              <span
+                class="account-status"
+                [class.status-blocked]="account.status !== 'active'"
+              >
+                {{ account.status === "active" ? "Activo" : "Bloqueado" }}
               </span>
             </div>
             <div class="account-arrow">
-              <span *ngIf="loadingAccountId === account.user_id" class="spinner">⏳</span>
+              <span *ngIf="loadingAccountId === account.user_id" class="spinner"
+                >⏳</span
+              >
               <span *ngIf="loadingAccountId !== account.user_id">→</span>
             </div>
           </button>
@@ -52,9 +57,10 @@
       </div>
 
       <div class="auth-footer">
-        <a routerLink="/login" class="auth-link">← Volver al inicio de sesión</a>
+        <a routerLink="/login" class="auth-link"
+          >← Volver al inicio de sesión</a
+        >
       </div>
-
     </div>
   </div>
 </div>

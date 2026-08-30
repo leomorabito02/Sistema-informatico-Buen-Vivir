@@ -1,0 +1,78 @@
+<div class="page-container">
+  <div class="header-section">
+    <div>
+      <h1 class="page-title">
+        <i class="pi pi-chart-line mr-2"></i>Mi Progreso Académico
+      </h1>
+      <p class="page-subtitle">
+        Seguí tu avance en las capacitaciones y obtené tus certificados.
+      </p>
+    </div>
+  </div>
+
+  <div class="summary-card-wrapper mb-4">
+    <p-card styleClass="p-card-shadow">
+      <div class="summary-content">
+        <div>
+          <h3>Avance General de Formación</h3>
+          <p class="text-muted">
+            Completaste el {{ overallProgress }}% de tu plan formativo actual.
+          </p>
+        </div>
+        <div class="progress-bar-container">
+          <p-progressBar
+            [value]="overallProgress"
+            [showValue]="true"
+          ></p-progressBar>
+        </div>
+      </div>
+    </p-card>
+  </div>
+
+  <h2 class="section-heading mb-3">Cursos en Cursada</h2>
+  <div class="grid-container mb-6">
+    <div *ngFor="let curso of activeCourses" class="course-progress-card">
+      <p-card [header]="curso.title" styleClass="p-card-shadow">
+        <div class="card-body">
+          <div class="progress-info mb-2">
+            <span>Módulos: {{ curso.modulesDone }}</span>
+            <span
+              >Asistencia: <strong>{{ curso.attendance }}</strong></span
+            >
+          </div>
+          <p-progressBar
+            [value]="curso.progress"
+            styleClass="mb-3"
+          ></p-progressBar>
+          <div class="next-class">
+            <i class="pi pi-calendar mr-1"></i> Próxima clase:
+            {{ curso.nextClass }}
+          </div>
+        </div>
+      </p-card>
+    </div>
+  </div>
+
+  <h2 class="section-heading mb-3">Cursos Finalizados</h2>
+  <div class="grid-container">
+    <div *ngFor="let curso of completedCourses" class="course-completed-card">
+      <p-card [header]="curso.title" styleClass="p-card-shadow">
+        <div class="card-body">
+          <p>Fecha de finalización: {{ curso.completedDate }}</p>
+          <p-tag
+            value="Calificación: Excelente"
+            severity="success"
+            styleClass="mb-3"
+          ></p-tag>
+        </div>
+        <ng-template pTemplate="footer">
+          <p-button
+            label="Descargar Certificado"
+            icon="pi pi-download"
+            styleClass="p-button-outlined w-full"
+          ></p-button>
+        </ng-template>
+      </p-card>
+    </div>
+  </div>
+</div>

@@ -3,56 +3,1107 @@ info:
   title: Sistema Informático Buen Vivir API Gateway
   description: API Gateway de Google Cloud para el Sistema Informático Buen Vivir
   version: 1.0.0
-host: ${GATEWAY_HOST}
 schemes:
-  - https
+- https
 produces:
-  - application/json
+- application/json
 consumes:
-  - application/json
+- application/json
 paths:
   /api/v1/auth/login:
     post:
-      summary: Autenticación de usuarios
-      operationId: authLogin
+      summary: POST /api/v1/auth/login
+      operationId: post__api_v1_auth_login
       x-google-backend:
         address: ${AUTH_SERVICE_URL}
         path_translation: APPEND_PATH_TO_ADDRESS
       responses:
         '200':
-          description: Login exitoso
-        '401':
-          description: Credenciales inválidas
-
-  /api/v1/auth/register:
-    post:
-      summary: Registro de usuarios
-      operationId: authRegister
+          description: OK
+    options:
+      summary: CORS preflight for /api/v1/auth/login
+      operationId: options__api_v1_auth_login
       x-google-backend:
         address: ${AUTH_SERVICE_URL}
         path_translation: APPEND_PATH_TO_ADDRESS
       responses:
-        '201':
-          description: Usuario creado exitosamente
-        '400':
-          description: Datos inválidos
-
-
-
+        '200':
+          description: OK
+          headers:
+            Access-Control-Allow-Origin:
+              type: string
+            Access-Control-Allow-Methods:
+              type: string
+            Access-Control-Allow-Headers:
+              type: string
+            Access-Control-Expose-Headers:
+              type: string
+            Access-Control-Allow-Credentials:
+              type: boolean
+            Access-Control-Max-Age:
+              type: integer
+  /api/v1/auth/register:
+    post:
+      summary: POST /api/v1/auth/register
+      operationId: post__api_v1_auth_register
+      x-google-backend:
+        address: ${AUTH_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+      responses:
+        '200':
+          description: OK
+    options:
+      summary: CORS preflight for /api/v1/auth/register
+      operationId: options__api_v1_auth_register
+      x-google-backend:
+        address: ${AUTH_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+      responses:
+        '200':
+          description: OK
+          headers:
+            Access-Control-Allow-Origin:
+              type: string
+            Access-Control-Allow-Methods:
+              type: string
+            Access-Control-Allow-Headers:
+              type: string
+            Access-Control-Expose-Headers:
+              type: string
+            Access-Control-Allow-Credentials:
+              type: boolean
+            Access-Control-Max-Age:
+              type: integer
+  /api/v1/auth/check-credentials:
+    post:
+      summary: POST /api/v1/auth/check-credentials
+      operationId: post__api_v1_auth_check-credentials
+      x-google-backend:
+        address: ${AUTH_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+      responses:
+        '200':
+          description: OK
+    options:
+      summary: CORS preflight for /api/v1/auth/check-credentials
+      operationId: options__api_v1_auth_check-credentials
+      x-google-backend:
+        address: ${AUTH_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+      responses:
+        '200':
+          description: OK
+          headers:
+            Access-Control-Allow-Origin:
+              type: string
+            Access-Control-Allow-Methods:
+              type: string
+            Access-Control-Allow-Headers:
+              type: string
+            Access-Control-Expose-Headers:
+              type: string
+            Access-Control-Allow-Credentials:
+              type: boolean
+            Access-Control-Max-Age:
+              type: integer
+  /api/v1/auth/google-check-credentials:
+    post:
+      summary: POST /api/v1/auth/google-check-credentials
+      operationId: post__api_v1_auth_google-check-credentials
+      x-google-backend:
+        address: ${AUTH_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+      responses:
+        '200':
+          description: OK
+    options:
+      summary: CORS preflight for /api/v1/auth/google-check-credentials
+      operationId: options__api_v1_auth_google-check-credentials
+      x-google-backend:
+        address: ${AUTH_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+      responses:
+        '200':
+          description: OK
+          headers:
+            Access-Control-Allow-Origin:
+              type: string
+            Access-Control-Allow-Methods:
+              type: string
+            Access-Control-Allow-Headers:
+              type: string
+            Access-Control-Expose-Headers:
+              type: string
+            Access-Control-Allow-Credentials:
+              type: boolean
+            Access-Control-Max-Age:
+              type: integer
+  /api/v1/auth/logout:
+    post:
+      summary: POST /api/v1/auth/logout
+      operationId: post__api_v1_auth_logout
+      x-google-backend:
+        address: ${AUTH_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+      responses:
+        '200':
+          description: OK
+    options:
+      summary: CORS preflight for /api/v1/auth/logout
+      operationId: options__api_v1_auth_logout
+      x-google-backend:
+        address: ${AUTH_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+      responses:
+        '200':
+          description: OK
+          headers:
+            Access-Control-Allow-Origin:
+              type: string
+            Access-Control-Allow-Methods:
+              type: string
+            Access-Control-Allow-Headers:
+              type: string
+            Access-Control-Expose-Headers:
+              type: string
+            Access-Control-Allow-Credentials:
+              type: boolean
+            Access-Control-Max-Age:
+              type: integer
+  /api/v1/auth/me:
+    get:
+      summary: GET /api/v1/auth/me
+      operationId: get__api_v1_auth_me
+      x-google-backend:
+        address: ${AUTH_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+      responses:
+        '200':
+          description: OK
+      security:
+      - jwt: []
+    options:
+      summary: CORS preflight for /api/v1/auth/me
+      operationId: options__api_v1_auth_me
+      x-google-backend:
+        address: ${AUTH_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+      responses:
+        '200':
+          description: OK
+          headers:
+            Access-Control-Allow-Origin:
+              type: string
+            Access-Control-Allow-Methods:
+              type: string
+            Access-Control-Allow-Headers:
+              type: string
+            Access-Control-Expose-Headers:
+              type: string
+            Access-Control-Allow-Credentials:
+              type: boolean
+            Access-Control-Max-Age:
+              type: integer
+  /api/v1/profile/me:
+    get:
+      summary: GET /api/v1/profile/me
+      operationId: get__api_v1_profile_me
+      x-google-backend:
+        address: ${AUTH_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+      responses:
+        '200':
+          description: OK
+      security:
+      - jwt: []
+    put:
+      summary: PUT /api/v1/profile/me
+      operationId: put__api_v1_profile_me
+      x-google-backend:
+        address: ${AUTH_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+      responses:
+        '200':
+          description: OK
+      security:
+      - jwt: []
+    options:
+      summary: CORS preflight for /api/v1/profile/me
+      operationId: options__api_v1_profile_me
+      x-google-backend:
+        address: ${AUTH_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+      responses:
+        '200':
+          description: OK
+          headers:
+            Access-Control-Allow-Origin:
+              type: string
+            Access-Control-Allow-Methods:
+              type: string
+            Access-Control-Allow-Headers:
+              type: string
+            Access-Control-Expose-Headers:
+              type: string
+            Access-Control-Allow-Credentials:
+              type: boolean
+            Access-Control-Max-Age:
+              type: integer
+  /api/v1/profile/me/password:
+    put:
+      summary: PUT /api/v1/profile/me/password
+      operationId: put__api_v1_profile_me_password
+      x-google-backend:
+        address: ${AUTH_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+      responses:
+        '200':
+          description: OK
+      security:
+      - jwt: []
+    options:
+      summary: CORS preflight for /api/v1/profile/me/password
+      operationId: options__api_v1_profile_me_password
+      x-google-backend:
+        address: ${AUTH_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+      responses:
+        '200':
+          description: OK
+          headers:
+            Access-Control-Allow-Origin:
+              type: string
+            Access-Control-Allow-Methods:
+              type: string
+            Access-Control-Allow-Headers:
+              type: string
+            Access-Control-Expose-Headers:
+              type: string
+            Access-Control-Allow-Credentials:
+              type: boolean
+            Access-Control-Max-Age:
+              type: integer
+  /api/v1/profile/me/link-google:
+    post:
+      summary: POST /api/v1/profile/me/link-google
+      operationId: post__api_v1_profile_me_link-google
+      x-google-backend:
+        address: ${AUTH_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+      responses:
+        '200':
+          description: OK
+      security:
+      - jwt: []
+    options:
+      summary: CORS preflight for /api/v1/profile/me/link-google
+      operationId: options__api_v1_profile_me_link-google
+      x-google-backend:
+        address: ${AUTH_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+      responses:
+        '200':
+          description: OK
+          headers:
+            Access-Control-Allow-Origin:
+              type: string
+            Access-Control-Allow-Methods:
+              type: string
+            Access-Control-Allow-Headers:
+              type: string
+            Access-Control-Expose-Headers:
+              type: string
+            Access-Control-Allow-Credentials:
+              type: boolean
+            Access-Control-Max-Age:
+              type: integer
+  /api/v1/profile/me/unlink-google:
+    post:
+      summary: POST /api/v1/profile/me/unlink-google
+      operationId: post__api_v1_profile_me_unlink-google
+      x-google-backend:
+        address: ${AUTH_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+      responses:
+        '200':
+          description: OK
+      security:
+      - jwt: []
+    options:
+      summary: CORS preflight for /api/v1/profile/me/unlink-google
+      operationId: options__api_v1_profile_me_unlink-google
+      x-google-backend:
+        address: ${AUTH_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+      responses:
+        '200':
+          description: OK
+          headers:
+            Access-Control-Allow-Origin:
+              type: string
+            Access-Control-Allow-Methods:
+              type: string
+            Access-Control-Allow-Headers:
+              type: string
+            Access-Control-Expose-Headers:
+              type: string
+            Access-Control-Allow-Credentials:
+              type: boolean
+            Access-Control-Max-Age:
+              type: integer
+  /api/v1/users:
+    get:
+      summary: GET /api/v1/users
+      operationId: get__api_v1_users
+      x-google-backend:
+        address: ${AUTH_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+      responses:
+        '200':
+          description: OK
+      security:
+      - jwt: []
+    post:
+      summary: POST /api/v1/users
+      operationId: post__api_v1_users
+      x-google-backend:
+        address: ${AUTH_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+      responses:
+        '200':
+          description: OK
+      security:
+      - jwt: []
+    options:
+      summary: CORS preflight for /api/v1/users
+      operationId: options__api_v1_users
+      x-google-backend:
+        address: ${AUTH_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+      responses:
+        '200':
+          description: OK
+          headers:
+            Access-Control-Allow-Origin:
+              type: string
+            Access-Control-Allow-Methods:
+              type: string
+            Access-Control-Allow-Headers:
+              type: string
+            Access-Control-Expose-Headers:
+              type: string
+            Access-Control-Allow-Credentials:
+              type: boolean
+            Access-Control-Max-Age:
+              type: integer
+  /api/v1/users/{id}:
+    get:
+      summary: GET /api/v1/users/{id}
+      operationId: get__api_v1_users_id
+      x-google-backend:
+        address: ${AUTH_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+      responses:
+        '200':
+          description: OK
+      security:
+      - jwt: []
+    put:
+      summary: PUT /api/v1/users/{id}
+      operationId: put__api_v1_users_id
+      x-google-backend:
+        address: ${AUTH_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+      responses:
+        '200':
+          description: OK
+      security:
+      - jwt: []
+    delete:
+      summary: DELETE /api/v1/users/{id}
+      operationId: delete__api_v1_users_id
+      x-google-backend:
+        address: ${AUTH_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+      responses:
+        '200':
+          description: OK
+      security:
+      - jwt: []
+    parameters:
+    - name: id
+      in: path
+      required: true
+      type: string
+    options:
+      summary: CORS preflight for /api/v1/users/{id}
+      operationId: options__api_v1_users_id
+      x-google-backend:
+        address: ${AUTH_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+      responses:
+        '200':
+          description: OK
+          headers:
+            Access-Control-Allow-Origin:
+              type: string
+            Access-Control-Allow-Methods:
+              type: string
+            Access-Control-Allow-Headers:
+              type: string
+            Access-Control-Expose-Headers:
+              type: string
+            Access-Control-Allow-Credentials:
+              type: boolean
+            Access-Control-Max-Age:
+              type: integer
+  /api/v1/roles:
+    get:
+      summary: GET /api/v1/roles
+      operationId: get__api_v1_roles
+      x-google-backend:
+        address: ${AUTH_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+      responses:
+        '200':
+          description: OK
+      security:
+      - jwt: []
+    post:
+      summary: POST /api/v1/roles
+      operationId: post__api_v1_roles
+      x-google-backend:
+        address: ${AUTH_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+      responses:
+        '200':
+          description: OK
+      security:
+      - jwt: []
+    options:
+      summary: CORS preflight for /api/v1/roles
+      operationId: options__api_v1_roles
+      x-google-backend:
+        address: ${AUTH_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+      responses:
+        '200':
+          description: OK
+          headers:
+            Access-Control-Allow-Origin:
+              type: string
+            Access-Control-Allow-Methods:
+              type: string
+            Access-Control-Allow-Headers:
+              type: string
+            Access-Control-Expose-Headers:
+              type: string
+            Access-Control-Allow-Credentials:
+              type: boolean
+            Access-Control-Max-Age:
+              type: integer
+  /api/v1/roles/{id}:
+    get:
+      summary: GET /api/v1/roles/{id}
+      operationId: get__api_v1_roles_id
+      x-google-backend:
+        address: ${AUTH_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+      responses:
+        '200':
+          description: OK
+      security:
+      - jwt: []
+    put:
+      summary: PUT /api/v1/roles/{id}
+      operationId: put__api_v1_roles_id
+      x-google-backend:
+        address: ${AUTH_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+      responses:
+        '200':
+          description: OK
+      security:
+      - jwt: []
+    delete:
+      summary: DELETE /api/v1/roles/{id}
+      operationId: delete__api_v1_roles_id
+      x-google-backend:
+        address: ${AUTH_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+      responses:
+        '200':
+          description: OK
+      security:
+      - jwt: []
+    parameters:
+    - name: id
+      in: path
+      required: true
+      type: string
+    options:
+      summary: CORS preflight for /api/v1/roles/{id}
+      operationId: options__api_v1_roles_id
+      x-google-backend:
+        address: ${AUTH_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+      responses:
+        '200':
+          description: OK
+          headers:
+            Access-Control-Allow-Origin:
+              type: string
+            Access-Control-Allow-Methods:
+              type: string
+            Access-Control-Allow-Headers:
+              type: string
+            Access-Control-Expose-Headers:
+              type: string
+            Access-Control-Allow-Credentials:
+              type: boolean
+            Access-Control-Max-Age:
+              type: integer
+  /api/v1/companies:
+    get:
+      summary: GET /api/v1/companies
+      operationId: get__api_v1_companies
+      x-google-backend:
+        address: ${AUTH_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+      responses:
+        '200':
+          description: OK
+      security:
+      - jwt: []
+    post:
+      summary: POST /api/v1/companies
+      operationId: post__api_v1_companies
+      x-google-backend:
+        address: ${AUTH_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+      responses:
+        '200':
+          description: OK
+      security:
+      - jwt: []
+    options:
+      summary: CORS preflight for /api/v1/companies
+      operationId: options__api_v1_companies
+      x-google-backend:
+        address: ${AUTH_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+      responses:
+        '200':
+          description: OK
+          headers:
+            Access-Control-Allow-Origin:
+              type: string
+            Access-Control-Allow-Methods:
+              type: string
+            Access-Control-Allow-Headers:
+              type: string
+            Access-Control-Expose-Headers:
+              type: string
+            Access-Control-Allow-Credentials:
+              type: boolean
+            Access-Control-Max-Age:
+              type: integer
+  /api/v1/companies/{id}:
+    get:
+      summary: GET /api/v1/companies/{id}
+      operationId: get__api_v1_companies_id
+      x-google-backend:
+        address: ${AUTH_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+      responses:
+        '200':
+          description: OK
+      security:
+      - jwt: []
+    put:
+      summary: PUT /api/v1/companies/{id}
+      operationId: put__api_v1_companies_id
+      x-google-backend:
+        address: ${AUTH_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+      responses:
+        '200':
+          description: OK
+      security:
+      - jwt: []
+    delete:
+      summary: DELETE /api/v1/companies/{id}
+      operationId: delete__api_v1_companies_id
+      x-google-backend:
+        address: ${AUTH_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+      responses:
+        '200':
+          description: OK
+      security:
+      - jwt: []
+    parameters:
+    - name: id
+      in: path
+      required: true
+      type: string
+    options:
+      summary: CORS preflight for /api/v1/companies/{id}
+      operationId: options__api_v1_companies_id
+      x-google-backend:
+        address: ${AUTH_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+      responses:
+        '200':
+          description: OK
+          headers:
+            Access-Control-Allow-Origin:
+              type: string
+            Access-Control-Allow-Methods:
+              type: string
+            Access-Control-Allow-Headers:
+              type: string
+            Access-Control-Expose-Headers:
+              type: string
+            Access-Control-Allow-Credentials:
+              type: boolean
+            Access-Control-Max-Age:
+              type: integer
+  /api/v1/teachers:
+    get:
+      summary: GET /api/v1/teachers
+      operationId: get__api_v1_teachers
+      x-google-backend:
+        address: ${AUTH_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+      responses:
+        '200':
+          description: OK
+      security:
+      - jwt: []
+    post:
+      summary: POST /api/v1/teachers
+      operationId: post__api_v1_teachers
+      x-google-backend:
+        address: ${AUTH_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+      responses:
+        '200':
+          description: OK
+      security:
+      - jwt: []
+    options:
+      summary: CORS preflight for /api/v1/teachers
+      operationId: options__api_v1_teachers
+      x-google-backend:
+        address: ${AUTH_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+      responses:
+        '200':
+          description: OK
+          headers:
+            Access-Control-Allow-Origin:
+              type: string
+            Access-Control-Allow-Methods:
+              type: string
+            Access-Control-Allow-Headers:
+              type: string
+            Access-Control-Expose-Headers:
+              type: string
+            Access-Control-Allow-Credentials:
+              type: boolean
+            Access-Control-Max-Age:
+              type: integer
+  /api/v1/teachers/{id}:
+    get:
+      summary: GET /api/v1/teachers/{id}
+      operationId: get__api_v1_teachers_id
+      x-google-backend:
+        address: ${AUTH_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+      responses:
+        '200':
+          description: OK
+      security:
+      - jwt: []
+    put:
+      summary: PUT /api/v1/teachers/{id}
+      operationId: put__api_v1_teachers_id
+      x-google-backend:
+        address: ${AUTH_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+      responses:
+        '200':
+          description: OK
+      security:
+      - jwt: []
+    delete:
+      summary: DELETE /api/v1/teachers/{id}
+      operationId: delete__api_v1_teachers_id
+      x-google-backend:
+        address: ${AUTH_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+      responses:
+        '200':
+          description: OK
+      security:
+      - jwt: []
+    parameters:
+    - name: id
+      in: path
+      required: true
+      type: string
+    options:
+      summary: CORS preflight for /api/v1/teachers/{id}
+      operationId: options__api_v1_teachers_id
+      x-google-backend:
+        address: ${AUTH_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+      responses:
+        '200':
+          description: OK
+          headers:
+            Access-Control-Allow-Origin:
+              type: string
+            Access-Control-Allow-Methods:
+              type: string
+            Access-Control-Allow-Headers:
+              type: string
+            Access-Control-Expose-Headers:
+              type: string
+            Access-Control-Allow-Credentials:
+              type: boolean
+            Access-Control-Max-Age:
+              type: integer
+  /api/v1/participants:
+    get:
+      summary: GET /api/v1/participants
+      operationId: get__api_v1_participants
+      x-google-backend:
+        address: ${AUTH_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+      responses:
+        '200':
+          description: OK
+      security:
+      - jwt: []
+    post:
+      summary: POST /api/v1/participants
+      operationId: post__api_v1_participants
+      x-google-backend:
+        address: ${AUTH_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+      responses:
+        '200':
+          description: OK
+      security:
+      - jwt: []
+    options:
+      summary: CORS preflight for /api/v1/participants
+      operationId: options__api_v1_participants
+      x-google-backend:
+        address: ${AUTH_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+      responses:
+        '200':
+          description: OK
+          headers:
+            Access-Control-Allow-Origin:
+              type: string
+            Access-Control-Allow-Methods:
+              type: string
+            Access-Control-Allow-Headers:
+              type: string
+            Access-Control-Expose-Headers:
+              type: string
+            Access-Control-Allow-Credentials:
+              type: boolean
+            Access-Control-Max-Age:
+              type: integer
+  /api/v1/participants/{id}:
+    get:
+      summary: GET /api/v1/participants/{id}
+      operationId: get__api_v1_participants_id
+      x-google-backend:
+        address: ${AUTH_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+      responses:
+        '200':
+          description: OK
+      security:
+      - jwt: []
+    put:
+      summary: PUT /api/v1/participants/{id}
+      operationId: put__api_v1_participants_id
+      x-google-backend:
+        address: ${AUTH_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+      responses:
+        '200':
+          description: OK
+      security:
+      - jwt: []
+    delete:
+      summary: DELETE /api/v1/participants/{id}
+      operationId: delete__api_v1_participants_id
+      x-google-backend:
+        address: ${AUTH_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+      responses:
+        '200':
+          description: OK
+      security:
+      - jwt: []
+    parameters:
+    - name: id
+      in: path
+      required: true
+      type: string
+    options:
+      summary: CORS preflight for /api/v1/participants/{id}
+      operationId: options__api_v1_participants_id
+      x-google-backend:
+        address: ${AUTH_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+      responses:
+        '200':
+          description: OK
+          headers:
+            Access-Control-Allow-Origin:
+              type: string
+            Access-Control-Allow-Methods:
+              type: string
+            Access-Control-Allow-Headers:
+              type: string
+            Access-Control-Expose-Headers:
+              type: string
+            Access-Control-Allow-Credentials:
+              type: boolean
+            Access-Control-Max-Age:
+              type: integer
+  /api/v1/permissions:
+    get:
+      summary: GET /api/v1/permissions
+      operationId: get__api_v1_permissions
+      x-google-backend:
+        address: ${AUTH_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+      responses:
+        '200':
+          description: OK
+      security:
+      - jwt: []
+    post:
+      summary: POST /api/v1/permissions
+      operationId: post__api_v1_permissions
+      x-google-backend:
+        address: ${AUTH_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+      responses:
+        '200':
+          description: OK
+      security:
+      - jwt: []
+    options:
+      summary: CORS preflight for /api/v1/permissions
+      operationId: options__api_v1_permissions
+      x-google-backend:
+        address: ${AUTH_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+      responses:
+        '200':
+          description: OK
+          headers:
+            Access-Control-Allow-Origin:
+              type: string
+            Access-Control-Allow-Methods:
+              type: string
+            Access-Control-Allow-Headers:
+              type: string
+            Access-Control-Expose-Headers:
+              type: string
+            Access-Control-Allow-Credentials:
+              type: boolean
+            Access-Control-Max-Age:
+              type: integer
+  /api/v1/permissions/{id}:
+    get:
+      summary: GET /api/v1/permissions/{id}
+      operationId: get__api_v1_permissions_id
+      x-google-backend:
+        address: ${AUTH_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+      responses:
+        '200':
+          description: OK
+      security:
+      - jwt: []
+    put:
+      summary: PUT /api/v1/permissions/{id}
+      operationId: put__api_v1_permissions_id
+      x-google-backend:
+        address: ${AUTH_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+      responses:
+        '200':
+          description: OK
+      security:
+      - jwt: []
+    delete:
+      summary: DELETE /api/v1/permissions/{id}
+      operationId: delete__api_v1_permissions_id
+      x-google-backend:
+        address: ${AUTH_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+      responses:
+        '200':
+          description: OK
+      security:
+      - jwt: []
+    parameters:
+    - name: id
+      in: path
+      required: true
+      type: string
+    options:
+      summary: CORS preflight for /api/v1/permissions/{id}
+      operationId: options__api_v1_permissions_id
+      x-google-backend:
+        address: ${AUTH_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+      responses:
+        '200':
+          description: OK
+          headers:
+            Access-Control-Allow-Origin:
+              type: string
+            Access-Control-Allow-Methods:
+              type: string
+            Access-Control-Allow-Headers:
+              type: string
+            Access-Control-Expose-Headers:
+              type: string
+            Access-Control-Allow-Credentials:
+              type: boolean
+            Access-Control-Max-Age:
+              type: integer
+  /api/v1/volunteers:
+    get:
+      summary: GET /api/v1/volunteers
+      operationId: get__api_v1_volunteers
+      x-google-backend:
+        address: ${AUTH_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+      responses:
+        '200':
+          description: OK
+      security:
+      - jwt: []
+    post:
+      summary: POST /api/v1/volunteers
+      operationId: post__api_v1_volunteers
+      x-google-backend:
+        address: ${AUTH_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+      responses:
+        '200':
+          description: OK
+      security:
+      - jwt: []
+    options:
+      summary: CORS preflight for /api/v1/volunteers
+      operationId: options__api_v1_volunteers
+      x-google-backend:
+        address: ${AUTH_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+      responses:
+        '200':
+          description: OK
+          headers:
+            Access-Control-Allow-Origin:
+              type: string
+            Access-Control-Allow-Methods:
+              type: string
+            Access-Control-Allow-Headers:
+              type: string
+            Access-Control-Expose-Headers:
+              type: string
+            Access-Control-Allow-Credentials:
+              type: boolean
+            Access-Control-Max-Age:
+              type: integer
+  /api/v1/volunteers/{id}:
+    get:
+      summary: GET /api/v1/volunteers/{id}
+      operationId: get__api_v1_volunteers_id
+      x-google-backend:
+        address: ${AUTH_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+      responses:
+        '200':
+          description: OK
+      security:
+      - jwt: []
+    put:
+      summary: PUT /api/v1/volunteers/{id}
+      operationId: put__api_v1_volunteers_id
+      x-google-backend:
+        address: ${AUTH_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+      responses:
+        '200':
+          description: OK
+      security:
+      - jwt: []
+    delete:
+      summary: DELETE /api/v1/volunteers/{id}
+      operationId: delete__api_v1_volunteers_id
+      x-google-backend:
+        address: ${AUTH_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+      responses:
+        '200':
+          description: OK
+      security:
+      - jwt: []
+    parameters:
+    - name: id
+      in: path
+      required: true
+      type: string
+    options:
+      summary: CORS preflight for /api/v1/volunteers/{id}
+      operationId: options__api_v1_volunteers_id
+      x-google-backend:
+        address: ${AUTH_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+      responses:
+        '200':
+          description: OK
+          headers:
+            Access-Control-Allow-Origin:
+              type: string
+            Access-Control-Allow-Methods:
+              type: string
+            Access-Control-Allow-Headers:
+              type: string
+            Access-Control-Expose-Headers:
+              type: string
+            Access-Control-Allow-Credentials:
+              type: boolean
+            Access-Control-Max-Age:
+              type: integer
 securityDefinitions:
-  # Validación de tokens JWT internos generados por nuestro Backend
   jwt:
     type: apiKey
     name: Authorization
     in: header
-    x-google-issuer: "buenvivir-auth"
-    x-google-jwks_uri: "${AUTH_SERVICE_URL}/.well-known/jwks.json"
-    
-  # Validación directa de Firebase Auth (Opcional si el gateway valida el login inicial)
+    x-google-issuer: buenvivir-auth
+    x-google-jwks_uri: ${AUTH_SERVICE_URL}/.well-known/jwks.json
   firebase:
-    authorizationUrl: ""
-    flow: "implicit"
-    type: "oauth2"
-    x-google-issuer: "https://securetoken.google.com/${FIREBASE_PROJECT_ID}"
-    x-google-jwks_uri: "https://www.googleapis.com/service_accounts/v1/metadata/x509/securetoken@system.gserviceaccount.com"
-    x-google-audiences: "${FIREBASE_PROJECT_ID}"
+    authorizationUrl: ''
+    flow: implicit
+    type: oauth2
+    x-google-issuer: https://securetoken.google.com/${FIREBASE_PROJECT_ID}
+    x-google-jwks_uri: https://www.googleapis.com/service_accounts/v1/metadata/x509/securetoken@system.gserviceaccount.com
+    x-google-audiences: ${FIREBASE_PROJECT_ID}

@@ -1,24 +1,40 @@
-import { ApplicationConfig, provideZoneChangeDetection, isDevMode } from '@angular/core';
-import { provideRouter } from '@angular/router';
-import { provideHttpClient, withInterceptors } from '@angular/common/http';
-import { provideServiceWorker } from '@angular/service-worker';
-import { routes } from './app.routes';
-import { authInterceptor } from './core/interceptors/auth.interceptor';
+import {
+  ApplicationConfig,
+  provideZoneChangeDetection,
+  isDevMode,
+} from "@angular/core";
+import { provideAnimationsAsync } from "@angular/platform-browser/animations/async";
+import { provideRouter } from "@angular/router";
+import { provideHttpClient, withInterceptors } from "@angular/common/http";
+import { provideServiceWorker } from "@angular/service-worker";
+import { providePrimeNG } from "primeng/config";
+import Aura from "@primeuix/themes/aura";
+import { routes } from "./app.routes";
+import { authInterceptor } from "./core/interceptors/auth.interceptor";
 
-import { provideFirebaseApp, initializeApp } from '@angular/fire/app';
-import { provideAuth, getAuth } from '@angular/fire/auth';
-import { environment } from '../environments/environment';
+import { provideFirebaseApp, initializeApp } from "@angular/fire/app";
+import { provideAuth, getAuth } from "@angular/fire/auth";
+import { environment } from "../environments/environment";
 
 export const appConfig: ApplicationConfig = {
   providers: [
+    provideAnimationsAsync(),
     provideZoneChangeDetection({ eventCoalescing: true }),
     provideRouter(routes),
     provideHttpClient(withInterceptors([authInterceptor])),
-    provideServiceWorker('ngsw-worker.js', {
+    provideServiceWorker("ngsw-worker.js", {
       enabled: !isDevMode(),
-      registrationStrategy: 'registerWhenStable:30000'
+      registrationStrategy: "registerWhenStable:30000",
     }),
     provideFirebaseApp(() => initializeApp(environment.firebase)),
-    provideAuth(() => getAuth())
-  ]
+    provideAuth(() => getAuth()),
+    providePrimeNG({
+      theme: {
+        preset: Aura,
+        options: {
+          darkModeSelector: "none",
+        },
+      },
+    }),
+  ],
 };
