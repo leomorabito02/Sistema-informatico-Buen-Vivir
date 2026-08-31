@@ -1,0 +1,33 @@
+{
+  "/api/v1": {
+    "target": "http://localhost:8081",
+    "secure": false,
+    "changeOrigin": true,
+    "cookiePathRewrite": "/"
+  },
+  "/api/cursos": {
+    "target": "http://localhost:8210",
+    "secure": false,
+    "changeOrigin": true
+  },
+  "/api/areas-formativas": {
+    "target": "http://localhost:8210",
+    "secure": false,
+    "changeOrigin": true
+  },
+  "/api/materiales": {
+    "target": "http://localhost:8210",
+    "secure": false,
+    "changeOrigin": true
+  },
+  "/api/docente": {
+    "target": "http://localhost:8210",
+    "secure": false,
+    "changeOrigin": true
+  },
+  "/api/salud": {
+    "target": "http://localhost:8210",
+    "secure": false,
+    "changeOrigin": true
+  }
+}

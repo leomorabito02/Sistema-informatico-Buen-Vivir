@@ -37,6 +37,11 @@ type CourseRepository interface {
 	// resuelve includes), igual que la respuesta de los endpoints de
 	// escritura.
 	ListDraftsByResponsibleTeacher(ctx context.Context, teacherID string) ([]models.Course, error)
+	// ListAllDrafts es la versión de administración de
+	// ListDraftsByResponsibleTeacher: TODOS los cursos en borrador
+	// (sin filtrar por docente), leídos de la CMA. Referencias solo con
+	// su id.
+	ListAllDrafts(ctx context.Context) ([]models.Course, error)
 }
 
 type courseRepository struct {
@@ -142,6 +147,24 @@ func (r *courseRepository) ListByResponsibleTeacher(ctx context.Context, teacher
 func (r *courseRepository) ListDraftsByResponsibleTeacher(ctx context.Context, teacherID string) ([]models.Course, error) {
 	collection, err := r.client.ListManagementEntriesWhere(ctx, courseContentType, map[string]string{
 		"fields.responsibleTeacher":    teacherID,
+		"sys.publishedVersion[exists]": "false",
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	courses := make([]models.Course, 0, len(collection.Items))
+	for _, item := range collection.Items {
+		courses = append(courses, courseFromCMAEntry(r.client.Locale(), item))
+	}
+	return courses, nil
+}
+
+// ListAllDrafts devuelve todas las entries de "course" sin publicar
+// (sys.publishedVersion ausente), sin filtrar por responsibleTeacher.
+// Un curso publicado y luego despublicado también cae acá.
+func (r *courseRepository) ListAllDrafts(ctx context.Context) ([]models.Course, error) {
+	collection, err := r.client.ListManagementEntriesWhere(ctx, courseContentType, map[string]string{
 		"sys.publishedVersion[exists]": "false",
 	})
 	if err != nil {

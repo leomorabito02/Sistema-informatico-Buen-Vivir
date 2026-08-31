@@ -27,6 +27,18 @@ func (c *CourseController) List(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, courses)
 }
 
+// ListDrafts responde GET /api/cursos/borradores (solo role_admin):
+// todos los cursos en borrador, para que administración no pierda de
+// vista un curso creado y todavía no publicado.
+func (c *CourseController) ListDrafts(w http.ResponseWriter, r *http.Request) {
+	courses, err := c.service.ListAllDraftCourses(r.Context())
+	if err != nil {
+		writeError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, courses)
+}
+
 // Get responde GET /api/cursos/{id}
 func (c *CourseController) Get(w http.ResponseWriter, r *http.Request) {
 	course, err := c.service.GetCourse(r.Context(), chi.URLParam(r, "id"))

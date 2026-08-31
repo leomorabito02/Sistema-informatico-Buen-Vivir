@@ -22,8 +22,12 @@
 
 body {
   margin: 0;
+  /* Manual de Identidad Buen Vivir: primaria "Palo Seco" (si está instalada),
+     secundaria "Poppins" (webfont). Poppins hace el trabajo real. */
   font-family:
+    "Palo Seco",
     "Poppins",
+    "Inter",
     system-ui,
     -apple-system,
     BlinkMacSystemFont,
@@ -31,6 +35,19 @@ body {
   background-color: var(--bg-white);
   color: var(--text-main);
   min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+.brand-name,
+.page-title {
+  font-family: "Palo Seco", "Poppins", "Inter", system-ui, sans-serif;
+  font-weight: 600;
+  letter-spacing: -0.01em;
 }
 
 * {

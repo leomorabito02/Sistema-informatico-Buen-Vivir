@@ -29,6 +29,10 @@ type CourseService interface {
 	// todavía NO están publicados (borradores), leídos de la CMA.
 	// Complementa a ListCoursesByTeacher, que solo ve los publicados.
 	ListDraftCoursesByTeacher(ctx context.Context, teacherID string) ([]models.Course, error)
+	// ListAllDraftCourses lista TODOS los cursos en borrador (uso de
+	// administración: la tabla de "Gestión de cursos" del admin, para
+	// no perder de vista un curso creado y no publicado).
+	ListAllDraftCourses(ctx context.Context) ([]models.Course, error)
 	// CreateCourseAsTeacher es el POST para el docente responsable:
 	// crea el curso en borrador (igual que el POST de admin, sin
 	// auto-publicar) forzando responsibleTeacher al id del propio
@@ -115,6 +119,10 @@ func (s *courseService) ListDraftCoursesByTeacher(ctx context.Context, teacherID
 		return nil, NewValidationError("falta el id del docente autenticado")
 	}
 	return s.repo.ListDraftsByResponsibleTeacher(ctx, teacherID)
+}
+
+func (s *courseService) ListAllDraftCourses(ctx context.Context) ([]models.Course, error) {
+	return s.repo.ListAllDrafts(ctx)
 }
 
 // VerifyOwnership usa Get (Content Delivery API, mismo método que el

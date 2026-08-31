@@ -35,8 +35,8 @@
               "budgets": [
                 {
                   "type": "initial",
-                  "maximumWarning": "500kb",
-                  "maximumError": "1mb"
+                  "maximumWarning": "1mb",
+                  "maximumError": "1.6mb"
                 }
               ],
               "outputHashing": "all"
@@ -45,6 +45,17 @@
               "optimization": false,
               "extractLicenses": false,
               "sourceMap": true
+            },
+            "local": {
+              "optimization": false,
+              "extractLicenses": false,
+              "sourceMap": true,
+              "fileReplacements": [
+                {
+                  "replace": "src/environments/environment.ts",
+                  "with": "src/environments/environment.local.ts"
+                }
+              ]
             }
           },
           "defaultConfiguration": "production"
@@ -57,6 +68,11 @@
             },
             "development": {
               "buildTarget": "frontend-buen-vivir:build:development"
+            },
+            "local": {
+              "buildTarget": "frontend-buen-vivir:build:local",
+              "port": 4300,
+              "proxyConfig": "proxy.conf.json"
             }
           },
           "defaultConfiguration": "development"

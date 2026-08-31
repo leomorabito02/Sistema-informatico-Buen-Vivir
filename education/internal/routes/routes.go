@@ -50,6 +50,10 @@ func RegisterRoutes(
 		r.Group(func(r chi.Router) {
 			r.Use(middlewares.RequireRole("role_admin"))
 
+			// GET estático: chi lo resuelve antes que /api/cursos/{id}
+			// (registrado arriba para cualquier rol), así que no lo tapa.
+			r.Get("/api/cursos/borradores", courseCtrl.ListDrafts)
+
 			r.Post("/api/cursos", courseCtrl.Create)
 			r.Put("/api/cursos/{id}", courseCtrl.Update)
 			r.Delete("/api/cursos/{id}", courseCtrl.Delete)
@@ -60,9 +64,22 @@ func RegisterRoutes(
 			r.Put("/api/areas-formativas/{id}", trainingAreaCtrl.Update)
 			r.Delete("/api/areas-formativas/{id}", trainingAreaCtrl.Delete)
 
-			r.Post("/api/materiales", materialCtrl.Create)
-			r.Put("/api/materiales/{id}", materialCtrl.Update)
+			// borrar material: solo admin (no hay modelo de ownership de
+			// materiales, un material puede estar linkeado a varios cursos).
 			r.Delete("/api/materiales/{id}", materialCtrl.Delete)
+		})
+
+		// -- materiales: crear/subir/editar los puede hacer admin O
+		//    docente interno (para adjuntar/actualizar archivos de sus
+		//    propios cursos, ver vista docente de las HU). El borrado
+		//    queda arriba, solo admin.
+		r.Group(func(r chi.Router) {
+			r.Use(middlewares.RequireRole("role_admin", "role_teacher"))
+			r.Use(middlewares.RequireInternalTeacher)
+
+			r.Post("/api/materiales", materialCtrl.Create)
+			r.Post("/api/materiales/upload", materialCtrl.Upload)
+			r.Put("/api/materiales/{id}", materialCtrl.Update)
 		})
 
 		// -- docente responsable: role_teacher interno --
