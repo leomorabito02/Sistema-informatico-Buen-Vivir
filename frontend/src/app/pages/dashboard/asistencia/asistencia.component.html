@@ -5,63 +5,140 @@
         <i class="pi pi-calendar-plus mr-2"></i>Registro de Asistencia
       </h1>
       <p class="page-subtitle">
-        Control e historial de presentes por fecha y comisión de curso.
+        Elegí un curso, creá o seleccioná una actividad y registrá los presentes.
       </p>
     </div>
-    <p-button
-      label="Tomar Nueva Asistencia"
-      icon="pi pi-check-square"
-      styleClass="p-button-success"
-    ></p-button>
   </div>
 
-  <p-card styleClass="p-card-shadow">
-    <p-table [value]="attendanceLogs" class="p-datatable-striped">
-      <ng-template pTemplate="header">
-        <tr>
-          <th>Fecha</th>
-          <th>Curso / Comisión</th>
-          <th>Presentes</th>
-          <th>Ausentes</th>
-          <th>Total Inscritos</th>
-          <th>% Asistencia</th>
-          <th>Acciones</th>
-        </tr>
-      </ng-template>
-      <ng-template pTemplate="body" let-log>
-        <tr>
-          <td><span class="p-column-title">Fecha</span>{{ log.date }}</td>
-          <td>
-            <span class="p-column-title">Curso</span
-            ><strong>{{ log.course }}</strong>
-          </td>
-          <td>
-            <span class="p-column-title">Presentes</span
-            ><span class="text-success font-semibold">{{
-              log.presentCount
-            }}</span>
-          </td>
-          <td>
-            <span class="p-column-title">Ausentes</span
-            ><span class="text-danger font-semibold">{{
-              log.absentCount
-            }}</span>
-          </td>
-          <td><span class="p-column-title">Total</span>{{ log.total }}</td>
-          <td>
-            <span class="p-column-title">% Asistencia</span>
-            <p-tag [value]="log.percentage" severity="success"></p-tag>
-          </td>
-          <td>
-            <span class="p-column-title">Acciones</span>
+  <p-message *ngIf="error" severity="error" [text]="error" styleClass="w-full"></p-message>
+  <p-message *ngIf="info" severity="success" [text]="info" styleClass="w-full"></p-message>
+
+  <div *ngIf="loadingCourses" class="state-box">
+    <p-progressSpinner strokeWidth="4" [style]="{ width: '40px', height: '40px' }"></p-progressSpinner>
+    <span>Cargando tus cursos…</span>
+  </div>
+
+  <ng-container *ngIf="!loadingCourses">
+    <p *ngIf="courseOptions.length === 0 && !error" class="empty-state">
+      No tenés cursos asignados como docente responsable.
+    </p>
+
+    <div *ngIf="courseOptions.length > 0" class="course-picker">
+      <label>Curso</label>
+      <p-select
+        [options]="courseOptions"
+        optionLabel="label"
+        optionValue="value"
+        [(ngModel)]="selectedCourseId"
+        (onChange)="onCourseChange()"
+        placeholder="Elegí un curso"
+        [style]="{ minWidth: '280px' }"
+      ></p-select>
+    </div>
+
+    <div *ngIf="selectedCourseId" class="two-col">
+      <!-- Actividades -->
+      <p-card header="Actividades del curso" styleClass="p-card-shadow">
+        <div *ngIf="loadingActivities" class="state-box">
+          <p-progressSpinner strokeWidth="4" [style]="{ width: '28px', height: '28px' }"></p-progressSpinner>
+        </div>
+        <ul class="activity-list" *ngIf="!loadingActivities">
+          <li
+            *ngFor="let a of activities"
+            [class.selected]="a.id === selectedActivityId"
+            (click)="selectActivity(a.id)"
+          >
+            <strong>{{ a.titulo }}</strong>
+            <span>{{ a.fecha | date: "short" }}</span>
+          </li>
+          <li *ngIf="activities.length === 0" class="empty-state">
+            Sin actividades. Creá la primera abajo.
+          </li>
+        </ul>
+
+        <div class="new-activity">
+          <input
+            pInputText
+            placeholder="Título de la actividad"
+            [(ngModel)]="nuevaActividadTitulo"
+          />
+          <p-datepicker
+            [(ngModel)]="nuevaActividadFecha"
+            [showTime]="true"
+            dateFormat="dd/mm/yy"
+            placeholder="Fecha y hora"
+          ></p-datepicker>
+          <p-button
+            label="Crear actividad"
+            icon="pi pi-plus"
+            [loading]="creandoActividad"
+            [disabled]="!nuevaActividadTitulo || !nuevaActividadFecha"
+            (onClick)="crearActividad()"
+          ></p-button>
+        </div>
+      </p-card>
+
+      <!-- Asistencia -->
+      <p-card header="Asistencia" styleClass="p-card-shadow">
+        <p *ngIf="!selectedActivityId" class="empty-state">
+          Seleccioná una actividad para registrar asistencia.
+        </p>
+
+        <ng-container *ngIf="selectedActivityId">
+          <div *ngIf="loadingAttendance" class="state-box">
+            <p-progressSpinner strokeWidth="4" [style]="{ width: '28px', height: '28px' }"></p-progressSpinner>
+          </div>
+
+          <table class="draft-table" *ngIf="!loadingAttendance">
+            <thead>
+              <tr>
+                <th>Participante (id)</th>
+                <th>Presente</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let d of draft; let i = index">
+                <td>
+                  <input pInputText [(ngModel)]="d.participanteId" placeholder="usr-..." />
+                </td>
+                <td>
+                  <p-checkbox [(ngModel)]="d.presente" [binary]="true"></p-checkbox>
+                </td>
+                <td>
+                  <p-button
+                    icon="pi pi-trash"
+                    severity="danger"
+                    [text]="true"
+                    (onClick)="removeRow(i)"
+                  ></p-button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+
+          <div class="attendance-actions" *ngIf="!loadingAttendance">
             <p-button
-              icon="pi pi-search"
-              label="Ver Detalle"
-              styleClass="p-button-outlined p-button-sm"
+              label="Agregar fila"
+              icon="pi pi-plus"
+              [text]="true"
+              (onClick)="addRow()"
             ></p-button>
-          </td>
-        </tr>
-      </ng-template>
-    </p-table>
-  </p-card>
+            <p-button
+              label="Guardar asistencia"
+              icon="pi pi-check"
+              [loading]="guardando"
+              (onClick)="guardar()"
+            ></p-button>
+          </div>
+
+          <p class="hint">
+            Los ids de participante se cargan a mano hasta que exista el módulo de
+            inscripciones. Volver a guardar el mismo id actualiza el registro (no
+            duplica).
+          </p>
+        </ng-container>
+      </p-card>
+    </div>
+  </ng-container>
 </div>

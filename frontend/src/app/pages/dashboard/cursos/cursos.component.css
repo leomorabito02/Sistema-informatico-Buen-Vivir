@@ -59,6 +59,71 @@
   margin-top: 0.5rem;
 }
 
+.course-desc {
+  color: #4b5563;
+  margin: 0;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.card-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.state-box {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 2rem;
+  color: var(--text-muted);
+}
+.empty-state {
+  color: var(--text-muted);
+  padding: 1rem 0;
+}
+
+.detail .detail-meta {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+  color: #4b5563;
+  margin-bottom: 1rem;
+}
+.detail h4 {
+  margin: 1.25rem 0 0.5rem;
+  font-size: 0.95rem;
+  color: var(--primary);
+}
+.detail .mat-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+.detail .mat-list li {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+.detail .mat-type {
+  font-size: 0.75rem;
+  background: var(--primary-10);
+  color: var(--primary);
+  padding: 0.05rem 0.4rem;
+  border-radius: 4px;
+}
+.detail .muted {
+  color: var(--text-muted);
+}
+
 @media (max-width: 640px) {
   .header-section {
     flex-direction: column;
