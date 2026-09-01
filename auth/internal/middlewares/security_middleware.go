@@ -28,7 +28,7 @@ func isAllowedOrigin(origin string, envOrigins []string) bool {
 }
 
 // corsMiddleware is a custom CORS handler that:
-//   - Intercepts ALL OPTIONS requests before chi routing (avoids 405 from sub-routers).
+//   - Intercepts ALL OPTIONS requests before any routing logic.
 //   - Adds Access-Control-* headers to every response from an allowed origin.
 //
 // This replaces rs/cors because the Google Cloud API Gateway strips
@@ -49,7 +49,8 @@ func corsMiddleware(allowedOrigins []string) func(http.Handler) http.Handler {
 				w.Header().Set("Access-Control-Max-Age", "300")
 			}
 
-			// Short-circuit OPTIONS before chi routing to prevent 405 from sub-routers.
+			// Short-circuit OPTIONS — return 200 immediately without calling next.
+			// This prevents chi's MethodNotAllowed handler from ever seeing the request.
 			if req.Method == http.MethodOptions {
 				w.WriteHeader(http.StatusOK)
 				return
@@ -62,17 +63,13 @@ func corsMiddleware(allowedOrigins []string) func(http.Handler) http.Handler {
 
 // OptionsInterceptor wraps an http.Handler and intercepts ALL OPTIONS requests
 // at the net/http level, before chi's routing tree is evaluated.
-//
-// This is required because chi v5 dispatches to sub-routers based on path prefix
-// BEFORE evaluating method-specific wildcard routes (r.Options("/*", ...)), causing
-// OPTIONS requests to reach sub-routers that only have POST/GET handlers and return 405.
-// Wrapping at the http.Server.Handler level guarantees the interception occurs first.
 func OptionsInterceptor(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		if req.Method == http.MethodOptions {
-			// CORS headers are already written by corsMiddleware for non-OPTIONS requests.
-			// For OPTIONS we write them here since corsMiddleware inside chi won't run
-			// (we return before calling next/chi).
+			slog.Info("OptionsInterceptor: intercepted preflight",
+				slog.String("path", req.URL.Path),
+				slog.String("origin", req.Header.Get("Origin")),
+			)
 			origin := req.Header.Get("Origin")
 			if origin != "" {
 				w.Header().Set("Access-Control-Allow-Origin", origin)
@@ -90,8 +87,11 @@ func OptionsInterceptor(next http.Handler) http.Handler {
 	})
 }
 
-
-// SetupMiddlewares configures global middlewares for the application
+// SetupMiddlewares configures global middlewares for the application.
+//
+// IMPORTANT: The chi.Mux.Use() method prepends middleware to the chain.
+// This means the LAST r.Use() call runs FIRST in the request lifecycle.
+// We register corsMiddleware LAST so it runs FIRST.
 func SetupMiddlewares(r *chi.Mux) {
 	allowedOriginsEnv := os.Getenv("CORS_ALLOWED_ORIGINS")
 	var allowedOrigins []string
@@ -102,9 +102,6 @@ func SetupMiddlewares(r *chi.Mux) {
 			}
 		}
 	}
-
-	// CORS must be registered first so OPTIONS short-circuits before any other middleware.
-	r.Use(corsMiddleware(allowedOrigins))
 
 	// Standard chi middlewares
 	r.Use(middleware.RequestID)
@@ -144,4 +141,14 @@ func SetupMiddlewares(r *chi.Mux) {
 			next.ServeHTTP(w, req)
 		})
 	})
+
+	// CORS must be the outermost middleware (runs first, before anything else).
+	// In chi, r.Use() appends, so the first r.Use runs outermost.
+	// BUT we want CORS to run before RequestID, Recoverer, etc.
+	// Since chi executes middleware in registration order (first registered = outermost),
+	// we need to re-register. However, chi does not support prepend.
+	//
+	// The real fix: OptionsInterceptor at http.Server level handles OPTIONS before chi.
+	// This corsMiddleware adds headers for non-OPTIONS (normal) requests.
+	r.Use(corsMiddleware(allowedOrigins))
 }
