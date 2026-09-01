@@ -220,7 +220,15 @@ jobs:
         run: |
           IMAGE_URI="${{ secrets.ARTIFACT_REGISTRY_HOST }}/${{ secrets.GCP_PROJECT_ID }}/${{ secrets.ARTIFACT_REGISTRY_REPO }}/auth:${{ github.sha }}"
           docker tag auth:${{ github.sha }} "$IMAGE_URI"
-          docker push "$IMAGE_URI"
+          n=0
+          until [ "$n" -ge 3 ]
+          do
+             docker push "$IMAGE_URI" && break
+             n=$((n+1))
+             echo "Push failed, retrying in 10 seconds..."
+             sleep 10
+          done
+          if [ "$n" -ge 3 ]; then echo "Failed to push image after 3 attempts."; exit 1; fi
 
   ci-api-gateway:
     name: CI — API Gateway (OpenAPI spec)
