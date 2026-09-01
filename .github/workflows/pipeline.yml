@@ -549,7 +549,7 @@ jobs:
             --api="$API_ID" \
             --openapi-spec=openapi-resolved.yaml \
             --project="${{ secrets.GCP_PROJECT_ID }}" \
-            --backend-auth-service-account="${{ secrets.GCP_SERVICE_ACCOUNT }}"
+            --backend-auth-service-account="${{ secrets.GCP_SERVICE_ACCOUNT }}" 2>/dev/null || echo "API Config already exists."
 
           # Wait for config to be active before updating gateway
           STATE="CREATING"
@@ -575,17 +575,33 @@ jobs:
             --location="$REGION" --project="${{ secrets.GCP_PROJECT_ID }}" --format="value(name)" 2>/dev/null || echo "")
 
           if [ -n "$EXISTING" ]; then
-            gcloud api-gateway gateways update "buenvivir-gateway-$SUFFIX" \
-              --api="$API_ID" \
-              --api-config="$CONFIG_ID" \
-              --location="$REGION" \
-              --project="${{ secrets.GCP_PROJECT_ID }}"
+            n=0
+            until [ "$n" -ge 3 ]
+            do
+              gcloud api-gateway gateways update "buenvivir-gateway-$SUFFIX" \
+                --api="$API_ID" \
+                --api-config="$CONFIG_ID" \
+                --location="$REGION" \
+                --project="${{ secrets.GCP_PROJECT_ID }}" && break
+              n=$((n+1))
+              echo "Gateway update failed, retrying in 20 seconds..."
+              sleep 20
+            done
+            if [ "$n" -ge 3 ]; then echo "Failed to update API Gateway after 3 attempts."; exit 1; fi
           else
-            gcloud api-gateway gateways create "buenvivir-gateway-$SUFFIX" \
-              --api="$API_ID" \
-              --api-config="$CONFIG_ID" \
-              --location="$REGION" \
-              --project="${{ secrets.GCP_PROJECT_ID }}"
+            n=0
+            until [ "$n" -ge 3 ]
+            do
+              gcloud api-gateway gateways create "buenvivir-gateway-$SUFFIX" \
+                --api="$API_ID" \
+                --api-config="$CONFIG_ID" \
+                --location="$REGION" \
+                --project="${{ secrets.GCP_PROJECT_ID }}" && break
+              n=$((n+1))
+              echo "Gateway create failed, retrying in 20 seconds..."
+              sleep 20
+            done
+            if [ "$n" -ge 3 ]; then echo "Failed to create API Gateway after 3 attempts."; exit 1; fi
           fi
 
           echo "API Gateway deployed: buenvivir-gateway-$SUFFIX"
