@@ -96,6 +96,13 @@ func main() {
 
 	
 	r.Route("/api/v1", func(r chi.Router) {
+		// Catch-all OPTIONS for all /api/v1/* paths: chi evaluates this before
+		// any method-specific handler, guaranteeing preflight requests return 200.
+		// The CORS headers are already set by the global corsMiddleware.
+		r.Options("/*", func(w http.ResponseWriter, r *http.Request) {
+			w.WriteHeader(http.StatusOK)
+		})
+
 		r.Route("/auth", func(r chi.Router) {
 			r.With(middlewares.StrictRateLimiter()).Post("/register", authController.Register)
 			// Step 1: validate credentials, returns list of available accounts/roles
