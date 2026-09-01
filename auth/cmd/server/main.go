@@ -96,13 +96,6 @@ func main() {
 
 	
 	r.Route("/api/v1", func(r chi.Router) {
-		// Catch-all OPTIONS for all /api/v1/* paths: chi evaluates this before
-		// any method-specific handler, guaranteeing preflight requests return 200.
-		// The CORS headers are already set by the global corsMiddleware.
-		r.Options("/*", func(w http.ResponseWriter, r *http.Request) {
-			w.WriteHeader(http.StatusOK)
-		})
-
 		r.Route("/auth", func(r chi.Router) {
 			r.With(middlewares.StrictRateLimiter()).Post("/register", authController.Register)
 			// Step 1: validate credentials, returns list of available accounts/roles
@@ -191,9 +184,11 @@ func main() {
 	// 8. Start Server
 	port := os.Getenv("PORT")
 	slog.Info("Servicio Auth escuchando en el puerto", "port", port)
+	// Wrap chi with a net/http level OPTIONS interceptor that runs before chi's
+	// routing tree, bypassing the sub-router method dispatch issue in chi v5.
 	server := &http.Server{
 		Addr:         ":" + port,
-		Handler:      r,
+		Handler:      middlewares.OptionsInterceptor(r),
 		ReadTimeout:  10 * time.Second,
 		WriteTimeout: 10 * time.Second,
 		IdleTimeout:  120 * time.Second,

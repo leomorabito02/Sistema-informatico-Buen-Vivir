@@ -60,6 +60,37 @@ func corsMiddleware(allowedOrigins []string) func(http.Handler) http.Handler {
 	}
 }
 
+// OptionsInterceptor wraps an http.Handler and intercepts ALL OPTIONS requests
+// at the net/http level, before chi's routing tree is evaluated.
+//
+// This is required because chi v5 dispatches to sub-routers based on path prefix
+// BEFORE evaluating method-specific wildcard routes (r.Options("/*", ...)), causing
+// OPTIONS requests to reach sub-routers that only have POST/GET handlers and return 405.
+// Wrapping at the http.Server.Handler level guarantees the interception occurs first.
+func OptionsInterceptor(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		if req.Method == http.MethodOptions {
+			// CORS headers are already written by corsMiddleware for non-OPTIONS requests.
+			// For OPTIONS we write them here since corsMiddleware inside chi won't run
+			// (we return before calling next/chi).
+			origin := req.Header.Get("Origin")
+			if origin != "" {
+				w.Header().Set("Access-Control-Allow-Origin", origin)
+				w.Header().Set("Vary", "Origin")
+				w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE, OPTIONS")
+				w.Header().Set("Access-Control-Allow-Headers", "Accept, Authorization, Content-Type, X-CSRF-Token, X-Requested-With")
+				w.Header().Set("Access-Control-Expose-Headers", "Link, Set-Cookie")
+				w.Header().Set("Access-Control-Allow-Credentials", "true")
+				w.Header().Set("Access-Control-Max-Age", "300")
+			}
+			w.WriteHeader(http.StatusOK)
+			return
+		}
+		next.ServeHTTP(w, req)
+	})
+}
+
+
 // SetupMiddlewares configures global middlewares for the application
 func SetupMiddlewares(r *chi.Mux) {
 	allowedOriginsEnv := os.Getenv("CORS_ALLOWED_ORIGINS")
