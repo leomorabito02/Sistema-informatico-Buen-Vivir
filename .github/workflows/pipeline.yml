@@ -525,15 +525,6 @@ jobs:
           envsubst < openapi.yaml > openapi-resolved.yaml
           echo "openapi.yaml resolved for env: $SUFFIX"
 
-      - name: Grant gateway service account Cloud Run invoker role
-        run: |
-          SUFFIX="${{ needs.cd-setup.outputs.service_suffix }}"
-          gcloud run services add-iam-policy-binding "auth-$SUFFIX" \
-            --region="${{ secrets.GCP_REGION }}" \
-            --member="serviceAccount:${{ secrets.GCP_SERVICE_ACCOUNT }}" \
-            --role="roles/run.invoker" \
-            --project="${{ secrets.GCP_PROJECT_ID }}"
-          echo "IAM binding granted: roles/run.invoker -> ${{ secrets.GCP_SERVICE_ACCOUNT }}"
 
       - name: Create or update API Gateway config
         id: deploy-gateway
