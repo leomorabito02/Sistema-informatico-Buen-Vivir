@@ -86,6 +86,29 @@ func main() {
 	// Middlewares (CORS and Security Headers must be handled here as API Gateway does not support allowCors)
 	middlewares.SetupMiddlewares(r)
 
+	// Override chi's default MethodNotAllowed to handle OPTIONS preflight.
+	// chi dispatches to MethodNotAllowedHandler when a path exists for another method
+	// (e.g., POST /auth/check-credentials) but not for the requested method (OPTIONS).
+	// This runs INSIDE chi's routing tree, so it's guaranteed to execute even if
+	// external wrappers like OptionsInterceptor are somehow bypassed.
+	r.MethodNotAllowed(http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		if req.Method == http.MethodOptions {
+			origin := req.Header.Get("Origin")
+			if origin != "" {
+				w.Header().Set("Access-Control-Allow-Origin", origin)
+				w.Header().Set("Vary", "Origin")
+				w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE, OPTIONS")
+				w.Header().Set("Access-Control-Allow-Headers", "Accept, Authorization, Content-Type, X-CSRF-Token, X-Requested-With")
+				w.Header().Set("Access-Control-Expose-Headers", "Link, Set-Cookie")
+				w.Header().Set("Access-Control-Allow-Credentials", "true")
+				w.Header().Set("Access-Control-Max-Age", "300")
+			}
+			w.WriteHeader(http.StatusOK)
+			return
+		}
+		http.Error(w, http.StatusText(http.StatusMethodNotAllowed), http.StatusMethodNotAllowed)
+	}))
+
 	// DDoS Protection fallback (Global Rate Limiter)
 	r.Use(middlewares.RateLimiter())
 
