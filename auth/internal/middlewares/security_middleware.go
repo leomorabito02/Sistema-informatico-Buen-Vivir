@@ -8,12 +8,60 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
-	"github.com/rs/cors"
 )
+
+// isAllowedOrigin validates an origin against a static allowlist and the env-based list.
+func isAllowedOrigin(origin string, envOrigins []string) bool {
+	if origin == "" {
+		return false
+	}
+	for _, o := range envOrigins {
+		if o == origin || o == "*" {
+			return true
+		}
+	}
+	return origin == "http://localhost:4200" ||
+		origin == "http://localhost:8080" ||
+		origin == "https://ceibuenvivir.org" ||
+		strings.HasSuffix(origin, ".ceibuenvivir.pages.dev") ||
+		strings.HasSuffix(origin, ".ceibuenvivir.org")
+}
+
+// corsMiddleware is a custom CORS handler that:
+//   - Intercepts ALL OPTIONS requests before chi routing (avoids 405 from sub-routers).
+//   - Adds Access-Control-* headers to every response from an allowed origin.
+//
+// This replaces rs/cors because the Google Cloud API Gateway strips
+// Access-Control-Request-Method before forwarding to Cloud Run, which prevents
+// the rs/cors library from recognising the request as a preflight.
+func corsMiddleware(allowedOrigins []string) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+			origin := req.Header.Get("Origin")
+
+			if origin != "" && isAllowedOrigin(origin, allowedOrigins) {
+				w.Header().Set("Access-Control-Allow-Origin", origin)
+				w.Header().Set("Vary", "Origin")
+				w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE, OPTIONS")
+				w.Header().Set("Access-Control-Allow-Headers", "Accept, Authorization, Content-Type, X-CSRF-Token, X-Requested-With")
+				w.Header().Set("Access-Control-Expose-Headers", "Link, Set-Cookie")
+				w.Header().Set("Access-Control-Allow-Credentials", "true")
+				w.Header().Set("Access-Control-Max-Age", "300")
+			}
+
+			// Short-circuit OPTIONS before chi routing to prevent 405 from sub-routers.
+			if req.Method == http.MethodOptions {
+				w.WriteHeader(http.StatusOK)
+				return
+			}
+
+			next.ServeHTTP(w, req)
+		})
+	}
+}
 
 // SetupMiddlewares configures global middlewares for the application
 func SetupMiddlewares(r *chi.Mux) {
-	// CORS Configuration (Must be registered first to process OPTIONS preflight requests)
 	allowedOriginsEnv := os.Getenv("CORS_ALLOWED_ORIGINS")
 	var allowedOrigins []string
 	if allowedOriginsEnv != "" {
@@ -24,47 +72,13 @@ func SetupMiddlewares(r *chi.Mux) {
 		}
 	}
 
-	corsMiddleware := cors.New(cors.Options{
-		AllowOriginFunc: func(origin string) bool {
-			if origin == "" {
-				return true
-			}
-			for _, o := range allowedOrigins {
-				if o == origin || o == "*" {
-					return true
-				}
-			}
-			// Default trusted origins and testing subdomains
-			if origin == "http://localhost:4200" ||
-				origin == "http://localhost:8080" ||
-				origin == "https://ceibuenvivir.org" ||
-				strings.HasSuffix(origin, ".ceibuenvivir.pages.dev") ||
-				strings.HasSuffix(origin, ".ceibuenvivir.org") {
-				return true
-			}
-			return false
-		},
-		AllowedMethods:   []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
-		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-CSRF-Token", "X-Requested-With"},
-		ExposedHeaders:   []string{"Link", "Set-Cookie"},
-		AllowCredentials: true,
-		MaxAge:           300,
-	})
-	r.Use(corsMiddleware.Handler)
+	// CORS must be registered first so OPTIONS short-circuits before any other middleware.
+	r.Use(corsMiddleware(allowedOrigins))
 
 	// Standard chi middlewares
 	r.Use(middleware.RequestID)
 	r.Use(middleware.RealIP) //nolint:staticcheck // RealIP used for internal logging
 	r.Use(middleware.Recoverer)
-
-	// Ensure OPTIONS requests that bypass preflight check return 200 OK instead of 405 Method Not Allowed
-	r.MethodNotAllowed(func(w http.ResponseWriter, req *http.Request) {
-		if req.Method == http.MethodOptions {
-			w.WriteHeader(http.StatusOK)
-			return
-		}
-		http.Error(w, http.StatusText(http.StatusMethodNotAllowed), http.StatusMethodNotAllowed)
-	})
 
 	// Logging middleware adapted for JSON / Google Cloud Logging
 	r.Use(func(next http.Handler) http.Handler {
@@ -84,7 +98,7 @@ func SetupMiddlewares(r *chi.Mux) {
 			// Prevent MIME sniffing (A05)
 			w.Header().Set("X-Content-Type-Options", "nosniff")
 			// Prevent clickjacking (A05)
-			w.Header().Set("X-Frame-Options", "DENY")
+			w.Header().Set("X-Frame-Options", "SAMEORIGIN")
 			// HSTS: enforce HTTPS for 1 year including subdomains (A02/A05)
 			w.Header().Set("Strict-Transport-Security", "max-age=31536000; includeSubDomains; preload")
 			// CSP: restrict resource origins to known domains (A03/A05)
