@@ -650,143 +650,143 @@ jobs:
             --project-name=${{ secrets.CLOUDFLARE_PROJECT }}
             --branch=${{ github.ref_name }}
 
-#   cd-smoke:
-#     name: CD — Smoke Tests
-#     runs-on: ubuntu-latest
-#     needs: [cd-setup, cd-auth, cd-api-gateway, cd-frontend]
-#     environment: ${{ needs.cd-setup.outputs.env_name }}
-#     timeout-minutes: 15
-# 
-#     steps:
-#       - name: Authenticate GCP (Workload Identity)
-#         id: auth
-#         uses: google-github-actions/auth@v2
-#         with:
-#           workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
-#           service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
-#           token_format: id_token
-#           id_token_audience: ${{ needs.cd-auth.outputs.service_url }}
-#           id_token_include_email: true
-# 
-#       - name: Setup gcloud
-#         uses: google-github-actions/setup-gcloud@v2
-#         with:
-#           project_id: ${{ secrets.GCP_PROJECT_ID }}
-# 
-#       - name: Smoke test — Auth Service (/health)
-#         run: |
-#           AUTH_URL="${{ needs.cd-auth.outputs.service_url }}"
-#           echo "Testing Auth health: $AUTH_URL/health"
-#           curl --retry 3 --retry-delay 5 --fail --silent --show-error --max-time 15 -H "Authorization: Bearer ${{ steps.auth.outputs.id_token }}" "$AUTH_URL/health"
-#           echo "Auth health: OK"
-# 
-#       - name: Smoke test — Auth login endpoint (expect 400/422/401)
-#         run: |
-#           AUTH_URL="${{ needs.cd-auth.outputs.service_url }}"
-#           STATUS=$(curl --retry 3 --retry-delay 5 --silent --output /dev/null --write-out "%{http_code}" \
-#             --max-time 15 -X POST "$AUTH_URL/api/v1/auth/login" \
-#             -H "Content-Type: application/json" \
-#             -H "Authorization: Bearer ${{ steps.auth.outputs.id_token }}" \
-#             -d '{"email":"smoke@test.com","password":"wrong"}')
-#           echo "Login endpoint status: $STATUS"
-#           if [ "$STATUS" != "400" ] && [ "$STATUS" != "401" ] && [ "$STATUS" != "422" ]; then
-#             echo "::error::Auth login endpoint returned unexpected status $STATUS"
-#             exit 1
-#           fi
-#           echo "Auth login endpoint: OK"
-# 
-#       - name: Smoke test — Frontend (Cloudflare)
-#         run: |
-#           if [ "${{ github.ref_name }}" = "main" ]; then
-#             FRONTEND_URL="https://${{ secrets.CLOUDFLARE_PROJECT }}.pages.dev"
-#           else
-#             FRONTEND_URL="https://${{ github.ref_name }}.${{ secrets.CLOUDFLARE_PROJECT }}.pages.dev"
-#           fi
-#           echo "Testing Frontend URL: $FRONTEND_URL"
-#           curl --retry 3 --retry-delay 5 --fail --silent --show-error --max-time 15 "$FRONTEND_URL"
-#           echo "Frontend health: OK"
-# 
-#   cd-dast-zap:
-#     name: CD — DAST (OWASP ZAP)
-#     runs-on: ubuntu-latest
-#     needs: [cd-setup, cd-smoke, cd-auth, cd-api-gateway]
-#     environment: ${{ needs.cd-setup.outputs.env_name }}
-#     timeout-minutes: 15
-# 
-#     steps:
-#       - name: Checkout repository
-#         uses: actions/checkout@v4
-# 
-#       - name: Fix permissions for ZAP
-#         run: chmod -R 777 .
-# 
-#       - name: ZAP API Scan — Auth Service
-#         uses: zaproxy/action-api-scan@v0.10.0
-#         with:
-#           target: 'api-gateway/openapi.yaml'
-#           format: openapi
-#           cmd_options: '-O ${{ needs.cd-api-gateway.outputs.gateway_url }}'
-#           rules_file_name: 'auth/zap.conf'
-#           fail_action: ${{ needs.cd-setup.outputs.env_name == 'TESTING' && 'true' || 'false' }}
-#           artifact_name: zap-auth-report
-#           allow_issue_writing: false
-# 
-#   cd-load-k6:
-#     name: CD — Load Tests (k6)
-#     runs-on: ubuntu-latest
-#     needs: [cd-setup, cd-smoke, cd-auth]
-#     environment: ${{ needs.cd-setup.outputs.env_name }}
-#     timeout-minutes: 15
-#     if: needs.cd-setup.outputs.env_name == 'TESTING'
-# 
-#     steps:
-#       - name: Checkout repository
-#         uses: actions/checkout@v4
-# 
-#       - name: Run k6 load tests
-#         run: |
-#           AUTH_URL="${{ needs.cd-auth.outputs.service_url }}"
-#           echo "Running k6 against: $AUTH_URL"
-#           docker run --rm -i grafana/k6 run \
-#             -e BASE_URL="$AUTH_URL" - < auth/load_test.js
-# 
-#   cd-rollback:
-#     name: CD — Rollback (auto)
-#     runs-on: ubuntu-latest
-#     needs: [cd-setup, cd-auth, cd-frontend, cd-smoke, cd-dast-zap, cd-load-k6]
-#     environment: ${{ needs.cd-setup.outputs.env_name }}
-#     timeout-minutes: 15
-#     if: always() && (needs.cd-smoke.result == 'failure' || needs.cd-dast-zap.result == 'failure' || needs.cd-load-k6.result == 'failure')
-# 
-#     steps:
-#       - name: Authenticate GCP (Workload Identity)
-#         uses: google-github-actions/auth@v2
-#         with:
-#           workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
-#           service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
-# 
-#       - name: Rollback Auth (Cloud Run — previous revision)
-#         run: |
-#           SERVICE="auth-${{ needs.cd-setup.outputs.service_suffix }}"
-#           REGION="${{ secrets.GCP_REGION }}"
-#           PREV="${{ needs.cd-auth.outputs.prev_revision }}"
-#           if [ -n "$PREV" ]; then
-#             echo "Rolling back Cloud Run to revision: $PREV"
-#             gcloud run services update-traffic "$SERVICE" \
-#               --region="$REGION" \
-#               --to-revisions "$PREV=100"
-#             echo "Cloud Run rollback complete."
-#           else
-#             echo "::warning::No previous revision found. Manual intervention required."
-#           fi
-# 
-#       - name: Rollback Frontend (Cloudflare Pages)
-#         run: |
-#           echo "::error::Smoke tests failed. Cloudflare deployment may need manual rollback."
-#           echo "Use: wrangler pages deployment rollback --project-name=${{ secrets.CLOUDFLARE_PROJECT }}"
-#         continue-on-error: true
-# 
-#       - name: Mark CD as failed
-#         run: |
-#           echo "::error::Rollback executed. CD failed for SHA ${{ github.sha }}."
-#           exit 1
+  cd-smoke:
+    name: CD — Smoke Tests
+    runs-on: ubuntu-latest
+    needs: [cd-setup, cd-auth, cd-api-gateway, cd-frontend]
+    environment: ${{ needs.cd-setup.outputs.env_name }}
+    timeout-minutes: 15
+
+    steps:
+      - name: Authenticate GCP (Workload Identity)
+        id: auth
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+          token_format: id_token
+          id_token_audience: ${{ needs.cd-auth.outputs.service_url }}
+          id_token_include_email: true
+
+      - name: Setup gcloud
+        uses: google-github-actions/setup-gcloud@v2
+        with:
+          project_id: ${{ secrets.GCP_PROJECT_ID }}
+
+      - name: Smoke test — Auth Service (/health)
+        run: |
+          AUTH_URL="${{ needs.cd-auth.outputs.service_url }}"
+          echo "Testing Auth health: $AUTH_URL/health"
+          curl --retry 3 --retry-delay 5 --fail --silent --show-error --max-time 15 -H "Authorization: Bearer ${{ steps.auth.outputs.id_token }}" "$AUTH_URL/health"
+          echo "Auth health: OK"
+
+      - name: Smoke test — Auth login endpoint (expect 400/422/401)
+        run: |
+          AUTH_URL="${{ needs.cd-auth.outputs.service_url }}"
+          STATUS=$(curl --retry 3 --retry-delay 5 --silent --output /dev/null --write-out "%{http_code}" \
+            --max-time 15 -X POST "$AUTH_URL/api/v1/auth/login" \
+            -H "Content-Type: application/json" \
+            -H "Authorization: Bearer ${{ steps.auth.outputs.id_token }}" \
+            -d '{"email":"smoke@test.com","password":"wrong"}')
+          echo "Login endpoint status: $STATUS"
+          if [ "$STATUS" != "400" ] && [ "$STATUS" != "401" ] && [ "$STATUS" != "422" ]; then
+            echo "::error::Auth login endpoint returned unexpected status $STATUS"
+            exit 1
+          fi
+          echo "Auth login endpoint: OK"
+
+      - name: Smoke test — Frontend (Cloudflare)
+        run: |
+          if [ "${{ github.ref_name }}" = "main" ]; then
+            FRONTEND_URL="https://${{ secrets.CLOUDFLARE_PROJECT }}.pages.dev"
+          else
+            FRONTEND_URL="https://${{ github.ref_name }}.${{ secrets.CLOUDFLARE_PROJECT }}.pages.dev"
+          fi
+          echo "Testing Frontend URL: $FRONTEND_URL"
+          curl --retry 3 --retry-delay 5 --fail --silent --show-error --max-time 15 "$FRONTEND_URL"
+          echo "Frontend health: OK"
+
+  cd-dast-zap:
+    name: CD — DAST (OWASP ZAP)
+    runs-on: ubuntu-latest
+    needs: [cd-setup, cd-smoke, cd-auth, cd-api-gateway]
+    environment: ${{ needs.cd-setup.outputs.env_name }}
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Fix permissions for ZAP
+        run: chmod -R 777 .
+
+      - name: ZAP API Scan — Auth Service
+        uses: zaproxy/action-api-scan@v0.10.0
+        with:
+          target: 'api-gateway/openapi.yaml'
+          format: openapi
+          cmd_options: '-O ${{ needs.cd-api-gateway.outputs.gateway_url }}'
+          rules_file_name: 'auth/zap.conf'
+          fail_action: ${{ needs.cd-setup.outputs.env_name == 'TESTING' && 'true' || 'false' }}
+          artifact_name: zap-auth-report
+          allow_issue_writing: false
+
+  cd-load-k6:
+    name: CD — Load Tests (k6)
+    runs-on: ubuntu-latest
+    needs: [cd-setup, cd-smoke, cd-auth]
+    environment: ${{ needs.cd-setup.outputs.env_name }}
+    timeout-minutes: 15
+    if: needs.cd-setup.outputs.env_name == 'TESTING'
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Run k6 load tests
+        run: |
+          AUTH_URL="${{ needs.cd-auth.outputs.service_url }}"
+          echo "Running k6 against: $AUTH_URL"
+          docker run --rm -i grafana/k6 run \
+            -e BASE_URL="$AUTH_URL" - < auth/load_test.js
+
+  cd-rollback:
+    name: CD — Rollback (auto)
+    runs-on: ubuntu-latest
+    needs: [cd-setup, cd-auth, cd-frontend, cd-smoke, cd-dast-zap, cd-load-k6]
+    environment: ${{ needs.cd-setup.outputs.env_name }}
+    timeout-minutes: 15
+    if: always() && (needs.cd-smoke.result == 'failure' || needs.cd-dast-zap.result == 'failure' || needs.cd-load-k6.result == 'failure')
+
+    steps:
+      - name: Authenticate GCP (Workload Identity)
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+
+      - name: Rollback Auth (Cloud Run — previous revision)
+        run: |
+          SERVICE="auth-${{ needs.cd-setup.outputs.service_suffix }}"
+          REGION="${{ secrets.GCP_REGION }}"
+          PREV="${{ needs.cd-auth.outputs.prev_revision }}"
+          if [ -n "$PREV" ]; then
+            echo "Rolling back Cloud Run to revision: $PREV"
+            gcloud run services update-traffic "$SERVICE" \
+              --region="$REGION" \
+              --to-revisions "$PREV=100"
+            echo "Cloud Run rollback complete."
+          else
+            echo "::warning::No previous revision found. Manual intervention required."
+          fi
+
+      - name: Rollback Frontend (Cloudflare Pages)
+        run: |
+          echo "::error::Smoke tests failed. Cloudflare deployment may need manual rollback."
+          echo "Use: wrangler pages deployment rollback --project-name=${{ secrets.CLOUDFLARE_PROJECT }}"
+        continue-on-error: true
+
+      - name: Mark CD as failed
+        run: |
+          echo "::error::Rollback executed. CD failed for SHA ${{ github.sha }}."
+          exit 1
