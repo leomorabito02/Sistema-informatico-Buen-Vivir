@@ -35,12 +35,10 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      # - name: Secrets — Gitleaks
-      #   uses: gitleaks/gitleaks-action@v2
-      #   env:
-      #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - name: Skip Secrets Scan
-        run: echo "Secrets scan skipped"
+      - name: Secrets — Gitleaks
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   ci-frontend:
     name: CI — Frontend (Angular)
@@ -67,42 +65,42 @@ jobs:
         working-directory: frontend
         run: pnpm install --frozen-lockfile
 
-      # - name: ESLint
-      #   working-directory: frontend
-      #   run: pnpm exec eslint . --ext .ts,.html
+      - name: ESLint
+        working-directory: frontend
+        run: pnpm exec eslint . --ext .ts,.html
 
-      # - name: Prettier check
-      #   working-directory: frontend
-      #   run: npx prettier --check "src/**/*.{ts,html,css,json}"
+      - name: Prettier check
+        working-directory: frontend
+        run: npx prettier --check "src/**/*.{ts,html,css,json}"
 
-      # - name: Unit tests (Karma/Jasmine) + coverage
-      #   working-directory: frontend
-      #   run: |
-      #     npx ng test --watch=false --browsers=ChromeHeadless --code-coverage > test_output.txt || true
-      #     cat test_output.txt
-      #     echo "### Frontend Test Results" >> $GITHUB_STEP_SUMMARY
-      #     echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
-      #     grep -i -E "Executed|TOTAL|SUCCESS|FAILED" test_output.txt >> $GITHUB_STEP_SUMMARY || tail -n 10 test_output.txt >> $GITHUB_STEP_SUMMARY
-      #     echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
-      #     if grep -q "FAILED" test_output.txt; then exit 1; fi
+      - name: Unit tests (Karma/Jasmine) + coverage
+        working-directory: frontend
+        run: |
+          npx ng test --watch=false --browsers=ChromeHeadless --code-coverage > test_output.txt || true
+          cat test_output.txt
+          echo "### Frontend Test Results" >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+          grep -i -E "Executed|TOTAL|SUCCESS|FAILED" test_output.txt >> $GITHUB_STEP_SUMMARY || tail -n 10 test_output.txt >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+          if grep -q "FAILED" test_output.txt; then exit 1; fi
 
-      # - name: Upload coverage report
-      #   if: always()
-      #   uses: actions/upload-artifact@v4
-      #   with:
-      #     name: frontend-coverage-${{ github.sha }}
-      #     path: frontend/coverage/
-      #     retention-days: 7
+      - name: Upload coverage report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-coverage-${{ github.sha }}
+          path: frontend/coverage/
+          retention-days: 7
 
-      # - name: SAST — Semgrep
-      #   uses: semgrep/semgrep-action@v1
-      #   with:
-      #     publishToken: ${{ secrets.SEMGREP_APP_TOKEN }}
-      #   continue-on-error: true
+      - name: SAST — Semgrep
+        uses: semgrep/semgrep-action@v1
+        with:
+          publishToken: ${{ secrets.SEMGREP_APP_TOKEN }}
+        continue-on-error: true
 
-      # - name: SCA — pnpm audit (block HIGH/CRITICAL)
-      #   working-directory: frontend
-      #   run: pnpm audit --audit-level high || echo "::warning::pnpm audit reported unpatched transitive vulnerabilities in devDependencies (image-size)."
+      - name: SCA — pnpm audit (block HIGH/CRITICAL)
+        working-directory: frontend
+        run: pnpm audit --audit-level high || echo "::warning::pnpm audit reported unpatched transitive vulnerabilities in devDependencies (image-size)."
 
       - name: Build Angular (production)
         working-directory: frontend
@@ -136,73 +134,73 @@ jobs:
         working-directory: auth
         run: go mod download
 
-      # - name: golangci-lint
-      #   uses: golangci/golangci-lint-action@v7
-      #   with:
-      #     version: v2.13.1
-      #     working-directory: auth
-      #     args: --timeout=5m
+      - name: golangci-lint
+        uses: golangci/golangci-lint-action@v7
+        with:
+          version: v2.13.1
+          working-directory: auth
+          args: --timeout=5m
 
-      # - name: Unit + integration tests + coverage
-      #   working-directory: auth
-      #   run: |
-      #     go test -v -race -coverprofile=coverage.out -covermode=atomic ./...
-      #     go tool cover -func=coverage.out
+      - name: Unit + integration tests + coverage
+        working-directory: auth
+        run: |
+          go test -v -race -coverprofile=coverage.out -covermode=atomic ./...
+          go tool cover -func=coverage.out
 
-      # - name: Enforce coverage threshold (70%)
-      #   working-directory: auth
-      #   run: |
-      #     COVERAGE=$(go tool cover -func=coverage.out | grep total | awk '{print $3}' | tr -d '%')
-      #     echo "Total coverage: ${COVERAGE}%"
-      #     echo "### Auth Service Coverage: ${COVERAGE}%" >> $GITHUB_STEP_SUMMARY
-      #     if (( $(echo "$COVERAGE < 70" | bc -l) )); then
-      #       echo "::error::Coverage ${COVERAGE}% is below the required 70% threshold."
-      #       exit 1
-      #     fi
+      - name: Enforce coverage threshold (70%)
+        working-directory: auth
+        run: |
+          COVERAGE=$(go tool cover -func=coverage.out | grep total | awk '{print $3}' | tr -d '%')
+          echo "Total coverage: ${COVERAGE}%"
+          echo "### Auth Service Coverage: ${COVERAGE}%" >> $GITHUB_STEP_SUMMARY
+          if (( $(echo "$COVERAGE < 70" | bc -l) )); then
+            echo "::error::Coverage ${COVERAGE}% is below the required 70% threshold."
+            exit 1
+          fi
 
-      # - name: Upload auth coverage report
-      #   if: always()
-      #   uses: actions/upload-artifact@v4
-      #   with:
-      #     name: auth-coverage-${{ github.sha }}
-      #     path: auth/coverage.out
-      #     retention-days: 7
+      - name: Upload auth coverage report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: auth-coverage-${{ github.sha }}
+          path: auth/coverage.out
+          retention-days: 7
 
-      # - name: Contract tests — Auth provider (Pact)
-      #   working-directory: auth
-      #   run: go test -v ./tests/contract/...
+      - name: Contract tests — Auth provider (Pact)
+        working-directory: auth
+        run: go test -v ./tests/contract/...
 
-      # - name: SAST — gosec
-      #   working-directory: auth
-      #   run: |
-      #     go install github.com/securego/gosec/v2/cmd/gosec@latest
-      #     gosec -fmt=sarif -out=gosec-results.sarif ./... || true
+      - name: SAST — gosec
+        working-directory: auth
+        run: |
+          go install github.com/securego/gosec/v2/cmd/gosec@latest
+          gosec -fmt=sarif -out=gosec-results.sarif ./... || true
 
-      # - name: Upload gosec SARIF
-      #   if: always()
-      #   uses: github/codeql-action/upload-sarif@v4
-      #   with:
-      #     sarif_file: auth/gosec-results.sarif
-      #   continue-on-error: true
+      - name: Upload gosec SARIF
+        if: always()
+        uses: github/codeql-action/upload-sarif@v4
+        with:
+          sarif_file: auth/gosec-results.sarif
+        continue-on-error: true
 
-      # - name: SCA — govulncheck
-      #   working-directory: auth
-      #   run: |
-      #     go install golang.org/x/vuln/cmd/govulncheck@latest
-      #     govulncheck ./...
+      - name: SCA — govulncheck
+        working-directory: auth
+        run: |
+          go install golang.org/x/vuln/cmd/govulncheck@latest
+          govulncheck ./...
 
       - name: Docker build (auth)
         run: docker build -t auth:${{ github.sha }} -f auth/Dockerfile ./auth
 
-      # - name: Trivy image scan (block CRITICAL/HIGH)
-      #   uses: aquasecurity/trivy-action@master
-      #   with:
-      #     image-ref: 'auth:${{ github.sha }}'
-      #     format: 'table'
-      #     exit-code: '1'
-      #     ignore-unfixed: true
-      #     vuln-type: 'os,library'
-      #     severity: 'CRITICAL,HIGH'
+      - name: Trivy image scan (block CRITICAL/HIGH)
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: 'auth:${{ github.sha }}'
+          format: 'table'
+          exit-code: '1'
+          ignore-unfixed: true
+          vuln-type: 'os,library'
+          severity: 'CRITICAL,HIGH'
 
       - name: Authenticate GCP (Workload Identity)
         if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/testing')
@@ -254,19 +252,19 @@ jobs:
           export FIREBASE_PROJECT_ID="validate-project"
           envsubst < openapi.yaml > openapi-resolved.yaml
 
-      # - name: Validate OpenAPI spec (swagger-cli)
-      #   working-directory: api-gateway
-      #   run: swagger-cli validate openapi-resolved.yaml
+      - name: Validate OpenAPI spec (swagger-cli)
+        working-directory: api-gateway
+        run: swagger-cli validate openapi-resolved.yaml
 
-      # - name: Verify OWASP security headers in nginx.conf
-      #   working-directory: api-gateway
-      #   run: |
-      #     echo "Verifying required OWASP headers in nginx.conf..."
-      #     grep -q "X-Content-Type-Options" nginx.conf  || { echo "::error::Missing X-Content-Type-Options header"; exit 1; }
-      #     grep -q "X-Frame-Options" nginx.conf          || { echo "::error::Missing X-Frame-Options header"; exit 1; }
-      #     grep -q "Strict-Transport-Security" nginx.conf || { echo "::error::Missing HSTS header"; exit 1; }
-      #     grep -q "Referrer-Policy" nginx.conf          || { echo "::error::Missing Referrer-Policy header"; exit 1; }
-      #     echo "All required OWASP headers present."
+      - name: Verify OWASP security headers in nginx.conf
+        working-directory: api-gateway
+        run: |
+          echo "Verifying required OWASP headers in nginx.conf..."
+          grep -q "X-Content-Type-Options" nginx.conf  || { echo "::error::Missing X-Content-Type-Options header"; exit 1; }
+          grep -q "X-Frame-Options" nginx.conf          || { echo "::error::Missing X-Frame-Options header"; exit 1; }
+          grep -q "Strict-Transport-Security" nginx.conf || { echo "::error::Missing HSTS header"; exit 1; }
+          grep -q "Referrer-Policy" nginx.conf          || { echo "::error::Missing Referrer-Policy header"; exit 1; }
+          echo "All required OWASP headers present."
 
   ci-gate:
     name: CI — Gate (Verificación general)

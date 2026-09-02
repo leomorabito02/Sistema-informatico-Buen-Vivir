@@ -20,39 +20,54 @@ type JWTService interface {
 	ValidateToken(tokenString string) (jwt.MapClaims, error)
 }
 
-// AuthMiddleware verifica el token JWT en el header de la solicitud
+// extractToken intenta obtener el JWT token primero desde cookies (__Host-access_token / access_token) y como fallback desde el encabezado Authorization.
+func extractToken(r *http.Request) (string, int, string) {
+	cookie, err := r.Cookie("__Host-access_token")
+	if err != nil || cookie.Value == "" {
+		cookie, err = r.Cookie("access_token")
+	}
+
+	if err == nil && cookie.Value != "" {
+		return cookie.Value, 0, ""
+	}
+
+	authHeader := r.Header.Get("Authorization")
+	if authHeader == "" {
+		return "", http.StatusUnauthorized, "Unauthorized: missing token"
+	}
+
+	parts := strings.Split(authHeader, " ")
+	if len(parts) != 2 || parts[0] != "Bearer" {
+		return "", http.StatusUnauthorized, "Invalid token format"
+	}
+
+	return parts[1], 0, ""
+}
+
+// extractContextFromClaims llena el contexto HTTP con los claims decodificados del JWT.
+func extractContextFromClaims(parentCtx context.Context, claims jwt.MapClaims) context.Context {
+	userID, _ := claims["sub"].(string)
+	roleID, _ := claims["role"].(string)
+	isExternal, _ := claims["is_external"].(bool)
+
+	ctx := context.WithValue(parentCtx, UserIDKey, userID)
+	ctx = context.WithValue(ctx, RoleIDKey, roleID)
+	return context.WithValue(ctx, IsExternalKey, isExternal)
+}
+
+// AuthMiddleware verifica el token JWT en el header o cookie de la solicitud
 func AuthMiddleware(jwtService JWTService) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			// Pass CORS preflight requests without JWT validation
 			if r.Method == http.MethodOptions {
 				next.ServeHTTP(w, r)
 				return
 			}
 
-			var tokenString string
-
-			// Primero intentar extraer de las cookies (__Host-access_token o access_token)
-			cookie, err := r.Cookie("__Host-access_token")
-			if err != nil || cookie.Value == "" {
-				cookie, err = r.Cookie("access_token")
-			}
-
-			if err == nil && cookie.Value != "" {
-				tokenString = cookie.Value
-			} else {
-				// Fallback: Authorization header
-				authHeader := r.Header.Get("Authorization")
-				if authHeader == "" {
-					http.Error(w, "Unauthorized: missing token", http.StatusUnauthorized)
-					return
-				}
-				parts := strings.Split(authHeader, " ")
-				if len(parts) != 2 || parts[0] != "Bearer" {
-					http.Error(w, "Invalid token format", http.StatusUnauthorized)
-					return
-				}
-				tokenString = parts[1]
+			tokenString, statusCode, errMsg := extractToken(r)
+			if errMsg != "" {
+				http.Error(w, errMsg, statusCode)
+				return
 			}
 
 			claims, err := jwtService.ValidateToken(tokenString)
@@ -61,14 +76,7 @@ func AuthMiddleware(jwtService JWTService) func(http.Handler) http.Handler {
 				return
 			}
 
-			userID, _ := claims["sub"].(string)
-			roleID, _ := claims["role"].(string)
-			isExternal, _ := claims["is_external"].(bool)
-
-			ctx := context.WithValue(r.Context(), UserIDKey, userID)
-			ctx = context.WithValue(ctx, RoleIDKey, roleID)
-			ctx = context.WithValue(ctx, IsExternalKey, isExternal)
-			
+			ctx := extractContextFromClaims(r.Context(), claims)
 			next.ServeHTTP(w, r.WithContext(ctx))
 		})
 	}
