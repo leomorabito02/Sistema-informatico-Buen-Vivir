@@ -3,7 +3,7 @@ import { HttpClient, HttpErrorResponse } from "@angular/common/http";
 import { Auth, signInWithPopup, GoogleAuthProvider } from "@angular/fire/auth";
 import { environment } from "../../environments/environment";
 import { Observable, from, throwError } from "rxjs";
-import { catchError, switchMap } from "rxjs/operators";
+import { catchError, switchMap, tap } from "rxjs/operators";
 import { Router } from "@angular/router";
 import {
   CheckCredentialsResponse,
@@ -27,6 +27,18 @@ export class AuthService {
   private readonly apiUrl = environment.apiUrl;
 
   constructor() {}
+
+  isLocallyAuthenticated(): boolean {
+    return localStorage.getItem("isAuthenticated") === "true";
+  }
+
+  setLocallyAuthenticated(status: boolean): void {
+    if (status) {
+      localStorage.setItem("isAuthenticated", "true");
+    } else {
+      localStorage.removeItem("isAuthenticated");
+    }
+  }
 
   /**
    * Step 1: Validates email and password. Returns a list of available accounts/roles.
@@ -88,7 +100,10 @@ export class AuthService {
         { user_id: userId, role_id: roleId, login_nonce: loginNonce },
         { withCredentials: true },
       )
-      .pipe(catchError(this.handleError));
+      .pipe(
+        tap(() => this.setLocallyAuthenticated(true)),
+        catchError(this.handleError),
+      );
   }
 
   /**
@@ -99,7 +114,10 @@ export class AuthService {
       .post<LoginResponse>(`${this.apiUrl}/api/v1/auth/register`, userData, {
         withCredentials: true,
       })
-      .pipe(catchError(this.handleError));
+      .pipe(
+        tap(() => this.setLocallyAuthenticated(true)),
+        catchError(this.handleError),
+      );
   }
 
   /**
@@ -130,6 +148,7 @@ export class AuthService {
    * The backend is responsible for invalidating the session and clearing the cookies.
    */
   logout(): void {
+    this.setLocallyAuthenticated(false);
     this.http
       .post(`${this.apiUrl}/api/v1/auth/logout`, {}, { withCredentials: true })
       .subscribe({
@@ -148,6 +167,10 @@ export class AuthService {
   private handleError = (error: HttpErrorResponse) => {
     let errorMessage =
       "Ocurrió un error inesperado. Por favor, intente nuevamente.";
+    if (error.status === 401) {
+      this.setLocallyAuthenticated(false);
+    }
+
     if (error.error && (error.error as { message?: string }).message) {
       errorMessage = (error.error as { message: string }).message;
     } else if (error.status === 401) {

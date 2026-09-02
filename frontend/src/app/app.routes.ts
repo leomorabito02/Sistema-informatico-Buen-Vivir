@@ -5,6 +5,7 @@ import { DashboardComponent } from "./pages/dashboard/dashboard.component";
 import { RegisterComponent } from "./pages/register/register.component";
 import { authGuard } from "./core/guards/auth.guard";
 import { guestGuard } from "./core/guards/guest.guard";
+import { adminGuard } from "./core/guards/admin.guard";
 
 export const routes: Routes = [
   {
@@ -59,6 +60,14 @@ export const routes: Routes = [
         loadComponent: () =>
           import("./pages/dashboard/cursos/cursos.component").then(
             (m) => m.CursosComponent,
+          ),
+      },
+      {
+        path: "gestion-cursos",
+        canActivate: [adminGuard],
+        loadComponent: () =>
+          import("./pages/dashboard/admin-cursos/admin-cursos.component").then(
+            (m) => m.AdminCursosComponent,
           ),
       },
       {

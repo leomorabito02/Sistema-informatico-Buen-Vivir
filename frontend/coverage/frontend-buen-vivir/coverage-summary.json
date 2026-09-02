@@ -1,0 +1,273 @@
+{
+  "total": {
+    "lines": { "total": 1119, "covered": 927, "skipped": 0, "pct": 82.84 },
+    "statements": { "total": 1205, "covered": 996, "skipped": 0, "pct": 82.65 },
+    "functions": { "total": 356, "covered": 282, "skipped": 0, "pct": 79.21 },
+    "branches": { "total": 484, "covered": 335, "skipped": 0, "pct": 69.21 },
+    "branchesTrue": { "total": 0, "covered": 0, "skipped": 0, "pct": 100 }
+  },
+  "/home/leomorabito02/Repos/Sistema-informatico-Buen-Vivir/frontend/src/app/app.component.ts": {
+    "lines": { "total": 2, "covered": 2, "skipped": 0, "pct": 100 },
+    "functions": { "total": 0, "covered": 0, "skipped": 0, "pct": 100 },
+    "statements": { "total": 3, "covered": 3, "skipped": 0, "pct": 100 },
+    "branches": { "total": 0, "covered": 0, "skipped": 0, "pct": 100 }
+  },
+  "/home/leomorabito02/Repos/Sistema-informatico-Buen-Vivir/frontend/src/app/app.config.ts": {
+    "lines": { "total": 3, "covered": 1, "skipped": 0, "pct": 33.33 },
+    "functions": { "total": 2, "covered": 0, "skipped": 0, "pct": 0 },
+    "statements": { "total": 3, "covered": 1, "skipped": 0, "pct": 33.33 },
+    "branches": { "total": 0, "covered": 0, "skipped": 0, "pct": 100 }
+  },
+  "/home/leomorabito02/Repos/Sistema-informatico-Buen-Vivir/frontend/src/app/app.routes.ts": {
+    "lines": { "total": 35, "covered": 35, "skipped": 0, "pct": 100 },
+    "functions": { "total": 34, "covered": 34, "skipped": 0, "pct": 100 },
+    "statements": { "total": 35, "covered": 35, "skipped": 0, "pct": 100 },
+    "branches": { "total": 0, "covered": 0, "skipped": 0, "pct": 100 }
+  },
+  "/home/leomorabito02/Repos/Sistema-informatico-Buen-Vivir/frontend/src/app/components/landing/hero/hero.component.ts": {
+    "lines": { "total": 4, "covered": 4, "skipped": 0, "pct": 100 },
+    "functions": { "total": 0, "covered": 0, "skipped": 0, "pct": 100 },
+    "statements": { "total": 5, "covered": 5, "skipped": 0, "pct": 100 },
+    "branches": { "total": 0, "covered": 0, "skipped": 0, "pct": 100 }
+  },
+  "/home/leomorabito02/Repos/Sistema-informatico-Buen-Vivir/frontend/src/app/components/landing/how-it-works/how-it-works.component.ts": {
+    "lines": { "total": 1, "covered": 1, "skipped": 0, "pct": 100 },
+    "functions": { "total": 0, "covered": 0, "skipped": 0, "pct": 100 },
+    "statements": { "total": 2, "covered": 2, "skipped": 0, "pct": 100 },
+    "branches": { "total": 0, "covered": 0, "skipped": 0, "pct": 100 }
+  },
+  "/home/leomorabito02/Repos/Sistema-informatico-Buen-Vivir/frontend/src/app/components/landing/impact/impact.component.ts": {
+    "lines": { "total": 1, "covered": 1, "skipped": 0, "pct": 100 },
+    "functions": { "total": 0, "covered": 0, "skipped": 0, "pct": 100 },
+    "statements": { "total": 2, "covered": 2, "skipped": 0, "pct": 100 },
+    "branches": { "total": 0, "covered": 0, "skipped": 0, "pct": 100 }
+  },
+  "/home/leomorabito02/Repos/Sistema-informatico-Buen-Vivir/frontend/src/app/components/landing/library/library.component.ts": {
+    "lines": { "total": 12, "covered": 12, "skipped": 0, "pct": 100 },
+    "functions": { "total": 0, "covered": 0, "skipped": 0, "pct": 100 },
+    "statements": { "total": 13, "covered": 13, "skipped": 0, "pct": 100 },
+    "branches": { "total": 0, "covered": 0, "skipped": 0, "pct": 100 }
+  },
+  "/home/leomorabito02/Repos/Sistema-informatico-Buen-Vivir/frontend/src/app/components/landing/location/location.component.ts": {
+    "lines": { "total": 4, "covered": 4, "skipped": 0, "pct": 100 },
+    "functions": { "total": 0, "covered": 0, "skipped": 0, "pct": 100 },
+    "statements": { "total": 5, "covered": 5, "skipped": 0, "pct": 100 },
+    "branches": { "total": 0, "covered": 0, "skipped": 0, "pct": 100 }
+  },
+  "/home/leomorabito02/Repos/Sistema-informatico-Buen-Vivir/frontend/src/app/components/landing/pillars/pillars.component.ts": {
+    "lines": { "total": 5, "covered": 5, "skipped": 0, "pct": 100 },
+    "functions": { "total": 0, "covered": 0, "skipped": 0, "pct": 100 },
+    "statements": { "total": 6, "covered": 6, "skipped": 0, "pct": 100 },
+    "branches": { "total": 0, "covered": 0, "skipped": 0, "pct": 100 }
+  },
+  "/home/leomorabito02/Repos/Sistema-informatico-Buen-Vivir/frontend/src/app/components/layout/footer/footer.component.ts": {
+    "lines": { "total": 1, "covered": 1, "skipped": 0, "pct": 100 },
+    "functions": { "total": 0, "covered": 0, "skipped": 0, "pct": 100 },
+    "statements": { "total": 2, "covered": 2, "skipped": 0, "pct": 100 },
+    "branches": { "total": 0, "covered": 0, "skipped": 0, "pct": 100 }
+  },
+  "/home/leomorabito02/Repos/Sistema-informatico-Buen-Vivir/frontend/src/app/components/layout/header/header.component.ts": {
+    "lines": { "total": 19, "covered": 19, "skipped": 0, "pct": 100 },
+    "functions": { "total": 5, "covered": 5, "skipped": 0, "pct": 100 },
+    "statements": { "total": 25, "covered": 25, "skipped": 0, "pct": 100 },
+    "branches": { "total": 19, "covered": 18, "skipped": 0, "pct": 94.73 }
+  },
+  "/home/leomorabito02/Repos/Sistema-informatico-Buen-Vivir/frontend/src/app/components/layout/sidebar/sidebar.component.ts": {
+    "lines": { "total": 10, "covered": 6, "skipped": 0, "pct": 60 },
+    "functions": { "total": 5, "covered": 1, "skipped": 0, "pct": 20 },
+    "statements": { "total": 12, "covered": 7, "skipped": 0, "pct": 58.33 },
+    "branches": { "total": 5, "covered": 0, "skipped": 0, "pct": 0 }
+  },
+  "/home/leomorabito02/Repos/Sistema-informatico-Buen-Vivir/frontend/src/app/core/guards/admin.guard.ts": {
+    "lines": { "total": 10, "covered": 9, "skipped": 0, "pct": 90 },
+    "functions": { "total": 3, "covered": 3, "skipped": 0, "pct": 100 },
+    "statements": { "total": 11, "covered": 10, "skipped": 0, "pct": 90.9 },
+    "branches": { "total": 7, "covered": 4, "skipped": 0, "pct": 57.14 }
+  },
+  "/home/leomorabito02/Repos/Sistema-informatico-Buen-Vivir/frontend/src/app/core/guards/auth.guard.ts": {
+    "lines": { "total": 12, "covered": 11, "skipped": 0, "pct": 91.66 },
+    "functions": { "total": 3, "covered": 3, "skipped": 0, "pct": 100 },
+    "statements": { "total": 12, "covered": 11, "skipped": 0, "pct": 91.66 },
+    "branches": { "total": 5, "covered": 4, "skipped": 0, "pct": 80 }
+  },
+  "/home/leomorabito02/Repos/Sistema-informatico-Buen-Vivir/frontend/src/app/core/guards/guest.guard.ts": {
+    "lines": { "total": 10, "covered": 9, "skipped": 0, "pct": 90 },
+    "functions": { "total": 3, "covered": 3, "skipped": 0, "pct": 100 },
+    "statements": { "total": 10, "covered": 9, "skipped": 0, "pct": 90 },
+    "branches": { "total": 2, "covered": 1, "skipped": 0, "pct": 50 }
+  },
+  "/home/leomorabito02/Repos/Sistema-informatico-Buen-Vivir/frontend/src/app/core/interceptors/auth.interceptor.ts": {
+    "lines": { "total": 3, "covered": 3, "skipped": 0, "pct": 100 },
+    "functions": { "total": 1, "covered": 1, "skipped": 0, "pct": 100 },
+    "statements": { "total": 3, "covered": 3, "skipped": 0, "pct": 100 },
+    "branches": { "total": 0, "covered": 0, "skipped": 0, "pct": 100 }
+  },
+  "/home/leomorabito02/Repos/Sistema-informatico-Buen-Vivir/frontend/src/app/core/models/education.model.ts": {
+    "lines": { "total": 12, "covered": 11, "skipped": 0, "pct": 91.66 },
+    "functions": { "total": 5, "covered": 4, "skipped": 0, "pct": 80 },
+    "statements": { "total": 14, "covered": 12, "skipped": 0, "pct": 85.71 },
+    "branches": { "total": 10, "covered": 5, "skipped": 0, "pct": 50 }
+  },
+  "/home/leomorabito02/Repos/Sistema-informatico-Buen-Vivir/frontend/src/app/pages/account-notice/account-notice.component.ts": {
+    "lines": { "total": 5, "covered": 5, "skipped": 0, "pct": 100 },
+    "functions": { "total": 1, "covered": 1, "skipped": 0, "pct": 100 },
+    "statements": { "total": 6, "covered": 6, "skipped": 0, "pct": 100 },
+    "branches": { "total": 0, "covered": 0, "skipped": 0, "pct": 100 }
+  },
+  "/home/leomorabito02/Repos/Sistema-informatico-Buen-Vivir/frontend/src/app/pages/dashboard/dashboard.component.ts": {
+    "lines": { "total": 1, "covered": 1, "skipped": 0, "pct": 100 },
+    "functions": { "total": 0, "covered": 0, "skipped": 0, "pct": 100 },
+    "statements": { "total": 2, "covered": 2, "skipped": 0, "pct": 100 },
+    "branches": { "total": 0, "covered": 0, "skipped": 0, "pct": 100 }
+  },
+  "/home/leomorabito02/Repos/Sistema-informatico-Buen-Vivir/frontend/src/app/pages/dashboard/admin-cursos/admin-cursos.component.ts": {
+    "lines": { "total": 172, "covered": 67, "skipped": 0, "pct": 38.95 },
+    "functions": { "total": 60, "covered": 22, "skipped": 0, "pct": 36.66 },
+    "statements": { "total": 180, "covered": 68, "skipped": 0, "pct": 37.77 },
+    "branches": { "total": 73, "covered": 7, "skipped": 0, "pct": 9.58 }
+  },
+  "/home/leomorabito02/Repos/Sistema-informatico-Buen-Vivir/frontend/src/app/pages/dashboard/asistencia/asistencia.component.ts": {
+    "lines": { "total": 73, "covered": 73, "skipped": 0, "pct": 100 },
+    "functions": { "total": 22, "covered": 22, "skipped": 0, "pct": 100 },
+    "statements": { "total": 80, "covered": 80, "skipped": 0, "pct": 100 },
+    "branches": { "total": 10, "covered": 10, "skipped": 0, "pct": 100 }
+  },
+  "/home/leomorabito02/Repos/Sistema-informatico-Buen-Vivir/frontend/src/app/pages/dashboard/campanas/campanas.component.ts": {
+    "lines": { "total": 2, "covered": 2, "skipped": 0, "pct": 100 },
+    "functions": { "total": 1, "covered": 1, "skipped": 0, "pct": 100 },
+    "statements": { "total": 3, "covered": 3, "skipped": 0, "pct": 100 },
+    "branches": { "total": 0, "covered": 0, "skipped": 0, "pct": 100 }
+  },
+  "/home/leomorabito02/Repos/Sistema-informatico-Buen-Vivir/frontend/src/app/pages/dashboard/cursos/cursos.component.ts": {
+    "lines": { "total": 27, "covered": 27, "skipped": 0, "pct": 100 },
+    "functions": { "total": 9, "covered": 9, "skipped": 0, "pct": 100 },
+    "statements": { "total": 29, "covered": 29, "skipped": 0, "pct": 100 },
+    "branches": { "total": 17, "covered": 15, "skipped": 0, "pct": 88.23 }
+  },
+  "/home/leomorabito02/Repos/Sistema-informatico-Buen-Vivir/frontend/src/app/pages/dashboard/cv/cv.component.ts": {
+    "lines": { "total": 3, "covered": 2, "skipped": 0, "pct": 66.66 },
+    "functions": { "total": 2, "covered": 1, "skipped": 0, "pct": 50 },
+    "statements": { "total": 4, "covered": 3, "skipped": 0, "pct": 75 },
+    "branches": { "total": 0, "covered": 0, "skipped": 0, "pct": 100 }
+  },
+  "/home/leomorabito02/Repos/Sistema-informatico-Buen-Vivir/frontend/src/app/pages/dashboard/insercion/insercion.component.ts": {
+    "lines": { "total": 5, "covered": 5, "skipped": 0, "pct": 100 },
+    "functions": { "total": 1, "covered": 1, "skipped": 0, "pct": 100 },
+    "statements": { "total": 6, "covered": 6, "skipped": 0, "pct": 100 },
+    "branches": { "total": 0, "covered": 0, "skipped": 0, "pct": 100 }
+  },
+  "/home/leomorabito02/Repos/Sistema-informatico-Buen-Vivir/frontend/src/app/pages/dashboard/mi-perfil/mi-perfil.component.ts": {
+    "lines": { "total": 93, "covered": 72, "skipped": 0, "pct": 77.41 },
+    "functions": { "total": 23, "covered": 15, "skipped": 0, "pct": 65.21 },
+    "statements": { "total": 98, "covered": 74, "skipped": 0, "pct": 75.51 },
+    "branches": { "total": 35, "covered": 23, "skipped": 0, "pct": 65.71 }
+  },
+  "/home/leomorabito02/Repos/Sistema-informatico-Buen-Vivir/frontend/src/app/pages/dashboard/mis-cursos/mis-cursos.component.ts": {
+    "lines": { "total": 69, "covered": 42, "skipped": 0, "pct": 60.86 },
+    "functions": { "total": 18, "covered": 12, "skipped": 0, "pct": 66.66 },
+    "statements": { "total": 71, "covered": 43, "skipped": 0, "pct": 60.56 },
+    "branches": { "total": 35, "covered": 22, "skipped": 0, "pct": 62.85 }
+  },
+  "/home/leomorabito02/Repos/Sistema-informatico-Buen-Vivir/frontend/src/app/pages/dashboard/notificaciones/notificaciones.component.ts": {
+    "lines": { "total": 4, "covered": 2, "skipped": 0, "pct": 50 },
+    "functions": { "total": 4, "covered": 1, "skipped": 0, "pct": 25 },
+    "statements": { "total": 6, "covered": 3, "skipped": 0, "pct": 50 },
+    "branches": { "total": 0, "covered": 0, "skipped": 0, "pct": 100 }
+  },
+  "/home/leomorabito02/Repos/Sistema-informatico-Buen-Vivir/frontend/src/app/pages/dashboard/ofertas/ofertas.component.ts": {
+    "lines": { "total": 15, "covered": 6, "skipped": 0, "pct": 40 },
+    "functions": { "total": 5, "covered": 1, "skipped": 0, "pct": 20 },
+    "statements": { "total": 17, "covered": 7, "skipped": 0, "pct": 41.17 },
+    "branches": { "total": 8, "covered": 0, "skipped": 0, "pct": 0 }
+  },
+  "/home/leomorabito02/Repos/Sistema-informatico-Buen-Vivir/frontend/src/app/pages/dashboard/participantes/participantes.component.ts": {
+    "lines": { "total": 37, "covered": 37, "skipped": 0, "pct": 100 },
+    "functions": { "total": 10, "covered": 10, "skipped": 0, "pct": 100 },
+    "statements": { "total": 40, "covered": 40, "skipped": 0, "pct": 100 },
+    "branches": { "total": 10, "covered": 9, "skipped": 0, "pct": 90 }
+  },
+  "/home/leomorabito02/Repos/Sistema-informatico-Buen-Vivir/frontend/src/app/pages/dashboard/progreso/progreso.component.ts": {
+    "lines": { "total": 28, "covered": 28, "skipped": 0, "pct": 100 },
+    "functions": { "total": 9, "covered": 9, "skipped": 0, "pct": 100 },
+    "statements": { "total": 33, "covered": 33, "skipped": 0, "pct": 100 },
+    "branches": { "total": 5, "covered": 4, "skipped": 0, "pct": 80 }
+  },
+  "/home/leomorabito02/Repos/Sistema-informatico-Buen-Vivir/frontend/src/app/pages/dashboard/seguimiento/seguimiento.component.ts": {
+    "lines": { "total": 35, "covered": 35, "skipped": 0, "pct": 100 },
+    "functions": { "total": 10, "covered": 10, "skipped": 0, "pct": 100 },
+    "statements": { "total": 39, "covered": 39, "skipped": 0, "pct": 100 },
+    "branches": { "total": 20, "covered": 19, "skipped": 0, "pct": 95 }
+  },
+  "/home/leomorabito02/Repos/Sistema-informatico-Buen-Vivir/frontend/src/app/pages/dashboard/usuarios/usuarios.component.ts": {
+    "lines": { "total": 15, "covered": 15, "skipped": 0, "pct": 100 },
+    "functions": { "total": 5, "covered": 5, "skipped": 0, "pct": 100 },
+    "statements": { "total": 16, "covered": 16, "skipped": 0, "pct": 100 },
+    "branches": { "total": 11, "covered": 11, "skipped": 0, "pct": 100 }
+  },
+  "/home/leomorabito02/Repos/Sistema-informatico-Buen-Vivir/frontend/src/app/pages/landing/landing.component.ts": {
+    "lines": { "total": 1, "covered": 1, "skipped": 0, "pct": 100 },
+    "functions": { "total": 0, "covered": 0, "skipped": 0, "pct": 100 },
+    "statements": { "total": 2, "covered": 2, "skipped": 0, "pct": 100 },
+    "branches": { "total": 0, "covered": 0, "skipped": 0, "pct": 100 }
+  },
+  "/home/leomorabito02/Repos/Sistema-informatico-Buen-Vivir/frontend/src/app/pages/login/login.component.ts": {
+    "lines": { "total": 68, "covered": 58, "skipped": 0, "pct": 85.29 },
+    "functions": { "total": 14, "covered": 13, "skipped": 0, "pct": 92.85 },
+    "statements": { "total": 69, "covered": 58, "skipped": 0, "pct": 84.05 },
+    "branches": { "total": 36, "covered": 24, "skipped": 0, "pct": 66.66 }
+  },
+  "/home/leomorabito02/Repos/Sistema-informatico-Buen-Vivir/frontend/src/app/pages/pending-approval/pending-approval.component.ts": {
+    "lines": { "total": 59, "covered": 58, "skipped": 0, "pct": 98.3 },
+    "functions": { "total": 15, "covered": 13, "skipped": 0, "pct": 86.66 },
+    "statements": { "total": 61, "covered": 59, "skipped": 0, "pct": 96.72 },
+    "branches": { "total": 23, "covered": 21, "skipped": 0, "pct": 91.3 }
+  },
+  "/home/leomorabito02/Repos/Sistema-informatico-Buen-Vivir/frontend/src/app/pages/register/register.component.ts": {
+    "lines": { "total": 76, "covered": 75, "skipped": 0, "pct": 98.68 },
+    "functions": { "total": 13, "covered": 13, "skipped": 0, "pct": 100 },
+    "statements": { "total": 78, "covered": 77, "skipped": 0, "pct": 98.71 },
+    "branches": { "total": 26, "covered": 25, "skipped": 0, "pct": 96.15 }
+  },
+  "/home/leomorabito02/Repos/Sistema-informatico-Buen-Vivir/frontend/src/app/pages/select-role/select-role.component.ts": {
+    "lines": { "total": 33, "covered": 33, "skipped": 0, "pct": 100 },
+    "functions": { "total": 4, "covered": 4, "skipped": 0, "pct": 100 },
+    "statements": { "total": 34, "covered": 34, "skipped": 0, "pct": 100 },
+    "branches": { "total": 20, "covered": 20, "skipped": 0, "pct": 100 }
+  },
+  "/home/leomorabito02/Repos/Sistema-informatico-Buen-Vivir/frontend/src/app/services/auth.service.ts": {
+    "lines": { "total": 38, "covered": 33, "skipped": 0, "pct": 86.84 },
+    "functions": { "total": 19, "covered": 15, "skipped": 0, "pct": 78.94 },
+    "statements": { "total": 39, "covered": 34, "skipped": 0, "pct": 87.17 },
+    "branches": { "total": 10, "covered": 10, "skipped": 0, "pct": 100 }
+  },
+  "/home/leomorabito02/Repos/Sistema-informatico-Buen-Vivir/frontend/src/app/services/education.service.ts": {
+    "lines": { "total": 48, "covered": 48, "skipped": 0, "pct": 100 },
+    "functions": { "total": 29, "covered": 29, "skipped": 0, "pct": 100 },
+    "statements": { "total": 50, "covered": 50, "skipped": 0, "pct": 100 },
+    "branches": { "total": 15, "covered": 15, "skipped": 0, "pct": 100 }
+  },
+  "/home/leomorabito02/Repos/Sistema-informatico-Buen-Vivir/frontend/src/app/services/profile.service.ts": {
+    "lines": { "total": 19, "covered": 19, "skipped": 0, "pct": 100 },
+    "functions": { "total": 8, "covered": 8, "skipped": 0, "pct": 100 },
+    "statements": { "total": 20, "covered": 20, "skipped": 0, "pct": 100 },
+    "branches": { "total": 7, "covered": 7, "skipped": 0, "pct": 100 }
+  },
+  "/home/leomorabito02/Repos/Sistema-informatico-Buen-Vivir/frontend/src/app/services/users.service.ts": {
+    "lines": { "total": 17, "covered": 17, "skipped": 0, "pct": 100 },
+    "functions": { "total": 7, "covered": 7, "skipped": 0, "pct": 100 },
+    "statements": { "total": 22, "covered": 22, "skipped": 0, "pct": 100 },
+    "branches": { "total": 13, "covered": 13, "skipped": 0, "pct": 100 }
+  },
+  "/home/leomorabito02/Repos/Sistema-informatico-Buen-Vivir/frontend/src/app/shared/components/rich-text.component.ts": {
+    "lines": { "total": 31, "covered": 31, "skipped": 0, "pct": 100 },
+    "functions": { "total": 6, "covered": 6, "skipped": 0, "pct": 100 },
+    "statements": { "total": 36, "covered": 36, "skipped": 0, "pct": 100 },
+    "branches": { "total": 60, "covered": 46, "skipped": 0, "pct": 76.66 }
+  },
+  "/home/leomorabito02/Repos/Sistema-informatico-Buen-Vivir/frontend/src/environments/environment.ts": {
+    "lines": { "total": 1, "covered": 1, "skipped": 0, "pct": 100 },
+    "functions": { "total": 0, "covered": 0, "skipped": 0, "pct": 100 },
+    "statements": { "total": 1, "covered": 1, "skipped": 0, "pct": 100 },
+    "branches": { "total": 2, "covered": 2, "skipped": 0, "pct": 100 }
+  }
+}

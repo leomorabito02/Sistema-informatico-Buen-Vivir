@@ -25,7 +25,7 @@ describe("App Routes", () => {
     const dashboardRoute = routes.find((r) => r.path === "dashboard");
     expect(dashboardRoute?.component).toBe(DashboardComponent);
     expect(dashboardRoute?.canActivate).toEqual([authGuard]);
-    expect(dashboardRoute?.children?.length).toBe(13);
+    expect(dashboardRoute?.children).toHaveSize(14);
   });
 
   it("should lazy load pending-approval component", async () => {
@@ -58,6 +58,7 @@ describe("App Routes", () => {
   const childrenRoutes = [
     "mi-perfil",
     "cursos",
+    "gestion-cursos",
     "mis-cursos",
     "progreso",
     "ofertas",

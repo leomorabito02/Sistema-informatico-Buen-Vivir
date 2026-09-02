@@ -1,1 +1,14 @@
-<p>sidebar works!</p>
+<nav class="sidebar">
+  <ul>
+    <li *ngFor="let item of items">
+      <a
+        [routerLink]="item.route"
+        routerLinkActive="active"
+        [routerLinkActiveOptions]="{ exact: false }"
+      >
+        <i class="pi" [ngClass]="item.icon"></i>
+        <span>{{ item.label }}</span>
+      </a>
+    </li>
+  </ul>
+</nav>
