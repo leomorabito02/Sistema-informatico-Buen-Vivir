@@ -47,11 +47,11 @@ describe("AuthService", () => {
 
     service.setLocallyAuthenticated(true);
     expect(service.isLocallyAuthenticated()).toBeTrue();
-    expect(localStorage.getItem('isAuthenticated')).toBe('true');
+    expect(localStorage.getItem("isAuthenticated")).toBe("true");
 
     service.setLocallyAuthenticated(false);
     expect(service.isLocallyAuthenticated()).toBeFalse();
-    expect(localStorage.getItem('isAuthenticated')).toBeNull();
+    expect(localStorage.getItem("isAuthenticated")).toBeNull();
   });
 
   it("should send POST to checkCredentials with credentials", () => {
@@ -158,8 +158,13 @@ describe("AuthService", () => {
         },
       });
 
-      const req = httpMock.expectOne("http://localhost:3000/api/v1/auth/check-credentials");
-      req.flush({ message: "Credenciales inválidas" }, { status: 400, statusText: "Bad Request" });
+      const req = httpMock.expectOne(
+        "http://localhost:3000/api/v1/auth/check-credentials",
+      );
+      req.flush(
+        { message: "Credenciales inválidas" },
+        { status: 400, statusText: "Bad Request" },
+      );
     });
 
     it("should handle 401 error and reset local authentication", () => {
@@ -167,7 +172,9 @@ describe("AuthService", () => {
       service.isAuthenticated().subscribe({
         next: () => fail("should fail"),
         error: (err: Error) => {
-          expect(err.message).toBe("No autorizado. Verifique sus credenciales.");
+          expect(err.message).toBe(
+            "No autorizado. Verifique sus credenciales.",
+          );
         },
       });
 
@@ -180,7 +187,9 @@ describe("AuthService", () => {
       service.isAuthenticated().subscribe({
         next: () => fail("should fail"),
         error: (err: Error) => {
-          expect(err.message).toBe("No tiene permisos para realizar esta acción.");
+          expect(err.message).toBe(
+            "No tiene permisos para realizar esta acción.",
+          );
         },
       });
 
@@ -192,7 +201,9 @@ describe("AuthService", () => {
       service.isAuthenticated().subscribe({
         next: () => fail("should fail"),
         error: (err: Error) => {
-          expect(err.message).toBe("Ocurrió un error inesperado. Por favor, intente nuevamente.");
+          expect(err.message).toBe(
+            "Ocurrió un error inesperado. Por favor, intente nuevamente.",
+          );
         },
       });
 

@@ -1,27 +1,27 @@
-import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { RegisterComponent } from './register.component';
-import { AuthService } from '../../services/auth.service';
-import { ActivatedRoute } from '@angular/router';
-import { of, throwError } from 'rxjs';
-import { ReactiveFormsModule } from '@angular/forms';
+import { ComponentFixture, TestBed } from "@angular/core/testing";
+import { RegisterComponent } from "./register.component";
+import { AuthService } from "../../services/auth.service";
+import { ActivatedRoute } from "@angular/router";
+import { of, throwError } from "rxjs";
+import { ReactiveFormsModule } from "@angular/forms";
 
-describe('RegisterComponent', () => {
+describe("RegisterComponent", () => {
   let component: RegisterComponent;
   let fixture: ComponentFixture<RegisterComponent>;
   let authServiceSpy: jasmine.SpyObj<AuthService>;
 
   beforeEach(async () => {
-    authServiceSpy = jasmine.createSpyObj('AuthService', ['registerWithEmail']);
+    authServiceSpy = jasmine.createSpyObj("AuthService", ["registerWithEmail"]);
 
     await TestBed.configureTestingModule({
       imports: [RegisterComponent, ReactiveFormsModule],
       providers: [
         { provide: AuthService, useValue: authServiceSpy },
-        { 
-          provide: ActivatedRoute, 
-          useValue: { queryParams: of({ role: 'teacher' }) } 
-        }
-      ]
+        {
+          provide: ActivatedRoute,
+          useValue: { queryParams: of({ role: "teacher" }) },
+        },
+      ],
     }).compileComponents();
 
     fixture = TestBed.createComponent(RegisterComponent);
@@ -29,124 +29,158 @@ describe('RegisterComponent', () => {
     fixture.detectChanges();
   });
 
-  it('should create', () => {
+  it("should create", () => {
     expect(component).toBeTruthy();
   });
 
-  it('should set role from query params on init', () => {
-    expect(component.registerForm.controls['role'].value).toBe('teacher');
+  it("should set role from query params on init", () => {
+    expect(component.registerForm.controls["role"].value).toBe("teacher");
   });
 
-  it('should compute needsApproval correctly', () => {
-    component.registerForm.controls['role'].setValue('participant');
+  it("should compute needsApproval correctly", () => {
+    component.registerForm.controls["role"].setValue("participant");
     expect(component.needsApproval).toBeFalse();
 
-    component.registerForm.controls['role'].setValue('volunteer');
+    component.registerForm.controls["role"].setValue("volunteer");
     expect(component.needsApproval).toBeTrue();
   });
 
-  it('should toggle password visibility', () => {
+  it("should toggle password visibility", () => {
     expect(component.showPassword).toBeFalse();
     component.togglePasswordVisibility();
     expect(component.showPassword).toBeTrue();
-    
+
     expect(component.showConfirmPassword).toBeFalse();
     component.toggleConfirmPasswordVisibility();
     expect(component.showConfirmPassword).toBeTrue();
   });
 
-  describe('Form Validation', () => {
-    it('should validate required fields', () => {
+  describe("Form Validation", () => {
+    it("should validate required fields", () => {
       component.onSubmit();
       expect(component.registerForm.invalid).toBeTrue();
-      expect(component.registerError).toContain('completá todos los campos obligatorios');
+      expect(component.registerError).toContain(
+        "completá todos los campos obligatorios",
+      );
     });
 
-    it('should validate email format', () => {
+    it("should validate email format", () => {
       component.registerForm.patchValue({
-        firstName: 'John', lastName: 'Doe', phone: '123456', 
-        password: 'Password1!', confirmPassword: 'Password1!', terms: true
+        firstName: "John",
+        lastName: "Doe",
+        phone: "123456",
+        password: "Password1!",
+        confirmPassword: "Password1!",
+        terms: true,
       });
-      component.registerForm.controls['email'].setValue('invalid');
+      component.registerForm.controls["email"].setValue("invalid");
       component.onSubmit();
-      expect(component.registerError).toContain('correo electrónico válida');
+      expect(component.registerError).toContain("correo electrónico válida");
     });
 
-    it('should validate password complexity', () => {
+    it("should validate password complexity", () => {
       component.registerForm.patchValue({
-        firstName: 'John', lastName: 'Doe', email: 'test@test.com', phone: '123456', terms: true
+        firstName: "John",
+        lastName: "Doe",
+        email: "test@test.com",
+        phone: "123456",
+        terms: true,
       });
-      
-      component.registerForm.controls['password'].setValue('short');
-      component.onSubmit();
-      expect(component.registerError).toContain('al menos 8 caracteres');
 
-      component.registerForm.controls['password'].setValue('password!');
+      component.registerForm.controls["password"].setValue("short");
       component.onSubmit();
-      expect(component.registerError).toContain('letra mayúscula');
-      
-      component.registerForm.controls['password'].setValue('PASSWORD!');
+      expect(component.registerError).toContain("al menos 8 caracteres");
+
+      component.registerForm.controls["password"].setValue("password!");
       component.onSubmit();
-      expect(component.registerError).toContain('letra minúscula');
-      
-      component.registerForm.controls['password'].setValue('Password123');
+      expect(component.registerError).toContain("letra mayúscula");
+
+      component.registerForm.controls["password"].setValue("PASSWORD!");
       component.onSubmit();
-      expect(component.registerError).toContain('carácter especial');
+      expect(component.registerError).toContain("letra minúscula");
+
+      component.registerForm.controls["password"].setValue("Password123");
+      component.onSubmit();
+      expect(component.registerError).toContain("carácter especial");
     });
 
-    it('should validate password match', () => {
+    it("should validate password match", () => {
       component.registerForm.patchValue({
-        firstName: 'John', lastName: 'Doe', email: 'test@test.com', phone: '123456', terms: true,
-        password: 'Password1!', confirmPassword: 'Password2!'
+        firstName: "John",
+        lastName: "Doe",
+        email: "test@test.com",
+        phone: "123456",
+        terms: true,
+        password: "Password1!",
+        confirmPassword: "Password2!",
       });
       component.onSubmit();
-      expect(component.registerError).toContain('no coinciden');
+      expect(component.registerError).toContain("no coinciden");
     });
 
-    it('should validate terms acceptance', () => {
+    it("should validate terms acceptance", () => {
       component.registerForm.patchValue({
-        firstName: 'John', lastName: 'Doe', email: 'test@test.com', phone: '123456',
-        password: 'Password1!', confirmPassword: 'Password1!', terms: false
+        firstName: "John",
+        lastName: "Doe",
+        email: "test@test.com",
+        phone: "123456",
+        password: "Password1!",
+        confirmPassword: "Password1!",
+        terms: false,
       });
       component.onSubmit();
-      expect(component.registerError).toContain('términos y condiciones');
+      expect(component.registerError).toContain("términos y condiciones");
     });
   });
 
-  describe('Successful Registration', () => {
-    it('should call register api and set registered flag', () => {
+  describe("Successful Registration", () => {
+    it("should call register api and set registered flag", () => {
       component.registerForm.patchValue({
-        firstName: 'John', lastName: 'Doe', email: 'test@test.com', phone: '123456', role: 'teacher',
-        password: 'Password1!', confirmPassword: 'Password1!', terms: true
+        firstName: "John",
+        lastName: "Doe",
+        email: "test@test.com",
+        phone: "123456",
+        role: "teacher",
+        password: "Password1!",
+        confirmPassword: "Password1!",
+        terms: true,
       });
-      
+
       authServiceSpy.registerWithEmail.and.returnValue(of({} as any));
-      
+
       component.onSubmit();
-      
+
       expect(authServiceSpy.registerWithEmail).toHaveBeenCalledWith({
-        first_name: 'John',
-        last_name: 'Doe',
-        email: 'test@test.com',
-        phone: '123456',
-        password: 'Password1!',
-        role: 'teacher'
+        first_name: "John",
+        last_name: "Doe",
+        email: "test@test.com",
+        phone: "123456",
+        password: "Password1!",
+        role: "teacher",
       });
       expect(component.registered).toBeTrue();
       expect(component.loading).toBeFalse();
     });
 
-    it('should handle registration error', () => {
+    it("should handle registration error", () => {
       component.registerForm.patchValue({
-        firstName: 'John', lastName: 'Doe', email: 'test@test.com', phone: '123456', role: 'teacher',
-        password: 'Password1!', confirmPassword: 'Password1!', terms: true
+        firstName: "John",
+        lastName: "Doe",
+        email: "test@test.com",
+        phone: "123456",
+        role: "teacher",
+        password: "Password1!",
+        confirmPassword: "Password1!",
+        terms: true,
       });
-      
-      authServiceSpy.registerWithEmail.and.returnValue(throwError(() => ({ error: { error: 'API Error' } })));
-      
+
+      authServiceSpy.registerWithEmail.and.returnValue(
+        throwError(() => ({ error: { error: "API Error" } })),
+      );
+
       component.onSubmit();
-      
-      expect(component.registerError).toBe('API Error');
+
+      expect(component.registerError).toBe("API Error");
       expect(component.registered).toBeFalse();
       expect(component.loading).toBeFalse();
     });
