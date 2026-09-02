@@ -28,42 +28,42 @@ func NewAuthController(authService services.AuthService) *AuthController {
 
 func (c *AuthController) setAuthCookies(w http.ResponseWriter, token, refreshToken string) {
 	http.SetCookie(w, &http.Cookie{
-		Name:     "access_token",
+		Name:     "__Host-access_token",
 		Value:    token,
 		Path:     "/",
 		HttpOnly: true,
 		Secure:   true,
-		SameSite: http.SameSiteStrictMode,
+		SameSite: http.SameSiteNoneMode,
 		MaxAge:   900, // 15 minutes
 	})
 	http.SetCookie(w, &http.Cookie{
-		Name:     "refresh_token",
+		Name:     "__Host-refresh_token",
 		Value:    refreshToken,
 		Path:     "/",
 		HttpOnly: true,
 		Secure:   true,
-		SameSite: http.SameSiteStrictMode,
+		SameSite: http.SameSiteNoneMode,
 		MaxAge:   7 * 24 * 3600, // 7 days
 	})
 }
 
 func (c *AuthController) clearAuthCookies(w http.ResponseWriter) {
 	http.SetCookie(w, &http.Cookie{
-		Name:     "access_token",
+		Name:     "__Host-access_token",
 		Value:    "",
 		Path:     "/",
 		HttpOnly: true,
 		Secure:   true,
-		SameSite: http.SameSiteStrictMode,
+		SameSite: http.SameSiteNoneMode,
 		MaxAge:   -1,
 	})
 	http.SetCookie(w, &http.Cookie{
-		Name:     "refresh_token",
+		Name:     "__Host-refresh_token",
 		Value:    "",
 		Path:     "/",
 		HttpOnly: true,
 		Secure:   true,
-		SameSite: http.SameSiteStrictMode,
+		SameSite: http.SameSiteNoneMode,
 		MaxAge:   -1,
 	})
 }

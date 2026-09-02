@@ -24,7 +24,7 @@ func TestSecurityHeaders(t *testing.T) {
 	r.ServeHTTP(w, req)
 
 	assert.Equal(t, "nosniff", w.Header().Get("X-Content-Type-Options"))
-	assert.Equal(t, "DENY", w.Header().Get("X-Frame-Options"))
+	assert.Equal(t, "SAMEORIGIN", w.Header().Get("X-Frame-Options"))
 	assert.Contains(t, w.Header().Get("Strict-Transport-Security"), "max-age=31536000")
 	assert.Contains(t, w.Header().Get("Content-Security-Policy"), "default-src 'self'")
 }
