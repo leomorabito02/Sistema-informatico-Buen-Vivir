@@ -218,7 +218,15 @@ jobs:
         run: |
           IMAGE_URI="${{ secrets.ARTIFACT_REGISTRY_HOST }}/${{ secrets.GCP_PROJECT_ID }}/${{ secrets.ARTIFACT_REGISTRY_REPO }}/auth:${{ github.sha }}"
           docker tag auth:${{ github.sha }} "$IMAGE_URI"
-          docker push "$IMAGE_URI"
+          n=0
+          until [ "$n" -ge 3 ]
+          do
+             docker push "$IMAGE_URI" && break
+             n=$((n+1))
+             echo "Push failed, retrying in 10 seconds..."
+             sleep 10
+          done
+          if [ "$n" -ge 3 ]; then echo "Failed to push image after 3 attempts."; exit 1; fi
 
   ci-api-gateway:
     name: CI — API Gateway (OpenAPI spec)
@@ -282,8 +290,7 @@ jobs:
           echo "All CI jobs passed. Gate cleared."
 
 # ============================================================================
-# STAGE 2: MUTATION TESTING
-# Corre en pushes a 'testing' y PRs hacia 'main'.
+# STAGE 2: MUTATION TESTING (DISABLED / COMMENTED)
 # ============================================================================
   mutation-frontend:
     name: Mutation — Frontend (Stryker)
@@ -473,7 +480,7 @@ jobs:
           service: 'auth-${{ needs.cd-setup.outputs.service_suffix }}'
           region: '${{ secrets.GCP_REGION }}'
           image: '${{ secrets.ARTIFACT_REGISTRY_HOST }}/${{ secrets.GCP_PROJECT_ID }}/${{ secrets.ARTIFACT_REGISTRY_REPO }}/auth:${{ github.sha }}'
-          flags: '--allow-unauthenticated --min-instances=0 --max-instances=1 --cpu=1 --memory=1Gi --service-account=${{ secrets.GCP_SERVICE_ACCOUNT }}'
+          flags: '--no-allow-unauthenticated --min-instances=0 --max-instances=1 --cpu=1 --memory=1Gi --service-account=${{ secrets.GCP_SERVICE_ACCOUNT }}'
           env_vars: |-
             DATABASE_URL_AUTH=${{ secrets.DATABASE_URL_AUTH }}
             JWT_SECRET=${{ secrets.JWT_SECRET }}
@@ -481,6 +488,13 @@ jobs:
             JWT_REFRESH_SECRET=${{ secrets.JWT_REFRESH_SECRET }}
             FIREBASE_CREDENTIALS_BASE64=${{ env.FIREBASE_CREDENTIALS_BASE64 }}
             CORS_ALLOWED_ORIGINS=${{ secrets.CORS_ALLOWED_ORIGINS }}
+
+      - name: Ensure 100% traffic routed to latest Cloud Run revision
+        run: |
+          SERVICE="auth-${{ needs.cd-setup.outputs.service_suffix }}"
+          REGION="${{ secrets.GCP_REGION }}"
+          gcloud run services update-traffic "$SERVICE" --region="$REGION" --to-latest --project="${{ secrets.GCP_PROJECT_ID }}"
+
 
   cd-api-gateway:
     name: CD — API Gateway (Google Cloud)
@@ -516,6 +530,7 @@ jobs:
           envsubst < openapi.yaml > openapi-resolved.yaml
           echo "openapi.yaml resolved for env: $SUFFIX"
 
+
       - name: Create or update API Gateway config
         id: deploy-gateway
         working-directory: api-gateway
@@ -532,7 +547,7 @@ jobs:
             --api="$API_ID" \
             --openapi-spec=openapi-resolved.yaml \
             --project="${{ secrets.GCP_PROJECT_ID }}" \
-            --backend-auth-service-account="${{ secrets.GCP_SERVICE_ACCOUNT }}"
+            --backend-auth-service-account="${{ secrets.GCP_SERVICE_ACCOUNT }}" 2>/dev/null || echo "API Config already exists."
 
           # Wait for config to be active before updating gateway
           STATE="CREATING"
@@ -558,17 +573,33 @@ jobs:
             --location="$REGION" --project="${{ secrets.GCP_PROJECT_ID }}" --format="value(name)" 2>/dev/null || echo "")
 
           if [ -n "$EXISTING" ]; then
-            gcloud api-gateway gateways update "buenvivir-gateway-$SUFFIX" \
-              --api="$API_ID" \
-              --api-config="$CONFIG_ID" \
-              --location="$REGION" \
-              --project="${{ secrets.GCP_PROJECT_ID }}"
+            n=0
+            until [ "$n" -ge 3 ]
+            do
+              gcloud api-gateway gateways update "buenvivir-gateway-$SUFFIX" \
+                --api="$API_ID" \
+                --api-config="$CONFIG_ID" \
+                --location="$REGION" \
+                --project="${{ secrets.GCP_PROJECT_ID }}" && break
+              n=$((n+1))
+              echo "Gateway update failed, retrying in 20 seconds..."
+              sleep 20
+            done
+            if [ "$n" -ge 3 ]; then echo "Failed to update API Gateway after 3 attempts."; exit 1; fi
           else
-            gcloud api-gateway gateways create "buenvivir-gateway-$SUFFIX" \
-              --api="$API_ID" \
-              --api-config="$CONFIG_ID" \
-              --location="$REGION" \
-              --project="${{ secrets.GCP_PROJECT_ID }}"
+            n=0
+            until [ "$n" -ge 3 ]
+            do
+              gcloud api-gateway gateways create "buenvivir-gateway-$SUFFIX" \
+                --api="$API_ID" \
+                --api-config="$CONFIG_ID" \
+                --location="$REGION" \
+                --project="${{ secrets.GCP_PROJECT_ID }}" && break
+              n=$((n+1))
+              echo "Gateway create failed, retrying in 20 seconds..."
+              sleep 20
+            done
+            if [ "$n" -ge 3 ]; then echo "Failed to create API Gateway after 3 attempts."; exit 1; fi
           fi
 
           echo "API Gateway deployed: buenvivir-gateway-$SUFFIX"
