@@ -32,8 +32,12 @@ func AuthMiddleware(jwtService JWTService) func(http.Handler) http.Handler {
 
 			var tokenString string
 
-			// Primero intentar extraer de la cookie "access_token"
-			cookie, err := r.Cookie("access_token")
+			// Primero intentar extraer de las cookies (__Host-access_token o access_token)
+			cookie, err := r.Cookie("__Host-access_token")
+			if err != nil || cookie.Value == "" {
+				cookie, err = r.Cookie("access_token")
+			}
+
 			if err == nil && cookie.Value != "" {
 				tokenString = cookie.Value
 			} else {
