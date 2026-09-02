@@ -24,17 +24,62 @@ export class SidebarComponent implements OnInit {
   roleId = "";
 
   private readonly allItems: NavItem[] = [
-    { label: "Catálogo de cursos", icon: "pi-book", route: "/dashboard/cursos", roles: [] },
-    { label: "Mi perfil", icon: "pi-user", route: "/dashboard/mi-perfil", roles: [] },
+    {
+      label: "Catálogo de cursos",
+      icon: "pi-book",
+      route: "/dashboard/cursos",
+      roles: [],
+    },
+    {
+      label: "Mi perfil",
+      icon: "pi-user",
+      route: "/dashboard/mi-perfil",
+      roles: [],
+    },
     // Administración
-    { label: "Gestión de cursos", icon: "pi-cog", route: "/dashboard/gestion-cursos", roles: ["role_admin", "role_dev"] },
-    { label: "Usuarios", icon: "pi-users", route: "/dashboard/usuarios", roles: ["role_admin", "role_dev"] },
+    {
+      label: "Gestión de cursos",
+      icon: "pi-cog",
+      route: "/dashboard/gestion-cursos",
+      roles: ["role_admin", "role_dev"],
+    },
+    {
+      label: "Usuarios",
+      icon: "pi-users",
+      route: "/dashboard/usuarios",
+      roles: ["role_admin", "role_dev"],
+    },
     // Docente responsable
-    { label: "Mis cursos", icon: "pi-briefcase", route: "/dashboard/mis-cursos", roles: ["role_teacher"] },
-    { label: "Asistencia", icon: "pi-calendar-plus", route: "/dashboard/asistencia", roles: ["role_teacher"] },
-    { label: "Progreso", icon: "pi-chart-line", route: "/dashboard/progreso", roles: ["role_teacher"] },
-    { label: "Participantes", icon: "pi-id-card", route: "/dashboard/participantes", roles: ["role_teacher"] },
-    { label: "Seguimiento", icon: "pi-eye", route: "/dashboard/seguimiento", roles: ["role_teacher", "role_volunteer"] },
+    {
+      label: "Mis cursos",
+      icon: "pi-briefcase",
+      route: "/dashboard/mis-cursos",
+      roles: ["role_teacher"],
+    },
+    {
+      label: "Asistencia",
+      icon: "pi-calendar-plus",
+      route: "/dashboard/asistencia",
+      roles: ["role_teacher"],
+    },
+    {
+      label: "Progreso",
+      icon: "pi-chart-line",
+      route: "/dashboard/progreso",
+      roles: ["role_teacher"],
+    },
+    {
+      label: "Participantes",
+      icon: "pi-id-card",
+      route: "/dashboard/participantes",
+      roles: ["role_teacher"],
+    },
+    {
+      label: "Seguimiento",
+      icon: "pi-eye",
+      route: "/dashboard/seguimiento",
+      roles: ["role_teacher", "role_volunteer"],
+    },
   ];
 
   items: NavItem[] = [];

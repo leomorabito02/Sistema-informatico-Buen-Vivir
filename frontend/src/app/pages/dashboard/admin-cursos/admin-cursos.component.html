@@ -31,14 +31,21 @@
   </div>
 
   <div *ngIf="loading" class="state-box">
-    <p-progressSpinner strokeWidth="4" [style]="{ width: '44px', height: '44px' }"></p-progressSpinner>
+    <p-progressSpinner
+      strokeWidth="4"
+      [style]="{ width: '44px', height: '44px' }"
+    ></p-progressSpinner>
     <span>Cargando…</span>
   </div>
 
   <!-- ==================== CURSOS ==================== -->
   <div *ngIf="!loading && section === 'cursos'">
     <div class="section-toolbar">
-      <p-button label="Nuevo curso" icon="pi pi-plus" (onClick)="newCourse()"></p-button>
+      <p-button
+        label="Nuevo curso"
+        icon="pi pi-plus"
+        (onClick)="newCourse()"
+      ></p-button>
     </div>
 
     <p-message
@@ -48,7 +55,12 @@
     ></p-message>
 
     <p-card styleClass="p-card-shadow">
-      <p-table [value]="courses" class="p-datatable-striped" [paginator]="courses.length > 10" [rows]="10">
+      <p-table
+        [value]="courses"
+        class="p-datatable-striped"
+        [paginator]="courses.length > 10"
+        [rows]="10"
+      >
         <ng-template pTemplate="header">
           <tr>
             <th>Título</th>
@@ -74,10 +86,17 @@
             </td>
             <td>{{ c.trainingArea?.name || "—" }}</td>
             <td><p-tag [value]="c.mode"></p-tag></td>
-            <td><code>{{ teacherName(c.responsibleTeacher) }}</code></td>
+            <td>
+              <code>{{ teacherName(c.responsibleTeacher) }}</code>
+            </td>
             <td>{{ c.material?.length || 0 }}</td>
             <td class="actions">
-              <p-button icon="pi pi-pencil" [text]="true" pTooltip="Editar" (onClick)="editCourse(c)"></p-button>
+              <p-button
+                icon="pi pi-pencil"
+                [text]="true"
+                pTooltip="Editar"
+                (onClick)="editCourse(c)"
+              ></p-button>
               <p-button
                 *ngIf="!c.publicado"
                 icon="pi pi-send"
@@ -94,17 +113,26 @@
                 pTooltip="Despublicar"
                 (onClick)="togglePublish(c, false)"
               ></p-button>
-              <p-button icon="pi pi-trash" [text]="true" severity="danger" pTooltip="Eliminar" (onClick)="deleteCourse(c)"></p-button>
+              <p-button
+                icon="pi pi-trash"
+                [text]="true"
+                severity="danger"
+                pTooltip="Eliminar"
+                (onClick)="deleteCourse(c)"
+              ></p-button>
             </td>
           </tr>
         </ng-template>
         <ng-template pTemplate="emptymessage">
-          <tr><td colspan="7" class="muted">No hay cursos. Creá el primero.</td></tr>
+          <tr>
+            <td colspan="7" class="muted">No hay cursos. Creá el primero.</td>
+          </tr>
         </ng-template>
       </p-table>
     </p-card>
     <p class="hint">
-      Se listan los cursos <strong>publicados</strong> y los <strong>borradores</strong>
+      Se listan los cursos <strong>publicados</strong> y los
+      <strong>borradores</strong>
       (creados sin "publicar ahora", o despublicados). Editar un borrador y
       publicarlo lo lleva al catálogo y al panel del docente.
     </p>
@@ -113,25 +141,46 @@
   <!-- ==================== ÁREAS ==================== -->
   <div *ngIf="!loading && section === 'areas'">
     <div class="section-toolbar">
-      <p-button label="Nueva área" icon="pi pi-plus" (onClick)="newArea()"></p-button>
+      <p-button
+        label="Nueva área"
+        icon="pi pi-plus"
+        (onClick)="newArea()"
+      ></p-button>
     </div>
     <p-card styleClass="p-card-shadow">
       <p-table [value]="areas" class="p-datatable-striped">
         <ng-template pTemplate="header">
-          <tr><th>Nombre</th><th>Descripción</th><th>Acciones</th></tr>
+          <tr>
+            <th>Nombre</th>
+            <th>Descripción</th>
+            <th>Acciones</th>
+          </tr>
         </ng-template>
         <ng-template pTemplate="body" let-a>
           <tr>
-            <td><strong>{{ a.name }}</strong></td>
+            <td>
+              <strong>{{ a.name }}</strong>
+            </td>
             <td>{{ a.description || "—" }}</td>
             <td class="actions">
-              <p-button icon="pi pi-pencil" [text]="true" (onClick)="editArea(a)"></p-button>
-              <p-button icon="pi pi-trash" [text]="true" severity="danger" (onClick)="deleteArea(a)"></p-button>
+              <p-button
+                icon="pi pi-pencil"
+                [text]="true"
+                (onClick)="editArea(a)"
+              ></p-button>
+              <p-button
+                icon="pi pi-trash"
+                [text]="true"
+                severity="danger"
+                (onClick)="deleteArea(a)"
+              ></p-button>
             </td>
           </tr>
         </ng-template>
         <ng-template pTemplate="emptymessage">
-          <tr><td colspan="3" class="muted">Sin áreas formativas.</td></tr>
+          <tr>
+            <td colspan="3" class="muted">Sin áreas formativas.</td>
+          </tr>
         </ng-template>
       </p-table>
     </p-card>
@@ -140,36 +189,71 @@
   <!-- ==================== MATERIALES ==================== -->
   <div *ngIf="!loading && section === 'materiales'">
     <div class="section-toolbar">
-      <p-button label="Nuevo material" icon="pi pi-plus" (onClick)="newMaterial()"></p-button>
+      <p-button
+        label="Nuevo material"
+        icon="pi pi-plus"
+        (onClick)="newMaterial()"
+      ></p-button>
     </div>
     <p-card styleClass="p-card-shadow">
       <p-table [value]="materials" class="p-datatable-striped">
         <ng-template pTemplate="header">
-          <tr><th>Título</th><th>Tipo</th><th>Enlace / archivo</th><th>Acciones</th></tr>
+          <tr>
+            <th>Título</th>
+            <th>Tipo</th>
+            <th>Enlace / archivo</th>
+            <th>Acciones</th>
+          </tr>
         </ng-template>
         <ng-template pTemplate="body" let-m>
           <tr>
-            <td><strong>{{ m.title }}</strong></td>
+            <td>
+              <strong>{{ m.title }}</strong>
+            </td>
             <td><p-tag [value]="m.type || '—'"></p-tag></td>
             <td>
-              <a *ngIf="m.file?.url" [href]="m.file?.url" target="_blank" rel="noopener">archivo</a>
-              <a *ngIf="!m.file?.url && m.url" [href]="m.url" target="_blank" rel="noopener" class="ellipsis">{{ m.url }}</a>
+              <a
+                *ngIf="m.file?.url"
+                [href]="m.file?.url"
+                target="_blank"
+                rel="noopener"
+                >archivo</a
+              >
+              <a
+                *ngIf="!m.file?.url && m.url"
+                [href]="m.url"
+                target="_blank"
+                rel="noopener"
+                class="ellipsis"
+                >{{ m.url }}</a
+              >
               <span *ngIf="!m.file?.url && !m.url" class="muted">—</span>
             </td>
             <td class="actions">
-              <p-button icon="pi pi-pencil" [text]="true" (onClick)="editMaterial(m)"></p-button>
-              <p-button icon="pi pi-trash" [text]="true" severity="danger" (onClick)="deleteMaterial(m)"></p-button>
+              <p-button
+                icon="pi pi-pencil"
+                [text]="true"
+                (onClick)="editMaterial(m)"
+              ></p-button>
+              <p-button
+                icon="pi pi-trash"
+                [text]="true"
+                severity="danger"
+                (onClick)="deleteMaterial(m)"
+              ></p-button>
             </td>
           </tr>
         </ng-template>
         <ng-template pTemplate="emptymessage">
-          <tr><td colspan="4" class="muted">Sin materiales.</td></tr>
+          <tr>
+            <td colspan="4" class="muted">Sin materiales.</td>
+          </tr>
         </ng-template>
       </p-table>
     </p-card>
     <p class="hint">
-      Para <strong>Video</strong> o <strong>Link</strong> alcanza con pegar la URL
-      (YouTube, Drive, etc.). La subida de archivos binarios todavía no está
+      Para <strong>Video</strong> o <strong>Link</strong> alcanza con pegar la
+      URL (YouTube, Drive, etc.). La subida de archivos binarios todavía no está
       implementada; el <code>Asset ID</code> es opcional y debe existir ya en
       Contentful.
     </p>
@@ -186,7 +270,11 @@
   <div class="form-grid">
     <label>
       Título <span class="req">*</span>
-      <input pInputText [(ngModel)]="courseForm.title" placeholder="Nombre del curso" />
+      <input
+        pInputText
+        [(ngModel)]="courseForm.title"
+        placeholder="Nombre del curso"
+      />
     </label>
 
     <label>
@@ -211,7 +299,11 @@
       </label>
       <label>
         Duración
-        <input pInputText [(ngModel)]="courseForm.duration" placeholder="ej. 8 semanas" />
+        <input
+          pInputText
+          [(ngModel)]="courseForm.duration"
+          placeholder="ej. 8 semanas"
+        />
       </label>
     </div>
 
@@ -258,13 +350,20 @@
     </label>
 
     <label *ngIf="!editingCourseId" class="checkbox-row">
-      <p-checkbox [(ngModel)]="courseForm.publicar" [binary]="true"></p-checkbox>
+      <p-checkbox
+        [(ngModel)]="courseForm.publicar"
+        [binary]="true"
+      ></p-checkbox>
       Publicar ahora (queda visible en el catálogo y en el panel del docente)
     </label>
   </div>
 
   <ng-template pTemplate="footer">
-    <p-button label="Cancelar" [text]="true" (onClick)="courseDialog = false"></p-button>
+    <p-button
+      label="Cancelar"
+      [text]="true"
+      (onClick)="courseDialog = false"
+    ></p-button>
     <p-button
       [label]="editingCourseId ? 'Guardar cambios' : 'Crear curso'"
       icon="pi pi-check"
@@ -289,11 +388,19 @@
     </label>
     <label>
       Descripción
-      <textarea pTextarea [(ngModel)]="areaForm.description" rows="3"></textarea>
+      <textarea
+        pTextarea
+        [(ngModel)]="areaForm.description"
+        rows="3"
+      ></textarea>
     </label>
   </div>
   <ng-template pTemplate="footer">
-    <p-button label="Cancelar" [text]="true" (onClick)="areaDialog = false"></p-button>
+    <p-button
+      label="Cancelar"
+      [text]="true"
+      (onClick)="areaDialog = false"
+    ></p-button>
     <p-button
       label="Guardar"
       icon="pi pi-check"
@@ -334,7 +441,11 @@
         [class.p-invalid]="materialUrlInvalid"
       />
       <small class="muted" [class.err]="materialUrlInvalid">
-        {{ materialUrlInvalid ? "Debe empezar con http:// o https://" : "Para Video o Link: pegá acá el enlace." }}
+        {{
+          materialUrlInvalid
+            ? "Debe empezar con http:// o https://"
+            : "Para Video o Link: pegá acá el enlace."
+        }}
       </small>
     </label>
 
@@ -346,13 +457,22 @@
         (change)="onMaterialFile($event)"
       />
       <small class="muted" [class.err]="materialFileError">
-        {{ materialFileError || (materialFile ? materialFile.name + " listo para subir" : "Se sube a Contentful al guardar. Los videos van por URL, no por archivo.") }}
+        {{
+          materialFileError ||
+            (materialFile
+              ? materialFile.name + " listo para subir"
+              : "Se sube a Contentful al guardar. Los videos van por URL, no por archivo.")
+        }}
       </small>
     </label>
 
     <label>
       Asset ID de Contentful (opcional)
-      <input pInputText [(ngModel)]="materialForm.fileAssetId" placeholder="ej. 3xAmPl3AssetId" />
+      <input
+        pInputText
+        [(ngModel)]="materialForm.fileAssetId"
+        placeholder="ej. 3xAmPl3AssetId"
+      />
       <small class="muted">
         Alternativa a subir el archivo: pegar el id de un Asset que ya existe en
         Contentful.
@@ -360,12 +480,18 @@
     </label>
   </div>
   <ng-template pTemplate="footer">
-    <p-button label="Cancelar" [text]="true" (onClick)="materialDialog = false"></p-button>
+    <p-button
+      label="Cancelar"
+      [text]="true"
+      (onClick)="materialDialog = false"
+    ></p-button>
     <p-button
       [label]="materialFile ? 'Subir y guardar' : 'Guardar'"
       icon="pi pi-check"
       [loading]="savingMaterial"
-      [disabled]="!materialForm.title.trim() || materialUrlInvalid || !!materialFileError"
+      [disabled]="
+        !materialForm.title.trim() || materialUrlInvalid || !!materialFileError
+      "
       (onClick)="saveMaterial()"
     ></p-button>
   </ng-template>

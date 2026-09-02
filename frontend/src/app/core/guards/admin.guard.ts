@@ -13,6 +13,10 @@ export const adminGuard: CanActivateFn = () => {
   const authService = inject(AuthService);
   const router = inject(Router);
 
+  if (!authService.isLocallyAuthenticated()) {
+    return router.createUrlTree(["/login"]);
+  }
+
   return authService.isAuthenticated().pipe(
     map((res: MeResponse) => {
       const roleId = res.role_id ?? res.user?.role_id ?? "";

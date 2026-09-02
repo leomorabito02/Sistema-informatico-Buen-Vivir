@@ -30,9 +30,9 @@
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">89.47% </span>
+                <span class="strong">94.73% </span>
                 <span class="quiet">Branches</span>
-                <span class='fraction'>17/19</span>
+                <span class='fraction'>18/19</span>
             </div>
         
             
@@ -46,7 +46,7 @@
             <div class='fl pad1y space-right2'>
                 <span class="strong">100% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>18/18</span>
+                <span class='fraction'>19/19</span>
             </div>
         
             
@@ -113,7 +113,10 @@
 <a name='L48'></a><a href='#L48'>48</a>
 <a name='L49'></a><a href='#L49'>49</a>
 <a name='L50'></a><a href='#L50'>50</a>
-<a name='L51'></a><a href='#L51'>51</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
+<a name='L51'></a><a href='#L51'>51</a>
+<a name='L52'></a><a href='#L52'>52</a>
+<a name='L53'></a><a href='#L53'>53</a>
+<a name='L54'></a><a href='#L54'>54</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -128,19 +131,21 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">1x</span>
-<span class="cline-any cline-yes">5x</span>
+<span class="cline-any cline-yes">6x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">6x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">6x</span>
+<span class="cline-any cline-yes">6x</span>
+<span class="cline-any cline-yes">6x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">5x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">5x</span>
-<span class="cline-any cline-yes">5x</span>
-<span class="cline-any cline-yes">5x</span>
+<span class="cline-any cline-yes">3x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">4x</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">2x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">1x</span>
@@ -149,10 +154,11 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">15x</span>
 <span class="cline-any cline-yes">14x</span>
-<span class="cline-any cline-yes">13x</span>
-<span class="cline-any cline-yes">13x</span>
-<span class="cline-any cline-yes">9x</span>
+<span class="cline-any cline-yes">14x</span>
+<span class="cline-any cline-yes">4x</span>
+<span class="cline-any cline-yes">10x</span>
 <span class="cline-any cline-yes">7x</span>
 <span class="cline-any cline-yes">5x</span>
 <span class="cline-any cline-yes">3x</span>
@@ -163,25 +169,25 @@
 <span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">import { Component, OnInit, inject } from '@angular/core';
-import { CommonModule } from '@angular/common';
-import { RouterLink } from '@angular/router';
-import { AuthService } from '../../../services/auth.service';
-import { MeResponse } from '../../../core/models/auth.model';
-import { LucideAngularModule, Bell, Settings, LogOut } from 'lucide-angular';
+<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">import { Component, OnInit, inject } from "@angular/core";
+import { CommonModule } from "@angular/common";
+import { RouterLink } from "@angular/router";
+import { AuthService } from "../../../services/auth.service";
+import { MeResponse } from "../../../core/models/auth.model";
+import { LucideAngularModule, Bell, Settings, LogOut } from "lucide-angular";
 &nbsp;
 @Component({
-  selector: 'app-header',
+  selector: "app-header",
   standalone: true,
   imports: [CommonModule, RouterLink, LucideAngularModule],
-  templateUrl: './header.component.html',
-  styleUrl: './header.component.css'
+  templateUrl: "./header.component.html",
+  styleUrl: "./header.component.css",
 })
 export class HeaderComponent implements OnInit {
   private authService = inject(AuthService);
 &nbsp;
-  roleName: string = '';
-  
+  roleName: string = "";
+&nbsp;
   // Icons
   Bell = Bell;
   Settings = Settings;
@@ -190,23 +196,26 @@ export class HeaderComponent implements OnInit {
   ngOnInit(): void {
     this.authService.isAuthenticated().subscribe({
       next: (response: MeResponse) =&gt; {
-        this.roleName = this.mapRoleIdToName(response.role_id ?? <span class="branch-1 cbranch-no" title="branch not covered" >response.user?.role_id </span>?? <span class="branch-2 cbranch-no" title="branch not covered" >'')</span>;
+        this.roleName = this.mapRoleIdToName(
+          response.role_id ?? response.user?.role_id ?? <span class="branch-2 cbranch-no" title="branch not covered" >"",</span>
+        );
       },
       error: () =&gt; {
-        this.roleName = '';
-      }
+        this.roleName = "";
+      },
     });
   }
 &nbsp;
   mapRoleIdToName(roleId: string): string {
-    if (!roleId) return '';
+    if (!roleId) return "";
     const id = roleId.toLowerCase();
-    if (id === 'role_participant' || id === 'participante') return 'participante';
-    if (id === 'role_admin' || id === 'responsable') return 'responsable';
-    if (id === 'role_volunteer' || id === 'voluntario') return 'voluntario';
-    if (id === 'role_teacher' || id === 'docente') return 'docente';
-    if (id === 'role_company' || id === 'empresa') return 'empresa';
-    return id.replace('role_', '');
+    if (id === "role_participant" || id === "participante")
+      return "participante";
+    if (id === "role_admin" || id === "responsable") return "responsable";
+    if (id === "role_volunteer" || id === "voluntario") return "voluntario";
+    if (id === "role_teacher" || id === "docente") return "docente";
+    if (id === "role_company" || id === "empresa") return "empresa";
+    return id.replace("role_", "");
   }
 &nbsp;
   logout(): void {
@@ -220,7 +229,7 @@ export class HeaderComponent implements OnInit {
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2026-08-26T02:16:42.578Z
+                at 2026-09-02T18:44:02.371Z
             </div>
         <script src="../../../../prettify.js"></script>
         <script>

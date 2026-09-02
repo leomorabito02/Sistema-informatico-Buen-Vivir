@@ -112,7 +112,11 @@ export class AsistenciaComponent implements OnInit {
   }
 
   crearActividad() {
-    if (!this.selectedCourseId || !this.nuevaActividadTitulo || !this.nuevaActividadFecha)
+    if (
+      !this.selectedCourseId ||
+      !this.nuevaActividadTitulo ||
+      !this.nuevaActividadFecha
+    )
       return;
     this.creandoActividad = true;
     this.error = "";
@@ -168,21 +172,26 @@ export class AsistenciaComponent implements OnInit {
   guardar() {
     if (!this.selectedActivityId) return;
     const payload = this.draft
-      .map((d) => ({ participanteId: d.participanteId.trim(), presente: d.presente }))
+      .map((d) => ({
+        participanteId: d.participanteId.trim(),
+        presente: d.presente,
+      }))
       .filter((d) => d.participanteId);
     if (payload.length === 0) return;
     this.guardando = true;
     this.error = "";
-    this.education.registerAttendance(this.selectedActivityId, payload).subscribe({
-      next: () => {
-        this.guardando = false;
-        this.info = "Asistencia registrada.";
-        this.selectActivity(this.selectedActivityId!);
-      },
-      error: (err: Error) => {
-        this.error = err.message;
-        this.guardando = false;
-      },
-    });
+    this.education
+      .registerAttendance(this.selectedActivityId, payload)
+      .subscribe({
+        next: () => {
+          this.guardando = false;
+          this.info = "Asistencia registrada.";
+          this.selectActivity(this.selectedActivityId!);
+        },
+        error: (err: Error) => {
+          this.error = err.message;
+          this.guardando = false;
+        },
+      });
   }
 }
