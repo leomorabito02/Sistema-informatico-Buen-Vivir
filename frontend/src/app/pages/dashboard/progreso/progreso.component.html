@@ -2,77 +2,113 @@
   <div class="header-section">
     <div>
       <h1 class="page-title">
-        <i class="pi pi-chart-line mr-2"></i>Mi Progreso Académico
+        <i class="pi pi-chart-line mr-2"></i>Progreso del Curso
       </h1>
       <p class="page-subtitle">
-        Seguí tu avance en las capacitaciones y obtené tus certificados.
+        Asistencia de cada participante inscripto, calculada sobre las
+        actividades del curso.
       </p>
     </div>
   </div>
 
-  <div class="summary-card-wrapper mb-4">
-    <p-card styleClass="p-card-shadow">
-      <div class="summary-content">
-        <div>
-          <h3>Avance General de Formación</h3>
-          <p class="text-muted">
-            Completaste el {{ overallProgress }}% de tu plan formativo actual.
-          </p>
-        </div>
-        <div class="progress-bar-container">
-          <p-progressBar
-            [value]="overallProgress"
-            [showValue]="true"
-          ></p-progressBar>
-        </div>
-      </div>
-    </p-card>
+  <div *ngIf="loadingCourses" class="state-box">
+    <p-progressSpinner
+      strokeWidth="4"
+      [style]="{ width: '40px', height: '40px' }"
+    ></p-progressSpinner>
+    <span>Cargando tus cursos…</span>
   </div>
 
-  <h2 class="section-heading mb-3">Cursos en Cursada</h2>
-  <div class="grid-container mb-6">
-    <div *ngFor="let curso of activeCourses" class="course-progress-card">
-      <p-card [header]="curso.title" styleClass="p-card-shadow">
-        <div class="card-body">
-          <div class="progress-info mb-2">
-            <span>Módulos: {{ curso.modulesDone }}</span>
-            <span
-              >Asistencia: <strong>{{ curso.attendance }}</strong></span
-            >
+  <p-message
+    *ngIf="error"
+    severity="error"
+    [text]="error"
+    styleClass="w-full"
+  ></p-message>
+
+  <ng-container *ngIf="!loadingCourses">
+    <p *ngIf="courseOptions.length === 0 && !error" class="empty-state">
+      No tenés cursos asignados como docente responsable.
+    </p>
+
+    <div *ngIf="courseOptions.length > 0" class="course-picker">
+      <label>Curso</label>
+      <p-select
+        [options]="courseOptions"
+        optionLabel="label"
+        optionValue="value"
+        [(ngModel)]="selectedCourseId"
+        (onChange)="onCourseChange()"
+        placeholder="Elegí un curso"
+        [style]="{ minWidth: '280px' }"
+      ></p-select>
+    </div>
+
+    <div *ngIf="selectedCourseId" class="summary-card-wrapper mb-4">
+      <p-card styleClass="p-card-shadow">
+        <div class="summary-content">
+          <div>
+            <h3>Asistencia promedio del curso</h3>
+            <p class="text-muted">
+              Promedio sobre {{ rows.length }} participante(s) inscripto(s).
+            </p>
           </div>
-          <p-progressBar
-            [value]="curso.progress"
-            styleClass="mb-3"
-          ></p-progressBar>
-          <div class="next-class">
-            <i class="pi pi-calendar mr-1"></i> Próxima clase:
-            {{ curso.nextClass }}
+          <div class="progress-bar-container">
+            <p-progressBar
+              [value]="overallProgress"
+              [showValue]="true"
+            ></p-progressBar>
           </div>
         </div>
       </p-card>
     </div>
-  </div>
 
-  <h2 class="section-heading mb-3">Cursos Finalizados</h2>
-  <div class="grid-container">
-    <div *ngFor="let curso of completedCourses" class="course-completed-card">
-      <p-card [header]="curso.title" styleClass="p-card-shadow">
-        <div class="card-body">
-          <p>Fecha de finalización: {{ curso.completedDate }}</p>
-          <p-tag
-            value="Calificación: Excelente"
-            severity="success"
-            styleClass="mb-3"
-          ></p-tag>
-        </div>
-        <ng-template pTemplate="footer">
-          <p-button
-            label="Descargar Certificado"
-            icon="pi pi-download"
-            styleClass="p-button-outlined w-full"
-          ></p-button>
+    <div *ngIf="loadingProgress" class="state-box">
+      <p-progressSpinner
+        strokeWidth="4"
+        [style]="{ width: '32px', height: '32px' }"
+      ></p-progressSpinner>
+      <span>Calculando progreso…</span>
+    </div>
+
+    <p-card
+      *ngIf="selectedCourseId && !loadingProgress"
+      styleClass="p-card-shadow"
+    >
+      <p-table [value]="rows" class="p-datatable-striped">
+        <ng-template pTemplate="header">
+          <tr>
+            <th>Participante (id)</th>
+            <th>Actividades asistidas</th>
+            <th>Actividades totales</th>
+            <th>% Asistencia</th>
+          </tr>
         </ng-template>
-      </p-card>
-    </div>
-  </div>
+        <ng-template pTemplate="body" let-row>
+          <tr>
+            <td>
+              <code>{{ row.participanteId }}</code>
+            </td>
+            <td>{{ row.actividadesAsistidas }}</td>
+            <td>{{ row.actividadesTotal }}</td>
+            <td style="min-width: 180px">
+              <p-progressBar
+                [value]="row.porcentajeAsistencia"
+                [showValue]="true"
+              ></p-progressBar>
+            </td>
+          </tr>
+        </ng-template>
+        <ng-template pTemplate="emptymessage">
+          <tr>
+            <td colspan="4" class="empty-state">
+              Este curso no tiene participantes inscriptos todavía. La carga de
+              inscripciones aún no tiene endpoint (ver
+              INTEGRACION_EDUCATION_FRONTEND.md).
+            </td>
+          </tr>
+        </ng-template>
+      </p-table>
+    </p-card>
+  </ng-container>
 </div>

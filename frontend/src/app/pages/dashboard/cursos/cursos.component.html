@@ -21,40 +21,132 @@
     </div>
   </div>
 
-  <div class="grid-container">
+  <div *ngIf="loading" class="state-box">
+    <p-progressSpinner
+      strokeWidth="4"
+      [style]="{ width: '48px', height: '48px' }"
+    ></p-progressSpinner>
+    <span>Cargando cursos…</span>
+  </div>
+
+  <p-message
+    *ngIf="!loading && error"
+    severity="error"
+    [text]="error"
+    styleClass="w-full"
+  ></p-message>
+
+  <p
+    *ngIf="!loading && !error && filteredCursos.length === 0"
+    class="empty-state"
+  >
+    No hay cursos publicados por ahora.
+  </p>
+
+  <div class="grid-container" *ngIf="!loading && !error">
     <div *ngFor="let curso of filteredCursos" class="course-card-wrapper">
       <p-card
         [header]="curso.title"
-        [subheader]="curso.category"
+        [subheader]="curso.area"
         styleClass="p-card-shadow course-card"
       >
         <div class="card-content">
+          <p class="course-desc">
+            {{ curso.descripcion || "Sin descripción." }}
+          </p>
           <div class="info-row">
             <span><i class="pi pi-clock"></i> {{ curso.duration }}</span>
-            <span><i class="pi pi-user"></i> {{ curso.instructor }}</span>
-          </div>
-          <div class="info-row">
             <span
-              ><i class="pi pi-chart-line"></i> Nivel: {{ curso.level }}</span
+              ><i class="pi pi-folder"></i>
+              {{ curso.materialsCount }} materiales</span
             >
-            <span><i class="pi pi-users"></i> Vacantes: {{ curso.seats }}</span>
+          </div>
+          <div class="info-row" *ngIf="curso.teacherId">
+            <span
+              ><i class="pi pi-user"></i> Docente:
+              <code>{{ curso.teacherId }}</code></span
+            >
           </div>
           <div class="status-badge-container">
             <p-tag
-              [value]="curso.status"
-              [severity]="getSeverity(curso.status)"
+              [value]="curso.mode"
+              [severity]="modeSeverity(curso.mode)"
             ></p-tag>
           </div>
         </div>
         <ng-template pTemplate="footer">
-          <p-button
-            label="Inscribirme"
-            icon="pi pi-check-circle"
-            [disabled]="curso.seats === 0"
-            styleClass="w-full p-button-success"
-          ></p-button>
+          <div class="card-actions">
+            <p-button
+              label="Ver detalle"
+              icon="pi pi-eye"
+              [text]="true"
+              (onClick)="openDetail(curso)"
+            ></p-button>
+            <p-button
+              label="Inscribirme"
+              icon="pi pi-check-circle"
+              [disabled]="true"
+              pTooltip="La inscripción a cursos todavía no está disponible en el backend."
+              styleClass="p-button-success"
+            ></p-button>
+          </div>
         </ng-template>
       </p-card>
     </div>
   </div>
 </div>
+
+<p-dialog
+  [(visible)]="detailVisible"
+  [modal]="true"
+  [style]="{ width: '620px' }"
+  [header]="detail?.title || 'Curso'"
+>
+  <div *ngIf="detail" class="detail">
+    <div class="detail-meta">
+      <p-tag
+        [value]="detail.mode"
+        [severity]="modeSeverity(detail.mode)"
+      ></p-tag>
+      <span><i class="pi pi-sitemap"></i> {{ detail.area }}</span>
+      <span><i class="pi pi-clock"></i> {{ detail.duration }}</span>
+    </div>
+
+    <h4>Descripción</h4>
+    <app-rich-text [doc]="detail.raw.description"></app-rich-text>
+
+    <h4>Materiales</h4>
+    <ul *ngIf="detail.raw.material?.length; else sinMat" class="mat-list">
+      <li *ngFor="let m of detail.raw.material">
+        <i
+          class="pi"
+          [ngClass]="{
+            'pi-file-pdf': m.type === 'PDF',
+            'pi-video': m.type === 'Video',
+            'pi-link': m.type === 'Link',
+            'pi-file': !m.type,
+          }"
+        ></i>
+        <a
+          *ngIf="matHref(m) as href; else soloTitulo"
+          [href]="href"
+          target="_blank"
+          rel="noopener"
+        >
+          {{ m.title }}
+        </a>
+        <ng-template #soloTitulo>{{ m.title }}</ng-template>
+        <span class="mat-type" *ngIf="m.type">{{ m.type }}</span>
+      </li>
+    </ul>
+    <ng-template #sinMat
+      ><p class="muted">
+        Este curso no tiene materiales cargados.
+      </p></ng-template
+    >
+
+    <p class="muted" *ngIf="detail.teacherId">
+      Docente responsable: <code>{{ detail.teacherId }}</code>
+    </p>
+  </div>
+</p-dialog>

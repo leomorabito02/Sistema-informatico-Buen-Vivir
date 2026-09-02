@@ -1,12 +1,15 @@
 declare global {
   interface Window {
-    __env?: { apiUrl?: string };
+    __env?: { apiUrl?: string; educationApiUrl?: string };
   }
 }
 
 export const environment = {
   production: false,
   apiUrl: window.__env?.apiUrl,
+  // Base del microservicio de Educación. Vacío = mismo origen (útil detrás
+  // del api-gateway o del proxy de `ng serve -c local`).
+  educationApiUrl: window.__env?.educationApiUrl ?? "",
   firebase: {
     projectId: "ceibuenvivir",
     appId: "1:429506836254:web:45f5eb50d86f074323bb0f",

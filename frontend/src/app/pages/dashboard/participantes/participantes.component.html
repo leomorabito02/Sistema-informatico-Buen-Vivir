@@ -2,13 +2,13 @@
   <div class="header-section">
     <div>
       <h1 class="page-title">
-        <i class="pi pi-users mr-2"></i>Gestión de Participantes
+        <i class="pi pi-users mr-2"></i>Participantes del Curso
       </h1>
       <p class="page-subtitle">
-        Padrón y seguimiento individual de alumnos inscritos en las actividades.
+        Inscriptos a cada curso del que sos docente responsable.
       </p>
     </div>
-    <div class="header-actions">
+    <div class="header-actions" *ngIf="selectedCourseId">
       <div class="search-box p-input-icon-left">
         <i class="pi pi-search"></i>
         <input
@@ -16,62 +16,95 @@
           type="text"
           [(ngModel)]="searchTerm"
           (input)="filter()"
-          placeholder="Buscar por DNI, nombre o curso..."
+          placeholder="Buscar por id o estado…"
           class="p-inputtext-sm"
         />
       </div>
-      <p-button
-        label="Registrar Participante"
-        icon="pi pi-user-plus"
-        styleClass="p-button-success"
-      ></p-button>
     </div>
   </div>
 
-  <p-card styleClass="p-card-shadow">
-    <p-table
-      [value]="filteredParticipants"
-      [paginator]="true"
-      [rows]="10"
-      class="p-datatable-striped"
+  <p-message
+    *ngIf="error"
+    severity="error"
+    [text]="error"
+    styleClass="w-full"
+  ></p-message>
+
+  <div *ngIf="loadingCourses" class="state-box">
+    <p-progressSpinner
+      strokeWidth="4"
+      [style]="{ width: '40px', height: '40px' }"
+    ></p-progressSpinner>
+    <span>Cargando tus cursos…</span>
+  </div>
+
+  <ng-container *ngIf="!loadingCourses">
+    <p *ngIf="courseOptions.length === 0 && !error" class="empty-state">
+      No tenés cursos asignados como docente responsable.
+    </p>
+
+    <div *ngIf="courseOptions.length > 0" class="course-picker">
+      <label>Curso</label>
+      <p-select
+        [options]="courseOptions"
+        optionLabel="label"
+        optionValue="value"
+        [(ngModel)]="selectedCourseId"
+        (onChange)="onCourseChange()"
+        placeholder="Elegí un curso"
+        [style]="{ minWidth: '280px' }"
+      ></p-select>
+    </div>
+
+    <div *ngIf="loadingEnrollments" class="state-box">
+      <p-progressSpinner
+        strokeWidth="4"
+        [style]="{ width: '32px', height: '32px' }"
+      ></p-progressSpinner>
+    </div>
+
+    <p-card
+      *ngIf="selectedCourseId && !loadingEnrollments"
+      styleClass="p-card-shadow"
     >
-      <ng-template pTemplate="header">
-        <tr>
-          <th>DNI</th>
-          <th>Nombre</th>
-          <th>Correo Electrónico</th>
-          <th>Teléfono</th>
-          <th>Curso Actual</th>
-          <th>Estado</th>
-          <th>Acciones</th>
-        </tr>
-      </ng-template>
-      <ng-template pTemplate="body" let-p>
-        <tr>
-          <td><span class="p-column-title">DNI</span>{{ p.dni }}</td>
-          <td>
-            <span class="p-column-title">Nombre</span
-            ><strong>{{ p.name }}</strong>
-          </td>
-          <td><span class="p-column-title">Email</span>{{ p.email }}</td>
-          <td><span class="p-column-title">Teléfono</span>{{ p.phone }}</td>
-          <td><span class="p-column-title">Curso</span>{{ p.course }}</td>
-          <td>
-            <span class="p-column-title">Estado</span>
-            <p-tag
-              [value]="p.status"
-              [severity]="p.status === 'Activo' ? 'success' : 'warning'"
-            ></p-tag>
-          </td>
-          <td>
-            <span class="p-column-title">Acciones</span>
-            <p-button
-              icon="pi pi-user-edit"
-              styleClass="p-button-outlined p-button-sm"
-            ></p-button>
-          </td>
-        </tr>
-      </ng-template>
-    </p-table>
-  </p-card>
+      <p-table
+        [value]="filtered"
+        [paginator]="filtered.length > 10"
+        [rows]="10"
+        class="p-datatable-striped"
+      >
+        <ng-template pTemplate="header">
+          <tr>
+            <th>Participante (id)</th>
+            <th>Estado</th>
+            <th>Fecha de inscripción</th>
+          </tr>
+        </ng-template>
+        <ng-template pTemplate="body" let-e>
+          <tr>
+            <td>
+              <code>{{ e.participanteId }}</code>
+            </td>
+            <td>
+              <p-tag
+                [value]="e.estado"
+                [severity]="estadoSeverity(e.estado)"
+              ></p-tag>
+            </td>
+            <td>{{ e.fechaInscripcion | date: "short" }}</td>
+          </tr>
+        </ng-template>
+        <ng-template pTemplate="emptymessage">
+          <tr>
+            <td colspan="3" class="empty-state">
+              Sin inscriptos. La carga de inscripciones todavía no tiene
+              endpoint en education-service (ver
+              INTEGRACION_EDUCATION_FRONTEND.md); hoy se cargan a mano en
+              Firestore.
+            </td>
+          </tr>
+        </ng-template>
+      </p-table>
+    </p-card>
+  </ng-container>
 </div>

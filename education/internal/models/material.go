@@ -25,14 +25,21 @@ type Material struct {
 	Title string    `json:"title"`
 	Type  string    `json:"type,omitempty"`
 	File  *AssetRef `json:"file,omitempty"`
+	// URL es un enlace externo (típicamente para type=Video o Link):
+	// un video de YouTube/Vimeo, un doc en Drive, etc. Es el campo
+	// "url" (Symbol) del Content Type "material". Alternativa liviana a
+	// subir el binario como Asset (File): si el material tiene File,
+	// se usa File; si no, se usa URL.
+	URL string `json:"url,omitempty"`
 }
 
 // MaterialInput es el payload que recibe el backend desde Angular para
 // crear o editar un material. FileAssetID referencia un Asset ya
-// existente en Contentful (la subida de archivos queda fuera de este
-// alcance, ver CLAUDE.md).
+// existente en Contentful; URL es un enlace externo (Video/Link). Se
+// puede mandar uno, otro, o ninguno.
 type MaterialInput struct {
 	Title       string `json:"title"`
 	Type        string `json:"type,omitempty"`
 	FileAssetID string `json:"fileAssetId,omitempty"`
+	URL         string `json:"url,omitempty"`
 }

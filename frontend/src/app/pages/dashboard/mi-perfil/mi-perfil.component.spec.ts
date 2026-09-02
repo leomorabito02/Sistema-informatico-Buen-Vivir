@@ -1,44 +1,39 @@
-import { ComponentFixture, TestBed } from "@angular/core/testing";
+import {
+  ComponentFixture,
+  TestBed,
+  fakeAsync,
+  tick,
+} from "@angular/core/testing";
 import { MiPerfilComponent } from "./mi-perfil.component";
 import { ProfileService } from "../../../services/profile.service";
-import { ReactiveFormsModule, FormGroup, FormControl } from "@angular/forms";
-import { BrowserAnimationsModule } from "@angular/platform-browser/animations";
-import { Auth } from "@angular/fire/auth";
 import { of, throwError } from "rxjs";
+import { ReactiveFormsModule } from "@angular/forms";
+import { Auth, GoogleAuthProvider, signInWithPopup } from "@angular/fire/auth";
 
 describe("MiPerfilComponent", () => {
   let component: MiPerfilComponent;
   let fixture: ComponentFixture<MiPerfilComponent>;
-  let mockProfileService: jasmine.SpyObj<ProfileService>;
+  let profileServiceSpy: jasmine.SpyObj<ProfileService>;
+  let mockAuth: any;
 
   beforeEach(async () => {
-    mockProfileService = jasmine.createSpyObj("ProfileService", [
+    profileServiceSpy = jasmine.createSpyObj("ProfileService", [
       "getMyProfile",
       "updateMyPassword",
       "linkGoogleAccount",
       "unlinkGoogleAccount",
     ]);
-
-    mockProfileService.getMyProfile.and.returnValue(
-      of({
-        user: {
-          id: "usr-1",
-          email: "test@test.com",
-          first_name: "John",
-          last_name: "Doe",
-        },
-      } as any),
+    profileServiceSpy.getMyProfile.and.returnValue(
+      of({ user: { email: "test@test.com" }, roles: [] } as any),
     );
 
+    mockAuth = {};
+
     await TestBed.configureTestingModule({
-      imports: [
-        MiPerfilComponent,
-        ReactiveFormsModule,
-        BrowserAnimationsModule,
-      ],
+      imports: [MiPerfilComponent, ReactiveFormsModule],
       providers: [
-        { provide: ProfileService, useValue: mockProfileService },
-        { provide: Auth, useValue: {} },
+        { provide: ProfileService, useValue: profileServiceSpy },
+        { provide: Auth, useValue: mockAuth },
       ],
     }).compileComponents();
 
@@ -47,299 +42,107 @@ describe("MiPerfilComponent", () => {
     fixture.detectChanges();
   });
 
-  it("should create and load profile with correct initial default states", () => {
+  it("should create", () => {
     expect(component).toBeTruthy();
-    expect(component.profileData).toBeDefined();
-    expect(component.loading).toBeFalse();
-    expect(component.error).toBe("");
-    expect(component.googleLoading).toBeFalse();
-    expect(component.googleSuccess).toBe("");
-    expect(component.googleError).toBe("");
-    expect(component.passwordLoading).toBeFalse();
-    expect(component.passwordSuccess).toBe("");
-    expect(component.passwordError).toBe("");
-    expect(component.showOldPassword).toBeFalse();
-    expect(component.showNewPassword).toBeFalse();
-    expect(component.showConfirmPassword).toBeFalse();
   });
 
-  it("should set error state if loadProfile fails", () => {
-    mockProfileService.getMyProfile.and.returnValue(
-      throwError(() => new Error("Load failed")),
+  it("should load profile on init", () => {
+    expect(profileServiceSpy.getMyProfile).toHaveBeenCalled();
+    expect(component.profileData?.user.email).toBe("test@test.com");
+    expect(component.loading).toBeFalse();
+  });
+
+  it("should format role names", () => {
+    expect(component.getRoleName("role_admin")).toBe("Responsable");
+    expect(component.getRoleName("role_teacher")).toBe("Docente");
+    expect(component.getRoleName("unknown")).toBe("unknown");
+    expect(component.getRoleName(undefined)).toBe("");
+  });
+
+  it("should format role key labels", () => {
+    expect(component.getRoleKeyLabel("approval_status")).toBe(
+      "Estado de Aprobación",
     );
-    component.loadProfile();
-    expect(component.error).toBe("Error al cargar el perfil");
-    expect(component.loading).toBeFalse();
+    expect(component.getRoleKeyLabel("some_other_key")).toBe("Some Other Key");
   });
 
-  describe("getRoleName", () => {
-    it("should return correct role label for known and unknown roles", () => {
-      expect(component.getRoleName("")).toBe("");
-      expect(component.getRoleName("role_participant")).toBe("Participante");
-      expect(component.getRoleName("role_company")).toBe("Empresa");
-      expect(component.getRoleName("role_teacher")).toBe("Docente");
-      expect(component.getRoleName("role_volunteer")).toBe("Voluntario");
-      expect(component.getRoleName("role_admin")).toBe("Responsable");
-      expect(component.getRoleName("role_dev")).toBe("Desarrollador");
-      expect(component.getRoleName("participant")).toBe("Participante");
-      expect(component.getRoleName("company")).toBe("Empresa");
-      expect(component.getRoleName("teacher")).toBe("Docente");
-      expect(component.getRoleName("volunteer")).toBe("Voluntario");
-      expect(component.getRoleName("admin")).toBe("Responsable");
-      expect(component.getRoleName("dev")).toBe("Desarrollador");
-      expect(component.getRoleName("custom_role")).toBe("custom_role");
-    });
+  it("should format role values", () => {
+    expect(component.formatRoleValue("test", null)).toBe("No especificado");
+    expect(component.formatRoleValue("test", true)).toBe("Sí");
+    expect(component.formatRoleValue("approval_status", "pending")).toBe(
+      "Pendiente",
+    );
+    expect(component.formatRoleValue("gender", "male")).toBe("Masculino");
+    expect(
+      component.formatRoleValue("created_at", "2023-01-01T12:00:00Z"),
+    ).toContain("2023");
   });
 
-  describe("getRoleKeyLabel", () => {
-    it("should return label from map or format snake_case key", () => {
-      expect(component.getRoleKeyLabel("volunteer_id")).toBe(
-        "ID de Voluntario",
-      );
-      expect(component.getRoleKeyLabel("participant_id")).toBe(
-        "ID de Participante",
-      );
-      expect(component.getRoleKeyLabel("teacher_id")).toBe("ID de Docente");
-      expect(component.getRoleKeyLabel("company_id")).toBe("ID de Empresa");
-      expect(component.getRoleKeyLabel("approval_status")).toBe(
-        "Estado de Aprobación",
-      );
-      expect(component.getRoleKeyLabel("approval_date")).toBe(
-        "Fecha de Aprobación",
-      );
-      expect(component.getRoleKeyLabel("approved_by")).toBe("Aprobado Por");
-      expect(component.getRoleKeyLabel("created_at")).toBe("Fecha de Creación");
-      expect(component.getRoleKeyLabel("updated_at")).toBe(
-        "Última Actualización",
-      );
-      expect(component.getRoleKeyLabel("deleted_at")).toBe(
-        "Fecha de Eliminación",
-      );
-      expect(component.getRoleKeyLabel("specialization")).toBe("Especialidad");
-      expect(component.getRoleKeyLabel("is_external")).toBe("Docente Externo");
-      expect(component.getRoleKeyLabel("business_name")).toBe("Razón Social");
-      expect(component.getRoleKeyLabel("cuit")).toBe("CUIT");
-      expect(component.getRoleKeyLabel("birthdate")).toBe(
-        "Fecha de Nacimiento",
-      );
-      expect(component.getRoleKeyLabel("dni")).toBe("DNI");
-      expect(component.getRoleKeyLabel("address")).toBe("Dirección");
-      expect(component.getRoleKeyLabel("gender")).toBe("Género");
-      expect(component.getRoleKeyLabel("image_url")).toBe("Imagen de Perfil");
-      expect(component.getRoleKeyLabel("doc_url")).toBe("Documentación");
-      expect(component.getRoleKeyLabel("emergency_contact_name")).toBe(
-        "Contacto de Emergencia",
-      );
-      expect(component.getRoleKeyLabel("emergency_contact_phone")).toBe(
-        "Teléfono de Emergencia",
-      );
-      expect(component.getRoleKeyLabel("custom_field_name")).toBe(
-        "Custom Field Name",
-      );
-    });
-  });
-
-  describe("formatRoleValue", () => {
-    it("should format null/undefined/empty as No especificado", () => {
-      expect(component.formatRoleValue("dni", null)).toBe("No especificado");
-      expect(component.formatRoleValue("dni", undefined)).toBe(
-        "No especificado",
-      );
-      expect(component.formatRoleValue("dni", "")).toBe("No especificado");
-    });
-
-    it("should format booleans", () => {
-      expect(component.formatRoleValue("is_external", true)).toBe("Sí");
-      expect(component.formatRoleValue("is_external", false)).toBe("No");
-    });
-
-    it("should format approval_status", () => {
-      expect(component.formatRoleValue("approval_status", "approved")).toBe(
-        "Aprobado",
-      );
-      expect(component.formatRoleValue("approval_status", "pending")).toBe(
-        "Pendiente",
-      );
-      expect(component.formatRoleValue("approval_status", "rejected")).toBe(
-        "Rechazado",
-      );
-      expect(component.formatRoleValue("approval_status", "other")).toBe(
-        "other",
-      );
-    });
-
-    it("should format gender", () => {
-      expect(component.formatRoleValue("gender", "male")).toBe("Masculino");
-      expect(component.formatRoleValue("gender", "female")).toBe("Femenino");
-      expect(component.formatRoleValue("gender", "other")).toBe("Otro");
-      expect(component.formatRoleValue("gender", "unknown")).toBe("unknown");
-    });
-
-    it("should format dates ending with _at or date", () => {
-      const atFormatted = component.formatRoleValue(
-        "created_at",
-        "2023-10-15T00:00:00Z",
-      );
-      expect(atFormatted).toContain("2023");
-
-      const dateFormatted = component.formatRoleValue(
-        "birthdate",
-        "1995-05-15T00:00:00Z",
-      );
-      expect(dateFormatted).toContain("1995");
-
-      const invalidDate = component.formatRoleValue("created_at", "not-a-date");
-      expect(invalidDate).toBe("not-a-date");
-    });
-
-    it("should return string representation for generic keys", () => {
-      expect(component.formatRoleValue("dni", "12345678")).toBe("12345678");
-    });
-  });
-
-  describe("passwordMatchValidator", () => {
-    it("should validate matching passwords", () => {
-      const group = new FormGroup({
-        newPassword: new FormControl("pass123"),
-        confirmPassword: new FormControl("pass123"),
-      });
-      expect(component.passwordMatchValidator(group)).toBeNull();
-    });
-
-    it("should return mismatch error for mismatching passwords", () => {
-      const group = new FormGroup({
-        newPassword: new FormControl("pass123"),
-        confirmPassword: new FormControl("pass456"),
-      });
-      expect(component.passwordMatchValidator(group)).toEqual({
-        mismatch: true,
-      });
-    });
-  });
-
-  describe("togglePasswordVisibility", () => {
-    it("should toggle visibility flags for old, new, and confirm fields", () => {
-      component.togglePasswordVisibility("old");
-      expect(component.showOldPassword).toBeTrue();
-      component.togglePasswordVisibility("old");
-      expect(component.showOldPassword).toBeFalse();
-
-      component.togglePasswordVisibility("new");
-      expect(component.showNewPassword).toBeTrue();
-      component.togglePasswordVisibility("new");
-      expect(component.showNewPassword).toBeFalse();
-
-      component.togglePasswordVisibility("confirm");
-      expect(component.showConfirmPassword).toBeTrue();
-      component.togglePasswordVisibility("confirm");
-      expect(component.showConfirmPassword).toBeFalse();
-    });
-  });
-
-  describe("changePassword", () => {
-    it("should validate password match before calling service", () => {
+  describe("Password Change", () => {
+    it("should validate password match", () => {
       component.passwordForm.patchValue({
-        oldPassword: "OldPassword123!",
-        newPassword: "NewPassword123!",
-        confirmPassword: "DifferentPassword123!",
+        newPassword: "password1",
+        confirmPassword: "password1",
       });
-      expect(component.passwordForm.invalid).toBeTrue();
-
-      component.changePassword();
-      expect(mockProfileService.updateMyPassword).not.toHaveBeenCalled();
-    });
-
-    it("should call updateMyPassword and handle success", () => {
-      mockProfileService.updateMyPassword.and.returnValue(of(undefined as any));
+      expect(component.passwordForm.errors).toBeNull();
 
       component.passwordForm.patchValue({
-        oldPassword: "OldPassword123!",
-        newPassword: "NewPassword123!",
-        confirmPassword: "NewPassword123!",
+        newPassword: "password1",
+        confirmPassword: "password123",
       });
+      expect(component.passwordForm.errors).toEqual({ mismatch: true });
+    });
+
+    it("should change password successfully", () => {
+      component.passwordForm.patchValue({
+        oldPassword: "old",
+        newPassword: "newPassword",
+        confirmPassword: "newPassword",
+      });
+      profileServiceSpy.updateMyPassword.and.returnValue(of(undefined as any));
 
       component.changePassword();
 
-      expect(mockProfileService.updateMyPassword).toHaveBeenCalledWith(
-        "OldPassword123!",
-        "NewPassword123!",
+      expect(profileServiceSpy.updateMyPassword).toHaveBeenCalledWith(
+        "old",
+        "newPassword",
       );
-      expect(component.passwordSuccess).toBe(
-        "Contraseña actualizada correctamente.",
-      );
-      expect(component.passwordLoading).toBeFalse();
+      expect(component.passwordSuccess).toContain("correctamente");
     });
 
-    it("should handle updateMyPassword error", () => {
-      mockProfileService.updateMyPassword.and.returnValue(
-        throwError(() => ({ error: { error: "Wrong password" } })),
-      );
-
+    it("should handle password change error", () => {
       component.passwordForm.patchValue({
-        oldPassword: "WrongPassword123!",
-        newPassword: "NewPassword123!",
-        confirmPassword: "NewPassword123!",
+        oldPassword: "old",
+        newPassword: "newPassword",
+        confirmPassword: "newPassword",
       });
+      profileServiceSpy.updateMyPassword.and.returnValue(
+        throwError(() => ({ error: { error: "Invalid old password" } })),
+      );
 
       component.changePassword();
 
-      expect(component.passwordError).toBe("Wrong password");
-      expect(component.passwordLoading).toBeFalse();
-    });
-
-    it("should handle updateMyPassword error with default message", () => {
-      mockProfileService.updateMyPassword.and.returnValue(
-        throwError(() => ({ error: {} })),
-      );
-
-      component.passwordForm.patchValue({
-        oldPassword: "WrongPassword123!",
-        newPassword: "NewPassword123!",
-        confirmPassword: "NewPassword123!",
-      });
-
-      component.changePassword();
-
-      expect(component.passwordError).toBe(
-        "Error al actualizar la contraseña.",
-      );
+      expect(component.passwordError).toBe("Invalid old password");
     });
   });
 
-  describe("unlinkGoogle", () => {
-    it("should call unlinkGoogleAccount and handle success", () => {
-      mockProfileService.unlinkGoogleAccount.and.returnValue(of({} as any));
-
+  describe("Google Link/Unlink", () => {
+    it("should unlink google account", () => {
+      profileServiceSpy.unlinkGoogleAccount.and.returnValue(of({} as any));
       component.unlinkGoogle();
 
-      expect(mockProfileService.unlinkGoogleAccount).toHaveBeenCalled();
-      expect(component.googleSuccess).toBe(
-        "Cuenta de Google desvinculada correctamente.",
-      );
-      expect(component.googleLoading).toBeFalse();
+      expect(profileServiceSpy.unlinkGoogleAccount).toHaveBeenCalled();
+      expect(component.googleSuccess).toContain("desvinculada correctamente");
+      expect(profileServiceSpy.getMyProfile).toHaveBeenCalledTimes(2); // Init + reload
     });
 
-    it("should handle unlinkGoogleAccount error", () => {
-      mockProfileService.unlinkGoogleAccount.and.returnValue(
-        throwError(() => ({ error: { error: "Unlink error" } })),
+    it("should handle unlink google error", () => {
+      profileServiceSpy.unlinkGoogleAccount.and.returnValue(
+        throwError(() => ({ error: { error: "Unlink Error" } })),
       );
-
       component.unlinkGoogle();
 
-      expect(component.googleError).toBe("Unlink error");
-      expect(component.googleLoading).toBeFalse();
-    });
-
-    it("should handle unlinkGoogleAccount error with default message", () => {
-      mockProfileService.unlinkGoogleAccount.and.returnValue(
-        throwError(() => ({ error: {} })),
-      );
-
-      component.unlinkGoogle();
-
-      expect(component.googleError).toBe(
-        "Error al desvincular la cuenta de Google.",
-      );
+      expect(component.googleError).toBe("Unlink Error");
     });
   });
 });

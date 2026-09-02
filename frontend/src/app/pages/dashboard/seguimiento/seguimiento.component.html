@@ -2,63 +2,95 @@
   <div class="header-section">
     <div>
       <h1 class="page-title">
-        <i class="pi pi-eye mr-2"></i>Seguimiento Pedagógico y Social
+        <i class="pi pi-eye mr-2"></i>Seguimiento Pedagógico
       </h1>
       <p class="page-subtitle">
-        Monitoreo continuo de participantes para acompañar su permanencia en el
-        programa.
+        Cruce de inscripciones y asistencia por participante para detectar
+        riesgo de deserción.
       </p>
     </div>
-    <p-button
-      label="Nuevo Informe"
-      icon="pi pi-plus"
-      styleClass="p-button-success"
-    ></p-button>
   </div>
 
-  <p-card styleClass="p-card-shadow">
-    <p-table [value]="records" class="p-datatable-striped">
-      <ng-template pTemplate="header">
-        <tr>
-          <th>Participante</th>
-          <th>Curso</th>
-          <th>Estado del Participante</th>
-          <th>Última Asistencia</th>
-          <th>Tutor / Voluntario</th>
-          <th>Observaciones</th>
-          <th>Acciones</th>
-        </tr>
-      </ng-template>
-      <ng-template pTemplate="body" let-item>
-        <tr>
-          <td>
-            <span class="p-column-title">Participante</span
-            ><strong>{{ item.participant }}</strong>
-          </td>
-          <td><span class="p-column-title">Curso</span>{{ item.course }}</td>
-          <td>
-            <span class="p-column-title">Estado</span>
-            <p-tag
-              [value]="item.status"
-              [severity]="getSeverity(item.status)"
-            ></p-tag>
-          </td>
-          <td>
-            <span class="p-column-title">Últ. Asistencia</span
-            >{{ item.lastAttendance }}
-          </td>
-          <td><span class="p-column-title">Tutor</span>{{ item.tutor }}</td>
-          <td><span class="p-column-title">Notas</span>{{ item.notes }}</td>
-          <td>
-            <span class="p-column-title">Acciones</span>
-            <p-button
-              icon="pi pi-comment"
-              label="Contactar"
-              styleClass="p-button-outlined p-button-sm"
-            ></p-button>
-          </td>
-        </tr>
-      </ng-template>
-    </p-table>
-  </p-card>
+  <p-message
+    *ngIf="error"
+    severity="error"
+    [text]="error"
+    styleClass="w-full"
+  ></p-message>
+
+  <div *ngIf="loadingCourses" class="state-box">
+    <p-progressSpinner
+      strokeWidth="4"
+      [style]="{ width: '40px', height: '40px' }"
+    ></p-progressSpinner>
+    <span>Cargando tus cursos…</span>
+  </div>
+
+  <ng-container *ngIf="!loadingCourses">
+    <p *ngIf="courseOptions.length === 0 && !error" class="empty-state">
+      No tenés cursos asignados como docente responsable.
+    </p>
+
+    <div *ngIf="courseOptions.length > 0" class="course-picker">
+      <label>Curso</label>
+      <p-select
+        [options]="courseOptions"
+        optionLabel="label"
+        optionValue="value"
+        [(ngModel)]="selectedCourseId"
+        (onChange)="onCourseChange()"
+        placeholder="Elegí un curso"
+        [style]="{ minWidth: '280px' }"
+      ></p-select>
+    </div>
+
+    <div *ngIf="loadingData" class="state-box">
+      <p-progressSpinner
+        strokeWidth="4"
+        [style]="{ width: '32px', height: '32px' }"
+      ></p-progressSpinner>
+    </div>
+
+    <p-card *ngIf="selectedCourseId && !loadingData" styleClass="p-card-shadow">
+      <p-table [value]="rows" class="p-datatable-striped">
+        <ng-template pTemplate="header">
+          <tr>
+            <th>Participante (id)</th>
+            <th>Inscripción</th>
+            <th>Asistencia</th>
+            <th>Actividades</th>
+            <th>Estado de seguimiento</th>
+          </tr>
+        </ng-template>
+        <ng-template pTemplate="body" let-r>
+          <tr>
+            <td>
+              <code>{{ r.participanteId }}</code>
+            </td>
+            <td>{{ r.estado }}</td>
+            <td style="min-width: 160px">
+              <p-progressBar
+                [value]="r.porcentajeAsistencia"
+                [showValue]="true"
+              ></p-progressBar>
+            </td>
+            <td>{{ r.actividadesAsistidas }} / {{ r.actividadesTotal }}</td>
+            <td>
+              <p-tag
+                [value]="r.riesgo"
+                [severity]="riesgoSeverity(r.riesgo)"
+              ></p-tag>
+            </td>
+          </tr>
+        </ng-template>
+        <ng-template pTemplate="emptymessage">
+          <tr>
+            <td colspan="5" class="empty-state">
+              Este curso no tiene participantes inscriptos todavía.
+            </td>
+          </tr>
+        </ng-template>
+      </p-table>
+    </p-card>
+  </ng-container>
 </div>

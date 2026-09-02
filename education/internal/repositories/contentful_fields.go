@@ -33,6 +33,40 @@ func rawLink(fields map[string]json.RawMessage, key string) (string, bool) {
 	return link.Sys.ID, true
 }
 
+// unwrapLocale desenvuelve el valor de un campo tal como lo devuelve la
+// Content Management API — envuelto por locale ({"<locale>": valor}) —
+// y devuelve el RawMessage interno. Si el locale configurado no está,
+// cae al primero disponible.
+func unwrapLocale(raw json.RawMessage, locale string) json.RawMessage {
+	if len(raw) == 0 {
+		return nil
+	}
+	var byLocale map[string]json.RawMessage
+	if err := json.Unmarshal(raw, &byLocale); err != nil {
+		return nil
+	}
+	if v, ok := byLocale[locale]; ok {
+		return v
+	}
+	for _, v := range byLocale {
+		return v
+	}
+	return nil
+}
+
+// flattenCMAFields aplana los campos locale-wrapped de una entry de la
+// CMA al mismo formato "plano" que sirve la CDA, para poder reusar
+// rawString/rawLink/rawLinks y el resto del mapeo sin duplicarlo.
+func flattenCMAFields(fields map[string]json.RawMessage, locale string) map[string]json.RawMessage {
+	flat := make(map[string]json.RawMessage, len(fields))
+	for k, v := range fields {
+		if u := unwrapLocale(v, locale); u != nil {
+			flat[k] = u
+		}
+	}
+	return flat
+}
+
 // rawLinks extrae los ids de un campo References (many).
 func rawLinks(fields map[string]json.RawMessage, key string) []string {
 	raw, ok := fields[key]
