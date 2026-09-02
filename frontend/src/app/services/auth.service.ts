@@ -29,14 +29,14 @@ export class AuthService {
   constructor() {}
 
   isLocallyAuthenticated(): boolean {
-    return localStorage.getItem('isAuthenticated') === 'true';
+    return localStorage.getItem("isAuthenticated") === "true";
   }
 
   setLocallyAuthenticated(status: boolean): void {
     if (status) {
-      localStorage.setItem('isAuthenticated', 'true');
+      localStorage.setItem("isAuthenticated", "true");
     } else {
-      localStorage.removeItem('isAuthenticated');
+      localStorage.removeItem("isAuthenticated");
     }
   }
 
@@ -102,7 +102,7 @@ export class AuthService {
       )
       .pipe(
         tap(() => this.setLocallyAuthenticated(true)),
-        catchError(this.handleError)
+        catchError(this.handleError),
       );
   }
 
@@ -116,7 +116,7 @@ export class AuthService {
       })
       .pipe(
         tap(() => this.setLocallyAuthenticated(true)),
-        catchError(this.handleError)
+        catchError(this.handleError),
       );
   }
 
