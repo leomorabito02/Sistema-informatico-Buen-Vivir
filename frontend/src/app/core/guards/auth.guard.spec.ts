@@ -13,7 +13,8 @@ describe("authGuard", () => {
   const mockUrlTree = {} as UrlTree;
 
   beforeEach(() => {
-    mockAuthService = jasmine.createSpyObj("AuthService", ["isAuthenticated"]);
+    mockAuthService = jasmine.createSpyObj("AuthService", ["isAuthenticated", "isLocallyAuthenticated"]);
+    mockAuthService.isLocallyAuthenticated.and.returnValue(true);
     mockRouter = jasmine.createSpyObj("Router", ["createUrlTree"]);
     mockRouter.createUrlTree.and.returnValue(mockUrlTree);
 

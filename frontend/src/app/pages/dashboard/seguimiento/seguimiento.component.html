@@ -11,10 +11,18 @@
     </div>
   </div>
 
-  <p-message *ngIf="error" severity="error" [text]="error" styleClass="w-full"></p-message>
+  <p-message
+    *ngIf="error"
+    severity="error"
+    [text]="error"
+    styleClass="w-full"
+  ></p-message>
 
   <div *ngIf="loadingCourses" class="state-box">
-    <p-progressSpinner strokeWidth="4" [style]="{ width: '40px', height: '40px' }"></p-progressSpinner>
+    <p-progressSpinner
+      strokeWidth="4"
+      [style]="{ width: '40px', height: '40px' }"
+    ></p-progressSpinner>
     <span>Cargando tus cursos…</span>
   </div>
 
@@ -37,7 +45,10 @@
     </div>
 
     <div *ngIf="loadingData" class="state-box">
-      <p-progressSpinner strokeWidth="4" [style]="{ width: '32px', height: '32px' }"></p-progressSpinner>
+      <p-progressSpinner
+        strokeWidth="4"
+        [style]="{ width: '32px', height: '32px' }"
+      ></p-progressSpinner>
     </div>
 
     <p-card *ngIf="selectedCourseId && !loadingData" styleClass="p-card-shadow">
@@ -53,14 +64,22 @@
         </ng-template>
         <ng-template pTemplate="body" let-r>
           <tr>
-            <td><code>{{ r.participanteId }}</code></td>
+            <td>
+              <code>{{ r.participanteId }}</code>
+            </td>
             <td>{{ r.estado }}</td>
             <td style="min-width: 160px">
-              <p-progressBar [value]="r.porcentajeAsistencia" [showValue]="true"></p-progressBar>
+              <p-progressBar
+                [value]="r.porcentajeAsistencia"
+                [showValue]="true"
+              ></p-progressBar>
             </td>
             <td>{{ r.actividadesAsistidas }} / {{ r.actividadesTotal }}</td>
             <td>
-              <p-tag [value]="r.riesgo" [severity]="riesgoSeverity(r.riesgo)"></p-tag>
+              <p-tag
+                [value]="r.riesgo"
+                [severity]="riesgoSeverity(r.riesgo)"
+              ></p-tag>
             </td>
           </tr>
         </ng-template>

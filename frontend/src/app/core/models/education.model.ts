@@ -141,7 +141,9 @@ export interface EducationApiError {
  * Suficiente para listados y previews; para render completo hace falta
  * un componente dedicado (pendiente, ver INTEGRACION_EDUCATION_FRONTEND.md).
  */
-export function richTextToPlain(doc: RichTextDocument | null | undefined): string {
+export function richTextToPlain(
+  doc: RichTextDocument | null | undefined,
+): string {
   if (!doc) return "";
   const walk = (node: RichTextNode): string => {
     if (typeof node.value === "string") return node.value;

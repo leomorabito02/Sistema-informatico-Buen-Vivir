@@ -8,13 +8,17 @@
       <p class="page-subtitle">
         Cursos donde figurás como docente responsable. Desde
         <a routerLink="/dashboard/asistencia">Asistencia</a> y
-        <a routerLink="/dashboard/progreso">Progreso</a> podés gestionar cada uno.
+        <a routerLink="/dashboard/progreso">Progreso</a> podés gestionar cada
+        uno.
       </p>
     </div>
   </div>
 
   <div *ngIf="loading" class="state-box">
-    <p-progressSpinner strokeWidth="4" [style]="{ width: '48px', height: '48px' }"></p-progressSpinner>
+    <p-progressSpinner
+      strokeWidth="4"
+      [style]="{ width: '48px', height: '48px' }"
+    ></p-progressSpinner>
     <span>Cargando tus cursos…</span>
   </div>
 
@@ -102,14 +106,22 @@
             'pi-file-pdf': m.type === 'PDF',
             'pi-video': m.type === 'Video',
             'pi-link': m.type === 'Link',
-            'pi-file': !m.type
+            'pi-file': !m.type,
           }"
         ></i>
-        <a *ngIf="matHref(m) as href; else soloT" [href]="href" target="_blank" rel="noopener">{{ m.title }}</a>
+        <a
+          *ngIf="matHref(m) as href; else soloT"
+          [href]="href"
+          target="_blank"
+          rel="noopener"
+          >{{ m.title }}</a
+        >
         <ng-template #soloT>{{ m.title }}</ng-template>
       </li>
     </ul>
-    <ng-template #sinMat><p class="muted">Todavía no hay materiales.</p></ng-template>
+    <ng-template #sinMat
+      ><p class="muted">Todavía no hay materiales.</p></ng-template
+    >
 
     <h4 class="mat-h">Agregar material</h4>
     <div class="mat-form">
@@ -120,7 +132,11 @@
       <label>
         Tipo
         <p-select
-          [options]="[{label:'PDF',value:'PDF'},{label:'Video',value:'Video'},{label:'Link',value:'Link'}]"
+          [options]="[
+            { label: 'PDF', value: 'PDF' },
+            { label: 'Video', value: 'Video' },
+            { label: 'Link', value: 'Link' },
+          ]"
           optionLabel="label"
           optionValue="value"
           [(ngModel)]="matForm.type"
@@ -153,7 +169,11 @@
   </div>
 
   <ng-template pTemplate="footer">
-    <p-button label="Cerrar" [text]="true" (onClick)="matDialog = false"></p-button>
+    <p-button
+      label="Cerrar"
+      [text]="true"
+      (onClick)="matDialog = false"
+    ></p-button>
     <p-button
       [label]="matFile ? 'Subir y agregar' : 'Agregar'"
       icon="pi pi-plus"
@@ -163,4 +183,3 @@
     ></p-button>
   </ng-template>
 </p-dialog>
-

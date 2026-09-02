@@ -149,7 +149,8 @@ export class MisCursosComponent implements OnInit {
     }
     const limitMb = this.uploadLimits[f.type];
     if (!limitMb) {
-      this.matFileError = "Tipo no permitido (JPG/PNG/WEBP/PDF/DOC). Video: usá URL.";
+      this.matFileError =
+        "Tipo no permitido (JPG/PNG/WEBP/PDF/DOC). Video: usá URL.";
       this.matFile = null;
       return;
     }
@@ -165,7 +166,8 @@ export class MisCursosComponent implements OnInit {
   }
 
   addMaterial() {
-    if (!this.matCourse || !this.matForm.title.trim() || this.matUrlInvalid) return;
+    if (!this.matCourse || !this.matForm.title.trim() || this.matUrlInvalid)
+      return;
     this.savingMat = true;
 
     const create$ = this.matFile
@@ -184,7 +186,11 @@ export class MisCursosComponent implements OnInit {
       next: (material: Material) => this.attachToCourse(material),
       error: (err: Error) => {
         this.savingMat = false;
-        this.toast.add({ severity: "error", summary: "No se pudo crear el material", detail: err.message });
+        this.toast.add({
+          severity: "error",
+          summary: "No se pudo crear el material",
+          detail: err.message,
+        });
       },
     });
   }

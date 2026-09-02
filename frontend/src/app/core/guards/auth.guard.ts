@@ -8,6 +8,10 @@ export const authGuard: CanActivateFn = () => {
   const authService = inject(AuthService);
   const router = inject(Router);
 
+  if (!authService.isLocallyAuthenticated()) {
+    return router.createUrlTree(["/login"]);
+  }
+
   return authService.isAuthenticated().pipe(
     map((res: MeResponse) => {
       if (res.user_status === "blocked" || res.user?.status === "blocked") {

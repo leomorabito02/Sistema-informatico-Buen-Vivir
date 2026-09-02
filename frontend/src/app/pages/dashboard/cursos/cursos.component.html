@@ -22,7 +22,10 @@
   </div>
 
   <div *ngIf="loading" class="state-box">
-    <p-progressSpinner strokeWidth="4" [style]="{ width: '48px', height: '48px' }"></p-progressSpinner>
+    <p-progressSpinner
+      strokeWidth="4"
+      [style]="{ width: '48px', height: '48px' }"
+    ></p-progressSpinner>
     <span>Cargando cursos…</span>
   </div>
 
@@ -48,16 +51,20 @@
         styleClass="p-card-shadow course-card"
       >
         <div class="card-content">
-          <p class="course-desc">{{ curso.descripcion || "Sin descripción." }}</p>
+          <p class="course-desc">
+            {{ curso.descripcion || "Sin descripción." }}
+          </p>
           <div class="info-row">
             <span><i class="pi pi-clock"></i> {{ curso.duration }}</span>
             <span
-              ><i class="pi pi-folder"></i> {{ curso.materialsCount }} materiales</span
+              ><i class="pi pi-folder"></i>
+              {{ curso.materialsCount }} materiales</span
             >
           </div>
           <div class="info-row" *ngIf="curso.teacherId">
             <span
-              ><i class="pi pi-user"></i> Docente: <code>{{ curso.teacherId }}</code></span
+              ><i class="pi pi-user"></i> Docente:
+              <code>{{ curso.teacherId }}</code></span
             >
           </div>
           <div class="status-badge-container">
@@ -97,7 +104,10 @@
 >
   <div *ngIf="detail" class="detail">
     <div class="detail-meta">
-      <p-tag [value]="detail.mode" [severity]="modeSeverity(detail.mode)"></p-tag>
+      <p-tag
+        [value]="detail.mode"
+        [severity]="modeSeverity(detail.mode)"
+      ></p-tag>
       <span><i class="pi pi-sitemap"></i> {{ detail.area }}</span>
       <span><i class="pi pi-clock"></i> {{ detail.duration }}</span>
     </div>
@@ -114,17 +124,26 @@
             'pi-file-pdf': m.type === 'PDF',
             'pi-video': m.type === 'Video',
             'pi-link': m.type === 'Link',
-            'pi-file': !m.type
+            'pi-file': !m.type,
           }"
         ></i>
-        <a *ngIf="matHref(m) as href; else soloTitulo" [href]="href" target="_blank" rel="noopener">
+        <a
+          *ngIf="matHref(m) as href; else soloTitulo"
+          [href]="href"
+          target="_blank"
+          rel="noopener"
+        >
           {{ m.title }}
         </a>
         <ng-template #soloTitulo>{{ m.title }}</ng-template>
         <span class="mat-type" *ngIf="m.type">{{ m.type }}</span>
       </li>
     </ul>
-    <ng-template #sinMat><p class="muted">Este curso no tiene materiales cargados.</p></ng-template>
+    <ng-template #sinMat
+      ><p class="muted">
+        Este curso no tiene materiales cargados.
+      </p></ng-template
+    >
 
     <p class="muted" *ngIf="detail.teacherId">
       Docente responsable: <code>{{ detail.teacherId }}</code>

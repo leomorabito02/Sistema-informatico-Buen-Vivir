@@ -135,10 +135,9 @@ export class AdminCursosComponent implements OnInit {
     this.users.listByRole("role_teacher").subscribe({
       next: (list) => {
         this.teacherOptions = list.map((u) => ({
-          label:
-            `${u.first_name ?? ""} ${u.last_name ?? ""}`.trim()
-              ? `${u.first_name} ${u.last_name} · ${u.email}`
-              : u.email,
+          label: `${u.first_name ?? ""} ${u.last_name ?? ""}`.trim()
+            ? `${u.first_name} ${u.last_name} · ${u.email}`
+            : u.email,
           value: u.user_id,
         }));
       },
@@ -314,7 +313,11 @@ export class AdminCursosComponent implements OnInit {
         this.reloadAll();
       },
       error: (err: Error) =>
-        this.toast.add({ severity: "error", summary: "Error", detail: err.message }),
+        this.toast.add({
+          severity: "error",
+          summary: "Error",
+          detail: err.message,
+        }),
     });
   }
 
@@ -380,7 +383,11 @@ export class AdminCursosComponent implements OnInit {
       },
       error: (err: Error) => {
         this.savingArea = false;
-        this.toast.add({ severity: "error", summary: "Error", detail: err.message });
+        this.toast.add({
+          severity: "error",
+          summary: "Error",
+          detail: err.message,
+        });
       },
     });
   }
@@ -489,7 +496,11 @@ export class AdminCursosComponent implements OnInit {
           },
           error: (err: Error) => {
             this.savingMaterial = false;
-            this.toast.add({ severity: "error", summary: "Error al subir", detail: err.message });
+            this.toast.add({
+              severity: "error",
+              summary: "Error al subir",
+              detail: err.message,
+            });
           },
         });
       return;
@@ -520,7 +531,11 @@ export class AdminCursosComponent implements OnInit {
       },
       error: (err: Error) => {
         this.savingMaterial = false;
-        this.toast.add({ severity: "error", summary: "Error", detail: err.message });
+        this.toast.add({
+          severity: "error",
+          summary: "Error",
+          detail: err.message,
+        });
       },
     });
   }
@@ -554,6 +569,10 @@ export class AdminCursosComponent implements OnInit {
 
   private saveError(err: Error) {
     this.savingCourse = false;
-    this.toast.add({ severity: "error", summary: "No se pudo guardar", detail: err.message });
+    this.toast.add({
+      severity: "error",
+      summary: "No se pudo guardar",
+      detail: err.message,
+    });
   }
 }

@@ -167,7 +167,11 @@ export class EducationService {
   }
 
   /** Sube un archivo (imagen/PDF) y crea el material con ese Asset. */
-  uploadMaterial(file: File, title: string, type: string): Observable<Material> {
+  uploadMaterial(
+    file: File,
+    title: string,
+    type: string,
+  ): Observable<Material> {
     const form = new FormData();
     form.append("file", file);
     form.append("title", title);

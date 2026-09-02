@@ -12,7 +12,10 @@
   </div>
 
   <div *ngIf="loadingCourses" class="state-box">
-    <p-progressSpinner strokeWidth="4" [style]="{ width: '40px', height: '40px' }"></p-progressSpinner>
+    <p-progressSpinner
+      strokeWidth="4"
+      [style]="{ width: '40px', height: '40px' }"
+    ></p-progressSpinner>
     <span>Cargando tus cursos…</span>
   </div>
 
@@ -24,10 +27,7 @@
   ></p-message>
 
   <ng-container *ngIf="!loadingCourses">
-    <p
-      *ngIf="courseOptions.length === 0 && !error"
-      class="empty-state"
-    >
+    <p *ngIf="courseOptions.length === 0 && !error" class="empty-state">
       No tenés cursos asignados como docente responsable.
     </p>
 
@@ -54,14 +54,20 @@
             </p>
           </div>
           <div class="progress-bar-container">
-            <p-progressBar [value]="overallProgress" [showValue]="true"></p-progressBar>
+            <p-progressBar
+              [value]="overallProgress"
+              [showValue]="true"
+            ></p-progressBar>
           </div>
         </div>
       </p-card>
     </div>
 
     <div *ngIf="loadingProgress" class="state-box">
-      <p-progressSpinner strokeWidth="4" [style]="{ width: '32px', height: '32px' }"></p-progressSpinner>
+      <p-progressSpinner
+        strokeWidth="4"
+        [style]="{ width: '32px', height: '32px' }"
+      ></p-progressSpinner>
       <span>Calculando progreso…</span>
     </div>
 
@@ -80,7 +86,9 @@
         </ng-template>
         <ng-template pTemplate="body" let-row>
           <tr>
-            <td><code>{{ row.participanteId }}</code></td>
+            <td>
+              <code>{{ row.participanteId }}</code>
+            </td>
             <td>{{ row.actividadesAsistidas }}</td>
             <td>{{ row.actividadesTotal }}</td>
             <td style="min-width: 180px">
