@@ -28,6 +28,22 @@ rutas de education apuntando a `${EDUCATION_SERVICE_URL}` (generadas con
 `add_education_routes.py`, idempotente). `cd-api-gateway` resuelve esa
 URL desde Cloud Run igual que la de auth. Ver §4.
 
+**Dependencia bumpeada:** `google.golang.org/grpc` `v1.82.1 → v1.83.2`
+en `education/go.mod` para cerrar `CVE-2026-84445` (HIGH), que el paso
+de Trivy de `ci-education` bloquea. `auth` tiene la **misma CVE** en
+`v1.83.1` (bloquea `ci-auth`, que es pre-requisito del `ci-gate`) — hay
+que bumpear también `auth/go.mod` a `v1.83.2`
+(`cd auth && go get google.golang.org/grpc@v1.83.2 && go mod tidy`).
+
+**Lint:** `ci-education` es la primera vez que education pasa por
+`golangci-lint`, así que hubo que limpiar ~23 hallazgos pre-existentes
+(errores de `Close()`/`Write()` sin chequear → `_ =`; deprecaciones
+`SA1019` de `httprate.LimitByIP` / `middleware.RealIP` /
+`option.WithCredentialsJSON` / `firestore.Batch` → `//nolint:staticcheck`
+con el mismo criterio que auth ya usa; un `switch` a tagged switch; una
+cadena de error capitalizada). Todo verificado local con
+`golangci-lint v2.13.1` (el mismo del pipeline): **0 issues**.
+
 ---
 
 ## 2. GitHub Secrets

@@ -118,12 +118,12 @@ func TestCourseRepository_Update_UsesCurrentVersion(t *testing.T) {
 	cma := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		callCount++
 		w.Header().Set("Content-Type", "application/json")
-		switch {
-		case r.Method == http.MethodGet:
+		switch r.Method {
+		case http.MethodGet:
 			_ = json.NewEncoder(w).Encode(map[string]any{
 				"sys": map[string]any{"id": "c1", "version": 3},
 			})
-		case r.Method == http.MethodPut:
+		case http.MethodPut:
 			assert.Equal(t, "3", r.Header.Get("X-Contentful-Version"))
 			_ = json.NewEncoder(w).Encode(map[string]any{
 				"sys": map[string]any{"id": "c1", "version": 4},

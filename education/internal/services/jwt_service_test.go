@@ -19,7 +19,7 @@ import (
 // probar rutas que llaman a os.Exit) en vez de tumbar el proceso de test.
 func TestNewJWTService_MissingSecret_Exits(t *testing.T) {
 	if os.Getenv("BE_CRASHER") == "1" {
-		os.Unsetenv("JWT_SECRET")
+		_ = os.Unsetenv("JWT_SECRET")
 		services.NewJWTService()
 		return
 	}
@@ -35,7 +35,7 @@ func TestNewJWTService_MissingSecret_Exits(t *testing.T) {
 
 func TestNewJWTService_InsecureDefault_Exits(t *testing.T) {
 	if os.Getenv("BE_CRASHER") == "1" {
-		os.Setenv("JWT_SECRET", "super-secret-access-key")
+		_ = os.Setenv("JWT_SECRET", "super-secret-access-key")
 		services.NewJWTService()
 		return
 	}

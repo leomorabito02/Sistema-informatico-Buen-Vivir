@@ -303,7 +303,7 @@ func (c *ContentfulClient) do(req *http.Request) ([]byte, int, error) {
 	if err != nil {
 		return nil, 0, fmt.Errorf("error de red hablando con Contentful: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	respBody, err := io.ReadAll(resp.Body)
 	if err != nil {

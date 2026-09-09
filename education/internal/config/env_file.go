@@ -28,7 +28,7 @@ func loadEnvFile(path string) error {
 		}
 		return err
 	}
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 
 	scanner := bufio.NewScanner(f)
 	for scanner.Scan() {
@@ -52,7 +52,7 @@ func loadEnvFile(path string) error {
 		if _, exists := os.LookupEnv(key); exists {
 			continue
 		}
-		os.Setenv(key, value)
+		_ = os.Setenv(key, value)
 	}
 
 	return scanner.Err()

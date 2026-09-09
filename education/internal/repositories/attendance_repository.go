@@ -70,7 +70,7 @@ func (r *attendanceRepository) RegisterBatch(ctx context.Context, actividadID st
 	}
 
 	now := time.Now().UTC()
-	batch := r.client.Batch()
+	batch := r.client.Batch() //nolint:staticcheck // WriteBatch alcanza para este lote chico y atómico; migrar a BulkWriter no aporta acá
 	for _, in := range inputs {
 		docID := actividadID + "_" + in.ParticipanteID
 		a := models.Attendance{

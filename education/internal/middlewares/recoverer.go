@@ -14,7 +14,7 @@ func Recoverer(next http.Handler) http.Handler {
 				slog.Error("panic recuperado", slog.Any("error", rec), slog.String("path", r.URL.Path))
 				w.Header().Set("Content-Type", "application/json")
 				w.WriteHeader(http.StatusInternalServerError)
-				w.Write([]byte(`{"error":"error interno del servidor"}`))
+				_, _ = w.Write([]byte(`{"error":"error interno del servidor"}`))
 			}
 		}()
 		next.ServeHTTP(w, r)
