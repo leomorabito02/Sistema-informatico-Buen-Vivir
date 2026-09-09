@@ -35,6 +35,14 @@ de Trivy de `ci-education` bloquea. `auth` tiene la **misma CVE** en
 que bumpear también `auth/go.mod` a `v1.83.2`
 (`cd auth && go get google.golang.org/grpc@v1.83.2 && go mod tidy`).
 
+**Dockerfile:** `education/Dockerfile` se alineó con `auth/Dockerfile`
+(que ya pasa el scan de Trivy): agrega `apk --no-cache upgrade` en la
+etapa de runtime — sin eso, la capa `alpine:latest` quedaba con la
+`openssl` del snapshot de la imagen base (3.5.7-r0, `CVE-2026-14456`
+HIGH) en vez de la parcheada del repo (3.5.8-r0). De paso trae el resto
+del hardening de auth (usuario no-root `appuser`, `tzdata`, binario
+stripped con `-ldflags="-s -w"`).
+
 **Lint:** `ci-education` es la primera vez que education pasa por
 `golangci-lint`, así que hubo que limpiar ~23 hallazgos pre-existentes
 (errores de `Close()`/`Write()` sin chequear → `_ =`; deprecaciones
