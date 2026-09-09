@@ -24,7 +24,7 @@ func TestNewFirestoreClient_RawJSONCredentials_UnsetsEnvVar(t *testing.T) {
 
 	client, err := NewFirestoreClient(context.Background())
 	require.NoError(t, err)
-	defer client.Close()
+	defer func() { _ = client.Close() }()
 
 	assert.Empty(t, os.Getenv("GOOGLE_APPLICATION_CREDENTIALS"),
 		"la variable con el JSON crudo se limpia tras construir el cliente")
@@ -40,7 +40,7 @@ func TestNewFirestoreClient_Base64Credentials_TakesPriority(t *testing.T) {
 
 	client, err := NewFirestoreClient(context.Background())
 	require.NoError(t, err)
-	defer client.Close()
+	defer func() { _ = client.Close() }()
 
 	assert.Empty(t, os.Getenv("GOOGLE_APPLICATION_CREDENTIALS"),
 		"cuando hay _BASE64, se limpia el path de GOOGLE_APPLICATION_CREDENTIALS")
@@ -66,7 +66,7 @@ func TestNewFirestoreClient_PathCredentials_LeavesEnvVarUntouched(t *testing.T) 
 
 	client, err := NewFirestoreClient(context.Background())
 	require.NoError(t, err)
-	defer client.Close()
+	defer func() { _ = client.Close() }()
 
 	assert.Equal(t, "/ruta/inexistente/sa.json", os.Getenv("GOOGLE_APPLICATION_CREDENTIALS"))
 }

@@ -268,6 +268,21 @@ func TestCourseController_Delete_NotFound(t *testing.T) {
 	assert.Equal(t, http.StatusNotFound, w.Code)
 }
 
+func TestCourseController_Publish_Conflict_Returns409(t *testing.T) {
+	mockSvc := new(MockCourseService)
+	ctrl := controllers.NewCourseController(mockSvc)
+
+	// Conflicto de versión optimista en Contentful (edición concurrente):
+	// writeError lo mapea a 409, ver http_helpers.go.
+	mockSvc.On("PublishCourse", mock.Anything, "c1").Return(repoErrConflict())
+
+	req := withChiURLParam(httptest.NewRequest("POST", "/api/cursos/c1/publicar", nil), "id", "c1")
+	w := httptest.NewRecorder()
+	ctrl.Publish(w, req)
+
+	assert.Equal(t, http.StatusConflict, w.Code)
+}
+
 func TestCourseController_Publish_Success(t *testing.T) {
 	mockSvc := new(MockCourseService)
 	ctrl := controllers.NewCourseController(mockSvc)

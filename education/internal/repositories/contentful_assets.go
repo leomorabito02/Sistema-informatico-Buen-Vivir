@@ -125,7 +125,7 @@ func (c *ContentfulClient) uploadBinary(ctx context.Context, data []byte) (strin
 		} `json:"sys"`
 	}
 	if err := json.Unmarshal(body, &up); err != nil || up.Sys.ID == "" {
-		return "", fmt.Errorf("Contentful no devolvió un upload id: %s", string(body))
+		return "", fmt.Errorf("contentful no devolvió un upload id: %s", string(body))
 	}
 	return up.Sys.ID, nil
 }

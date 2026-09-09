@@ -43,14 +43,14 @@ func NewFirestoreClient(ctx context.Context) (*firestore.Client, error) {
 		if err != nil {
 			return nil, err
 		}
-		os.Unsetenv("GOOGLE_APPLICATION_CREDENTIALS")
-		return firestore.NewClient(ctx, firestore.DetectProjectID, option.WithCredentialsJSON(decoded))
+		_ = os.Unsetenv("GOOGLE_APPLICATION_CREDENTIALS")
+		return firestore.NewClient(ctx, firestore.DetectProjectID, option.WithCredentialsJSON(decoded)) //nolint:staticcheck // option.WithCredentialsJSON es necesario para credenciales inline (mismo criterio que auth/firebase_service.go)
 	}
 
 	credentialsEnv := strings.TrimSpace(os.Getenv("GOOGLE_APPLICATION_CREDENTIALS"))
 	if strings.HasPrefix(credentialsEnv, "{") {
-		os.Unsetenv("GOOGLE_APPLICATION_CREDENTIALS")
-		return firestore.NewClient(ctx, firestore.DetectProjectID, option.WithCredentialsJSON([]byte(credentialsEnv)))
+		_ = os.Unsetenv("GOOGLE_APPLICATION_CREDENTIALS")
+		return firestore.NewClient(ctx, firestore.DetectProjectID, option.WithCredentialsJSON([]byte(credentialsEnv))) //nolint:staticcheck // option.WithCredentialsJSON es necesario para credenciales inline (mismo criterio que auth/firebase_service.go)
 	}
 	return firestore.NewClient(ctx, firestore.DetectProjectID)
 }
