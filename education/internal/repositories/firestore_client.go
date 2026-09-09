@@ -2,6 +2,7 @@ package repositories
 
 import (
 	"context"
+	"encoding/base64"
 	"os"
 	"strings"
 
@@ -29,7 +30,23 @@ import (
 // firestore.DetectProjectID hace que el SDK infiera el project id a
 // partir de esas credenciales, sin necesitar una variable de entorno
 // propia para el project id.
+//
+// GOOGLE_APPLICATION_CREDENTIALS_BASE64 es una tercera forma: el JSON de
+// la service account codificado en base64. Es lo que inyecta el pipeline
+// de CD a Cloud Run (mismo criterio que auth-service con
+// FIREBASE_CREDENTIALS_BASE64), porque un JSON crudo multilínea no entra
+// limpio en la lista de env_vars de deploy-cloudrun. Tiene prioridad
+// sobre GOOGLE_APPLICATION_CREDENTIALS.
 func NewFirestoreClient(ctx context.Context) (*firestore.Client, error) {
+	if b64 := strings.TrimSpace(os.Getenv("GOOGLE_APPLICATION_CREDENTIALS_BASE64")); b64 != "" {
+		decoded, err := base64.StdEncoding.DecodeString(b64)
+		if err != nil {
+			return nil, err
+		}
+		os.Unsetenv("GOOGLE_APPLICATION_CREDENTIALS")
+		return firestore.NewClient(ctx, firestore.DetectProjectID, option.WithCredentialsJSON(decoded))
+	}
+
 	credentialsEnv := strings.TrimSpace(os.Getenv("GOOGLE_APPLICATION_CREDENTIALS"))
 	if strings.HasPrefix(credentialsEnv, "{") {
 		os.Unsetenv("GOOGLE_APPLICATION_CREDENTIALS")
