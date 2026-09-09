@@ -20,24 +20,22 @@ type MockParticipantRepository struct {
 }
 
 func (m *MockParticipantRepository) Create(ctx context.Context, part *models.Participant) error {
-	args := m.Called(ctx, part)
-	return args.Error(0)
+	return m.Called(ctx, part).Error(0)
+}
+
+func (m *MockParticipantRepository) mockParticipantReturn(args mock.Arguments) (*models.Participant, error) {
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*models.Participant), args.Error(1)
 }
 
 func (m *MockParticipantRepository) FindByID(ctx context.Context, id string) (*models.Participant, error) {
-	args := m.Called(ctx, id)
-	if args.Get(0) == nil {
-		return nil, args.Error(1)
-	}
-	return args.Get(0).(*models.Participant), args.Error(1)
+	return m.mockParticipantReturn(m.Called(ctx, id))
 }
 
 func (m *MockParticipantRepository) FindByUserID(ctx context.Context, userID string) (*models.Participant, error) {
-	args := m.Called(ctx, userID)
-	if args.Get(0) == nil {
-		return nil, args.Error(1)
-	}
-	return args.Get(0).(*models.Participant), args.Error(1)
+	return m.mockParticipantReturn(m.Called(ctx, userID))
 }
 
 func (m *MockParticipantRepository) FindAll(ctx context.Context) ([]models.Participant, error) {
@@ -49,13 +47,11 @@ func (m *MockParticipantRepository) FindAll(ctx context.Context) ([]models.Parti
 }
 
 func (m *MockParticipantRepository) Update(ctx context.Context, part *models.Participant) error {
-	args := m.Called(ctx, part)
-	return args.Error(0)
+	return m.Called(ctx, part).Error(0)
 }
 
 func (m *MockParticipantRepository) Delete(ctx context.Context, id string) error {
-	args := m.Called(ctx, id)
-	return args.Error(0)
+	return m.Called(ctx, id).Error(0)
 }
 
 func TestParticipantService_GetAllParticipants_Success(t *testing.T) {

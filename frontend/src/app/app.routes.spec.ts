@@ -55,6 +55,48 @@ describe("App Routes", () => {
     }
   });
 
+  it("should lazy load privacidad component", async () => {
+    const route = routes.find((r) => r.path === "privacidad");
+    expect(route?.loadComponent).toBeDefined();
+    if (route?.loadComponent) {
+      const component = await (route.loadComponent as any)();
+      expect(component).toBeDefined();
+    }
+  });
+
+  it("should lazy load terminos component", async () => {
+    const route = routes.find((r) => r.path === "terminos");
+    expect(route?.loadComponent).toBeDefined();
+    if (route?.loadComponent) {
+      const component = await (route.loadComponent as any)();
+      expect(component).toBeDefined();
+    }
+  });
+
+  it("should lazy load cookies component", async () => {
+    const route = routes.find((r) => r.path === "cookies");
+    expect(route?.loadComponent).toBeDefined();
+    if (route?.loadComponent) {
+      const component = await (route.loadComponent as any)();
+      expect(component).toBeDefined();
+    }
+  });
+
+  it("should lazy load contacto component", async () => {
+    const route = routes.find((r) => r.path === "contacto");
+    expect(route?.loadComponent).toBeDefined();
+    if (route?.loadComponent) {
+      const component = await (route.loadComponent as any)();
+      expect(component).toBeDefined();
+    }
+  });
+
+  it("should lazy load mi-cuenta component and its children", async () => {
+    const miCuenta = routes.find((r) => r.path === "mi-cuenta");
+    expect(miCuenta?.loadComponent).toBeDefined();
+    expect(miCuenta?.children?.length).toBeGreaterThan(0);
+  });
+
   const childrenRoutes = [
     "mi-perfil",
     "cursos",

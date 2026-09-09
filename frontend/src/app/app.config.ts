@@ -3,8 +3,7 @@ import {
   provideZoneChangeDetection,
   isDevMode,
 } from "@angular/core";
-import { provideAnimationsAsync } from "@angular/platform-browser/animations/async";
-import { provideRouter } from "@angular/router";
+import { provideRouter, withInMemoryScrolling } from "@angular/router";
 import { provideHttpClient, withInterceptors } from "@angular/common/http";
 import { provideServiceWorker } from "@angular/service-worker";
 import { providePrimeNG } from "primeng/config";
@@ -18,9 +17,14 @@ import { environment } from "../environments/environment";
 
 export const appConfig: ApplicationConfig = {
   providers: [
-    provideAnimationsAsync(),
     provideZoneChangeDetection({ eventCoalescing: true }),
-    provideRouter(routes),
+    provideRouter(
+      routes,
+      withInMemoryScrolling({
+        scrollPositionRestoration: "top",
+        anchorScrolling: "enabled",
+      }),
+    ),
     provideHttpClient(withInterceptors([authInterceptor])),
     provideServiceWorker("ngsw-worker.js", {
       enabled: !isDevMode(),

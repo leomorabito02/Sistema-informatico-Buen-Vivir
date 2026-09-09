@@ -20,24 +20,22 @@ type MockVolunteerRepository struct {
 }
 
 func (m *MockVolunteerRepository) Create(ctx context.Context, vol *models.Volunteer) error {
-	args := m.Called(ctx, vol)
-	return args.Error(0)
+	return m.Called(ctx, vol).Error(0)
+}
+
+func (m *MockVolunteerRepository) mockVolunteerReturn(args mock.Arguments) (*models.Volunteer, error) {
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*models.Volunteer), args.Error(1)
 }
 
 func (m *MockVolunteerRepository) FindByID(ctx context.Context, id string) (*models.Volunteer, error) {
-	args := m.Called(ctx, id)
-	if args.Get(0) == nil {
-		return nil, args.Error(1)
-	}
-	return args.Get(0).(*models.Volunteer), args.Error(1)
+	return m.mockVolunteerReturn(m.Called(ctx, id))
 }
 
 func (m *MockVolunteerRepository) FindByUserID(ctx context.Context, userID string) (*models.Volunteer, error) {
-	args := m.Called(ctx, userID)
-	if args.Get(0) == nil {
-		return nil, args.Error(1)
-	}
-	return args.Get(0).(*models.Volunteer), args.Error(1)
+	return m.mockVolunteerReturn(m.Called(ctx, userID))
 }
 
 func (m *MockVolunteerRepository) FindAll(ctx context.Context) ([]models.Volunteer, error) {
@@ -49,13 +47,11 @@ func (m *MockVolunteerRepository) FindAll(ctx context.Context) ([]models.Volunte
 }
 
 func (m *MockVolunteerRepository) Update(ctx context.Context, vol *models.Volunteer) error {
-	args := m.Called(ctx, vol)
-	return args.Error(0)
+	return m.Called(ctx, vol).Error(0)
 }
 
 func (m *MockVolunteerRepository) Delete(ctx context.Context, id string) error {
-	args := m.Called(ctx, id)
-	return args.Error(0)
+	return m.Called(ctx, id).Error(0)
 }
 
 func TestVolunteerService_GetAllVolunteers_Success(t *testing.T) {
