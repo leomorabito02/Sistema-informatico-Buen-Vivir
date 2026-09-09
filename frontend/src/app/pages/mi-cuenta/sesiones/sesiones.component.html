@@ -1,0 +1,43 @@
+<div class="subroute-container">
+  <div class="flex items-center justify-between mb-2">
+    <h2 class="text-xl font-semibold text-foreground">Sesiones Activas</h2>
+    @if (sessions.length > 1) {
+      <button (click)="revokeOtherSessions()" class="btn btn-outline-primary btn-sm">
+        <lucide-angular [img]="LogOutIcon" class="icon-sm icon-mr"></lucide-angular>
+        Cerrar otras sesiones
+      </button>
+    }
+  </div>
+  <p class="text-sm text-muted mb-6">
+    Dispositivos y navegadores donde has iniciado sesión en la plataforma.
+  </p>
+
+  @if (isOtherRevoked) {
+    <div class="alert alert-success mb-6">
+      <lucide-angular [img]="CheckCircleIcon" class="icon-md icon-mr"></lucide-angular>
+      Se han cerrado las demás sesiones remotas correctamente.
+    </div>
+  }
+
+  <div class="sessions-list">
+    @for (session of sessions; track session.id) {
+      <div class="session-card" [class.current-session]="session.isCurrent">
+        <div class="session-icon-wrapper">
+          <lucide-angular [img]="session.isCurrent ? LaptopIcon : SmartphoneIcon" class="session-icon"></lucide-angular>
+        </div>
+        <div class="session-details">
+          <div class="flex items-center gap-2 mb-1">
+            <h4 class="font-semibold text-foreground">{{ session.device }}</h4>
+            @if (session.isCurrent) {
+              <span class="badge-current">Esta sesión</span>
+            }
+          </div>
+          <p class="text-xs text-muted">
+            {{ session.browser }} &bull; IP: {{ session.ip }} &bull; {{ session.location }}
+          </p>
+          <span class="text-xs text-primary font-medium mt-1 block">{{ session.lastActive }}</span>
+        </div>
+      </div>
+    }
+  </div>
+</div>

@@ -1,0 +1,148 @@
+<div class="legal-page-container">
+  <header class="legal-header">
+    <div class="container">
+      <div class="legal-nav-top">
+        <a routerLink="/" class="btn-back">
+          <lucide-angular [img]="ArrowLeftIcon" class="icon-sm icon-mr"></lucide-angular>
+          Volver al Inicio
+        </a>
+        <div class="legal-brand">
+          <img src="assets/logo.png" alt="Logo Buen Vivir" class="legal-logo" />
+          <span>Buen Vivir</span>
+        </div>
+      </div>
+      <div class="legal-hero">
+        <div class="legal-badge">
+          <lucide-angular [img]="FileCheckIcon" class="icon-sm icon-mr"></lucide-angular>
+          Normativa Institucional & Ley 24.240
+        </div>
+        <h1 class="legal-title">Términos y Condiciones de Uso</h1>
+        <p class="legal-subtitle">
+          Centro de Ecología Integral "La Otra Orilla" — Alta Gracia, Provincia de Córdoba
+        </p>
+        <span class="legal-date">Última actualización: {{ lastUpdated }}</span>
+      </div>
+    </div>
+  </header>
+
+  <main class="legal-content container">
+    <div class="legal-grid">
+      <aside class="legal-toc">
+        <h3>Contenido</h3>
+        <nav>
+          <a [routerLink]="[]" fragment="objeto">1. Objeto y Aceptación</a>
+          <a [routerLink]="[]" fragment="servicios">2. Gratuidad de los Servicios</a>
+          <a [routerLink]="[]" fragment="cuentas">3. Registro y Seguridad de Cuenta</a>
+          <a [routerLink]="[]" fragment="uso-aceptable">4. Uso Aceptable y Normas de Conducta</a>
+          <a [routerLink]="[]" fragment="propiedad">5. Propiedad Intelectual</a>
+          <a [routerLink]="[]" fragment="limitacion">6. Limitación de Responsabilidad</a>
+          <a [routerLink]="[]" fragment="jurisdiccion">7. Ley Aplicable y Jurisdicción</a>
+        </nav>
+      </aside>
+
+      <article class="legal-article">
+        <section id="objeto" class="legal-section">
+          <h2>
+            <lucide-angular [img]="FileCheckIcon" class="section-icon"></lucide-angular>
+            1. Objeto y Aceptación de los Términos
+          </h2>
+          <p>
+            Los presentes Términos y Condiciones regulan el acceso y uso de la plataforma digital del <strong>Centro de Ecología Integral Buen Vivir</strong> (Centro Barrial "La Otra Orilla", Alta Gracia, Córdoba).
+          </p>
+          <p>
+            Al registrarse o navegar en la plataforma, el usuario acepta de manera plena e incondicional todas las disposiciones contenidas en este documento.
+          </p>
+        </section>
+
+        <section id="servicios" class="legal-section">
+          <h2>
+            <lucide-angular [img]="UserCheckIcon" class="section-icon"></lucide-angular>
+            2. Carácter Institucional y Gratuidad de los Servicios
+          </h2>
+          <p>
+            En conformidad con la <strong>Ley N° 24.240 de Defensa del Consumidor</strong> y principios de transparencia institucional, se aclara que los servicios de capacitación, dictado de cursos, inscripción y vinculación laboral brindados a través de esta plataforma son de carácter <strong>comunitario e integral</strong>.
+          </p>
+        </section>
+
+        <section id="cuentas" class="legal-section">
+          <h2>
+            <lucide-angular [img]="ScaleIcon" class="section-icon"></lucide-angular>
+            3. Registro y Seguridad de la Cuenta
+          </h2>
+          <p>
+            Para acceder a las funciones de inscripción en cursos y bolsa de empleo, el usuario debe crear una cuenta aportando datos veraces.
+          </p>
+          <ul>
+            <li><strong>Responsabilidad de Credenciales:</strong> El usuario es responsable de mantener la confidencialidad de su clave de acceso.</li>
+            <li><strong>Recomendaciones OWASP:</strong> Se aconseja el uso de contraseñas robustas y no compartir datos de acceso con terceros. El sistema notificará de actividades inusuales cuando corresponda.</li>
+          </ul>
+        </section>
+
+        <section id="uso-aceptable" class="legal-section">
+          <h2>
+            <lucide-angular [img]="AlertTriangleIcon" class="section-icon"></lucide-angular>
+            4. Uso Aceptable y Prohibiciones
+          </h2>
+          <p>
+            Queda estrictamente prohibido utilizar la plataforma para:
+          </p>
+          <ul>
+            <li>Introducir virus, malware, scripts maliciosos o realizar intentos de intrusión técnica (SQLi, XSS, escaneo no autorizado).</li>
+            <li>Publicar información falsa, difamatoria o ilegítima en ofertas de empleo o perfiles institucionales.</li>
+            <li>Hacerse pasar por otra persona u organización.</li>
+          </ul>
+        </section>
+
+        <section id="propiedad" class="legal-section">
+          <h2>
+            <lucide-angular [img]="FileCheckIcon" class="section-icon"></lucide-angular>
+            5. Propiedad Intelectual
+          </h2>
+          <p>
+            Todos los contenidos de la plataforma, incluyendo marcas, logotipos, materiales didácticos, textos, diseños e íconos, son propiedad exclusiva del Centro de Ecología Integral Buen Vivir o cuentan con la debida autorización para su uso. Queda prohibida su reproducción sin autorización expresa.
+          </p>
+        </section>
+
+        <section id="limitacion" class="legal-section">
+          <h2>
+            <lucide-angular [img]="AlertTriangleIcon" class="section-icon"></lucide-angular>
+            6. Limitación de Responsabilidad
+          </h2>
+          <p>
+            El Centro de Ecología Integral Buen Vivir realizará sus mejores esfuerzos técnicos para garantizar la continuidad del servicio, pero no garantiza la ausencia total de interrupciones derivadas de fallos de conectividad ajenos o mantenimiento programado.
+          </p>
+        </section>
+
+        <section id="jurisdiccion" class="legal-section highlight-box">
+          <h2>
+            <lucide-angular [img]="ScaleIcon" class="section-icon"></lucide-angular>
+            7. Ley Aplicable y Jurisdicción Local (Córdoba)
+          </h2>
+          <p>
+            Estos Términos y Condiciones se rigen de forma exclusiva por las leyes de la <strong>República Argentina</strong>.
+          </p>
+          <p>
+            Para cualquier controversia derivada de la interpretación o cumplimiento del presente contrato, las partes se someten a la jurisdicción de los <strong>Tribunales Ordinarios de la Ciudad de Alta Gracia</strong> o, en su defecto, de la Ciudad de Córdoba, renuncian a cualquier otro fuero o jurisdicción que pudiera corresponderles.
+          </p>
+        </section>
+
+        <section id="contacto-terms" class="legal-section">
+          <h2>
+            <lucide-angular [img]="HelpCircleIcon" class="section-icon"></lucide-angular>
+            Contacto Institucional
+          </h2>
+          <p>
+            Por dudas o inquietudes sobre estos Términos y Condiciones:
+          </p>
+          <div class="contact-card">
+            <p><strong>Centro de Ecología Integral Buen Vivir</strong></p>
+            <p>Alta Gracia, Provincia de Córdoba, Argentina</p>
+            <p>Email: <a href="mailto:ceibuenvivir7@gmail.com">ceibuenvivir7&#64;gmail.com</a></p>
+          </div>
+        </section>
+      </article>
+    </div>
+  </main>
+
+  <app-footer></app-footer>
+</div>
