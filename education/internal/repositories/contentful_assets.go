@@ -10,10 +10,12 @@ import (
 	"time"
 )
 
-// uploadBaseURL es el host de la Upload API de Contentful (distinto de
-// la CMA): recibe el binario crudo y devuelve un "upload" temporal que
-// después se linkea al crear el Asset.
-const uploadBaseURL = "https://upload.contentful.com"
+// defaultUploadBaseURL es el host de la Upload API de Contentful
+// (distinto de la CMA): recibe el binario crudo y devuelve un "upload"
+// temporal que después se linkea al crear el Asset. Es el default del
+// campo ContentfulClient.uploadBaseURL (ver contentful_client.go) — los
+// tests lo apuntan a un httptest.Server.
+const defaultUploadBaseURL = "https://upload.contentful.com"
 
 // UploadAsset sube un binario a Contentful y devuelve el id del Asset
 // ya procesado y publicado, listo para usarse como material.file
@@ -105,7 +107,7 @@ func (c *ContentfulClient) UploadAsset(ctx context.Context, title, fileName, con
 }
 
 func (c *ContentfulClient) uploadBinary(ctx context.Context, data []byte) (string, error) {
-	reqURL := fmt.Sprintf("%s/spaces/%s/uploads", uploadBaseURL, c.spaceID)
+	reqURL := fmt.Sprintf("%s/spaces/%s/uploads", c.uploadBaseURL, c.spaceID)
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, reqURL, bytes.NewReader(data))
 	if err != nil {
 		return "", err
