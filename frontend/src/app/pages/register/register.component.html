@@ -275,8 +275,13 @@
             ></p-message>
           </div>
 
-          <button type="submit" [disabled]="loading" class="btn-submit">
-            {{ loading ? "Creando cuenta..." : "Crear Cuenta" }}
+          <button
+            type="submit"
+            [disabled]="loading || registerForm.invalid"
+            class="btn-submit"
+          >
+            <i *ngIf="loading" class="pi pi-spin pi-spinner"></i>
+            <span>{{ loading ? "Creando cuenta..." : "Crear Cuenta" }}</span>
           </button>
         </form>
       </p-card>

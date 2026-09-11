@@ -35,3 +35,11 @@ in the background, run the ZAP baseline scan docker container against http://loc
 # test de carga
 
 docker run --rm -i --network="host" grafana/k6 run - < load_test.js
+
+# sonar
+
+sonar-scanner \
+  -Dsonar.projectKey=buenvivir \
+  -Dsonar.sources=. \
+  -Dsonar.host.url=http://localhost:9000 \
+  -Dsonar.token=TU_TOKEN_GENERADO

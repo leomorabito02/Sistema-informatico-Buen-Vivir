@@ -46,13 +46,15 @@ export class LoginComponent {
   readonly EyeIcon = Eye;
   readonly EyeOffIcon = EyeOff;
 
-  private fb = inject(FormBuilder);
-  private authService = inject(AuthService);
-  private router = inject(Router);
+  private readonly fb = inject(FormBuilder);
+  private readonly authService = inject(AuthService);
+  private readonly router = inject(Router);
 
   loginForm: FormGroup;
   loginError = "";
   locked = false;
+  loading = false;
+  googleLoading = false;
   failedAttempts = 0;
   MAX_ATTEMPTS = 5;
   showPassword = false;
@@ -83,7 +85,7 @@ export class LoginComponent {
   }
 
   onSubmit() {
-    if (this.locked) return;
+    if (this.locked || this.loading || this.googleLoading) return;
 
     if (this.loginForm.invalid) {
       this.loginForm.markAllAsTouched();
@@ -92,13 +94,17 @@ export class LoginComponent {
     }
 
     const { email, password } = this.loginForm.value;
+    this.loading = true;
+    this.loginError = "";
 
     this.authService.checkCredentials(email, password).subscribe({
       next: (res) => {
+        this.loading = false;
         this.loginError = "";
         this.handleAccountsResponse(res.accounts, res.login_nonce);
       },
       error: (err) => {
+        this.loading = false;
         const errorMsg = err.error?.error || "";
         if (
           err.error?.user_status === "blocked" ||
@@ -115,12 +121,18 @@ export class LoginComponent {
   }
 
   handleGoogleLogin() {
+    if (this.loading || this.googleLoading) return;
+    this.googleLoading = true;
+    this.loginError = "";
+
     this.authService.checkGoogleCredentials().subscribe({
       next: (res) => {
+        this.googleLoading = false;
         this.loginError = "";
         this.handleAccountsResponse(res.accounts, res.login_nonce);
       },
       error: (err) => {
+        this.googleLoading = false;
         const errorMsg = err.error?.error;
         this.loginError =
           errorMsg ||
@@ -165,10 +177,12 @@ export class LoginComponent {
       return;
     }
 
+    this.loading = true;
     this.authService
       .loginWithAccount(account.user_id, account.role_id, loginNonce)
       .subscribe({
         next: (res) => {
+          this.loading = false;
           this.loginError = "";
           if (res.user_status === "blocked") {
             this.router.navigate(["/account-notice"]);
@@ -179,6 +193,7 @@ export class LoginComponent {
           }
         },
         error: (err) => {
+          this.loading = false;
           const errorMsg = err.error?.error || "";
           if (errorMsg.includes("activa") || errorMsg.includes("bloque")) {
             this.router.navigate(["/account-notice"]);

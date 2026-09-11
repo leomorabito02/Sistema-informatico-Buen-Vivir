@@ -1,0 +1,56 @@
+@if (isVisible) {
+  <div
+    class="cookie-banner-wrapper"
+    role="region"
+    aria-label="Consentimiento de Cookies"
+  >
+    <div class="cookie-banner-card">
+      <div class="cookie-content">
+        <div class="cookie-icon-wrapper">
+          <lucide-angular
+            [img]="CookieIcon"
+            class="cookie-main-icon"
+          ></lucide-angular>
+        </div>
+        <div class="cookie-text-area">
+          <h4 class="cookie-title">
+            <lucide-angular
+              [img]="ShieldCheckIcon"
+              class="cookie-shield-icon"
+            ></lucide-angular>
+            Uso de Cookies y Privacidad
+          </h4>
+          <p class="cookie-description">
+            Utilizamos cookies esenciales para el funcionamiento de la
+            plataforma y cookies opcionales para mejorar tu experiencia de
+            usuario de acuerdo con la Ley N° 25.326 de Argentina y estándares
+            OWASP. Puedes consultar nuestra
+            <a routerLink="/cookie-policy" class="cookie-link"
+              >Política de Cookies</a
+            >
+            y
+            <a routerLink="/politica-privacidad" class="cookie-link"
+              >Política de Privacidad</a
+            >.
+          </p>
+        </div>
+      </div>
+      <div class="cookie-actions">
+        <button
+          type="button"
+          (click)="rejectCookies()"
+          class="btn-cookie btn-cookie-reject"
+        >
+          Rechazar opcionales
+        </button>
+        <button
+          type="button"
+          (click)="acceptCookies()"
+          class="btn-cookie btn-cookie-accept"
+        >
+          Aceptar todas
+        </button>
+      </div>
+    </div>
+  </div>
+}

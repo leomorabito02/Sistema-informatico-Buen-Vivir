@@ -29,7 +29,7 @@ func main() {
 	if err != nil {
 		log.Fatalf("no se pudo inicializar Firestore: %v", err)
 	}
-	defer firestoreClient.Close()
+	defer func() { _ = firestoreClient.Close() }()
 
 	courseRepo := repositories.NewCourseRepository(contentfulClient)
 	trainingAreaRepo := repositories.NewTrainingAreaRepository(contentfulClient)

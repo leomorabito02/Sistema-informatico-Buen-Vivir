@@ -20,24 +20,22 @@ type MockTeacherRepository struct {
 }
 
 func (m *MockTeacherRepository) Create(ctx context.Context, teacher *models.Teacher) error {
-	args := m.Called(ctx, teacher)
-	return args.Error(0)
+	return m.Called(ctx, teacher).Error(0)
+}
+
+func (m *MockTeacherRepository) mockTeacherReturn(args mock.Arguments) (*models.Teacher, error) {
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*models.Teacher), args.Error(1)
 }
 
 func (m *MockTeacherRepository) FindByID(ctx context.Context, id string) (*models.Teacher, error) {
-	args := m.Called(ctx, id)
-	if args.Get(0) == nil {
-		return nil, args.Error(1)
-	}
-	return args.Get(0).(*models.Teacher), args.Error(1)
+	return m.mockTeacherReturn(m.Called(ctx, id))
 }
 
 func (m *MockTeacherRepository) FindByUserID(ctx context.Context, userID string) (*models.Teacher, error) {
-	args := m.Called(ctx, userID)
-	if args.Get(0) == nil {
-		return nil, args.Error(1)
-	}
-	return args.Get(0).(*models.Teacher), args.Error(1)
+	return m.mockTeacherReturn(m.Called(ctx, userID))
 }
 
 func (m *MockTeacherRepository) FindAll(ctx context.Context) ([]models.Teacher, error) {
@@ -49,13 +47,11 @@ func (m *MockTeacherRepository) FindAll(ctx context.Context) ([]models.Teacher, 
 }
 
 func (m *MockTeacherRepository) Update(ctx context.Context, teacher *models.Teacher) error {
-	args := m.Called(ctx, teacher)
-	return args.Error(0)
+	return m.Called(ctx, teacher).Error(0)
 }
 
 func (m *MockTeacherRepository) Delete(ctx context.Context, id string) error {
-	args := m.Called(ctx, id)
-	return args.Error(0)
+	return m.Called(ctx, id).Error(0)
 }
 
 func TestTeacherService_GetAllTeachers_Success(t *testing.T) {

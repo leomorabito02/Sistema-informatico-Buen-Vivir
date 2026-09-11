@@ -18,8 +18,7 @@ type MockPermissionRepository struct {
 }
 
 func (m *MockPermissionRepository) Create(ctx context.Context, perm *models.Permission) error {
-	args := m.Called(ctx, perm)
-	return args.Error(0)
+	return m.Called(ctx, perm).Error(0)
 }
 
 func (m *MockPermissionRepository) FindByID(ctx context.Context, id string) (*models.Permission, error) {
@@ -39,13 +38,11 @@ func (m *MockPermissionRepository) FindAll(ctx context.Context) ([]models.Permis
 }
 
 func (m *MockPermissionRepository) Update(ctx context.Context, perm *models.Permission) error {
-	args := m.Called(ctx, perm)
-	return args.Error(0)
+	return m.Called(ctx, perm).Error(0)
 }
 
 func (m *MockPermissionRepository) Delete(ctx context.Context, id string) error {
-	args := m.Called(ctx, id)
-	return args.Error(0)
+	return m.Called(ctx, id).Error(0)
 }
 
 func (m *MockPermissionRepository) CheckRolePermission(ctx context.Context, roleID, action, resource string, count *int64) error {

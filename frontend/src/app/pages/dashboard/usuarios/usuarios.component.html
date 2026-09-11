@@ -1,89 +1,124 @@
-<div class="page-container">
-  <div class="header-section">
-    <div>
-      <h1 class="page-title">
-        <i class="pi pi-users mr-2"></i>Gestión de Usuarios
-      </h1>
-      <p class="page-subtitle">
-        Administración global de usuarios, roles y estados de acceso al sistema.
-      </p>
+<div class="user-mgmt-container">
+  <!-- Top Filter & Action Bar -->
+  <div class="top-bar-card">
+    <div class="search-input-wrapper">
+      <label for="searchInput" class="sr-only" style="display: none"
+        >Buscar usuarios</label
+      >
+      <i class="pi pi-search search-icon"></i>
+      <input
+        id="searchInput"
+        type="text"
+        [(ngModel)]="searchTerm"
+        (input)="filterUsers()"
+        placeholder="Buscar por nombre o email..."
+        class="search-input"
+      />
     </div>
-    <div class="header-actions">
-      <div class="search-box p-input-icon-left">
-        <i class="pi pi-search"></i>
-        <input
-          pInputText
-          type="text"
-          [(ngModel)]="searchTerm"
-          (input)="filterUsers()"
-          placeholder="Buscar por nombre, email o rol..."
-          class="p-inputtext-sm"
-        />
+
+    <div class="filter-actions-group">
+      <div class="select-wrapper">
+        <label for="roleSelect" class="sr-only" style="display: none"
+          >Filtrar por rol</label
+        >
+        <select
+          id="roleSelect"
+          [(ngModel)]="selectedRole"
+          (change)="filterUsers()"
+          class="role-select"
+        >
+          <option *ngFor="let role of rolesList" [value]="role">
+            {{ role }}
+          </option>
+        </select>
+        <i class="pi pi-chevron-down select-icon"></i>
       </div>
-      <p-button
-        label="Nuevo Usuario"
-        icon="pi pi-user-plus"
-        styleClass="p-button-success"
-      ></p-button>
+
+      <button type="button" class="btn-new-user">
+        <i class="pi pi-plus"></i>
+        <span>Nuevo Usuario</span>
+      </button>
     </div>
   </div>
 
-  <p-card styleClass="p-card-shadow">
-    <p-table
-      [value]="filteredUsers"
-      [paginator]="true"
-      [rows]="10"
-      class="p-datatable-striped"
-    >
-      <ng-template pTemplate="header">
+  <!-- Data Table Card -->
+  <div class="table-card">
+    <table class="custom-user-table">
+      <thead>
         <tr>
-          <th>ID</th>
           <th>Nombre</th>
-          <th>Correo Electrónico</th>
+          <th>Email</th>
+          <th>Teléfono</th>
           <th>Rol</th>
           <th>Estado</th>
-          <th>Fecha Registro</th>
-          <th>Acciones</th>
+          <th>Cursos</th>
+          <th class="text-center">Acciones</th>
         </tr>
-      </ng-template>
-      <ng-template pTemplate="body" let-user>
-        <tr>
-          <td><span class="p-column-title">ID</span>{{ user.id }}</td>
+      </thead>
+      <tbody>
+        <tr *ngFor="let user of filteredUsers">
           <td>
-            <span class="p-column-title">Nombre</span
-            ><strong>{{ user.name }}</strong>
+            <div class="user-profile-cell">
+              <div class="avatar-circle">
+                <i class="pi pi-user"></i>
+              </div>
+              <span class="user-name">{{ user.name }}</span>
+            </div>
           </td>
-          <td><span class="p-column-title">Email</span>{{ user.email }}</td>
+          <td class="user-email">{{ user.email }}</td>
+          <td class="user-phone">{{ user.phone }}</td>
           <td>
-            <span class="p-column-title">Rol</span>
-            <p-tag
-              [value]="user.role"
-              [severity]="getRoleSeverity(user.role)"
-            ></p-tag>
+            <span class="badge-role">{{ user.role }}</span>
           </td>
           <td>
-            <span class="p-column-title">Estado</span>
-            <p-tag
-              [value]="user.status"
-              [severity]="getStatusSeverity(user.status)"
-            ></p-tag>
+            <span
+              class="badge-status"
+              [ngClass]="{
+                'status-active': user.status === 'Activo',
+                'status-pending': user.status === 'Pendiente',
+              }"
+            >
+              {{ user.status }}
+              <i
+                class="pi"
+                [ngClass]="{
+                  'pi-info-circle': user.status === 'Activo',
+                  'pi-check-circle': user.status === 'Pendiente',
+                }"
+              ></i>
+            </span>
           </td>
-          <td><span class="p-column-title">Registro</span>{{ user.date }}</td>
           <td>
-            <span class="p-column-title">Acciones</span>
+            <span class="unimplemented-text">No implementado aún</span>
+          </td>
+          <td class="actions-cell">
             <div class="action-buttons">
-              <p-button
-                icon="pi pi-pencil"
-                styleClass="p-button-rounded p-button-outlined p-button-sm"
-              ></p-button>
-              <p-button
-                icon="pi pi-trash"
-                styleClass="p-button-rounded p-button-danger p-button-outlined p-button-sm"
-              ></p-button>
+              <button
+                type="button"
+                class="btn-action btn-view"
+                title="Ver detalle"
+              >
+                <i class="pi pi-eye"></i>
+              </button>
+              <button type="button" class="btn-action btn-edit" title="Editar">
+                <i class="pi pi-pencil"></i>
+              </button>
+              <button
+                type="button"
+                class="btn-action btn-delete"
+                title="Eliminar"
+              >
+                <i class="pi pi-trash"></i>
+              </button>
             </div>
           </td>
         </tr>
-      </ng-template>
-    </p-table>
-  </p-card>
+        <tr *ngIf="filteredUsers.length === 0">
+          <td colspan="7" class="empty-state-cell">
+            No se encontraron usuarios que coincidan con la búsqueda.
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
 </div>

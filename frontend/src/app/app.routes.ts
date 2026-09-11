@@ -44,6 +44,92 @@ export const routes: Routes = [
       ),
   },
   {
+    path: "privacidad",
+    loadComponent: () =>
+      import("./pages/privacy-policy/privacy-policy.component").then(
+        (m) => m.PrivacyPolicyComponent,
+      ),
+  },
+  {
+    path: "politica-privacidad",
+    redirectTo: "privacidad",
+    pathMatch: "full",
+  },
+  {
+    path: "terminos",
+    loadComponent: () =>
+      import("./pages/terms-conditions/terms-conditions.component").then(
+        (m) => m.TermsConditionsComponent,
+      ),
+  },
+  {
+    path: "terminos-condiciones",
+    redirectTo: "terminos",
+    pathMatch: "full",
+  },
+  {
+    path: "cookies",
+    loadComponent: () =>
+      import("./pages/cookie-policy/cookie-policy.component").then(
+        (m) => m.CookiePolicyComponent,
+      ),
+  },
+  {
+    path: "cookie-policy",
+    redirectTo: "cookies",
+    pathMatch: "full",
+  },
+  {
+    path: "contacto",
+    loadComponent: () =>
+      import("./pages/contacto/contacto.component").then(
+        (m) => m.ContactoComponent,
+      ),
+  },
+  {
+    path: "mi-cuenta",
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import("./pages/mi-cuenta/mi-cuenta.component").then(
+        (m) => m.MiCuentaComponent,
+      ),
+    children: [
+      {
+        path: "",
+        redirectTo: "datos-personales",
+        pathMatch: "full",
+      },
+      {
+        path: "datos-personales",
+        loadComponent: () =>
+          import("./pages/mi-cuenta/datos-personales/datos-personales.component").then(
+            (m) => m.DatosPersonalesComponent,
+          ),
+      },
+      {
+        path: "seguridad",
+        loadComponent: () =>
+          import("./pages/mi-cuenta/seguridad/seguridad.component").then(
+            (m) => m.SeguridadComponent,
+          ),
+      },
+      {
+        path: "sesiones",
+        loadComponent: () =>
+          import("./pages/mi-cuenta/sesiones/sesiones.component").then(
+            (m) => m.SesionesComponent,
+          ),
+      },
+      {
+        path: "privacidad",
+        loadComponent: () =>
+          import("./pages/mi-cuenta/privacidad-cuenta/privacidad-cuenta.component").then(
+            (m) => m.PrivacidadCuentaComponent,
+          ),
+      },
+    ],
+  },
+  {
     path: "dashboard",
     component: DashboardComponent,
     canActivate: [authGuard],
@@ -131,13 +217,6 @@ export const routes: Routes = [
         loadComponent: () =>
           import("./pages/dashboard/insercion/insercion.component").then(
             (m) => m.InsercionComponent,
-          ),
-      },
-      {
-        path: "participantes",
-        loadComponent: () =>
-          import("./pages/dashboard/participantes/participantes.component").then(
-            (m) => m.ParticipantesComponent,
           ),
       },
       {

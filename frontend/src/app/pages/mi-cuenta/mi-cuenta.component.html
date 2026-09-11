@@ -1,0 +1,68 @@
+<div class="account-page-container">
+  <app-header></app-header>
+
+  <main class="account-main container py-8">
+    <div class="account-header-row mb-6">
+      <div>
+        <h1 class="text-2xl font-bold text-foreground">Mi Cuenta</h1>
+        <p class="text-sm text-muted">
+          Gestión de datos personales, seguridad, sesiones activas y
+          preferencias de privacidad.
+        </p>
+      </div>
+      <a routerLink="/dashboard" class="btn btn-outline-primary btn-sm">
+        <lucide-angular
+          [img]="ArrowLeftIcon"
+          class="icon-sm icon-mr"
+        ></lucide-angular>
+        Volver al Dashboard
+      </a>
+    </div>
+
+    <!-- Sub-navigation Tabs -->
+    <nav class="account-tabs mb-6" aria-label="Navegación de Mi Cuenta">
+      <a
+        routerLink="datos-personales"
+        routerLinkActive="active"
+        class="tab-link"
+      >
+        <lucide-angular
+          [img]="UserIcon"
+          class="icon-sm icon-mr"
+        ></lucide-angular>
+        Datos Personales
+      </a>
+
+      <a routerLink="seguridad" routerLinkActive="active" class="tab-link">
+        <lucide-angular
+          [img]="ShieldIcon"
+          class="icon-sm icon-mr"
+        ></lucide-angular>
+        Seguridad
+      </a>
+
+      <a routerLink="sesiones" routerLinkActive="active" class="tab-link">
+        <lucide-angular
+          [img]="LaptopIcon"
+          class="icon-sm icon-mr"
+        ></lucide-angular>
+        Sesiones Activas
+      </a>
+
+      <a routerLink="privacidad" routerLinkActive="active" class="tab-link">
+        <lucide-angular
+          [img]="LockIcon"
+          class="icon-sm icon-mr"
+        ></lucide-angular>
+        Privacidad y Datos (Ley 25.326)
+      </a>
+    </nav>
+
+    <!-- Subroute View -->
+    <div class="account-content-card">
+      <router-outlet></router-outlet>
+    </div>
+  </main>
+
+  <app-footer></app-footer>
+</div>
