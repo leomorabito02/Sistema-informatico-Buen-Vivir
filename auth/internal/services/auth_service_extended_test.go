@@ -220,3 +220,66 @@ func TestAuthService_UnlinkGoogleAccount_NoPassword(t *testing.T) {
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "no tenés una contraseña configurada")
 }
+
+func TestAuthService_CheckCredentials_Success(t *testing.T) {
+	mockUserRepo := new(MockUserRepository)
+	svc := services.NewAuthService(nil, nil, mockUserRepo, nil, nil, nil)
+
+	req := &dto.CheckCredentialsRequest{Email: "test@example.com", Password: "RightPassword123!"}
+	pwdHash, _ := utils.HashPassword("RightPassword123!")
+
+	users := []models.User{{UserID: "1", Email: "test@example.com", PasswordHash: pwdHash, Status: "Active"}}
+	mockUserRepo.On("FindAllByEmail", mock.Anything, "test@example.com").Return(users, nil)
+
+	res, err := svc.CheckCredentials(context.Background(), req)
+	assert.NoError(t, err)
+	assert.NotNil(t, res)
+}
+
+func TestAuthService_UpdateMyPassword_Success(t *testing.T) {
+	mockUserRepo := new(MockUserRepository)
+	svc := services.NewAuthService(nil, nil, mockUserRepo, nil, nil, nil)
+
+	pwdHash, _ := utils.HashPassword("OldPassword123!")
+	user := &models.User{UserID: "u1", PasswordHash: pwdHash}
+	mockUserRepo.On("FindByID", mock.Anything, "u1").Return(user, nil)
+	mockUserRepo.On("Update", mock.Anything, mock.AnythingOfType("*models.User")).Return(nil)
+
+	err := svc.UpdateMyPassword(context.Background(), "u1", "OldPassword123!", "NewPassword123!")
+	assert.NoError(t, err)
+}
+
+func TestAuthService_LinkGoogleAccount_Success(t *testing.T) {
+	mockUserRepo := new(MockUserRepository)
+	mockFirebase := new(MockFirebaseService)
+	svc := services.NewAuthService(nil, nil, mockUserRepo, nil, nil, mockFirebase)
+
+	req := &dto.LinkGoogleRequest{IDToken: "valid_token", GoogleID: "g1"}
+	fbToken := &firebaseAuth.Token{UID: "g1"}
+	
+	mockFirebase.On("VerifyIDToken", mock.Anything, "valid_token").Return(fbToken, nil)
+	
+	currentUser := &models.User{UserID: "u1", Email: "test@example.com"}
+	mockUserRepo.On("FindByID", mock.Anything, "u1").Return(currentUser, nil)
+	mockUserRepo.On("FindAll", mock.Anything).Return([]models.User{}, nil)
+	mockUserRepo.On("FindAllByEmail", mock.Anything, "test@example.com").Return([]models.User{}, nil)
+	mockUserRepo.On("Update", mock.Anything, mock.AnythingOfType("*models.User")).Return(nil)
+
+	err := svc.LinkGoogleAccount(context.Background(), "u1", req)
+	assert.NoError(t, err)
+}
+
+func TestAuthService_UnlinkGoogleAccount_Success(t *testing.T) {
+	mockUserRepo := new(MockUserRepository)
+	svc := services.NewAuthService(nil, nil, mockUserRepo, nil, nil, nil)
+
+	pwdHash, _ := utils.HashPassword("HasPassword123!")
+	user := &models.User{UserID: "u1", Email: "test@example.com", PasswordHash: pwdHash, GoogleAuthID: "g1"}
+	
+	mockUserRepo.On("FindByID", mock.Anything, "u1").Return(user, nil)
+	mockUserRepo.On("FindAllByEmail", mock.Anything, "test@example.com").Return([]models.User{*user}, nil)
+	mockUserRepo.On("Update", mock.Anything, mock.AnythingOfType("*models.User")).Return(nil)
+
+	err := svc.UnlinkGoogleAccount(context.Background(), "u1")
+	assert.NoError(t, err)
+}
