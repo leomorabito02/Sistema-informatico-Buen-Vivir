@@ -101,7 +101,7 @@ func (s *kvSyncService) sendWorkerUpdate(ctx context.Context, workerURL, syncTok
 	}()
 
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		return fmt.Errorf("Worker returned status code %d when updating KV stats", resp.StatusCode)
+		return fmt.Errorf("worker returned status code %d when updating KV stats", resp.StatusCode)
 	}
 
 	return nil

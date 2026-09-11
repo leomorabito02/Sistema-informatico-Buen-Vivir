@@ -174,7 +174,7 @@ jobs:
         working-directory: auth
         run: |
           go install github.com/securego/gosec/v2/cmd/gosec@latest
-          ~/go/bin/gosec -fmt=sarif -out=gosec-results.sarif ./... || true
+          $(go env GOPATH)/bin/gosec -fmt=sarif -out=gosec-results.sarif ./... || true
 
       - name: Upload gosec SARIF
         if: always()
@@ -314,7 +314,7 @@ jobs:
         working-directory: education
         run: |
           go install github.com/securego/gosec/v2/cmd/gosec@latest
-          ~/go/bin/gosec -fmt=sarif -out=gosec-results.sarif ./... || true
+          $(go env GOPATH)/bin/gosec -fmt=sarif -out=gosec-results.sarif ./... || true
 
       - name: Upload gosec SARIF
         if: always()
