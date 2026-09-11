@@ -220,13 +220,6 @@ export const routes: Routes = [
           ),
       },
       {
-        path: "participantes",
-        loadComponent: () =>
-          import("./pages/dashboard/participantes/participantes.component").then(
-            (m) => m.ParticipantesComponent,
-          ),
-      },
-      {
         path: "notificaciones",
         loadComponent: () =>
           import("./pages/dashboard/notificaciones/notificaciones.component").then(
