@@ -78,13 +78,16 @@ func (m *MockUserRepository) UnlinkGoogleAccountByEmail(ctx context.Context, ema
 }
 
 func (m *MockUserRepository) CountActiveParticipants(ctx context.Context) (int64, error) {
+	// Mock implementation for CountActiveParticipants
 	args := m.Called(ctx)
 	return args.Get(0).(int64), args.Error(1)
 }
 
 func (m *MockUserRepository) CountVolunteers(ctx context.Context) (int64, error) {
+	// Mock implementation for CountVolunteers
 	args := m.Called(ctx)
-	return args.Get(0).(int64), args.Error(1)
+	countResult := args.Get(0).(int64)
+	return countResult, args.Error(1)
 }
 
 func TestUserService_GetUserByID_AdminSuccess(t *testing.T) {

@@ -662,6 +662,8 @@ jobs:
     needs: [cd-setup]
     environment: ${{ needs.cd-setup.outputs.env_name }}
     timeout-minutes: 15
+    env:
+      FIREBASE_CREDENTIALS_BASE64: ""
     outputs:
       service_url: ${{ steps.deploy.outputs.url }}
       prev_revision: ${{ steps.pre-deploy.outputs.prev_revision }}
@@ -717,6 +719,8 @@ jobs:
     needs: [cd-setup]
     environment: ${{ needs.cd-setup.outputs.env_name }}
     timeout-minutes: 15
+    env:
+      GOOGLE_APPLICATION_CREDENTIALS_BASE64: ""
     outputs:
       service_url: ${{ steps.deploy.outputs.url }}
       prev_revision: ${{ steps.pre-deploy.outputs.prev_revision }}

@@ -24,11 +24,11 @@ func TestKVSyncService_SyncImpactStatsAsync(t *testing.T) {
 	}))
 	defer server.Close()
 
-	os.Setenv("WORKER_IMPACT_URL", server.URL)
-	os.Setenv("WORKER_SYNC_TOKEN", "test-token")
+	_ = os.Setenv("WORKER_IMPACT_URL", server.URL)
+	_ = os.Setenv("WORKER_SYNC_TOKEN", "test-token")
 	defer func() {
-		os.Unsetenv("WORKER_IMPACT_URL")
-		os.Unsetenv("WORKER_SYNC_TOKEN")
+		_ = os.Unsetenv("WORKER_IMPACT_URL")
+		_ = os.Unsetenv("WORKER_SYNC_TOKEN")
 	}()
 
 	mockRepo.On("CountActiveParticipants", mock.Anything).Return(int64(10), nil)
@@ -42,10 +42,9 @@ func TestKVSyncService_SyncImpactStatsAsync(t *testing.T) {
 }
 
 func TestKVSyncService_NoWorkerURL(t *testing.T) {
+	_ = os.Unsetenv("WORKER_IMPACT_URL")
 	mockRepo := new(MockUserRepository)
 	svc := services.NewKVSyncService(mockRepo)
-
-	os.Unsetenv("WORKER_IMPACT_URL")
 
 	svc.SyncImpactStatsAsync()
 	time.Sleep(50 * time.Millisecond)
@@ -63,8 +62,8 @@ func TestKVSyncService_RepoError(t *testing.T) {
 	}))
 	defer server.Close()
 
-	os.Setenv("WORKER_IMPACT_URL", server.URL)
-	defer os.Unsetenv("WORKER_IMPACT_URL")
+	_ = os.Setenv("WORKER_IMPACT_URL", server.URL)
+	defer func() { _ = os.Unsetenv("WORKER_IMPACT_URL") }()
 
 	mockRepo.On("CountActiveParticipants", mock.Anything).Return(int64(0), assert.AnError)
 
@@ -83,8 +82,8 @@ func TestKVSyncService_HttpError(t *testing.T) {
 	}))
 	defer server.Close()
 
-	os.Setenv("WORKER_IMPACT_URL", server.URL)
-	defer os.Unsetenv("WORKER_IMPACT_URL")
+	_ = os.Setenv("WORKER_IMPACT_URL", server.URL)
+	defer func() { _ = os.Unsetenv("WORKER_IMPACT_URL") }()
 
 	mockRepo.On("CountActiveParticipants", mock.Anything).Return(int64(10), nil)
 	mockRepo.On("CountVolunteers", mock.Anything).Return(int64(5), nil)
