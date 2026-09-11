@@ -2,7 +2,9 @@
   <!-- Top Filter & Action Bar -->
   <div class="top-bar-card">
     <div class="search-input-wrapper">
-      <label for="searchInput" class="sr-only" style="display: none;">Buscar usuarios</label>
+      <label for="searchInput" class="sr-only" style="display: none"
+        >Buscar usuarios</label
+      >
       <i class="pi pi-search search-icon"></i>
       <input
         id="searchInput"
@@ -16,7 +18,9 @@
 
     <div class="filter-actions-group">
       <div class="select-wrapper">
-        <label for="roleSelect" class="sr-only" style="display: none;">Filtrar por rol</label>
+        <label for="roleSelect" class="sr-only" style="display: none"
+          >Filtrar por rol</label
+        >
         <select
           id="roleSelect"
           [(ngModel)]="selectedRole"
@@ -71,7 +75,7 @@
               class="badge-status"
               [ngClass]="{
                 'status-active': user.status === 'Activo',
-                'status-pending': user.status === 'Pendiente'
+                'status-pending': user.status === 'Pendiente',
               }"
             >
               {{ user.status }}
@@ -79,7 +83,7 @@
                 class="pi"
                 [ngClass]="{
                   'pi-info-circle': user.status === 'Activo',
-                  'pi-check-circle': user.status === 'Pendiente'
+                  'pi-check-circle': user.status === 'Pendiente',
                 }"
               ></i>
             </span>
@@ -89,13 +93,21 @@
           </td>
           <td class="actions-cell">
             <div class="action-buttons">
-              <button type="button" class="btn-action btn-view" title="Ver detalle">
+              <button
+                type="button"
+                class="btn-action btn-view"
+                title="Ver detalle"
+              >
                 <i class="pi pi-eye"></i>
               </button>
               <button type="button" class="btn-action btn-edit" title="Editar">
                 <i class="pi pi-pencil"></i>
               </button>
-              <button type="button" class="btn-action btn-delete" title="Eliminar">
+              <button
+                type="button"
+                class="btn-action btn-delete"
+                title="Eliminar"
+              >
                 <i class="pi pi-trash"></i>
               </button>
             </div>
@@ -110,4 +122,3 @@
     </table>
   </div>
 </div>
-

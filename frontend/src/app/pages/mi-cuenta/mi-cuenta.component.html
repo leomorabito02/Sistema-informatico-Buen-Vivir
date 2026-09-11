@@ -6,11 +6,15 @@
       <div>
         <h1 class="text-2xl font-bold text-foreground">Mi Cuenta</h1>
         <p class="text-sm text-muted">
-          Gestión de datos personales, seguridad, sesiones activas y preferencias de privacidad.
+          Gestión de datos personales, seguridad, sesiones activas y
+          preferencias de privacidad.
         </p>
       </div>
       <a routerLink="/dashboard" class="btn btn-outline-primary btn-sm">
-        <lucide-angular [img]="ArrowLeftIcon" class="icon-sm icon-mr"></lucide-angular>
+        <lucide-angular
+          [img]="ArrowLeftIcon"
+          class="icon-sm icon-mr"
+        ></lucide-angular>
         Volver al Dashboard
       </a>
     </div>
@@ -22,34 +26,34 @@
         routerLinkActive="active"
         class="tab-link"
       >
-        <lucide-angular [img]="UserIcon" class="icon-sm icon-mr"></lucide-angular>
+        <lucide-angular
+          [img]="UserIcon"
+          class="icon-sm icon-mr"
+        ></lucide-angular>
         Datos Personales
       </a>
 
-      <a
-        routerLink="seguridad"
-        routerLinkActive="active"
-        class="tab-link"
-      >
-        <lucide-angular [img]="ShieldIcon" class="icon-sm icon-mr"></lucide-angular>
+      <a routerLink="seguridad" routerLinkActive="active" class="tab-link">
+        <lucide-angular
+          [img]="ShieldIcon"
+          class="icon-sm icon-mr"
+        ></lucide-angular>
         Seguridad
       </a>
 
-      <a
-        routerLink="sesiones"
-        routerLinkActive="active"
-        class="tab-link"
-      >
-        <lucide-angular [img]="LaptopIcon" class="icon-sm icon-mr"></lucide-angular>
+      <a routerLink="sesiones" routerLinkActive="active" class="tab-link">
+        <lucide-angular
+          [img]="LaptopIcon"
+          class="icon-sm icon-mr"
+        ></lucide-angular>
         Sesiones Activas
       </a>
 
-      <a
-        routerLink="privacidad"
-        routerLinkActive="active"
-        class="tab-link"
-      >
-        <lucide-angular [img]="LockIcon" class="icon-sm icon-mr"></lucide-angular>
+      <a routerLink="privacidad" routerLinkActive="active" class="tab-link">
+        <lucide-angular
+          [img]="LockIcon"
+          class="icon-sm icon-mr"
+        ></lucide-angular>
         Privacidad y Datos (Ley 25.326)
       </a>
     </nav>

@@ -1,6 +1,13 @@
 import { Component } from "@angular/core";
 import { CommonModule } from "@angular/common";
-import { LucideAngularModule, Laptop, Smartphone, LogOut, ShieldCheck, CircleCheck } from "lucide-angular";
+import {
+  LucideAngularModule,
+  Laptop,
+  Smartphone,
+  LogOut,
+  ShieldCheck,
+  CircleCheck,
+} from "lucide-angular";
 
 interface SessionItem {
   id: string;

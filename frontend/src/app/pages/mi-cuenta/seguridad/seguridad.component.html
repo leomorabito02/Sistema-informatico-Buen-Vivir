@@ -1,45 +1,78 @@
 <div class="subroute-container">
-  <h2 class="text-xl font-semibold mb-2 text-foreground">Seguridad de la Cuenta</h2>
+  <h2 class="text-xl font-semibold mb-2 text-foreground">
+    Seguridad de la Cuenta
+  </h2>
   <p class="text-sm text-muted mb-6">
-    Configuración de credenciales y recomendaciones de seguridad de acuerdo con estándares OWASP.
+    Configuración de credenciales y recomendaciones de seguridad de acuerdo con
+    estándares OWASP.
   </p>
 
   @if (isPasswordUpdated) {
     <div class="alert alert-success mb-6">
-      <lucide-angular [img]="CheckCircleIcon" class="icon-md icon-mr"></lucide-angular>
+      <lucide-angular
+        [img]="CheckCircleIcon"
+        class="icon-md icon-mr"
+      ></lucide-angular>
       Tu contraseña ha sido actualizada con éxito.
     </div>
   }
 
   <div class="security-box mb-8">
     <div class="security-status">
-      <lucide-angular [img]="ShieldCheckIcon" class="status-icon text-primary"></lucide-angular>
+      <lucide-angular
+        [img]="ShieldCheckIcon"
+        class="status-icon text-primary"
+      ></lucide-angular>
       <div>
-        <h4 class="font-semibold text-foreground">Protección de Cuenta Activa</h4>
+        <h4 class="font-semibold text-foreground">
+          Protección de Cuenta Activa
+        </h4>
         <p class="text-xs text-muted">
-          Tu cuenta utiliza autenticación cifrada mediante tokens HTTPS/TLS y almacenamiento seguro de contraseña hash (OWASP compliant).
+          Tu cuenta utiliza autenticación cifrada mediante tokens HTTPS/TLS y
+          almacenamiento seguro de contraseña hash (OWASP compliant).
         </p>
       </div>
     </div>
   </div>
 
-  <h3 class="text-base font-semibold mb-4 text-foreground">Cambiar Contraseña</h3>
+  <h3 class="text-base font-semibold mb-4 text-foreground">
+    Cambiar Contraseña
+  </h3>
 
-  <form [formGroup]="passwordForm" (ngSubmit)="onSubmit()" class="password-form">
+  <form
+    [formGroup]="passwordForm"
+    (ngSubmit)="onSubmit()"
+    class="password-form"
+  >
     <div class="form-group">
       <label for="currentPassword">Contraseña Actual *</label>
-      <input id="currentPassword" type="password" formControlName="currentPassword" class="form-control" />
+      <input
+        id="currentPassword"
+        type="password"
+        formControlName="currentPassword"
+        class="form-control"
+      />
     </div>
 
     <div class="form-group">
       <label for="newPassword">Nueva Contraseña (Mínimo 8 caracteres) *</label>
-      <input id="newPassword" type="password" formControlName="newPassword" class="form-control" />
+      <input
+        id="newPassword"
+        type="password"
+        formControlName="newPassword"
+        class="form-control"
+      />
     </div>
 
     <div class="form-group">
       <label for="confirmPassword">Confirmar Nueva Contraseña *</label>
-      <input id="confirmPassword" type="password" formControlName="confirmPassword" class="form-control" />
-      @if (passwordForm.get('confirmPassword')?.hasError('mismatch')) {
+      <input
+        id="confirmPassword"
+        type="password"
+        formControlName="confirmPassword"
+        class="form-control"
+      />
+      @if (passwordForm.get("confirmPassword")?.hasError("mismatch")) {
         <span class="error-msg">Las contraseñas no coinciden.</span>
       }
     </div>
