@@ -30,7 +30,10 @@ export class ImpactService {
     }
     return this.http.get<ImpactMetrics>(url).pipe(
       catchError((error) => {
-        console.warn("Could not fetch Cloudflare Worker KV impact metrics, falling back to defaults.", error);
+        console.warn(
+          "Could not fetch Cloudflare Worker KV impact metrics, falling back to defaults.",
+          error,
+        );
         return of(DEFAULT_METRICS);
       }),
     );

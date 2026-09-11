@@ -3,7 +3,10 @@
     <div class="container">
       <div class="legal-nav-top">
         <a routerLink="/" class="btn-back">
-          <lucide-angular [img]="ArrowLeftIcon" class="icon-sm icon-mr"></lucide-angular>
+          <lucide-angular
+            [img]="ArrowLeftIcon"
+            class="icon-sm icon-mr"
+          ></lucide-angular>
           Volver al Inicio
         </a>
         <div class="legal-brand">
@@ -13,12 +16,16 @@
       </div>
       <div class="legal-hero">
         <div class="legal-badge">
-          <lucide-angular [img]="CookieIcon" class="icon-sm icon-mr"></lucide-angular>
+          <lucide-angular
+            [img]="CookieIcon"
+            class="icon-sm icon-mr"
+          ></lucide-angular>
           Transparencia Digital & OWASP
         </div>
         <h1 class="legal-title">Política de Cookies y Almacenamiento Local</h1>
         <p class="legal-subtitle">
-          Centro de Ecología Integral "La Otra Orilla" — Alta Gracia, Provincia de Córdoba
+          Centro de Ecología Integral "La Otra Orilla" — Alta Gracia, Provincia
+          de Córdoba
         </p>
         <span class="legal-date">Última actualización: {{ lastUpdated }}</span>
       </div>
@@ -31,31 +38,50 @@
         <h3>Contenido</h3>
         <nav>
           <a [routerLink]="[]" fragment="concepto">1. ¿Qué son las Cookies?</a>
-          <a [routerLink]="[]" fragment="tipos-cookies">2. Cookies que Utilizamos</a>
-          <a [routerLink]="[]" fragment="seguridad-owasp">3. Estándares OWASP de Seguridad</a>
-          <a [routerLink]="[]" fragment="gestion">4. Cómo Desactivar o Gestionar Cookies</a>
-          <a [routerLink]="[]" fragment="contacto-cookies">5. Consultas e Información</a>
+          <a [routerLink]="[]" fragment="tipos-cookies"
+            >2. Cookies que Utilizamos</a
+          >
+          <a [routerLink]="[]" fragment="seguridad-owasp"
+            >3. Estándares OWASP de Seguridad</a
+          >
+          <a [routerLink]="[]" fragment="gestion"
+            >4. Cómo Desactivar o Gestionar Cookies</a
+          >
+          <a [routerLink]="[]" fragment="contacto-cookies"
+            >5. Consultas e Información</a
+          >
         </nav>
       </aside>
 
       <article class="legal-article">
         <section id="concepto" class="legal-section">
           <h2>
-            <lucide-angular [img]="CookieIcon" class="section-icon"></lucide-angular>
+            <lucide-angular
+              [img]="CookieIcon"
+              class="section-icon"
+            ></lucide-angular>
             1. ¿Qué son las Cookies y el Almacenamiento Local?
           </h2>
           <p>
-            Las cookies y el almacenamiento local (<em>localStorage</em> / <em>sessionStorage</em>) son pequeños archivos de datos que los sitios web almacenan en su navegador para recordar preferencias, mantener sesiones autenticadas de forma segura y mejorar la experiencia de navegación.
+            Las cookies y el almacenamiento local (<em>localStorage</em> /
+            <em>sessionStorage</em>) son pequeños archivos de datos que los
+            sitios web almacenan en su navegador para recordar preferencias,
+            mantener sesiones autenticadas de forma segura y mejorar la
+            experiencia de navegación.
           </p>
         </section>
 
         <section id="tipos-cookies" class="legal-section">
           <h2>
-            <lucide-angular [img]="CheckCircleIcon" class="section-icon"></lucide-angular>
+            <lucide-angular
+              [img]="CheckCircleIcon"
+              class="section-icon"
+            ></lucide-angular>
             2. Tipos de Cookies y Almacenamiento Utilizados
           </h2>
           <p>
-            En la plataforma del Centro de Ecología Integral Buen Vivir clasificamos los datos almacenados de la siguiente manera:
+            En la plataforma del Centro de Ecología Integral Buen Vivir
+            clasificamos los datos almacenados de la siguiente manera:
           </p>
           <table class="legal-table">
             <thead>
@@ -69,19 +95,28 @@
             <tbody>
               <tr>
                 <td><strong>Técnicas / Esenciales</strong></td>
-                <td>Mantener la sesión iniciada de usuario de manera segura y gestionar la autenticación en el sistema.</td>
+                <td>
+                  Mantener la sesión iniciada de usuario de manera segura y
+                  gestionar la autenticación en el sistema.
+                </td>
                 <td>Sesión / Persistente</td>
                 <td>Sí</td>
               </tr>
               <tr>
                 <td><strong>Preferencia de Cookies</strong></td>
-                <td>Guardar la elección del usuario (aceptación o rechazo de cookies opcionales en el banner).</td>
+                <td>
+                  Guardar la elección del usuario (aceptación o rechazo de
+                  cookies opcionales en el banner).
+                </td>
                 <td>1 año</td>
                 <td>Sí</td>
               </tr>
               <tr>
                 <td><strong>Opcionales / Rendimiento</strong></td>
-                <td>Medición anónima del uso de funciones para optimización de rendimiento de la plataforma.</td>
+                <td>
+                  Medición anónima del uso de funciones para optimización de
+                  rendimiento de la plataforma.
+                </td>
                 <td>Persistente</td>
                 <td>No (Configurable)</td>
               </tr>
@@ -91,50 +126,95 @@
 
         <section id="seguridad-owasp" class="legal-section highlight-box">
           <h2>
-            <lucide-angular [img]="ShieldCheckIcon" class="section-icon"></lucide-angular>
+            <lucide-angular
+              [img]="ShieldCheckIcon"
+              class="section-icon"
+            ></lucide-angular>
             3. Seguridad y Buenas Prácticas OWASP
           </h2>
           <p>
-            En estricto cumplimiento con las recomendaciones del proyecto <strong>OWASP (Open Web Application Security Project)</strong> y las normativas de la Ley 25.326 de Argentina:
+            En estricto cumplimiento con las recomendaciones del proyecto
+            <strong>OWASP (Open Web Application Security Project)</strong> y las
+            normativas de la Ley 25.326 de Argentina:
           </p>
           <ul>
-            <li><strong>Atributo Secure:</strong> Las cookies de sesión se transmiten únicamente a través de conexiones cifradas HTTPS/TLS.</li>
-            <li><strong>Atributo SameSite (Lax/Strict):</strong> Previene ataques de falsificación de peticiones entre sitios (*Cross-Site Request Forgery - CSRF*).</li>
-            <li><strong>Sin Rastreadores Invasivos:</strong> No comercializamos ni compartimos información de navegación con redes publicitarias de terceros.</li>
+            <li>
+              <strong>Atributo Secure:</strong> Las cookies de sesión se
+              transmiten únicamente a través de conexiones cifradas HTTPS/TLS.
+            </li>
+            <li>
+              <strong>Atributo SameSite (Lax/Strict):</strong> Previene ataques
+              de falsificación de peticiones entre sitios (*Cross-Site Request
+              Forgery - CSRF*).
+            </li>
+            <li>
+              <strong>Sin Rastreadores Invasivos:</strong> No comercializamos ni
+              compartimos información de navegación con redes publicitarias de
+              terceros.
+            </li>
           </ul>
         </section>
 
         <section id="gestion" class="legal-section">
           <h2>
-            <lucide-angular [img]="SettingsIcon" class="section-icon"></lucide-angular>
+            <lucide-angular
+              [img]="SettingsIcon"
+              class="section-icon"
+            ></lucide-angular>
             4. Cómo Gestionar o Desactivar Cookies en su Navegador
           </h2>
           <p>
-            El usuario tiene la libertad de configurar su navegador para aceptar, rechazar o eliminar cookies en cualquier momento:
+            El usuario tiene la libertad de configurar su navegador para
+            aceptar, rechazar o eliminar cookies en cualquier momento:
           </p>
           <ul>
-            <li><strong>Google Chrome:</strong> Configuración &gt; Privacidad y seguridad &gt; Cookies y otros datos de sitios.</li>
-            <li><strong>Mozilla Firefox:</strong> Opciones &gt; Privacidad y Seguridad &gt; Cookies y datos del sitio.</li>
-            <li><strong>Safari:</strong> Preferencias &gt; Privacidad &gt; Bloquear todas las cookies.</li>
-            <li><strong>Microsoft Edge:</strong> Configuración &gt; Permisos del sitio &gt; Cookies y datos guardados.</li>
+            <li>
+              <strong>Google Chrome:</strong> Configuración &gt; Privacidad y
+              seguridad &gt; Cookies y otros datos de sitios.
+            </li>
+            <li>
+              <strong>Mozilla Firefox:</strong> Opciones &gt; Privacidad y
+              Seguridad &gt; Cookies y datos del sitio.
+            </li>
+            <li>
+              <strong>Safari:</strong> Preferencias &gt; Privacidad &gt;
+              Bloquear todas las cookies.
+            </li>
+            <li>
+              <strong>Microsoft Edge:</strong> Configuración &gt; Permisos del
+              sitio &gt; Cookies y datos guardados.
+            </li>
           </ul>
           <p class="text-sm text-muted">
-            <em>Nota: La desactivación de cookies técnicas esenciales puede afectar el correcto funcionamiento del inicio de sesión y uso del dashboard de la plataforma.</em>
+            <em
+              >Nota: La desactivación de cookies técnicas esenciales puede
+              afectar el correcto funcionamiento del inicio de sesión y uso del
+              dashboard de la plataforma.</em
+            >
           </p>
         </section>
 
         <section id="contacto-cookies" class="legal-section">
           <h2>
-            <lucide-angular [img]="HelpCircleIcon" class="section-icon"></lucide-angular>
+            <lucide-angular
+              [img]="HelpCircleIcon"
+              class="section-icon"
+            ></lucide-angular>
             5. Consultas e Información de Contacto
           </h2>
           <p>
-            Si tiene alguna duda sobre nuestra Política de Cookies o sobre el almacenamiento de datos en la plataforma:
+            Si tiene alguna duda sobre nuestra Política de Cookies o sobre el
+            almacenamiento de datos en la plataforma:
           </p>
           <div class="contact-card">
             <p><strong>Centro de Ecología Integral Buen Vivir</strong></p>
             <p>Alta Gracia, Provincia de Córdoba, Argentina</p>
-            <p>Email: <a href="mailto:ceibuenvivir7@gmail.com">ceibuenvivir7&#64;gmail.com</a></p>
+            <p>
+              Email:
+              <a href="mailto:ceibuenvivir7@gmail.com"
+                >ceibuenvivir7&#64;gmail.com</a
+              >
+            </p>
           </div>
         </section>
       </article>

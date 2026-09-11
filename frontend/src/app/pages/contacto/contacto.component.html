@@ -3,7 +3,10 @@
     <div class="container">
       <div class="legal-nav-top">
         <a routerLink="/" class="btn-back">
-          <lucide-angular [img]="ArrowLeftIcon" class="icon-sm icon-mr"></lucide-angular>
+          <lucide-angular
+            [img]="ArrowLeftIcon"
+            class="icon-sm icon-mr"
+          ></lucide-angular>
           Volver al Inicio
         </a>
         <div class="legal-brand">
@@ -13,12 +16,16 @@
       </div>
       <div class="legal-hero">
         <div class="legal-badge">
-          <lucide-angular [img]="MailIcon" class="icon-sm icon-mr"></lucide-angular>
+          <lucide-angular
+            [img]="MailIcon"
+            class="icon-sm icon-mr"
+          ></lucide-angular>
           Canales de Atención & Consultas
         </div>
         <h1 class="legal-title">Contacto e Información Institucional</h1>
         <p class="legal-subtitle">
-          Centro de Ecología Integral "La Otra Orilla" — Alta Gracia, Provincia de Córdoba
+          Centro de Ecología Integral "La Otra Orilla" — Alta Gracia, Provincia
+          de Córdoba
         </p>
       </div>
     </div>
@@ -30,7 +37,10 @@
       <aside class="contact-info-column">
         <div class="info-card">
           <div class="info-icon-wrapper">
-            <lucide-angular [img]="MapPinIcon" class="info-icon"></lucide-angular>
+            <lucide-angular
+              [img]="MapPinIcon"
+              class="info-icon"
+            ></lucide-angular>
           </div>
           <div>
             <h3>Sede Institucional</h3>
@@ -45,14 +55,23 @@
           </div>
           <div>
             <h3>Correo Electrónico</h3>
-            <p><a href="mailto:ceibuenvivir7@gmail.com">ceibuenvivir7&#64;gmail.com</a></p>
-            <span class="info-hint">Atención general y privacidad Ley 25.326</span>
+            <p>
+              <a href="mailto:ceibuenvivir7@gmail.com"
+                >ceibuenvivir7&#64;gmail.com</a
+              >
+            </p>
+            <span class="info-hint"
+              >Atención general y privacidad Ley 25.326</span
+            >
           </div>
         </div>
 
         <div class="info-card">
           <div class="info-icon-wrapper">
-            <lucide-angular [img]="PhoneIcon" class="info-icon"></lucide-angular>
+            <lucide-angular
+              [img]="PhoneIcon"
+              class="info-icon"
+            ></lucide-angular>
           </div>
           <div>
             <h3>Teléfonos de Contacto</h3>
@@ -63,7 +82,10 @@
 
         <div class="info-card">
           <div class="info-icon-wrapper">
-            <lucide-angular [img]="ClockIcon" class="info-icon"></lucide-angular>
+            <lucide-angular
+              [img]="ClockIcon"
+              class="info-icon"
+            ></lucide-angular>
           </div>
           <div>
             <h3>Horarios de Atención</h3>
@@ -78,10 +100,15 @@
           @if (!isSubmitted) {
             <h2>Enviar una Consulta</h2>
             <p class="form-desc">
-              Completa el formulario a continuación y nos pondremos en contacto a la brevedad.
+              Completa el formulario a continuación y nos pondremos en contacto
+              a la brevedad.
             </p>
 
-            <form [formGroup]="contactForm" (ngSubmit)="onSubmit()" class="contact-form">
+            <form
+              [formGroup]="contactForm"
+              (ngSubmit)="onSubmit()"
+              class="contact-form"
+            >
               <div class="form-group">
                 <label for="name">Nombre Completo *</label>
                 <input
@@ -90,9 +117,15 @@
                   formControlName="name"
                   placeholder="Tu nombre completo"
                   class="form-control"
-                  [class.is-invalid]="contactForm.get('name')?.invalid && contactForm.get('name')?.touched"
+                  [class.is-invalid]="
+                    contactForm.get('name')?.invalid &&
+                    contactForm.get('name')?.touched
+                  "
                 />
-                @if (contactForm.get('name')?.invalid && contactForm.get('name')?.touched) {
+                @if (
+                  contactForm.get("name")?.invalid &&
+                  contactForm.get("name")?.touched
+                ) {
                   <span class="error-msg">Ingresa tu nombre completo.</span>
                 }
               </div>
@@ -105,10 +138,18 @@
                   formControlName="email"
                   placeholder="tuemail&#64;ejemplo.com"
                   class="form-control"
-                  [class.is-invalid]="contactForm.get('email')?.invalid && contactForm.get('email')?.touched"
+                  [class.is-invalid]="
+                    contactForm.get('email')?.invalid &&
+                    contactForm.get('email')?.touched
+                  "
                 />
-                @if (contactForm.get('email')?.invalid && contactForm.get('email')?.touched) {
-                  <span class="error-msg">Ingresa un correo electrónico válido.</span>
+                @if (
+                  contactForm.get("email")?.invalid &&
+                  contactForm.get("email")?.touched
+                ) {
+                  <span class="error-msg"
+                    >Ingresa un correo electrónico válido.</span
+                  >
                 }
               </div>
 
@@ -118,16 +159,28 @@
                   id="subject"
                   formControlName="subject"
                   class="form-control"
-                  [class.is-invalid]="contactForm.get('subject')?.invalid && contactForm.get('subject')?.touched"
+                  [class.is-invalid]="
+                    contactForm.get('subject')?.invalid &&
+                    contactForm.get('subject')?.touched
+                  "
                 >
                   <option value="">Selecciona un asunto...</option>
                   <option value="cursos">Consulta sobre Cursos</option>
-                  <option value="empleo">Bolsa de Empleo / Inserción Laboral</option>
-                  <option value="voluntariado">Voluntariado y Acompañamiento</option>
-                  <option value="datos">Ejercicio de Derechos ARCO (Datos Personales)</option>
+                  <option value="empleo">
+                    Bolsa de Empleo / Inserción Laboral
+                  </option>
+                  <option value="voluntariado">
+                    Voluntariado y Acompañamiento
+                  </option>
+                  <option value="datos">
+                    Ejercicio de Derechos ARCO (Datos Personales)
+                  </option>
                   <option value="otro">Otro motivo</option>
                 </select>
-                @if (contactForm.get('subject')?.invalid && contactForm.get('subject')?.touched) {
+                @if (
+                  contactForm.get("subject")?.invalid &&
+                  contactForm.get("subject")?.touched
+                ) {
                   <span class="error-msg">Selecciona un asunto.</span>
                 }
               </div>
@@ -140,10 +193,18 @@
                   formControlName="message"
                   placeholder="Escribe tu mensaje o consulta..."
                   class="form-control"
-                  [class.is-invalid]="contactForm.get('message')?.invalid && contactForm.get('message')?.touched"
+                  [class.is-invalid]="
+                    contactForm.get('message')?.invalid &&
+                    contactForm.get('message')?.touched
+                  "
                 ></textarea>
-                @if (contactForm.get('message')?.invalid && contactForm.get('message')?.touched) {
-                  <span class="error-msg">El mensaje debe tener al menos 10 caracteres.</span>
+                @if (
+                  contactForm.get("message")?.invalid &&
+                  contactForm.get("message")?.touched
+                ) {
+                  <span class="error-msg"
+                    >El mensaje debe tener al menos 10 caracteres.</span
+                  >
                 }
               </div>
 
@@ -151,27 +212,47 @@
                 <label class="checkbox-label">
                   <input type="checkbox" formControlName="privacyAccepted" />
                   <span>
-                    Acepto la <a routerLink="/privacidad" target="_blank">Política de Privacidad</a> y el tratamiento de mis datos según Ley 25.326. *
+                    Acepto la
+                    <a routerLink="/privacidad" target="_blank"
+                      >Política de Privacidad</a
+                    >
+                    y el tratamiento de mis datos según Ley 25.326. *
                   </span>
                 </label>
-                @if (contactForm.get('privacyAccepted')?.invalid && contactForm.get('privacyAccepted')?.touched) {
-                  <span class="error-msg">Debes aceptar la política de privacidad.</span>
+                @if (
+                  contactForm.get("privacyAccepted")?.invalid &&
+                  contactForm.get("privacyAccepted")?.touched
+                ) {
+                  <span class="error-msg"
+                    >Debes aceptar la política de privacidad.</span
+                  >
                 }
               </div>
 
               <button type="submit" class="btn btn-primary btn-submit">
-                <lucide-angular [img]="SendIcon" class="icon-sm icon-mr"></lucide-angular>
+                <lucide-angular
+                  [img]="SendIcon"
+                  class="icon-sm icon-mr"
+                ></lucide-angular>
                 Enviar Consulta
               </button>
             </form>
           } @else {
             <div class="success-message text-center">
-              <lucide-angular [img]="CheckCircleIcon" class="success-icon"></lucide-angular>
+              <lucide-angular
+                [img]="CheckCircleIcon"
+                class="success-icon"
+              ></lucide-angular>
               <h2>¡Mensaje Enviado con Éxito!</h2>
               <p>
-                Gracias por comunicarte con el Centro de Ecología Integral Buen Vivir. Responderemos a tu consulta a la brevedad al correo ingresado.
+                Gracias por comunicarte con el Centro de Ecología Integral Buen
+                Vivir. Responderemos a tu consulta a la brevedad al correo
+                ingresado.
               </p>
-              <button (click)="resetForm()" class="btn btn-outline-primary mt-4">
+              <button
+                (click)="resetForm()"
+                class="btn btn-outline-primary mt-4"
+              >
                 Enviar otro mensaje
               </button>
             </div>

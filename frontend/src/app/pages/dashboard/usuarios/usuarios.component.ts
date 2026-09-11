@@ -106,11 +106,7 @@ export class UsuariosComponent implements OnInit {
   private checkCurrentUserPermissions() {
     this.authService.isAuthenticated().subscribe({
       next: (me) => {
-        const roleId = (
-          me.role_id ??
-          me.user?.role_id ??
-          ""
-        ).toLowerCase();
+        const roleId = (me.role_id ?? me.user?.role_id ?? "").toLowerCase();
         this.currentUserRoleId = roleId;
         this.isVolunteerOnly =
           roleId === "role_volunteer" ||
@@ -145,7 +141,8 @@ export class UsuariosComponent implements OnInit {
 
   private mapUserToDashboardUser(u: User): DashboardUser {
     const roleName = this.formatRoleName(u.role?.name ?? u.role_id);
-    const fullName = `${u.first_name || ""} ${u.last_name || ""}`.trim() || u.email;
+    const fullName =
+      `${u.first_name || ""} ${u.last_name || ""}`.trim() || u.email;
     const isPending =
       u.status?.toLowerCase() === "pending" ||
       u.status?.toLowerCase() === "pending_approval" ||
@@ -167,7 +164,8 @@ export class UsuariosComponent implements OnInit {
     const r = roleRaw.toLowerCase();
     if (r.includes("admin")) return "Responsable";
     if (r.includes("teacher") || r.includes("docente")) return "Docente";
-    if (r.includes("volunteer") || r.includes("voluntario")) return "Voluntario";
+    if (r.includes("volunteer") || r.includes("voluntario"))
+      return "Voluntario";
     if (r.includes("company") || r.includes("empresa")) return "Empresa";
     return "Participante";
   }
@@ -198,4 +196,3 @@ export class UsuariosComponent implements OnInit {
     });
   }
 }
-

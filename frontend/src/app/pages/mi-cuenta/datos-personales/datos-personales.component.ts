@@ -1,12 +1,30 @@
 import { Component, OnInit, inject } from "@angular/core";
 import { CommonModule } from "@angular/common";
-import { FormsModule, ReactiveFormsModule, FormBuilder, Validators } from "@angular/forms";
-import { LucideAngularModule, Save, CheckCircle2, User, Mail, Phone, MapPin } from "lucide-angular";
+import {
+  FormsModule,
+  ReactiveFormsModule,
+  FormBuilder,
+  Validators,
+} from "@angular/forms";
+import {
+  LucideAngularModule,
+  Save,
+  CheckCircle2,
+  User,
+  Mail,
+  Phone,
+  MapPin,
+} from "lucide-angular";
 
 @Component({
   selector: "app-datos-personales",
   standalone: true,
-  imports: [CommonModule, FormsModule, ReactiveFormsModule, LucideAngularModule],
+  imports: [
+    CommonModule,
+    FormsModule,
+    ReactiveFormsModule,
+    LucideAngularModule,
+  ],
   templateUrl: "./datos-personales.component.html",
   styleUrl: "./datos-personales.component.css",
 })
@@ -24,7 +42,10 @@ export class DatosPersonalesComponent implements OnInit {
 
   profileForm = this.fb.group({
     fullName: ["Juan Pérez", [Validators.required, Validators.minLength(3)]],
-    dni: ["38123456", [Validators.required, Validators.pattern("^[0-9]{7,8}$")]],
+    dni: [
+      "38123456",
+      [Validators.required, Validators.pattern("^[0-9]{7,8}$")],
+    ],
     email: ["juan.perez@ejemplo.com", [Validators.required, Validators.email]],
     phone: ["+54 9 3547 612118", [Validators.required]],
     city: ["Alta Gracia", [Validators.required]],

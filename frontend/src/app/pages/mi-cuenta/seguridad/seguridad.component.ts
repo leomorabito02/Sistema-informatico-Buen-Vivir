@@ -1,12 +1,29 @@
 import { Component, inject } from "@angular/core";
 import { CommonModule } from "@angular/common";
-import { FormsModule, ReactiveFormsModule, FormBuilder, Validators } from "@angular/forms";
-import { LucideAngularModule, Lock, ShieldCheck, Key, AlertCircle, CheckCircle2 } from "lucide-angular";
+import {
+  FormsModule,
+  ReactiveFormsModule,
+  FormBuilder,
+  Validators,
+} from "@angular/forms";
+import {
+  LucideAngularModule,
+  Lock,
+  ShieldCheck,
+  Key,
+  AlertCircle,
+  CheckCircle2,
+} from "lucide-angular";
 
 @Component({
   selector: "app-seguridad",
   standalone: true,
-  imports: [CommonModule, FormsModule, ReactiveFormsModule, LucideAngularModule],
+  imports: [
+    CommonModule,
+    FormsModule,
+    ReactiveFormsModule,
+    LucideAngularModule,
+  ],
   templateUrl: "./seguridad.component.html",
   styleUrl: "./seguridad.component.css",
 })
@@ -29,7 +46,10 @@ export class SeguridadComponent {
 
   onSubmit(): void {
     if (this.passwordForm.valid) {
-      if (this.passwordForm.value.newPassword === this.passwordForm.value.confirmPassword) {
+      if (
+        this.passwordForm.value.newPassword ===
+        this.passwordForm.value.confirmPassword
+      ) {
         this.isPasswordUpdated = true;
         this.passwordForm.reset();
         setTimeout(() => (this.isPasswordUpdated = false), 4000);

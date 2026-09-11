@@ -1,7 +1,12 @@
 import { Component, OnInit, PLATFORM_ID, inject } from "@angular/core";
 import { CommonModule, isPlatformBrowser } from "@angular/common";
 import { RouterLink } from "@angular/router";
-import { FormsModule, ReactiveFormsModule, FormBuilder, Validators } from "@angular/forms";
+import {
+  FormsModule,
+  ReactiveFormsModule,
+  FormBuilder,
+  Validators,
+} from "@angular/forms";
 import {
   LucideAngularModule,
   Mail,

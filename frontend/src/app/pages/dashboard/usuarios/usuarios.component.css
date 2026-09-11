@@ -42,7 +42,9 @@
   color: #333333;
   background-color: #ffffff;
   outline: none;
-  transition: border-color 0.2s, box-shadow 0.2s;
+  transition:
+    border-color 0.2s,
+    box-shadow 0.2s;
 }
 
 .search-input:focus {
@@ -101,7 +103,9 @@
   align-items: center;
   gap: 8px;
   cursor: pointer;
-  transition: background-color 0.2s, transform 0.1s;
+  transition:
+    background-color 0.2s,
+    transform 0.1s;
 }
 
 .btn-new-user:hover {
@@ -242,7 +246,9 @@
   font-size: 15px;
   padding: 4px;
   border-radius: 4px;
-  transition: color 0.15s, background-color 0.15s;
+  transition:
+    color 0.15s,
+    background-color 0.15s;
 }
 
 .btn-view:hover {
@@ -281,4 +287,3 @@
     justify-content: space-between;
   }
 }
-
