@@ -1,6 +1,10 @@
 declare global {
   interface Window {
-    __env?: { apiUrl?: string; educationApiUrl?: string };
+    __env?: {
+      apiUrl?: string;
+      educationApiUrl?: string;
+      workerImpactUrl?: string;
+    };
   }
 }
 
@@ -10,6 +14,9 @@ export const environment = {
   // Base del microservicio de Educación. Vacío = mismo origen (útil detrás
   // del api-gateway o del proxy de `ng serve -c local`).
   educationApiUrl: window.__env?.educationApiUrl ?? "",
+  workerImpactUrl:
+    window.__env?.workerImpactUrl ??
+    "https://buen-vivir-impact-staging.workers.dev/api/impact",
   firebase: {
     projectId: "ceibuenvivir",
     appId: "1:429506836254:web:45f5eb50d86f074323bb0f",

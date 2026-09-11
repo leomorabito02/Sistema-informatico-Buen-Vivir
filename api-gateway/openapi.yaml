@@ -1081,6 +1081,768 @@ paths:
               type: boolean
             Access-Control-Max-Age:
               type: integer
+  /api/salud:
+    get:
+      summary: GET /api/salud
+      operationId: get__api_salud
+      x-google-backend:
+        address: ${EDUCATION_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+        jwt_audience: ${EDUCATION_SERVICE_URL}
+      responses:
+        '200':
+          description: OK
+    options:
+      summary: CORS preflight for /api/salud
+      operationId: options__api_salud
+      x-google-backend:
+        address: ${EDUCATION_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+        jwt_audience: ${EDUCATION_SERVICE_URL}
+      responses:
+        '200':
+          description: OK
+          headers:
+            Access-Control-Allow-Origin:
+              type: string
+            Access-Control-Allow-Methods:
+              type: string
+            Access-Control-Allow-Headers:
+              type: string
+            Access-Control-Expose-Headers:
+              type: string
+            Access-Control-Allow-Credentials:
+              type: boolean
+            Access-Control-Max-Age:
+              type: integer
+  /api/cursos:
+    get:
+      summary: GET /api/cursos
+      operationId: get__api_cursos
+      x-google-backend:
+        address: ${EDUCATION_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+        jwt_audience: ${EDUCATION_SERVICE_URL}
+      responses:
+        '200':
+          description: OK
+    post:
+      summary: POST /api/cursos
+      operationId: post__api_cursos
+      x-google-backend:
+        address: ${EDUCATION_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+        jwt_audience: ${EDUCATION_SERVICE_URL}
+      responses:
+        '200':
+          description: OK
+    options:
+      summary: CORS preflight for /api/cursos
+      operationId: options__api_cursos
+      x-google-backend:
+        address: ${EDUCATION_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+        jwt_audience: ${EDUCATION_SERVICE_URL}
+      responses:
+        '200':
+          description: OK
+          headers:
+            Access-Control-Allow-Origin:
+              type: string
+            Access-Control-Allow-Methods:
+              type: string
+            Access-Control-Allow-Headers:
+              type: string
+            Access-Control-Expose-Headers:
+              type: string
+            Access-Control-Allow-Credentials:
+              type: boolean
+            Access-Control-Max-Age:
+              type: integer
+  /api/cursos/borradores:
+    get:
+      summary: GET /api/cursos/borradores
+      operationId: get__api_cursos_borradores
+      x-google-backend:
+        address: ${EDUCATION_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+        jwt_audience: ${EDUCATION_SERVICE_URL}
+      responses:
+        '200':
+          description: OK
+    options:
+      summary: CORS preflight for /api/cursos/borradores
+      operationId: options__api_cursos_borradores
+      x-google-backend:
+        address: ${EDUCATION_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+        jwt_audience: ${EDUCATION_SERVICE_URL}
+      responses:
+        '200':
+          description: OK
+          headers:
+            Access-Control-Allow-Origin:
+              type: string
+            Access-Control-Allow-Methods:
+              type: string
+            Access-Control-Allow-Headers:
+              type: string
+            Access-Control-Expose-Headers:
+              type: string
+            Access-Control-Allow-Credentials:
+              type: boolean
+            Access-Control-Max-Age:
+              type: integer
+  /api/cursos/{id}:
+    get:
+      summary: GET /api/cursos/{id}
+      operationId: get__api_cursos_id
+      x-google-backend:
+        address: ${EDUCATION_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+        jwt_audience: ${EDUCATION_SERVICE_URL}
+      responses:
+        '200':
+          description: OK
+    put:
+      summary: PUT /api/cursos/{id}
+      operationId: put__api_cursos_id
+      x-google-backend:
+        address: ${EDUCATION_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+        jwt_audience: ${EDUCATION_SERVICE_URL}
+      responses:
+        '200':
+          description: OK
+    delete:
+      summary: DELETE /api/cursos/{id}
+      operationId: delete__api_cursos_id
+      x-google-backend:
+        address: ${EDUCATION_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+        jwt_audience: ${EDUCATION_SERVICE_URL}
+      responses:
+        '200':
+          description: OK
+    parameters:
+    - name: id
+      in: path
+      required: true
+      type: string
+    options:
+      summary: CORS preflight for /api/cursos/{id}
+      operationId: options__api_cursos_id
+      x-google-backend:
+        address: ${EDUCATION_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+        jwt_audience: ${EDUCATION_SERVICE_URL}
+      responses:
+        '200':
+          description: OK
+          headers:
+            Access-Control-Allow-Origin:
+              type: string
+            Access-Control-Allow-Methods:
+              type: string
+            Access-Control-Allow-Headers:
+              type: string
+            Access-Control-Expose-Headers:
+              type: string
+            Access-Control-Allow-Credentials:
+              type: boolean
+            Access-Control-Max-Age:
+              type: integer
+  /api/cursos/{id}/publicar:
+    post:
+      summary: POST /api/cursos/{id}/publicar
+      operationId: post__api_cursos_id_publicar
+      x-google-backend:
+        address: ${EDUCATION_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+        jwt_audience: ${EDUCATION_SERVICE_URL}
+      responses:
+        '200':
+          description: OK
+    parameters:
+    - name: id
+      in: path
+      required: true
+      type: string
+    options:
+      summary: CORS preflight for /api/cursos/{id}/publicar
+      operationId: options__api_cursos_id_publicar
+      x-google-backend:
+        address: ${EDUCATION_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+        jwt_audience: ${EDUCATION_SERVICE_URL}
+      responses:
+        '200':
+          description: OK
+          headers:
+            Access-Control-Allow-Origin:
+              type: string
+            Access-Control-Allow-Methods:
+              type: string
+            Access-Control-Allow-Headers:
+              type: string
+            Access-Control-Expose-Headers:
+              type: string
+            Access-Control-Allow-Credentials:
+              type: boolean
+            Access-Control-Max-Age:
+              type: integer
+  /api/cursos/{id}/despublicar:
+    post:
+      summary: POST /api/cursos/{id}/despublicar
+      operationId: post__api_cursos_id_despublicar
+      x-google-backend:
+        address: ${EDUCATION_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+        jwt_audience: ${EDUCATION_SERVICE_URL}
+      responses:
+        '200':
+          description: OK
+    parameters:
+    - name: id
+      in: path
+      required: true
+      type: string
+    options:
+      summary: CORS preflight for /api/cursos/{id}/despublicar
+      operationId: options__api_cursos_id_despublicar
+      x-google-backend:
+        address: ${EDUCATION_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+        jwt_audience: ${EDUCATION_SERVICE_URL}
+      responses:
+        '200':
+          description: OK
+          headers:
+            Access-Control-Allow-Origin:
+              type: string
+            Access-Control-Allow-Methods:
+              type: string
+            Access-Control-Allow-Headers:
+              type: string
+            Access-Control-Expose-Headers:
+              type: string
+            Access-Control-Allow-Credentials:
+              type: boolean
+            Access-Control-Max-Age:
+              type: integer
+  /api/areas-formativas:
+    get:
+      summary: GET /api/areas-formativas
+      operationId: get__api_areas-formativas
+      x-google-backend:
+        address: ${EDUCATION_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+        jwt_audience: ${EDUCATION_SERVICE_URL}
+      responses:
+        '200':
+          description: OK
+    post:
+      summary: POST /api/areas-formativas
+      operationId: post__api_areas-formativas
+      x-google-backend:
+        address: ${EDUCATION_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+        jwt_audience: ${EDUCATION_SERVICE_URL}
+      responses:
+        '200':
+          description: OK
+    options:
+      summary: CORS preflight for /api/areas-formativas
+      operationId: options__api_areas-formativas
+      x-google-backend:
+        address: ${EDUCATION_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+        jwt_audience: ${EDUCATION_SERVICE_URL}
+      responses:
+        '200':
+          description: OK
+          headers:
+            Access-Control-Allow-Origin:
+              type: string
+            Access-Control-Allow-Methods:
+              type: string
+            Access-Control-Allow-Headers:
+              type: string
+            Access-Control-Expose-Headers:
+              type: string
+            Access-Control-Allow-Credentials:
+              type: boolean
+            Access-Control-Max-Age:
+              type: integer
+  /api/areas-formativas/{id}:
+    put:
+      summary: PUT /api/areas-formativas/{id}
+      operationId: put__api_areas-formativas_id
+      x-google-backend:
+        address: ${EDUCATION_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+        jwt_audience: ${EDUCATION_SERVICE_URL}
+      responses:
+        '200':
+          description: OK
+    delete:
+      summary: DELETE /api/areas-formativas/{id}
+      operationId: delete__api_areas-formativas_id
+      x-google-backend:
+        address: ${EDUCATION_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+        jwt_audience: ${EDUCATION_SERVICE_URL}
+      responses:
+        '200':
+          description: OK
+    parameters:
+    - name: id
+      in: path
+      required: true
+      type: string
+    options:
+      summary: CORS preflight for /api/areas-formativas/{id}
+      operationId: options__api_areas-formativas_id
+      x-google-backend:
+        address: ${EDUCATION_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+        jwt_audience: ${EDUCATION_SERVICE_URL}
+      responses:
+        '200':
+          description: OK
+          headers:
+            Access-Control-Allow-Origin:
+              type: string
+            Access-Control-Allow-Methods:
+              type: string
+            Access-Control-Allow-Headers:
+              type: string
+            Access-Control-Expose-Headers:
+              type: string
+            Access-Control-Allow-Credentials:
+              type: boolean
+            Access-Control-Max-Age:
+              type: integer
+  /api/materiales:
+    get:
+      summary: GET /api/materiales
+      operationId: get__api_materiales
+      x-google-backend:
+        address: ${EDUCATION_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+        jwt_audience: ${EDUCATION_SERVICE_URL}
+      responses:
+        '200':
+          description: OK
+    post:
+      summary: POST /api/materiales
+      operationId: post__api_materiales
+      x-google-backend:
+        address: ${EDUCATION_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+        jwt_audience: ${EDUCATION_SERVICE_URL}
+      responses:
+        '200':
+          description: OK
+    options:
+      summary: CORS preflight for /api/materiales
+      operationId: options__api_materiales
+      x-google-backend:
+        address: ${EDUCATION_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+        jwt_audience: ${EDUCATION_SERVICE_URL}
+      responses:
+        '200':
+          description: OK
+          headers:
+            Access-Control-Allow-Origin:
+              type: string
+            Access-Control-Allow-Methods:
+              type: string
+            Access-Control-Allow-Headers:
+              type: string
+            Access-Control-Expose-Headers:
+              type: string
+            Access-Control-Allow-Credentials:
+              type: boolean
+            Access-Control-Max-Age:
+              type: integer
+  /api/materiales/upload:
+    post:
+      summary: POST /api/materiales/upload
+      operationId: post__api_materiales_upload
+      x-google-backend:
+        address: ${EDUCATION_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+        jwt_audience: ${EDUCATION_SERVICE_URL}
+      responses:
+        '200':
+          description: OK
+    options:
+      summary: CORS preflight for /api/materiales/upload
+      operationId: options__api_materiales_upload
+      x-google-backend:
+        address: ${EDUCATION_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+        jwt_audience: ${EDUCATION_SERVICE_URL}
+      responses:
+        '200':
+          description: OK
+          headers:
+            Access-Control-Allow-Origin:
+              type: string
+            Access-Control-Allow-Methods:
+              type: string
+            Access-Control-Allow-Headers:
+              type: string
+            Access-Control-Expose-Headers:
+              type: string
+            Access-Control-Allow-Credentials:
+              type: boolean
+            Access-Control-Max-Age:
+              type: integer
+  /api/materiales/{id}:
+    put:
+      summary: PUT /api/materiales/{id}
+      operationId: put__api_materiales_id
+      x-google-backend:
+        address: ${EDUCATION_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+        jwt_audience: ${EDUCATION_SERVICE_URL}
+      responses:
+        '200':
+          description: OK
+    delete:
+      summary: DELETE /api/materiales/{id}
+      operationId: delete__api_materiales_id
+      x-google-backend:
+        address: ${EDUCATION_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+        jwt_audience: ${EDUCATION_SERVICE_URL}
+      responses:
+        '200':
+          description: OK
+    parameters:
+    - name: id
+      in: path
+      required: true
+      type: string
+    options:
+      summary: CORS preflight for /api/materiales/{id}
+      operationId: options__api_materiales_id
+      x-google-backend:
+        address: ${EDUCATION_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+        jwt_audience: ${EDUCATION_SERVICE_URL}
+      responses:
+        '200':
+          description: OK
+          headers:
+            Access-Control-Allow-Origin:
+              type: string
+            Access-Control-Allow-Methods:
+              type: string
+            Access-Control-Allow-Headers:
+              type: string
+            Access-Control-Expose-Headers:
+              type: string
+            Access-Control-Allow-Credentials:
+              type: boolean
+            Access-Control-Max-Age:
+              type: integer
+  /api/docente/cursos:
+    get:
+      summary: GET /api/docente/cursos
+      operationId: get__api_docente_cursos
+      x-google-backend:
+        address: ${EDUCATION_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+        jwt_audience: ${EDUCATION_SERVICE_URL}
+      responses:
+        '200':
+          description: OK
+    post:
+      summary: POST /api/docente/cursos
+      operationId: post__api_docente_cursos
+      x-google-backend:
+        address: ${EDUCATION_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+        jwt_audience: ${EDUCATION_SERVICE_URL}
+      responses:
+        '200':
+          description: OK
+    options:
+      summary: CORS preflight for /api/docente/cursos
+      operationId: options__api_docente_cursos
+      x-google-backend:
+        address: ${EDUCATION_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+        jwt_audience: ${EDUCATION_SERVICE_URL}
+      responses:
+        '200':
+          description: OK
+          headers:
+            Access-Control-Allow-Origin:
+              type: string
+            Access-Control-Allow-Methods:
+              type: string
+            Access-Control-Allow-Headers:
+              type: string
+            Access-Control-Expose-Headers:
+              type: string
+            Access-Control-Allow-Credentials:
+              type: boolean
+            Access-Control-Max-Age:
+              type: integer
+  /api/docente/cursos/borradores:
+    get:
+      summary: GET /api/docente/cursos/borradores
+      operationId: get__api_docente_cursos_borradores
+      x-google-backend:
+        address: ${EDUCATION_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+        jwt_audience: ${EDUCATION_SERVICE_URL}
+      responses:
+        '200':
+          description: OK
+    options:
+      summary: CORS preflight for /api/docente/cursos/borradores
+      operationId: options__api_docente_cursos_borradores
+      x-google-backend:
+        address: ${EDUCATION_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+        jwt_audience: ${EDUCATION_SERVICE_URL}
+      responses:
+        '200':
+          description: OK
+          headers:
+            Access-Control-Allow-Origin:
+              type: string
+            Access-Control-Allow-Methods:
+              type: string
+            Access-Control-Allow-Headers:
+              type: string
+            Access-Control-Expose-Headers:
+              type: string
+            Access-Control-Allow-Credentials:
+              type: boolean
+            Access-Control-Max-Age:
+              type: integer
+  /api/docente/cursos/{id}:
+    put:
+      summary: PUT /api/docente/cursos/{id}
+      operationId: put__api_docente_cursos_id
+      x-google-backend:
+        address: ${EDUCATION_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+        jwt_audience: ${EDUCATION_SERVICE_URL}
+      responses:
+        '200':
+          description: OK
+    parameters:
+    - name: id
+      in: path
+      required: true
+      type: string
+    options:
+      summary: CORS preflight for /api/docente/cursos/{id}
+      operationId: options__api_docente_cursos_id
+      x-google-backend:
+        address: ${EDUCATION_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+        jwt_audience: ${EDUCATION_SERVICE_URL}
+      responses:
+        '200':
+          description: OK
+          headers:
+            Access-Control-Allow-Origin:
+              type: string
+            Access-Control-Allow-Methods:
+              type: string
+            Access-Control-Allow-Headers:
+              type: string
+            Access-Control-Expose-Headers:
+              type: string
+            Access-Control-Allow-Credentials:
+              type: boolean
+            Access-Control-Max-Age:
+              type: integer
+  /api/docente/cursos/{cursoId}/actividades:
+    get:
+      summary: GET /api/docente/cursos/{cursoId}/actividades
+      operationId: get__api_docente_cursos_cursoId_actividades
+      x-google-backend:
+        address: ${EDUCATION_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+        jwt_audience: ${EDUCATION_SERVICE_URL}
+      responses:
+        '200':
+          description: OK
+    post:
+      summary: POST /api/docente/cursos/{cursoId}/actividades
+      operationId: post__api_docente_cursos_cursoId_actividades
+      x-google-backend:
+        address: ${EDUCATION_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+        jwt_audience: ${EDUCATION_SERVICE_URL}
+      responses:
+        '200':
+          description: OK
+    parameters:
+    - name: cursoId
+      in: path
+      required: true
+      type: string
+    options:
+      summary: CORS preflight for /api/docente/cursos/{cursoId}/actividades
+      operationId: options__api_docente_cursos_cursoId_actividades
+      x-google-backend:
+        address: ${EDUCATION_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+        jwt_audience: ${EDUCATION_SERVICE_URL}
+      responses:
+        '200':
+          description: OK
+          headers:
+            Access-Control-Allow-Origin:
+              type: string
+            Access-Control-Allow-Methods:
+              type: string
+            Access-Control-Allow-Headers:
+              type: string
+            Access-Control-Expose-Headers:
+              type: string
+            Access-Control-Allow-Credentials:
+              type: boolean
+            Access-Control-Max-Age:
+              type: integer
+  /api/docente/actividades/{actividadId}/asistencia:
+    get:
+      summary: GET /api/docente/actividades/{actividadId}/asistencia
+      operationId: get__api_docente_actividades_actividadId_asistencia
+      x-google-backend:
+        address: ${EDUCATION_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+        jwt_audience: ${EDUCATION_SERVICE_URL}
+      responses:
+        '200':
+          description: OK
+    post:
+      summary: POST /api/docente/actividades/{actividadId}/asistencia
+      operationId: post__api_docente_actividades_actividadId_asistencia
+      x-google-backend:
+        address: ${EDUCATION_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+        jwt_audience: ${EDUCATION_SERVICE_URL}
+      responses:
+        '200':
+          description: OK
+    parameters:
+    - name: actividadId
+      in: path
+      required: true
+      type: string
+    options:
+      summary: CORS preflight for /api/docente/actividades/{actividadId}/asistencia
+      operationId: options__api_docente_actividades_actividadId_asistencia
+      x-google-backend:
+        address: ${EDUCATION_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+        jwt_audience: ${EDUCATION_SERVICE_URL}
+      responses:
+        '200':
+          description: OK
+          headers:
+            Access-Control-Allow-Origin:
+              type: string
+            Access-Control-Allow-Methods:
+              type: string
+            Access-Control-Allow-Headers:
+              type: string
+            Access-Control-Expose-Headers:
+              type: string
+            Access-Control-Allow-Credentials:
+              type: boolean
+            Access-Control-Max-Age:
+              type: integer
+  /api/docente/cursos/{cursoId}/inscriptos:
+    get:
+      summary: GET /api/docente/cursos/{cursoId}/inscriptos
+      operationId: get__api_docente_cursos_cursoId_inscriptos
+      x-google-backend:
+        address: ${EDUCATION_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+        jwt_audience: ${EDUCATION_SERVICE_URL}
+      responses:
+        '200':
+          description: OK
+    parameters:
+    - name: cursoId
+      in: path
+      required: true
+      type: string
+    options:
+      summary: CORS preflight for /api/docente/cursos/{cursoId}/inscriptos
+      operationId: options__api_docente_cursos_cursoId_inscriptos
+      x-google-backend:
+        address: ${EDUCATION_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+        jwt_audience: ${EDUCATION_SERVICE_URL}
+      responses:
+        '200':
+          description: OK
+          headers:
+            Access-Control-Allow-Origin:
+              type: string
+            Access-Control-Allow-Methods:
+              type: string
+            Access-Control-Allow-Headers:
+              type: string
+            Access-Control-Expose-Headers:
+              type: string
+            Access-Control-Allow-Credentials:
+              type: boolean
+            Access-Control-Max-Age:
+              type: integer
+  /api/docente/cursos/{cursoId}/progreso:
+    get:
+      summary: GET /api/docente/cursos/{cursoId}/progreso
+      operationId: get__api_docente_cursos_cursoId_progreso
+      x-google-backend:
+        address: ${EDUCATION_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+        jwt_audience: ${EDUCATION_SERVICE_URL}
+      responses:
+        '200':
+          description: OK
+    parameters:
+    - name: cursoId
+      in: path
+      required: true
+      type: string
+    options:
+      summary: CORS preflight for /api/docente/cursos/{cursoId}/progreso
+      operationId: options__api_docente_cursos_cursoId_progreso
+      x-google-backend:
+        address: ${EDUCATION_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+        jwt_audience: ${EDUCATION_SERVICE_URL}
+      responses:
+        '200':
+          description: OK
+          headers:
+            Access-Control-Allow-Origin:
+              type: string
+            Access-Control-Allow-Methods:
+              type: string
+            Access-Control-Allow-Headers:
+              type: string
+            Access-Control-Expose-Headers:
+              type: string
+            Access-Control-Allow-Credentials:
+              type: boolean
+            Access-Control-Max-Age:
+              type: integer
 securityDefinitions:
   jwt:
     type: apiKey

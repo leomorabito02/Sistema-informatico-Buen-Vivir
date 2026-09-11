@@ -1,0 +1,20 @@
+# robots.txt for ceibuenvivir.org (Centro de Ecologia Integral Buen Vivir)
+User-agent: *
+Allow: /
+Allow: /privacidad
+Allow: /terminos
+Allow: /cookies
+Allow: /contacto
+Allow: /sitemap.xml
+
+# Disallow private and administrative areas
+Disallow: /dashboard/
+Disallow: /mi-cuenta/
+Disallow: /login
+Disallow: /register
+Disallow: /pending-approval
+Disallow: /account-notice
+Disallow: /select-role
+Disallow: /api/
+
+Sitemap: https://ceibuenvivir.org/sitemap.xml

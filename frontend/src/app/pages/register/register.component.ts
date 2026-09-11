@@ -15,7 +15,7 @@ import {
   Mail,
   Lock,
   Phone,
-  CheckCircle2,
+  CircleCheck,
   Clock,
   AlertCircle,
   Eye,
@@ -84,15 +84,15 @@ export class RegisterComponent {
   readonly MailIcon = Mail;
   readonly LockIcon = Lock;
   readonly PhoneIcon = Phone;
-  readonly CheckCircle2Icon = CheckCircle2;
+  readonly CheckCircle2Icon = CircleCheck;
   readonly ClockIcon = Clock;
   readonly AlertCircleIcon = AlertCircle;
   readonly EyeIcon = Eye;
   readonly EyeOffIcon = EyeOff;
 
-  private fb = inject(FormBuilder);
-  private authService = inject(AuthService);
-  private route = inject(ActivatedRoute);
+  private readonly fb = inject(FormBuilder);
+  private readonly authService = inject(AuthService);
+  private readonly route = inject(ActivatedRoute);
 
   registerForm: FormGroup;
   registered = false;
@@ -174,6 +174,8 @@ export class RegisterComponent {
   }
 
   onSubmit() {
+    if (this.loading) return;
+
     if (this.registerForm.invalid) {
       this.registerForm.markAllAsTouched();
       this.registerError = this.getFirstFormError();
@@ -194,8 +196,8 @@ export class RegisterComponent {
 
     this.authService.registerWithEmail(formData).subscribe({
       next: () => {
-        this.registered = true;
         this.loading = false;
+        this.registered = true;
       },
       error: (err) => {
         this.loading = false;

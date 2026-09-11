@@ -20,24 +20,22 @@ type MockCompanyRepository struct {
 }
 
 func (m *MockCompanyRepository) Create(ctx context.Context, company *models.Company) error {
-	args := m.Called(ctx, company)
-	return args.Error(0)
+	return m.Called(ctx, company).Error(0)
+}
+
+func (m *MockCompanyRepository) mockCompanyReturn(args mock.Arguments) (*models.Company, error) {
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*models.Company), args.Error(1)
 }
 
 func (m *MockCompanyRepository) FindByID(ctx context.Context, id string) (*models.Company, error) {
-	args := m.Called(ctx, id)
-	if args.Get(0) == nil {
-		return nil, args.Error(1)
-	}
-	return args.Get(0).(*models.Company), args.Error(1)
+	return m.mockCompanyReturn(m.Called(ctx, id))
 }
 
 func (m *MockCompanyRepository) FindByUserID(ctx context.Context, userID string) (*models.Company, error) {
-	args := m.Called(ctx, userID)
-	if args.Get(0) == nil {
-		return nil, args.Error(1)
-	}
-	return args.Get(0).(*models.Company), args.Error(1)
+	return m.mockCompanyReturn(m.Called(ctx, userID))
 }
 
 func (m *MockCompanyRepository) FindAll(ctx context.Context) ([]models.Company, error) {
@@ -49,13 +47,11 @@ func (m *MockCompanyRepository) FindAll(ctx context.Context) ([]models.Company, 
 }
 
 func (m *MockCompanyRepository) Update(ctx context.Context, company *models.Company) error {
-	args := m.Called(ctx, company)
-	return args.Error(0)
+	return m.Called(ctx, company).Error(0)
 }
 
 func (m *MockCompanyRepository) Delete(ctx context.Context, id string) error {
-	args := m.Called(ctx, id)
-	return args.Error(0)
+	return m.Called(ctx, id).Error(0)
 }
 
 func TestCompanyService_GetAllCompanies_Success(t *testing.T) {

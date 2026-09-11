@@ -66,10 +66,10 @@ type CourseRow = Course & { publicado: boolean };
   styleUrls: ["./admin-cursos.component.css"],
 })
 export class AdminCursosComponent implements OnInit {
-  private education = inject(EducationService);
-  private users = inject(UsersService);
-  private toast = inject(MessageService);
-  private confirm = inject(ConfirmationService);
+  private readonly education = inject(EducationService);
+  private readonly users = inject(UsersService);
+  private readonly toast = inject(MessageService);
+  private readonly confirm = inject(ConfirmationService);
 
   section: Section = "cursos";
   loading = true;
@@ -235,8 +235,10 @@ export class AdminCursosComponent implements OnInit {
     return !!(
       f.title.trim() &&
       f.mode &&
+      f.duration.trim() &&
       f.trainingAreaId &&
-      f.responsibleTeacher
+      f.responsibleTeacher &&
+      f.materialIds.length > 0
     );
   }
 

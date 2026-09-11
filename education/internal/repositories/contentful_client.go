@@ -15,8 +15,8 @@ import (
 )
 
 const (
-	cdaBaseURL = "https://cdn.contentful.com"
-	cmaBaseURL = "https://api.contentful.com"
+	defaultCDABaseURL = "https://cdn.contentful.com"
+	defaultCMABaseURL = "https://api.contentful.com"
 )
 
 // ContentfulAPIError envuelve un error devuelto por Contentful (CDA o
@@ -50,16 +50,28 @@ type ContentfulClient struct {
 	cmaToken    string
 	locale      string
 	httpClient  *http.Client
+
+	// cdaBaseURL/cmaBaseURL/uploadBaseURL quedan como campos (con los
+	// hosts reales de Contentful como default) en vez de usar
+	// directamente las constantes, para que los tests de este paquete
+	// puedan apuntarlos a un httptest.Server y no hablar por red con
+	// Contentful de verdad.
+	cdaBaseURL    string
+	cmaBaseURL    string
+	uploadBaseURL string
 }
 
 func NewContentfulClient(cfg *config.Config) *ContentfulClient {
 	return &ContentfulClient{
-		spaceID:     cfg.ContentfulSpaceID,
-		environment: string(cfg.ContentfulEnvironment),
-		cdaToken:    cfg.ContentfulCDAToken,
-		cmaToken:    cfg.ContentfulCMAToken,
-		locale:      cfg.ContentfulLocale,
-		httpClient:  &http.Client{Timeout: 15 * time.Second},
+		spaceID:       cfg.ContentfulSpaceID,
+		environment:   string(cfg.ContentfulEnvironment),
+		cdaToken:      cfg.ContentfulCDAToken,
+		cmaToken:      cfg.ContentfulCMAToken,
+		locale:        cfg.ContentfulLocale,
+		httpClient:    &http.Client{Timeout: 15 * time.Second},
+		cdaBaseURL:    defaultCDABaseURL,
+		cmaBaseURL:    defaultCMABaseURL,
+		uploadBaseURL: defaultUploadBaseURL,
 	}
 }
 
@@ -152,7 +164,7 @@ func (c *ContentfulClient) doCDA(ctx context.Context, method, path string, query
 	}
 	query.Set("access_token", c.cdaToken)
 
-	reqURL := fmt.Sprintf("%s/spaces/%s/environments/%s%s?%s", cdaBaseURL, c.spaceID, c.environment, path, query.Encode())
+	reqURL := fmt.Sprintf("%s/spaces/%s/environments/%s%s?%s", c.cdaBaseURL, c.spaceID, c.environment, path, query.Encode())
 	req, err := http.NewRequestWithContext(ctx, method, reqURL, nil)
 	if err != nil {
 		return nil, 0, err
@@ -265,7 +277,7 @@ func (c *ContentfulClient) DeleteEntryCascade(ctx context.Context, id string) er
 }
 
 func (c *ContentfulClient) doCMA(ctx context.Context, method, path string, extraHeaders map[string]string, body []byte) ([]byte, int, error) {
-	reqURL := fmt.Sprintf("%s/spaces/%s/environments/%s%s", cmaBaseURL, c.spaceID, c.environment, path)
+	reqURL := fmt.Sprintf("%s/spaces/%s/environments/%s%s", c.cmaBaseURL, c.spaceID, c.environment, path)
 
 	var reader io.Reader
 	if body != nil {
@@ -291,7 +303,7 @@ func (c *ContentfulClient) do(req *http.Request) ([]byte, int, error) {
 	if err != nil {
 		return nil, 0, fmt.Errorf("error de red hablando con Contentful: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	respBody, err := io.ReadAll(resp.Body)
 	if err != nil {

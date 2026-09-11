@@ -19,77 +19,75 @@ type MockUserRepository struct {
 	mock.Mock
 }
 
+func (m *MockUserRepository) mockUserReturn(args mock.Arguments) (*models.User, error) {
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*models.User), args.Error(1)
+}
+
+func (m *MockUserRepository) mockUsersReturn(args mock.Arguments) ([]models.User, error) {
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).([]models.User), args.Error(1)
+}
+
 func (m *MockUserRepository) Create(ctx context.Context, user *models.User) error {
-	args := m.Called(ctx, user)
-	return args.Error(0)
+	return m.Called(ctx, user).Error(0)
 }
 
 func (m *MockUserRepository) FindByID(ctx context.Context, id string) (*models.User, error) {
-	args := m.Called(ctx, id)
-	if args.Get(0) == nil {
-		return nil, args.Error(1)
-	}
-	return args.Get(0).(*models.User), args.Error(1)
+	return m.mockUserReturn(m.Called(ctx, id))
 }
 
 func (m *MockUserRepository) FindByEmail(ctx context.Context, email string) (*models.User, error) {
-	args := m.Called(ctx, email)
-	if args.Get(0) == nil {
-		return nil, args.Error(1)
-	}
-	return args.Get(0).(*models.User), args.Error(1)
+	return m.mockUserReturn(m.Called(ctx, email))
 }
 
 func (m *MockUserRepository) FindAll(ctx context.Context) ([]models.User, error) {
-	args := m.Called(ctx)
-	if args.Get(0) == nil {
-		return nil, args.Error(1)
-	}
-	return args.Get(0).([]models.User), args.Error(1)
+	return m.mockUsersReturn(m.Called(ctx))
 }
 
 func (m *MockUserRepository) FindAllByEmail(ctx context.Context, email string) ([]models.User, error) {
-	args := m.Called(ctx, email)
-	if args.Get(0) == nil {
-		return nil, args.Error(1)
-	}
-	return args.Get(0).([]models.User), args.Error(1)
+	return m.mockUsersReturn(m.Called(ctx, email))
 }
 
 func (m *MockUserRepository) FindAllByGoogleID(ctx context.Context, googleAuthID string) ([]models.User, error) {
-	args := m.Called(ctx, googleAuthID)
-	if args.Get(0) == nil {
-		return nil, args.Error(1)
-	}
-	return args.Get(0).([]models.User), args.Error(1)
+	return m.mockUsersReturn(m.Called(ctx, googleAuthID))
 }
 
 func (m *MockUserRepository) FindByEmailAndRole(ctx context.Context, email, roleID string) (*models.User, error) {
-	args := m.Called(ctx, email, roleID)
-	if args.Get(0) == nil {
-		return nil, args.Error(1)
-	}
-	return args.Get(0).(*models.User), args.Error(1)
+	return m.mockUserReturn(m.Called(ctx, email, roleID))
 }
 
 func (m *MockUserRepository) Update(ctx context.Context, user *models.User) error {
-	args := m.Called(ctx, user)
-	return args.Error(0)
+	return m.Called(ctx, user).Error(0)
 }
 
 func (m *MockUserRepository) Delete(ctx context.Context, id string) error {
-	args := m.Called(ctx, id)
-	return args.Error(0)
+	return m.Called(ctx, id).Error(0)
 }
 
 func (m *MockUserRepository) LinkGoogleAccountByEmail(ctx context.Context, email, googleAuthID string) error {
-	args := m.Called(ctx, email, googleAuthID)
-	return args.Error(0)
+	return m.Called(ctx, email, googleAuthID).Error(0)
 }
 
 func (m *MockUserRepository) UnlinkGoogleAccountByEmail(ctx context.Context, email string) error {
-	args := m.Called(ctx, email)
-	return args.Error(0)
+	return m.Called(ctx, email).Error(0)
+}
+
+func (m *MockUserRepository) CountActiveParticipants(ctx context.Context) (int64, error) {
+	// Mock implementation for CountActiveParticipants
+	args := m.Called(ctx)
+	return args.Get(0).(int64), args.Error(1)
+}
+
+func (m *MockUserRepository) CountVolunteers(ctx context.Context) (int64, error) {
+	// Mock implementation for CountVolunteers
+	args := m.Called(ctx)
+	countResult := args.Get(0).(int64)
+	return countResult, args.Error(1)
 }
 
 func TestUserService_GetUserByID_AdminSuccess(t *testing.T) {

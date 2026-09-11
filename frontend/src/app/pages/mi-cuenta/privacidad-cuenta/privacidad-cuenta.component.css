@@ -1,0 +1,63 @@
+.subroute-container {
+  max-width: 800px;
+}
+
+.privacy-section-card {
+  background: var(--bg-white);
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+  padding: 1.5rem;
+}
+
+.privacy-section-card.danger-card {
+  border-color: rgba(239, 68, 68, 0.3);
+  background: #fffcfc;
+}
+
+.icon-box {
+  padding: 0.75rem;
+  border-radius: 0.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.bg-primary-10 {
+  background: var(--primary-10);
+}
+
+.bg-destructive-10 {
+  background: rgba(239, 68, 68, 0.1);
+}
+
+.text-destructive {
+  color: var(--destructive);
+}
+
+.btn-danger {
+  background: var(--destructive);
+  color: #ffffff;
+  border: 1px solid var(--destructive);
+}
+
+.btn-danger:hover {
+  background: #dc2626;
+}
+
+.btn-sm {
+  padding: 0.4rem 0.85rem;
+  font-size: 0.825rem;
+}
+
+.alert-success {
+  background: rgba(72, 88, 57, 0.12);
+  border: 1px solid var(--primary);
+  color: var(--primary);
+  padding: 0.85rem 1.25rem;
+  border-radius: 0.5rem;
+  display: flex;
+  align-items: center;
+  font-size: 0.9rem;
+  font-weight: 500;
+}
