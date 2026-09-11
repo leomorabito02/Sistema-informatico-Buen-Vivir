@@ -48,7 +48,7 @@ func TestAuthMiddleware_EmptyCookie(t *testing.T) {
 	}))
 
 	req := httptest.NewRequest("GET", "/api/cursos", nil)
-	req.AddCookie(&http.Cookie{Name: "access_token", Value: ""})
+	req.AddCookie(&http.Cookie{Name: "__Host-access_token", Value: ""})
 	w := httptest.NewRecorder()
 	handler.ServeHTTP(w, req)
 
@@ -129,7 +129,7 @@ func TestAuthMiddleware_ValidToken_FromCookie(t *testing.T) {
 	}))
 
 	req := httptest.NewRequest("GET", "/api/cursos", nil)
-	req.AddCookie(&http.Cookie{Name: "access_token", Value: "cookie-token"})
+	req.AddCookie(&http.Cookie{Name: "__Host-access_token", Value: "cookie-token"})
 	w := httptest.NewRecorder()
 	handler.ServeHTTP(w, req)
 
