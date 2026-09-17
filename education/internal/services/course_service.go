@@ -51,20 +51,36 @@ type CourseService interface {
 }
 
 type courseService struct {
-	repo repositories.CourseRepository
+	repo   repositories.CourseRepository
+	kvSync KVSyncService
 }
 
-func NewCourseService(repo repositories.CourseRepository) CourseService {
-	return &courseService{repo: repo}
+func NewCourseService(repo repositories.CourseRepository, kvSync ...KVSyncService) CourseService {
+	var sync KVSyncService
+	if len(kvSync) > 0 {
+		sync = kvSync[0]
+	}
+	return &courseService{repo: repo, kvSync: sync}
+}
+
+func (s *courseService) syncKV() {
+	if s.kvSync != nil {
+		s.kvSync.SyncCourseStatsAsync()
+	}
 }
 
 func (s *courseService) ListCourses(ctx context.Context) ([]models.Course, error) {
 	return s.repo.List(ctx)
 }
 
+const (
+	errCourseIDRequired = "el id del curso es requerido"
+	errTeacherIDMissing = "falta el id del docente autenticado"
+)
+
 func (s *courseService) GetCourse(ctx context.Context, id string) (*models.Course, error) {
 	if strings.TrimSpace(id) == "" {
-		return nil, NewValidationError("el id del curso es requerido")
+		return nil, NewValidationError(errCourseIDRequired)
 	}
 	return s.repo.Get(ctx, id)
 }
@@ -73,50 +89,70 @@ func (s *courseService) CreateCourse(ctx context.Context, input models.CourseInp
 	if err := validateCourseInput(input); err != nil {
 		return nil, err
 	}
-	return s.repo.Create(ctx, input)
+	course, err := s.repo.Create(ctx, input)
+	if err == nil {
+		s.syncKV()
+	}
+	return course, err
 }
 
 func (s *courseService) UpdateCourse(ctx context.Context, id string, input models.CourseInput) (*models.Course, error) {
 	if strings.TrimSpace(id) == "" {
-		return nil, NewValidationError("el id del curso es requerido")
+		return nil, NewValidationError(errCourseIDRequired)
 	}
 	if err := validateCourseInput(input); err != nil {
 		return nil, err
 	}
-	return s.repo.Update(ctx, id, input)
+	course, err := s.repo.Update(ctx, id, input)
+	if err == nil {
+		s.syncKV()
+	}
+	return course, err
 }
 
 func (s *courseService) DeleteCourse(ctx context.Context, id string) error {
 	if strings.TrimSpace(id) == "" {
-		return NewValidationError("el id del curso es requerido")
+		return NewValidationError(errCourseIDRequired)
 	}
-	return s.repo.Delete(ctx, id)
+	err := s.repo.Delete(ctx, id)
+	if err == nil {
+		s.syncKV()
+	}
+	return err
 }
 
 func (s *courseService) PublishCourse(ctx context.Context, id string) error {
 	if strings.TrimSpace(id) == "" {
-		return NewValidationError("el id del curso es requerido")
+		return NewValidationError(errCourseIDRequired)
 	}
-	return s.repo.Publish(ctx, id)
+	err := s.repo.Publish(ctx, id)
+	if err == nil {
+		s.syncKV()
+	}
+	return err
 }
 
 func (s *courseService) UnpublishCourse(ctx context.Context, id string) error {
 	if strings.TrimSpace(id) == "" {
-		return NewValidationError("el id del curso es requerido")
+		return NewValidationError(errCourseIDRequired)
 	}
-	return s.repo.Unpublish(ctx, id)
+	err := s.repo.Unpublish(ctx, id)
+	if err == nil {
+		s.syncKV()
+	}
+	return err
 }
 
 func (s *courseService) ListCoursesByTeacher(ctx context.Context, teacherID string) ([]models.Course, error) {
 	if strings.TrimSpace(teacherID) == "" {
-		return nil, NewValidationError("falta el id del docente autenticado")
+		return nil, NewValidationError(errTeacherIDMissing)
 	}
 	return s.repo.ListByResponsibleTeacher(ctx, teacherID)
 }
 
 func (s *courseService) ListDraftCoursesByTeacher(ctx context.Context, teacherID string) ([]models.Course, error) {
 	if strings.TrimSpace(teacherID) == "" {
-		return nil, NewValidationError("falta el id del docente autenticado")
+		return nil, NewValidationError(errTeacherIDMissing)
 	}
 	return s.repo.ListDraftsByResponsibleTeacher(ctx, teacherID)
 }
@@ -134,7 +170,7 @@ func (s *courseService) ListAllDraftCourses(ctx context.Context) ([]models.Cours
 // publicado pero pertenece a otro docente.
 func (s *courseService) VerifyOwnership(ctx context.Context, cursoID, teacherID string) error {
 	if strings.TrimSpace(cursoID) == "" {
-		return NewValidationError("el id del curso es requerido")
+		return NewValidationError(errCourseIDRequired)
 	}
 	course, err := s.repo.Get(ctx, cursoID)
 	if err != nil {
@@ -148,7 +184,7 @@ func (s *courseService) VerifyOwnership(ctx context.Context, cursoID, teacherID 
 
 func (s *courseService) CreateCourseAsTeacher(ctx context.Context, teacherID string, input models.CourseInput) (*models.Course, error) {
 	if strings.TrimSpace(teacherID) == "" {
-		return nil, NewValidationError("falta el id del docente autenticado")
+		return nil, NewValidationError(errTeacherIDMissing)
 	}
 	// El docente solo puede crear cursos a su propio nombre: se ignora
 	// cualquier valor que haya mandado el cliente en este campo.
@@ -158,7 +194,11 @@ func (s *courseService) CreateCourseAsTeacher(ctx context.Context, teacherID str
 	}
 	// repo.Create deja la entry en borrador (no auto-publica): el curso
 	// no aparece en el catálogo hasta que un role_admin lo publique.
-	return s.repo.Create(ctx, input)
+	course, err := s.repo.Create(ctx, input)
+	if err == nil {
+		s.syncKV()
+	}
+	return course, err
 }
 
 func (s *courseService) UpdateCourseAsTeacher(ctx context.Context, id, teacherID string, input models.CourseInput) (*models.Course, error) {
@@ -171,7 +211,11 @@ func (s *courseService) UpdateCourseAsTeacher(ctx context.Context, id, teacherID
 	if err := validateCourseInput(input); err != nil {
 		return nil, err
 	}
-	return s.repo.Update(ctx, id, input)
+	course, err := s.repo.Update(ctx, id, input)
+	if err == nil {
+		s.syncKV()
+	}
+	return course, err
 }
 
 // validateCourseInput refleja los campos requeridos y los valores

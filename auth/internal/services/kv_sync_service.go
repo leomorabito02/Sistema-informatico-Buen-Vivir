@@ -26,11 +26,15 @@ func NewKVSyncService(userRepo repositories.UserRepository) KVSyncService {
 }
 
 type ImpactUpdatePayload struct {
-	ActiveParticipants int64 `json:"activeParticipants"`
-	Volunteers         int64 `json:"volunteers"`
+	ActiveParticipants int64       `json:"activeParticipants"`
+	Volunteers         int64       `json:"volunteers"`
+	Courses            interface{} `json:"courses,omitempty"`
 }
 
 func (s *kvSyncService) SyncImpactStatsAsync() {
+	if s == nil || s.userRepo == nil {
+		return
+	}
 	workerURL := os.Getenv("WORKER_IMPACT_URL")
 	if workerURL == "" {
 		return

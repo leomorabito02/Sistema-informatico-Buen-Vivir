@@ -22,10 +22,18 @@ type VolunteerService interface {
 
 type volunteerService struct {
 	volunteerRepo repositories.VolunteerRepository
+	userRepo      repositories.UserRepository
 }
 
-func NewVolunteerService(volunteerRepo repositories.VolunteerRepository) VolunteerService {
-	return &volunteerService{volunteerRepo: volunteerRepo}
+func NewVolunteerService(volunteerRepo repositories.VolunteerRepository, opts ...repositories.UserRepository) VolunteerService {
+	var userRepo repositories.UserRepository
+	if len(opts) > 0 {
+		userRepo = opts[0]
+	}
+	return &volunteerService{
+		volunteerRepo: volunteerRepo,
+		userRepo:      userRepo,
+	}
 }
 
 func (s *volunteerService) CreateVolunteer(ctx context.Context, req *dto.CreateVolunteerRequest) (*dto.VolunteerResponse, error) {
@@ -48,6 +56,8 @@ func (s *volunteerService) CreateVolunteer(ctx context.Context, req *dto.CreateV
 	if err := s.volunteerRepo.Create(ctx, volunteer); err != nil {
 		return nil, err
 	}
+
+	NewKVSyncService(s.userRepo).SyncImpactStatsAsync()
 
 	return dto.ToVolunteerResponse(volunteer), nil
 }
@@ -104,6 +114,8 @@ func (s *volunteerService) UpdateVolunteer(ctx context.Context, id string, req *
 		return nil, err
 	}
 
+	NewKVSyncService(s.userRepo).SyncImpactStatsAsync()
+
 	return dto.ToVolunteerResponse(volunteer), nil
 }
 
@@ -121,5 +133,11 @@ func (s *volunteerService) DeleteVolunteer(ctx context.Context, id string) error
 		}
 	}
 
-	return s.volunteerRepo.Delete(ctx, id)
+	if err := s.volunteerRepo.Delete(ctx, id); err != nil {
+		return err
+	}
+
+	NewKVSyncService(s.userRepo).SyncImpactStatsAsync()
+
+	return nil
 }
