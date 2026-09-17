@@ -95,7 +95,7 @@ jobs:
       - name: SAST — Semgrep
         uses: semgrep/semgrep-action@v1
         with:
-          publishToken: ${{ secrets.SEMGREP_APP_TOKEN }}
+          config: p/default
         continue-on-error: true
 
       - name: SCA — pnpm audit (block HIGH/CRITICAL)
@@ -706,6 +706,8 @@ jobs:
             JWT_REFRESH_SECRET=${{ secrets.JWT_REFRESH_SECRET }}
             FIREBASE_CREDENTIALS_BASE64=${{ env.FIREBASE_CREDENTIALS_BASE64 }}
             CORS_ALLOWED_ORIGINS=${{ secrets.CORS_ALLOWED_ORIGINS }}
+            WORKER_IMPACT_URL=${{ secrets.WORKER_IMPACT_URL }}
+            WORKER_SYNC_TOKEN=${{ secrets.WORKER_SYNC_TOKEN }}
 
       - name: Ensure 100% traffic routed to latest Cloud Run revision
         run: |
@@ -766,6 +768,8 @@ jobs:
             JWT_SECRET=${{ secrets.JWT_SECRET }}
             GOOGLE_APPLICATION_CREDENTIALS_BASE64=${{ env.GOOGLE_APPLICATION_CREDENTIALS_BASE64 }}
             CORS_ALLOWED_ORIGINS=${{ secrets.CORS_ALLOWED_ORIGINS }}
+            WORKER_IMPACT_URL=${{ secrets.WORKER_IMPACT_URL }}
+            WORKER_SYNC_TOKEN=${{ secrets.WORKER_SYNC_TOKEN }}
 
       - name: Ensure 100% traffic routed to latest Cloud Run revision
         run: |
@@ -933,10 +937,33 @@ jobs:
             --project-name=${{ secrets.CLOUDFLARE_PROJECT }}
             --branch=${{ github.ref_name }}
 
+  cd-worker:
+    name: CD — Cloudflare Worker (Impact Stats)
+    runs-on: ubuntu-latest
+    needs: [cd-setup]
+    environment: ${{ needs.cd-setup.outputs.env_name }}
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Deploy Worker to Cloudflare
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          workingDirectory: cloudflare-worker
+          environment: ${{ needs.cd-setup.outputs.env_name == 'PROD' && 'production' || 'staging' }}
+          secrets: |
+            WORKER_SYNC_TOKEN
+        env:
+          WORKER_SYNC_TOKEN: ${{ secrets.WORKER_SYNC_TOKEN }}
+
   cd-smoke:
     name: CD — Smoke Tests
     runs-on: ubuntu-latest
-    needs: [cd-setup, cd-auth, cd-education, cd-api-gateway, cd-frontend]
+    needs: [cd-setup, cd-auth, cd-education, cd-api-gateway, cd-frontend, cd-worker]
     environment: ${{ needs.cd-setup.outputs.env_name }}
     timeout-minutes: 15
 

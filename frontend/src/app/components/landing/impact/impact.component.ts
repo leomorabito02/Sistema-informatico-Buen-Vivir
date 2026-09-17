@@ -12,8 +12,8 @@ import { ImpactService, ImpactMetrics } from "../../../services/impact.service";
 export class ImpactComponent implements OnInit {
   private readonly impactService = inject(ImpactService);
 
-  activeParticipants: number | string = 248;
-  volunteers: number | string = 32;
+  activeParticipants: number | string = 0;
+  volunteers: number | string = 0;
   courses: number | string = "Pendiente";
 
   ngOnInit(): void {
@@ -25,8 +25,11 @@ export class ImpactComponent implements OnInit {
         if (data.volunteers !== undefined) {
           this.volunteers = data.volunteers;
         }
-        // User requested explicitly: "cambia el número por 'pendiente' para recordarmelo"
-        this.courses = "Pendiente";
+        if (data.courses !== undefined && data.courses !== null) {
+          this.courses = data.courses;
+        } else {
+          this.courses = "Pendiente";
+        }
       }
     });
   }

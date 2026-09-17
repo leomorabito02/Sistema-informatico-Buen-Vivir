@@ -65,9 +65,12 @@ func main() {
 	roleService := services.NewRoleService(roleRepo)
 	companyService := services.NewCompanyService(companyRepo)
 	teacherService := services.NewTeacherService(teacherRepo)
-	participantService := services.NewParticipantService(participantRepo)
+	participantService := services.NewParticipantService(participantRepo, userRepo)
 	permissionService := services.NewPermissionService(permissionRepo)
-	volunteerService := services.NewVolunteerService(volunteerRepo)
+	volunteerService := services.NewVolunteerService(volunteerRepo, userRepo)
+
+	// Sincronizar contadores de impacto en Cloudflare Worker KV al iniciar el servicio
+	services.NewKVSyncService(userRepo).SyncImpactStatsAsync()
 
 	// 5. Setup Controllers
 	authController := controllers.NewAuthController(authService)

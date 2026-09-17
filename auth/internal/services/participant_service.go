@@ -22,10 +22,18 @@ type ParticipantService interface {
 
 type participantService struct {
 	participantRepo repositories.ParticipantRepository
+	userRepo        repositories.UserRepository
 }
 
-func NewParticipantService(participantRepo repositories.ParticipantRepository) ParticipantService {
-	return &participantService{participantRepo: participantRepo}
+func NewParticipantService(participantRepo repositories.ParticipantRepository, opts ...repositories.UserRepository) ParticipantService {
+	var userRepo repositories.UserRepository
+	if len(opts) > 0 {
+		userRepo = opts[0]
+	}
+	return &participantService{
+		participantRepo: participantRepo,
+		userRepo:        userRepo,
+	}
 }
 
 func (s *participantService) CreateParticipant(ctx context.Context, req *dto.CreateParticipantRequest) (*dto.ParticipantResponse, error) {
@@ -56,6 +64,8 @@ func (s *participantService) CreateParticipant(ctx context.Context, req *dto.Cre
 	if err := s.participantRepo.Create(ctx, participant); err != nil {
 		return nil, err
 	}
+
+	NewKVSyncService(s.userRepo).SyncImpactStatsAsync()
 
 	return dto.ToParticipantResponse(participant), nil
 }
@@ -94,25 +104,18 @@ func (s *participantService) GetAllParticipants(ctx context.Context) ([]dto.Part
 	return resp, nil
 }
 
-func (s *participantService) UpdateParticipant(ctx context.Context, id string, req *dto.UpdateParticipantRequest) (*dto.ParticipantResponse, error) {
-	val := utils.GetValidator()
-	if err := val.Struct(req); err != nil {
-		return nil, err
-	}
-
-	participant, err := s.participantRepo.FindByID(ctx, id)
-	if err != nil {
-		return nil, err
-	}
-
+func checkParticipantUpdateAccess(ctx context.Context, participant *models.Participant) error {
 	reqRole, _ := ctx.Value(middlewares.RoleIDKey).(string)
 	if reqRole == "role_participant" {
 		reqUserID, _ := ctx.Value(middlewares.UserIDKey).(string)
 		if participant.UserID != reqUserID {
-			return nil, errors.New("forbidden: access denied to edit other participant profiles")
+			return errors.New("forbidden: access denied to edit other participant profiles")
 		}
 	}
+	return nil
+}
 
+func applyParticipantFields(participant *models.Participant, req *dto.UpdateParticipantRequest) {
 	if req.Birthdate != nil {
 		participant.Birthdate = *req.Birthdate
 	}
@@ -146,10 +149,30 @@ func (s *participantService) UpdateParticipant(ctx context.Context, id string, r
 			participant.ApprovedBy = &req.ApprovedBy
 		}
 	}
+}
+
+func (s *participantService) UpdateParticipant(ctx context.Context, id string, req *dto.UpdateParticipantRequest) (*dto.ParticipantResponse, error) {
+	val := utils.GetValidator()
+	if err := val.Struct(req); err != nil {
+		return nil, err
+	}
+
+	participant, err := s.participantRepo.FindByID(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := checkParticipantUpdateAccess(ctx, participant); err != nil {
+		return nil, err
+	}
+
+	applyParticipantFields(participant, req)
 
 	if err := s.participantRepo.Update(ctx, participant); err != nil {
 		return nil, err
 	}
+
+	NewKVSyncService(s.userRepo).SyncImpactStatsAsync()
 
 	return dto.ToParticipantResponse(participant), nil
 }
@@ -168,5 +191,11 @@ func (s *participantService) DeleteParticipant(ctx context.Context, id string) e
 		}
 	}
 
-	return s.participantRepo.Delete(ctx, id)
+	if err := s.participantRepo.Delete(ctx, id); err != nil {
+		return err
+	}
+
+	NewKVSyncService(s.userRepo).SyncImpactStatsAsync()
+
+	return nil
 }

@@ -39,7 +39,10 @@ func main() {
 	attendanceRepo := repositories.NewAttendanceRepository(firestoreClient)
 
 	jwtService := services.NewJWTService()
-	courseService := services.NewCourseService(courseRepo)
+	kvSyncService := services.NewKVSyncService(courseRepo)
+	kvSyncService.SyncCourseStatsAsync()
+
+	courseService := services.NewCourseService(courseRepo, kvSyncService)
 	trainingAreaService := services.NewTrainingAreaService(trainingAreaRepo)
 	materialService := services.NewMaterialService(materialRepo)
 	activityService := services.NewActivityService(activityRepo)

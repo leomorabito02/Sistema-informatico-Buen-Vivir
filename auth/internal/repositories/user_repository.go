@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 
 	"auth/internal/models"
 	"gorm.io/gorm"
@@ -125,24 +126,31 @@ func (r *userRepository) Delete(ctx context.Context, id string) error {
 	})
 }
 
-func (r *userRepository) countApprovedUsersByRole(ctx context.Context, roleID, profileTable string) (int64, error) {
+func (r *userRepository) countAcceptedUsersByRole(ctx context.Context, roleID, profileTable string) (int64, error) {
 	var count int64
-	joinClause := fmt.Sprintf("LEFT JOIN %s ON %s.user_id = users.user_id", profileTable, profileTable)
-	whereApproval := fmt.Sprintf("users.role_id = ? AND users.status = ? AND (%s.approval_status = ? OR %s.approval_status IS NULL)", profileTable, profileTable)
+	altRoleID := roleID
+	if strings.HasPrefix(roleID, "role_") {
+		altRoleID = strings.TrimPrefix(roleID, "role_")
+	} else {
+		altRoleID = "role_" + roleID
+	}
+
+	joinClause := fmt.Sprintf("JOIN %s ON %s.user_id = users.user_id", profileTable, profileTable)
+	whereClause := fmt.Sprintf("(users.role_id = ? OR users.role_id = ?) AND users.status = ? AND %s.approval_status = ?", profileTable)
 
 	err := r.db.WithContext(ctx).
 		Table("users").
 		Joins(joinClause).
-		Where(whereApproval, roleID, "active", "approved").
+		Where(whereClause, roleID, altRoleID, "active", "accepted").
 		Where("users.deleted_at IS NULL").
 		Count(&count).Error
 	return count, err
 }
 
 func (r *userRepository) CountActiveParticipants(ctx context.Context) (int64, error) {
-	return r.countApprovedUsersByRole(ctx, "participant", "participants")
+	return r.countAcceptedUsersByRole(ctx, "role_participant", "participants")
 }
 
 func (r *userRepository) CountVolunteers(ctx context.Context) (int64, error) {
-	return r.countApprovedUsersByRole(ctx, "volunteer", "volunteers")
+	return r.countAcceptedUsersByRole(ctx, "role_volunteer", "volunteers")
 }

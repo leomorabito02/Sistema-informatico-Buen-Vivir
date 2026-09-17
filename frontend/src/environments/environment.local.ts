@@ -6,7 +6,7 @@
 
 declare global {
   interface Window {
-    __env?: { apiUrl?: string; educationApiUrl?: string };
+    __env?: { apiUrl?: string; educationApiUrl?: string; workerImpactUrl?: string };
   }
 }
 

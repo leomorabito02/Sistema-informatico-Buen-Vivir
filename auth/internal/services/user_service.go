@@ -60,6 +60,9 @@ func (s *userService) CreateUser(ctx context.Context, req *dto.CreateUserRequest
 		return nil, err
 	}
 
+	// Sincronizar stats de impacto
+	NewKVSyncService(s.userRepo).SyncImpactStatsAsync()
+
 	return dto.ToUserResponse(user), nil
 }
 
@@ -143,6 +146,9 @@ func (s *userService) UpdateUser(ctx context.Context, id string, req *dto.Update
 		return nil, err
 	}
 
+	// Sincronizar stats de impacto (por si cambió de rol)
+	NewKVSyncService(s.userRepo).SyncImpactStatsAsync()
+
 	return dto.ToUserResponse(user), nil
 }
 
@@ -161,5 +167,11 @@ func (s *userService) DeleteUser(ctx context.Context, id string) error {
 		}
 	}
 
-	return s.userRepo.Delete(ctx, id)
+	if err := s.userRepo.Delete(ctx, id); err != nil {
+		return err
+	}
+
+	NewKVSyncService(s.userRepo).SyncImpactStatsAsync()
+
+	return nil
 }
