@@ -23,10 +23,10 @@ func (c *PromotionController) GetPrograms(w http.ResponseWriter, r *http.Request
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(programs)
+	_ = json.NewEncoder(w).Encode(programs)
 }
 
 func (c *PromotionController) HealthCheck(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]string{"status": "UP", "service": "human-promotion-service"})
+	_ = json.NewEncoder(w).Encode(map[string]string{"status": "UP", "service": "human-promotion-service"})
 }

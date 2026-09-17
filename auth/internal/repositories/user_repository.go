@@ -128,7 +128,7 @@ func (r *userRepository) Delete(ctx context.Context, id string) error {
 
 func (r *userRepository) countAcceptedUsersByRole(ctx context.Context, roleID, profileTable string) (int64, error) {
 	var count int64
-	altRoleID := roleID
+	var altRoleID string
 	if strings.HasPrefix(roleID, "role_") {
 		altRoleID = strings.TrimPrefix(roleID, "role_")
 	} else {

@@ -28,10 +28,10 @@ func (c *ResumeController) GetResume(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(resume)
+	_ = json.NewEncoder(w).Encode(resume)
 }
 
 func (c *ResumeController) HealthCheck(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]string{"status": "UP", "service": "rxresume-service"})
+	_ = json.NewEncoder(w).Encode(map[string]string{"status": "UP", "service": "rxresume-service"})
 }

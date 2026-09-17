@@ -23,10 +23,10 @@ func (c *DashboardController) GetMetrics(w http.ResponseWriter, r *http.Request)
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(metrics)
+	_ = json.NewEncoder(w).Encode(metrics)
 }
 
 func (c *DashboardController) HealthCheck(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]string{"status": "UP", "service": "dashboard-service"})
+	_ = json.NewEncoder(w).Encode(map[string]string{"status": "UP", "service": "dashboard-service"})
 }
