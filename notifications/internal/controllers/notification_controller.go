@@ -28,10 +28,10 @@ func (c *NotificationController) GetNotifications(w http.ResponseWriter, r *http
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(notifications)
+	_ = json.NewEncoder(w).Encode(notifications)
 }
 
 func (c *NotificationController) HealthCheck(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]string{"status": "UP", "service": "notifications-service"})
+	_ = json.NewEncoder(w).Encode(map[string]string{"status": "UP", "service": "notifications-service"})
 }

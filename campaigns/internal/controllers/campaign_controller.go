@@ -23,10 +23,10 @@ func (c *CampaignController) GetCampaigns(w http.ResponseWriter, r *http.Request
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(campaigns)
+	_ = json.NewEncoder(w).Encode(campaigns)
 }
 
 func (c *CampaignController) HealthCheck(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]string{"status": "UP", "service": "campaigns-service"})
+	_ = json.NewEncoder(w).Encode(map[string]string{"status": "UP", "service": "campaigns-service"})
 }
