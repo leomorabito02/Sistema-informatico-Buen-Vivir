@@ -2,26 +2,110 @@ package services
 
 import (
 	"context"
+	"strings"
 
 	"buenvivir/education/internal/models"
 	"buenvivir/education/internal/repositories"
 )
 
-// EnrollmentService expone lectura de inscripciones (Firestore). No
-// tiene reglas de negocio propias todavía: es un passthrough al
-// repository, dejado como interfaz para mockear en tests futuros.
+// EnrollmentService valida las reglas de negocio de inscripción
+// (HU-18/RF-18) antes de delegar en el repository de Firestore.
 type EnrollmentService interface {
 	ListByCourse(ctx context.Context, cursoID string) ([]models.Enrollment, error)
+	// Enroll inscribe a un participante en un curso publicado.
+	// bearerToken es el JWT crudo del usuario autenticado en education
+	// (ver middlewares.TokenKey), que se reenvía a auth-service para
+	// confirmar que el participante existe y está aprobado. Reglas de
+	// negocio, en este orden:
+	//  1. El curso tiene que existir y estar publicado (CDA). Si no está
+	//     publicado, se distingue "no existe" de "existe pero inactivo"
+	//     consultando la CMA.
+	//  2. El participante tiene que existir en auth-service y estar
+	//     aprobado.
+	//  3. El participante no puede tener ya una inscripción activa en
+	//     ese curso.
+	//  4. Si el curso tiene Capacity fijado, el cupo no puede estar
+	//     completo (inscripciones activas >= capacity).
+	Enroll(ctx context.Context, participanteID, cursoID, bearerToken string) (*models.Enrollment, error)
 }
 
 type enrollmentService struct {
-	repo repositories.EnrollmentRepository
+	repo       repositories.EnrollmentRepository
+	courseRepo repositories.CourseRepository
+	authClient *repositories.AuthServiceClient
 }
 
-func NewEnrollmentService(repo repositories.EnrollmentRepository) EnrollmentService {
-	return &enrollmentService{repo: repo}
+func NewEnrollmentService(repo repositories.EnrollmentRepository, courseRepo repositories.CourseRepository, authClient *repositories.AuthServiceClient) EnrollmentService {
+	return &enrollmentService{repo: repo, courseRepo: courseRepo, authClient: authClient}
 }
 
 func (s *enrollmentService) ListByCourse(ctx context.Context, cursoID string) ([]models.Enrollment, error) {
 	return s.repo.ListByCourse(ctx, cursoID)
+}
+
+func (s *enrollmentService) Enroll(ctx context.Context, participanteID, cursoID, bearerToken string) (*models.Enrollment, error) {
+	participanteID = strings.TrimSpace(participanteID)
+	if participanteID == "" {
+		return nil, NewValidationError("participanteId es obligatorio")
+	}
+	if strings.TrimSpace(cursoID) == "" {
+		return nil, NewValidationError("cursoId es obligatorio")
+	}
+
+	// 1. Curso: solo se puede inscribir a uno publicado y visible en el
+	// catálogo (la CDA, a diferencia de la CMA, no devuelve borradores).
+	course, err := s.courseRepo.Get(ctx, cursoID)
+	if err != nil {
+		if !repositories.IsNotFound(err) {
+			return nil, err
+		}
+		exists, existsErr := s.courseRepo.ExistsInManagement(ctx, cursoID)
+		if existsErr != nil {
+			return nil, existsErr
+		}
+		if exists {
+			return nil, NewValidationError("El curso no está disponible (inactivo o no publicado)")
+		}
+		return nil, NewValidationError("El curso no existe")
+	}
+
+	// 2. Participante: tiene que existir en auth-service y estar
+	// aprobado.
+	participant, err := s.authClient.GetParticipant(ctx, participanteID, bearerToken)
+	if err != nil {
+		return nil, err
+	}
+	if participant == nil {
+		return nil, NewValidationError("El participante no existe")
+	}
+	if participant.ApprovalStatus != "" && participant.ApprovalStatus != participantApprovalStatusAccepted {
+		return nil, NewValidationError("El participante no está activo")
+	}
+
+	// 3-4. Duplicado y cupo.
+	existing, err := s.repo.ListByCourse(ctx, cursoID)
+	if err != nil {
+		return nil, err
+	}
+
+	activeCount := 0
+	for _, e := range existing {
+		if e.Estado != models.EnrollmentEstadoActiva {
+			continue
+		}
+		activeCount++
+		if e.ParticipanteID == participanteID {
+			return nil, NewValidationError("El participante ya se encuentra inscripto en el curso")
+		}
+	}
+
+	if course.Capacity != nil && activeCount >= *course.Capacity {
+		return nil, NewValidationError("El curso no tiene cupo disponible")
+	}
+
+	return s.repo.Create(ctx, models.Enrollment{
+		ParticipanteID: participanteID,
+		CursoID:        cursoID,
+		Estado:         models.EnrollmentEstadoActiva,
+	})
 }

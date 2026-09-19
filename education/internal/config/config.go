@@ -3,6 +3,7 @@ package config
 import (
 	"fmt"
 	"os"
+	"strings"
 )
 
 // AppEnv identifica el ambiente de despliegue de ESTE microservicio.
@@ -35,6 +36,17 @@ type Config struct {
 	ContentfulLocale      string
 
 	CORSAllowedOrigins string
+
+	// AuthServiceURL es la base (sin path) de auth-service, ej.
+	// "http://auth-service:8080" en Docker o
+	// "https://auth-testing-xxxx.run.app" en Cloud Run. La usa
+	// AuthServiceClient para validar participantes al inscribir/registrar
+	// asistencia y para resolver el listado de participantes en la
+	// asistencia general, reenviando el JWT del usuario que llamó a
+	// education. Si queda vacía, esas funcionalidades fallan en tiempo de
+	// request (no se aborta el arranque del servicio: el resto de
+	// education no depende de auth-service).
+	AuthServiceURL string
 }
 
 // LoadConfig arma la configuración del servicio. El archivo que se
@@ -78,6 +90,7 @@ func LoadConfig() (*Config, error) {
 		ContentfulCMAToken:    os.Getenv("CONTENTFUL_CMA_TOKEN"),
 		ContentfulLocale:      os.Getenv("CONTENTFUL_LOCALE"),
 		CORSAllowedOrigins:    os.Getenv("CORS_ALLOWED_ORIGINS"),
+		AuthServiceURL:        strings.TrimRight(os.Getenv("AUTH_SERVICE_URL"), "/"),
 	}
 
 	if cfg.ContentfulLocale == "" {

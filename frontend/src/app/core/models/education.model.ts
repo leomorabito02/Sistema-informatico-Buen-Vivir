@@ -125,6 +125,33 @@ export interface Enrollment {
   estado: EnrollmentEstado;
 }
 
+/** Payload de `POST /api/cursos/{id}/inscripciones` (role_admin/role_volunteer). */
+export interface EnrollmentInput {
+  participanteId: string;
+}
+
+/**
+ * Fila de `GET /api/asistencia-general`: un participante aprobado del
+ * centro + su asistencia general para la fecha pedida. `presente` es
+ * `null` cuando todavía no se cargó ningún registro ese día (distinto
+ * de `false`, que es "se cargó y marcó ausente"). `nombre`/`apellido`
+ * pueden venir vacíos si auth-service no pudo resolver el usuario.
+ */
+export interface GeneralAttendance {
+  participanteId: string;
+  nombre?: string;
+  apellido?: string;
+  presente: boolean | null;
+  observacion?: string;
+}
+
+/** Ítem del body de `POST /api/asistencia-general?fecha=YYYY-MM-DD`. */
+export interface GeneralAttendanceInput {
+  participanteId: string;
+  presente: boolean;
+  observacion?: string;
+}
+
 export interface ParticipantProgress {
   participanteId: string;
   actividadesTotal: number;

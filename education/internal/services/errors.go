@@ -1,5 +1,15 @@
 package services
 
+// participantApprovalStatusAccepted es el valor real que auth-service
+// guarda en `approval_status` para un participante habilitado (Neon,
+// tabla `participantes`) — confirmado 2026-09-13 contra datos reales:
+// es "accepted" (no "approved", que es lo que decía el validador de
+// auth/internal/dto/participant_dto.go y llevó a un falso "El
+// participante no existe/no está activo" al probar con datos reales).
+// Centralizado acá para que EnrollmentService, AttendanceService y
+// GeneralAttendanceService no puedan volver a divergir en el literal.
+const participantApprovalStatusAccepted = "accepted"
+
 // ValidationError señala que el payload recibido no cumple las reglas
 // de negocio (campo requerido faltante, valor fuera del enum, etc.).
 // Los controllers lo reconocen para responder 400 en vez de 500.

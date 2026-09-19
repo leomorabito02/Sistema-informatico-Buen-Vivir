@@ -6,6 +6,8 @@ import { RegisterComponent } from "./pages/register/register.component";
 import { authGuard } from "./core/guards/auth.guard";
 import { guestGuard } from "./core/guards/guest.guard";
 import { adminGuard } from "./core/guards/admin.guard";
+import { adminOrVolunteerGuard } from "./core/guards/admin-volunteer.guard";
+import { teacherGuard } from "./core/guards/teacher.guard";
 
 export const routes: Routes = [
   {
@@ -158,6 +160,7 @@ export const routes: Routes = [
       },
       {
         path: "mis-cursos",
+        canActivate: [teacherGuard],
         loadComponent: () =>
           import("./pages/dashboard/mis-cursos/mis-cursos.component").then(
             (m) => m.MisCursosComponent,
@@ -165,6 +168,7 @@ export const routes: Routes = [
       },
       {
         path: "progreso",
+        canActivate: [teacherGuard],
         loadComponent: () =>
           import("./pages/dashboard/progreso/progreso.component").then(
             (m) => m.ProgresoComponent,
@@ -200,10 +204,35 @@ export const routes: Routes = [
       },
       {
         path: "asistencia",
+        canActivate: [teacherGuard],
         loadComponent: () =>
           import("./pages/dashboard/asistencia/asistencia.component").then(
             (m) => m.AsistenciaComponent,
           ),
+      },
+      {
+        path: "inscripciones",
+        canActivate: [adminOrVolunteerGuard],
+        loadComponent: () =>
+          import("./pages/dashboard/inscripciones/inscripciones.component").then(
+            (m) => m.InscripcionesComponent,
+          ),
+      },
+      {
+        path: "asistencia-cursos",
+        canActivate: [adminOrVolunteerGuard],
+        loadComponent: () =>
+          import(
+            "./pages/dashboard/asistencia-cursos/asistencia-cursos.component"
+          ).then((m) => m.AsistenciaCursosComponent),
+      },
+      {
+        path: "asistencia-general",
+        canActivate: [adminOrVolunteerGuard],
+        loadComponent: () =>
+          import(
+            "./pages/dashboard/asistencia-general/asistencia-general.component"
+          ).then((m) => m.AsistenciaGeneralComponent),
       },
       {
         path: "campanas",

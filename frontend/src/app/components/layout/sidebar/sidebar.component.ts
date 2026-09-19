@@ -49,6 +49,25 @@ export class SidebarComponent implements OnInit {
       route: "/dashboard/usuarios",
       roles: ["role_admin", "role_dev"],
     },
+    // Admin / Voluntario — inscripción y asistencia (HU-18, HU-19, HU-19bis)
+    {
+      label: "Inscripciones",
+      icon: "pi-user-plus",
+      route: "/dashboard/inscripciones",
+      roles: ["role_admin", "role_volunteer"],
+    },
+    {
+      label: "Asistencia por curso",
+      icon: "pi-check-square",
+      route: "/dashboard/asistencia-cursos",
+      roles: ["role_admin", "role_volunteer"],
+    },
+    {
+      label: "Asistencia general",
+      icon: "pi-calendar",
+      route: "/dashboard/asistencia-general",
+      roles: ["role_admin", "role_volunteer"],
+    },
     // Docente responsable
     {
       label: "Mis cursos",

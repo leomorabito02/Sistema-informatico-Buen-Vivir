@@ -9,6 +9,10 @@ import { ProgressSpinnerModule } from "primeng/progressspinner";
 import { MessageModule } from "primeng/message";
 import { TooltipModule } from "primeng/tooltip";
 import { DialogModule } from "primeng/dialog";
+import { SelectModule } from "primeng/select";
+import { ToastModule } from "primeng/toast";
+import { MessageService } from "primeng/api";
+import { AuthService } from "../../../services/auth.service";
 import { EducationService } from "../../../services/education.service";
 import {
   Course,
@@ -16,6 +20,12 @@ import {
   richTextToPlain,
 } from "../../../core/models/education.model";
 import { RichTextComponent } from "../../../shared/components/rich-text.component";
+import { todayYMD } from "../../../shared/utils/date-ymd";
+
+interface Option {
+  label: string;
+  value: string;
+}
 
 interface CursoVM {
   id: string;
@@ -43,13 +53,18 @@ interface CursoVM {
     MessageModule,
     TooltipModule,
     DialogModule,
+    SelectModule,
+    ToastModule,
     RichTextComponent,
   ],
+  providers: [MessageService],
   templateUrl: "./cursos.component.html",
   styleUrls: ["./cursos.component.css"],
 })
 export class CursosComponent implements OnInit {
   private education = inject(EducationService);
+  private authService = inject(AuthService);
+  private toast = inject(MessageService);
 
   searchTerm = "";
   loading = true;
@@ -59,6 +74,16 @@ export class CursosComponent implements OnInit {
 
   detailVisible = false;
   detail: CursoVM | null = null;
+
+  /** true para role_admin/role_volunteer: "Inscribirme" pasa a ser
+   * "Inscribir participante" (HU-18/RF-18), sin auto-inscripción. */
+  canEnrollParticipants = false;
+  participantOptions: Option[] = [];
+
+  enrollVisible = false;
+  enrollCurso: CursoVM | null = null;
+  selectedParticipantId: string | null = null;
+  inscribiendo = false;
 
   ngOnInit() {
     this.education.listCourses().subscribe({
@@ -72,6 +97,73 @@ export class CursosComponent implements OnInit {
         this.loading = false;
       },
     });
+
+    this.authService.isAuthenticated().subscribe({
+      next: (res) => {
+        const roleId = res.role_id ?? res.user?.role_id ?? "";
+        this.canEnrollParticipants =
+          roleId === "role_admin" || roleId === "role_volunteer";
+        if (this.canEnrollParticipants) {
+          this.loadParticipantOptions();
+        }
+      },
+      error: () => {},
+    });
+  }
+
+  private loadParticipantOptions() {
+    this.education.getGeneralAttendance(todayYMD()).subscribe({
+      next: (directory) => {
+        this.participantOptions = directory
+          .map((p) => ({
+            label:
+              `${p.nombre ?? ""} ${p.apellido ?? ""}`.trim() ||
+              p.participanteId,
+            value: p.participanteId,
+          }))
+          .sort((a, b) => a.label.localeCompare(b.label));
+      },
+      error: () => {
+        this.participantOptions = [];
+      },
+    });
+  }
+
+  openEnrollDialog(curso: CursoVM) {
+    this.enrollCurso = curso;
+    this.selectedParticipantId = null;
+    this.enrollVisible = true;
+  }
+
+  inscribir() {
+    if (!this.enrollCurso || !this.selectedParticipantId) return;
+    this.inscribiendo = true;
+    const participantLabel =
+      this.participantOptions.find((o) => o.value === this.selectedParticipantId)
+        ?.label ?? this.selectedParticipantId;
+    this.education
+      .enrollParticipant(this.enrollCurso.id, {
+        participanteId: this.selectedParticipantId,
+      })
+      .subscribe({
+        next: () => {
+          this.inscribiendo = false;
+          this.enrollVisible = false;
+          this.toast.add({
+            severity: "success",
+            summary: "Inscripción registrada",
+            detail: participantLabel,
+          });
+        },
+        error: (err: Error) => {
+          this.inscribiendo = false;
+          this.toast.add({
+            severity: "error",
+            summary: "No se pudo inscribir",
+            detail: err.message,
+          });
+        },
+      });
   }
 
   private toVM(c: Course): CursoVM {

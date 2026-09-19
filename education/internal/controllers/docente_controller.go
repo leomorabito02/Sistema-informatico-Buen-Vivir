@@ -145,18 +145,25 @@ func (c *DocenteController) CreateActivity(w http.ResponseWriter, r *http.Reques
 // que pertenezca al docente autenticado. Los endpoints de asistencia
 // se direccionan por actividadId, no por cursoId, así que hace falta
 // este paso extra antes de poder reusar CourseService.VerifyOwnership.
-func (c *DocenteController) verifyActivityOwnership(r *http.Request, actividadID string) error {
+// Devuelve la actividad ya resuelta (además del error) para que el
+// caller no tenga que volver a leerla de Firestore solo para sacarle
+// el CursoID.
+func (c *DocenteController) verifyActivityOwnership(r *http.Request, actividadID string) (*models.Activity, error) {
 	activity, err := c.activityService.GetActivity(r.Context(), actividadID)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	return c.courseService.VerifyOwnership(r.Context(), activity.CursoID, teacherIDFromRequest(r))
+	if err := c.courseService.VerifyOwnership(r.Context(), activity.CursoID, teacherIDFromRequest(r)); err != nil {
+		return nil, err
+	}
+	return activity, nil
 }
 
 // RegisterAttendance responde POST /api/docente/actividades/{actividadId}/asistencia
 func (c *DocenteController) RegisterAttendance(w http.ResponseWriter, r *http.Request) {
 	actividadID := chi.URLParam(r, "actividadId")
-	if err := c.verifyActivityOwnership(r, actividadID); err != nil {
+	activity, err := c.verifyActivityOwnership(r, actividadID)
+	if err != nil {
 		writeError(w, err)
 		return
 	}
@@ -167,7 +174,8 @@ func (c *DocenteController) RegisterAttendance(w http.ResponseWriter, r *http.Re
 		return
 	}
 
-	if err := c.attendanceService.RegisterBatch(r.Context(), actividadID, inputs); err != nil {
+	token, _ := r.Context().Value(middlewares.TokenKey).(string)
+	if err := c.attendanceService.RegisterBatch(r.Context(), actividadID, activity.CursoID, inputs, token); err != nil {
 		writeError(w, err)
 		return
 	}
@@ -177,7 +185,7 @@ func (c *DocenteController) RegisterAttendance(w http.ResponseWriter, r *http.Re
 // ListAttendance responde GET /api/docente/actividades/{actividadId}/asistencia
 func (c *DocenteController) ListAttendance(w http.ResponseWriter, r *http.Request) {
 	actividadID := chi.URLParam(r, "actividadId")
-	if err := c.verifyActivityOwnership(r, actividadID); err != nil {
+	if _, err := c.verifyActivityOwnership(r, actividadID); err != nil {
 		writeError(w, err)
 		return
 	}

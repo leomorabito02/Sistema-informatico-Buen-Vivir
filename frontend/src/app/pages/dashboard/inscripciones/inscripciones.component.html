@@ -1,0 +1,135 @@
+<p-toast></p-toast>
+<div class="page-container">
+  <div class="header-section">
+    <div>
+      <h1 class="page-title">
+        <i class="pi pi-user-plus mr-2"></i>Inscripción a cursos
+      </h1>
+      <p class="page-subtitle">
+        Inscribí participantes aprobados en cursos publicados y consultá
+        quiénes ya están inscriptos.
+      </p>
+    </div>
+  </div>
+
+  <p-message
+    *ngIf="error"
+    severity="error"
+    [text]="error"
+    styleClass="w-full"
+  ></p-message>
+  <p-message
+    *ngIf="participantsError"
+    severity="warn"
+    [text]="participantsError"
+    styleClass="w-full"
+  ></p-message>
+
+  <div *ngIf="loading" class="state-box">
+    <p-progressSpinner
+      strokeWidth="4"
+      [style]="{ width: '40px', height: '40px' }"
+    ></p-progressSpinner>
+    <span>Cargando cursos y participantes…</span>
+  </div>
+
+  <ng-container *ngIf="!loading">
+    <p *ngIf="courseOptions.length === 0 && !error" class="empty-state">
+      No hay cursos publicados todavía.
+    </p>
+
+    <div *ngIf="courseOptions.length > 0" class="course-picker">
+      <label>Curso</label>
+      <p-select
+        [options]="courseOptions"
+        optionLabel="label"
+        optionValue="value"
+        [(ngModel)]="selectedCourseId"
+        (onChange)="onCourseChange()"
+        placeholder="Elegí un curso"
+        [style]="{ minWidth: '280px' }"
+      ></p-select>
+    </div>
+
+    <div *ngIf="selectedCourseId" class="two-col">
+      <!-- Inscribir -->
+      <p-card header="Inscribir participante" styleClass="p-card-shadow">
+        <p
+          *ngIf="participantOptions.length === 0"
+          class="empty-state"
+        >
+          No hay participantes aprobados en el centro todavía.
+        </p>
+        <div *ngIf="participantOptions.length > 0" class="new-enrollment">
+          <p-select
+            [options]="availableParticipantOptions"
+            optionLabel="label"
+            optionValue="value"
+            [(ngModel)]="selectedParticipantId"
+            placeholder="Elegí un participante"
+            [filter]="true"
+            filterPlaceholder="Buscar por nombre"
+            [style]="{ minWidth: '260px' }"
+          ></p-select>
+          <p-button
+            label="Inscribir"
+            icon="pi pi-check"
+            [loading]="inscribiendo"
+            [disabled]="!selectedParticipantId"
+            (onClick)="inscribir()"
+          ></p-button>
+          <p
+            *ngIf="availableParticipantOptions.length === 0"
+            class="hint"
+          >
+            Todos los participantes aprobados ya están inscriptos en este
+            curso.
+          </p>
+        </div>
+      </p-card>
+
+      <!-- Inscriptos -->
+      <p-card header="Inscriptos en el curso" styleClass="p-card-shadow">
+        <div *ngIf="loadingEnrollments" class="state-box">
+          <p-progressSpinner
+            strokeWidth="4"
+            [style]="{ width: '28px', height: '28px' }"
+          ></p-progressSpinner>
+        </div>
+
+        <p-table
+          *ngIf="!loadingEnrollments"
+          [value]="enrollments"
+          class="p-datatable-striped"
+        >
+          <ng-template pTemplate="header">
+            <tr>
+              <th>Participante</th>
+              <th>Fecha de inscripción</th>
+              <th>Estado</th>
+            </tr>
+          </ng-template>
+          <ng-template pTemplate="body" let-e>
+            <tr>
+              <td>{{ e.nombreCompleto }}</td>
+              <td>{{ e.fechaInscripcion | date: "short" }}</td>
+              <td>
+                <p-tag
+                  [value]="e.estado"
+                  [severity]="estadoSeverity(e.estado)"
+                ></p-tag>
+              </td>
+            </tr>
+          </ng-template>
+          <ng-template pTemplate="emptymessage">
+            <tr>
+              <td colspan="3" class="empty-state">
+                Todavía no hay nadie inscripto en este curso.
+              </td>
+            </tr>
+          </ng-template>
+        </p-table>
+      </p-card>
+    </div>
+  </ng-container>
+</div>

@@ -37,14 +37,18 @@ type Course struct {
 	// su contenido como un id. El frontend todavía necesita un
 	// selector de docentes (que resuelva nombre -> id contra
 	// auth-service) en vez de un campo de texto libre — pendiente.
-	ResponsibleTeacher string          `json:"responsibleTeacher,omitempty"`
-	CoverImage         *AssetRef       `json:"coverImage,omitempty"`
-	Mode               string          `json:"mode"`
-	Duration           string          `json:"duration,omitempty"`
-	TrainingArea       *TrainingArea   `json:"trainingArea,omitempty"`
-	Material           []Material      `json:"material,omitempty"`
-	CreatedAt          string          `json:"createdAt,omitempty"`
-	UpdatedAt          string          `json:"updatedAt,omitempty"`
+	ResponsibleTeacher string        `json:"responsibleTeacher,omitempty"`
+	CoverImage         *AssetRef     `json:"coverImage,omitempty"`
+	Mode               string        `json:"mode"`
+	Duration           string        `json:"duration,omitempty"`
+	TrainingArea       *TrainingArea `json:"trainingArea,omitempty"`
+	Material           []Material    `json:"material,omitempty"`
+	// Capacity es el cupo máximo de inscriptos activos (campo "capacity"
+	// en Contentful, Number, opcional). nil = sin límite de cupo — ver
+	// EnrollmentService.Enroll, que es quien valida contra este valor.
+	Capacity  *int   `json:"capacity,omitempty"`
+	CreatedAt string `json:"createdAt,omitempty"`
+	UpdatedAt string `json:"updatedAt,omitempty"`
 }
 
 // CourseInput es el payload que recibe el backend desde Angular para
@@ -60,10 +64,16 @@ type CourseInput struct {
 	// auth-service. En el PUT de docente (UpdateCourseAsTeacher) este
 	// valor se ignora y se fuerza al id del propio docente autenticado,
 	// para que no pueda reasignar el curso a otra persona.
-	ResponsibleTeacher string          `json:"responsibleTeacher,omitempty"`
-	CoverImageAssetID  string          `json:"coverImageAssetId,omitempty"`
-	Mode               string          `json:"mode"`
-	Duration           string          `json:"duration,omitempty"`
-	TrainingAreaID     string          `json:"trainingAreaId"`
-	MaterialIDs        []string        `json:"materialIds,omitempty"`
+	ResponsibleTeacher string   `json:"responsibleTeacher,omitempty"`
+	CoverImageAssetID  string   `json:"coverImageAssetId,omitempty"`
+	Mode               string   `json:"mode"`
+	Duration           string   `json:"duration,omitempty"`
+	TrainingAreaID     string   `json:"trainingAreaId"`
+	MaterialIDs        []string `json:"materialIds,omitempty"`
+	// Capacity: ver comentario en Course. Requiere que el campo
+	// "capacity" (Number) exista en el content type "course" del Space
+	// de Contentful — si se manda un valor antes de que ese campo se
+	// haya creado ahí, Contentful rechaza el guardado (422, campo
+	// desconocido). nil = no fijar/tocar el cupo.
+	Capacity *int `json:"capacity,omitempty"`
 }

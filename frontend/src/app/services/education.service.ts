@@ -11,6 +11,9 @@ import {
   Course,
   CourseInput,
   Enrollment,
+  EnrollmentInput,
+  GeneralAttendance,
+  GeneralAttendanceInput,
   Material,
   MaterialInput,
   ParticipantProgress,
@@ -280,6 +283,85 @@ export class EducationService {
       .get<ParticipantProgress[]>(
         `${this.base}/api/docente/cursos/${cursoId}/progreso`,
         { withCredentials: true },
+      )
+      .pipe(catchError(this.handleError));
+  }
+
+  // ---- Inscripción, asistencia por actividad y asistencia general ------
+  // (role_admin / role_volunteer, sin scope de "mis cursos" — agregado
+  // 2026-09-17 junto con las pantallas nuevas del frontend. Ver
+  // education/CONTEXTO_INSCRIPCIONES_ASISTENCIA.md para el detalle de
+  // los endpoints del backend, ya implementados y probados.)
+
+  /** Inscribe un participante en un curso publicado. */
+  enrollParticipant(
+    cursoId: string,
+    input: EnrollmentInput,
+  ): Observable<Enrollment> {
+    return this.http
+      .post<Enrollment>(
+        `${this.base}/api/cursos/${cursoId}/inscripciones`,
+        input,
+        { withCredentials: true },
+      )
+      .pipe(catchError(this.handleError));
+  }
+
+  /** Lista los inscriptos de un curso (sin chequeo de ownership). */
+  listCourseEnrollments(cursoId: string): Observable<Enrollment[]> {
+    return this.http
+      .get<Enrollment[]>(`${this.base}/api/cursos/${cursoId}/inscripciones`, {
+        withCredentials: true,
+      })
+      .pipe(catchError(this.handleError));
+  }
+
+  /** Asistencia de una actividad, sin chequeo de ownership del curso. */
+  listActivityAttendance(actividadId: string): Observable<Attendance[]> {
+    return this.http
+      .get<Attendance[]>(
+        `${this.base}/api/actividades/${actividadId}/asistencia`,
+        { withCredentials: true },
+      )
+      .pipe(catchError(this.handleError));
+  }
+
+  registerActivityAttendance(
+    actividadId: string,
+    inputs: AttendanceInput[],
+  ): Observable<{ actividadId: string; status: string }> {
+    return this.http
+      .post<{ actividadId: string; status: string }>(
+        `${this.base}/api/actividades/${actividadId}/asistencia`,
+        inputs,
+        { withCredentials: true },
+      )
+      .pipe(catchError(this.handleError));
+  }
+
+  /**
+   * Asistencia general del centro para una fecha (`YYYY-MM-DD`): todos
+   * los participantes aprobados + su registro de ese día, si existe.
+   */
+  getGeneralAttendance(fecha: string): Observable<GeneralAttendance[]> {
+    return this.http
+      .get<GeneralAttendance[]>(`${this.base}/api/asistencia-general`, {
+        withCredentials: true,
+        params: { fecha },
+      })
+      .pipe(catchError(this.handleError));
+  }
+
+  /** Upsert en lote de asistencia general para una fecha. */
+  registerGeneralAttendance(
+    fecha: string,
+    inputs: GeneralAttendanceInput[],
+  ): Observable<{ fecha: string; status: string }> {
+    return this.http
+      .post<{ fecha: string; status: string }>(
+        `${this.base}/api/asistencia-general`,
+        inputs,
+        { withCredentials: true, params: { fecha } },
       )
       .pipe(catchError(this.handleError));
   }

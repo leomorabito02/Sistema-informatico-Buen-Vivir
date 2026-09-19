@@ -6,6 +6,7 @@ import {
 import { provideRouter, withInMemoryScrolling } from "@angular/router";
 import { provideHttpClient, withInterceptors } from "@angular/common/http";
 import { provideServiceWorker } from "@angular/service-worker";
+import { provideAnimationsAsync } from "@angular/platform-browser/animations/async";
 import { providePrimeNG } from "primeng/config";
 import Aura from "@primeuix/themes/aura";
 import { routes } from "./app.routes";
@@ -26,6 +27,11 @@ export const appConfig: ApplicationConfig = {
       }),
     ),
     provideHttpClient(withInterceptors([authInterceptor])),
+    // Sin esto, las animaciones de PrimeNG (p-dialog, p-toast, p-select…)
+    // no disparan el callback de fin de transición, que es lo que sacan
+    // el overlay/mask del DOM al cerrar: sin provider de animaciones el
+    // mask queda pegado en pantalla (se ve "trabada"/borrosa) para siempre.
+    provideAnimationsAsync(),
     provideServiceWorker("ngsw-worker.js", {
       enabled: !isDevMode(),
       registrationStrategy: "registerWhenStable:30000",
