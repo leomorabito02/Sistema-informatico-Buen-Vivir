@@ -15,7 +15,11 @@ import (
 // escrituras (POST/PUT/DELETE, publicar/despublicar) requieren
 // role_admin. El grupo /api/docente es exclusivo de role_teacher
 // interno (is_external=false) y valida ownership sobre cada curso
-// antes de operar (ver DocenteController).
+// antes de operar (ver DocenteController). El grupo de inscripción /
+// asistencia por actividad / asistencia general es para role_admin y
+// role_volunteer (HU-18, HU-19, HU-19bis): a diferencia de
+// /api/docente, no tienen scope de "mis cursos" — admin y voluntario
+// operan sobre cualquier curso o participante del centro.
 func RegisterRoutes(
 	r chi.Router,
 	jwtService services.JWTService,
@@ -24,6 +28,9 @@ func RegisterRoutes(
 	materialCtrl *controllers.MaterialController,
 	healthCtrl *controllers.HealthController,
 	docenteCtrl *controllers.DocenteController,
+	enrollmentCtrl *controllers.EnrollmentController,
+	attendanceCtrl *controllers.AttendanceController,
+	generalAttendanceCtrl *controllers.GeneralAttendanceController,
 ) {
 	r.Get("/api/salud", healthCtrl.Health)
 
@@ -80,6 +87,23 @@ func RegisterRoutes(
 			r.Post("/api/materiales", materialCtrl.Create)
 			r.Post("/api/materiales/upload", materialCtrl.Upload)
 			r.Put("/api/materiales/{id}", materialCtrl.Update)
+		})
+
+		// -- inscripción, asistencia por actividad y asistencia general:
+		//    role_admin o role_volunteer (HU-18, HU-19, HU-19bis). Rutas
+		//    sueltas (no r.Route) por la misma razón que el bloque de
+		//    admin de más arriba: evitar el Mount de chi.
+		r.Group(func(r chi.Router) {
+			r.Use(middlewares.RequireRole("role_admin", "role_volunteer"))
+
+			r.Post("/api/cursos/{id}/inscripciones", enrollmentCtrl.Enroll)
+			r.Get("/api/cursos/{id}/inscripciones", enrollmentCtrl.List)
+
+			r.Post("/api/actividades/{actividadId}/asistencia", attendanceCtrl.Register)
+			r.Get("/api/actividades/{actividadId}/asistencia", attendanceCtrl.List)
+
+			r.Get("/api/asistencia-general", generalAttendanceCtrl.List)
+			r.Post("/api/asistencia-general", generalAttendanceCtrl.Register)
 		})
 
 		// -- docente responsable: role_teacher interno --

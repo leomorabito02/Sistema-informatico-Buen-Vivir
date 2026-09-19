@@ -42,6 +42,12 @@ type CourseRepository interface {
 	// (sin filtrar por docente), leídos de la CMA. Referencias solo con
 	// su id.
 	ListAllDrafts(ctx context.Context) ([]models.Course, error)
+	// ExistsInManagement confirma si la entry existe en la CMA (borrador
+	// o publicada), sin importar su estado de publicación. Lo usa
+	// EnrollmentService para distinguir "curso inexistente" de "curso
+	// inactivo/despublicado" cuando Get (que solo ve la CDA, publicados)
+	// devuelve not-found.
+	ExistsInManagement(ctx context.Context, id string) (bool, error)
 }
 
 type courseRepository struct {
@@ -109,6 +115,17 @@ func (r *courseRepository) Update(ctx context.Context, id string, input models.C
 
 func (r *courseRepository) Delete(ctx context.Context, id string) error {
 	return r.client.DeleteEntryCascade(ctx, id)
+}
+
+func (r *courseRepository) ExistsInManagement(ctx context.Context, id string) (bool, error) {
+	_, err := r.client.GetManagementEntry(ctx, id)
+	if err != nil {
+		if IsNotFound(err) {
+			return false, nil
+		}
+		return false, err
+	}
+	return true, nil
 }
 
 func (r *courseRepository) Publish(ctx context.Context, id string) error {
@@ -196,6 +213,13 @@ func courseInputToFields(locale string, input models.CourseInput) map[string]any
 	if input.CoverImageAssetID != "" {
 		fields["coverImage"] = wrapLocale(locale, models.NewAssetLink(input.CoverImageAssetID))
 	}
+	// capacity solo se manda si vino seteado: el campo es opcional y,
+	// si todavía no existe en el content type de Contentful, mandarlo
+	// siempre rompería el Create/Update de CUALQUIER curso (no solo los
+	// que quieren fijar cupo). Ver comentario en models.CourseInput.
+	if input.Capacity != nil {
+		fields["capacity"] = wrapLocale(locale, *input.Capacity)
+	}
 	return fields
 }
 
@@ -210,6 +234,7 @@ func courseFromCDAEntry(entry models.ContentfulEntry, idx *models.IncludesIndex)
 		ResponsibleTeacher: rawString(entry.Fields, "responsibleTeacher"),
 		Mode:               rawString(entry.Fields, "mode"),
 		Duration:           rawString(entry.Fields, "duration"),
+		Capacity:           rawInt(entry.Fields, "capacity"),
 		CreatedAt:          entry.Sys.CreatedAt,
 		UpdatedAt:          entry.Sys.UpdatedAt,
 	}
@@ -251,6 +276,7 @@ func courseFromCMAEntry(locale string, entry models.ContentfulEntry) models.Cour
 		ResponsibleTeacher: rawString(flat, "responsibleTeacher"),
 		Mode:               rawString(flat, "mode"),
 		Duration:           rawString(flat, "duration"),
+		Capacity:           rawInt(flat, "capacity"),
 		CreatedAt:          entry.Sys.CreatedAt,
 		UpdatedAt:          entry.Sys.UpdatedAt,
 	}
@@ -282,6 +308,7 @@ func courseFromInput(sys models.ContentfulSys, input models.CourseInput) models.
 		ResponsibleTeacher: input.ResponsibleTeacher,
 		Mode:               input.Mode,
 		Duration:           input.Duration,
+		Capacity:           input.Capacity,
 		CreatedAt:          sys.CreatedAt,
 		UpdatedAt:          sys.UpdatedAt,
 	}

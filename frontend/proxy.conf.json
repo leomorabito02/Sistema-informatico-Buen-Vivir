@@ -1,6 +1,6 @@
 {
   "/api/v1": {
-    "target": "http://localhost:8081",
+    "target": "http://localhost:8082",
     "secure": false,
     "changeOrigin": true,
     "cookiePathRewrite": "/"
@@ -21,6 +21,16 @@
     "changeOrigin": true
   },
   "/api/docente": {
+    "target": "http://localhost:8210",
+    "secure": false,
+    "changeOrigin": true
+  },
+  "/api/actividades": {
+    "target": "http://localhost:8210",
+    "secure": false,
+    "changeOrigin": true
+  },
+  "/api/asistencia-general": {
     "target": "http://localhost:8210",
     "secure": false,
     "changeOrigin": true

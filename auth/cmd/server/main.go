@@ -178,8 +178,11 @@ func main() {
 				r.Delete("/{id}", teacherController.DeleteTeacher)
 			})
 
-			// Participants CRUD
-			r.With(middlewares.RequireRole("role_participant")).Route("/participants", func(r chi.Router) {
+			// Participants CRUD. role_volunteer también entra (HU-07/08/09 y
+			// HU-06: "vista voluntario" puede crear/editar/eliminar perfiles
+			// de participantes) — lo necesita education-service para poder
+			// validar/listar participantes (inscripción, asistencia).
+			r.With(middlewares.RequireRole("role_participant", "role_volunteer")).Route("/participants", func(r chi.Router) {
 				r.Post("/", participantController.CreateParticipant)
 				r.Get("/", participantController.GetAllParticipants)
 				r.Get("/{id}", participantController.GetParticipant)

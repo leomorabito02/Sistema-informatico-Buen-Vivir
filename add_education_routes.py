@@ -37,6 +37,11 @@ EDUCATION_PATHS = {
     "/api/docente/actividades/{actividadId}/asistencia": ["get", "post"],
     "/api/docente/cursos/{cursoId}/inscriptos": ["get"],
     "/api/docente/cursos/{cursoId}/progreso": ["get"],
+    # role_admin / role_volunteer, sin scope de "mis cursos" (agregado
+    # 2026-09-11 — ver education/CLAUDE.md, sección de Endpoints).
+    "/api/cursos/{id}/inscripciones": ["get", "post"],
+    "/api/actividades/{actividadId}/asistencia": ["get", "post"],
+    "/api/asistencia-general": ["get", "post"],
 }
 
 CORS_HEADERS = {

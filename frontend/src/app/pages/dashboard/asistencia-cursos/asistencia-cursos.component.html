@@ -1,0 +1,150 @@
+<p-toast></p-toast>
+<div class="page-container">
+  <div class="header-section">
+    <div>
+      <h1 class="page-title">
+        <i class="pi pi-check-square mr-2"></i>Asistencia por curso
+      </h1>
+      <p class="page-subtitle">
+        Registrá la asistencia de una actividad para cualquier curso del
+        centro (sin necesidad de ser el docente responsable).
+      </p>
+    </div>
+  </div>
+
+  <p-message
+    *ngIf="error"
+    severity="error"
+    [text]="error"
+    styleClass="w-full"
+  ></p-message>
+
+  <div *ngIf="loadingCourses" class="state-box">
+    <p-progressSpinner
+      strokeWidth="4"
+      [style]="{ width: '40px', height: '40px' }"
+    ></p-progressSpinner>
+    <span>Cargando cursos…</span>
+  </div>
+
+  <ng-container *ngIf="!loadingCourses">
+    <p *ngIf="courseOptions.length === 0 && !error" class="empty-state">
+      No hay cursos publicados todavía.
+    </p>
+
+    <div *ngIf="courseOptions.length > 0" class="course-picker">
+      <label>Curso</label>
+      <p-select
+        [options]="courseOptions"
+        optionLabel="label"
+        optionValue="value"
+        [(ngModel)]="selectedCourseId"
+        (onChange)="onCourseChange()"
+        placeholder="Elegí un curso"
+        [style]="{ minWidth: '280px' }"
+      ></p-select>
+    </div>
+
+    <div *ngIf="selectedCourseId" class="two-col">
+      <!-- Actividad -->
+      <p-card header="Actividad" styleClass="p-card-shadow">
+        <div *ngIf="loadingActivities" class="state-box">
+          <p-progressSpinner
+            strokeWidth="4"
+            [style]="{ width: '28px', height: '28px' }"
+          ></p-progressSpinner>
+        </div>
+
+        <ng-container *ngIf="!loadingActivities">
+          <ng-container *ngIf="activityListAvailable">
+            <p *ngIf="activityOptions.length === 0" class="empty-state">
+              Este curso todavía no tiene actividades cargadas por el
+              docente.
+            </p>
+            <p-select
+              *ngIf="activityOptions.length > 0"
+              [options]="activityOptions"
+              optionLabel="label"
+              optionValue="value"
+              [ngModel]="selectedActivityId"
+              (onChange)="selectActivity($event.value)"
+              placeholder="Elegí una actividad"
+              [style]="{ minWidth: '260px' }"
+            ></p-select>
+          </ng-container>
+
+          <div *ngIf="!activityListAvailable" class="manual-activity">
+            <p class="hint">
+              No se pudo listar automáticamente las actividades de este
+              curso con tu rol. Pedile el id de la actividad al docente
+              responsable e ingresalo acá.
+            </p>
+            <div class="manual-activity-row">
+              <input
+                pInputText
+                placeholder="id de actividad"
+                [(ngModel)]="manualActividadId"
+              />
+              <p-button
+                label="Buscar"
+                icon="pi pi-search"
+                [disabled]="!manualActividadId.trim()"
+                (onClick)="useManualActivity()"
+              ></p-button>
+            </div>
+          </div>
+        </ng-container>
+      </p-card>
+
+      <!-- Asistencia -->
+      <p-card header="Asistencia" styleClass="p-card-shadow">
+        <p *ngIf="!selectedActivityId" class="empty-state">
+          Seleccioná una actividad para registrar asistencia.
+        </p>
+
+        <ng-container *ngIf="selectedActivityId">
+          <div *ngIf="loadingAttendance" class="state-box">
+            <p-progressSpinner
+              strokeWidth="4"
+              [style]="{ width: '28px', height: '28px' }"
+            ></p-progressSpinner>
+          </div>
+
+          <table class="draft-table" *ngIf="!loadingAttendance">
+            <thead>
+              <tr>
+                <th>Participante</th>
+                <th>Presente</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let r of rows">
+                <td>{{ r.nombreCompleto }}</td>
+                <td>
+                  <p-checkbox
+                    [(ngModel)]="r.presente"
+                    [binary]="true"
+                  ></p-checkbox>
+                </td>
+              </tr>
+              <tr *ngIf="rows.length === 0">
+                <td colspan="2" class="empty-state">
+                  No hay participantes inscriptos activos en este curso.
+                </td>
+              </tr>
+            </tbody>
+          </table>
+
+          <div class="attendance-actions" *ngIf="!loadingAttendance && rows.length > 0">
+            <p-button
+              label="Guardar asistencia"
+              icon="pi pi-check"
+              [loading]="guardando"
+              (onClick)="guardar()"
+            ></p-button>
+          </div>
+        </ng-container>
+      </p-card>
+    </div>
+  </ng-container>
+</div>

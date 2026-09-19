@@ -1,3 +1,4 @@
+<p-toast></p-toast>
 <div class="page-container">
   <div class="header-section">
     <div>
@@ -83,10 +84,18 @@
               (onClick)="openDetail(curso)"
             ></p-button>
             <p-button
+              *ngIf="canEnrollParticipants"
+              label="Inscribir participante"
+              icon="pi pi-check-circle"
+              styleClass="p-button-success"
+              (onClick)="openEnrollDialog(curso)"
+            ></p-button>
+            <p-button
+              *ngIf="!canEnrollParticipants"
               label="Inscribirme"
               icon="pi pi-check-circle"
               [disabled]="true"
-              pTooltip="La inscripción a cursos todavía no está disponible en el backend."
+              pTooltip="La auto-inscripción todavía no está disponible; pedile a un admin o voluntario que te inscriba."
               styleClass="p-button-success"
             ></p-button>
           </div>
@@ -148,5 +157,40 @@
     <p class="muted" *ngIf="detail.teacherId">
       Docente responsable: <code>{{ detail.teacherId }}</code>
     </p>
+  </div>
+</p-dialog>
+
+<p-dialog
+  [(visible)]="enrollVisible"
+  [modal]="true"
+  [style]="{ width: '420px' }"
+  [header]="'Inscribir en: ' + (enrollCurso?.title ?? '')"
+>
+  <div *ngIf="enrollCurso" class="detail">
+    <p *ngIf="participantOptions.length === 0" class="empty-state">
+      No hay participantes aprobados en el centro todavía.
+    </p>
+    <div *ngIf="participantOptions.length > 0">
+      <label>Participante</label>
+      <p-select
+        [options]="participantOptions"
+        optionLabel="label"
+        optionValue="value"
+        [(ngModel)]="selectedParticipantId"
+        placeholder="Elegí un participante"
+        [filter]="true"
+        filterPlaceholder="Buscar por nombre"
+        [style]="{ width: '100%', marginTop: '0.5rem' }"
+      ></p-select>
+      <div style="margin-top: 1rem; text-align: right">
+        <p-button
+          label="Inscribir"
+          icon="pi pi-check"
+          [loading]="inscribiendo"
+          [disabled]="!selectedParticipantId"
+          (onClick)="inscribir()"
+        ></p-button>
+      </div>
+    </div>
   </div>
 </p-dialog>
