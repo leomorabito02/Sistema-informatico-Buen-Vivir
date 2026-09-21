@@ -25,6 +25,13 @@ export const routes: Routes = [
     canActivate: [guestGuard],
   },
   {
+    path: "cv-public/:id",
+    loadComponent: () =>
+      import("./pages/cv-public/cv-public.component").then(
+        (m) => m.CvPublicComponent,
+      ),
+  },
+  {
     path: "pending-approval",
     loadComponent: () =>
       import("./pages/pending-approval/pending-approval.component").then(

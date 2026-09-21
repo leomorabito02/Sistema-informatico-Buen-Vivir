@@ -18,7 +18,7 @@ services:
     mem_limit: 1024m
     cpus: "1"
     networks:
-    - buenvivir-net
+      - buenvivir-net
 
   education-service:
     build:
@@ -39,7 +39,7 @@ services:
     mem_limit: 1024m
     cpus: "1"
     networks:
-    - buenvivir-net
+      - buenvivir-net
 
   api-gateway:
     image: nginx:alpine
@@ -51,7 +51,56 @@ services:
     depends_on:
       - auth-service
       - education-service
+      - rxresume-service
     restart: on-failure
+    networks:
+      - buenvivir-net
+
+  rxresume-service:
+    build:
+      context: ./rxresume
+      dockerfile: Dockerfile
+    env_file:
+      - ./rxresume/.env
+    ports:
+      - "8085:8080"
+    restart: on-failure
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    read_only: true
+    tmpfs:
+      - /tmp
+    mem_limit: 512m
+    cpus: "0.5"
+    depends_on:
+      - gcs-emulator
+      - reactive-resume
+    networks:
+      - buenvivir-net
+
+  reactive-resume:
+    build:
+      context: ./rxresume/reactive-resume
+      dockerfile: Dockerfile
+    container_name: buenvivir-reactive-resume
+    env_file:
+      - ./rxresume/reactive-resume/.env
+    ports:
+      - "3000:3000"
+    restart: on-failure
+    mem_limit: 1024m
+    cpus: "1"
+    networks:
+      - buenvivir-net
+
+  gcs-emulator:
+    image: fsouza/fake-gcs-server
+    container_name: buenvivir-gcs-emulator
+    ports:
+      - "4443:4443"
+    command: -scheme http -public-host localhost:4443
     networks:
       - buenvivir-net
 

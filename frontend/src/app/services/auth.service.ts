@@ -20,9 +20,9 @@ import {
   providedIn: "root",
 })
 export class AuthService {
-  private http = inject(HttpClient);
-  private auth = inject(Auth);
-  private router = inject(Router);
+  private readonly http = inject(HttpClient);
+  private readonly auth = inject(Auth);
+  private readonly router = inject(Router);
 
   private readonly apiUrl = environment.apiUrl;
 
@@ -32,12 +32,12 @@ export class AuthService {
     return localStorage.getItem("isAuthenticated") === "true";
   }
 
-  setLocallyAuthenticated(status: boolean): void {
-    if (status) {
-      localStorage.setItem("isAuthenticated", "true");
-    } else {
-      localStorage.removeItem("isAuthenticated");
-    }
+  setLocallyAuthenticated(): void {
+    localStorage.setItem("isAuthenticated", "true");
+  }
+
+  clearLocallyAuthenticated(): void {
+    localStorage.removeItem("isAuthenticated");
   }
 
   /**
@@ -101,7 +101,7 @@ export class AuthService {
         { withCredentials: true },
       )
       .pipe(
-        tap(() => this.setLocallyAuthenticated(true)),
+        tap(() => this.setLocallyAuthenticated()),
         catchError(this.handleError),
       );
   }
@@ -115,7 +115,7 @@ export class AuthService {
         withCredentials: true,
       })
       .pipe(
-        tap(() => this.setLocallyAuthenticated(true)),
+        tap(() => this.setLocallyAuthenticated()),
         catchError(this.handleError),
       );
   }
@@ -148,7 +148,7 @@ export class AuthService {
    * The backend is responsible for invalidating the session and clearing the cookies.
    */
   logout(): void {
-    this.setLocallyAuthenticated(false);
+    this.clearLocallyAuthenticated();
     this.http
       .post(`${this.apiUrl}/api/v1/auth/logout`, {}, { withCredentials: true })
       .subscribe({
@@ -164,11 +164,11 @@ export class AuthService {
       });
   }
 
-  private handleError = (error: HttpErrorResponse) => {
+  private readonly handleError = (error: HttpErrorResponse) => {
     let errorMessage =
       "Ocurrió un error inesperado. Por favor, intente nuevamente.";
     if (error.status === 401) {
-      this.setLocallyAuthenticated(false);
+      this.clearLocallyAuthenticated();
     }
 
     if (error.error && (error.error as { message?: string }).message) {

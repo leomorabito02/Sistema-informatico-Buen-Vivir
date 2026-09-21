@@ -1,4 +1,4 @@
-import { Component, inject } from "@angular/core";
+import { Component, inject, OnInit } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import {
   FormBuilder,
@@ -11,7 +11,6 @@ import {
   LucideAngularModule,
   Mail,
   Lock,
-  AlertCircle,
   Eye,
   EyeOff,
 } from "lucide-angular";
@@ -39,10 +38,9 @@ import { MessageModule } from "primeng/message";
   templateUrl: "./login.component.html",
   styleUrl: "./login.component.css",
 })
-export class LoginComponent {
+export class LoginComponent implements OnInit {
   readonly MailIcon = Mail;
   readonly LockIcon = Lock;
-  readonly AlertCircleIcon = AlertCircle;
   readonly EyeIcon = Eye;
   readonly EyeOffIcon = EyeOff;
 
@@ -63,7 +61,18 @@ export class LoginComponent {
     this.loginForm = this.fb.group({
       email: ["", [Validators.required, Validators.email]],
       password: ["", [Validators.required, Validators.minLength(4)]],
+      rememberMe: [false],
     });
+  }
+
+  ngOnInit(): void {
+    const savedEmail = localStorage.getItem("rememberedEmail");
+    if (savedEmail) {
+      this.loginForm.patchValue({
+        email: savedEmail,
+        rememberMe: true,
+      });
+    }
   }
 
   togglePasswordVisibility(): void {
@@ -93,7 +102,14 @@ export class LoginComponent {
       return;
     }
 
-    const { email, password } = this.loginForm.value;
+    const { email, password, rememberMe } = this.loginForm.value;
+
+    if (rememberMe) {
+      localStorage.setItem("rememberedEmail", email);
+    } else {
+      localStorage.removeItem("rememberedEmail");
+    }
+
     this.loading = true;
     this.loginError = "";
 

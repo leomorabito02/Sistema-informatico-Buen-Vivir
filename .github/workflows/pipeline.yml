@@ -368,6 +368,127 @@ jobs:
           done
           if [ "$n" -ge 3 ]; then echo "Failed to push image after 3 attempts."; exit 1; fi
 
+
+  ci-rxresume:
+    name: CI — RxResume Service (Go)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+          cache-dependency-path: rxresume/go.sum
+
+      - name: Download Go modules
+        working-directory: rxresume
+        run: go mod download
+
+      - name: Run Go Unit Tests
+        working-directory: rxresume
+        run: go test -v -coverprofile=coverage.out ./...
+        
+      - name: Go Security Scan (gosec)
+        working-directory: rxresume
+        run: |
+          go install github.com/securego/gosec/v2/cmd/gosec@latest
+          gosec -fmt sarif -out gosec-results.sarif ./...
+        continue-on-error: true
+
+      - name: Docker build (rxresume)
+        run: docker build -t rxresume:${{ github.sha }} -f rxresume/Dockerfile ./rxresume
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: '${{ secrets.GCP_CREDENTIALS }}'
+
+      - name: Setup Google Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Configure Docker for Artifact Registry
+        run: gcloud auth configure-docker ${{ secrets.ARTIFACT_REGISTRY_HOST }} --quiet
+
+      - name: Push rxresume image to Artifact Registry
+        run: |
+          IMAGE_URI="${{ secrets.ARTIFACT_REGISTRY_HOST }}/${{ secrets.GCP_PROJECT_ID }}/${{ secrets.ARTIFACT_REGISTRY_REPO }}/rxresume:${{ github.sha }}"
+          docker tag rxresume:${{ github.sha }} "$IMAGE_URI"
+          docker push "$IMAGE_URI"
+
+  ci-reactive-resume:
+    name: CI — Reactive Resume (Node)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+          run_install: false
+
+      - name: Get pnpm store directory
+        shell: bash
+        run: |
+          echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_ENV
+
+      - name: Setup pnpm cache
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.STORE_PATH }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('rxresume/reactive-resume/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-store-
+
+      - name: Install dependencies
+        working-directory: rxresume/reactive-resume
+        run: pnpm install --frozen-lockfile
+
+      - name: Build Reactive Resume
+        working-directory: rxresume/reactive-resume
+        run: pnpm build
+
+      - name: Test Reactive Resume
+        working-directory: rxresume/reactive-resume
+        run: pnpm test
+
+      - name: Docker build (reactive-resume)
+        run: docker build -t reactive-resume:${{ github.sha }} -f rxresume/reactive-resume/Dockerfile ./rxresume/reactive-resume
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: '${{ secrets.GCP_CREDENTIALS }}'
+
+      - name: Setup Google Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Configure Docker for Artifact Registry
+        run: gcloud auth configure-docker ${{ secrets.ARTIFACT_REGISTRY_HOST }} --quiet
+
+      - name: Push reactive-resume image to Artifact Registry
+        run: |
+          IMAGE_URI="${{ secrets.ARTIFACT_REGISTRY_HOST }}/${{ secrets.GCP_PROJECT_ID }}/${{ secrets.ARTIFACT_REGISTRY_REPO }}/reactive-resume:${{ github.sha }}"
+          docker tag reactive-resume:${{ github.sha }} "$IMAGE_URI"
+          docker push "$IMAGE_URI"
+
   ci-api-gateway:
     name: CI — API Gateway (OpenAPI spec)
     runs-on: ubuntu-latest
@@ -390,6 +511,9 @@ jobs:
           export GATEWAY_HOST="validate.example.com"
           export AUTH_SERVICE_URL="https://auth.example.com"
           export EDUCATION_SERVICE_URL="https://education.example.com"
+
+          export RXRESUME_SERVICE_URL=$(gcloud run services describe "rxresume-$SUFFIX" --region="${{ secrets.GCP_REGION }}" --format='value(status.url)')
+          export REACTIVE_RESUME_URL=$(gcloud run services describe "reactive-resume-$SUFFIX" --region="${{ secrets.GCP_REGION }}" --format='value(status.url)')
           export FIREBASE_PROJECT_ID="validate-project"
           envsubst < openapi.yaml > openapi-resolved.yaml
 
@@ -410,7 +534,7 @@ jobs:
   ci-gate:
     name: CI — Gate (Verificación general)
     runs-on: ubuntu-latest
-    needs: [ci-secrets, ci-frontend, ci-auth, ci-education, ci-api-gateway]
+    needs: [ci-secrets, ci-frontend, ci-auth, ci-education, ci-rxresume, ci-reactive-resume, ci-api-gateway]
     if: always()
 
     steps:
@@ -580,6 +704,37 @@ jobs:
 # STAGE 3: CD (Continuous Deployment)
 # Corre SOLO si el CI-Gate fue exitoso Y es un push a 'testing' o 'main'.
 # ============================================================================
+
+  mutation-rxresume:
+    name: Mutation — RxResume Service (gremlins)
+    runs-on: ubuntu-latest
+    needs: [ci-rxresume]
+    if: false # Disable for now unless explicitly needed
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+          cache-dependency-path: rxresume/go.sum
+
+      - name: Download Go modules
+        working-directory: rxresume
+        run: go mod download
+
+      - name: Install gremlins
+        run: go install github.com/go-gremlins/gremlins/cmd/gremlins@latest
+
+      - name: Run mutation tests (rxresume)
+        working-directory: rxresume
+        run: |
+          gremlins unleash ./... || echo "Gremlins found survivors"
+
   cd-setup:
     name: CD — Setup & Verify
     runs-on: ubuntu-latest
@@ -777,10 +932,73 @@ jobs:
           REGION="${{ secrets.GCP_REGION }}"
           gcloud run services update-traffic "$SERVICE" --region="$REGION" --to-latest --project="${{ secrets.GCP_PROJECT_ID }}"
 
+
+  cd-rxresume:
+    name: CD — RxResume Service (Cloud Run)
+    runs-on: ubuntu-latest
+    needs: [cd-setup]
+    environment: ${{ needs.cd-setup.outputs.env_name }}
+    timeout-minutes: 15
+    env:
+      APP_ENV: ${{ needs.cd-setup.outputs.env_name == 'PROD' && 'production' || 'development' }}
+    outputs:
+      service_url: ${{ steps.deploy.outputs.url }}
+
+    steps:
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: '${{ secrets.GCP_CREDENTIALS }}'
+
+      - name: Verify Image exists
+        id: pre-deploy
+        run: |
+          IMAGE="${{ secrets.ARTIFACT_REGISTRY_HOST }}/${{ secrets.GCP_PROJECT_ID }}/${{ secrets.ARTIFACT_REGISTRY_REPO }}/rxresume:${{ github.sha }}"
+          gcloud container images describe "$IMAGE" || (echo "::error::Image $IMAGE not found in registry" && exit 1)
+
+      - name: Deploy RxResume to Cloud Run
+        id: deploy
+        uses: google-github-actions/deploy-cloudrun@v2
+        with:
+          service: 'rxresume-${{ needs.cd-setup.outputs.service_suffix }}'
+          region: '${{ secrets.GCP_REGION }}'
+          image: '${{ secrets.ARTIFACT_REGISTRY_HOST }}/${{ secrets.GCP_PROJECT_ID }}/${{ secrets.ARTIFACT_REGISTRY_REPO }}/rxresume:${{ github.sha }}'
+          flags: '--no-allow-unauthenticated --min-instances=0 --max-instances=1 --cpu=1 --memory=1Gi --service-account=${{ secrets.GCP_SERVICE_ACCOUNT }}'
+
+  cd-reactive-resume:
+    name: CD — Reactive Resume (Cloud Run)
+    runs-on: ubuntu-latest
+    needs: [cd-setup]
+    environment: ${{ needs.cd-setup.outputs.env_name }}
+    timeout-minutes: 15
+    outputs:
+      service_url: ${{ steps.deploy.outputs.url }}
+
+    steps:
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: '${{ secrets.GCP_CREDENTIALS }}'
+
+      - name: Verify Image exists
+        id: pre-deploy
+        run: |
+          IMAGE="${{ secrets.ARTIFACT_REGISTRY_HOST }}/${{ secrets.GCP_PROJECT_ID }}/${{ secrets.ARTIFACT_REGISTRY_REPO }}/reactive-resume:${{ github.sha }}"
+          gcloud container images describe "$IMAGE" || (echo "::error::Image $IMAGE not found in registry" && exit 1)
+
+      - name: Deploy Reactive Resume to Cloud Run
+        id: deploy
+        uses: google-github-actions/deploy-cloudrun@v2
+        with:
+          service: 'reactive-resume-${{ needs.cd-setup.outputs.service_suffix }}'
+          region: '${{ secrets.GCP_REGION }}'
+          image: '${{ secrets.ARTIFACT_REGISTRY_HOST }}/${{ secrets.GCP_PROJECT_ID }}/${{ secrets.ARTIFACT_REGISTRY_REPO }}/reactive-resume:${{ github.sha }}'
+          flags: '--allow-unauthenticated --min-instances=0 --max-instances=1 --cpu=1 --memory=1Gi --service-account=${{ secrets.GCP_SERVICE_ACCOUNT }}'
+
   cd-api-gateway:
     name: CD — API Gateway (Google Cloud)
     runs-on: ubuntu-latest
-    needs: [cd-setup, cd-auth, cd-education]
+    needs: [cd-setup, cd-auth, cd-education, cd-rxresume, cd-reactive-resume]
     environment: ${{ needs.cd-setup.outputs.env_name }}
     timeout-minutes: 30
     outputs:
@@ -813,6 +1031,9 @@ jobs:
           fi
           export AUTH_SERVICE_URL="$AUTH_URL"
           export EDUCATION_SERVICE_URL="$EDU_URL"
+
+          export RXRESUME_SERVICE_URL=$(gcloud run services describe "rxresume-$SUFFIX" --region="${{ secrets.GCP_REGION }}" --format='value(status.url)')
+          export REACTIVE_RESUME_URL=$(gcloud run services describe "reactive-resume-$SUFFIX" --region="${{ secrets.GCP_REGION }}" --format='value(status.url)')
           export FIREBASE_PROJECT_ID="${{ secrets.FIREBASE_PROJECT_ID }}"
           envsubst < openapi.yaml > openapi-resolved.yaml
           echo "openapi.yaml resolved for env: $SUFFIX (auth=$AUTH_URL, education=$EDU_URL)"
@@ -963,7 +1184,7 @@ jobs:
   cd-smoke:
     name: CD — Smoke Tests
     runs-on: ubuntu-latest
-    needs: [cd-setup, cd-auth, cd-education, cd-api-gateway, cd-frontend, cd-worker]
+    needs: [cd-setup, cd-auth, cd-education, cd-rxresume, cd-reactive-resume, cd-api-gateway, cd-frontend, cd-worker]
     environment: ${{ needs.cd-setup.outputs.env_name }}
     timeout-minutes: 15
 
@@ -1042,7 +1263,7 @@ jobs:
   cd-dast-zap:
     name: CD — DAST (OWASP ZAP)
     runs-on: ubuntu-latest
-    needs: [cd-setup, cd-smoke, cd-auth, cd-education, cd-api-gateway]
+    needs: [cd-setup, cd-smoke, cd-auth, cd-education, cd-rxresume, cd-reactive-resume, cd-api-gateway]
     environment: ${{ needs.cd-setup.outputs.env_name }}
     timeout-minutes: 15
 
@@ -1086,7 +1307,7 @@ jobs:
   cd-rollback:
     name: CD — Rollback (auto)
     runs-on: ubuntu-latest
-    needs: [cd-setup, cd-auth, cd-education, cd-frontend, cd-smoke, cd-dast-zap, cd-load-k6]
+    needs: [cd-setup, cd-auth, cd-education, cd-rxresume, cd-reactive-resume, cd-frontend, cd-smoke, cd-dast-zap, cd-load-k6]
     environment: ${{ needs.cd-setup.outputs.env_name }}
     timeout-minutes: 15
     if: always() && (needs.cd-smoke.result == 'failure' || needs.cd-dast-zap.result == 'failure' || needs.cd-load-k6.result == 'failure')
