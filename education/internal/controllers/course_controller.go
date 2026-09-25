@@ -39,6 +39,17 @@ func (c *CourseController) ListDrafts(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, courses)
 }
 
+// ListByTeacherAdmin responde GET /api/docentes/{id}/cursos (solo admin)
+func (c *CourseController) ListByTeacherAdmin(w http.ResponseWriter, r *http.Request) {
+	teacherID := chi.URLParam(r, "id")
+	courses, err := c.service.ListCoursesByTeacher(r.Context(), teacherID)
+	if err != nil {
+		writeError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, courses)
+}
+
 // Get responde GET /api/cursos/{id}
 func (c *CourseController) Get(w http.ResponseWriter, r *http.Request) {
 	course, err := c.service.GetCourse(r.Context(), chi.URLParam(r, "id"))

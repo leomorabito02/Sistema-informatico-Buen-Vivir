@@ -34,13 +34,14 @@
     <!-- Formulario de edición -->
     <div class="cv-form-section flex-1 max-w-full md:max-w-[60%]">
       <p-card header="Completá tu Perfil" styleClass="p-card-shadow mb-4">
+        <form #resumeForm="ngForm">
         
         <div class="form-section-group mb-6">
           <h3 class="text-xl font-bold mb-3 border-b pb-2 text-primary">Información Básica</h3>
           
           <div class="field mb-3">
             <label for="template">Plantilla del CV</label>
-            <p-dropdown id="template" [options]="templates" [(ngModel)]="cv.metadata.template" optionLabel="label" optionValue="value" styleClass="w-full"></p-dropdown>
+            <p-dropdown id="template" [options]="templates" name="template" [(ngModel)]="cv.metadata.template" optionLabel="label" optionValue="value" styleClass="w-full"></p-dropdown>
           </div>
 
           <div class="field mb-3">
@@ -54,33 +55,36 @@
 
           <div class="field mb-3">
             <label for="name">Nombre y Apellido</label>
-            <input id="name" pInputText [(ngModel)]="cv.basics.name" class="w-full" />
+            <input id="name" name="name" #nameModel="ngModel" pInputText [(ngModel)]="cv.basics.name" required class="w-full" [ngClass]="{'ng-invalid ng-dirty': nameModel.invalid && nameModel.touched}" />
+            <small *ngIf="nameModel.invalid && nameModel.touched" class="text-red-500 block mt-1">El nombre es requerido.</small>
           </div>
           
           <div class="field mb-3">
             <label for="headline">Titular / Ocupación (Headline)</label>
-            <input id="headline" pInputText [(ngModel)]="cv.basics.headline" placeholder="Ej: Estudiante de Informática" class="w-full" />
+            <input id="headline" pInputText name="headline" [(ngModel)]="cv.basics.headline" placeholder="Ej: Estudiante de Informática" class="w-full" />
           </div>
 
           <div class="field-grid grid grid-cols-1 md:grid-cols-2 gap-4 mb-3">
             <div class="field">
               <label for="email">Correo Electrónico</label>
-              <input id="email" pInputText [(ngModel)]="cv.basics.email" class="w-full" />
+              <input id="email" name="email" #emailModel="ngModel" pInputText [(ngModel)]="cv.basics.email" required email class="w-full" [ngClass]="{'ng-invalid ng-dirty': emailModel.invalid && emailModel.touched}" />
+              <small *ngIf="emailModel.errors?.['required'] && emailModel.touched" class="text-red-500 block mt-1">El correo es requerido.</small>
+              <small *ngIf="emailModel.errors?.['email'] && emailModel.touched" class="text-red-500 block mt-1">Ingresa un correo válido.</small>
             </div>
             <div class="field">
               <label for="phone">Teléfono</label>
-              <input id="phone" pInputText [(ngModel)]="cv.basics.phone" class="w-full" />
+              <input id="phone" pInputText name="phone" [(ngModel)]="cv.basics.phone" class="w-full" />
             </div>
           </div>
 
           <div class="field mb-3">
             <label for="location">Ubicación</label>
-            <input id="location" pInputText [(ngModel)]="cv.basics.location" placeholder="Ciudad, Provincia" class="w-full" />
+            <input id="location" pInputText name="location" [(ngModel)]="cv.basics.location" placeholder="Ciudad, Provincia" class="w-full" />
           </div>
 
           <div class="field mb-3">
             <label for="summary">Resumen Profesional</label>
-            <textarea id="summary" pInputTextarea [(ngModel)]="cv.basics.summary" placeholder="Contá un poco sobre tu perfil profesional..." class="w-full min-h-[100px]"></textarea>
+            <textarea id="summary" pInputTextarea name="summary" [(ngModel)]="cv.basics.summary" placeholder="Contá un poco sobre tu perfil profesional..." class="w-full min-h-[100px]"></textarea>
           </div>
         </div>
 
@@ -99,15 +103,15 @@
             <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mt-4">
               <div class="field">
                 <label [for]="'company-' + i">Empresa / Organización</label>
-                <input [id]="'company-' + i" pInputText [(ngModel)]="job.company" class="w-full" />
+                <input [id]="'company-' + i" pInputText name="company--{{i}}" [(ngModel)]="job.company" class="w-full" />
               </div>
               <div class="field">
                 <label [for]="'position-' + i">Puesto</label>
-                <input [id]="'position-' + i" pInputText [(ngModel)]="job.position" class="w-full" />
+                <input [id]="'position-' + i" pInputText name="position--{{i}}" [(ngModel)]="job.position" class="w-full" />
               </div>
               <div class="field">
                 <label [for]="'start-date-' + i">Fecha de Inicio</label>
-                <input type="month" [id]="'start-date-' + i" class="p-inputtext p-component w-full" [(ngModel)]="job.startDate" />
+                <input type="month" [id]="'start-date-' + i" class="p-inputtext p-component w-full" name="start-date--{{i}}" [(ngModel)]="job.startDate" />
               </div>
               <div class="field">
                 <label [for]="'end-date-' + i">Fecha de Fin</label>
@@ -116,13 +120,13 @@
                     <p-checkbox [binary]="true" [inputId]="'current-' + i" [ngModel]="job.endDate === 'Present'" (ngModelChange)="$event ? job.endDate = 'Present' : job.endDate = ''"></p-checkbox>
                     <label [for]="'current-' + i" class="text-sm">Hasta la actualidad</label>
                   </div>
-                  <input *ngIf="job.endDate !== 'Present'" type="month" [id]="'end-date-' + i" class="p-inputtext p-component w-full" [(ngModel)]="job.endDate" />
+                  <input *ngIf="job.endDate !== 'Present'" type="month" [id]="'end-date-' + i" class="p-inputtext p-component w-full" name="end-date--{{i}}" [(ngModel)]="job.endDate" />
                 </div>
               </div>
             </div>
             <div class="field mt-2">
               <label [for]="'desc-' + i">Descripción de tareas</label>
-              <textarea [id]="'desc-' + i" pTextarea [(ngModel)]="job.description" class="w-full min-h-[60px]"></textarea>
+              <textarea [id]="'desc-' + i" pTextarea name="desc--{{i}}" [(ngModel)]="job.description" class="w-full min-h-[60px]"></textarea>
             </div>
           </div>
         </div>
@@ -142,15 +146,15 @@
             <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mt-4">
               <div class="field">
                 <label [for]="'inst-' + i">Institución Educativa</label>
-                <input [id]="'inst-' + i" pInputText [(ngModel)]="edu.institution" class="w-full" />
+                <input [id]="'inst-' + i" pInputText name="inst--{{i}}" [(ngModel)]="edu.institution" class="w-full" />
               </div>
               <div class="field">
                 <label [for]="'deg-' + i">Título / Curso</label>
-                <input [id]="'deg-' + i" pInputText [(ngModel)]="edu.degree" class="w-full" />
+                <input [id]="'deg-' + i" pInputText name="deg--{{i}}" [(ngModel)]="edu.degree" class="w-full" />
               </div>
               <div class="field">
                 <label [for]="'edu-date-' + i">Fecha de Inicio</label>
-                <input type="month" [id]="'edu-start-' + i" class="p-inputtext p-component w-full" [(ngModel)]="edu.startDate" />
+                <input type="month" [id]="'edu-start-' + i" class="p-inputtext p-component w-full" name="edu-start--{{i}}" [(ngModel)]="edu.startDate" />
               </div>
               <div class="field">
                 <label [for]="'edu-end-' + i">Fecha de Fin</label>
@@ -159,12 +163,12 @@
                     <p-checkbox [binary]="true" [inputId]="'edu-current-' + i" [ngModel]="edu.endDate === 'Present'" (ngModelChange)="$event ? edu.endDate = 'Present' : edu.endDate = ''"></p-checkbox>
                     <label [for]="'edu-current-' + i" class="text-sm">Hasta la actualidad</label>
                   </div>
-                  <input *ngIf="edu.endDate !== 'Present'" type="month" [id]="'edu-end-' + i" class="p-inputtext p-component w-full" [(ngModel)]="edu.endDate" />
+                  <input *ngIf="edu.endDate !== 'Present'" type="month" [id]="'edu-end-' + i" class="p-inputtext p-component w-full" name="edu-end--{{i}}" [(ngModel)]="edu.endDate" />
                 </div>
               </div>
               <div class="field md:col-span-2">
                 <label [for]="'status-' + i">Estado</label>
-                <p-dropdown [id]="'status-' + i" [options]="educationStatuses" [(ngModel)]="edu.grade" optionLabel="label" optionValue="value" styleClass="w-full"></p-dropdown>
+                <p-dropdown [id]="'status-' + i" [options]="educationStatuses" name="status--{{i}}" [(ngModel)]="edu.grade" optionLabel="label" optionValue="value" styleClass="w-full"></p-dropdown>
               </div>
             </div>
           </div>
@@ -184,10 +188,10 @@
             <div *ngFor="let skill of cv.skills; let i = index" class="p-2 border border-gray-200 rounded-md bg-gray-50 flex gap-2 items-center">
               <div class="flex-1 flex flex-col gap-1">
                 <label class="sr-only" [for]="'skill-name-' + i">Nombre de Habilidad</label>
-                <input [id]="'skill-name-' + i" pInputText [(ngModel)]="skill.name" placeholder="Ej: Trabajo en Equipo" class="w-full p-inputtext-sm" />
+                <input [id]="'skill-name-' + i" pInputText name="skill-name--{{i}}" [(ngModel)]="skill.name" placeholder="Ej: Trabajo en Equipo" class="w-full p-inputtext-sm" />
                 
                 <label class="sr-only" [for]="'skill-level-' + i">Nivel de Habilidad</label>
-                <p-dropdown [id]="'skill-level-' + i" [options]="skillLevels" [(ngModel)]="skill.level" optionLabel="label" optionValue="value" styleClass="w-full"></p-dropdown>
+                <p-dropdown [id]="'skill-level-' + i" [options]="skillLevels" name="skill-level--{{i}}" [(ngModel)]="skill.level" optionLabel="label" optionValue="value" styleClass="w-full"></p-dropdown>
               </div>
               <p-button icon="pi pi-trash" (onClick)="removeSkill(i)" styleClass="p-button-rounded p-button-danger p-button-text"></p-button>
             </div>
@@ -208,10 +212,10 @@
             <div *ngFor="let lang of cv.languages; let i = index" class="p-2 border border-gray-200 rounded-md bg-gray-50 flex gap-2 items-center">
               <div class="flex-1 flex flex-col gap-1">
                 <label class="sr-only" [for]="'lang-name-' + i">Idioma</label>
-                <input [id]="'lang-name-' + i" pInputText [(ngModel)]="lang.name" placeholder="Ej: Inglés" class="w-full p-inputtext-sm" />
+                <input [id]="'lang-name-' + i" pInputText name="lang-name--{{i}}" [(ngModel)]="lang.name" placeholder="Ej: Inglés" class="w-full p-inputtext-sm" />
                 
                 <label class="sr-only" [for]="'lang-level-' + i">Nivel de Idioma</label>
-                <p-dropdown [id]="'lang-level-' + i" [options]="skillLevels" [(ngModel)]="lang.level" optionLabel="label" optionValue="value" styleClass="w-full"></p-dropdown>
+                <p-dropdown [id]="'lang-level-' + i" [options]="skillLevels" name="lang-level--{{i}}" [(ngModel)]="lang.level" optionLabel="label" optionValue="value" styleClass="w-full"></p-dropdown>
               </div>
               <p-button icon="pi pi-trash" (onClick)="removeLanguage(i)" styleClass="p-button-rounded p-button-danger p-button-text"></p-button>
             </div>
@@ -223,10 +227,11 @@
             label="Guardar / Generar Currículum"
             icon="pi pi-cog"
             [loading]="generating"
-            (onClick)="generateResume()"
+            (onClick)="generateResume(resumeForm)"
             styleClass="p-button-primary w-full md:w-auto p-button-lg"
           ></p-button>
         </div>
+      </form>
       </p-card>
     </div>
 
@@ -306,7 +311,7 @@
               </div>
             </div>
           </div>
-        </p-card>
+      </p-card>
       </div>
     </div>
   </div>

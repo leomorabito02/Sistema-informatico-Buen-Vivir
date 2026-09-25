@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/go-playground/validator/v10"
+	"github.com/go-chi/chi/v5"
 
 	"auth/internal/dto"
 	"auth/internal/middlewares"
@@ -258,6 +259,25 @@ func (c *AuthController) GetMyProfileDetails(w http.ResponseWriter, r *http.Requ
 	}
 
 	writeJSONResponse(w, http.StatusOK, profile)
+}
+
+func (c *AuthController) GetUserProfile(w http.ResponseWriter, r *http.Request) {
+	id := chi.URLParam(r, "id")
+	if id == "" {
+		writeJSONError(w, http.StatusBadRequest, "ID es requerido")
+		return
+	}
+
+	profile, err := c.authService.GetUserProfile(r.Context(), id)
+	if err != nil {
+		writeJSONError(w, http.StatusNotFound, err.Error())
+		return
+	}
+
+	writeJSONResponse(w, http.StatusOK, map[string]interface{}{
+		"success": true,
+		"data":    profile,
+	})
 }
 
 func (c *AuthController) UpdateMyPassword(w http.ResponseWriter, r *http.Request) {

@@ -21,6 +21,14 @@ type MockAuthService struct {
 	mock.Mock
 }
 
+func (m *MockAuthService) RefreshToken(ctx context.Context, refreshToken string) (*dto.LoginResponse, error) {
+	args := m.Called(ctx, refreshToken)
+	if args.Get(0) != nil {
+		return args.Get(0).(*dto.LoginResponse), args.Error(1)
+	}
+	return nil, args.Error(1)
+}
+
 func (m *MockAuthService) Register(ctx context.Context, req *dto.RegisterRequest) (*dto.LoginResponse, error) {
 	args := m.Called(ctx, req)
 	if args.Get(0) == nil {
@@ -65,6 +73,14 @@ func (m *MockAuthService) UpdateMyProfile(ctx context.Context, roleID, userID st
 
 func (m *MockAuthService) GetMyProfile(ctx context.Context, roleID, userID string) (map[string]interface{}, error) {
 	args := m.Called(ctx, roleID, userID)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(map[string]interface{}), args.Error(1)
+}
+
+func (m *MockAuthService) GetUserProfile(ctx context.Context, userID string) (map[string]interface{}, error) {
+	args := m.Called(ctx, userID)
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
 	}

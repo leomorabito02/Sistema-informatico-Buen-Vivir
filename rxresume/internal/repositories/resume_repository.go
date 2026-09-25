@@ -13,6 +13,7 @@ type ResumeRepository interface {
 	FindAllParticipants(ctx context.Context) ([]models.Resume, error)
 	Save(ctx context.Context, resume *models.Resume) error
 	Delete(ctx context.Context, id string) error
+	Transaction(ctx context.Context, fn func(repo ResumeRepository) error) error
 }
 
 type resumeRepository struct {
@@ -51,4 +52,12 @@ func (r *resumeRepository) Save(ctx context.Context, resume *models.Resume) erro
 // Delete removes a resume entry by ID.
 func (r *resumeRepository) Delete(ctx context.Context, id string) error {
 	return r.db.WithContext(ctx).Where("id = ?", id).Delete(&models.Resume{}).Error
+}
+
+// Transaction executes a function within a database transaction.
+func (r *resumeRepository) Transaction(ctx context.Context, fn func(repo ResumeRepository) error) error {
+	return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		txRepo := &resumeRepository{db: tx}
+		return fn(txRepo)
+	})
 }

@@ -295,7 +295,7 @@ func TestAuthService_GetApprovalStatus_AllRoles(t *testing.T) {
 	assert.Equal(t, "active", status2)
 	
 	statusAdmin := svc.GetApprovalStatus(context.Background(), "role_admin", "usr-3")
-	assert.Equal(t, "accepted", statusAdmin)
+	assert.Equal(t, "approved", statusAdmin)
 }
 
 func TestAuthService_Register_UserExists(t *testing.T) {

@@ -24,9 +24,33 @@ func (m *MockEnrollmentRepository) ListByCourse(ctx context.Context, cursoID str
 	return args.Get(0).([]models.Enrollment), args.Error(1)
 }
 
+func (m *MockEnrollmentRepository) ListByParticipant(ctx context.Context, participantID string) ([]models.Enrollment, error) {
+	args := m.Called(ctx, participantID)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).([]models.Enrollment), args.Error(1)
+}
+
+func (m *MockEnrollmentRepository) Create(ctx context.Context, e models.Enrollment) (*models.Enrollment, error) {
+	args := m.Called(ctx, e)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*models.Enrollment), args.Error(1)
+}
+
+func (m *MockEnrollmentRepository) ListByParticipants(ctx context.Context, participantIDs []string) ([]models.Enrollment, error) {
+	args := m.Called(ctx, participantIDs)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).([]models.Enrollment), args.Error(1)
+}
+
 func TestEnrollmentService_ListByCourse_Success(t *testing.T) {
 	repo := new(MockEnrollmentRepository)
-	svc := services.NewEnrollmentService(repo)
+	svc := services.NewEnrollmentService(repo, nil, nil)
 
 	repo.On("ListByCourse", mock.Anything, "c1").Return([]models.Enrollment{{ID: "e1"}}, nil)
 
@@ -37,7 +61,7 @@ func TestEnrollmentService_ListByCourse_Success(t *testing.T) {
 
 func TestEnrollmentService_ListByCourse_RepoError(t *testing.T) {
 	repo := new(MockEnrollmentRepository)
-	svc := services.NewEnrollmentService(repo)
+	svc := services.NewEnrollmentService(repo, nil, nil)
 
 	repo.On("ListByCourse", mock.Anything, "c1").Return(nil, errors.New("firestore caído"))
 

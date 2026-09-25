@@ -107,7 +107,7 @@ func TestAuthService_Login_Success(t *testing.T) {
 	user := &models.User{UserID: "usr-1", RoleID: "role_participant", Status: "active"}
 	
 	mockUserRepo.On("FindByID", mock.Anything, "usr-1").Return(user, nil)
-	mockQuerier.On("GetApprovalStatus", mock.Anything, "participants", "usr-1").Return("accepted", nil)
+	mockQuerier.On("GetApprovalStatus", mock.Anything, "participants", "usr-1").Return("approved", nil)
 	mockJWT.On("GenerateTokenPair", "usr-1", "role_participant", false).Return("access", "refresh", nil)
 	mockRtRepo.On("RevokeAllForUser", mock.Anything, "usr-1").Return(nil)
 	mockRtRepo.On("Create", mock.Anything, mock.AnythingOfType("*models.RefreshToken")).Return(nil)
@@ -134,7 +134,7 @@ func TestAuthService_Login_JWTError(t *testing.T) {
 	user := &models.User{UserID: "usr-1", RoleID: "role_participant", Status: "active"}
 	
 	mockUserRepo.On("FindByID", mock.Anything, "usr-1").Return(user, nil)
-	mockQuerier.On("GetApprovalStatus", mock.Anything, "participants", "usr-1").Return("accepted", nil)
+	mockQuerier.On("GetApprovalStatus", mock.Anything, "participants", "usr-1").Return("approved", nil)
 	mockJWT.On("GenerateTokenPair", "usr-1", "role_participant", false).Return("", "", errors.New("jwt error"))
 
 	res, err := svc.Login(context.Background(), req)

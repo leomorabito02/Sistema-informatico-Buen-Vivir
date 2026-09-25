@@ -20,28 +20,33 @@ import (
 // role_volunteer (HU-18, HU-19, HU-19bis): a diferencia de
 // /api/docente, no tienen scope de "mis cursos" — admin y voluntario
 // operan sobre cualquier curso o participante del centro.
+type Controllers struct {
+	Course           *controllers.CourseController
+	TrainingArea     *controllers.TrainingAreaController
+	Material         *controllers.MaterialController
+	Health           *controllers.HealthController
+	Docente          *controllers.DocenteController
+	Enrollment       *controllers.EnrollmentController
+	Attendance       *controllers.AttendanceController
+	GeneralAttendance *controllers.GeneralAttendanceController
+}
+
 func RegisterRoutes(
 	r chi.Router,
 	jwtService services.JWTService,
-	courseCtrl *controllers.CourseController,
-	trainingAreaCtrl *controllers.TrainingAreaController,
-	materialCtrl *controllers.MaterialController,
-	healthCtrl *controllers.HealthController,
-	docenteCtrl *controllers.DocenteController,
-	enrollmentCtrl *controllers.EnrollmentController,
-	attendanceCtrl *controllers.AttendanceController,
-	generalAttendanceCtrl *controllers.GeneralAttendanceController,
+	ctrls Controllers,
 ) {
-	r.Get("/api/salud", healthCtrl.Health)
+	const apiCursosID = "/api/cursos/{id}"
+	r.Get("/api/salud", ctrls.Health.Health)
 
 	r.Group(func(r chi.Router) {
 		r.Use(middlewares.AuthMiddleware(jwtService))
 
 		// -- lectura: cualquier rol autenticado --
-		r.Get("/api/cursos", courseCtrl.List)
-		r.Get("/api/cursos/{id}", courseCtrl.Get)
-		r.Get("/api/areas-formativas", trainingAreaCtrl.List)
-		r.Get("/api/materiales", materialCtrl.List)
+		r.Get("/api/cursos", ctrls.Course.List)
+		r.Get(apiCursosID, ctrls.Course.Get)
+		r.Get("/api/areas-formativas", ctrls.TrainingArea.List)
+		r.Get("/api/materiales", ctrls.Material.List)
 
 		// -- escritura: exclusiva de role_admin --
 		//
@@ -59,21 +64,21 @@ func RegisterRoutes(
 
 			// GET estático: chi lo resuelve antes que /api/cursos/{id}
 			// (registrado arriba para cualquier rol), así que no lo tapa.
-			r.Get("/api/cursos/borradores", courseCtrl.ListDrafts)
+			r.Get("/api/cursos/borradores", ctrls.Course.ListDrafts)
 
-			r.Post("/api/cursos", courseCtrl.Create)
-			r.Put("/api/cursos/{id}", courseCtrl.Update)
-			r.Delete("/api/cursos/{id}", courseCtrl.Delete)
-			r.Post("/api/cursos/{id}/publicar", courseCtrl.Publish)
-			r.Post("/api/cursos/{id}/despublicar", courseCtrl.Unpublish)
+			r.Post("/api/cursos", ctrls.Course.Create)
+			r.Put(apiCursosID, ctrls.Course.Update)
+			r.Delete(apiCursosID, ctrls.Course.Delete)
+			r.Post("/api/cursos/{id}/publicar", ctrls.Course.Publish)
+			r.Post("/api/cursos/{id}/despublicar", ctrls.Course.Unpublish)
 
-			r.Post("/api/areas-formativas", trainingAreaCtrl.Create)
-			r.Put("/api/areas-formativas/{id}", trainingAreaCtrl.Update)
-			r.Delete("/api/areas-formativas/{id}", trainingAreaCtrl.Delete)
+			r.Post("/api/areas-formativas", ctrls.TrainingArea.Create)
+			r.Put("/api/areas-formativas/{id}", ctrls.TrainingArea.Update)
+			r.Delete("/api/areas-formativas/{id}", ctrls.TrainingArea.Delete)
 
 			// borrar material: solo admin (no hay modelo de ownership de
 			// materiales, un material puede estar linkeado a varios cursos).
-			r.Delete("/api/materiales/{id}", materialCtrl.Delete)
+			r.Delete("/api/materiales/{id}", ctrls.Material.Delete)
 		})
 
 		// -- materiales: crear/subir/editar los puede hacer admin O
@@ -84,9 +89,9 @@ func RegisterRoutes(
 			r.Use(middlewares.RequireRole("role_admin", "role_teacher"))
 			r.Use(middlewares.RequireInternalTeacher)
 
-			r.Post("/api/materiales", materialCtrl.Create)
-			r.Post("/api/materiales/upload", materialCtrl.Upload)
-			r.Put("/api/materiales/{id}", materialCtrl.Update)
+			r.Post("/api/materiales", ctrls.Material.Create)
+			r.Post("/api/materiales/upload", ctrls.Material.Upload)
+			r.Put("/api/materiales/{id}", ctrls.Material.Update)
 		})
 
 		// -- inscripción, asistencia por actividad y asistencia general:
@@ -96,14 +101,19 @@ func RegisterRoutes(
 		r.Group(func(r chi.Router) {
 			r.Use(middlewares.RequireRole("role_admin", "role_volunteer"))
 
-			r.Post("/api/cursos/{id}/inscripciones", enrollmentCtrl.Enroll)
-			r.Get("/api/cursos/{id}/inscripciones", enrollmentCtrl.List)
+			r.Post("/api/cursos/{id}/inscripciones", ctrls.Enrollment.Enroll)
+			r.Get("/api/cursos/{id}/inscripciones", ctrls.Enrollment.List)
 
-			r.Post("/api/actividades/{actividadId}/asistencia", attendanceCtrl.Register)
-			r.Get("/api/actividades/{actividadId}/asistencia", attendanceCtrl.List)
+			r.Post("/api/actividades/{actividadId}/asistencia", ctrls.Attendance.Register)
+			r.Get("/api/actividades/{actividadId}/asistencia", ctrls.Attendance.List)
 
-			r.Get("/api/asistencia-general", generalAttendanceCtrl.List)
-			r.Post("/api/asistencia-general", generalAttendanceCtrl.Register)
+			r.Get("/api/asistencia-general", ctrls.GeneralAttendance.List)
+			r.Post("/api/asistencia-general", ctrls.GeneralAttendance.Register)
+
+			r.Get("/api/participants/{id}/inscripciones", ctrls.Enrollment.ListByParticipant)
+			r.Get("/api/docentes/{id}/cursos", ctrls.Course.ListByTeacherAdmin)
+			
+			r.Post("/api/bulk-cursos-usuarios", ctrls.Enrollment.GetBulkUserCourses)
 		})
 
 		// -- docente responsable: role_teacher interno --
@@ -111,16 +121,16 @@ func RegisterRoutes(
 			r.Use(middlewares.RequireRole("role_teacher"))
 			r.Use(middlewares.RequireInternalTeacher)
 
-			r.Get("/cursos", docenteCtrl.ListMyCourses)
-			r.Get("/cursos/borradores", docenteCtrl.ListMyDraftCourses)
-			r.Post("/cursos", docenteCtrl.CreateMyCourse)
-			r.Put("/cursos/{id}", docenteCtrl.UpdateMyCourse)
-			r.Get("/cursos/{cursoId}/actividades", docenteCtrl.ListActivities)
-			r.Post("/cursos/{cursoId}/actividades", docenteCtrl.CreateActivity)
-			r.Post("/actividades/{actividadId}/asistencia", docenteCtrl.RegisterAttendance)
-			r.Get("/actividades/{actividadId}/asistencia", docenteCtrl.ListAttendance)
-			r.Get("/cursos/{cursoId}/inscriptos", docenteCtrl.ListEnrollments)
-			r.Get("/cursos/{cursoId}/progreso", docenteCtrl.GetProgress)
+			r.Get("/cursos", ctrls.Docente.ListMyCourses)
+			r.Get("/cursos/borradores", ctrls.Docente.ListMyDraftCourses)
+			r.Post("/cursos", ctrls.Docente.CreateMyCourse)
+			r.Put("/cursos/{id}", ctrls.Docente.UpdateMyCourse)
+			r.Get("/cursos/{cursoId}/actividades", ctrls.Docente.ListActivities)
+			r.Post("/cursos/{cursoId}/actividades", ctrls.Docente.CreateActivity)
+			r.Post("/actividades/{actividadId}/asistencia", ctrls.Docente.RegisterAttendance)
+			r.Get("/actividades/{actividadId}/asistencia", ctrls.Docente.ListAttendance)
+			r.Get("/cursos/{cursoId}/inscriptos", ctrls.Docente.ListEnrollments)
+			r.Get("/cursos/{cursoId}/progreso", ctrls.Docente.GetProgress)
 		})
 	})
 }

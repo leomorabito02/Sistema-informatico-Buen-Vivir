@@ -17,6 +17,7 @@ type User struct {
 	GoogleAuthID   string    `json:"google_auth_id"`
 	RoleID         string    `json:"role_id" gorm:"index;not null"`
 	Role           *Role     `json:"role,omitempty"`
+	RoleApprovalStatus string `json:"role_approval_status" gorm:"->;-:migration"`
 	TwofaEnabled   bool      `json:"twofa_enabled" gorm:"not null"`
 	TwofaSecret    string    `json:"-" gorm:"not null"`
 	TwofaSeed      string    `json:"-" gorm:"not null"`
