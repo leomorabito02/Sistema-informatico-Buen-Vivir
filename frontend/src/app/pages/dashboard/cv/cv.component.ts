@@ -1,6 +1,6 @@
 import { Component, OnInit, inject } from "@angular/core";
 import { CommonModule } from "@angular/common";
-import { FormsModule } from "@angular/forms";
+import { FormsModule, NgForm } from "@angular/forms";
 import { CardModule } from "primeng/card";
 import { ButtonModule } from "primeng/button";
 import { InputTextModule } from "primeng/inputtext";
@@ -104,7 +104,13 @@ export class CvComponent implements OnInit {
     });
   }
 
-  generateResume() {
+  generateResume(form?: NgForm) {
+    if (form?.invalid) {
+      this.message = "Por favor, completa los campos requeridos correctamente.";
+      // Mark all as touched to show errors
+      form.control.markAllAsTouched();
+      return;
+    }
     if (!this.resume?.data) return;
     
     this.generating = true;

@@ -106,6 +106,19 @@ export class AuthService {
       );
   }
 
+  refreshToken(): Observable<LoginResponse> {
+    return this.http
+      .post<LoginResponse>(
+        `${this.apiUrl}/api/v1/auth/refresh`,
+        {},
+        { withCredentials: true }
+      )
+      .pipe(
+        tap(() => this.setLocallyAuthenticated()),
+        catchError(this.handleError)
+      );
+  }
+
   /**
    * Register a new user via API Gateway.
    */

@@ -55,13 +55,12 @@ func (m *MockCourseRepository) Delete(ctx context.Context, id string) error {
 }
 
 func (m *MockCourseRepository) Publish(ctx context.Context, id string) error {
-	args := m.Called(ctx, id)
-	return args.Error(0)
+	return m.Called(ctx, id).Error(0)
 }
 
 func (m *MockCourseRepository) Unpublish(ctx context.Context, id string) error {
-	args := m.Called(ctx, id)
-	return args.Error(0)
+	ret := m.Called(ctx, id)
+	return ret.Error(0)
 }
 
 func (m *MockCourseRepository) ListByResponsibleTeacher(ctx context.Context, teacherID string) ([]models.Course, error) {
@@ -73,15 +72,28 @@ func (m *MockCourseRepository) ListByResponsibleTeacher(ctx context.Context, tea
 }
 
 func (m *MockCourseRepository) ListDraftsByResponsibleTeacher(ctx context.Context, teacherID string) ([]models.Course, error) {
-	args := m.Called(ctx, teacherID)
-	if args.Get(0) == nil {
-		return nil, args.Error(1)
+	ret := m.Called(ctx, teacherID)
+	if val := ret.Get(0); val != nil {
+		return val.([]models.Course), ret.Error(1)
 	}
-	return args.Get(0).([]models.Course), args.Error(1)
+	return nil, ret.Error(1)
 }
 
 func (m *MockCourseRepository) ListAllDrafts(ctx context.Context) ([]models.Course, error) {
-	args := m.Called(ctx)
+	callArgs := m.Called(ctx)
+	if v := callArgs.Get(0); v != nil {
+		return v.([]models.Course), callArgs.Error(1)
+	}
+	return nil, callArgs.Error(1)
+}
+
+func (m *MockCourseRepository) ExistsInManagement(ctx context.Context, id string) (bool, error) {
+	args := m.Called(ctx, id)
+	return args.Bool(0), args.Error(1)
+}
+
+func (m *MockCourseRepository) ListByResponsibleTeachers(ctx context.Context, teacherIDs []string) ([]models.Course, error) {
+	args := m.Called(ctx, teacherIDs)
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
 	}

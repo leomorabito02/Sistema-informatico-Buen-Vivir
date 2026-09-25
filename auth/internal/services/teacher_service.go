@@ -123,7 +123,7 @@ func (s *teacherService) UpdateTeacher(ctx context.Context, id string, req *dto.
 		if req.ApprovalStatus == "approved" {
 			now := time.Now()
 			teacher.ApprovalDate = &now
-			teacher.ApprovedBy = &req.ApprovedBy
+			teacher.ApprovedBy = resolveApprover(ctx, req.ApprovedBy)
 		}
 	}
 

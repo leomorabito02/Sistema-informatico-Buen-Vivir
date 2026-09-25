@@ -4,6 +4,7 @@ import (
 	"context"
 	"log"
 	"net/http"
+	"os"
 
 	"buenvivir/rxresume/internal/client"
 	"buenvivir/rxresume/internal/config"
@@ -14,6 +15,7 @@ import (
 	"buenvivir/rxresume/internal/routes"
 	"buenvivir/rxresume/internal/services"
 	"buenvivir/rxresume/internal/storage"
+	"buenvivir/rxresume/internal/worker"
 
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
@@ -40,7 +42,18 @@ func main() {
 	rxClient := client.NewReactiveResumeClient(cfg.ReactiveResumeURL, cfg.FrontendURL, cfg.ReactiveResumeSecretKey)
 	pdfParser := parser.NewOfflinePDFParser()
 	repo := repositories.NewResumeRepository(db)
-	service := services.NewResumeService(repo, storageService, pdfParser, rxClient)
+
+	if cfg.PubSubEmulatorHost != "" {
+		os.Setenv("PUBSUB_EMULATOR_HOST", cfg.PubSubEmulatorHost)
+	}
+
+	syncQueue, err := worker.NewPubSubSyncQueue(ctx, cfg.GCPProjectID, cfg.PubSubSyncTopic, cfg.PubSubSyncSubscription, repo, rxClient)
+	if err != nil {
+		log.Fatalf("Warning: Failed to initialize Pub/Sub queue: %v", err)
+	}
+	syncQueue.Start(ctx)
+
+	service := services.NewResumeService(repo, storageService, pdfParser, rxClient, syncQueue)
 	controller := controllers.NewResumeController(service)
 
 	mux := http.NewServeMux()

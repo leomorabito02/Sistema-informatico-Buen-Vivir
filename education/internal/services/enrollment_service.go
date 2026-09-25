@@ -12,6 +12,8 @@ import (
 // (HU-18/RF-18) antes de delegar en el repository de Firestore.
 type EnrollmentService interface {
 	ListByCourse(ctx context.Context, cursoID string) ([]models.Enrollment, error)
+	ListByParticipant(ctx context.Context, participantID string) ([]models.Enrollment, error)
+	GetBulkUserCourses(ctx context.Context, userIDs []string) ([]models.UserCourseSummary, error)
 	// Enroll inscribe a un participante en un curso publicado.
 	// bearerToken es el JWT crudo del usuario autenticado en education
 	// (ver middlewares.TokenKey), que se reenvía a auth-service para
@@ -41,6 +43,63 @@ func NewEnrollmentService(repo repositories.EnrollmentRepository, courseRepo rep
 
 func (s *enrollmentService) ListByCourse(ctx context.Context, cursoID string) ([]models.Enrollment, error) {
 	return s.repo.ListByCourse(ctx, cursoID)
+}
+
+func (s *enrollmentService) ListByParticipant(ctx context.Context, participantID string) ([]models.Enrollment, error) {
+	return s.repo.ListByParticipant(ctx, participantID)
+}
+
+func (s *enrollmentService) GetBulkUserCourses(ctx context.Context, userIDs []string) ([]models.UserCourseSummary, error) {
+	if len(userIDs) == 0 {
+		return []models.UserCourseSummary{}, nil
+	}
+
+	summaryMap := make(map[string][]string)
+	for _, id := range userIDs {
+		summaryMap[id] = make([]string, 0)
+	}
+
+	// 1. Get enrollments for all these users
+	enrollments, err := s.repo.ListByParticipants(ctx, userIDs)
+	if err == nil {
+		// fetch course titles for these enrollments
+		// cache course titles
+		courseTitles := make(map[string]string)
+		for _, e := range enrollments {
+			if e.Estado != models.EnrollmentEstadoActiva {
+				continue
+			}
+			title, ok := courseTitles[e.CursoID]
+			if !ok {
+				course, cerr := s.courseRepo.Get(ctx, e.CursoID)
+				if cerr == nil && course != nil {
+					title = course.Title
+					courseTitles[e.CursoID] = title
+				} else {
+					title = "Curso " + e.CursoID
+				}
+			}
+			summaryMap[e.ParticipanteID] = append(summaryMap[e.ParticipanteID], title)
+		}
+	}
+
+	// 2. Get courses for these teachers
+	teacherCourses, err := s.courseRepo.ListByResponsibleTeachers(ctx, userIDs)
+	if err == nil {
+		for _, c := range teacherCourses {
+			summaryMap[c.ResponsibleTeacher] = append(summaryMap[c.ResponsibleTeacher], c.Title)
+		}
+	}
+
+	var result []models.UserCourseSummary
+	for id, courses := range summaryMap {
+		result = append(result, models.UserCourseSummary{
+			UserID:  id,
+			Courses: courses,
+		})
+	}
+
+	return result, nil
 }
 
 func (s *enrollmentService) Enroll(ctx context.Context, participanteID, cursoID, bearerToken string) (*models.Enrollment, error) {

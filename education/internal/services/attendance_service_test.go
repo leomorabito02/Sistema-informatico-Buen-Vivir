@@ -3,9 +3,12 @@ package services_test
 import (
 	"context"
 	"errors"
+	"net/http"
+	"net/http/httptest"
 	"testing"
 
 	"buenvivir/education/internal/models"
+	"buenvivir/education/internal/repositories"
 	"buenvivir/education/internal/services"
 
 	"github.com/stretchr/testify/assert"
@@ -38,7 +41,7 @@ func (m *MockAttendanceRepository) RegisterBatch(ctx context.Context, actividadI
 }
 
 func TestAttendanceService_ListByActivity_EmptyID(t *testing.T) {
-	svc := services.NewAttendanceService(nil)
+	svc := services.NewAttendanceService(nil, nil, nil)
 
 	attendances, err := svc.ListByActivity(context.Background(), "")
 	assert.Error(t, err)
@@ -48,7 +51,7 @@ func TestAttendanceService_ListByActivity_EmptyID(t *testing.T) {
 
 func TestAttendanceService_ListByActivity_Success(t *testing.T) {
 	repo := new(MockAttendanceRepository)
-	svc := services.NewAttendanceService(repo)
+	svc := services.NewAttendanceService(repo, nil, nil)
 
 	repo.On("ListByActivity", mock.Anything, "a1").Return([]models.Attendance{{ID: "att1"}}, nil)
 
@@ -59,7 +62,7 @@ func TestAttendanceService_ListByActivity_Success(t *testing.T) {
 
 func TestAttendanceService_ListByActivity_RepoError(t *testing.T) {
 	repo := new(MockAttendanceRepository)
-	svc := services.NewAttendanceService(repo)
+	svc := services.NewAttendanceService(repo, nil, nil)
 
 	repo.On("ListByActivity", mock.Anything, "a1").Return(nil, errors.New("firestore caído"))
 
@@ -69,40 +72,54 @@ func TestAttendanceService_ListByActivity_RepoError(t *testing.T) {
 }
 
 func TestAttendanceService_RegisterBatch_EmptyActividadID(t *testing.T) {
-	svc := services.NewAttendanceService(nil)
+	svc := services.NewAttendanceService(nil, nil, nil)
 
-	err := svc.RegisterBatch(context.Background(), "", []models.AttendanceInput{{ParticipanteID: "p1"}})
+	err := svc.RegisterBatch(context.Background(), "", "c1", []models.AttendanceInput{{ParticipanteID: "p1"}}, "token")
 	assert.Error(t, err)
 }
 
 func TestAttendanceService_RegisterBatch_EmptyInputs(t *testing.T) {
-	svc := services.NewAttendanceService(nil)
+	svc := services.NewAttendanceService(nil, nil, nil)
 
-	err := svc.RegisterBatch(context.Background(), "a1", nil)
+	err := svc.RegisterBatch(context.Background(), "a1", "c1", nil, "token")
 	assert.Error(t, err)
 }
 
 func TestAttendanceService_RegisterBatch_MissingParticipanteID(t *testing.T) {
-	svc := services.NewAttendanceService(nil)
+	svc := services.NewAttendanceService(nil, nil, nil)
 
 	inputs := []models.AttendanceInput{
 		{ParticipanteID: "p1", Presente: true},
 		{ParticipanteID: "", Presente: false},
 	}
-	err := svc.RegisterBatch(context.Background(), "a1", inputs)
+	err := svc.RegisterBatch(context.Background(), "a1", "c1", inputs, "token")
 	assert.Error(t, err)
 }
 
 func TestAttendanceService_RegisterBatch_Success(t *testing.T) {
+	// Create a dummy auth service
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		// Simulate authItemResponse[Participant]
+		w.Write([]byte(`{"success":true,"data":{"user_id":"` + "p1" + `","approval_status":"approved"}}`))
+	}))
+	defer ts.Close()
+	
+	authClient := repositories.NewAuthServiceClient(ts.URL)
+
 	repo := new(MockAttendanceRepository)
-	svc := services.NewAttendanceService(repo)
+	enrollmentRepo := new(MockEnrollmentRepository)
+	svc := services.NewAttendanceService(repo, enrollmentRepo, authClient)
 
 	inputs := []models.AttendanceInput{
 		{ParticipanteID: "p1", Presente: true},
-		{ParticipanteID: "p2", Presente: false},
 	}
+	
+	enrollmentRepo.On("ListByCourse", mock.Anything, "c1").Return([]models.Enrollment{
+		{ParticipanteID: "p1", Estado: models.EnrollmentEstadoActiva},
+	}, nil)
 	repo.On("RegisterBatch", mock.Anything, "a1", inputs).Return(nil)
 
-	err := svc.RegisterBatch(context.Background(), "a1", inputs)
+	err := svc.RegisterBatch(context.Background(), "a1", "c1", inputs, "token")
 	assert.NoError(t, err)
 }

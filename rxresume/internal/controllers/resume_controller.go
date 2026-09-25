@@ -10,12 +10,12 @@ import (
 )
 
 const (
-	headerXUserID      = "X-User-ID"
-	headerXUserRole    = "X-User-Role"
-	headerContentType  = "Content-Type"
-	contentTypeJSON    = "application/json"
-	errMissingUserID   = "missing user identity header X-User-ID"
-	errInvalidJSON     = "invalid JSON payload"
+	headerXUserID     = "X-User-ID"
+	headerXUserRole   = "X-User-Role"
+	headerContentType = "Content-Type"
+	contentTypeJSON   = "application/json"
+	errMissingUserID  = "missing user identity header X-User-ID"
+	errInvalidJSON    = "invalid JSON payload"
 )
 
 type ResumeController struct {
@@ -29,9 +29,6 @@ func NewResumeController(service services.ResumeService) *ResumeController {
 // GetMyResume handles fetching the CV for the currently authenticated participant.
 func (c *ResumeController) GetMyResume(w http.ResponseWriter, r *http.Request) {
 	userID := r.Header.Get(headerXUserID)
-	if userID == "" {
-		userID = r.URL.Query().Get("user_id")
-	}
 	if userID == "" {
 		http.Error(w, errMissingUserID, http.StatusUnauthorized)
 		return
@@ -51,9 +48,6 @@ func (c *ResumeController) GetMyResume(w http.ResponseWriter, r *http.Request) {
 func (c *ResumeController) UpdateMyResume(w http.ResponseWriter, r *http.Request) {
 	userID := r.Header.Get(headerXUserID)
 	if userID == "" {
-		userID = r.URL.Query().Get("user_id")
-	}
-	if userID == "" {
 		http.Error(w, errMissingUserID, http.StatusUnauthorized)
 		return
 	}
@@ -61,6 +55,11 @@ func (c *ResumeController) UpdateMyResume(w http.ResponseWriter, r *http.Request
 	var data models.ResumeData
 	if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
 		http.Error(w, errInvalidJSON, http.StatusBadRequest)
+		return
+	}
+	data.Sanitize()
+	if err := data.Validate(); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
@@ -77,9 +76,6 @@ func (c *ResumeController) UpdateMyResume(w http.ResponseWriter, r *http.Request
 // ParseMyPDF handles uploading and parsing a PDF resume for the current participant.
 func (c *ResumeController) ParseMyPDF(w http.ResponseWriter, r *http.Request) {
 	userID := r.Header.Get(headerXUserID)
-	if userID == "" {
-		userID = r.URL.Query().Get("user_id")
-	}
 	if userID == "" {
 		http.Error(w, errMissingUserID, http.StatusUnauthorized)
 		return
@@ -110,9 +106,6 @@ func (c *ResumeController) ParseMyPDF(w http.ResponseWriter, r *http.Request) {
 // UploadMyPicture handles uploading a profile picture for the current participant.
 func (c *ResumeController) UploadMyPicture(w http.ResponseWriter, r *http.Request) {
 	userID := r.Header.Get(headerXUserID)
-	if userID == "" {
-		userID = r.URL.Query().Get("user_id")
-	}
 	if userID == "" {
 		http.Error(w, errMissingUserID, http.StatusUnauthorized)
 		return
@@ -201,6 +194,11 @@ func (c *ResumeController) UpdateUserResumeByAdmin(w http.ResponseWriter, r *htt
 		http.Error(w, errInvalidJSON, http.StatusBadRequest)
 		return
 	}
+	data.Sanitize()
+	if err := data.Validate(); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
 
 	resume, err := c.service.UpdateResume(r.Context(), userID, &data)
 	if err != nil {
@@ -216,9 +214,6 @@ func (c *ResumeController) UpdateUserResumeByAdmin(w http.ResponseWriter, r *htt
 func (c *ResumeController) GenerateMyResume(w http.ResponseWriter, r *http.Request) {
 	userID := r.Header.Get(headerXUserID)
 	if userID == "" {
-		userID = r.URL.Query().Get("user_id")
-	}
-	if userID == "" {
 		http.Error(w, errMissingUserID, http.StatusUnauthorized)
 		return
 	}
@@ -226,6 +221,11 @@ func (c *ResumeController) GenerateMyResume(w http.ResponseWriter, r *http.Reque
 	var data models.ProfileInput
 	if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
 		http.Error(w, errInvalidJSON, http.StatusBadRequest)
+		return
+	}
+	data.Sanitize()
+	if err := data.Validate(); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 

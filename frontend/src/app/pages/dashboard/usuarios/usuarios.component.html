@@ -17,7 +17,7 @@
     </div>
 
     <div class="filter-actions-group">
-      <div class="select-wrapper">
+      <div class="select-wrapper" *ngIf="!isVolunteerOnly">
         <label for="roleSelect" class="sr-only" style="display: none"
           >Filtrar por rol</label
         >
@@ -34,7 +34,7 @@
         <i class="pi pi-chevron-down select-icon"></i>
       </div>
 
-      <button type="button" class="btn-new-user">
+      <button type="button" class="btn-new-user" (click)="openNewUserModal()">
         <i class="pi pi-plus"></i>
         <span>Nuevo Usuario</span>
       </button>
@@ -56,7 +56,7 @@
         </tr>
       </thead>
       <tbody>
-        <tr *ngFor="let user of filteredUsers">
+        <tr *ngFor="let user of filteredUsers" (click)="openUserDetail(user)" (keydown.enter)="openUserDetail(user)" tabindex="0" class="clickable-row">
           <td>
             <div class="user-profile-cell">
               <div class="avatar-circle">
@@ -71,42 +71,44 @@
             <span class="badge-role">{{ user.role }}</span>
           </td>
           <td>
-            <span
-              class="badge-status"
-              [ngClass]="{
-                'status-active': user.status === 'Activo',
-                'status-pending': user.status === 'Pendiente',
-              }"
-            >
-              {{ user.status }}
-              <i
-                class="pi"
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <span
+                class="badge-status"
                 [ngClass]="{
-                  'pi-info-circle': user.status === 'Activo',
-                  'pi-check-circle': user.status === 'Pendiente',
+                  'status-active': user.status === 'active',
+                  'status-blocked': user.status === 'blocked'
                 }"
+              >
+                {{ user.status }}
+                <i
+                  class="pi"
+                  [ngClass]="{
+                    'pi-info-circle': user.status === 'active',
+                    'pi-ban': user.status === 'blocked'
+                  }"
+                ></i>
+              </span>
+
+              <!-- Warning si el rol está pendiente de aprobación -->
+              <i *ngIf="user.roleApprovalStatus === 'pending'"
+                 class="pi pi-exclamation-triangle status-warning-icon"
+                 title="Rol pendiente de validación"
               ></i>
-            </span>
+            </div>
           </td>
           <td>
-            <span class="unimplemented-text">No implementado aún</span>
+            <span class="courses-text">{{ user.coursesStatus }}</span>
           </td>
           <td class="actions-cell">
             <div class="action-buttons">
-              <button
-                type="button"
-                class="btn-action btn-view"
-                title="Ver detalle"
-              >
-                <i class="pi pi-eye"></i>
-              </button>
-              <button type="button" class="btn-action btn-edit" title="Editar">
+              <button type="button" class="btn-action btn-edit" title="Editar" (click)="openEditUser(user, $event)">
                 <i class="pi pi-pencil"></i>
               </button>
               <button
                 type="button"
                 class="btn-action btn-delete"
                 title="Eliminar"
+                (click)="deleteUser(user, $event)"
               >
                 <i class="pi pi-trash"></i>
               </button>
@@ -121,4 +123,275 @@
       </tbody>
     </table>
   </div>
+
+  <!-- User Details Modal -->
+  <p-dialog [(visible)]="showDetailModal" [modal]="true" header="Detalles del Usuario" [style]="{width: '50vw'}" [breakpoints]="{'960px': '75vw', '640px': '95vw'}">
+    <div class="user-details-content" *ngIf="selectedUser">
+      
+      <!-- Profile Picture (For roles that support it, like participants) -->
+      <div class="profile-header" *ngIf="selectedUser.profileData?.role_data?.image_url || selectedUser.profileData?.role_data?.profile_picture_url; else defaultAvatar">
+        <img [src]="selectedUser.profileData.role_data.image_url || selectedUser.profileData.role_data.profile_picture_url" alt="Foto de perfil" class="profile-picture">
+      </div>
+      <ng-template #defaultAvatar>
+        <div class="profile-header">
+          <div class="avatar-circle large">
+            <i class="pi pi-user"></i>
+          </div>
+        </div>
+      </ng-template>
+
+      <!-- General User Info -->
+      <div class="detail-grid">
+        <p><strong>Nombre:</strong> {{ selectedUser.profileData?.user?.first_name || selectedUser.originalUser?.first_name }} {{ selectedUser.profileData?.user?.last_name || selectedUser.originalUser?.last_name }}</p>
+        <p><strong>Email:</strong> {{ selectedUser.profileData?.user?.email || selectedUser.originalUser?.email || selectedUser.email }}</p>
+        <p><strong>Teléfono:</strong> {{ selectedUser.profileData?.user?.phone || selectedUser.originalUser?.phone || selectedUser.phone }}</p>
+        <p><strong>Rol:</strong> {{ selectedUser.role }}</p>
+        <p><strong>Estado de Usuario:</strong> {{ selectedUser.profileData?.user?.status || selectedUser.status }}</p>
+      </div>
+
+      <hr class="detail-divider">
+      <h4 class="detail-subtitle">Información del Rol</h4>
+      <div class="detail-grid" *ngIf="selectedUser.profileData?.role_data as roleData; else noRoleData">
+        
+        <!-- Common Role Fields (Solo visible cuando está pendiente) -->
+        <p *ngIf="isRolePending(roleData['approval_status'])"><strong>Estado de Aprobación:</strong> {{ roleData['approval_status'] }}</p>
+
+        <!-- Participant Fields -->
+        <p *ngIf="roleData['dni']"><strong>DNI:</strong> {{ roleData['dni'] }}</p>
+        <p *ngIf="roleData['address']"><strong>Dirección:</strong> {{ roleData['address'] }}</p>
+        <p *ngIf="roleData['gender']"><strong>Género:</strong> {{ roleData['gender'] }}</p>
+        <p *ngIf="roleData['birthdate']"><strong>Fecha de Nacimiento:</strong> {{ roleData['birthdate'] | date:'dd/MM/yyyy' }}</p>
+        <p *ngIf="roleData['emergency_contact_name']"><strong>Contacto Emergencia:</strong> {{ roleData['emergency_contact_name'] }}</p>
+        <p *ngIf="roleData['emergency_contact_phone']"><strong>Tel. Emergencia:</strong> {{ roleData['emergency_contact_phone'] }}</p>
+        <p *ngIf="roleData['doc_url']"><strong>Documentación:</strong> <a [href]="roleData['doc_url']" target="_blank" class="doc-link"><i class="pi pi-external-link"></i> Ver documentación</a></p>
+
+        <!-- Teacher Fields -->
+        <p *ngIf="roleData['specialization']"><strong>Especialización:</strong> {{ roleData['specialization'] }}</p>
+        <p *ngIf="roleData['is_external'] !== undefined"><strong>Docente Externo:</strong> {{ roleData['is_external'] ? 'Sí' : 'No' }}</p>
+        
+        <!-- Company Fields -->
+        <p *ngIf="roleData['business_name']"><strong>Empresa:</strong> {{ roleData['business_name'] }}</p>
+        <p *ngIf="roleData['cuit']"><strong>CUIT:</strong> {{ roleData['cuit'] }}</p>
+
+      </div>
+      <ng-template #noRoleData>
+        <p class="text-muted">No hay información adicional para este rol.</p>
+      </ng-template>
+
+      <div>
+        <hr class="detail-divider">
+        <h4 class="detail-subtitle">Cursos Asociados</h4>
+        <ul class="courses-list" *ngIf="selectedUser.coursesList && selectedUser.coursesList.length > 0; else noCourses">
+          <li *ngFor="let item of selectedUser.coursesList">
+            <!-- Si es inscripción (tiene curso_id), mostramos info de la inscripción -->
+            <span *ngIf="item.curso_id; else isCourse">
+              <strong>{{ item.titulo_curso || 'Curso ' + item.curso_id }}</strong> 
+              <span class="course-role badge-participant">Participante</span>
+            </span>
+            <!-- Si es curso (docente), mostramos info del curso -->
+            <ng-template #isCourse>
+              <strong>{{ item.title }}</strong> 
+              <span class="course-role badge-teacher">Docente</span>
+            </ng-template>
+          </li>
+        </ul>
+        <ng-template #noCourses>
+          <p class="text-muted">No está asociado a ningún curso.</p>
+        </ng-template>
+      </div>
+    </div>
+  </p-dialog>
+
+  <!-- Edit User Modal -->
+  <p-dialog [(visible)]="showEditModal" [modal]="true" header="Editar Usuario" [style]="{width: '50vw', maxWidth: '800px'}" [breakpoints]="{'960px': '75vw', '640px': '95vw'}" [contentStyle]="{'padding-bottom': '0'}">
+    <div class="edit-user-content" *ngIf="selectedUser">
+      <form #editUserForm="ngForm" class="edit-form">
+        <!-- Información General (Users) -->
+        <h4 class="detail-subtitle">Información General</h4>
+        <div class="form-grid">
+          <div class="form-group">
+            <label for="editFirstName">Nombre *</label>
+            <input type="text" id="editFirstName" class="form-control" name="first_name" [(ngModel)]="editForm.first_name" required minlength="2">
+          </div>
+          <div class="form-group">
+            <label for="editLastName">Apellido *</label>
+            <input type="text" id="editLastName" class="form-control" name="last_name" [(ngModel)]="editForm.last_name" required minlength="2">
+          </div>
+          <div class="form-group">
+            <label for="editEmail">Email</label>
+            <input type="email" id="editEmail" class="form-control" name="email" [value]="selectedUser.email" readonly disabled title="El email no se puede modificar por razones de seguridad">
+          </div>
+          <div class="form-group">
+            <label for="editPhone">Teléfono *</label>
+            <input type="text" id="editPhone" class="form-control" name="phone" [(ngModel)]="editForm.phone" required>
+          </div>
+          <div class="form-group">
+            <label for="editStatus">Estado General</label>
+            <select id="editStatus" class="form-control" name="status" [(ngModel)]="editForm.status">
+              <option value="active">Activo</option>
+              <option value="suspended">Bloqueado</option>
+            </select>
+          </div>
+          
+          <div class="form-group" *ngIf="selectedUser.originalUser?.role_id !== 'role_admin' && selectedUser.originalUser?.role_id !== 'admin' && isRolePending(editForm.approval_status)">
+            <label for="editRoleStatus">Estado de Rol</label>
+            <select id="editRoleStatus" class="form-control" name="approval_status" [(ngModel)]="editForm.approval_status">
+              <option value="approved">Aprobado</option>
+              <option value="pending">Pendiente</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Información Específica del Rol -->
+        <ng-container *ngIf="selectedUser.originalUser?.role_id !== 'role_admin' && selectedUser.originalUser?.role_id !== 'admin'">
+          <hr class="detail-divider">
+          <h4 class="detail-subtitle">Información del Rol ({{ selectedUser.role }})</h4>
+          
+          <div class="form-grid">
+            <!-- Campos Participante -->
+            <ng-container *ngIf="selectedUser.originalUser?.role_id === 'role_participant'">
+              <div class="form-group">
+                <label for="editDNI">DNI</label>
+                <input type="text" id="editDNI" class="form-control" name="dni" [(ngModel)]="editForm.dni">
+              </div>
+              <div class="form-group">
+                <label for="editBirthdate">Fecha de Nacimiento *</label>
+                <input type="date" id="editBirthdate" class="form-control" name="birthdate" [(ngModel)]="editForm.birthdate" required>
+              </div>
+              <div class="form-group">
+                <label for="editGender">Género</label>
+                <select id="editGender" class="form-control" name="gender" [(ngModel)]="editForm.gender">
+                  <option value="Masculino">Masculino</option>
+                  <option value="Femenino">Femenino</option>
+                  <option value="Otro">Otro</option>
+                  <option value="Prefiero no decirlo">Prefiero no decirlo</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label for="editAddress">Dirección</label>
+                <input type="text" id="editAddress" class="form-control" name="address" [(ngModel)]="editForm.address">
+              </div>
+              <div class="form-group">
+                <label for="editEmergencyName">Nombre Cont. Emergencia</label>
+                <input type="text" id="editEmergencyName" class="form-control" name="emergency_contact_name" [(ngModel)]="editForm.emergency_contact_name">
+              </div>
+              <div class="form-group">
+                <label for="editEmergencyPhone">Tel. Cont. Emergencia</label>
+                <input type="text" id="editEmergencyPhone" class="form-control" name="emergency_contact_phone" [(ngModel)]="editForm.emergency_contact_phone">
+              </div>
+              <div class="form-group">
+                <label for="editImageUrl">URL de Imagen</label>
+                <input type="url" id="editImageUrl" class="form-control" name="image_url" [(ngModel)]="editForm.image_url">
+              </div>
+              <div class="form-group">
+                <label for="editDocUrl">URL de Documento</label>
+                <input type="url" id="editDocUrl" class="form-control" name="doc_url" [(ngModel)]="editForm.doc_url">
+              </div>
+            </ng-container>
+
+            <!-- Campos Empresa -->
+            <ng-container *ngIf="selectedUser.originalUser?.role_id === 'role_company'">
+              <div class="form-group">
+                <label for="editBusinessName">Razón Social *</label>
+                <input type="text" id="editBusinessName" class="form-control" name="business_name" [(ngModel)]="editForm.business_name" required>
+              </div>
+              <div class="form-group">
+                <label for="editCuit">CUIT *</label>
+                <input type="text" id="editCuit" class="form-control" name="cuit" [(ngModel)]="editForm.cuit" required>
+              </div>
+            </ng-container>
+
+            <!-- Campos Docente -->
+            <ng-container *ngIf="selectedUser.originalUser?.role_id === 'role_teacher'">
+              <div class="form-group">
+                <label for="editSpecialization">Especialización</label>
+                <input type="text" id="editSpecialization" class="form-control" name="specialization" [(ngModel)]="editForm.specialization">
+              </div>
+              <div class="form-group checkbox-group" style="align-self: center; margin-top: 1.5rem;">
+                <label class="checkbox-label">
+                  <input type="checkbox" name="is_external" [(ngModel)]="editForm.is_external">
+                  Docente Externo
+                </label>
+              </div>
+            </ng-container>
+            
+          </div>
+        </ng-container>
+      </form>
+    </div>
+    <ng-template pTemplate="footer">
+      <div class="modal-footer-actions">
+        <button type="button" class="btn-cancel" (click)="showEditModal = false">Cancelar</button>
+        <!-- Usamos ViewChild o ngForm en el html, pero por simplicidad solo llamamos saveEdit. Validamos en TS si es necesario -->
+        <button type="button" class="btn-save" (click)="saveEdit()">Guardar Cambios</button>
+      </div>
+    </ng-template>
+  </p-dialog>
+
+  <!-- Modal para crear nuevo usuario -->
+  <p-dialog [(visible)]="showNewUserModal" [modal]="true" header="Nuevo Usuario" [style]="{width: '50vw', maxWidth: '800px'}" [breakpoints]="{'960px': '75vw', '640px': '95vw'}" [contentStyle]="{'padding-bottom': '0'}">
+    <div class="edit-form-container">
+      <div class="form-grid">
+        <div class="form-group">
+          <label for="newUserFirstName">Nombre</label>
+          <div class="p-input-icon-left w-full" style="width: 100%">
+            <i class="pi pi-user"></i>
+            <input id="newUserFirstName" type="text" [(ngModel)]="newUserForm.first_name" pInputText placeholder="Ej: Juan" class="w-full" style="width: 100%" />
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="newUserLastName">Apellido</label>
+          <div class="p-input-icon-left w-full" style="width: 100%">
+            <i class="pi pi-user"></i>
+            <input id="newUserLastName" type="text" [(ngModel)]="newUserForm.last_name" pInputText placeholder="Ej: Pérez" class="w-full" style="width: 100%" />
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="newUserEmail">Email</label>
+          <div class="p-input-icon-left w-full" style="width: 100%">
+            <i class="pi pi-envelope"></i>
+            <input id="newUserEmail" type="email" [(ngModel)]="newUserForm.email" pInputText placeholder="ejemplo@correo.com" class="w-full" style="width: 100%" />
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="newUserPhone">Teléfono</label>
+          <div class="p-input-icon-left w-full" style="width: 100%">
+            <i class="pi pi-phone"></i>
+            <input id="newUserPhone" type="text" [(ngModel)]="newUserForm.phone" pInputText placeholder="Ej: +541123456789" class="w-full" style="width: 100%" />
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="newUserPassword">Contraseña</label>
+          <div class="p-input-icon-left w-full" style="width: 100%">
+            <i class="pi pi-lock"></i>
+            <input id="newUserPassword" type="password" [(ngModel)]="newUserForm.password" pInputText placeholder="Escriba una contraseña segura" class="w-full" style="width: 100%" />
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="newUserRole">Rol del usuario</label>
+          <select id="newUserRole" [(ngModel)]="newUserForm.role_id" class="form-control" style="width: 100%; padding: 0.5rem; border: 1px solid #ccc; border-radius: 4px; height: 42px;">
+            <option value="" disabled selected>Seleccione un rol</option>
+            <option *ngFor="let role of availableNewRoles" [value]="role">{{ role }}</option>
+          </select>
+          <p class="input-hint" style="margin-top: 0.5rem; font-size: 0.85rem; color: #666;">
+            <span *ngIf="newUserForm.role_id === 'role_volunteer'">El voluntario tendrá acceso a gestionar participantes y cursos.</span>
+            <span *ngIf="newUserForm.role_id === 'role_teacher'">El docente tendrá acceso al portal educativo.</span>
+            <span *ngIf="newUserForm.role_id === 'role_participant'">El participante podrá acceder a cursos y talleres.</span>
+            <span *ngIf="newUserForm.role_id === 'role_company'">La empresa podrá publicar ofertas laborales.</span>
+            <span *ngIf="newUserForm.role_id === 'role_admin'">El administrador tendrá acceso total al sistema.</span>
+          </p>
+        </div>
+      </div>
+    </div>
+    <ng-template pTemplate="footer">
+      <div class="modal-footer-actions">
+        <button type="button" class="btn-cancel" (click)="showNewUserModal = false">
+          Cancelar
+        </button>
+        <button type="button" class="btn-save" (click)="createUser()" [disabled]="!newUserForm.email || !newUserForm.password || !newUserForm.role_id">
+          Crear Usuario
+        </button>
+      </div>
+    </ng-template>
+  </p-dialog>
 </div>
