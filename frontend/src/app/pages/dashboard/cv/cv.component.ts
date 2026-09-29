@@ -49,13 +49,7 @@ export class CvComponent implements OnInit {
   message = "";
 
   templates = [
-<<<<<<< HEAD
-    { label: "Onyx", value: "onyx" },
-    { label: "Pikachu", value: "pikachu" },
-    { label: "Gengar", value: "gengar" },
-    { label: "Castform", value: "castform" },
-    { label: "Glalie", value: "glalie" },
-=======
+
     { label: 'Azurill', value: 'azurill' },
     { label: 'Bronzor', value: 'bronzor' },
     { label: 'Chikorita', value: 'chikorita' },
@@ -71,7 +65,6 @@ export class CvComponent implements OnInit {
     { label: 'Pikachu', value: 'pikachu' },
     { label: 'Rhyhorn', value: 'rhyhorn' },
     { label: 'Scizor', value: 'scizor' }
->>>>>>> dfdb63c (integración de reactive resume)
   ];
 
   educationStatuses = [
@@ -95,13 +88,12 @@ export class CvComponent implements OnInit {
 
   loadData() {
     this.loading = true;
-<<<<<<< HEAD
-=======
+
     
     const resumeObservable = this.userId 
       ? this.rxResumeService.getUserResumeByAdmin(this.userId)
       : this.rxResumeService.getMyResume();
->>>>>>> dfdb63c (integración de reactive resume)
+
 
     // Load resume from DB (without RxResume API call)
     resumeObservable.subscribe({
