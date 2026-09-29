@@ -2,7 +2,9 @@ package controllers
 
 import (
 	"encoding/json"
+	"io"
 	"net/http"
+	"path/filepath"
 	"strings"
 
 	"buenvivir/rxresume/internal/models"
@@ -12,10 +14,14 @@ import (
 const (
 	headerXUserID     = "X-User-ID"
 	headerXUserRole   = "X-User-Role"
-	headerContentType = "Content-Type"
-	contentTypeJSON   = "application/json"
-	errMissingUserID  = "missing user identity header X-User-ID"
-	errInvalidJSON    = "invalid JSON payload"
+	headerContentType     = "Content-Type"
+	contentTypeJSON       = "application/json"
+	errMissingUserID      = "missing user identity header X-User-ID"
+	errInvalidJSON        = "invalid JSON payload"
+	errParseMultipartForm = "failed to parse multipart form"
+	errFileFieldRequired  = "file field is required"
+	errInsufficientPerms  = "insufficient permissions"
+	errMissingParamUserID = "parameter user_id is required"
 )
 
 type ResumeController struct {
@@ -82,13 +88,13 @@ func (c *ResumeController) ParseMyPDF(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := r.ParseMultipartForm(10 << 20); err != nil {
-		http.Error(w, "failed to parse multipart form", http.StatusBadRequest)
+		http.Error(w, errParseMultipartForm, http.StatusBadRequest)
 		return
 	}
 
 	file, header, err := r.FormFile("file")
 	if err != nil {
-		http.Error(w, "file field is required", http.StatusBadRequest)
+		http.Error(w, errFileFieldRequired, http.StatusBadRequest)
 		return
 	}
 	defer file.Close()
@@ -112,13 +118,13 @@ func (c *ResumeController) UploadMyPicture(w http.ResponseWriter, r *http.Reques
 	}
 
 	if err := r.ParseMultipartForm(10 << 20); err != nil {
-		http.Error(w, "failed to parse multipart form", http.StatusBadRequest)
+		http.Error(w, errParseMultipartForm, http.StatusBadRequest)
 		return
 	}
 
 	file, header, err := r.FormFile("file")
 	if err != nil {
-		http.Error(w, "file field is required", http.StatusBadRequest)
+		http.Error(w, errFileFieldRequired, http.StatusBadRequest)
 		return
 	}
 	defer file.Close()
@@ -131,6 +137,49 @@ func (c *ResumeController) UploadMyPicture(w http.ResponseWriter, r *http.Reques
 
 	w.Header().Set(headerContentType, contentTypeJSON)
 	_ = json.NewEncoder(w).Encode(resume)
+}
+
+// DownloadPublicMedia streams a media file (like a profile picture) from storage to the response.
+func (c *ResumeController) DownloadPublicMedia(w http.ResponseWriter, r *http.Request) {
+	path := r.URL.Query().Get("path")
+	if path == "" {
+		http.Error(w, "missing path parameter", http.StatusBadRequest)
+		return
+	}
+
+	// Basic security check: only allow pictures/ prefix
+	if !strings.HasPrefix(path, "pictures/") {
+		http.Error(w, "unauthorized media path", http.StatusForbidden)
+		return
+	}
+
+	rc, err := c.service.DownloadMedia(r.Context(), path)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusNotFound)
+		return
+	}
+	defer rc.Close()
+
+	ext := strings.ToLower(filepath.Ext(path))
+	contentType := "application/octet-stream"
+	switch ext {
+	case ".jpg", ".jpeg":
+		contentType = "image/jpeg"
+	case ".png":
+		contentType = "image/png"
+	case ".gif":
+		contentType = "image/gif"
+	case ".webp":
+		contentType = "image/webp"
+	}
+
+	w.Header().Set("Content-Type", contentType)
+	w.Header().Set("Cache-Control", "public, max-age=31536000") // Cache for 1 year
+	
+	_, err = io.Copy(w, rc)
+	if err != nil {
+		http.Error(w, "error streaming media", http.StatusInternalServerError)
+	}
 }
 
 // GetAllParticipantsResumes returns resumes of all participants for authorized volunteers and admins.
@@ -155,13 +204,13 @@ func (c *ResumeController) GetAllParticipantsResumes(w http.ResponseWriter, r *h
 func (c *ResumeController) GetUserResumeByAdmin(w http.ResponseWriter, r *http.Request) {
 	role := r.Header.Get(headerXUserRole)
 	if !isStaffRole(role) {
-		http.Error(w, "insufficient permissions", http.StatusForbidden)
+		http.Error(w, errInsufficientPerms, http.StatusForbidden)
 		return
 	}
 
 	userID := r.URL.Query().Get("user_id")
 	if userID == "" {
-		http.Error(w, "parameter user_id is required", http.StatusBadRequest)
+		http.Error(w, errMissingParamUserID, http.StatusBadRequest)
 		return
 	}
 
@@ -179,13 +228,13 @@ func (c *ResumeController) GetUserResumeByAdmin(w http.ResponseWriter, r *http.R
 func (c *ResumeController) UpdateUserResumeByAdmin(w http.ResponseWriter, r *http.Request) {
 	role := r.Header.Get(headerXUserRole)
 	if !isStaffRole(role) {
-		http.Error(w, "insufficient permissions", http.StatusForbidden)
+		http.Error(w, errInsufficientPerms, http.StatusForbidden)
 		return
 	}
 
 	userID := r.URL.Query().Get("user_id")
 	if userID == "" {
-		http.Error(w, "parameter user_id is required", http.StatusBadRequest)
+		http.Error(w, errMissingParamUserID, http.StatusBadRequest)
 		return
 	}
 
@@ -201,6 +250,42 @@ func (c *ResumeController) UpdateUserResumeByAdmin(w http.ResponseWriter, r *htt
 	}
 
 	resume, err := c.service.UpdateResume(r.Context(), userID, &data)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set(headerContentType, contentTypeJSON)
+	_ = json.NewEncoder(w).Encode(resume)
+}
+
+// UploadUserPictureByAdmin allows volunteers and administrators to upload a picture for any participant.
+func (c *ResumeController) UploadUserPictureByAdmin(w http.ResponseWriter, r *http.Request) {
+	role := r.Header.Get(headerXUserRole)
+	if !isStaffRole(role) {
+		http.Error(w, errInsufficientPerms, http.StatusForbidden)
+		return
+	}
+
+	userID := r.URL.Query().Get("user_id")
+	if userID == "" {
+		http.Error(w, errMissingParamUserID, http.StatusBadRequest)
+		return
+	}
+
+	if err := r.ParseMultipartForm(10 << 20); err != nil {
+		http.Error(w, errParseMultipartForm, http.StatusBadRequest)
+		return
+	}
+
+	file, header, err := r.FormFile("file")
+	if err != nil {
+		http.Error(w, errFileFieldRequired, http.StatusBadRequest)
+		return
+	}
+	defer file.Close()
+
+	resume, err := c.service.UploadPicture(r.Context(), userID, header.Filename, file)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return

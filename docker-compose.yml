@@ -7,6 +7,7 @@ services:
       - ./auth/.env
     ports:
       - "8082:8080"
+      - "50051:50051"
     restart: on-failure
     security_opt:
       - no-new-privileges:true
@@ -41,6 +42,31 @@ services:
     networks:
       - buenvivir-net
 
+  labor-integration:
+    build:
+      context: ./labor-integration
+      dockerfile: Dockerfile
+    env_file:
+      - ./labor-integration/.env
+    environment:
+      - AUTH_SERVICE_GRPC_TARGET=auth-service:50051
+    ports:
+      - "8310:8080"
+    depends_on:
+      - auth-service
+    restart: on-failure
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    read_only: true
+    tmpfs:
+      - /tmp
+    mem_limit: 1024m
+    cpus: "1"
+    networks:
+      - buenvivir-net
+
   api-gateway:
     image: nginx:alpine
     container_name: buenvivir-api-gateway
@@ -52,6 +78,7 @@ services:
       - auth-service
       - education-service
       - rxresume-service
+      - labor-integration
     restart: on-failure
     networks:
       - buenvivir-net
@@ -92,6 +119,10 @@ services:
       - NODE_OPTIONS=--dns-result-order=ipv4first
     ports:
       - "3000:3000"
+    volumes:
+      - rxresume-data:/app/data
+    extra_hosts:
+      - "localhost:host-gateway"
     restart: on-failure
     mem_limit: 1024m
     cpus: "1"
@@ -117,8 +148,8 @@ services:
     command: >
       sh -c "
         sleep 5;
-        curl -s -X PUT 'http://pubsub-emulator:8086/v1/projects/buenvivir-gcp-project/topics/rxresume-sync-topic';
-        curl -s -X PUT 'http://pubsub-emulator:8086/v1/projects/buenvivir-gcp-project/subscriptions/rxresume-sync-sub' -H 'Content-Type: application/json' -d '{\"topic\":\"projects/buenvivir-gcp-project/topics/rxresume-sync-topic\"}';
+        curl -s -X PUT 'http://pubsub-emulator:8086/v1/projects/ceibuenvivir/topics/rxresume-sync-topic';
+        curl -s -X PUT 'http://pubsub-emulator:8086/v1/projects/ceibuenvivir/subscriptions/rxresume-sync-sub' -H 'Content-Type: application/json' -d '{\"topic\":\"projects/ceibuenvivir/topics/rxresume-sync-topic\"}';
         echo 'Pub/Sub initialized'
       "
 
@@ -130,6 +161,20 @@ services:
     command: -scheme http -public-host localhost:4443
     networks:
       - buenvivir-net
+
+  gcs-init:
+    image: alpine/curl
+    container_name: buenvivir-gcs-init
+    depends_on:
+      - gcs-emulator
+    networks:
+      - buenvivir-net
+    command: >
+      sh -c "
+        sleep 5;
+        curl -s -X POST -H 'Content-Type: application/json' -d '{\"name\":\"ceibuenvivir-bucket\"}' http://gcs-emulator:4443/storage/v1/b;
+        echo 'GCS initialized'
+      "
 
   frontend:
     build:
@@ -156,3 +201,6 @@ services:
 networks:
   buenvivir-net:
     driver: bridge
+
+volumes:
+  rxresume-data:

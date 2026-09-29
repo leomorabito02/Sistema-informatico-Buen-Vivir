@@ -1,0 +1,19 @@
+syntax = "proto3";
+
+package auth;
+
+option go_package = "buenvivir/labor-integration/api/proto/authpb";
+
+service AuthService {
+  rpc GetParticipant(GetParticipantRequest) returns (GetParticipantResponse);
+}
+
+message GetParticipantRequest {
+  string participant_id = 1;
+}
+
+message GetParticipantResponse {
+  string id = 1;
+  string user_id = 2;
+  string approval_status = 3;
+}

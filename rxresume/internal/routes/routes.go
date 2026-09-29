@@ -23,7 +23,9 @@ func RegisterRoutes(mux *http.ServeMux, ctrl *controllers.ResumeController) {
 
 	mux.HandleFunc("GET /api/v1/rxresume/user", ctrl.GetUserResumeByAdmin)
 	mux.HandleFunc("PUT /api/v1/rxresume/user", ctrl.UpdateUserResumeByAdmin)
+	mux.HandleFunc("POST /api/v1/rxresume/user/picture", ctrl.UploadUserPictureByAdmin)
 
+	mux.HandleFunc("GET /api/v1/rxresume/public/media", ctrl.DownloadPublicMedia)
 	mux.HandleFunc("GET /api/v1/rxresume/public/{id}/pdf", ctrl.DownloadPublicPDF)
 	mux.HandleFunc("GET /api/v1/rxresume/public/{id}", ctrl.GetPublicResume)
 }

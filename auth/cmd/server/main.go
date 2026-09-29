@@ -8,11 +8,14 @@ import (
 
 	"github.com/go-chi/chi/v5"
 
+	"auth/api/proto/authpb"
 	"auth/config"
 	"auth/internal/controllers"
 	"auth/internal/middlewares"
 	"auth/internal/repositories"
 	"auth/internal/services"
+	"google.golang.org/grpc"
+	"net"
 
 )
 
@@ -82,6 +85,21 @@ func main() {
 	permissionController := controllers.NewPermissionController(permissionService)
 	volunteerController := controllers.NewVolunteerController(volunteerService)
 	tokenValidatorController := controllers.NewTokenValidatorController(jwtService)
+	grpcParticipantController := controllers.NewGrpcParticipantController(participantService)
+
+	go func() {
+		lis, err := net.Listen("tcp", ":50051")
+		if err != nil {
+			slog.Error("failed to listen on gRPC port", "error", err)
+			return
+		}
+		grpcServer := grpc.NewServer()
+		authpb.RegisterAuthServiceServer(grpcServer, grpcParticipantController)
+		slog.Info("Servicio Auth (gRPC) escuchando en el puerto 50051")
+		if err := grpcServer.Serve(lis); err != nil {
+			slog.Error("failed to serve gRPC", "error", err)
+		}
+	}()
 
 	// 6. Setup Router and Middlewares
 	r := chi.NewRouter()

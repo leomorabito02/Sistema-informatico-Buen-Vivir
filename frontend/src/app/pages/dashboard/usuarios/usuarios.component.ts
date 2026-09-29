@@ -11,6 +11,7 @@ import { AuthService } from "../../../services/auth.service";
 import { UsersService } from "../../../services/users.service";
 import { EducationService } from "../../../services/education.service";
 import { User } from "../../../core/models/auth.model";
+import { Router } from "@angular/router";
 
 export interface DashboardUser {
   id: string;
@@ -46,6 +47,7 @@ export class UsuariosComponent implements OnInit {
   private readonly authService = inject(AuthService);
   private readonly usersService = inject(UsersService);
   private readonly educationService = inject(EducationService);
+  private readonly router = inject(Router);
 
   searchTerm: string = "";
   selectedRole: string = "Todos los roles";
@@ -490,5 +492,11 @@ export class UsuariosComponent implements OnInit {
   private finishSave() {
     this.showEditModal = false;
     this.loadUsers(); // Recargar la lista para reflejar los cambios
+  }
+
+  goToEditCV(user: DashboardUser) {
+    if (user?.originalUser?.user_id) {
+      this.router.navigate(['/dashboard/cv'], { queryParams: { userId: user.originalUser.user_id } });
+    }
   }
 }
