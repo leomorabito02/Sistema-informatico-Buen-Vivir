@@ -212,17 +212,13 @@ func mergeBasics(data map[string]interface{}, resume *models.Resume) {
 		profiles := make([]map[string]interface{}, 0, len(resume.Data.Basics.Profiles))
 		for _, p := range resume.Data.Basics.Profiles {
 			profiles = append(profiles, map[string]interface{}{
-				"id":       p.ID,
-				"network":  p.Network,
-				"username": p.Username,
-				"url":      p.URL,
-				"icon":     "",
-				"hidden":   false,
+				"id":   p.ID,
+				"icon": p.Network,
+				"text": p.Username,
+				"link": p.URL,
 			})
 		}
-		basics["customFields"] = profiles // In RX, profiles is its own array, but maybe it goes in profiles?
-		// Wait, let's just map it to 'profiles'
-		// Actually, in RX resume it's usually inside 'customFields' or 'profiles'? Let's just set 'profiles' inside basics or inside sections? Wait, profiles are in basics but it's an array of objects. Let's see...
+		basics["customFields"] = profiles
 	}
 }
 
@@ -238,7 +234,17 @@ func mergeMetadata(data map[string]interface{}, resume *models.Resume) {
 		return
 	}
 	if tmplStr, isStr := resume.Data.Metadata["template"].(string); isStr && tmplStr != "" {
-		metadata["template"] = tmplStr
+		validTemplates := map[string]bool{
+			"azurill": true, "bronzor": true, "chikorita": true, "ditgar": true,
+			"ditto": true, "gengar": true, "glalie": true, "kakuna": true,
+			"lapras": true, "leafish": true, "meowth": true, "onyx": true,
+			"pikachu": true, "rhyhorn": true, "scizor": true,
+		}
+		if validTemplates[tmplStr] {
+			metadata["template"] = tmplStr
+		} else {
+			metadata["template"] = "azurill"
+		}
 	}
 }
 

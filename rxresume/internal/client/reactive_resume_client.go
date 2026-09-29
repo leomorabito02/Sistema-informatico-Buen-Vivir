@@ -10,6 +10,7 @@ import (
 	"mime/multipart"
 	"net/http"
 	"net/textproto"
+	"os"
 	"path/filepath"
 	"time"
 
@@ -54,8 +55,13 @@ func (c *reactiveResumeClient) SyncResume(ctx context.Context, resume *models.Re
 	slug := fmt.Sprintf("cv-%s", userID)
 
 	// Always set public URL and PDF URL
+	publicAPIURL := os.Getenv("PUBLIC_API_URL")
+	if publicAPIURL == "" {
+		publicAPIURL = "http://localhost:8080"
+	}
+
 	resume.PublicURL = fmt.Sprintf("%s/cv-public/%s", c.frontendURL, userID)
-	resume.PDFURL = fmt.Sprintf("%s/api/v1/rxresume/public/%s/pdf", c.frontendURL, userID)
+	resume.PDFURL = fmt.Sprintf("%s/api/v1/rxresume/public/%s/pdf", publicAPIURL, userID)
 
 	if resume.RxResumeID == "" {
 		c.ensureRxResumeID(ctx, userID, slug, resume)

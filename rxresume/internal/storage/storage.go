@@ -11,6 +11,7 @@ import (
 
 type ObjectStorageService interface {
 	UploadFile(ctx context.Context, objectName string, content io.Reader, contentType string) (string, error)
+	DownloadFile(ctx context.Context, objectName string) (io.ReadCloser, error)
 	DeleteFile(ctx context.Context, objectName string) error
 }
 
@@ -27,7 +28,11 @@ func NewObjectStorageService(ctx context.Context, projectID, bucketName, emulato
 	if emulatorHost != "" {
 		opts = append(opts, option.WithEndpoint(emulatorHost), option.WithoutAuthentication())
 	} else if credsPath != "" {
-		opts = append(opts, option.WithCredentialsFile(credsPath))
+		if credsPath[0] == '{' {
+			opts = append(opts, option.WithCredentialsJSON([]byte(credsPath)))
+		} else {
+			opts = append(opts, option.WithCredentialsFile(credsPath))
+		}
 	}
 
 	client, err := storage.NewClient(ctx, opts...)
@@ -70,4 +75,10 @@ func (s *gcsStorageService) UploadFile(ctx context.Context, objectName string, c
 func (s *gcsStorageService) DeleteFile(ctx context.Context, objectName string) error {
 	bucket := s.client.Bucket(s.bucketName)
 	return bucket.Object(objectName).Delete(ctx)
+}
+
+// DownloadFile gets a reader stream from GCP Object Storage.
+func (s *gcsStorageService) DownloadFile(ctx context.Context, objectName string) (io.ReadCloser, error) {
+	bucket := s.client.Bucket(s.bucketName)
+	return bucket.Object(objectName).NewReader(ctx)
 }

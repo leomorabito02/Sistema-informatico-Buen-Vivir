@@ -228,6 +228,18 @@ export class RxResumeService {
       .pipe(catchError(this.handleError));
   }
 
+  // uploadUserPictureByAdmin uploads a profile picture for a specific participant's CV by userID for staff roles.
+  uploadUserPictureByAdmin(userId: string, file: File): Observable<Resume> {
+    const formData = new FormData();
+    formData.append("file", file, file.name);
+
+    return this.http
+      .post<Resume>(`${this.apiUrl}/api/v1/rxresume/user/picture?user_id=${userId}`, formData, {
+        withCredentials: true,
+      })
+      .pipe(catchError(this.handleError));
+  }
+
   // getPublicResume fetches a participant's CV by userID for public viewing.
   getPublicResume(userId: string): Observable<Resume> {
     return this.http

@@ -4,7 +4,10 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"net/url"
+	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"buenvivir/rxresume/internal/client"
@@ -24,6 +27,7 @@ type ResumeService interface {
 	GenerateResume(ctx context.Context, userID string, profileData *models.ProfileInput) (*models.Resume, error)
 	UploadPicture(ctx context.Context, userID string, filename string, reader io.Reader) (*models.Resume, error)
 	ExportPDF(ctx context.Context, userID string) ([]byte, error)
+	DownloadMedia(ctx context.Context, path string) (io.ReadCloser, error)
 }
 
 type resumeService struct {
@@ -191,12 +195,41 @@ func (s *resumeService) UploadPicture(ctx context.Context, userID string, filena
 	}
 
 	cleanName := filepath.Base(filename)
-	url, err := s.rxClient.UploadImage(ctx, userID, reader, cleanName)
-	if err != nil {
-		return nil, fmt.Errorf("failed to upload image to reactive resume: %w", err)
+	ext := strings.ToLower(filepath.Ext(cleanName))
+	contentType := "application/octet-stream"
+	switch ext {
+	case ".jpg", ".jpeg":
+		contentType = "image/jpeg"
+	case ".png":
+		contentType = "image/png"
+	case ".gif":
+		contentType = "image/gif"
+	case ".webp":
+		contentType = "image/webp"
 	}
 
-	resume.Data.Basics.Picture = url
+	objectName := fmt.Sprintf("pictures/%s/%d_%s", userID, time.Now().Unix(), cleanName)
+	_, err = s.storage.UploadFile(ctx, objectName, reader, contentType)
+	if err != nil {
+		return nil, fmt.Errorf("failed to upload picture to storage: %w", err)
+	}
+
+	publicAPIURL := os.Getenv("PUBLIC_API_URL")
+	if publicAPIURL == "" {
+		publicAPIURL = "http://localhost:8080"
+	}
+
+	// Delete old picture if it exists and is hosted in our bucket
+	if oldPictureURL := resume.Data.Basics.Picture; oldPictureURL != "" {
+		if u, err := url.Parse(oldPictureURL); err == nil {
+			if oldPath := u.Query().Get("path"); strings.HasPrefix(oldPath, "pictures/") {
+				_ = s.storage.DeleteFile(ctx, oldPath)
+			}
+		}
+	}
+
+	proxyURL := fmt.Sprintf("%s/api/v1/rxresume/public/media?path=%s", publicAPIURL, objectName)
+	resume.Data.Basics.Picture = proxyURL
 	resume.UpdatedAt = time.Now()
 
 	err = s.repo.Transaction(ctx, func(txRepo repositories.ResumeRepository) error {
@@ -208,6 +241,11 @@ func (s *resumeService) UploadPicture(ctx context.Context, userID string, filena
 	s.syncQueue.Enqueue(userID)
 
 	return resume, nil
+}
+
+// DownloadMedia streams a media file from GCP storage.
+func (s *resumeService) DownloadMedia(ctx context.Context, path string) (io.ReadCloser, error) {
+	return s.storage.DownloadFile(ctx, path)
 }
 
 // DeleteSectionItem removes an item from a section of a resume.

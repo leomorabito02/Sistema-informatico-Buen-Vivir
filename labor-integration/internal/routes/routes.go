@@ -1,12 +1,20 @@
 package routes
 
 import (
-	"net/http"
+	"github.com/go-chi/chi/v5"
 
 	"buenvivir/labor-integration/internal/controllers"
 )
 
-func RegisterRoutes(mux *http.ServeMux, ctrl *controllers.JobController) {
-	mux.HandleFunc("/health", ctrl.HealthCheck)
-	mux.HandleFunc("/api/v1/labor-integration/jobs", ctrl.GetJobs)
+type Controllers struct {
+	JobOffer       *controllers.JobOfferController
+	JobApplication *controllers.JobApplicationController
+}
+
+func RegisterRoutes(r chi.Router, ctrls Controllers) {
+	r.Route("/api/v1/labor-integration", func(r chi.Router) {
+		r.Get("/offers", ctrls.JobOffer.List)
+		r.Post("/offers", ctrls.JobOffer.Create)
+		r.Post("/applications", ctrls.JobApplication.Apply)
+	})
 }

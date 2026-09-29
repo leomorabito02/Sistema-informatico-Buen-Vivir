@@ -1,5 +1,6 @@
 import { Component, OnInit, inject } from "@angular/core";
 import { CommonModule } from "@angular/common";
+import { ActivatedRoute } from "@angular/router";
 import { FormsModule, NgForm } from "@angular/forms";
 import { CardModule } from "primeng/card";
 import { ButtonModule } from "primeng/button";
@@ -38,7 +39,9 @@ import { ProfileService } from "../../../services/profile.service";
 export class CvComponent implements OnInit {
   private readonly rxResumeService = inject(RxResumeService);
   private readonly profileService = inject(ProfileService);
+  private readonly route = inject(ActivatedRoute);
 
+  userId: string | null = null;
   resume: Resume | null = null;
   loading = false;
   generating = false;
@@ -46,11 +49,29 @@ export class CvComponent implements OnInit {
   message = "";
 
   templates = [
+<<<<<<< HEAD
     { label: "Onyx", value: "onyx" },
     { label: "Pikachu", value: "pikachu" },
     { label: "Gengar", value: "gengar" },
     { label: "Castform", value: "castform" },
     { label: "Glalie", value: "glalie" },
+=======
+    { label: 'Azurill', value: 'azurill' },
+    { label: 'Bronzor', value: 'bronzor' },
+    { label: 'Chikorita', value: 'chikorita' },
+    { label: 'Ditgar', value: 'ditgar' },
+    { label: 'Ditto', value: 'ditto' },
+    { label: 'Gengar', value: 'gengar' },
+    { label: 'Glalie', value: 'glalie' },
+    { label: 'Kakuna', value: 'kakuna' },
+    { label: 'Lapras', value: 'lapras' },
+    { label: 'Leafish', value: 'leafish' },
+    { label: 'Meowth', value: 'meowth' },
+    { label: 'Onyx', value: 'onyx' },
+    { label: 'Pikachu', value: 'pikachu' },
+    { label: 'Rhyhorn', value: 'rhyhorn' },
+    { label: 'Scizor', value: 'scizor' }
+>>>>>>> dfdb63c (integración de reactive resume)
   ];
 
   educationStatuses = [
@@ -66,14 +87,24 @@ export class CvComponent implements OnInit {
   ];
 
   ngOnInit() {
-    this.loadData();
+    this.route.queryParams.subscribe(params => {
+      this.userId = params['userId'] || null;
+      this.loadData();
+    });
   }
 
   loadData() {
     this.loading = true;
+<<<<<<< HEAD
+=======
+    
+    const resumeObservable = this.userId 
+      ? this.rxResumeService.getUserResumeByAdmin(this.userId)
+      : this.rxResumeService.getMyResume();
+>>>>>>> dfdb63c (integración de reactive resume)
 
     // Load resume from DB (without RxResume API call)
-    this.rxResumeService.getMyResume().subscribe({
+    resumeObservable.subscribe({
       next: (res) => {
         this.resume = res;
 
@@ -127,7 +158,11 @@ export class CvComponent implements OnInit {
     this.generating = true;
     this.message = "";
 
-    this.rxResumeService.updateMyResume(this.resume.data).subscribe({
+    const updateObservable = this.userId 
+      ? this.rxResumeService.updateUserResumeByAdmin(this.userId, this.resume.data)
+      : this.rxResumeService.updateMyResume(this.resume.data);
+
+    updateObservable.subscribe({
       next: (res) => {
         this.resume = res;
         this.generating = false;
@@ -248,7 +283,12 @@ export class CvComponent implements OnInit {
         return;
       }
       this.uploadingPicture = true;
-      this.rxResumeService.uploadPicture(file).subscribe({
+
+      const uploadObservable = this.userId
+        ? this.rxResumeService.uploadUserPictureByAdmin(this.userId, file)
+        : this.rxResumeService.uploadPicture(file);
+
+      uploadObservable.subscribe({
         next: (res) => {
           this.resume = res;
           this.uploadingPicture = false;

@@ -248,6 +248,15 @@
           >
         </p>
 
+        <div *ngIf="selectedUser.originalUser?.role_id === 'role_participant'" style="grid-column: 1 / -1; display: flex; gap: 10px; margin-top: 10px;">
+          <a [href]="'/cv-public/' + selectedUser.originalUser?.user_id" target="_blank" class="p-button p-button-sm p-button-outlined" style="text-decoration: none;">
+            <i class="pi pi-external-link mr-2" style="margin-right: 0.5rem;"></i> Ver CV Público
+          </a>
+          <button type="button" class="p-button p-button-sm p-button-secondary" (click)="goToEditCV(selectedUser)">
+            <i class="pi pi-pencil mr-2" style="margin-right: 0.5rem;"></i> Editar CV
+          </button>
+        </div>
+
         <!-- Teacher Fields -->
         <p *ngIf="roleData['specialization']">
           <strong>Especialización:</strong> {{ roleData["specialization"] }}
