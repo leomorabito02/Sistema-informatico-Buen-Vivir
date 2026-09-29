@@ -8,11 +8,11 @@ import (
 
 type CreateVolunteerRequest struct {
 	UserID         string `json:"user_id" validate:"required"`
-	ApprovalStatus string `json:"approval_status" validate:"omitempty,oneof=pending approved rejected"`
+	ApprovalStatus string `json:"approval_status" validate:"omitempty,oneof=pending approved"`
 }
 
 type UpdateVolunteerRequest struct {
-	ApprovalStatus string `json:"approval_status" validate:"omitempty,oneof=pending approved rejected"`
+	ApprovalStatus string `json:"approval_status" validate:"omitempty,oneof=pending approved"`
 	ApprovedBy     string `json:"approved_by" validate:"omitempty"`
 }
 

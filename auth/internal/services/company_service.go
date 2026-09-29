@@ -113,10 +113,10 @@ func (s *companyService) UpdateCompany(ctx context.Context, id string, req *dto.
 	
 	if req.ApprovalStatus != "" {
 		if req.ApprovalStatus == "approved" {
-			company.ApprovalStatus = approvalStatusAccepted
+			company.ApprovalStatus = approvalStatusApproved
 			now := time.Now()
 			company.ApprovalDate = &now
-			company.ApprovedBy = &req.ApprovedBy
+			company.ApprovedBy = resolveApprover(ctx, req.ApprovedBy)
 		} else {
 			company.ApprovalStatus = req.ApprovalStatus
 		}

@@ -82,7 +82,7 @@ func TestAuthService_Login_Unapproved(t *testing.T) {
 
 	req := &dto.LoginRequest{UserID: "usr-1", RoleID: "role_participant", LoginNonce: nonce}
 	user := &models.User{UserID: "usr-1", RoleID: "role_participant", Status: "active"}
-	
+
 	mockUserRepo.On("FindByID", mock.Anything, "usr-1").Return(user, nil)
 	mockQuerier.On("GetApprovalStatus", mock.Anything, "participants", "usr-1").Return("rejected", nil)
 
@@ -105,7 +105,37 @@ func TestAuthService_Login_Success(t *testing.T) {
 
 	req := &dto.LoginRequest{UserID: "usr-1", RoleID: "role_participant", LoginNonce: nonce}
 	user := &models.User{UserID: "usr-1", RoleID: "role_participant", Status: "active"}
-	
+
+	mockUserRepo.On("FindByID", mock.Anything, "usr-1").Return(user, nil)
+	mockQuerier.On("GetApprovalStatus", mock.Anything, "participants", "usr-1").Return("approved", nil)
+	mockJWT.On("GenerateTokenPair", "usr-1", "role_participant", false).Return("access", "refresh", nil)
+	mockRtRepo.On("RevokeAllForUser", mock.Anything, "usr-1").Return(nil)
+	mockRtRepo.On("Create", mock.Anything, mock.AnythingOfType("*models.RefreshToken")).Return(nil)
+	mockRtRepo.On("DeleteExpired", mock.Anything).Return(nil).Maybe()
+
+	res, err := svc.Login(context.Background(), req)
+
+	assert.NoError(t, err)
+	assert.NotNil(t, res)
+	assert.Equal(t, "access", res.Token)
+	assert.Equal(t, "refresh", res.RefreshToken)
+}
+
+// "accepted" es el valor que se guardaba antes de unificar en "approved":
+// hay perfiles reales así y tienen que poder seguir logueándose.
+func TestAuthService_Login_LegacyAcceptedStatus(t *testing.T) {
+	mockUserRepo := new(MockUserRepository)
+	mockQuerier := new(MockRoleProfileQuerier)
+	mockJWT := new(MockJWTService)
+	mockRtRepo := new(MockRefreshTokenRepository)
+	svc := services.NewAuthService(nil, mockQuerier, mockUserRepo, mockRtRepo, mockJWT, nil)
+
+	userIDs := []string{"usr-1"}
+	nonce, _ := utils.GetNonceStore().Generate(userIDs, time.Minute)
+
+	req := &dto.LoginRequest{UserID: "usr-1", RoleID: "role_participant", LoginNonce: nonce}
+	user := &models.User{UserID: "usr-1", RoleID: "role_participant", Status: "active"}
+
 	mockUserRepo.On("FindByID", mock.Anything, "usr-1").Return(user, nil)
 	mockQuerier.On("GetApprovalStatus", mock.Anything, "participants", "usr-1").Return("accepted", nil)
 	mockJWT.On("GenerateTokenPair", "usr-1", "role_participant", false).Return("access", "refresh", nil)
@@ -132,9 +162,9 @@ func TestAuthService_Login_JWTError(t *testing.T) {
 
 	req := &dto.LoginRequest{UserID: "usr-1", RoleID: "role_participant", LoginNonce: nonce}
 	user := &models.User{UserID: "usr-1", RoleID: "role_participant", Status: "active"}
-	
+
 	mockUserRepo.On("FindByID", mock.Anything, "usr-1").Return(user, nil)
-	mockQuerier.On("GetApprovalStatus", mock.Anything, "participants", "usr-1").Return("accepted", nil)
+	mockQuerier.On("GetApprovalStatus", mock.Anything, "participants", "usr-1").Return("approved", nil)
 	mockJWT.On("GenerateTokenPair", "usr-1", "role_participant", false).Return("", "", errors.New("jwt error"))
 
 	res, err := svc.Login(context.Background(), req)
@@ -148,10 +178,10 @@ func TestAuthService_Login_JWTError(t *testing.T) {
 func TestAuthService_UpdateMyPassword_NoPassword(t *testing.T) {
 	mockUserRepo := new(MockUserRepository)
 	svc := services.NewAuthService(nil, nil, mockUserRepo, nil, nil, nil)
-	
+
 	user := &models.User{UserID: "usr-123", PasswordHash: ""}
 	mockUserRepo.On("FindByID", mock.Anything, "usr-123").Return(user, nil)
-	
+
 	err := svc.UpdateMyPassword(context.Background(), "usr-123", "wrong", "newpass")
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "no tiene contraseña configurada")
@@ -160,9 +190,9 @@ func TestAuthService_UpdateMyPassword_NoPassword(t *testing.T) {
 func TestAuthService_UpdateMyPassword_UserNotFound(t *testing.T) {
 	mockUserRepo := new(MockUserRepository)
 	svc := services.NewAuthService(nil, nil, mockUserRepo, nil, nil, nil)
-	
+
 	mockUserRepo.On("FindByID", mock.Anything, "usr-123").Return(nil, errors.New("not found"))
-	
+
 	err := svc.UpdateMyPassword(context.Background(), "usr-123", "wrong", "newpass")
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "usuario no encontrado")
@@ -210,7 +240,7 @@ func TestAuthService_UnlinkGoogleAccount_NoPassword(t *testing.T) {
 
 	currentUser := &models.User{UserID: "usr-1", Email: "test@test.com"}
 	mockUserRepo.On("FindByID", mock.Anything, "usr-1").Return(currentUser, nil)
-	
+
 	users := []models.User{
 		{UserID: "usr-1", Email: "test@test.com", PasswordHash: ""},
 	}
@@ -256,9 +286,9 @@ func TestAuthService_LinkGoogleAccount_Success(t *testing.T) {
 
 	req := &dto.LinkGoogleRequest{IDToken: "valid_token", GoogleID: "g1"}
 	fbToken := &firebaseAuth.Token{UID: "g1"}
-	
+
 	mockFirebase.On("VerifyIDToken", mock.Anything, "valid_token").Return(fbToken, nil)
-	
+
 	currentUser := &models.User{UserID: "u1", Email: "test@example.com"}
 	mockUserRepo.On("FindByID", mock.Anything, "u1").Return(currentUser, nil)
 	mockUserRepo.On("FindAll", mock.Anything).Return([]models.User{}, nil)
@@ -275,7 +305,7 @@ func TestAuthService_UnlinkGoogleAccount_Success(t *testing.T) {
 
 	pwdHash, _ := utils.HashPassword("HasPassword123!")
 	user := &models.User{UserID: "u1", Email: "test@example.com", PasswordHash: pwdHash, GoogleAuthID: "g1"}
-	
+
 	mockUserRepo.On("FindByID", mock.Anything, "u1").Return(user, nil)
 	mockUserRepo.On("FindAllByEmail", mock.Anything, "test@example.com").Return([]models.User{*user}, nil)
 	mockUserRepo.On("Update", mock.Anything, mock.AnythingOfType("*models.User")).Return(nil)

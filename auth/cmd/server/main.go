@@ -130,6 +130,7 @@ func main() {
 			// Step 2: select account/role, receive JWT
 			r.With(middlewares.StrictRateLimiter()).Post("/login", authController.Login)
 			r.With(middlewares.StrictRateLimiter()).Post("/logout", authController.Logout)
+			r.With(middlewares.StrictRateLimiter()).Post("/refresh", authController.Refresh)
 		})
 		
 		// Protected Routes
@@ -147,6 +148,7 @@ func main() {
 				r.Post("/", userController.CreateUser)
 				r.Get("/", userController.GetAllUsers)
 				r.Get("/{id}", userController.GetUser)
+				r.Get("/{id}/profile", authController.GetUserProfile)
 				r.Put("/{id}", userController.UpdateUser)
 				r.Delete("/{id}", userController.DeleteUser)
 			})
@@ -161,7 +163,7 @@ func main() {
 			})
 
 			// Companies CRUD
-			r.With(middlewares.RequireRole("role_company")).Route("/companies", func(r chi.Router) {
+			r.With(middlewares.RequireRole("role_admin", "role_company")).Route("/companies", func(r chi.Router) {
 				r.Post("/", companyController.CreateCompany)
 				r.Get("/", companyController.GetAllCompanies)
 				r.Get("/{id}", companyController.GetCompany)
@@ -170,7 +172,7 @@ func main() {
 			})
 
 			// Teachers CRUD
-			r.With(middlewares.RequireRole("role_teacher")).Route("/teachers", func(r chi.Router) {
+			r.With(middlewares.RequireRole("role_admin", "role_teacher")).Route("/teachers", func(r chi.Router) {
 				r.Post("/", teacherController.CreateTeacher)
 				r.Get("/", teacherController.GetAllTeachers)
 				r.Get("/{id}", teacherController.GetTeacher)
@@ -182,7 +184,7 @@ func main() {
 			// HU-06: "vista voluntario" puede crear/editar/eliminar perfiles
 			// de participantes) — lo necesita education-service para poder
 			// validar/listar participantes (inscripción, asistencia).
-			r.With(middlewares.RequireRole("role_participant", "role_volunteer")).Route("/participants", func(r chi.Router) {
+			r.With(middlewares.RequireRole("role_admin", "role_participant", "role_volunteer")).Route("/participants", func(r chi.Router) {
 				r.Post("/", participantController.CreateParticipant)
 				r.Get("/", participantController.GetAllParticipants)
 				r.Get("/{id}", participantController.GetParticipant)
@@ -200,7 +202,7 @@ func main() {
 			})
 
 			// Volunteers CRUD
-			r.With(middlewares.RequireRole("role_volunteer")).Route("/volunteers", func(r chi.Router) {
+			r.With(middlewares.RequireRole("role_admin", "role_volunteer")).Route("/volunteers", func(r chi.Router) {
 				r.Post("/", volunteerController.CreateVolunteer)
 				r.Get("/", volunteerController.GetAllVolunteers)
 				r.Get("/{id}", volunteerController.GetVolunteer)

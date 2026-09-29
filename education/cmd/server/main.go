@@ -96,9 +96,18 @@ func main() {
 
 	routes.RegisterRoutes(
 		r, jwtService,
-		courseController, trainingAreaController, materialController, healthController, docenteController,
-		enrollmentController, attendanceController, generalAttendanceController, activityController,
-		submissionController,
+		routes.Controllers{
+			Course:            courseController,
+			TrainingArea:      trainingAreaController,
+			Material:          materialController,
+			Health:            healthController,
+			Docente:           docenteController,
+			Enrollment:        enrollmentController,
+			Attendance:        attendanceController,
+			GeneralAttendance: generalAttendanceController,
+			Activity:          activityController,
+			Submission:        submissionController,
+		},
 	)
 
 	log.Printf("Servicio Education escuchando en :%s (appEnv=%s, contentfulEnvironment=%s)", cfg.Port, cfg.AppEnv, cfg.ContentfulEnvironment)

@@ -16,7 +16,7 @@ type CreateParticipantRequest struct {
 	EmergencyContactPhone string `json:"emergency_contact_phone" validate:"omitempty"`
 	ImageURL       string    `json:"image_url" validate:"omitempty,url"`
 	DocURL         string    `json:"doc_url" validate:"omitempty,url"`
-	ApprovalStatus string    `json:"approval_status" validate:"omitempty,oneof=pending approved rejected"`
+	ApprovalStatus string    `json:"approval_status" validate:"omitempty,oneof=pending approved"`
 }
 
 type UpdateParticipantRequest struct {
@@ -28,7 +28,7 @@ type UpdateParticipantRequest struct {
 	EmergencyContactPhone string `json:"emergency_contact_phone" validate:"omitempty"`
 	ImageURL       string     `json:"image_url" validate:"omitempty,url"`
 	DocURL         string     `json:"doc_url" validate:"omitempty,url"`
-	ApprovalStatus string     `json:"approval_status" validate:"omitempty,oneof=pending approved rejected"`
+	ApprovalStatus string `json:"approval_status" validate:"omitempty,oneof=pending approved"`
 	ApprovedBy     string     `json:"approved_by" validate:"omitempty"`
 }
 

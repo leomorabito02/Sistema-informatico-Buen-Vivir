@@ -51,58 +51,85 @@ services:
     depends_on:
       - auth-service
       - education-service
-      # - rxresume-service
+      - rxresume-service
     restart: on-failure
     networks:
       - buenvivir-net
 
-  # rxresume-service:
-  #   build:
-  #     context: ./rxresume
-  #     dockerfile: Dockerfile
-  #   env_file:
-  #     - ./rxresume/.env
-  #   ports:
-  #     - "8085:8080"
-  #   restart: on-failure
-  #   security_opt:
-  #     - no-new-privileges:true
-  #   cap_drop:
-  #     - ALL
-  #   read_only: true
-  #   tmpfs:
-  #     - /tmp
-  #   mem_limit: 512m
-  #   cpus: "0.5"
-  #   depends_on:
-  #     - gcs-emulator
-  #     - reactive-resume
-  #   networks:
-  #     - buenvivir-net
+  rxresume-service:
+    build:
+      context: ./rxresume
+      dockerfile: Dockerfile
+    env_file:
+      - ./rxresume/.env
+    ports:
+      - "8085:8080"
+    restart: on-failure
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    read_only: true
+    tmpfs:
+      - /tmp
+    mem_limit: 512m
+    cpus: "0.5"
+    depends_on:
+      - gcs-emulator
+      - pubsub-emulator
+      - reactive-resume
+    networks:
+      - buenvivir-net
 
-  # reactive-resume:
-  #   build:
-  #     context: ./rxresume/reactive-resume
-  #     dockerfile: Dockerfile
-  #   container_name: buenvivir-reactive-resume
-  #   env_file:
-  #     - ./rxresume/reactive-resume/.env
-  #   ports:
-  #     - "3000:3000"
-  #   restart: on-failure
-  #   mem_limit: 1024m
-  #   cpus: "1"
-  #   networks:
-  #     - buenvivir-net
+  reactive-resume:
+    build:
+      context: ./rxresume/reactive-resume
+      dockerfile: Dockerfile
+    container_name: buenvivir-reactive-resume
+    env_file:
+      - ./rxresume/reactive-resume/.env
+    environment:
+      - NODE_OPTIONS=--dns-result-order=ipv4first
+    ports:
+      - "3000:3000"
+    restart: on-failure
+    mem_limit: 1024m
+    cpus: "1"
+    networks:
+      - buenvivir-net
 
-  # gcs-emulator:
-  #   image: fsouza/fake-gcs-server
-  #   container_name: buenvivir-gcs-emulator
-  #   ports:
-  #     - "4443:4443"
-  #   command: -scheme http -public-host localhost:4443
-  #   networks:
-  #     - buenvivir-net
+  pubsub-emulator:
+    image: gcr.io/google.com/cloudsdktool/cloud-sdk:emulators
+    container_name: buenvivir-pubsub-emulator
+    ports:
+      - "8086:8086"
+    command: gcloud beta emulators pubsub start --project=buenvivir-gcp-project --host-port=0.0.0.0:8086
+    networks:
+      - buenvivir-net
+
+  pubsub-init:
+    image: alpine/curl
+    container_name: buenvivir-pubsub-init
+    depends_on:
+      - pubsub-emulator
+    networks:
+      - buenvivir-net
+    command: >
+      sh -c "
+        sleep 5;
+        curl -s -X PUT 'http://pubsub-emulator:8086/v1/projects/buenvivir-gcp-project/topics/rxresume-sync-topic';
+        curl -s -X PUT 'http://pubsub-emulator:8086/v1/projects/buenvivir-gcp-project/subscriptions/rxresume-sync-sub' -H 'Content-Type: application/json' -d '{\"topic\":\"projects/buenvivir-gcp-project/topics/rxresume-sync-topic\"}';
+        echo 'Pub/Sub initialized'
+      "
+
+  gcs-emulator:
+    image: fsouza/fake-gcs-server
+    container_name: buenvivir-gcs-emulator
+    ports:
+      - "4443:4443"
+    command: -scheme http -public-host localhost:4443
+    networks:
+      - buenvivir-net
 
   frontend:
     build:

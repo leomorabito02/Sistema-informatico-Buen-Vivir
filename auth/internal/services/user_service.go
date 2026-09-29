@@ -56,7 +56,14 @@ func (s *userService) CreateUser(ctx context.Context, req *dto.CreateUserRequest
 	}
 
 	// 4. Guardar en Base de Datos (a través del repositorio con transacciones)
-	if err := s.userRepo.Create(ctx, user); err != nil {
+	reqRole, _ := ctx.Value(middlewares.RoleIDKey).(string)
+	creatorID, _ := ctx.Value(middlewares.UserIDKey).(string)
+
+	if reqRole == "role_volunteer" && user.RoleID == "role_admin" {
+		return nil, errors.New("forbidden: access denied to create admin accounts")
+	}
+
+	if err := s.userRepo.CreateWithRoleProfile(ctx, user, user.RoleID, creatorID); err != nil {
 		return nil, err
 	}
 
@@ -76,7 +83,11 @@ func (s *userService) GetUserByID(ctx context.Context, id string) (*dto.UserResp
 	if reqRole != "role_admin" && reqRole != "role_dev" {
 		reqUserID, _ := ctx.Value(middlewares.UserIDKey).(string)
 		if user.UserID != reqUserID {
-			return nil, errors.New("forbidden: access denied to other user accounts")
+			if reqRole == "role_volunteer" && user.RoleID == "role_participant" {
+				// Volunteers can view participants
+			} else {
+				return nil, errors.New("forbidden: access denied to other user accounts")
+			}
 		}
 	}
 
@@ -85,8 +96,8 @@ func (s *userService) GetUserByID(ctx context.Context, id string) (*dto.UserResp
 
 func (s *userService) GetAllUsers(ctx context.Context) ([]dto.UserResponse, error) {
 	reqRole, _ := ctx.Value(middlewares.RoleIDKey).(string)
-	if reqRole != "role_admin" && reqRole != "role_dev" {
-		return nil, errors.New("forbidden: only administrators can list all users")
+	if reqRole != "role_admin" && reqRole != "role_dev" && reqRole != "role_volunteer" {
+		return nil, errors.New("forbidden: insufficient permissions to list users")
 	}
 
 	users, err := s.userRepo.FindAll(ctx)
@@ -95,6 +106,9 @@ func (s *userService) GetAllUsers(ctx context.Context) ([]dto.UserResponse, erro
 	}
 	var resp []dto.UserResponse
 	for _, u := range users {
+		if reqRole == "role_volunteer" && u.RoleID != "role_participant" {
+			continue
+		}
 		resp = append(resp, *dto.ToUserResponse(&u))
 	}
 	return resp, nil
@@ -113,15 +127,8 @@ func (s *userService) UpdateUser(ctx context.Context, id string, req *dto.Update
 		return nil, err
 	}
 
-	reqRole, _ := ctx.Value(middlewares.RoleIDKey).(string)
-	if reqRole != "role_admin" && reqRole != "role_dev" {
-		reqUserID, _ := ctx.Value(middlewares.UserIDKey).(string)
-		if user.UserID != reqUserID {
-			return nil, errors.New("forbidden: access denied to edit other user accounts")
-		}
-		// Si no es admin, tampoco puede cambiar su rol ni status
-		req.RoleID = ""
-		req.Status = ""
+	if err := s.checkUpdatePermissions(ctx, user, req); err != nil {
+		return nil, err
 	}
 
 	// 3. Modificar campos permitidos
@@ -173,5 +180,26 @@ func (s *userService) DeleteUser(ctx context.Context, id string) error {
 
 	NewKVSyncService(s.userRepo).SyncImpactStatsAsync()
 
+	return nil
+}
+
+func (s *userService) checkUpdatePermissions(ctx context.Context, user *models.User, req *dto.UpdateUserRequest) error {
+	reqRole, _ := ctx.Value(middlewares.RoleIDKey).(string)
+	if reqRole == "role_admin" || reqRole == "role_dev" {
+		return nil
+	}
+
+	reqUserID, _ := ctx.Value(middlewares.UserIDKey).(string)
+	if user.UserID != reqUserID {
+		if reqRole == "role_volunteer" && user.RoleID == "role_participant" {
+			// Volunteers can edit participants
+		} else {
+			return errors.New("forbidden: access denied to edit other user accounts")
+		}
+	}
+	
+	// Si no es admin, tampoco puede cambiar su rol ni status
+	req.RoleID = ""
+	req.Status = ""
 	return nil
 }

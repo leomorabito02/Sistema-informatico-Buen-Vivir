@@ -94,7 +94,7 @@ func TestVolunteerService_UpdateVolunteer_Success(t *testing.T) {
 	res, err := svc.UpdateVolunteer(context.Background(), "vol-1", req)
 
 	assert.NoError(t, err)
-	assert.Equal(t, "accepted", res.ApprovalStatus)
+	assert.Equal(t, "approved", res.ApprovalStatus)
 	mockRepo.AssertExpectations(t)
 }
 
@@ -133,7 +133,7 @@ func TestVolunteerService_CreateVolunteer_ValidationError(t *testing.T) {
 func TestVolunteerService_CreateVolunteer_DBError(t *testing.T) {
 	mockRepo := new(MockVolunteerRepository)
 	svc := services.NewVolunteerService(mockRepo)
-	
+
 	req := &dto.CreateVolunteerRequest{
 		UserID: "usr-1",
 	}
@@ -148,7 +148,7 @@ func TestVolunteerService_CreateVolunteer_DBError(t *testing.T) {
 func TestVolunteerService_GetAllVolunteers_DBError(t *testing.T) {
 	mockRepo := new(MockVolunteerRepository)
 	svc := services.NewVolunteerService(mockRepo)
-	
+
 	mockRepo.On("FindAll", mock.Anything).Return(nil, errors.New("db error"))
 
 	res, err := svc.GetAllVolunteers(context.Background())
@@ -189,7 +189,7 @@ func TestVolunteerService_UpdateVolunteer_DBError(t *testing.T) {
 
 	ctx := context.WithValue(context.Background(), middlewares.RoleIDKey, "role_admin")
 	vol := &models.Volunteer{UserID: "usr-123"}
-	
+
 	mockRepo.On("FindByID", mock.Anything, "vol-1").Return(vol, nil)
 	mockRepo.On("Update", mock.Anything, mock.AnythingOfType("*models.Volunteer")).Return(errors.New("db error"))
 

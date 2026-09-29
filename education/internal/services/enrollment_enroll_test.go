@@ -215,3 +215,86 @@ func TestEnroll_RepoErrors(t *testing.T) {
 	_, err = f.svc.Enroll(context.Background(), "p1", "c1", "tok")
 	assert.ErrorIs(t, err, boom)
 }
+
+// auth-service guarda "approved"; "accepted" es el valor que se escribió
+// hasta 2026-09-28 y sigue en filas reales. Los dos habilitan a inscribir.
+func TestEnroll_AcceptsApprovedAndLegacyAccepted(t *testing.T) {
+	for _, status := range []string{"approved", "accepted", ""} {
+		f := newEnrollFixture(t, models.AuthParticipant{ParticipantID: "p1", ApprovalStatus: status})
+		f.courses.On("Get", mock.Anything, "c1").Return(&models.Course{ID: "c1"}, nil)
+		f.repo.On("ListByCourse", mock.Anything, "c1").Return([]models.Enrollment{}, nil)
+		f.repo.On("Create", mock.Anything, mock.Anything).Return(&models.Enrollment{ID: "e1"}, nil)
+
+		_, err := f.svc.Enroll(context.Background(), "p1", "c1", "tok")
+
+		assert.NoError(t, err, "approval_status=%q", status)
+	}
+}
+
+func TestEnrollmentService_ListByParticipant(t *testing.T) {
+	repo := new(MockEnrollmentRepository)
+	svc := services.NewEnrollmentService(repo, nil, nil)
+	repo.On("ListByParticipant", mock.Anything, "p1").Return([]models.Enrollment{{ID: "e1"}}, nil)
+
+	list, err := svc.ListByParticipant(context.Background(), "p1")
+
+	require.NoError(t, err)
+	assert.Len(t, list, 1)
+}
+
+func summariesByUser(list []models.UserCourseSummary) map[string][]string {
+	out := make(map[string][]string, len(list))
+	for _, s := range list {
+		out[s.UserID] = s.Courses
+	}
+	return out
+}
+
+func TestEnrollmentService_GetBulkUserCourses(t *testing.T) {
+	repo, courses := new(MockEnrollmentRepository), new(MockCourseRepository)
+	svc := services.NewEnrollmentService(repo, courses, nil)
+	ids := []string{"p1", "p2", "t1"}
+
+	repo.On("ListByParticipants", mock.Anything, ids).Return([]models.Enrollment{
+		{ParticipanteID: "p1", CursoID: "c1", Estado: models.EnrollmentEstadoActiva},
+		{ParticipanteID: "p1", CursoID: "c2", Estado: models.EnrollmentEstadoActiva},
+		{ParticipanteID: "p2", CursoID: "c1", Estado: models.EnrollmentEstadoActiva},
+		{ParticipanteID: "p2", CursoID: "c3", Estado: "baja"}, // no cuenta
+	}, nil)
+	courses.On("Get", mock.Anything, "c1").Return(&models.Course{ID: "c1", Title: "Huerta"}, nil).Once()
+	courses.On("Get", mock.Anything, "c2").Return(nil, repositories.ErrNotFound)
+	courses.On("ListByResponsibleTeachers", mock.Anything, ids).Return([]models.Course{
+		{ID: "c9", Title: "Carpintería", ResponsibleTeacher: "t1"},
+	}, nil)
+
+	list, err := svc.GetBulkUserCourses(context.Background(), ids)
+
+	require.NoError(t, err)
+	assert.Equal(t, map[string][]string{
+		"p1": {"Huerta", "Curso c2"}, // título de c1 cacheado; c2 no se encontró
+		"p2": {"Huerta"},
+		"t1": {"Carpintería"},
+	}, summariesByUser(list))
+	courses.AssertNumberOfCalls(t, "Get", 2)
+}
+
+func TestEnrollmentService_GetBulkUserCourses_Empty(t *testing.T) {
+	svc := services.NewEnrollmentService(new(MockEnrollmentRepository), new(MockCourseRepository), nil)
+
+	list, err := svc.GetBulkUserCourses(context.Background(), nil)
+
+	require.NoError(t, err)
+	assert.Empty(t, list)
+}
+
+func TestEnrollmentService_GetBulkUserCourses_ToleratesRepoErrors(t *testing.T) {
+	repo, courses := new(MockEnrollmentRepository), new(MockCourseRepository)
+	svc := services.NewEnrollmentService(repo, courses, nil)
+	repo.On("ListByParticipants", mock.Anything, []string{"p1"}).Return(nil, errors.New("firestore caído"))
+	courses.On("ListByResponsibleTeachers", mock.Anything, []string{"p1"}).Return(nil, errors.New("contentful caído"))
+
+	list, err := svc.GetBulkUserCourses(context.Background(), []string{"p1"})
+
+	require.NoError(t, err)
+	assert.Equal(t, map[string][]string{"p1": {}}, summariesByUser(list))
+}

@@ -211,22 +211,8 @@ Detalle caso por caso: `education/GUIA_PRUEBAS_INSCRIPCION_ASISTENCIA.md`.
   la base de participantes crece mucho, conviene paginar o cachear.
 
 ### Problemas conocidos
-- **El valor real de `approval_status` es `"accepted"`, no `"approved"`**
-  (encontrado y corregido 2026-09-13, probando con datos reales de
-  Neon): `auth/internal/dto/participant_dto.go` valida el campo con
-  `oneof=pending approved rejected`, pero lo que auth-service devuelve
-  de verdad en participantes reales es `"accepted"` (o `"pending"`) —
-  el validador de auth y el dato real están desalineados (no se tocó
-  `auth/` para investigar/corregir esto, fuera de alcance). Los 3
-  puntos de esta etapa que comparaban contra `"approved"` (`Enroll`,
-  `AttendanceService.RegisterBatch`, `GeneralAttendanceService`) se
-  corrigieron para comparar contra `"accepted"`, centralizado en una
-  sola constante (`services.participantApprovalStatusAccepted`,
-  `internal/services/errors.go`) para que no vuelva a divergir entre
-  los 3 servicios. Antes del fix, esto hacía que **cualquier**
-  participante real (con `approval_status: "accepted"`) fallara como
-  "no está activo" al inscribir/registrar asistencia, aunque
-  estuviera perfectamente habilitado.
+- **El valor estandarizado de `approval_status` es `"approved"`**:
+  Se estandarizó a nivel de sistema que el estado de aprobación de rol sea `"approved"`, tanto en `auth-service` como en `education-service` y `frontend`. Centralizado en la constante `services.participantApprovalStatusAccepted` en `internal/services/errors.go`.
 - **`participanteId` se confunde fácil con `user_id`** (encontrado
   2026-09-13, probando con un id real de Neon): la tabla `participantes`
   tiene `participant_id` (PK propia) y `user_id` (FK a `usuarios`, el

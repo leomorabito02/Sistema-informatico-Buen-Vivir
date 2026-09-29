@@ -36,7 +36,7 @@ import {
  */
 @Injectable({ providedIn: "root" })
 export class EducationService {
-  private http = inject(HttpClient);
+  private readonly http = inject(HttpClient);
   private readonly base =
     environment.educationApiUrl || environment.apiUrl || "";
 
@@ -332,6 +332,35 @@ export class EducationService {
       .pipe(catchError(this.handleError));
   }
 
+  getParticipantEnrollments(participantId: string): Observable<Enrollment[]> {
+    return this.http
+      .get<Enrollment[]>(
+        `${this.base}/api/participants/${participantId}/inscripciones`,
+        { withCredentials: true },
+      )
+      .pipe(catchError(this.handleError));
+  }
+
+  getTeacherCourses(teacherId: string): Observable<Course[]> {
+    return this.http
+      .get<Course[]>(`${this.base}/api/docentes/${teacherId}/cursos`, {
+        withCredentials: true,
+      })
+      .pipe(catchError(this.handleError));
+  }
+
+  getBulkUserCourses(
+    userIds: string[],
+  ): Observable<{ user_id: string; courses: string[] }[]> {
+    return this.http
+      .post<{ user_id: string; courses: string[] }[]>(
+        `${this.base}/api/bulk-cursos-usuarios`,
+        { user_ids: userIds },
+        { withCredentials: true },
+      )
+      .pipe(catchError(this.handleError));
+  }
+
   /** Lista los inscriptos de un curso (sin chequeo de ownership). */
   listCourseEnrollments(cursoId: string): Observable<Enrollment[]> {
     return this.http
@@ -493,7 +522,7 @@ export class EducationService {
   }
 
   // ---------------------------------------------------------------------
-  private handleError = (error: HttpErrorResponse) => {
+  private readonly handleError = (error: HttpErrorResponse) => {
     let message = "Ocurrió un error al comunicarse con el módulo de Educación.";
     const body = error.error as { error?: string } | string | null;
     if (body && typeof body === "object" && body.error) {

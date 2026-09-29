@@ -40,6 +40,14 @@ func (m *MockEnrollmentRepository) Create(ctx context.Context, e models.Enrollme
 	return args.Get(0).(*models.Enrollment), args.Error(1)
 }
 
+func (m *MockEnrollmentRepository) ListByParticipants(ctx context.Context, participantIDs []string) ([]models.Enrollment, error) {
+	args := m.Called(ctx, participantIDs)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).([]models.Enrollment), args.Error(1)
+}
+
 func TestEnrollmentService_ListByCourse_Success(t *testing.T) {
 	repo := new(MockEnrollmentRepository)
 	svc := services.NewEnrollmentService(repo, nil, nil)

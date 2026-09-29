@@ -21,9 +21,11 @@ type AuthService interface {
 	CheckCredentials(ctx context.Context, req *dto.CheckCredentialsRequest) (*dto.CheckCredentialsResponse, error)
 	CheckGoogleCredentials(ctx context.Context, req *dto.GoogleLoginRequest) (*dto.CheckCredentialsResponse, error)
 	Login(ctx context.Context, req *dto.LoginRequest) (*dto.LoginResponse, error)
+	RefreshToken(ctx context.Context, refreshToken string) (*dto.LoginResponse, error)
 	GetApprovalStatus(ctx context.Context, roleID, userID string) string
 	UpdateMyProfile(ctx context.Context, roleID, userID string, data map[string]interface{}) error
 	GetMyProfile(ctx context.Context, roleID, userID string) (map[string]interface{}, error)
+	GetUserProfile(ctx context.Context, userID string) (map[string]interface{}, error)
 	UpdateMyPassword(ctx context.Context, userID, oldPassword, newPassword string) error
 	LinkGoogleAccount(ctx context.Context, userID string, req *dto.LinkGoogleRequest) error
 	UnlinkGoogleAccount(ctx context.Context, userID string) error
@@ -299,7 +301,7 @@ func (s *authService) Login(ctx context.Context, req *dto.LoginRequest) (*dto.Lo
 
 	approvalStatus := s.GetApprovalStatus(ctx, user.RoleID, user.UserID)
 	if user.RoleID != "role_admin" && user.RoleID != "role_dev" {
-		if approvalStatus != "active" && approvalStatus != "accepted" && approvalStatus != "pending" {
+		if approvalStatus != "active" && !isApprovedStatus(approvalStatus) && approvalStatus != "pending" {
 			return nil, errors.New("el perfil aún no está aprobado")
 		}
 	}
@@ -393,12 +395,12 @@ func (s *authService) GetApprovalStatus(ctx context.Context, roleID, userID stri
 	case "role_company":
 		tableName = "companies"
 	default:
-		return "accepted"
+		return "approved"
 	}
 
 	status, err := s.querier.GetApprovalStatus(ctx, tableName, userID)
 	if err != nil || status == "" {
-		return "accepted"
+		return "approved"
 	}
 	return status
 }
@@ -425,6 +427,48 @@ func (s *authService) GetMyProfile(ctx context.Context, roleID, userID string) (
 
 	var tableName string
 	switch roleID {
+	case "role_teacher":
+		tableName = "teachers"
+	case "role_volunteer":
+		tableName = "volunteers"
+	case "role_participant":
+		tableName = "participants"
+	case "role_company":
+		tableName = "companies"
+	}
+
+	if tableName != "" {
+		roleData, err := s.querier.GetRoleData(ctx, tableName, userID)
+		if err == nil {
+			profile["role_data"] = roleData
+		}
+	}
+
+	return profile, nil
+}
+
+func (s *authService) GetUserProfile(ctx context.Context, userID string) (map[string]interface{}, error) {
+	user, err := s.userRepo.FindByID(ctx, userID)
+	if err != nil {
+		return nil, errors.New("usuario no encontrado")
+	}
+
+	profile := map[string]interface{}{
+		"user": map[string]interface{}{
+			"user_id":        user.UserID,
+			"first_name":     user.FirstName,
+			"last_name":      user.LastName,
+			"email":          user.Email,
+			"phone":          user.Phone,
+			"created_at":     user.CreatedAt,
+			"role_id":        user.RoleID,
+			"status":         user.Status,
+			"google_auth_id": user.GoogleAuthID,
+		},
+	}
+
+	var tableName string
+	switch user.RoleID {
 	case "role_teacher":
 		tableName = "teachers"
 	case "role_volunteer":

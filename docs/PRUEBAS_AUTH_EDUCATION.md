@@ -46,10 +46,10 @@ pruebas** y su contraseña es conocida:
 
 | Email | Contraseña | Rol | `user_id` (= `sub` del JWT) | Notas |
 |---|---|---|---|---|
-| `teacher3@gmail.com` | `Teacher3!` | `role_teacher` | `usr-CyrffGTQ5f` | `is_external=false`, approval **accepted** → sirve para `/api/docente/*` |
+| `teacher3@gmail.com` | `Teacher3!` | `role_teacher` | `usr-CyrffGTQ5f` | `is_external=false`, approval **approved** → sirve para `/api/docente/*` |
 | `admin3@gmail.com` | `Admin333!` | `role_admin` | `usr-OEIF3FGXuG` | **creado para estas pruebas** — CRUD de cursos/áreas/materiales, listar usuarios |
 | `admin@gmail.com` | *(preguntar al equipo)* | `role_admin` | `usr-bs4fdRDDBZ` | escribe cursos/áreas/materiales |
-| `teacher@gmail.com` | *(preguntar)* | `role_teacher` | `usr-o43XN6f6gh` | interno, approval accepted |
+| `teacher@gmail.com` | *(preguntar)* | `role_teacher` | `usr-o43XN6f6gh` | interno, approval approved |
 | `participant@gmail.com` | *(preguntar)* | `role_participant` | `usr-anGBnlpTJ1` | solo lectura en education |
 | `company@gmail.com` | *(preguntar)* | `role_company` | `usr-a1Vrex13CT` | `status=bloqued` → sirve para probar "cuenta bloqueada" |
 
@@ -88,7 +88,7 @@ token). Los perfiles de `teacher` / `participant` / `company` / `volunteer`
 quedan en `approval_status = "pending"` → el `authGuard` te manda a
 `/pending-approval` hasta que un admin apruebe. Para `role_participant` con
 approval pendiente igual podés navegar; para probar el dashboard completo
-usá un usuario `accepted` (ej. `teacher3@gmail.com`) o aprobalo.
+usá un usuario `approved` (ej. `teacher3@gmail.com`) o aprobalo.
 
 ### Opción B — entrar con `teacher3@gmail.com`
 
