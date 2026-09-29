@@ -75,7 +75,7 @@ func (s *generalAttendanceService) ListByDate(ctx context.Context, fecha, bearer
 		// aprobados. approval_status vacío se tolera (defensivo, no
 		// debería pasar) para no ocultar participantes por un dato mal
 		// formado en vez de fallar en silencio del otro lado.
-		if p.ApprovalStatus != "" && p.ApprovalStatus != participantApprovalStatusAccepted {
+		if !isParticipantApproved(p.ApprovalStatus) {
 			continue
 		}
 
@@ -116,7 +116,7 @@ func (s *generalAttendanceService) RegisterBatch(ctx context.Context, fecha stri
 		if participant == nil {
 			return NewValidationError("El participante " + in.ParticipanteID + " no existe")
 		}
-		if participant.ApprovalStatus != "" && participant.ApprovalStatus != participantApprovalStatusAccepted {
+		if !isParticipantApproved(participant.ApprovalStatus) {
 			return NewValidationError("El participante " + in.ParticipanteID + " no está activo")
 		}
 	}

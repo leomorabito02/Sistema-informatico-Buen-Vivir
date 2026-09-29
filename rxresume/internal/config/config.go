@@ -15,6 +15,9 @@ type Config struct {
 	ApplicationCreds        string
 	AuthServiceURL          string
 	FrontendURL             string
+	PubSubEmulatorHost      string
+	PubSubSyncTopic         string
+	PubSubSyncSubscription  string
 }
 
 // LoadConfig reads configuration settings from environment variables with safe defaults.
@@ -57,6 +60,21 @@ func LoadConfig() *Config {
 	gcpEmulatorHost := os.Getenv("GCP_EMULATOR_HOST")
 	appCreds := os.Getenv("GOOGLE_APPLICATION_CREDENTIALS")
 
+	pubSubEmulatorHost := os.Getenv("PUBSUB_EMULATOR_HOST")
+	if pubSubEmulatorHost == "" {
+		pubSubEmulatorHost = "localhost:8086"
+	}
+
+	pubSubSyncTopic := os.Getenv("GCP_PUBSUB_SYNC_TOPIC")
+	if pubSubSyncTopic == "" {
+		pubSubSyncTopic = "rxresume-sync-topic"
+	}
+
+	pubSubSyncSub := os.Getenv("GCP_PUBSUB_SYNC_SUBSCRIPTION")
+	if pubSubSyncSub == "" {
+		pubSubSyncSub = "rxresume-sync-sub"
+	}
+
 	authServiceURL := os.Getenv("AUTH_SERVICE_URL")
 	if authServiceURL == "" {
 		authServiceURL = "http://auth-service:8080"
@@ -79,5 +97,8 @@ func LoadConfig() *Config {
 		ApplicationCreds:        appCreds,
 		AuthServiceURL:          authServiceURL,
 		FrontendURL:             frontendURL,
+		PubSubEmulatorHost:      pubSubEmulatorHost,
+		PubSubSyncTopic:         pubSubSyncTopic,
+		PubSubSyncSubscription:  pubSubSyncSub,
 	}
 }

@@ -16,6 +16,7 @@ const enrollmentsCollection = "inscripciones"
 // EnrollmentRepository encapsula el acceso a la colección Firestore
 // "inscripciones".
 type EnrollmentRepository interface {
+	ListByParticipants(ctx context.Context, participantIDs []string) ([]models.Enrollment, error)
 	ListByCourse(ctx context.Context, cursoID string) ([]models.Enrollment, error)
 	// ListByParticipant devuelve todas las inscripciones (de cualquier
 	// estado) de un participante: es la base de "mis cursos" del rol
@@ -64,6 +65,40 @@ func (r *enrollmentRepository) list(ctx context.Context, field, value string) ([
 		}
 		e.ID = doc.Ref.ID
 		enrollments = append(enrollments, e)
+	}
+	return enrollments, nil
+}
+
+func (r *enrollmentRepository) ListByParticipants(ctx context.Context, participantIDs []string) ([]models.Enrollment, error) {
+	if len(participantIDs) == 0 {
+		return []models.Enrollment{}, nil
+	}
+	enrollments := make([]models.Enrollment, 0)
+	for i := 0; i < len(participantIDs); i += 30 {
+		end := i + 30
+		if end > len(participantIDs) {
+			end = len(participantIDs)
+		}
+		chunk := participantIDs[i:end]
+		iter := r.client.Collection(enrollmentsCollection).Where("participante_id", "in", chunk).Documents(ctx)
+		for {
+			doc, err := iter.Next()
+			if err == iterator.Done {
+				break
+			}
+			if err != nil {
+				iter.Stop()
+				return nil, fmt.Errorf("error listando inscripciones bulk: %w", err)
+			}
+			var e models.Enrollment
+			if err := doc.DataTo(&e); err != nil {
+				iter.Stop()
+				return nil, fmt.Errorf("error leyendo inscripcion bulk: %w", err)
+			}
+			e.ID = doc.Ref.ID
+			enrollments = append(enrollments, e)
+		}
+		iter.Stop()
 	}
 	return enrollments, nil
 }

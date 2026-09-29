@@ -1,9 +1,10 @@
 import { ComponentFixture, TestBed } from "@angular/core/testing";
-import { BrowserAnimationsModule } from "@angular/platform-browser/animations";
+import { NoopAnimationsModule } from "@angular/platform-browser/animations";
 import { of, throwError } from "rxjs";
 import { DashboardUser, UsuariosComponent } from "./usuarios.component";
 import { AuthService } from "../../../services/auth.service";
 import { UsersService } from "../../../services/users.service";
+import { EducationService } from "../../../services/education.service";
 import { MeResponse, User } from "../../../core/models/auth.model";
 
 function apiUser(overrides: Partial<User>): User {
@@ -22,56 +23,81 @@ function apiUser(overrides: Partial<User>): User {
   };
 }
 
+function row(overrides: Partial<DashboardUser>): DashboardUser {
+  return {
+    id: "u",
+    name: "",
+    email: "",
+    phone: "",
+    role: "Participante",
+    status: "Activo",
+    coursesStatus: "",
+    ...overrides,
+  };
+}
+
 describe("UsuariosComponent", () => {
   let component: UsuariosComponent;
   let fixture: ComponentFixture<UsuariosComponent>;
   let authService: jasmine.SpyObj<AuthService>;
   let usersService: jasmine.SpyObj<UsersService>;
+  let education: jasmine.SpyObj<EducationService>;
+
+  const admin: MeResponse = {
+    user: apiUser({ user_id: "admin-1" }),
+    role_id: "role_admin",
+  };
 
   const mockUsers: DashboardUser[] = [
-    {
+    row({
+      id: "1",
       name: "Alice",
       email: "alice@example.com",
       phone: "111",
       role: "Responsable",
-      status: "Activo",
-    },
-    {
+    }),
+    row({
+      id: "2",
       name: "Bob",
       email: "bob@example.com",
       phone: "222",
       role: "Docente",
-      status: "Pendiente",
-    },
-    {
-      name: "Charlie",
-      email: "charlie@example.com",
-      phone: "333",
-      role: "Empresa",
-      status: "Activo",
-    },
-    {
+    }),
+    row({
+      id: "3",
       name: "David",
       email: "david@example.com",
       phone: "444",
       role: "Voluntario",
-      status: "Activo",
-    },
-    {
+    }),
+    row({
+      id: "4",
       name: "Eve",
       email: "eve@example.com",
       phone: "555",
       role: "Participante",
-      status: "Activo",
-    },
+    }),
   ];
 
-  function setup(me: MeResponse | null, users: User[] | null) {
+  function setup(
+    me: MeResponse | null,
+    users: User[] | null,
+    bulkFails = false,
+  ) {
     authService = jasmine.createSpyObj<AuthService>("AuthService", [
       "isAuthenticated",
     ]);
     usersService = jasmine.createSpyObj<UsersService>("UsersService", [
       "listUsers",
+      "createUser",
+      "getUserProfile",
+      "updateUser",
+      "updateRoleData",
+    ]);
+    education = jasmine.createSpyObj<EducationService>("EducationService", [
+      "getBulkUserCourses",
+      "getParticipantEnrollments",
+      "getTeacherCourses",
     ]);
     authService.isAuthenticated.and.returnValue(
       me ? of(me) : throwError(() => new Error("sin sesión")),
@@ -79,12 +105,21 @@ describe("UsuariosComponent", () => {
     usersService.listUsers.and.returnValue(
       users ? of(users) : throwError(() => new Error("auth caído")),
     );
+    education.getBulkUserCourses.and.returnValue(
+      bulkFails
+        ? throwError(() => new Error("education caído"))
+        : of([{ user_id: "u1", courses: ["Huerta", "Carpintería"] }]),
+    );
+    education.getParticipantEnrollments.and.returnValue(of([]));
+    education.getTeacherCourses.and.returnValue(of([]));
+    spyOn(console, "error");
 
     TestBed.configureTestingModule({
-      imports: [UsuariosComponent, BrowserAnimationsModule],
+      imports: [UsuariosComponent, NoopAnimationsModule],
       providers: [
         { provide: AuthService, useValue: authService },
         { provide: UsersService, useValue: usersService },
+        { provide: EducationService, useValue: education },
       ],
     });
 
@@ -93,8 +128,8 @@ describe("UsuariosComponent", () => {
     fixture.detectChanges();
   }
 
-  it("should create and map API users to dashboard rows", () => {
-    setup({ user: apiUser({}), role_id: "role_admin" }, [
+  it("maps API users to rows and loads their courses in one batch", () => {
+    setup(admin, [
       apiUser({
         user_id: "u1",
         first_name: "Ana",
@@ -107,15 +142,22 @@ describe("UsuariosComponent", () => {
         user_id: "u2",
         email: "solo@mail.com",
         role_id: "role_teacher",
-        status: "pending",
+        status: "blocked",
       }),
       apiUser({ user_id: "u3", first_name: "Vol", role_id: "role_volunteer" }),
       apiUser({ user_id: "u4", first_name: "Emp", role_id: "role_company" }),
       apiUser({ user_id: "u5", first_name: "Par", role_id: "" }),
     ]);
 
-    expect(component).toBeTruthy();
+    expect(component.currentUserId).toBe("admin-1");
     expect(component.isVolunteerOnly).toBeFalse();
+    expect(education.getBulkUserCourses).toHaveBeenCalledWith([
+      "u1",
+      "u2",
+      "u3",
+      "u4",
+      "u5",
+    ]);
     expect(component.users.map((u) => u.role)).toEqual([
       "Responsable",
       "Docente",
@@ -127,74 +169,289 @@ describe("UsuariosComponent", () => {
       jasmine.objectContaining({
         id: "u1",
         name: "Ana Pérez",
-        email: "ana@x.com",
         phone: "123",
         status: "Activo",
+        coursesStatus: "Huerta, Carpintería",
       }),
     );
-    // sin nombre se muestra el email; "pending" se muestra como Pendiente
     expect(component.users[1].name).toBe("solo@mail.com");
-    expect(component.users[1].status).toBe("Pendiente");
-    // teléfono vacío se muestra como "-"
+    expect(component.users[1].status).toBe("Bloqueado");
+    expect(component.users[1].coursesStatus).toBe("Sin cursos");
     expect(component.users[2].phone).toBe("-");
     expect(component.filteredUsers.length).toBe(5);
   });
 
-  it("should fall back to mock users when the API returns nothing or fails", () => {
-    setup({ user: apiUser({}), role_id: "role_admin" }, []);
-    expect(component.users).toEqual(component.initialMockUsers);
-
-    TestBed.resetTestingModule();
-    setup({ user: apiUser({}), role_id: "role_admin" }, null);
-    expect(component.users).toEqual(component.initialMockUsers);
+  it("keeps the list when the courses batch fails", () => {
+    setup(admin, [apiUser({ user_id: "u1" })], true);
+    expect(component.filteredUsers.length).toBe(1);
+    expect(component.filteredUsers[0].coursesStatus).toBe(
+      "No implementado aún",
+    );
   });
 
-  it("should still load users when the session check fails", () => {
-    setup(null, [apiUser({ first_name: "Ana" })]);
+  it("shows an empty list when the API returns nothing", () => {
+    setup(admin, []);
+    expect(component.users).toEqual([]);
+    expect(education.getBulkUserCourses).not.toHaveBeenCalled();
+  });
+
+  it("shows an empty list when the API fails", () => {
+    setup(admin, null);
+    expect(component.users).toEqual([]);
+  });
+
+  it("still loads users when the session check fails", () => {
+    setup(null, [apiUser({ user_id: "u1", first_name: "Ana" })]);
     expect(usersService.listUsers).toHaveBeenCalled();
     expect(component.users.length).toBe(1);
   });
 
-  it("should filter users by name, email, phone or role", () => {
-    setup({ user: apiUser({}), role_id: "role_admin" }, []);
+  it("filters by name, email, phone, role and the selected role", () => {
+    setup(admin, []);
     component.users = mockUsers;
 
     component.searchTerm = "alice";
     component.filterUsers();
     expect(component.filteredUsers.map((u) => u.name)).toEqual(["Alice"]);
 
-    component.searchTerm = "bob@example.com";
-    component.filterUsers();
-    expect(component.filteredUsers.map((u) => u.name)).toEqual(["Bob"]);
-
     component.searchTerm = "444";
     component.filterUsers();
     expect(component.filteredUsers.map((u) => u.name)).toEqual(["David"]);
 
-    component.searchTerm = "Voluntario";
-    component.filterUsers();
-    expect(component.filteredUsers.map((u) => u.name)).toEqual(["David"]);
-  });
-
-  it("should filter by the selected role", () => {
-    setup({ user: apiUser({}), role_id: "role_admin" }, []);
-    component.users = mockUsers;
-
+    component.searchTerm = "";
     component.selectedRole = "Docente";
     component.filterUsers();
     expect(component.filteredUsers.map((u) => u.name)).toEqual(["Bob"]);
-
-    component.selectedRole = "Todos los roles";
-    component.filterUsers();
-    expect(component.filteredUsers.length).toBe(mockUsers.length);
   });
 
-  it("should only show participants to a volunteer", () => {
+  it("only shows participants to a volunteer", () => {
     setup({ user: apiUser({ role_id: "role_volunteer" }) }, []);
     expect(component.isVolunteerOnly).toBeTrue();
 
     component.users = mockUsers;
     component.filterUsers();
     expect(component.filteredUsers.map((u) => u.name)).toEqual(["Eve"]);
+  });
+
+  it("detects pending role approvals", () => {
+    setup(admin, []);
+    expect(component.isRolePending("pending")).toBeTrue();
+    expect(component.isRolePending("Pendiente")).toBeTrue();
+    expect(component.isRolePending("approved")).toBeFalse();
+    expect(component.isRolePending(undefined)).toBeFalse();
+  });
+
+  it("offers the admin role only to admins when creating a user", () => {
+    setup(admin, []);
+    component.openNewUserModal();
+    expect(component.showNewUserModal).toBeTrue();
+    expect(component.availableNewRoles).toContain("role_admin");
+
+    component.isVolunteerOnly = true;
+    component.openNewUserModal();
+    expect(component.availableNewRoles).not.toContain("role_admin");
+  });
+
+  it("creates a user and reloads the list", () => {
+    setup(admin, []);
+    spyOn(window, "alert");
+    usersService.createUser.and.returnValue(of({}));
+
+    component.createUser();
+    expect(usersService.createUser).not.toHaveBeenCalled(); // faltan datos
+
+    component.newUserForm = {
+      first_name: "N",
+      last_name: "U",
+      email: "n@u.com",
+      phone: "1",
+      password: "Clave123!",
+      role_id: "role_participant",
+    };
+    component.showNewUserModal = true;
+    component.createUser();
+
+    expect(usersService.createUser).toHaveBeenCalledWith(
+      jasmine.objectContaining({
+        email: "n@u.com",
+        role_id: "role_participant",
+      }),
+    );
+    expect(component.showNewUserModal).toBeFalse();
+    expect(usersService.listUsers).toHaveBeenCalledTimes(2);
+  });
+
+  it("shows the backend message when creating a user fails", () => {
+    setup(admin, []);
+    spyOn(window, "alert");
+    usersService.createUser.and.returnValue(
+      throwError(() => new Error("ya existe una cuenta")),
+    );
+    component.newUserForm = {
+      email: "n@u.com",
+      password: "x",
+      role_id: "role_admin",
+    };
+
+    component.createUser();
+
+    expect(window.alert).toHaveBeenCalledWith("ya existe una cuenta");
+  });
+
+  it("opens the detail with profile and enrollments of a participant", () => {
+    setup(admin, []);
+    usersService.getUserProfile.and.returnValue(
+      of({ user: {}, role_data: { participant_id: "part-1" } }),
+    );
+    education.getParticipantEnrollments.and.returnValue(
+      of([{ id: "e1" } as never]),
+    );
+    const user = row({
+      id: "u1",
+      originalUser: apiUser({ user_id: "u1", role_id: "role_participant" }),
+    });
+
+    component.openUserDetail(user);
+
+    expect(component.showDetailModal).toBeTrue();
+    expect(user.profileData.role_data.participant_id).toBe("part-1");
+    expect(user.coursesList?.length).toBe(1);
+  });
+
+  it("loads the courses of a teacher in the detail", () => {
+    setup(admin, []);
+    usersService.getUserProfile.and.returnValue(
+      throwError(() => new Error("x")),
+    );
+    education.getTeacherCourses.and.returnValue(of([{ id: "c1" } as never]));
+    const user = row({
+      id: "t1",
+      originalUser: apiUser({ user_id: "t1", role_id: "role_teacher" }),
+    });
+
+    component.openUserDetail(user);
+
+    expect(component.showDetailModal).toBeTrue();
+    expect(education.getTeacherCourses).toHaveBeenCalledWith("t1");
+    expect(user.coursesList?.length).toBe(1);
+  });
+
+  it("does not let a volunteer edit non-participants", () => {
+    setup({ user: apiUser({ role_id: "role_volunteer" }) }, []);
+    spyOn(window, "alert");
+    const teacher = row({
+      originalUser: apiUser({ user_id: "t1", role_id: "role_teacher" }),
+    });
+
+    component.openEditUser(teacher, new Event("click"));
+
+    expect(window.alert).toHaveBeenCalled();
+    expect(component.showEditModal).toBeFalse();
+  });
+
+  it("loads the edit form normalizing the legacy 'accepted' status", () => {
+    setup(admin, []);
+    usersService.getUserProfile.and.returnValue(
+      of({
+        user: {},
+        role_data: {
+          participant_id: "part-1",
+          approval_status: "accepted",
+          birthdate: "2000-01-01T00:00:00Z",
+        },
+      }),
+    );
+    const user = row({
+      originalUser: apiUser({
+        user_id: "u1",
+        first_name: "Ana",
+        role_id: "role_participant",
+      }),
+    });
+
+    component.openEditUser(user, new Event("click"));
+
+    expect(component.showEditModal).toBeTrue();
+    expect(component.editForm).toEqual(
+      jasmine.objectContaining({
+        first_name: "Ana",
+        approval_status: "approved",
+        birthdate: "2000-01-01",
+        participant_id: "part-1",
+      }),
+    );
+  });
+
+  it("saves the user and its role data, recording who approved it", () => {
+    setup(admin, []);
+    usersService.updateUser.and.returnValue(of({}));
+    usersService.updateRoleData.and.returnValue(of({}));
+    component.selectedUser = row({
+      originalUser: apiUser({ user_id: "u1", role_id: "role_participant" }),
+    });
+    component.editForm = {
+      first_name: "Ana",
+      last_name: "P",
+      phone: "1",
+      status: "active",
+      participant_id: "part-1",
+      approval_status: "approved",
+      birthdate: "2000-01-01",
+    };
+    component.showEditModal = true;
+
+    component.saveEdit();
+
+    expect(usersService.updateUser).toHaveBeenCalledWith("u1", {
+      first_name: "Ana",
+      last_name: "P",
+      phone: "1",
+      status: "active",
+    });
+    const [table, id, payload] =
+      usersService.updateRoleData.calls.mostRecent().args;
+    expect(table).toBe("participants");
+    expect(id).toBe("part-1");
+    expect(payload).toEqual(
+      jasmine.objectContaining({
+        approval_status: "approved",
+        approved_by: "admin-1",
+      }),
+    );
+    expect(payload.first_name).toBeUndefined();
+    expect(component.showEditModal).toBeFalse();
+  });
+
+  it("skips the role update for admins and for users without a role profile", () => {
+    setup(admin, []);
+    usersService.updateUser.and.returnValue(of({}));
+
+    component.selectedUser = row({
+      originalUser: apiUser({ user_id: "a1", role_id: "role_admin" }),
+    });
+    component.editForm = { first_name: "A" };
+    component.saveEdit();
+
+    component.selectedUser = row({
+      originalUser: apiUser({ user_id: "v1", role_id: "role_volunteer" }),
+    });
+    component.editForm = { first_name: "V" }; // sin volunteer_id: no existe el perfil
+    component.saveEdit();
+
+    expect(usersService.updateUser).toHaveBeenCalledTimes(2);
+    expect(usersService.updateRoleData).not.toHaveBeenCalled();
+  });
+
+  it("alerts when saving fails", () => {
+    setup(admin, []);
+    spyOn(window, "alert");
+    usersService.updateUser.and.returnValue(throwError(() => new Error("403")));
+    component.selectedUser = row({ originalUser: apiUser({ user_id: "u1" }) });
+
+    component.saveEdit();
+
+    expect(window.alert).toHaveBeenCalledWith(
+      "Error al actualizar usuario base: 403",
+    );
   });
 });

@@ -103,10 +103,10 @@ func (s *volunteerService) UpdateVolunteer(ctx context.Context, id string, req *
 
 	if req.ApprovalStatus != "" {
 		if req.ApprovalStatus == "approved" {
-			volunteer.ApprovalStatus = approvalStatusAccepted
+			volunteer.ApprovalStatus = approvalStatusApproved
 			now := time.Now()
 			volunteer.ApprovalDate = &now
-			volunteer.ApprovedBy = &req.ApprovedBy
+			volunteer.ApprovedBy = resolveApprover(ctx, req.ApprovedBy)
 		} else {
 			volunteer.ApprovalStatus = req.ApprovalStatus
 		}

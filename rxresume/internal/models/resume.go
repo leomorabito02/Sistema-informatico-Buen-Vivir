@@ -4,6 +4,8 @@ import (
 	"database/sql/driver"
 	"encoding/json"
 	"errors"
+	"html"
+	"strings"
 	"time"
 )
 
@@ -105,17 +107,17 @@ type Interest struct {
 }
 
 type ResumeData struct {
-	Basics         Basics                `json:"basics"`
-	Work           []WorkExperience      `json:"work"`
-	Education      []EducationItem       `json:"education"`
-	Skills         []Skill               `json:"skills"`
-	Certifications []Certification       `json:"certifications"`
-	Languages      []LanguageItem        `json:"languages"`
-	Awards         []Award               `json:"awards"`
-	Volunteer      []VolunteerExperience `json:"volunteer"`
-	Projects       []Project             `json:"projects"`
-	References     []Reference           `json:"references"`
-	Interests      []Interest            `json:"interests"`
+	Basics         Basics                 `json:"basics"`
+	Work           []WorkExperience       `json:"work"`
+	Education      []EducationItem        `json:"education"`
+	Skills         []Skill                `json:"skills"`
+	Certifications []Certification        `json:"certifications"`
+	Languages      []LanguageItem         `json:"languages"`
+	Awards         []Award                `json:"awards"`
+	Volunteer      []VolunteerExperience  `json:"volunteer"`
+	Projects       []Project              `json:"projects"`
+	References     []Reference            `json:"references"`
+	Interests      []Interest             `json:"interests"`
 	Metadata       map[string]interface{} `json:"metadata"`
 }
 
@@ -132,15 +134,15 @@ func (r ResumeData) Value() (driver.Value, error) {
 }
 
 type Resume struct {
-	ID          string     `gorm:"primaryKey;column:id" json:"id"`
-	UserID      string     `gorm:"uniqueIndex;not null;column:user_id" json:"user_id"`
-	Title       string     `gorm:"not null;column:title" json:"title"`
-	PDFURL      string     `gorm:"column:pdf_url" json:"pdf_url"`
-	PublicURL   string     `gorm:"column:public_url" json:"public_url"`
-	RxResumeID  string     `gorm:"column:rxresume_id" json:"rxresume_id"`
-	Data        ResumeData `gorm:"type:jsonb;column:data" json:"data"`
-	CreatedAt   time.Time  `gorm:"column:created_at" json:"created_at"`
-	UpdatedAt   time.Time  `gorm:"column:updated_at" json:"updated_at"`
+	ID         string     `gorm:"primaryKey;column:id" json:"id"`
+	UserID     string     `gorm:"uniqueIndex;not null;column:user_id" json:"user_id"`
+	Title      string     `gorm:"not null;column:title" json:"title"`
+	PDFURL     string     `gorm:"column:pdf_url" json:"pdf_url"`
+	PublicURL  string     `gorm:"column:public_url" json:"public_url"`
+	RxResumeID string     `gorm:"column:rxresume_id" json:"rxresume_id"`
+	Data       ResumeData `gorm:"type:jsonb;column:data" json:"data"`
+	CreatedAt  time.Time  `gorm:"column:created_at" json:"created_at"`
+	UpdatedAt  time.Time  `gorm:"column:updated_at" json:"updated_at"`
 }
 
 type ProfileInput struct {
@@ -149,4 +151,47 @@ type ProfileInput struct {
 	Phone    string `json:"phone"`
 	Location string `json:"location"`
 	Headline string `json:"headline"`
+}
+
+func (r *ResumeData) Sanitize() {
+	r.Basics.Name = html.EscapeString(strings.TrimSpace(r.Basics.Name))
+	r.Basics.Email = html.EscapeString(strings.TrimSpace(r.Basics.Email))
+	r.Basics.Phone = html.EscapeString(strings.TrimSpace(r.Basics.Phone))
+	r.Basics.Headline = html.EscapeString(strings.TrimSpace(r.Basics.Headline))
+	r.Basics.Location = html.EscapeString(strings.TrimSpace(r.Basics.Location))
+	r.Basics.Summary = html.EscapeString(strings.TrimSpace(r.Basics.Summary))
+	for i := range r.Work {
+		r.Work[i].Company = html.EscapeString(strings.TrimSpace(r.Work[i].Company))
+		r.Work[i].Position = html.EscapeString(strings.TrimSpace(r.Work[i].Position))
+		r.Work[i].Description = html.EscapeString(strings.TrimSpace(r.Work[i].Description))
+	}
+	for i := range r.Education {
+		r.Education[i].Institution = html.EscapeString(strings.TrimSpace(r.Education[i].Institution))
+		r.Education[i].Degree = html.EscapeString(strings.TrimSpace(r.Education[i].Degree))
+	}
+}
+
+func (r *ResumeData) Validate() error {
+	if len(r.Basics.Name) > 200 {
+		return errors.New("el nombre excede la longitud máxima")
+	}
+	if len(r.Basics.Email) > 200 {
+		return errors.New("el correo excede la longitud máxima")
+	}
+	return nil
+}
+
+func (p *ProfileInput) Sanitize() {
+	p.Name = html.EscapeString(strings.TrimSpace(p.Name))
+	p.Email = html.EscapeString(strings.TrimSpace(p.Email))
+	p.Phone = html.EscapeString(strings.TrimSpace(p.Phone))
+	p.Location = html.EscapeString(strings.TrimSpace(p.Location))
+	p.Headline = html.EscapeString(strings.TrimSpace(p.Headline))
+}
+
+func (p *ProfileInput) Validate() error {
+	if len(p.Name) > 200 {
+		return errors.New("el nombre excede la longitud máxima")
+	}
+	return nil
 }

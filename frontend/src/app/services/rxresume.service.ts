@@ -260,8 +260,17 @@ export class RxResumeService {
 
   private readonly handleError = (error: HttpErrorResponse) => {
     let errorMessage = "Ocurrió un error con el servicio RxResume.";
-    if (error.error && (error.error as { message?: string }).message) {
+    if (
+      error.error &&
+      typeof error.error === "object" &&
+      "message" in error.error
+    ) {
       errorMessage = (error.error as { message: string }).message;
+    } else if (
+      typeof error.error === "string" &&
+      error.error.trim().length > 0
+    ) {
+      errorMessage = error.error.trim();
     } else if (error.status === 401) {
       errorMessage = "No autorizado.";
     } else if (error.status === 403) {

@@ -10,13 +10,13 @@ type CreateTeacherRequest struct {
 	UserID         string `json:"user_id" validate:"required"`
 	Specialization string `json:"specialization" validate:"required,min=2,max=100"`
 	IsExternal     bool   `json:"is_external"`
-	ApprovalStatus string `json:"approval_status" validate:"omitempty,oneof=pending approved rejected"`
+	ApprovalStatus string `json:"approval_status" validate:"omitempty,oneof=pending approved"`
 }
 
 type UpdateTeacherRequest struct {
 	Specialization string `json:"specialization" validate:"omitempty,min=2,max=100"`
 	IsExternal     *bool  `json:"is_external" validate:"omitempty"`
-	ApprovalStatus string `json:"approval_status" validate:"omitempty,oneof=pending approved rejected"`
+	ApprovalStatus string `json:"approval_status" validate:"omitempty,oneof=pending approved"`
 	ApprovedBy     string `json:"approved_by" validate:"omitempty"`
 }
 

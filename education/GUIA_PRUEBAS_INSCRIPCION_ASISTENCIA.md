@@ -26,18 +26,13 @@ de auth-service) — están marcados como tal en "Resultado obtenido".
 - Al menos un curso publicado en Contentful, con `trainingArea` y
   `material` ya creados.
 - Al menos 2 participantes reales en auth-service: uno con
-  `approval_status: "accepted"` y otro `"pending"` (o cualquier valor
-  distinto de `accepted`), para poder probar los casos de rechazo.
+  `approval_status: "approved"` y otro `"pending"` (o cualquier valor
+  distinto de `approved`), para poder probar los casos de rechazo.
 
-> **⚠️ El valor real es `"accepted"`, no `"approved"`.** Confirmado
-> 2026-09-13 contra datos reales de Neon (el validador de
-> `auth/internal/dto/participant_dto.go` dice `oneof=pending approved
-> rejected`, pero lo que efectivamente hay guardado en la columna es
-> `"accepted"`/`"pending"`). El código de education
-> (`services.participantApprovalStatusAccepted`, en
-> `internal/services/errors.go`) ya compara contra `"accepted"` — si
-> auth-service cambia algún día ese valor, hay que actualizar esa
-> única constante.
+> **ℹ️ El valor estandarizado es `"approved"`.** Estandarizado en el
+> sistema (columna `approval_status` en auth-service). El código de
+> education (`services.participantApprovalStatusAccepted`, en
+> `internal/services/errors.go`) compara contra `"approved"`.
 
 > **⚠️ `participanteId` = `participant_id`, NO `user_id`.** En la tabla
 > `participantes` de Neon hay dos columnas distintas: `participant_id`

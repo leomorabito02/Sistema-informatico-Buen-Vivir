@@ -37,6 +37,10 @@ func (m *MockUserRepository) Create(ctx context.Context, user *models.User) erro
 	return m.Called(ctx, user).Error(0)
 }
 
+func (m *MockUserRepository) CreateWithRoleProfile(ctx context.Context, user *models.User, roleID string, approvedBy string) error {
+	return m.Called(ctx, user, roleID, approvedBy).Error(0)
+}
+
 func (m *MockUserRepository) FindByID(ctx context.Context, id string) (*models.User, error) {
 	return m.mockUserReturn(m.Called(ctx, id))
 }

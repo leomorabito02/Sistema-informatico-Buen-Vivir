@@ -57,3 +57,35 @@ func (c *EnrollmentController) List(w http.ResponseWriter, r *http.Request) {
 	}
 	writeJSON(w, http.StatusOK, enrollments)
 }
+
+// ListByParticipant responde GET /api/participants/{id}/inscripciones
+func (c *EnrollmentController) ListByParticipant(w http.ResponseWriter, r *http.Request) {
+	participantID := chi.URLParam(r, "id")
+
+	enrollments, err := c.enrollmentService.ListByParticipant(r.Context(), participantID)
+	if err != nil {
+		writeError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, enrollments)
+}
+
+type getBulkUserCoursesRequest struct {
+	UserIDs []string `json:"user_ids"`
+}
+
+// GetBulkUserCourses responde POST /api/bulk-cursos-usuarios
+func (c *EnrollmentController) GetBulkUserCourses(w http.ResponseWriter, r *http.Request) {
+	var body getBulkUserCoursesRequest
+	if err := decodeJSONBody(r, &body); err != nil {
+		writeErrorJSON(w, http.StatusBadRequest, "body inválido: "+err.Error())
+		return
+	}
+
+	summaries, err := c.enrollmentService.GetBulkUserCourses(r.Context(), body.UserIDs)
+	if err != nil {
+		writeError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, summaries)
+}

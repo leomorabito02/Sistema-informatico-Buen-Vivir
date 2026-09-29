@@ -115,7 +115,7 @@ func checkParticipantUpdateAccess(ctx context.Context, participant *models.Parti
 	return nil
 }
 
-func applyParticipantFields(participant *models.Participant, req *dto.UpdateParticipantRequest) {
+func applyUpdates(ctx context.Context, participant *models.Participant, req *dto.UpdateParticipantRequest) {
 	if req.Birthdate != nil {
 		participant.Birthdate = *req.Birthdate
 	}
@@ -143,10 +143,10 @@ func applyParticipantFields(participant *models.Participant, req *dto.UpdatePart
 
 	if req.ApprovalStatus != "" {
 		if req.ApprovalStatus == "approved" {
-			participant.ApprovalStatus = approvalStatusAccepted
+			participant.ApprovalStatus = approvalStatusApproved
 			now := time.Now()
 			participant.ApprovalDate = &now
-			participant.ApprovedBy = &req.ApprovedBy
+			participant.ApprovedBy = resolveApprover(ctx, req.ApprovedBy)
 		} else {
 			participant.ApprovalStatus = req.ApprovalStatus
 		}
@@ -168,7 +168,7 @@ func (s *participantService) UpdateParticipant(ctx context.Context, id string, r
 		return nil, err
 	}
 
-	applyParticipantFields(participant, req)
+	applyUpdates(ctx, participant, req)
 
 	if err := s.participantRepo.Update(ctx, participant); err != nil {
 		return nil, err

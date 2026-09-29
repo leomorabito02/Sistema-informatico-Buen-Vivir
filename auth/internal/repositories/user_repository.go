@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"auth/internal/models"
+	"auth/internal/utils"
 	"gorm.io/gorm"
 )
 
@@ -17,6 +18,7 @@ type UserRepository interface {
 	FindByID(ctx context.Context, id string) (*models.User, error)
 	FindAll(ctx context.Context) ([]models.User, error)
 	Create(ctx context.Context, user *models.User) error
+	CreateWithRoleProfile(ctx context.Context, user *models.User, roleID string, approvedBy string) error
 	Update(ctx context.Context, user *models.User) error
 	Delete(ctx context.Context, id string) error
 	CountActiveParticipants(ctx context.Context) (int64, error)
@@ -78,7 +80,16 @@ func (r *userRepository) FindByID(ctx context.Context, id string) (*models.User,
 
 func (r *userRepository) FindAll(ctx context.Context) ([]models.User, error) {
 	var users []models.User
-	if err := r.db.WithContext(ctx).Find(&users).Error; err != nil {
+	err := r.db.WithContext(ctx).
+		Table("users").
+		Select("users.*, COALESCE(p.approval_status, c.approval_status, t.approval_status, v.approval_status) AS role_approval_status").
+		Joins("LEFT JOIN participants p ON users.user_id = p.user_id").
+		Joins("LEFT JOIN companies c ON users.user_id = c.user_id").
+		Joins("LEFT JOIN teachers t ON users.user_id = t.user_id").
+		Joins("LEFT JOIN volunteers v ON users.user_id = v.user_id").
+		Preload("Role").
+		Find(&users).Error
+	if err != nil {
 		return nil, err
 	}
 	return users, nil
@@ -100,6 +111,60 @@ func (r *userRepository) Create(ctx context.Context, user *models.User) error {
 		}
 
 		return nil // Commit automático
+	})
+}
+
+func (r *userRepository) CreateWithRoleProfile(ctx context.Context, user *models.User, roleID string, approvedBy string) error {
+	return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		defer func() {
+			if r := recover(); r != nil {
+				tx.Rollback()
+			}
+		}()
+
+		if err := tx.Create(user).Error; err != nil {
+			return err
+		}
+
+		status := "approved"
+		var appByPtr *string
+		if approvedBy != "" {
+			appByPtr = &approvedBy
+		}
+
+		switch roleID {
+		case "role_company":
+			return tx.Create(&models.Company{
+				CompanyID:      "comp-" + utils.GenerateRandomString(10),
+				UserID:         user.UserID,
+				Cuit:           "PENDING-" + utils.GenerateRandomString(8),
+				ApprovalStatus: status,
+				ApprovedBy:     appByPtr,
+			}).Error
+		case "role_participant":
+			return tx.Create(&models.Participant{
+				ParticipantID:  "part-" + utils.GenerateRandomString(10),
+				UserID:         user.UserID,
+				ApprovalStatus: status,
+				ApprovedBy:     appByPtr,
+			}).Error
+		case "role_teacher":
+			return tx.Create(&models.Teacher{
+				TeacherID:      "tech-" + utils.GenerateRandomString(10),
+				UserID:         user.UserID,
+				ApprovalStatus: status,
+				ApprovedBy:     appByPtr,
+			}).Error
+		case "role_volunteer":
+			return tx.Create(&models.Volunteer{
+				VolunteerID:    "vol-" + utils.GenerateRandomString(10),
+				UserID:         user.UserID,
+				ApprovalStatus: status,
+				ApprovedBy:     appByPtr,
+			}).Error
+		}
+
+		return nil
 	})
 }
 
@@ -136,12 +201,14 @@ func (r *userRepository) countAcceptedUsersByRole(ctx context.Context, roleID, p
 	}
 
 	joinClause := fmt.Sprintf("JOIN %s ON %s.user_id = users.user_id", profileTable, profileTable)
-	whereClause := fmt.Sprintf("(users.role_id = ? OR users.role_id = ?) AND users.status = ? AND %s.approval_status = ?", profileTable)
+	// "accepted" es el valor que se guardaba antes de unificar en
+	// "approved" (ver services/approval_status.go): hay filas reales así.
+	whereClause := fmt.Sprintf("(users.role_id = ? OR users.role_id = ?) AND users.status = ? AND %s.approval_status IN ?", profileTable)
 
 	err := r.db.WithContext(ctx).
 		Table("users").
 		Joins(joinClause).
-		Where(whereClause, roleID, altRoleID, "active", "accepted").
+		Where(whereClause, roleID, altRoleID, "active", []string{"approved", "accepted"}).
 		Where("users.deleted_at IS NULL").
 		Count(&count).Error
 	return count, err

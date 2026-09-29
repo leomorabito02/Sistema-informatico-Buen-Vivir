@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"path/filepath"
 	"time"
 
 	"buenvivir/rxresume/internal/client"
@@ -11,6 +12,7 @@ import (
 	"buenvivir/rxresume/internal/parser"
 	"buenvivir/rxresume/internal/repositories"
 	"buenvivir/rxresume/internal/storage"
+	"buenvivir/rxresume/internal/worker"
 )
 
 type ResumeService interface {
@@ -25,10 +27,11 @@ type ResumeService interface {
 }
 
 type resumeService struct {
-	repo     repositories.ResumeRepository
-	storage  storage.ObjectStorageService
-	parser   parser.PDFParser
-	rxClient client.ReactiveResumeClient
+	repo      repositories.ResumeRepository
+	storage   storage.ObjectStorageService
+	parser    parser.PDFParser
+	rxClient  client.ReactiveResumeClient
+	syncQueue worker.SyncQueue
 }
 
 func NewResumeService(
@@ -36,12 +39,14 @@ func NewResumeService(
 	storage storage.ObjectStorageService,
 	parser parser.PDFParser,
 	rxClient client.ReactiveResumeClient,
+	syncQueue worker.SyncQueue,
 ) ResumeService {
 	return &resumeService{
-		repo:     repo,
-		storage:  storage,
-		parser:   parser,
-		rxClient: rxClient,
+		repo:      repo,
+		storage:   storage,
+		parser:    parser,
+		rxClient:  rxClient,
+		syncQueue: syncQueue,
 	}
 }
 
@@ -100,15 +105,13 @@ func (s *resumeService) UpdateResume(ctx context.Context, userID string, data *m
 	resume.Data = *data
 	resume.UpdatedAt = time.Now()
 
-	// Sync with self-hosted Reactive Resume API instance
-	err = s.rxClient.SyncResume(ctx, resume)
+	err = s.repo.Transaction(ctx, func(txRepo repositories.ResumeRepository) error {
+		return txRepo.Save(ctx, resume)
+	})
 	if err != nil {
-		return nil, fmt.Errorf("sync failed: %w", err)
-	}
-
-	if err := s.repo.Save(ctx, resume); err != nil {
 		return nil, err
 	}
+	s.syncQueue.Enqueue(userID)
 	return resume, nil
 }
 
@@ -118,7 +121,7 @@ func (s *resumeService) GenerateResume(ctx context.Context, userID string, profi
 	if err != nil {
 		return nil, err
 	}
-	
+
 	if profileData.Name != "" {
 		resume.Data.Basics.Name = profileData.Name
 	}
@@ -137,14 +140,13 @@ func (s *resumeService) GenerateResume(ctx context.Context, userID string, profi
 
 	resume.UpdatedAt = time.Now()
 
-	err = s.rxClient.SyncResume(ctx, resume)
+	err = s.repo.Transaction(ctx, func(txRepo repositories.ResumeRepository) error {
+		return txRepo.Save(ctx, resume)
+	})
 	if err != nil {
-		return nil, fmt.Errorf("sync failed: %w", err)
-	}
-
-	if err := s.repo.Save(ctx, resume); err != nil {
 		return nil, err
 	}
+	s.syncQueue.Enqueue(userID)
 	return resume, nil
 }
 
@@ -155,13 +157,14 @@ func (s *resumeService) ParseAndUploadPDF(ctx context.Context, userID string, fi
 		return nil, err
 	}
 
-	objectName := fmt.Sprintf("resumes/%s/%d_%s", userID, time.Now().Unix(), filename)
+	cleanName := filepath.Base(filename)
+	objectName := fmt.Sprintf("resumes/%s/%d_%s", userID, time.Now().Unix(), cleanName)
 	gcsURL, err := s.storage.UploadFile(ctx, objectName, reader, "application/pdf")
 	if err != nil {
 		return nil, fmt.Errorf("failed to upload pdf to storage: %w", err)
 	}
 
-	parsedData, err := s.parser.ParsePDFToResume(reader, filename)
+	parsedData, err := s.parser.ParsePDFToResume(reader, cleanName)
 	if err == nil && parsedData != nil {
 		resume.Data = *parsedData
 	}
@@ -169,11 +172,13 @@ func (s *resumeService) ParseAndUploadPDF(ctx context.Context, userID string, fi
 	resume.PDFURL = gcsURL
 	resume.UpdatedAt = time.Now()
 
-	_ = s.rxClient.SyncResume(ctx, resume)
-
-	if err := s.repo.Save(ctx, resume); err != nil {
+	err = s.repo.Transaction(ctx, func(txRepo repositories.ResumeRepository) error {
+		return txRepo.Save(ctx, resume)
+	})
+	if err != nil {
 		return nil, err
 	}
+	s.syncQueue.Enqueue(userID)
 
 	return resume, nil
 }
@@ -185,7 +190,8 @@ func (s *resumeService) UploadPicture(ctx context.Context, userID string, filena
 		return nil, err
 	}
 
-	url, err := s.rxClient.UploadImage(ctx, userID, reader, filename)
+	cleanName := filepath.Base(filename)
+	url, err := s.rxClient.UploadImage(ctx, userID, reader, cleanName)
 	if err != nil {
 		return nil, fmt.Errorf("failed to upload image to reactive resume: %w", err)
 	}
@@ -193,11 +199,13 @@ func (s *resumeService) UploadPicture(ctx context.Context, userID string, filena
 	resume.Data.Basics.Picture = url
 	resume.UpdatedAt = time.Now()
 
-	_ = s.rxClient.SyncResume(ctx, resume)
-
-	if err := s.repo.Save(ctx, resume); err != nil {
+	err = s.repo.Transaction(ctx, func(txRepo repositories.ResumeRepository) error {
+		return txRepo.Save(ctx, resume)
+	})
+	if err != nil {
 		return nil, err
 	}
+	s.syncQueue.Enqueue(userID)
 
 	return resume, nil
 }
@@ -212,12 +220,14 @@ func (s *resumeService) DeleteSectionItem(ctx context.Context, userID string, se
 	deleteItemFromSection(resume, section, itemID)
 
 	resume.UpdatedAt = time.Now()
-	
-	_ = s.rxClient.SyncResume(ctx, resume)
 
-	if err := s.repo.Save(ctx, resume); err != nil {
+	err = s.repo.Transaction(ctx, func(txRepo repositories.ResumeRepository) error {
+		return txRepo.Save(ctx, resume)
+	})
+	if err != nil {
 		return nil, err
 	}
+	s.syncQueue.Enqueue(userID)
 
 	return resume, nil
 }
@@ -271,6 +281,10 @@ func (s *resumeService) ExportPDF(ctx context.Context, userID string) ([]byte, e
 	}
 	if resume.RxResumeID == "" {
 		return nil, fmt.Errorf("resume not synchronized with Reactive Resume yet")
+	}
+	// Force sync to ensure Reactive Resume has the latest data before generating PDF
+	if err := s.rxClient.SyncResume(ctx, resume); err != nil {
+		return nil, fmt.Errorf("failed to sync resume before exporting: %w", err)
 	}
 
 	return s.rxClient.ExportResumePDF(ctx, userID)

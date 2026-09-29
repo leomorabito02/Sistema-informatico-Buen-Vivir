@@ -69,12 +69,28 @@ func (m *MockEnrollmentService) ListByCourse(ctx context.Context, cursoID string
 	return args.Get(0).([]models.Enrollment), args.Error(1)
 }
 
+func (m *MockEnrollmentService) ListByParticipant(ctx context.Context, participantID string) ([]models.Enrollment, error) {
+	args := m.Called(ctx, participantID)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).([]models.Enrollment), args.Error(1)
+}
+
 func (m *MockEnrollmentService) Enroll(ctx context.Context, participanteID, cursoID, bearerToken string) (*models.Enrollment, error) {
 	args := m.Called(ctx, participanteID, cursoID, bearerToken)
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
 	}
 	return args.Get(0).(*models.Enrollment), args.Error(1)
+}
+
+func (m *MockEnrollmentService) GetBulkUserCourses(ctx context.Context, userIDs []string) ([]models.UserCourseSummary, error) {
+	args := m.Called(ctx, userIDs)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).([]models.UserCourseSummary), args.Error(1)
 }
 
 type MockAttendanceService struct {

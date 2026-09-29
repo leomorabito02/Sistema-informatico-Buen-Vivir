@@ -2,6 +2,7 @@ package repositories
 
 import (
 	"context"
+	"strings"
 
 	"buenvivir/education/internal/models"
 )
@@ -19,6 +20,7 @@ const courseInclude = 2
 // publica automáticamente: crear/editar dejan la entry en borrador y
 // requieren Publish explícito (moderación editorial del contenido).
 type CourseRepository interface {
+	ListByResponsibleTeachers(ctx context.Context, teacherIDs []string) ([]models.Course, error)
 	List(ctx context.Context) ([]models.Course, error)
 	Get(ctx context.Context, id string) (*models.Course, error)
 	Create(ctx context.Context, input models.CourseInput) (*models.Course, error)
@@ -163,6 +165,32 @@ func (r *courseRepository) ListByResponsibleTeacher(ctx context.Context, teacher
 	courses := make([]models.Course, 0, len(collection.Items))
 	for _, item := range collection.Items {
 		courses = append(courses, courseFromCDAEntry(item, idx))
+	}
+	return courses, nil
+}
+
+func (r *courseRepository) ListByResponsibleTeachers(ctx context.Context, teacherIDs []string) ([]models.Course, error) {
+	if len(teacherIDs) == 0 {
+		return []models.Course{}, nil
+	}
+	courses := make([]models.Course, 0)
+	for i := 0; i < len(teacherIDs); i += 100 {
+		end := i + 100
+		if end > len(teacherIDs) {
+			end = len(teacherIDs)
+		}
+		chunk := teacherIDs[i:end]
+		joinedIDs := strings.Join(chunk, ",")
+		collection, err := r.client.ListEntriesWhere(ctx, courseContentType, courseInclude, map[string]string{
+			"fields.responsibleTeacher[in]": joinedIDs,
+		})
+		if err != nil {
+			return nil, err
+		}
+		idx := models.NewIncludesIndex(collection.Includes.Entry, collection.Includes.Asset)
+		for _, item := range collection.Items {
+			courses = append(courses, courseFromCDAEntry(item, idx))
+		}
 	}
 	return courses, nil
 }
