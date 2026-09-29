@@ -119,11 +119,13 @@ func (s *teacherService) UpdateTeacher(ctx context.Context, id string, req *dto.
 	}
 	
 	if req.ApprovalStatus != "" {
-		teacher.ApprovalStatus = req.ApprovalStatus
 		if req.ApprovalStatus == "approved" {
+			teacher.ApprovalStatus = approvalStatusAccepted
 			now := time.Now()
 			teacher.ApprovalDate = &now
 			teacher.ApprovedBy = &req.ApprovedBy
+		} else {
+			teacher.ApprovalStatus = req.ApprovalStatus
 		}
 	}
 

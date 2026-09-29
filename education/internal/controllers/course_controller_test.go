@@ -114,6 +114,11 @@ func (m *MockCourseService) VerifyOwnership(ctx context.Context, cursoID, teache
 	return args.Error(0)
 }
 
+func (m *MockCourseService) VerifyExists(ctx context.Context, cursoID string) error {
+	args := m.Called(ctx, cursoID)
+	return args.Error(0)
+}
+
 // withChiURLParam simula lo que hace el router chi al popular
 // chi.URLParam(r, key), necesario porque los controllers lo leen
 // directo en vez de r.PathValue.

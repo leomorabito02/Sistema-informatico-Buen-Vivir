@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"buenvivir/education/internal/models"
+	"buenvivir/education/internal/repositories"
 	"buenvivir/education/internal/services"
 
 	"github.com/stretchr/testify/assert"
@@ -78,6 +79,11 @@ func (m *MockCourseRepository) ListDraftsByResponsibleTeacher(ctx context.Contex
 		return nil, args.Error(1)
 	}
 	return args.Get(0).([]models.Course), args.Error(1)
+}
+
+func (m *MockCourseRepository) ExistsInManagement(ctx context.Context, id string) (bool, error) {
+	args := m.Called(ctx, id)
+	return args.Bool(0), args.Error(1)
 }
 
 func (m *MockCourseRepository) ListAllDrafts(ctx context.Context) ([]models.Course, error) {
@@ -327,4 +333,18 @@ func TestCourseService_UpdateCourseAsTeacher_CannotReassign(t *testing.T) {
 	course, err := svc.UpdateCourseAsTeacher(context.Background(), "c1", "teacher-1", input)
 	assert.NoError(t, err)
 	assert.Equal(t, "teacher-1", course.ResponsibleTeacher)
+}
+
+func TestCourseService_VerifyExists(t *testing.T) {
+	repo := new(MockCourseRepository)
+	svc := services.NewCourseService(repo)
+
+	repo.On("ExistsInManagement", mock.Anything, "borrador").Return(true, nil)
+	repo.On("ExistsInManagement", mock.Anything, "no-existe").Return(false, nil)
+	repo.On("ExistsInManagement", mock.Anything, "roto").Return(false, errors.New("contentful caído"))
+
+	assert.NoError(t, svc.VerifyExists(context.Background(), "borrador"))
+	assert.True(t, repositories.IsNotFound(svc.VerifyExists(context.Background(), "no-existe")))
+	assert.Error(t, svc.VerifyExists(context.Background(), "roto"))
+	assert.True(t, services.IsValidationError(svc.VerifyExists(context.Background(), " ")))
 }

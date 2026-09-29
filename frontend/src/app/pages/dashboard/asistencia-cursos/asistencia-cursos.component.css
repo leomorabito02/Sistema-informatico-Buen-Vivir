@@ -45,60 +45,26 @@
   margin: 0 0 0.75rem 0;
 }
 
+.toolbar {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
 .course-picker {
   display: flex;
   flex-direction: column;
   gap: 0.4rem;
-  margin-bottom: 1.5rem;
-  max-width: 320px;
+  width: 100%;
+  max-width: 360px;
 }
 
 .course-picker label {
   font-weight: 600;
   color: var(--text-primary, #1d1d1b);
-}
-
-.two-col {
-  display: grid;
-  grid-template-columns: 1fr 1.4fr;
-  gap: 1.5rem;
-  align-items: start;
-}
-
-.manual-activity-row {
-  display: flex;
-  gap: 0.75rem;
-  flex-wrap: wrap;
-}
-
-.draft-table {
-  width: 100%;
-  border-collapse: collapse;
-}
-
-.draft-table th {
-  text-align: left;
-  padding: 0.5rem;
-  border-bottom: 2px solid var(--surface-border, #e5e7eb);
-  font-size: 0.85rem;
-  color: var(--text-muted);
-}
-
-.draft-table td {
-  padding: 0.5rem;
-  border-bottom: 1px solid var(--surface-border, #e5e7eb);
-}
-
-.attendance-actions {
-  display: flex;
-  justify-content: flex-end;
-  margin-top: 1rem;
-}
-
-@media (max-width: 900px) {
-  .two-col {
-    grid-template-columns: 1fr;
-  }
 }
 
 @media (max-width: 768px) {

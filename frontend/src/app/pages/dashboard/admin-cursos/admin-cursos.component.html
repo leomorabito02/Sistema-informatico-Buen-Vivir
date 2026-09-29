@@ -75,7 +75,11 @@
         <ng-template pTemplate="body" let-c>
           <tr>
             <td>
-              <strong>{{ c.title }}</strong>
+              <a
+                class="course-link"
+                [routerLink]="['/dashboard/cursos', c.id]"
+                >{{ c.title }}</a
+              >
               <div class="muted">{{ descPreview(c) }}</div>
             </td>
             <td>
@@ -91,6 +95,13 @@
             </td>
             <td>{{ c.material?.length || 0 }}</td>
             <td class="actions">
+              <p-button
+                icon="pi pi-list-check"
+                [text]="true"
+                pTooltip="Ver detalle y actividades"
+                ariaLabel="Ver detalle y actividades"
+                (onClick)="openDetail(c)"
+              ></p-button>
               <p-button
                 icon="pi pi-pencil"
                 [text]="true"
@@ -430,10 +441,13 @@
         optionLabel="label"
         optionValue="value"
         [(ngModel)]="materialForm.type"
+        (ngModelChange)="onMaterialTypeChange()"
       ></p-select>
     </label>
-    <label>
-      URL (link de video / recurso externo)
+    <label *ngIf="materialForm.type !== 'PDF'">
+      URL ({{
+        materialForm.type === "Video" ? "link de video" : "recurso externo"
+      }})
       <input
         pInputText
         [(ngModel)]="materialForm.url"
@@ -444,12 +458,12 @@
         {{
           materialUrlInvalid
             ? "Debe empezar con http:// o https://"
-            : "Para Video o Link: pegá acá el enlace."
+            : "Pegá acá el enlace."
         }}
       </small>
     </label>
 
-    <label *ngIf="!editingMaterialId">
+    <label *ngIf="materialForm.type === 'PDF' && !editingMaterialId">
       Subir archivo (JPG/PNG/WEBP ≤ 5 MB · PDF/DOC ≤ 10 MB)
       <input
         type="file"
@@ -461,12 +475,12 @@
           materialFileError ||
             (materialFile
               ? materialFile.name + " listo para subir"
-              : "Se sube a Contentful al guardar. Los videos van por URL, no por archivo.")
+              : "Se sube a Contentful al guardar.")
         }}
       </small>
     </label>
 
-    <label>
+    <label *ngIf="materialForm.type === 'PDF'">
       Asset ID de Contentful (opcional)
       <input
         pInputText

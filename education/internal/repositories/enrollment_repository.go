@@ -17,6 +17,10 @@ const enrollmentsCollection = "inscripciones"
 // "inscripciones".
 type EnrollmentRepository interface {
 	ListByCourse(ctx context.Context, cursoID string) ([]models.Enrollment, error)
+	// ListByParticipant devuelve todas las inscripciones (de cualquier
+	// estado) de un participante: es la base de "mis cursos" del rol
+	// participante.
+	ListByParticipant(ctx context.Context, participanteID string) ([]models.Enrollment, error)
 	// Create persiste una nueva inscripción. No valida duplicados ni
 	// cupo — eso es responsabilidad de EnrollmentService.Enroll, que
 	// lista las inscripciones activas del curso antes de llamar acá.
@@ -34,7 +38,15 @@ func NewEnrollmentRepository(client *firestore.Client) EnrollmentRepository {
 }
 
 func (r *enrollmentRepository) ListByCourse(ctx context.Context, cursoID string) ([]models.Enrollment, error) {
-	iter := r.client.Collection(enrollmentsCollection).Where("curso_id", "==", cursoID).Documents(ctx)
+	return r.list(ctx, "curso_id", cursoID)
+}
+
+func (r *enrollmentRepository) ListByParticipant(ctx context.Context, participanteID string) ([]models.Enrollment, error) {
+	return r.list(ctx, "participante_id", participanteID)
+}
+
+func (r *enrollmentRepository) list(ctx context.Context, field, value string) ([]models.Enrollment, error) {
+	iter := r.client.Collection(enrollmentsCollection).Where(field, "==", value).Documents(ctx)
 	defer iter.Stop()
 
 	enrollments := make([]models.Enrollment, 0)

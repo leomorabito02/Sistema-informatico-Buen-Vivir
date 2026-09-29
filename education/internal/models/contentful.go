@@ -87,16 +87,6 @@ type ContentfulCollection struct {
 	} `json:"includes"`
 }
 
-// ContentfulSingleEntry es la respuesta de GET /entries/{id} en la CDA:
-// una entry suelta con su propio bloque "includes".
-type ContentfulSingleEntry struct {
-	ContentfulEntry
-	Includes struct {
-		Entry []ContentfulEntry `json:"Entry"`
-		Asset []ContentfulAsset `json:"Asset"`
-	} `json:"includes"`
-}
-
 // IncludesIndex permite resolver Links contra los recursos embebidos en
 // "includes" sin recorrer los slices repetidamente.
 type IncludesIndex struct {

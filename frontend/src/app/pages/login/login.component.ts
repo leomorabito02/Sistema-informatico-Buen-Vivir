@@ -7,13 +7,7 @@ import {
   Validators,
 } from "@angular/forms";
 import { Router, RouterLink } from "@angular/router";
-import {
-  LucideAngularModule,
-  Mail,
-  Lock,
-  Eye,
-  EyeOff,
-} from "lucide-angular";
+import { LucideAngularModule, Mail, Lock, Eye, EyeOff } from "lucide-angular";
 import { AuthService } from "../../services/auth.service";
 import { AvailableAccount } from "../../core/models/auth.model";
 

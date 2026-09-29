@@ -87,8 +87,7 @@ export class InscripcionesComponent implements OnInit {
         this.participantNames = new Map(
           directory.map((p) => [
             p.participanteId,
-            `${p.nombre ?? ""} ${p.apellido ?? ""}`.trim() ||
-              p.participanteId,
+            `${p.nombre ?? ""} ${p.apellido ?? ""}`.trim() || p.participanteId,
           ]),
         );
         this.participantOptions = directory

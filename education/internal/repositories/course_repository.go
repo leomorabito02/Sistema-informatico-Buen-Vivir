@@ -72,14 +72,24 @@ func (r *courseRepository) List(ctx context.Context) ([]models.Course, error) {
 	return courses, nil
 }
 
+// Get busca el curso por sys.id vía el endpoint de colección de la CDA
+// (no GET /entries/{id}): ese endpoint de entry suelta no devuelve
+// "includes" en la respuesta real de Contentful (confirmado contra la
+// API real), así que trainingArea/material/coverImage quedaban sin
+// resolver. El endpoint de colección filtrado sí trae "includes".
 func (r *courseRepository) Get(ctx context.Context, id string) (*models.Course, error) {
-	entry, err := r.client.GetPublishedEntry(ctx, id, courseInclude)
+	collection, err := r.client.ListEntriesWhere(ctx, courseContentType, courseInclude, map[string]string{
+		"sys.id": id,
+	})
 	if err != nil {
 		return nil, err
 	}
+	if len(collection.Items) == 0 {
+		return nil, ErrNotFound
+	}
 
-	idx := models.NewIncludesIndex(entry.Includes.Entry, entry.Includes.Asset)
-	course := courseFromCDAEntry(entry.ContentfulEntry, idx)
+	idx := models.NewIncludesIndex(collection.Includes.Entry, collection.Includes.Asset)
+	course := courseFromCDAEntry(collection.Items[0], idx)
 	return &course, nil
 }
 

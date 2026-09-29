@@ -1,6 +1,7 @@
 import { Component, OnInit, inject } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { FormsModule } from "@angular/forms";
+import { Router, RouterLink } from "@angular/router";
 import { forkJoin, of } from "rxjs";
 import { catchError } from "rxjs/operators";
 
@@ -60,6 +61,7 @@ type CourseRow = Course & { publicado: boolean };
     ProgressSpinnerModule,
     MessageModule,
     TooltipModule,
+    RouterLink,
   ],
   providers: [MessageService, ConfirmationService],
   templateUrl: "./admin-cursos.component.html",
@@ -70,6 +72,7 @@ export class AdminCursosComponent implements OnInit {
   private readonly users = inject(UsersService);
   private readonly toast = inject(MessageService);
   private readonly confirm = inject(ConfirmationService);
+  private readonly router = inject(Router);
 
   section: Section = "cursos";
   loading = true;
@@ -213,6 +216,11 @@ export class AdminCursosComponent implements OnInit {
     this.editingCourseId = null;
     this.courseForm = this.emptyCourseForm();
     this.courseDialog = true;
+  }
+
+  /** Detalle del curso con el CRUD de actividades y sus entregas. */
+  openDetail(c: Course) {
+    this.router.navigate(["/dashboard/cursos", c.id]);
   }
 
   editCourse(c: Course) {
@@ -445,6 +453,14 @@ export class AdminCursosComponent implements OnInit {
   get materialUrlInvalid(): boolean {
     const u = this.materialForm.url.trim();
     return !!u && !/^https?:\/\//i.test(u);
+  }
+
+  onMaterialTypeChange() {
+    // el campo que no corresponde al tipo elegido no se manda al backend
+    this.materialForm.url = "";
+    this.materialForm.fileAssetId = "";
+    this.materialFile = null;
+    this.materialFileError = "";
   }
 
   onMaterialFile(event: Event) {

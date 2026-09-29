@@ -45,6 +45,18 @@ func (m *MockActivityService) CreateActivity(ctx context.Context, cursoID string
 	return args.Get(0).(*models.Activity), args.Error(1)
 }
 
+func (m *MockActivityService) UpdateActivity(ctx context.Context, id string, input models.ActivityInput) (*models.Activity, error) {
+	args := m.Called(ctx, id, input)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*models.Activity), args.Error(1)
+}
+
+func (m *MockActivityService) DeleteActivity(ctx context.Context, id string) error {
+	return m.Called(ctx, id).Error(0)
+}
+
 type MockEnrollmentService struct {
 	mock.Mock
 }
@@ -57,6 +69,14 @@ func (m *MockEnrollmentService) ListByCourse(ctx context.Context, cursoID string
 	return args.Get(0).([]models.Enrollment), args.Error(1)
 }
 
+func (m *MockEnrollmentService) Enroll(ctx context.Context, participanteID, cursoID, bearerToken string) (*models.Enrollment, error) {
+	args := m.Called(ctx, participanteID, cursoID, bearerToken)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*models.Enrollment), args.Error(1)
+}
+
 type MockAttendanceService struct {
 	mock.Mock
 }
@@ -67,11 +87,6 @@ func (m *MockAttendanceService) ListByActivity(ctx context.Context, actividadID 
 		return nil, args.Error(1)
 	}
 	return args.Get(0).([]models.Attendance), args.Error(1)
-}
-
-func (m *MockAttendanceService) RegisterBatch(ctx context.Context, actividadID string, inputs []models.AttendanceInput) error {
-	args := m.Called(ctx, actividadID, inputs)
-	return args.Error(0)
 }
 
 type MockProgressService struct {
@@ -87,13 +102,19 @@ func (m *MockProgressService) CalculateCourseProgress(ctx context.Context, curso
 }
 
 func newDocenteController() (*controllers.DocenteController, *MockCourseService, *MockActivityService, *MockEnrollmentService, *MockAttendanceService, *MockProgressService) {
+	ctrl, courseSvc, activitySvc, enrollmentSvc, attendanceSvc, progressSvc, _ := newDocenteControllerWithSubmissions()
+	return ctrl, courseSvc, activitySvc, enrollmentSvc, attendanceSvc, progressSvc
+}
+
+func newDocenteControllerWithSubmissions() (*controllers.DocenteController, *MockCourseService, *MockActivityService, *MockEnrollmentService, *MockAttendanceService, *MockProgressService, *MockSubmissionService) {
 	courseSvc := new(MockCourseService)
 	activitySvc := new(MockActivityService)
 	enrollmentSvc := new(MockEnrollmentService)
 	attendanceSvc := new(MockAttendanceService)
 	progressSvc := new(MockProgressService)
-	ctrl := controllers.NewDocenteController(courseSvc, activitySvc, enrollmentSvc, attendanceSvc, progressSvc)
-	return ctrl, courseSvc, activitySvc, enrollmentSvc, attendanceSvc, progressSvc
+	submissionSvc := new(MockSubmissionService)
+	ctrl := controllers.NewDocenteController(courseSvc, activitySvc, enrollmentSvc, attendanceSvc, progressSvc, submissionSvc)
+	return ctrl, courseSvc, activitySvc, enrollmentSvc, attendanceSvc, progressSvc, submissionSvc
 }
 
 func withTeacherContext(r *http.Request, teacherID string) *http.Request {
@@ -215,34 +236,6 @@ func TestDocenteController_CreateActivity_Success(t *testing.T) {
 	assert.Equal(t, http.StatusCreated, w.Code)
 }
 
-func TestDocenteController_RegisterAttendance_ActivityNotFound(t *testing.T) {
-	ctrl, _, activitySvc, _, _, _ := newDocenteController()
-
-	activitySvc.On("GetActivity", mock.Anything, "a1").Return(nil, repoErrNotFound())
-
-	body, _ := json.Marshal([]models.AttendanceInput{{ParticipanteID: "p1", Presente: true}})
-	req := withChiURLParam(withTeacherContext(httptest.NewRequest("POST", "/api/docente/actividades/a1/asistencia", bytes.NewBuffer(body)), "teacher-1"), "actividadId", "a1")
-	w := httptest.NewRecorder()
-	ctrl.RegisterAttendance(w, req)
-
-	assert.Equal(t, http.StatusNotFound, w.Code)
-}
-
-func TestDocenteController_RegisterAttendance_Success(t *testing.T) {
-	ctrl, courseSvc, activitySvc, _, attendanceSvc, _ := newDocenteController()
-
-	activitySvc.On("GetActivity", mock.Anything, "a1").Return(&models.Activity{ID: "a1", CursoID: "c1"}, nil)
-	courseSvc.On("VerifyOwnership", mock.Anything, "c1", "teacher-1").Return(nil)
-	attendanceSvc.On("RegisterBatch", mock.Anything, "a1", mock.AnythingOfType("[]models.AttendanceInput")).Return(nil)
-
-	body, _ := json.Marshal([]models.AttendanceInput{{ParticipanteID: "p1", Presente: true}})
-	req := withChiURLParam(withTeacherContext(httptest.NewRequest("POST", "/api/docente/actividades/a1/asistencia", bytes.NewBuffer(body)), "teacher-1"), "actividadId", "a1")
-	w := httptest.NewRecorder()
-	ctrl.RegisterAttendance(w, req)
-
-	assert.Equal(t, http.StatusOK, w.Code)
-}
-
 func TestDocenteController_ListAttendance_Success(t *testing.T) {
 	ctrl, courseSvc, activitySvc, _, attendanceSvc, _ := newDocenteController()
 
@@ -295,4 +288,122 @@ func TestDocenteController_GetProgress_NotOwner(t *testing.T) {
 	ctrl.GetProgress(w, req)
 
 	assert.Equal(t, http.StatusForbidden, w.Code)
+}
+
+func TestDocenteController_UpdateActivity_Success(t *testing.T) {
+	ctrl, courseSvc, activitySvc, _, _, _ := newDocenteController()
+
+	activitySvc.On("GetActivity", mock.Anything, "a1").Return(&models.Activity{ID: "a1", CursoID: "c1"}, nil)
+	courseSvc.On("VerifyOwnership", mock.Anything, "c1", "teacher-1").Return(nil)
+	activitySvc.On("UpdateActivity", mock.Anything, "a1", mock.AnythingOfType("models.ActivityInput")).
+		Return(&models.Activity{ID: "a1"}, nil)
+
+	body, _ := json.Marshal(models.ActivityInput{Titulo: "Práctica", Consigna: "Hacer"})
+	req := withChiURLParam(withTeacherContext(httptest.NewRequest("PUT", "/api/docente/actividades/a1", bytes.NewBuffer(body)), "teacher-1"), "actividadId", "a1")
+	w := httptest.NewRecorder()
+	ctrl.UpdateActivity(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+}
+
+func TestDocenteController_UpdateActivity_NotOwner(t *testing.T) {
+	ctrl, courseSvc, activitySvc, _, _, _ := newDocenteController()
+
+	activitySvc.On("GetActivity", mock.Anything, "a1").Return(&models.Activity{ID: "a1", CursoID: "c1"}, nil)
+	courseSvc.On("VerifyOwnership", mock.Anything, "c1", "teacher-1").Return(services.NewForbiddenError("no"))
+
+	req := withChiURLParam(withTeacherContext(httptest.NewRequest("PUT", "/api/docente/actividades/a1", bytes.NewBufferString("{}")), "teacher-1"), "actividadId", "a1")
+	w := httptest.NewRecorder()
+	ctrl.UpdateActivity(w, req)
+
+	assert.Equal(t, http.StatusForbidden, w.Code)
+	activitySvc.AssertNotCalled(t, "UpdateActivity", mock.Anything, mock.Anything, mock.Anything)
+}
+
+func TestDocenteController_UpdateActivity_BadJSON(t *testing.T) {
+	ctrl, courseSvc, activitySvc, _, _, _ := newDocenteController()
+
+	activitySvc.On("GetActivity", mock.Anything, "a1").Return(&models.Activity{ID: "a1", CursoID: "c1"}, nil)
+	courseSvc.On("VerifyOwnership", mock.Anything, "c1", "teacher-1").Return(nil)
+
+	req := withChiURLParam(withTeacherContext(httptest.NewRequest("PUT", "/api/docente/actividades/a1", bytes.NewBufferString("{")), "teacher-1"), "actividadId", "a1")
+	w := httptest.NewRecorder()
+	ctrl.UpdateActivity(w, req)
+
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+}
+
+func TestDocenteController_DeleteActivity_Success(t *testing.T) {
+	ctrl, courseSvc, activitySvc, _, _, _ := newDocenteController()
+
+	activitySvc.On("GetActivity", mock.Anything, "a1").Return(&models.Activity{ID: "a1", CursoID: "c1"}, nil)
+	courseSvc.On("VerifyOwnership", mock.Anything, "c1", "teacher-1").Return(nil)
+	activitySvc.On("DeleteActivity", mock.Anything, "a1").Return(nil)
+
+	req := withChiURLParam(withTeacherContext(httptest.NewRequest("DELETE", "/api/docente/actividades/a1", nil), "teacher-1"), "actividadId", "a1")
+	w := httptest.NewRecorder()
+	ctrl.DeleteActivity(w, req)
+
+	assert.Equal(t, http.StatusNoContent, w.Code)
+}
+
+func TestDocenteController_DeleteActivity_NotFound(t *testing.T) {
+	ctrl, _, activitySvc, _, _, _ := newDocenteController()
+
+	activitySvc.On("GetActivity", mock.Anything, "a1").Return(nil, repoErrNotFound())
+
+	req := withChiURLParam(withTeacherContext(httptest.NewRequest("DELETE", "/api/docente/actividades/a1", nil), "teacher-1"), "actividadId", "a1")
+	w := httptest.NewRecorder()
+	ctrl.DeleteActivity(w, req)
+
+	assert.Equal(t, http.StatusNotFound, w.Code)
+}
+
+func TestDocenteController_ListSubmissions_Success(t *testing.T) {
+	ctrl, courseSvc, activitySvc, _, _, _, submissionSvc := newDocenteControllerWithSubmissions()
+
+	activity := &models.Activity{ID: "a1", CursoID: "c1"}
+	activitySvc.On("GetActivity", mock.Anything, "a1").Return(activity, nil)
+	courseSvc.On("VerifyOwnership", mock.Anything, "c1", "teacher-1").Return(nil)
+	submissionSvc.On("ListByActivity", mock.Anything, activity, "").
+		Return([]models.SubmissionStatusRow{{ParticipanteID: "p1", Estado: models.SubmissionEstadoSinEntregar}}, nil)
+
+	req := withChiURLParam(withTeacherContext(httptest.NewRequest("GET", "/api/docente/actividades/a1/entregas", nil), "teacher-1"), "actividadId", "a1")
+	w := httptest.NewRecorder()
+	ctrl.ListSubmissions(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+	assert.Contains(t, w.Body.String(), "sin_entregar")
+}
+
+func TestDocenteController_ListSubmissions_NotOwner(t *testing.T) {
+	ctrl, courseSvc, activitySvc, _, _, _, submissionSvc := newDocenteControllerWithSubmissions()
+
+	activitySvc.On("GetActivity", mock.Anything, "a1").Return(&models.Activity{ID: "a1", CursoID: "c1"}, nil)
+	courseSvc.On("VerifyOwnership", mock.Anything, "c1", "teacher-1").Return(services.NewForbiddenError("no"))
+
+	req := withChiURLParam(withTeacherContext(httptest.NewRequest("GET", "/api/docente/actividades/a1/entregas", nil), "teacher-1"), "actividadId", "a1")
+	w := httptest.NewRecorder()
+	ctrl.ListSubmissions(w, req)
+
+	assert.Equal(t, http.StatusForbidden, w.Code)
+	submissionSvc.AssertNotCalled(t, "ListByActivity", mock.Anything, mock.Anything, mock.Anything)
+}
+
+func TestAttendanceController_List(t *testing.T) {
+	activitySvc := new(MockActivityService)
+	attendanceSvc := new(MockAttendanceService)
+	ctrl := controllers.NewAttendanceController(activitySvc, attendanceSvc)
+
+	activitySvc.On("GetActivity", mock.Anything, "a1").Return(&models.Activity{ID: "a1"}, nil)
+	activitySvc.On("GetActivity", mock.Anything, "nope").Return(nil, repoErrNotFound())
+	attendanceSvc.On("ListByActivity", mock.Anything, "a1").Return([]models.Attendance{{ID: "a1_p1", Presente: true}}, nil)
+
+	w := httptest.NewRecorder()
+	ctrl.List(w, withChiURLParam(httptest.NewRequest("GET", "/api/actividades/a1/asistencia", nil), "actividadId", "a1"))
+	assert.Equal(t, http.StatusOK, w.Code)
+
+	w = httptest.NewRecorder()
+	ctrl.List(w, withChiURLParam(httptest.NewRequest("GET", "/api/actividades/nope/asistencia", nil), "actividadId", "nope"))
+	assert.Equal(t, http.StatusNotFound, w.Code)
 }

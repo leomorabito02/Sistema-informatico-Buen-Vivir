@@ -29,7 +29,9 @@ func decodeJSONBody(r *http.Request, dst any) error {
 // respuesta HTTP apropiada: 400 si es de validación de negocio, 403 si
 // es de ownership (ej. un docente sobre un curso ajeno), 404 si la
 // entry/documento no se encontró, 409 si hubo conflicto de versión
-// (edición concurrente en Contentful), y 502 para cualquier otra falla
+// (edición concurrente en Contentful), 422 si Contentful rechazó la
+// entry por validación (ej. publicar un borrador incompleto, con el
+// detalle de qué campos faltan), y 502 para cualquier otra falla
 // de infraestructura (Contentful o Firestore).
 func writeError(w http.ResponseWriter, err error) {
 	switch {
@@ -42,6 +44,10 @@ func writeError(w http.ResponseWriter, err error) {
 	case repositories.IsConflict(err):
 		writeErrorJSON(w, http.StatusConflict, "el recurso fue modificado por otra edición, volvé a intentar")
 	default:
+		if msg, ok := repositories.ValidationMessage(err); ok {
+			writeErrorJSON(w, http.StatusUnprocessableEntity, msg)
+			return
+		}
 		writeErrorJSON(w, http.StatusBadGateway, "error de infraestructura: "+err.Error())
 	}
 }

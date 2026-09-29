@@ -38,19 +38,31 @@ import (
 // limpio en la lista de env_vars de deploy-cloudrun. Tiene prioridad
 // sobre GOOGLE_APPLICATION_CREDENTIALS.
 func NewFirestoreClient(ctx context.Context) (*firestore.Client, error) {
-	if b64 := strings.TrimSpace(os.Getenv("GOOGLE_APPLICATION_CREDENTIALS_BASE64")); b64 != "" {
-		decoded, err := base64.StdEncoding.DecodeString(b64)
-		if err != nil {
-			return nil, err
-		}
-		_ = os.Unsetenv("GOOGLE_APPLICATION_CREDENTIALS")
-		return firestore.NewClient(ctx, firestore.DetectProjectID, option.WithCredentialsJSON(decoded)) //nolint:staticcheck // option.WithCredentialsJSON es necesario para credenciales inline (mismo criterio que auth/firebase_service.go)
+	credentialsJSON, err := GoogleCredentialsJSON()
+	if err != nil {
+		return nil, err
 	}
+	if credentialsJSON == nil {
+		return firestore.NewClient(ctx, firestore.DetectProjectID)
+	}
+	_ = os.Unsetenv("GOOGLE_APPLICATION_CREDENTIALS")
+	return firestore.NewClient(ctx, firestore.DetectProjectID, option.WithCredentialsJSON(credentialsJSON)) //nolint:staticcheck // option.WithCredentialsJSON es necesario para credenciales inline (mismo criterio que auth/firebase_service.go)
+}
 
+// GoogleCredentialsJSON devuelve el JSON de la service account cuando
+// viene inline (GOOGLE_APPLICATION_CREDENTIALS_BASE64, o
+// GOOGLE_APPLICATION_CREDENTIALS con el JSON crudo), o nil cuando
+// GOOGLE_APPLICATION_CREDENTIALS es un path / no está (ADC estándar).
+// No modifica el entorno: por eso main lo llama antes que
+// NewFirestoreClient (que sí limpia la variable) para pasarle las
+// mismas credenciales al cliente de Cloud Storage.
+func GoogleCredentialsJSON() ([]byte, error) {
+	if b64 := strings.TrimSpace(os.Getenv("GOOGLE_APPLICATION_CREDENTIALS_BASE64")); b64 != "" {
+		return base64.StdEncoding.DecodeString(b64)
+	}
 	credentialsEnv := strings.TrimSpace(os.Getenv("GOOGLE_APPLICATION_CREDENTIALS"))
 	if strings.HasPrefix(credentialsEnv, "{") {
-		_ = os.Unsetenv("GOOGLE_APPLICATION_CREDENTIALS")
-		return firestore.NewClient(ctx, firestore.DetectProjectID, option.WithCredentialsJSON([]byte(credentialsEnv))) //nolint:staticcheck // option.WithCredentialsJSON es necesario para credenciales inline (mismo criterio que auth/firebase_service.go)
+		return []byte(credentialsEnv), nil
 	}
-	return firestore.NewClient(ctx, firestore.DetectProjectID)
+	return nil, nil
 }

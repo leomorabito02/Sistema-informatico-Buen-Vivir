@@ -1,0 +1,360 @@
+.page-container {
+  padding: 1.5rem;
+  max-width: 1000px;
+  margin: 0 auto;
+}
+
+.top-bar {
+  margin-bottom: 1.25rem;
+}
+
+.state-box {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 2rem;
+  color: var(--text-muted);
+}
+
+.empty-state {
+  color: var(--text-muted);
+  padding: 1rem 0;
+}
+
+.muted {
+  color: var(--text-muted);
+}
+
+/* --- Datos del curso --- */
+.course-header {
+  background: var(--bg-white);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.course-tags {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.75rem;
+}
+
+.course-title {
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: var(--primary);
+  margin: 0 0 1rem;
+  overflow-wrap: anywhere;
+}
+
+.course-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem 2.5rem;
+  margin: 0 0 1.25rem;
+}
+
+.course-meta dt {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  margin-bottom: 0.2rem;
+}
+
+.course-meta dt .pi {
+  color: var(--primary);
+  margin-right: 0.25rem;
+}
+
+.course-meta dd {
+  margin: 0;
+  font-weight: 600;
+  color: var(--text-main);
+}
+
+.course-desc {
+  color: #4b5563;
+  border-top: 1px solid var(--border);
+  padding-top: 1rem;
+}
+
+/* --- Progreso del participante --- */
+.progress-card {
+  background: var(--primary-10);
+  border-radius: 12px;
+  padding: 1rem 1.25rem;
+  margin-bottom: 1.5rem;
+}
+
+.progress-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 0.5rem;
+  color: var(--primary);
+  font-weight: 600;
+}
+
+.progress-head strong {
+  font-size: 1.5rem;
+}
+
+.progress-card .muted {
+  margin: 0.5rem 0 0;
+  font-size: 0.85rem;
+}
+
+:host ::ng-deep .progress-bar {
+  height: 0.6rem;
+}
+
+:host ::ng-deep .progress-bar .p-progressbar-value {
+  background: var(--primary);
+}
+
+/* --- Actividades --- */
+.activities-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin-bottom: 1rem;
+}
+
+.activities-head h2 {
+  font-size: 1.25rem;
+  color: var(--primary);
+  margin: 0;
+}
+
+.activity-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.activity-item {
+  display: grid;
+  grid-template-columns: 7.5rem 1fr auto;
+  gap: 1rem;
+  align-items: start;
+  background: var(--bg-white);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 1rem 1.25rem;
+}
+
+.activity-date {
+  font-weight: 600;
+  color: var(--primary);
+  font-size: 0.9rem;
+  white-space: nowrap;
+}
+
+.activity-body {
+  min-width: 0;
+}
+
+.activity-body h3 {
+  font-size: 1rem;
+  margin: 0 0 0.35rem;
+  color: var(--text-main);
+  overflow-wrap: anywhere;
+}
+
+.activity-consigna {
+  margin: 0;
+  color: #4b5563;
+  font-size: 0.9rem;
+  white-space: pre-line;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.activity-status {
+  margin-top: 0.6rem;
+}
+
+.activity-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+/* --- Formulario de actividad --- */
+.activity-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.activity-form label {
+  font-weight: 600;
+  margin-top: 0.6rem;
+}
+
+.activity-form label:first-child {
+  margin-top: 0;
+}
+
+.activity-form input,
+.activity-form textarea {
+  width: 100%;
+}
+
+:host ::ng-deep .activity-form .p-datepicker {
+  width: 100%;
+}
+
+/* --- Entregas --- */
+.entregas-resumen {
+  margin: 0 0 1rem;
+  color: #4b5563;
+}
+
+.entrega-detalle {
+  background: #fafaf6;
+}
+
+.entrega-detalle h4,
+.entrega-hecha h4,
+.consigna-box h4 {
+  font-size: 0.85rem;
+  color: var(--primary);
+  margin: 0.75rem 0 0.35rem;
+}
+
+.entrega-texto {
+  white-space: pre-line;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.file-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.file-list li {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  min-width: 0;
+}
+
+.file-list .pi {
+  color: var(--primary);
+}
+
+.file-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.file-list .muted {
+  font-size: 0.8rem;
+  flex-shrink: 0;
+}
+
+/* --- Entrega del participante --- */
+.entrega-fecha {
+  margin: 0 0 1rem;
+  color: var(--text-muted);
+}
+
+.consigna-box {
+  background: #fafaf6;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0.25rem 1rem 1rem;
+  margin-bottom: 1.25rem;
+}
+
+.consigna-box p {
+  margin: 0;
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+}
+
+.entrega-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.entrega-form label {
+  font-weight: 600;
+}
+
+.entrega-form textarea {
+  width: 100%;
+}
+
+.adjuntos {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  margin: 0.5rem 0;
+}
+
+.entrega-estado {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  background: var(--primary-10);
+  color: var(--primary);
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
+}
+
+.entrega-estado .pi {
+  font-size: 1.5rem;
+}
+
+.entrega-estado div {
+  display: flex;
+  flex-direction: column;
+}
+
+.entrega-estado span {
+  font-size: 0.85rem;
+}
+
+@media (max-width: 640px) {
+  .page-container {
+    padding: 1rem;
+  }
+
+  .course-header {
+    padding: 1.1rem;
+  }
+
+  .course-title {
+    font-size: 1.4rem;
+  }
+
+  .activity-item {
+    grid-template-columns: 1fr;
+    gap: 0.5rem;
+  }
+
+  .activity-actions {
+    justify-content: flex-start;
+  }
+}

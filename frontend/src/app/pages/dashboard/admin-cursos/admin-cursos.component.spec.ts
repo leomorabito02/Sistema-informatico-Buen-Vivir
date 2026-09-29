@@ -135,7 +135,12 @@ describe("AdminCursosComponent", () => {
       component.courseForm.mode = "Virtual";
       component.courseForm.trainingAreaId = "area1";
       component.courseForm.responsibleTeacher = "teacher1";
+      component.courseForm.duration = "4 semanas";
+      expect(component.courseFormValid)
+        .withContext("sin materiales")
+        .toBeFalse();
 
+      component.courseForm.materialIds = ["m1"];
       expect(component.courseFormValid).toBeTrue();
     });
 

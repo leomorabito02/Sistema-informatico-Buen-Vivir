@@ -121,6 +121,23 @@ func (c *AuthServiceClient) ListUsers(ctx context.Context, bearerToken string) (
 	return parsed.Data, nil
 }
 
+// GetMyParticipantID pide GET /api/v1/profile/me a auth-service con el
+// token del propio participante y devuelve su participant_id (el id que
+// education usa como participanteId en inscripciones, asistencias y
+// entregas — el "sub" del JWT es el user_id, no sirve). Devuelve "" si
+// el usuario no tiene perfil de participante.
+func (c *AuthServiceClient) GetMyParticipantID(ctx context.Context, bearerToken string) (string, error) {
+	var parsed struct {
+		RoleData struct {
+			ParticipantID string `json:"participant_id"`
+		} `json:"role_data"`
+	}
+	if err := c.doGet(ctx, "/api/v1/profile/me", bearerToken, &parsed); err != nil {
+		return "", err
+	}
+	return parsed.RoleData.ParticipantID, nil
+}
+
 func (c *AuthServiceClient) doGet(ctx context.Context, path, bearerToken string, out any) error {
 	if c.baseURL == "" {
 		return ErrAuthServiceNotConfigured

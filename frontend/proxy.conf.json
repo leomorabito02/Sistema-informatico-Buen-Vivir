@@ -39,5 +39,15 @@
     "target": "http://localhost:8210",
     "secure": false,
     "changeOrigin": true
+  },
+  "/api/participante": {
+    "target": "http://localhost:8210",
+    "secure": false,
+    "changeOrigin": true
+  },
+  "/api/entregas": {
+    "target": "http://localhost:8210",
+    "secure": false,
+    "changeOrigin": true
   }
 }

@@ -47,6 +47,14 @@ type Config struct {
 	// request (no se aborta el arranque del servicio: el resto de
 	// education no depende de auth-service).
 	AuthServiceURL string
+
+	// EntregasBucket es el bucket de Cloud Storage (mismo proyecto de
+	// GCP que Firestore) donde se guardan los adjuntos de las entregas
+	// de actividades. Es privado: education lee los archivos con las
+	// mismas credenciales de Firestore y los sirve validando permisos.
+	// Si queda vacío, el servicio arranca igual y las entregas se
+	// aceptan solo con texto.
+	EntregasBucket string
 }
 
 // LoadConfig arma la configuración del servicio. El archivo que se
@@ -91,6 +99,7 @@ func LoadConfig() (*Config, error) {
 		ContentfulLocale:      os.Getenv("CONTENTFUL_LOCALE"),
 		CORSAllowedOrigins:    os.Getenv("CORS_ALLOWED_ORIGINS"),
 		AuthServiceURL:        strings.TrimRight(os.Getenv("AUTH_SERVICE_URL"), "/"),
+		EntregasBucket:        strings.TrimSpace(os.Getenv("ENTREGAS_BUCKET")),
 	}
 
 	if cfg.ContentfulLocale == "" {

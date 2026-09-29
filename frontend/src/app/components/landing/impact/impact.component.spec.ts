@@ -1,5 +1,8 @@
 import { ComponentFixture, TestBed } from "@angular/core/testing";
 
+import { provideHttpClient } from "@angular/common/http";
+import { provideHttpClientTesting } from "@angular/common/http/testing";
+
 import { ImpactComponent } from "./impact.component";
 
 describe("ImpactComponent", () => {
@@ -9,6 +12,7 @@ describe("ImpactComponent", () => {
   beforeEach(async () => {
     await TestBed.configureTestingModule({
       imports: [ImpactComponent],
+      providers: [provideHttpClient(), provideHttpClientTesting()],
     }).compileComponents();
 
     fixture = TestBed.createComponent(ImpactComponent);

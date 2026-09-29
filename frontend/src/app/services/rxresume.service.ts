@@ -213,11 +213,18 @@ export class RxResumeService {
   }
 
   // updateUserResumeByAdmin modifies a specific participant's CV by userID for staff roles.
-  updateUserResumeByAdmin(userId: string, data: ResumeData): Observable<Resume> {
+  updateUserResumeByAdmin(
+    userId: string,
+    data: ResumeData,
+  ): Observable<Resume> {
     return this.http
-      .put<Resume>(`${this.apiUrl}/api/v1/rxresume/user?user_id=${userId}`, data, {
-        withCredentials: true,
-      })
+      .put<Resume>(
+        `${this.apiUrl}/api/v1/rxresume/user?user_id=${userId}`,
+        data,
+        {
+          withCredentials: true,
+        },
+      )
       .pipe(catchError(this.handleError));
   }
 
