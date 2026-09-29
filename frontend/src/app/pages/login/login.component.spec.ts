@@ -90,6 +90,7 @@ describe("LoginComponent", () => {
       component.loginForm.setValue({
         email: "test@test.com",
         password: "password",
+        rememberMe: false,
       });
       component.onSubmit();
 
@@ -125,6 +126,7 @@ describe("LoginComponent", () => {
       component.loginForm.setValue({
         email: "test@test.com",
         password: "password",
+        rememberMe: false,
       });
       component.onSubmit();
 
@@ -143,6 +145,7 @@ describe("LoginComponent", () => {
       component.loginForm.setValue({
         email: "test@test.com",
         password: "password",
+        rememberMe: false,
       });
       component.onSubmit();
 
@@ -156,6 +159,7 @@ describe("LoginComponent", () => {
       component.loginForm.setValue({
         email: "test@test.com",
         password: "password",
+        rememberMe: false,
       });
 
       for (let i = 0; i < 5; i++) {
@@ -186,6 +190,7 @@ describe("LoginComponent", () => {
       component.loginForm.setValue({
         email: "test@test.com",
         password: "password",
+        rememberMe: false,
       });
       component.onSubmit();
 

@@ -142,11 +142,13 @@ func applyParticipantFields(participant *models.Participant, req *dto.UpdatePart
 	}
 
 	if req.ApprovalStatus != "" {
-		participant.ApprovalStatus = req.ApprovalStatus
 		if req.ApprovalStatus == "approved" {
+			participant.ApprovalStatus = approvalStatusAccepted
 			now := time.Now()
 			participant.ApprovalDate = &now
 			participant.ApprovedBy = &req.ApprovedBy
+		} else {
+			participant.ApprovalStatus = req.ApprovalStatus
 		}
 	}
 }

@@ -140,24 +140,6 @@ func (c *ContentfulClient) ListManagementEntriesWhere(ctx context.Context, conte
 	return &collection, nil
 }
 
-// GetPublishedEntry devuelve una entry publicada por id, con sus
-// referencias resueltas.
-func (c *ContentfulClient) GetPublishedEntry(ctx context.Context, id string, include int) (*models.ContentfulSingleEntry, error) {
-	query := url.Values{}
-	query.Set("include", fmt.Sprintf("%d", include))
-
-	body, _, err := c.doCDA(ctx, http.MethodGet, "/entries/"+id, query)
-	if err != nil {
-		return nil, err
-	}
-
-	var entry models.ContentfulSingleEntry
-	if err := json.Unmarshal(body, &entry); err != nil {
-		return nil, fmt.Errorf("no se pudo parsear la respuesta de Contentful: %w", err)
-	}
-	return &entry, nil
-}
-
 func (c *ContentfulClient) doCDA(ctx context.Context, method, path string, query url.Values) ([]byte, int, error) {
 	if query == nil {
 		query = url.Values{}
@@ -269,9 +251,24 @@ func (c *ContentfulClient) DeleteEntry(ctx context.Context, id string) error {
 // DeleteEntryCascade despublica y luego borra una entry. Es el flujo
 // que exige la CMA: una entry publicada no se puede borrar
 // directamente.
+//
+// Si la entry nunca se publicó (un borrador), la CMA responde 400 ("Not
+// published") al despublicar, no 404. En ese caso confirmamos contra la
+// CMA que de verdad no tiene versión publicada y seguimos con el borrado;
+// sin esto no se podía borrar ningún curso/área/material en borrador.
 func (c *ContentfulClient) DeleteEntryCascade(ctx context.Context, id string) error {
 	if err := c.UnpublishEntry(ctx, id); err != nil {
-		return err
+		apiErr, ok := err.(*ContentfulAPIError)
+		if !ok || apiErr.StatusCode != http.StatusBadRequest {
+			return err
+		}
+		entry, getErr := c.GetManagementEntry(ctx, id)
+		if getErr != nil {
+			return getErr
+		}
+		if entry.Sys.PublishedVersion != 0 {
+			return err
+		}
 	}
 	return c.DeleteEntry(ctx, id)
 }

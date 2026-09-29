@@ -3,10 +3,15 @@
   <div class="header-section">
     <div>
       <h1 class="page-title">
-        <i class="pi pi-book mr-2"></i>Catálogo de Cursos
+        <i class="pi pi-book mr-2"></i
+        >{{ esParticipante ? "Mis cursos" : "Catálogo de Cursos" }}
       </h1>
       <p class="page-subtitle">
-        Explorá los cursos y capacitaciones disponibles para la comunidad.
+        {{
+          esParticipante
+            ? "Los cursos en los que estás inscripto. Entrá a cada uno para ver y entregar sus actividades."
+            : "Explorá los cursos y capacitaciones disponibles para la comunidad."
+        }}
       </p>
     </div>
     <div class="search-box p-input-icon-left">
@@ -41,7 +46,11 @@
     *ngIf="!loading && !error && filteredCursos.length === 0"
     class="empty-state"
   >
-    No hay cursos publicados por ahora.
+    {{
+      esParticipante
+        ? "Todavía no estás inscripto en ningún curso. Pedile a un voluntario o administrador que te inscriba."
+        : "No hay cursos publicados por ahora."
+    }}
   </p>
 
   <div class="grid-container" *ngIf="!loading && !error">
@@ -78,6 +87,7 @@
         <ng-template pTemplate="footer">
           <div class="card-actions">
             <p-button
+              *ngIf="!esParticipante"
               label="Ver detalle"
               icon="pi pi-eye"
               [text]="true"
@@ -91,12 +101,12 @@
               (onClick)="openEnrollDialog(curso)"
             ></p-button>
             <p-button
-              *ngIf="!canEnrollParticipants"
-              label="Inscribirme"
-              icon="pi pi-check-circle"
-              [disabled]="true"
-              pTooltip="La auto-inscripción todavía no está disponible; pedile a un admin o voluntario que te inscriba."
+              *ngIf="esParticipante"
+              label="Ir al curso"
+              icon="pi pi-arrow-right"
+              iconPos="right"
               styleClass="p-button-success"
+              (onClick)="openDetail(curso)"
             ></p-button>
           </div>
         </ng-template>
@@ -163,7 +173,9 @@
 <p-dialog
   [(visible)]="enrollVisible"
   [modal]="true"
-  [style]="{ width: '420px' }"
+  [style]="{ width: '560px' }"
+  [breakpoints]="{ '640px': '90vw' }"
+  styleClass="enroll-dialog"
   [header]="'Inscribir en: ' + (enrollCurso?.title ?? '')"
 >
   <div *ngIf="enrollCurso" class="detail">
@@ -180,6 +192,8 @@
         placeholder="Elegí un participante"
         [filter]="true"
         filterPlaceholder="Buscar por nombre"
+        appendTo="body"
+        scrollHeight="280px"
         [style]="{ width: '100%', marginTop: '0.5rem' }"
       ></p-select>
       <div style="margin-top: 1rem; text-align: right">

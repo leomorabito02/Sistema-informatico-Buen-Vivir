@@ -1,0 +1,151 @@
+package repositories
+
+import (
+	"context"
+	"errors"
+	"fmt"
+
+	"cloud.google.com/go/firestore"
+	"google.golang.org/api/iterator"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
+
+	"buenvivir/education/internal/models"
+)
+
+const submissionsCollection = "entregas"
+
+// ErrAlreadySubmitted señala que el participante ya entregó esa
+// actividad: la entrega es única e inmutable.
+var ErrAlreadySubmitted = errors.New("la actividad ya fue entregada")
+
+// SubmissionDocID es el id determinístico que comparten la Entrega y la
+// Asistencia de un participante en una actividad.
+func SubmissionDocID(actividadID, participanteID string) string {
+	return actividadID + "_" + participanteID
+}
+
+// SubmissionRepository encapsula el acceso a la colección Firestore
+// "entregas".
+type SubmissionRepository interface {
+	// CreateWithAttendance crea la entrega y, en la misma transacción,
+	// escribe la Asistencia del participante en esa actividad con
+	// presente=true y fecha = activity.Fecha. O se guardan las dos o
+	// ninguna. Devuelve ErrAlreadySubmitted si ya había una entrega.
+	CreateWithAttendance(ctx context.Context, activity *models.Activity, sub models.Submission) (*models.Submission, error)
+	Get(ctx context.Context, id string) (*models.Submission, error)
+	ListByActivity(ctx context.Context, actividadID string) ([]models.Submission, error)
+	// GetForParticipant devuelve, indexadas por actividadId, las
+	// entregas del participante en las actividades pedidas (las que no
+	// entregó no aparecen en el mapa).
+	GetForParticipant(ctx context.Context, participanteID string, actividadIDs []string) (map[string]*models.Submission, error)
+}
+
+type submissionRepository struct {
+	client *firestore.Client
+}
+
+func NewSubmissionRepository(client *firestore.Client) SubmissionRepository {
+	return &submissionRepository{client: client}
+}
+
+func (r *submissionRepository) CreateWithAttendance(ctx context.Context, activity *models.Activity, sub models.Submission) (*models.Submission, error) {
+	docID := SubmissionDocID(activity.ID, sub.ParticipanteID)
+	sub.ActividadID = activity.ID
+	if sub.Archivos == nil {
+		sub.Archivos = []models.SubmissionFile{}
+	}
+	attendance := models.Attendance{
+		ParticipanteID: sub.ParticipanteID,
+		ActividadID:    activity.ID,
+		Presente:       true,
+		Fecha:          activity.Fecha,
+	}
+
+	err := r.client.RunTransaction(ctx, func(ctx context.Context, tx *firestore.Transaction) error {
+		if err := tx.Create(r.client.Collection(submissionsCollection).Doc(docID), sub); err != nil {
+			return err
+		}
+		return tx.Set(r.client.Collection(attendancesCollection).Doc(docID), attendance)
+	})
+	if err != nil {
+		if status.Code(err) == codes.AlreadyExists {
+			return nil, ErrAlreadySubmitted
+		}
+		return nil, fmt.Errorf("error registrando entrega: %w", err)
+	}
+	sub.ID = docID
+	return &sub, nil
+}
+
+func (r *submissionRepository) Get(ctx context.Context, id string) (*models.Submission, error) {
+	doc, err := r.client.Collection(submissionsCollection).Doc(id).Get(ctx)
+	if err != nil {
+		if status.Code(err) == codes.NotFound {
+			return nil, ErrNotFound
+		}
+		return nil, fmt.Errorf("error obteniendo entrega: %w", err)
+	}
+	return submissionFromDoc(doc)
+}
+
+func (r *submissionRepository) ListByActivity(ctx context.Context, actividadID string) ([]models.Submission, error) {
+	iter := r.client.Collection(submissionsCollection).Where("actividad_id", "==", actividadID).Documents(ctx)
+	defer iter.Stop()
+
+	submissions := make([]models.Submission, 0)
+	for {
+		doc, err := iter.Next()
+		if err == iterator.Done {
+			break
+		}
+		if err != nil {
+			return nil, fmt.Errorf("error listando entregas: %w", err)
+		}
+		s, err := submissionFromDoc(doc)
+		if err != nil {
+			return nil, err
+		}
+		submissions = append(submissions, *s)
+	}
+	return submissions, nil
+}
+
+func (r *submissionRepository) GetForParticipant(ctx context.Context, participanteID string, actividadIDs []string) (map[string]*models.Submission, error) {
+	result := make(map[string]*models.Submission, len(actividadIDs))
+	if len(actividadIDs) == 0 {
+		return result, nil
+	}
+
+	refs := make([]*firestore.DocumentRef, len(actividadIDs))
+	for i, id := range actividadIDs {
+		refs[i] = r.client.Collection(submissionsCollection).Doc(SubmissionDocID(id, participanteID))
+	}
+	docs, err := r.client.GetAll(ctx, refs)
+	if err != nil {
+		return nil, fmt.Errorf("error obteniendo entregas: %w", err)
+	}
+	for _, doc := range docs {
+		if !doc.Exists() {
+			continue
+		}
+		s, err := submissionFromDoc(doc)
+		if err != nil {
+			return nil, err
+		}
+		result[s.ActividadID] = s
+	}
+	return result, nil
+}
+
+func submissionFromDoc(doc *firestore.DocumentSnapshot) (*models.Submission, error) {
+	var s models.Submission
+	if err := doc.DataTo(&s); err != nil {
+		return nil, fmt.Errorf("error leyendo entrega: %w", err)
+	}
+	s.ID = doc.Ref.ID
+	if s.Archivos == nil {
+		s.Archivos = []models.SubmissionFile{}
+	}
+	return &s, nil
+}

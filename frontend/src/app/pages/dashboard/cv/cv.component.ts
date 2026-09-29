@@ -8,7 +8,14 @@ import { Textarea } from "primeng/textarea";
 import { ProgressSpinnerModule } from "primeng/progressspinner";
 import { DropdownModule } from "primeng/dropdown";
 import { CheckboxModule } from "primeng/checkbox";
-import { RxResumeService, Resume, WorkExperience, EducationItem, Skill, LanguageItem } from "../../../services/rxresume.service";
+import {
+  RxResumeService,
+  Resume,
+  WorkExperience,
+  EducationItem,
+  Skill,
+  LanguageItem,
+} from "../../../services/rxresume.service";
 import { ProfileService } from "../../../services/profile.service";
 
 @Component({
@@ -39,23 +46,23 @@ export class CvComponent implements OnInit {
   message = "";
 
   templates = [
-    { label: 'Onyx', value: 'onyx' },
-    { label: 'Pikachu', value: 'pikachu' },
-    { label: 'Gengar', value: 'gengar' },
-    { label: 'Castform', value: 'castform' },
-    { label: 'Glalie', value: 'glalie' }
+    { label: "Onyx", value: "onyx" },
+    { label: "Pikachu", value: "pikachu" },
+    { label: "Gengar", value: "gengar" },
+    { label: "Castform", value: "castform" },
+    { label: "Glalie", value: "glalie" },
   ];
 
   educationStatuses = [
-    { label: 'En curso', value: 'En curso' },
-    { label: 'Completo', value: 'Completo' },
-    { label: 'Incompleto', value: 'Incompleto' }
+    { label: "En curso", value: "En curso" },
+    { label: "Completo", value: "Completo" },
+    { label: "Incompleto", value: "Incompleto" },
   ];
 
   skillLevels = [
-    { label: 'Básico', value: 'Básico' },
-    { label: 'Intermedio', value: 'Intermedio' },
-    { label: 'Avanzado', value: 'Avanzado' }
+    { label: "Básico", value: "Básico" },
+    { label: "Intermedio", value: "Intermedio" },
+    { label: "Avanzado", value: "Avanzado" },
   ];
 
   ngOnInit() {
@@ -64,19 +71,20 @@ export class CvComponent implements OnInit {
 
   loadData() {
     this.loading = true;
-    
+
     // Load resume from DB (without RxResume API call)
     this.rxResumeService.getMyResume().subscribe({
       next: (res) => {
         this.resume = res;
-        
+
         // Auto-load missing fields from user profile
         this.profileService.getMyProfile().subscribe({
           next: (profileRes) => {
             const user = profileRes.user;
             if (this.resume?.data?.basics) {
               if (!this.resume.data.basics.name && user) {
-                this.resume.data.basics.name = `${user.first_name} ${user.last_name}`.trim();
+                this.resume.data.basics.name =
+                  `${user.first_name} ${user.last_name}`.trim();
               }
               if (!this.resume.data.basics.email && user) {
                 this.resume.data.basics.email = user.email;
@@ -84,18 +92,21 @@ export class CvComponent implements OnInit {
               if (!this.resume.data.basics.phone && user) {
                 this.resume.data.basics.phone = user.phone;
               }
-              if (!this.resume.data.basics.location && profileRes.role_data?.address) {
+              if (
+                !this.resume.data.basics.location &&
+                profileRes.role_data?.address
+              ) {
                 this.resume.data.basics.location = profileRes.role_data.address;
               }
               if (!this.resume.data.metadata) {
-                this.resume.data.metadata = { template: 'onyx' };
+                this.resume.data.metadata = { template: "onyx" };
               }
             }
             this.loading = false;
           },
           error: () => {
             this.loading = false; // Ignore profile error, we still have resume
-          }
+          },
         });
       },
       error: () => {
@@ -106,7 +117,7 @@ export class CvComponent implements OnInit {
 
   generateResume() {
     if (!this.resume?.data) return;
-    
+
     this.generating = true;
     this.message = "";
 
@@ -133,11 +144,14 @@ export class CvComponent implements OnInit {
 
   shareResume() {
     if (this.resume?.public_url) {
-      navigator.clipboard.writeText(this.resume.public_url).then(() => {
-        alert("Enlace copiado al portapapeles: " + this.resume!.public_url);
-      }).catch(() => {
-        alert("Error al copiar el enlace.");
-      });
+      navigator.clipboard
+        .writeText(this.resume.public_url)
+        .then(() => {
+          alert("Enlace copiado al portapapeles: " + this.resume!.public_url);
+        })
+        .catch(() => {
+          alert("Error al copiar el enlace.");
+        });
     } else {
       alert("Debes generar el currículum primero para poder compartirlo.");
     }
@@ -224,7 +238,7 @@ export class CvComponent implements OnInit {
     const file = event.target.files[0];
     if (file) {
       if (file.size > 10 * 1024 * 1024) {
-        alert('La imagen no debe superar los 10MB.');
+        alert("La imagen no debe superar los 10MB.");
         return;
       }
       this.uploadingPicture = true;
@@ -235,8 +249,8 @@ export class CvComponent implements OnInit {
         },
         error: (err) => {
           this.uploadingPicture = false;
-          alert('Error al subir la imagen: ' + (err.message || 'Desconocido'));
-        }
+          alert("Error al subir la imagen: " + (err.message || "Desconocido"));
+        },
       });
     }
   }

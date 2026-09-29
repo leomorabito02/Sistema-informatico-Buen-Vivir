@@ -28,7 +28,21 @@ export class SidebarComponent implements OnInit {
       label: "Catálogo de cursos",
       icon: "pi-book",
       route: "/dashboard/cursos",
-      roles: [],
+      roles: [
+        "role_admin",
+        "role_dev",
+        "role_volunteer",
+        "role_teacher",
+        "role_company",
+      ],
+    },
+    // El participante solo ve los cursos en los que está inscripto (misma
+    // pantalla, filtrada — ver CursosComponent).
+    {
+      label: "Mis cursos",
+      icon: "pi-book",
+      route: "/dashboard/cursos",
+      roles: ["role_participant"],
     },
     {
       label: "Mi perfil",

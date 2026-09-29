@@ -48,6 +48,10 @@ type CourseService interface {
 	// endpoints de actividades/asistencia/inscriptos/progreso del
 	// docente antes de operar sobre un curso.
 	VerifyOwnership(ctx context.Context, cursoID, teacherID string) error
+	// VerifyExists confirma que el curso exista, publicado o en
+	// borrador (consulta la CMA). Lo usan admin/voluntario antes de
+	// crear actividades, que se pueden armar antes de publicar.
+	VerifyExists(ctx context.Context, cursoID string) error
 }
 
 type courseService struct {
@@ -178,6 +182,20 @@ func (s *courseService) VerifyOwnership(ctx context.Context, cursoID, teacherID 
 	}
 	if course.ResponsibleTeacher != teacherID {
 		return NewForbiddenError("no sos el docente responsable de este curso")
+	}
+	return nil
+}
+
+func (s *courseService) VerifyExists(ctx context.Context, cursoID string) error {
+	if strings.TrimSpace(cursoID) == "" {
+		return NewValidationError(errCourseIDRequired)
+	}
+	exists, err := s.repo.ExistsInManagement(ctx, cursoID)
+	if err != nil {
+		return err
+	}
+	if !exists {
+		return repositories.ErrNotFound
 	}
 	return nil
 }

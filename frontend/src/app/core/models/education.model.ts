@@ -91,17 +91,28 @@ export interface Activity {
   id: string;
   cursoId: string;
   titulo: string;
-  /** RFC3339 */
+  consigna: string;
+  /**
+   * Fecha calendario de la actividad, como medianoche UTC en RFC3339
+   * (ej. "2026-10-05T00:00:00Z"). Mostrarla con
+   * `date: 'dd/MM/yyyy' : 'UTC'` y armarla con `toActivityFecha()`.
+   */
   fecha: string;
   createdAt: string;
 }
 
 export interface ActivityInput {
   titulo: string;
-  /** RFC3339 */
+  consigna: string;
+  /** Ver `toActivityFecha()` en shared/utils/date-ymd.ts. */
   fecha: string;
 }
 
+/**
+ * Registro de asistencia por actividad. No se carga a mano: lo genera
+ * la entrega del participante (presente=true, fecha = fecha de la
+ * actividad).
+ */
 export interface Attendance {
   id: string;
   participanteId: string;
@@ -110,9 +121,45 @@ export interface Attendance {
   fecha: string;
 }
 
-export interface AttendanceInput {
+/** Metadatos de un adjunto de una entrega (el binario vive en el bucket). */
+export interface SubmissionFile {
+  nombre: string;
+  tipo: string;
+  tamano: number;
+}
+
+/** Entrega de un participante para una actividad. Única e inmutable. */
+export interface Submission {
+  id: string;
   participanteId: string;
-  presente: boolean;
+  actividadId: string;
+  texto: string;
+  archivos: SubmissionFile[];
+  /** RFC3339, momento en que se entregó. */
+  fechaEntrega: string;
+}
+
+export type SubmissionEstado = "entregado" | "sin_entregar";
+
+/** Fila de `GET .../actividades/{id}/entregas`: un inscripto y su entrega. */
+export interface SubmissionStatusRow {
+  participanteId: string;
+  nombre?: string;
+  apellido?: string;
+  estado: SubmissionEstado;
+  entrega?: Submission;
+}
+
+/** Actividad tal como la ve el participante, con su propia entrega. */
+export interface ParticipantActivity extends Activity {
+  entrega?: Submission;
+}
+
+/** Respuesta de `GET /api/participante/cursos/{id}`. */
+export interface ParticipantCourseDetail {
+  curso: Course;
+  actividades: ParticipantActivity[];
+  progreso: ParticipantProgress;
 }
 
 export type EnrollmentEstado = "activa" | "finalizada" | "baja";
@@ -152,6 +199,11 @@ export interface GeneralAttendanceInput {
   observacion?: string;
 }
 
+/**
+ * Progreso formativo (HU-20): actividades entregadas / total de
+ * actividades del curso. `actividadesAsistidas` = actividades
+ * entregadas (cada entrega genera su asistencia).
+ */
 export interface ParticipantProgress {
   participanteId: string;
   actividadesTotal: number;

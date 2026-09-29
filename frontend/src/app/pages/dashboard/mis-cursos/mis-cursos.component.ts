@@ -139,6 +139,13 @@ export class MisCursosComponent implements OnInit {
     return !!u && !/^https?:\/\//i.test(u);
   }
 
+  onMatTypeChange() {
+    // el campo que no corresponde al tipo elegido no se manda al backend
+    this.matForm.url = "";
+    this.matFile = null;
+    this.matFileError = "";
+  }
+
   onMatFile(event: Event) {
     const input = event.target as HTMLInputElement;
     const f = input.files?.[0] ?? null;

@@ -1,64 +1,68 @@
+
 <!doctype html>
 <html lang="en">
-  <head>
+
+<head>
     <title>Code coverage report for app/services/auth.service.ts</title>
     <meta charset="utf-8" />
     <link rel="stylesheet" href="../../prettify.css" />
     <link rel="stylesheet" href="../../base.css" />
     <link rel="shortcut icon" type="image/x-icon" href="../../favicon.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <style type="text/css">
-      .coverage-summary .sorter {
-        background-image: url(../../sort-arrow-sprite.png);
-      }
+    <style type='text/css'>
+        .coverage-summary .sorter {
+            background-image: url(../../sort-arrow-sprite.png);
+        }
     </style>
-  </head>
-
-  <body>
-    <div class="wrapper">
-      <div class="pad1">
-        <h1>
-          <a href="../../index.html">All files</a> /
-          <a href="index.html">app/services</a> auth.service.ts
-        </h1>
-        <div class="clearfix">
-          <div class="fl pad1y space-right2">
-            <span class="strong">87.17% </span>
-            <span class="quiet">Statements</span>
-            <span class="fraction">34/39</span>
-          </div>
-
-          <div class="fl pad1y space-right2">
-            <span class="strong">100% </span>
-            <span class="quiet">Branches</span>
-            <span class="fraction">10/10</span>
-          </div>
-
-          <div class="fl pad1y space-right2">
-            <span class="strong">78.94% </span>
-            <span class="quiet">Functions</span>
-            <span class="fraction">15/19</span>
-          </div>
-
-          <div class="fl pad1y space-right2">
-            <span class="strong">86.84% </span>
-            <span class="quiet">Lines</span>
-            <span class="fraction">33/38</span>
-          </div>
+</head>
+    
+<body>
+<div class='wrapper'>
+    <div class='pad1'>
+        <h1><a href="../../index.html">All files</a> / <a href="index.html">app/services</a> auth.service.ts</h1>
+        <div class='clearfix'>
+            
+            <div class='fl pad1y space-right2'>
+                <span class="strong">86.84% </span>
+                <span class="quiet">Statements</span>
+                <span class='fraction'>33/38</span>
+            </div>
+        
+            
+            <div class='fl pad1y space-right2'>
+                <span class="strong">100% </span>
+                <span class="quiet">Branches</span>
+                <span class='fraction'>8/8</span>
+            </div>
+        
+            
+            <div class='fl pad1y space-right2'>
+                <span class="strong">80% </span>
+                <span class="quiet">Functions</span>
+                <span class='fraction'>16/20</span>
+            </div>
+        
+            
+            <div class='fl pad1y space-right2'>
+                <span class="strong">86.48% </span>
+                <span class="quiet">Lines</span>
+                <span class='fraction'>32/37</span>
+            </div>
+        
+            
         </div>
         <p class="quiet">
-          Press <em>n</em> or <em>j</em> to go to the next uncovered block,
-          <em>b</em>, <em>p</em> or <em>k</em> for the previous block.
+            Press <em>n</em> or <em>j</em> to go to the next uncovered block, <em>b</em>, <em>p</em> or <em>k</em> for the previous block.
         </p>
         <template id="filterTemplate">
-          <div class="quiet">
-            Filter:
-            <input type="search" id="fileSearch" />
-          </div>
+            <div class="quiet">
+                Filter:
+                <input type="search" id="fileSearch">
+            </div>
         </template>
-      </div>
-      <div class="status-line high"></div>
-      <pre><table class="coverage">
+    </div>
+    <div class='status-line high'></div>
+    <pre><table class="coverage">
 <tr><td class="line-count quiet"><a name='L1'></a><a href='#L1'>1</a>
 <a name='L2'></a><a href='#L2'>2</a>
 <a name='L3'></a><a href='#L3'>3</a>
@@ -277,11 +281,11 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">9x</span>
 <span class="cline-any cline-yes">5x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">4x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">4x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -369,7 +373,7 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">7x</span>
+<span class="cline-any cline-yes">6x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -447,24 +451,24 @@ import {
   providedIn: "root",
 })
 export class AuthService {
-  private http = inject(HttpClient);
-  private auth = inject(Auth);
-  private router = inject(Router);
+  private readonly http = inject(HttpClient);
+  private readonly auth = inject(Auth);
+  private readonly router = inject(Router);
 &nbsp;
   private readonly apiUrl = environment.apiUrl;
 &nbsp;
   constructor() {}
 &nbsp;
   isLocallyAuthenticated(): boolean {
-    return localStorage.getItem('isAuthenticated') === 'true';
+    return localStorage.getItem("isAuthenticated") === "true";
   }
 &nbsp;
-  setLocallyAuthenticated(status: boolean): void {
-    if (status) {
-      localStorage.setItem('isAuthenticated', 'true');
-    } else {
-      localStorage.removeItem('isAuthenticated');
-    }
+  setLocallyAuthenticated(): void {
+    localStorage.setItem("isAuthenticated", "true");
+  }
+&nbsp;
+  clearLocallyAuthenticated(): void {
+    localStorage.removeItem("isAuthenticated");
   }
 &nbsp;
   /**
@@ -528,8 +532,8 @@ export class AuthService {
         { withCredentials: true },
       )
       .pipe(
-        tap(() =&gt; this.setLocallyAuthenticated(true)),
-        catchError(this.handleError)
+        tap(() =&gt; this.setLocallyAuthenticated()),
+        catchError(this.handleError),
       );
   }
 &nbsp;
@@ -542,8 +546,8 @@ export class AuthService {
         withCredentials: true,
       })
       .pipe(
-        tap(() =&gt; this.setLocallyAuthenticated(true)),
-        catchError(this.handleError)
+        tap(() =&gt; this.setLocallyAuthenticated()),
+        catchError(this.handleError),
       );
   }
 &nbsp;
@@ -575,7 +579,7 @@ export class AuthService {
    * The backend is responsible for invalidating the session and clearing the cookies.
    */
   logout(): void {
-    this.setLocallyAuthenticated(false);
+    this.clearLocallyAuthenticated();
     this.http
       .post(`${this.apiUrl}/api/v1/auth/logout`, {}, { withCredentials: true })
       .subscribe({
@@ -591,11 +595,11 @@ export class AuthService {
       });
   }
 &nbsp;
-  private handleError = (error: HttpErrorResponse) =&gt; {
+  private readonly handleError = (error: HttpErrorResponse) =&gt; {
     let errorMessage =
       "Ocurrió un error inesperado. Por favor, intente nuevamente.";
     if (error.status === 401) {
-      this.setLocallyAuthenticated(false);
+      this.clearLocallyAuthenticated();
     }
 &nbsp;
     if (error.error &amp;&amp; (error.error as { message?: string }).message) {
@@ -610,27 +614,21 @@ export class AuthService {
 }
 &nbsp;</pre></td></tr></table></pre>
 
-      <div class="push"></div>
-      <!-- for sticky footer -->
-    </div>
-    <!-- /wrapper -->
-    <div class="footer quiet pad2 space-top1 center small">
-      Code coverage generated by
-      <a
-        href="https://istanbul.js.org/"
-        target="_blank"
-        rel="noopener noreferrer"
-        >istanbul</a
-      >
-      at 2026-09-02T18:44:02.371Z
-    </div>
-    <script src="../../prettify.js"></script>
-    <script>
-      window.onload = function () {
-        prettyPrint();
-      };
-    </script>
-    <script src="../../sorter.js"></script>
-    <script src="../../block-navigation.js"></script>
-  </body>
+                <div class='push'></div><!-- for sticky footer -->
+            </div><!-- /wrapper -->
+            <div class='footer quiet pad2 space-top1 center small'>
+                Code coverage generated by
+                <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
+                at 2026-09-28T21:35:33.413Z
+            </div>
+        <script src="../../prettify.js"></script>
+        <script>
+            window.onload = function () {
+                prettyPrint();
+            };
+        </script>
+        <script src="../../sorter.js"></script>
+        <script src="../../block-navigation.js"></script>
+    </body>
 </html>
+    

@@ -144,6 +144,14 @@ export const routes: Routes = [
     canActivate: [authGuard],
     children: [
       {
+        path: "",
+        pathMatch: "full",
+        loadComponent: () =>
+          import("./pages/dashboard/inicio/inicio.component").then(
+            (m) => m.InicioComponent,
+          ),
+      },
+      {
         path: "mi-perfil",
         loadComponent: () =>
           import("./pages/dashboard/mi-perfil/mi-perfil.component").then(
@@ -155,6 +163,16 @@ export const routes: Routes = [
         loadComponent: () =>
           import("./pages/dashboard/cursos/cursos.component").then(
             (m) => m.CursosComponent,
+          ),
+      },
+      {
+        // Detalle del curso con sus actividades y entregas. El componente
+        // decide la vista por rol (gestión / docente / participante) y el
+        // backend valida el acceso a cada curso.
+        path: "cursos/:id",
+        loadComponent: () =>
+          import("./pages/dashboard/curso-detalle/curso-detalle.component").then(
+            (m) => m.CursoDetalleComponent,
           ),
       },
       {
@@ -229,17 +247,17 @@ export const routes: Routes = [
         path: "asistencia-cursos",
         canActivate: [adminOrVolunteerGuard],
         loadComponent: () =>
-          import(
-            "./pages/dashboard/asistencia-cursos/asistencia-cursos.component"
-          ).then((m) => m.AsistenciaCursosComponent),
+          import("./pages/dashboard/asistencia-cursos/asistencia-cursos.component").then(
+            (m) => m.AsistenciaCursosComponent,
+          ),
       },
       {
         path: "asistencia-general",
         canActivate: [adminOrVolunteerGuard],
         loadComponent: () =>
-          import(
-            "./pages/dashboard/asistencia-general/asistencia-general.component"
-          ).then((m) => m.AsistenciaGeneralComponent),
+          import("./pages/dashboard/asistencia-general/asistencia-general.component").then(
+            (m) => m.AsistenciaGeneralComponent,
+          ),
       },
       {
         path: "campanas",

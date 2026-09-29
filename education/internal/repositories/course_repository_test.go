@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"buenvivir/education/internal/models"
@@ -60,8 +61,12 @@ func TestCourseRepository_List(t *testing.T) {
 
 func TestCourseRepository_Get_NotFound(t *testing.T) {
 	cda := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusNotFound)
-		_, _ = w.Write([]byte(`{"message":"not found"}`))
+		assert.Equal(t, "c-missing", r.URL.Query().Get("sys.id"))
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(map[string]any{
+			"items":    []map[string]any{},
+			"includes": map[string]any{},
+		})
 	}))
 	defer cda.Close()
 
@@ -202,6 +207,75 @@ func TestCourseRepository_Delete_UnpublishesBeforeDeleting(t *testing.T) {
 	assert.Equal(t, "DELETE /spaces/space-1/environments/testing/entries/c1", methodsCalled[1])
 }
 
+// Un borrador nunca publicado: la CMA responde 400 al despublicar. Hay
+// que confirmar que no tiene publishedVersion y borrarlo igual.
+func TestCourseRepository_Delete_DraftNeverPublished(t *testing.T) {
+	var methodsCalled []string
+	cma := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		methodsCalled = append(methodsCalled, r.Method+" "+r.URL.Path)
+		w.Header().Set("Content-Type", "application/json")
+		switch {
+		case r.Method == http.MethodDelete && strings.HasSuffix(r.URL.Path, "/published"):
+			w.WriteHeader(http.StatusBadRequest)
+			_, _ = w.Write([]byte(`{"sys":{"type":"Error","id":"BadRequest"},"message":"Not published"}`))
+		default:
+			_ = json.NewEncoder(w).Encode(map[string]any{"sys": map[string]any{"id": "c1", "version": 3}})
+		}
+	}))
+	defer cma.Close()
+
+	repo := NewCourseRepository(newTestClient("", cma.URL))
+
+	err := repo.Delete(t.Context(), "c1")
+	require.NoError(t, err)
+	assert.Equal(t, []string{
+		"DELETE /spaces/space-1/environments/testing/entries/c1/published",
+		"GET /spaces/space-1/environments/testing/entries/c1",
+		"DELETE /spaces/space-1/environments/testing/entries/c1",
+	}, methodsCalled)
+}
+
+// Si el 400 al despublicar NO es porque sea un borrador (la entry sigue
+// publicada), no se intenta borrar.
+func TestCourseRepository_Delete_UnpublishFailsOnPublishedEntry(t *testing.T) {
+	var methodsCalled []string
+	cma := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		methodsCalled = append(methodsCalled, r.Method+" "+r.URL.Path)
+		w.Header().Set("Content-Type", "application/json")
+		if r.Method == http.MethodDelete {
+			w.WriteHeader(http.StatusBadRequest)
+			_, _ = w.Write([]byte(`{"message":"otro motivo"}`))
+			return
+		}
+		_ = json.NewEncoder(w).Encode(map[string]any{"sys": map[string]any{"id": "c1", "version": 3, "publishedVersion": 2}})
+	}))
+	defer cma.Close()
+
+	repo := NewCourseRepository(newTestClient("", cma.URL))
+
+	err := repo.Delete(t.Context(), "c1")
+	require.Error(t, err)
+	assert.Len(t, methodsCalled, 2)
+}
+
+func TestValidationMessage_MissingFields(t *testing.T) {
+	err := &ContentfulAPIError{StatusCode: http.StatusUnprocessableEntity, Body: `{
+		"sys":{"type":"Error","id":"ValidationFailed"},
+		"details":{"errors":[
+			{"name":"required","path":["fields","mode"]},
+			{"name":"required","path":["fields","trainingArea"]},
+			{"name":"notResolvable","path":["fields","material","en-US",0]}
+		]}}`}
+
+	msg, ok := ValidationMessage(err)
+	require.True(t, ok)
+	assert.Contains(t, msg, "faltan campos obligatorios: modalidad, área formativa")
+	assert.Contains(t, msg, "referencias borradas o sin publicar en: materiales")
+
+	_, ok = ValidationMessage(&ContentfulAPIError{StatusCode: http.StatusBadRequest})
+	assert.False(t, ok)
+}
+
 func TestCourseRepository_ListByResponsibleTeacher_FiltersByTeacher(t *testing.T) {
 	cda := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, "teacher-1", r.URL.Query().Get("fields.responsibleTeacher"))
@@ -268,14 +342,19 @@ func TestCourseRepository_ListAllDrafts(t *testing.T) {
 
 func TestCourseRepository_Get_ResolvesIncludes(t *testing.T) {
 	cda := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, "c1", r.URL.Query().Get("sys.id"))
 		w.Header().Set("Content-Type", "application/json")
 		_ = json.NewEncoder(w).Encode(map[string]any{
-			"sys": map[string]any{"id": "c1"},
-			"fields": map[string]any{
-				"title": "Curso con área",
-				"mode":  "Mixta",
-				"trainingArea": map[string]any{
-					"sys": map[string]any{"type": "Link", "linkType": "Entry", "id": "area-1"},
+			"items": []map[string]any{
+				{
+					"sys": map[string]any{"id": "c1"},
+					"fields": map[string]any{
+						"title": "Curso con área",
+						"mode":  "Mixta",
+						"trainingArea": map[string]any{
+							"sys": map[string]any{"type": "Link", "linkType": "Entry", "id": "area-1"},
+						},
+					},
 				},
 			},
 			"includes": map[string]any{
@@ -317,4 +396,30 @@ func TestCourseRepository_Create_APIErrorPropagatesStatusCode(t *testing.T) {
 	apiErr, ok := err.(*ContentfulAPIError)
 	require.True(t, ok)
 	assert.Equal(t, http.StatusUnprocessableEntity, apiErr.StatusCode)
+}
+
+func TestCourseRepository_ExistsInManagement(t *testing.T) {
+	cma := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch {
+		case strings.HasSuffix(r.URL.Path, "/entries/existe"):
+			_, _ = w.Write([]byte(`{"sys":{"id":"existe","version":1},"fields":{}}`))
+		case strings.HasSuffix(r.URL.Path, "/entries/roto"):
+			w.WriteHeader(http.StatusInternalServerError)
+		default:
+			w.WriteHeader(http.StatusNotFound)
+		}
+	}))
+	defer cma.Close()
+	repo := NewCourseRepository(newTestClient("", cma.URL))
+
+	exists, err := repo.ExistsInManagement(t.Context(), "existe")
+	require.NoError(t, err)
+	assert.True(t, exists)
+
+	exists, err = repo.ExistsInManagement(t.Context(), "no-existe")
+	require.NoError(t, err)
+	assert.False(t, exists)
+
+	_, err = repo.ExistsInManagement(t.Context(), "roto")
+	assert.Error(t, err)
 }

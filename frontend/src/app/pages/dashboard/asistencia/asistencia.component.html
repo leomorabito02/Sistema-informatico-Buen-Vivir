@@ -2,11 +2,11 @@
   <div class="header-section">
     <div>
       <h1 class="page-title">
-        <i class="pi pi-calendar-plus mr-2"></i>Registro de Asistencia
+        <i class="pi pi-calendar-plus mr-2"></i>Asistencia de mis cursos
       </h1>
       <p class="page-subtitle">
-        Elegí un curso, creá o seleccioná una actividad y registrá los
-        presentes.
+        Historial de asistencia por actividad. Se completa solo: cuando un
+        participante entrega una actividad, queda presente en esa actividad.
       </p>
     </div>
   </div>
@@ -15,12 +15,6 @@
     *ngIf="error"
     severity="error"
     [text]="error"
-    styleClass="w-full"
-  ></p-message>
-  <p-message
-    *ngIf="info"
-    severity="success"
-    [text]="info"
     styleClass="w-full"
   ></p-message>
 
@@ -34,138 +28,44 @@
 
   <ng-container *ngIf="!loadingCourses">
     <p *ngIf="courseOptions.length === 0 && !error" class="empty-state">
-      No tenés cursos asignados como docente responsable.
+      No tenés cursos publicados como docente responsable.
     </p>
 
-    <div *ngIf="courseOptions.length > 0" class="course-picker">
-      <label>Curso</label>
-      <p-select
-        [options]="courseOptions"
-        optionLabel="label"
-        optionValue="value"
-        [(ngModel)]="selectedCourseId"
-        (onChange)="onCourseChange()"
-        placeholder="Elegí un curso"
-        [style]="{ minWidth: '280px' }"
-      ></p-select>
+    <div *ngIf="courseOptions.length > 0" class="toolbar">
+      <div class="course-picker">
+        <label for="curso-asistencia">Curso</label>
+        <p-select
+          inputId="curso-asistencia"
+          [options]="courseOptions"
+          optionLabel="label"
+          optionValue="value"
+          [(ngModel)]="selectedCourseId"
+          (onChange)="onCourseChange()"
+          placeholder="Elegí un curso"
+          [style]="{ minWidth: '280px', width: '100%' }"
+        ></p-select>
+      </div>
+      <p-button
+        *ngIf="selectedCourseId"
+        label="Gestionar actividades"
+        icon="pi pi-list-check"
+        [outlined]="true"
+        [routerLink]="['/dashboard/cursos', selectedCourseId]"
+      ></p-button>
     </div>
 
-    <div *ngIf="selectedCourseId" class="two-col">
-      <!-- Actividades -->
-      <p-card header="Actividades del curso" styleClass="p-card-shadow">
-        <div *ngIf="loadingActivities" class="state-box">
-          <p-progressSpinner
-            strokeWidth="4"
-            [style]="{ width: '28px', height: '28px' }"
-          ></p-progressSpinner>
-        </div>
-        <ul class="activity-list" *ngIf="!loadingActivities">
-          <li
-            *ngFor="let a of activities"
-            [class.selected]="a.id === selectedActivityId"
-            (click)="selectActivity(a.id)"
-          >
-            <strong>{{ a.titulo }}</strong>
-            <span>{{ a.fecha | date: "short" }}</span>
-          </li>
-          <li *ngIf="activities.length === 0" class="empty-state">
-            Sin actividades. Creá la primera abajo.
-          </li>
-        </ul>
-
-        <div class="new-activity">
-          <input
-            pInputText
-            placeholder="Título de la actividad"
-            [(ngModel)]="nuevaActividadTitulo"
-          />
-          <p-datepicker
-            [(ngModel)]="nuevaActividadFecha"
-            [showTime]="true"
-            dateFormat="dd/mm/yy"
-            placeholder="Fecha y hora"
-          ></p-datepicker>
-          <p-button
-            label="Crear actividad"
-            icon="pi pi-plus"
-            [loading]="creandoActividad"
-            [disabled]="!nuevaActividadTitulo || !nuevaActividadFecha"
-            (onClick)="crearActividad()"
-          ></p-button>
-        </div>
-      </p-card>
-
-      <!-- Asistencia -->
-      <p-card header="Asistencia" styleClass="p-card-shadow">
-        <p *ngIf="!selectedActivityId" class="empty-state">
-          Seleccioná una actividad para registrar asistencia.
-        </p>
-
-        <ng-container *ngIf="selectedActivityId">
-          <div *ngIf="loadingAttendance" class="state-box">
-            <p-progressSpinner
-              strokeWidth="4"
-              [style]="{ width: '28px', height: '28px' }"
-            ></p-progressSpinner>
-          </div>
-
-          <table class="draft-table" *ngIf="!loadingAttendance">
-            <thead>
-              <tr>
-                <th>Participante (id)</th>
-                <th>Presente</th>
-                <th></th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr *ngFor="let d of draft; let i = index">
-                <td>
-                  <input
-                    pInputText
-                    [(ngModel)]="d.participanteId"
-                    placeholder="usr-..."
-                  />
-                </td>
-                <td>
-                  <p-checkbox
-                    [(ngModel)]="d.presente"
-                    [binary]="true"
-                  ></p-checkbox>
-                </td>
-                <td>
-                  <p-button
-                    icon="pi pi-trash"
-                    severity="danger"
-                    [text]="true"
-                    (onClick)="removeRow(i)"
-                  ></p-button>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-
-          <div class="attendance-actions" *ngIf="!loadingAttendance">
-            <p-button
-              label="Agregar fila"
-              icon="pi pi-plus"
-              [text]="true"
-              (onClick)="addRow()"
-            ></p-button>
-            <p-button
-              label="Guardar asistencia"
-              icon="pi pi-check"
-              [loading]="guardando"
-              (onClick)="guardar()"
-            ></p-button>
-          </div>
-
-          <p class="hint">
-            Los ids de participante se cargan a mano hasta que exista el módulo
-            de inscripciones. Volver a guardar el mismo id actualiza el registro
-            (no duplica).
-          </p>
-        </ng-container>
-      </p-card>
+    <div *ngIf="loadingMatrix" class="state-box">
+      <p-progressSpinner
+        strokeWidth="4"
+        [style]="{ width: '32px', height: '32px' }"
+      ></p-progressSpinner>
+      <span>Cargando asistencia…</span>
     </div>
+
+    <app-attendance-matrix
+      *ngIf="selectedCourseId && !loadingMatrix"
+      [activities]="activities"
+      [rows]="rows"
+    ></app-attendance-matrix>
   </ng-container>
 </div>

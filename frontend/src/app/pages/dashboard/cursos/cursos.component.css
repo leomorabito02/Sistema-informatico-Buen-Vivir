@@ -124,6 +124,11 @@
   color: var(--text-muted);
 }
 
+::ng-deep .enroll-dialog .p-dialog-content {
+  min-height: 220px;
+  overflow: visible;
+}
+
 @media (max-width: 640px) {
   .header-section {
     flex-direction: column;

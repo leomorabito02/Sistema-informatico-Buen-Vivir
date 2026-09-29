@@ -15,9 +15,11 @@ import (
 // escrituras (POST/PUT/DELETE, publicar/despublicar) requieren
 // role_admin. El grupo /api/docente es exclusivo de role_teacher
 // interno (is_external=false) y valida ownership sobre cada curso
-// antes de operar (ver DocenteController). El grupo de inscripción /
-// asistencia por actividad / asistencia general es para role_admin y
-// role_volunteer (HU-18, HU-19, HU-19bis): a diferencia de
+// antes de operar (ver DocenteController). El grupo /api/participante
+// es del rol participante y opera solo sobre sus propias inscripciones
+// y entregas. El grupo de inscripción /
+// actividades / asistencia por actividad / asistencia general es para
+// role_admin y role_volunteer (HU-18, HU-19, HU-19bis): a diferencia de
 // /api/docente, no tienen scope de "mis cursos" — admin y voluntario
 // operan sobre cualquier curso o participante del centro.
 func RegisterRoutes(
@@ -31,6 +33,8 @@ func RegisterRoutes(
 	enrollmentCtrl *controllers.EnrollmentController,
 	attendanceCtrl *controllers.AttendanceController,
 	generalAttendanceCtrl *controllers.GeneralAttendanceController,
+	activityCtrl *controllers.ActivityController,
+	submissionCtrl *controllers.SubmissionController,
 ) {
 	r.Get("/api/salud", healthCtrl.Health)
 
@@ -42,6 +46,11 @@ func RegisterRoutes(
 		r.Get("/api/cursos/{id}", courseCtrl.Get)
 		r.Get("/api/areas-formativas", trainingAreaCtrl.List)
 		r.Get("/api/materiales", materialCtrl.List)
+
+		// -- adjuntos de una entrega: cualquier rol autenticado llega,
+		//    y SubmissionController.DownloadFile decide por rol (admin/
+		//    voluntario: todo; docente: sus cursos; participante: lo suyo).
+		r.Get("/api/entregas/{entregaId}/archivos/{indice}", submissionCtrl.DownloadFile)
 
 		// -- escritura: exclusiva de role_admin --
 		//
@@ -89,8 +98,10 @@ func RegisterRoutes(
 			r.Put("/api/materiales/{id}", materialCtrl.Update)
 		})
 
-		// -- inscripción, asistencia por actividad y asistencia general:
-		//    role_admin o role_volunteer (HU-18, HU-19, HU-19bis). Rutas
+		// -- inscripción, actividades (CRUD + entregas), consulta de
+		//    asistencia por actividad y asistencia general: role_admin o
+		//    role_volunteer (HU-18, HU-19, HU-19bis). La asistencia por
+		//    actividad es solo lectura: la generan las entregas. Rutas
 		//    sueltas (no r.Route) por la misma razón que el bloque de
 		//    admin de más arriba: evitar el Mount de chi.
 		r.Group(func(r chi.Router) {
@@ -99,7 +110,12 @@ func RegisterRoutes(
 			r.Post("/api/cursos/{id}/inscripciones", enrollmentCtrl.Enroll)
 			r.Get("/api/cursos/{id}/inscripciones", enrollmentCtrl.List)
 
-			r.Post("/api/actividades/{actividadId}/asistencia", attendanceCtrl.Register)
+			r.Get("/api/cursos/{id}/actividades", activityCtrl.List)
+			r.Post("/api/cursos/{id}/actividades", activityCtrl.Create)
+			r.Put("/api/actividades/{actividadId}", activityCtrl.Update)
+			r.Delete("/api/actividades/{actividadId}", activityCtrl.Delete)
+			r.Get("/api/actividades/{actividadId}/entregas", activityCtrl.ListSubmissions)
+
 			r.Get("/api/actividades/{actividadId}/asistencia", attendanceCtrl.List)
 
 			r.Get("/api/asistencia-general", generalAttendanceCtrl.List)
@@ -117,10 +133,24 @@ func RegisterRoutes(
 			r.Put("/cursos/{id}", docenteCtrl.UpdateMyCourse)
 			r.Get("/cursos/{cursoId}/actividades", docenteCtrl.ListActivities)
 			r.Post("/cursos/{cursoId}/actividades", docenteCtrl.CreateActivity)
-			r.Post("/actividades/{actividadId}/asistencia", docenteCtrl.RegisterAttendance)
+			r.Put("/actividades/{actividadId}", docenteCtrl.UpdateActivity)
+			r.Delete("/actividades/{actividadId}", docenteCtrl.DeleteActivity)
+			r.Get("/actividades/{actividadId}/entregas", docenteCtrl.ListSubmissions)
 			r.Get("/actividades/{actividadId}/asistencia", docenteCtrl.ListAttendance)
 			r.Get("/cursos/{cursoId}/inscriptos", docenteCtrl.ListEnrollments)
 			r.Get("/cursos/{cursoId}/progreso", docenteCtrl.GetProgress)
+		})
+
+		// -- participante: sus cursos inscriptos, el detalle de cada uno
+		//    con sus actividades y la entrega de actividades. El
+		//    participanteId sale de auth-service con el propio token (ver
+		//    SubmissionService.ResolveParticipantID), nunca del request.
+		r.Route("/api/participante", func(r chi.Router) {
+			r.Use(middlewares.RequireRole("role_participant"))
+
+			r.Get("/cursos", submissionCtrl.ListMyCourses)
+			r.Get("/cursos/{id}", submissionCtrl.GetMyCourse)
+			r.Post("/actividades/{actividadId}/entrega", submissionCtrl.Submit)
 		})
 	})
 }

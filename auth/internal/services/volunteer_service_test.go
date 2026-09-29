@@ -94,7 +94,7 @@ func TestVolunteerService_UpdateVolunteer_Success(t *testing.T) {
 	res, err := svc.UpdateVolunteer(context.Background(), "vol-1", req)
 
 	assert.NoError(t, err)
-	assert.Equal(t, "approved", res.ApprovalStatus)
+	assert.Equal(t, "accepted", res.ApprovalStatus)
 	mockRepo.AssertExpectations(t)
 }
 

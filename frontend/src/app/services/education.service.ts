@@ -7,7 +7,6 @@ import {
   Activity,
   ActivityInput,
   Attendance,
-  AttendanceInput,
   Course,
   CourseInput,
   Enrollment,
@@ -16,7 +15,10 @@ import {
   GeneralAttendanceInput,
   Material,
   MaterialInput,
+  ParticipantCourseDetail,
   ParticipantProgress,
+  Submission,
+  SubmissionStatusRow,
   TrainingArea,
   TrainingAreaInput,
 } from "../core/models/education.model";
@@ -247,23 +249,46 @@ export class EducationService {
       .pipe(catchError(this.handleError));
   }
 
-  listAttendance(actividadId: string): Observable<Attendance[]> {
+  /** El docente responsable edita una actividad de su curso. */
+  updateActivity(
+    actividadId: string,
+    input: ActivityInput,
+  ): Observable<Activity> {
     return this.http
-      .get<Attendance[]>(
-        `${this.base}/api/docente/actividades/${actividadId}/asistencia`,
+      .put<Activity>(
+        `${this.base}/api/docente/actividades/${actividadId}`,
+        input,
         { withCredentials: true },
       )
       .pipe(catchError(this.handleError));
   }
 
-  registerAttendance(
-    actividadId: string,
-    inputs: AttendanceInput[],
-  ): Observable<{ actividadId: string; status: string }> {
+  /** Borra la actividad junto con sus entregas y asistencias. */
+  deleteActivity(actividadId: string): Observable<void> {
     return this.http
-      .post<{ actividadId: string; status: string }>(
+      .delete<void>(`${this.base}/api/docente/actividades/${actividadId}`, {
+        withCredentials: true,
+      })
+      .pipe(catchError(this.handleError));
+  }
+
+  /** Inscriptos del curso con el estado de entrega de la actividad. */
+  listActivitySubmissions(
+    actividadId: string,
+  ): Observable<SubmissionStatusRow[]> {
+    return this.http
+      .get<SubmissionStatusRow[]>(
+        `${this.base}/api/docente/actividades/${actividadId}/entregas`,
+        { withCredentials: true },
+      )
+      .pipe(catchError(this.handleError));
+  }
+
+  /** Asistencia (solo lectura: la generan las entregas). */
+  listAttendance(actividadId: string): Observable<Attendance[]> {
+    return this.http
+      .get<Attendance[]>(
         `${this.base}/api/docente/actividades/${actividadId}/asistencia`,
-        inputs,
         { withCredentials: true },
       )
       .pipe(catchError(this.handleError));
@@ -316,7 +341,67 @@ export class EducationService {
       .pipe(catchError(this.handleError));
   }
 
-  /** Asistencia de una actividad, sin chequeo de ownership del curso. */
+  /**
+   * Actividades de un curso, sin chequeo de ownership (agregado
+   * 2026-09-21, ver `POST/GET /api/cursos/{id}/actividades` en
+   * education/CLAUDE.md). Reemplaza, para esta pantalla, al `listActivities`
+   * de más arriba (exclusivo de `role_teacher`).
+   */
+  listCourseActivities(cursoId: string): Observable<Activity[]> {
+    return this.http
+      .get<Activity[]>(`${this.base}/api/cursos/${cursoId}/actividades`, {
+        withCredentials: true,
+      })
+      .pipe(catchError(this.handleError));
+  }
+
+  createCourseActivity(
+    cursoId: string,
+    input: ActivityInput,
+  ): Observable<Activity> {
+    return this.http
+      .post<Activity>(`${this.base}/api/cursos/${cursoId}/actividades`, input, {
+        withCredentials: true,
+      })
+      .pipe(catchError(this.handleError));
+  }
+
+  updateCourseActivity(
+    actividadId: string,
+    input: ActivityInput,
+  ): Observable<Activity> {
+    return this.http
+      .put<Activity>(`${this.base}/api/actividades/${actividadId}`, input, {
+        withCredentials: true,
+      })
+      .pipe(catchError(this.handleError));
+  }
+
+  /** Borra la actividad junto con sus entregas y asistencias. */
+  deleteCourseActivity(actividadId: string): Observable<void> {
+    return this.http
+      .delete<void>(`${this.base}/api/actividades/${actividadId}`, {
+        withCredentials: true,
+      })
+      .pipe(catchError(this.handleError));
+  }
+
+  /** Inscriptos del curso con el estado de entrega de la actividad. */
+  listCourseActivitySubmissions(
+    actividadId: string,
+  ): Observable<SubmissionStatusRow[]> {
+    return this.http
+      .get<SubmissionStatusRow[]>(
+        `${this.base}/api/actividades/${actividadId}/entregas`,
+        { withCredentials: true },
+      )
+      .pipe(catchError(this.handleError));
+  }
+
+  /**
+   * Asistencia de una actividad, sin chequeo de ownership del curso.
+   * Solo lectura: la generan las entregas de los participantes.
+   */
   listActivityAttendance(actividadId: string): Observable<Attendance[]> {
     return this.http
       .get<Attendance[]>(
@@ -326,16 +411,57 @@ export class EducationService {
       .pipe(catchError(this.handleError));
   }
 
-  registerActivityAttendance(
-    actividadId: string,
-    inputs: AttendanceInput[],
-  ): Observable<{ actividadId: string; status: string }> {
+  // ---- Participante (role_participant) ----------------------------------
+
+  /** Cursos en los que el participante autenticado está inscripto. */
+  listMyEnrolledCourses(): Observable<Course[]> {
     return this.http
-      .post<{ actividadId: string; status: string }>(
-        `${this.base}/api/actividades/${actividadId}/asistencia`,
-        inputs,
+      .get<Course[]>(`${this.base}/api/participante/cursos`, {
+        withCredentials: true,
+      })
+      .pipe(catchError(this.handleError));
+  }
+
+  /** Curso + actividades con el estado de mi entrega + mi progreso. */
+  getMyCourse(cursoId: string): Observable<ParticipantCourseDetail> {
+    return this.http
+      .get<ParticipantCourseDetail>(
+        `${this.base}/api/participante/cursos/${cursoId}`,
         { withCredentials: true },
       )
+      .pipe(catchError(this.handleError));
+  }
+
+  /** Entrega una actividad (texto opcional + adjuntos). No se puede anular. */
+  submitActivity(
+    actividadId: string,
+    texto: string,
+    archivos: File[],
+  ): Observable<Submission> {
+    const form = new FormData();
+    form.append("texto", texto);
+    for (const f of archivos) {
+      form.append("archivos", f, f.name);
+    }
+    return this.http
+      .post<Submission>(
+        `${this.base}/api/participante/actividades/${actividadId}/entrega`,
+        form,
+        { withCredentials: true },
+      )
+      .pipe(catchError(this.handleError));
+  }
+
+  /**
+   * Descarga un adjunto de una entrega. Pasa por education (no hay URL
+   * pública): el backend valida que quien pide pueda ver esa entrega.
+   */
+  downloadSubmissionFile(entregaId: string, indice: number): Observable<Blob> {
+    return this.http
+      .get(`${this.base}/api/entregas/${entregaId}/archivos/${indice}`, {
+        withCredentials: true,
+        responseType: "blob",
+      })
       .pipe(catchError(this.handleError));
   }
 
@@ -378,6 +504,8 @@ export class EducationService {
       message = "No tenés permisos para esta acción en Educación.";
     } else if (error.status === 404) {
       message = "El recurso solicitado no existe o no está publicado.";
+    } else if (error.status === 413) {
+      message = "Los archivos superan el tamaño permitido (10 MB cada uno).";
     } else if (error.status === 502) {
       message =
         "El módulo de Educación no pudo responder (Contentful/Firestore).";
