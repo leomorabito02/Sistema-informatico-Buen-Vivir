@@ -1,3 +1,6 @@
+<p-toast></p-toast>
+<p-confirmDialog [style]="{width: '50vw'}"></p-confirmDialog>
+
 <div class="page-container">
   <div class="header-section">
     <div>
@@ -5,13 +8,15 @@
         <i class="pi pi-briefcase mr-2"></i>Ofertas Laborales
       </h1>
       <p class="page-subtitle">
-        Oportunidades de empleo de empresas aliadas al programa Buen Vivir.
+        Oportunidades de empleo del programa Buen Vivir.
       </p>
     </div>
     <div class="header-actions">
       <div class="search-box p-input-icon-left">
+        <label for="searchJobs" style="display:none;">Buscar empleos</label>
         <i class="pi pi-search"></i>
         <input
+          id="searchJobs"
           pInputText
           type="text"
           [(ngModel)]="searchTerm"
@@ -20,7 +25,9 @@
           class="p-inputtext-sm"
         />
       </div>
+      <p-dropdown [options]="employmentTypes" [(ngModel)]="selectedEmploymentType" (onChange)="filterJobs()" placeholder="Tipo de Empleo" styleClass="w-full sm:w-auto p-dropdown-sm"></p-dropdown>
       <p-button
+        *ngIf="isCompany"
         label="Publicar Oferta"
         icon="pi pi-plus"
         (onClick)="openNewJobDialog()"
@@ -32,85 +39,220 @@
   <div class="grid-container">
     <div *ngFor="let job of filteredJobs" class="job-card-wrapper">
       <p-card
-        [header]="job.title"
-        [subheader]="job.company"
+        [header]="job.titulo"
         styleClass="p-card-shadow job-card"
       >
         <div class="card-body">
+          <p *ngIf="job.descripcion" class="text-sm mb-2">{{ job.descripcion }}</p>
           <p>
-            <i class="pi pi-map-marker text-muted mr-1"></i> {{ job.location }}
+            <i class="pi pi-map-marker text-muted mr-1"></i> {{ job.ubicacion }}
+          </p>
+          <p class="text-xs mb-2">
+            <i class="pi pi-money-bill mr-1 text-muted"></i> {{ job.salario || 'A convenir' }}
           </p>
           <div class="tags-row mb-3">
-            <p-tag [value]="job.type" severity="info"></p-tag>
-            <p-tag [value]="job.status" severity="success"></p-tag>
+            <p-tag [value]="job.tipo_empleo" severity="info"></p-tag>
+            <p-tag [value]="job.modalidad" severity="warning"></p-tag>
+            <p-tag [value]="job.estado" [severity]="job.estado === 'Activa' ? 'success' : 'danger'"></p-tag>
           </div>
-          <p class="text-xs text-muted">
-            <i class="pi pi-clock mr-1"></i> Publicado: {{ job.date }}
+          <p class="text-xs text-muted" *ngIf="job.created_at">
+            <i class="pi pi-clock mr-1"></i> Publicado: {{ job.created_at | date:'shortDate':'-0300' }}
           </p>
         </div>
         <ng-template pTemplate="footer">
-          <p-button
-            label="Postularme"
-            icon="pi pi-send"
-            styleClass="w-full p-button-outlined"
-          ></p-button>
+          <div class="flex flex-col gap-2">
+            <p-button
+              *ngIf="!isCompany"
+              [label]="appliedJobs.has(job.id!) ? 'Postulado' : 'Postularme'"
+              [icon]="appliedJobs.has(job.id!) ? 'pi pi-check' : 'pi pi-send'"
+              styleClass="w-full p-button-outlined"
+              [disabled]="job.estado === 'Vencida' || appliedJobs.has(job.id!)"
+              (onClick)="applyToJob(job)"
+            ></p-button>
+            <div *ngIf="!isCompany && appliedJobs.has(job.id!)" class="text-center mt-2">
+              <span class="text-xs font-semibold text-gray-500 uppercase tracking-wide">Estado:</span>
+              <p-tag 
+                [value]="myApplicationsMap.get(job.id!) || 'Pendiente'" 
+                [severity]="(myApplicationsMap.get(job.id!) === 'Aceptado') ? 'success' : (myApplicationsMap.get(job.id!) === 'Rechazado' ? 'danger' : 'info')"
+              ></p-tag>
+            </div>
+            <p-button
+              *ngIf="isCompany"
+              label="Ver Postulados"
+              icon="pi pi-users"
+              styleClass="w-full p-button-outlined p-button-info"
+              (onClick)="showApplications(job)"
+            ></p-button>
+            <p-button
+              *ngIf="isCompany"
+              label="Editar"
+              icon="pi pi-pencil"
+              styleClass="w-full p-button-outlined p-button-secondary"
+              (onClick)="openEditJobDialog(job)"
+            ></p-button>
+            <p-button
+              *ngIf="isCompany && job.estado === 'Vencida'"
+              label="Renovar"
+              icon="pi pi-refresh"
+              styleClass="w-full p-button-outlined p-button-success"
+              (onClick)="openRenewDialog(job)"
+            ></p-button>
+            <p-button
+              *ngIf="isCompany"
+              label="Eliminar"
+              icon="pi pi-trash"
+              styleClass="w-full p-button-outlined p-button-danger"
+              (onClick)="confirmDelete(job)"
+            ></p-button>
+          </div>
         </ng-template>
       </p-card>
     </div>
   </div>
 
-  <!-- Modal para publicar nueva oferta -->
+  <!-- Modal para publicar/editar oferta -->
   <p-dialog
-    header="Publicar Nueva Oferta Laboral"
+    [header]="isEditing ? 'Editar Oferta Laboral' : 'Publicar Nueva Oferta Laboral'"
     [(visible)]="showDialog"
     [modal]="true"
-    [style]="{ width: '90vw', maxWidth: '500px' }"
+    [style]="{ width: '90vw', maxWidth: '600px' }"
   >
-    <div class="dialog-body">
-      <div class="field mb-3">
+    <div class="dialog-body grid">
+      <div class="col-12 md:col-6 field mb-3">
         <label for="title">Título del Puesto</label>
-        <input
-          pInputText
-          id="title"
-          [(ngModel)]="newJob.title"
-          class="w-full"
-          placeholder="Ej: Operario Agrícola"
-        />
+        <input pInputText id="title" [(ngModel)]="newJob.titulo" class="w-full" placeholder="Ej: Operario Agrícola" />
       </div>
-      <div class="field mb-3">
-        <label for="company">Empresa</label>
-        <input
-          pInputText
-          id="company"
-          [(ngModel)]="newJob.company"
-          class="w-full"
-          placeholder="Nombre de la empresa"
-        />
-      </div>
-      <div class="field mb-3">
+      <div class="col-12 md:col-6 field mb-3">
         <label for="location">Ubicación</label>
-        <input
-          pInputText
-          id="location"
-          [(ngModel)]="newJob.location"
-          class="w-full"
-          placeholder="Ej: Alta Gracia"
-        />
+        <input pInputText id="location" [(ngModel)]="newJob.ubicacion" class="w-full" placeholder="Ej: Alta Gracia" />
+      </div>
+      
+      <div class="col-12 md:col-6 field mb-3">
+        <label for="tipo_empleo">Tipo de Empleo</label>
+        <select id="tipo_empleo" [(ngModel)]="newJob.tipo_empleo" class="w-full p-inputtext p-component">
+          <option value="Tiempo Completo">Tiempo Completo</option>
+          <option value="Medio Tiempo">Medio Tiempo</option>
+          <option value="Contrato">Contrato</option>
+          <option value="Pasantía">Pasantía</option>
+        </select>
+      </div>
+      <div class="col-12 md:col-6 field mb-3">
+        <label for="modalidad">Modalidad</label>
+        <select id="modalidad" [(ngModel)]="newJob.modalidad" class="w-full p-inputtext p-component">
+          <option value="Presencial">Presencial</option>
+          <option value="Híbrido">Híbrido</option>
+          <option value="Remoto">Remoto</option>
+        </select>
+      </div>
+
+      <div class="col-12 md:col-6 field mb-3">
+        <label for="salario">Salario (Opcional)</label>
+        <input pInputText id="salario" [(ngModel)]="newJob.salario" class="w-full" placeholder="Ej: $500.000" />
+      </div>
+      <div class="col-12 md:col-6 field mb-3">
+        <label for="horario">Horario</label>
+        <input pInputText id="horario" [(ngModel)]="newJob.horario" class="w-full" placeholder="Ej: L a V de 9 a 18" />
+      </div>
+
+      <div class="col-12 md:col-6 field mb-3">
+        <label for="fecha_limite">Fecha Límite</label>
+        <input pInputText type="date" id="fecha_limite" [(ngModel)]="newJob.fecha_limite" class="w-full" />
+      </div>
+
+      <div class="col-12 field mb-3">
+        <label for="descripcion">Descripción</label>
+        <textarea id="descripcion" rows="3" [(ngModel)]="newJob.descripcion" class="w-full p-inputtext p-component" placeholder="Describe las responsabilidades..."></textarea>
+      </div>
+
+      <div class="col-12 field mb-3">
+        <label for="nuevoRequisito">Requisitos</label>
+        <div class="flex gap-2 mb-2">
+          <input id="nuevoRequisito" pInputText [(ngModel)]="currentRequisito" (keyup.enter)="addRequisito()" class="flex-1" placeholder="Agregar un requisito y presionar enter" />
+          <p-button icon="pi pi-plus" (onClick)="addRequisito()" styleClass="p-button-secondary"></p-button>
+        </div>
+        <div class="flex flex-wrap gap-2">
+          <p-tag *ngFor="let req of newJob.requisitos; let i = index" [value]="req" styleClass="p-mr-2">
+            <button type="button" class="ml-2 cursor-pointer border-none bg-transparent p-0 m-0 flex align-items-center" (click)="removeRequisito(i)"><i class="pi pi-times"></i></button>
+          </p-tag>
+        </div>
       </div>
     </div>
     <ng-template pTemplate="footer">
-      <p-button
-        label="Cancelar"
-        icon="pi pi-times"
-        (onClick)="showDialog = false"
-        styleClass="p-button-text"
-      ></p-button>
-      <p-button
-        label="Guardar"
-        icon="pi pi-check"
-        (onClick)="saveJob()"
-        styleClass="p-button-success"
-      ></p-button>
+      <p-button label="Cancelar" icon="pi pi-times" (onClick)="showDialog = false" styleClass="p-button-text"></p-button>
+      <p-button label="Guardar" icon="pi pi-check" (onClick)="saveJob()" styleClass="p-button-success"></p-button>
     </ng-template>
   </p-dialog>
+
+  <!-- Modal para renovar oferta -->
+  <p-dialog
+    header="Renovar Oferta Laboral"
+    [(visible)]="showRenewDialog"
+    [modal]="true"
+    [style]="{ width: '90vw', maxWidth: '400px' }"
+  >
+    <div class="dialog-body">
+      <div class="field mb-3">
+        <label for="renew_date">Nueva Fecha Límite</label>
+        <input pInputText type="date" id="renew_date" [(ngModel)]="renewDate" class="w-full" />
+      </div>
+    </div>
+    <ng-template pTemplate="footer">
+      <p-button label="Cancelar" icon="pi pi-times" (onClick)="showRenewDialog = false" styleClass="p-button-text"></p-button>
+      <p-button label="Renovar" icon="pi pi-check" (onClick)="renewJob()" styleClass="p-button-success"></p-button>
+    </ng-template>
+  </p-dialog>
+
+<!-- Modal de Postulantes -->
+<p-dialog [(visible)]="applicationsDialogVisible" [modal]="true" [style]="{ width: '600px' }" header="Candidatos Postulados">
+  <div class="mb-4">
+    <span class="font-semibold text-gray-700">Puesto:</span> <span class="font-bold">{{ currentJobTitle }}</span>
+  </div>
+  
+  <div class="flex flex-col gap-4">
+    <div *ngIf="currentCandidates.length === 0" class="text-center text-gray-500 py-4">
+      No hay candidatos postulados aún.
+    </div>
+    
+    <p-card *ngFor="let candidate of currentCandidates" styleClass="shadow-sm border border-gray-200">
+      <div class="flex flex-col gap-3">
+        <!-- Encabezado con avatar e info -->
+        <div class="flex justify-between items-start">
+          <div class="flex gap-3 items-center">
+            <div class="w-12 h-12 bg-gray-200 rounded-full flex items-center justify-center font-bold text-xl text-gray-600">
+              {{ candidate.resume?.data?.basics?.name?.charAt(0) || '?' }}
+            </div>
+            <div>
+              <h3 class="font-bold text-lg m-0 text-gray-800">{{ candidate.resume?.data?.basics?.name || 'Cargando...' }}</h3>
+              <p class="text-gray-600 text-sm m-0">{{ candidate.resume?.data?.basics?.headline || 'Sin información adicional' }}</p>
+              <p *ngIf="candidate.app.fecha_postulacion" class="text-gray-500 text-xs m-0 mt-1">
+                <i class="pi pi-calendar mr-1"></i>Postulado: {{ candidate.app.fecha_postulacion | date:'dd/MM/yyyy HH:mm':'-0300' }}
+              </p>
+            </div>
+          </div>
+          <p-tag 
+            [value]="candidate.app.estado || 'Pendiente'" 
+            [severity]="candidate.app.estado === 'Aceptado' ? 'success' : (candidate.app.estado === 'Rechazado' ? 'danger' : 'info')">
+          </p-tag>
+        </div>
+        
+        <!-- Habilidades -->
+        <div *ngIf="candidate.resume?.data?.skills?.length" class="mt-2">
+          <span class="text-xs font-bold text-gray-500 block mb-2 tracking-wide">HABILIDADES DESTACADAS</span>
+          <div class="flex flex-wrap gap-2">
+            <p-tag *ngFor="let skill of candidate.resume?.data?.skills" [value]="skill.name" [style]="{'background-color': '#8c594d'}"></p-tag>
+          </div>
+        </div>
+        
+        <!-- Acciones: Perfil y Estado -->
+        <div class="flex justify-between items-center mt-3 pt-3 border-t border-gray-100">
+          <a [href]="'/cv-public/' + candidate.app.participante_id" target="_blank" class="text-gray-700 font-bold hover:text-gray-900 hover:underline">Ver Perfil Completo</a>
+          <div class="flex gap-2">
+            <button pButton icon="pi pi-check" class="p-button-rounded p-button-text p-button-success" pTooltip="Aceptar" (click)="updateApplicationStatus(candidate, 'Aceptado')"></button>
+            <button pButton icon="pi pi-times" class="p-button-rounded p-button-text p-button-danger" pTooltip="Rechazar" (click)="updateApplicationStatus(candidate, 'Rechazado')"></button>
+          </div>
+        </div>
+      </div>
+    </p-card>
+  </div>
+</p-dialog>
 </div>

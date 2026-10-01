@@ -26,7 +26,7 @@ func NewParticipantRepository(db *gorm.DB) ParticipantRepository {
 
 func (r *participantRepository) FindByID(ctx context.Context, id string) (*models.Participant, error) {
 	var participant models.Participant
-	if err := r.db.WithContext(ctx).First(&participant, "participant_id = ?", id).Error; err != nil {
+	if err := r.db.WithContext(ctx).Where("participant_id = ?", id).Or("user_id = ?", id).First(&participant).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, errors.New("participante no encontrado")
 		}

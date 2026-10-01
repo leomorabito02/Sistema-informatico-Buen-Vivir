@@ -14,6 +14,7 @@ func RegisterRoutes(mux *http.ServeMux, ctrl *controllers.ResumeController) {
 
 	mux.HandleFunc("GET /api/v1/rxresume/me", ctrl.GetMyResume)
 	mux.HandleFunc("PUT /api/v1/rxresume/me", ctrl.UpdateMyResume)
+	mux.HandleFunc("GET /api/v1/rxresume/me/pdf-status", ctrl.GetMyPDFStatus)
 
 	mux.HandleFunc("POST /api/v1/rxresume/me/parse-pdf", ctrl.ParseMyPDF)
 	mux.HandleFunc("POST /api/v1/rxresume/me/picture", ctrl.UploadMyPicture)
@@ -23,6 +24,7 @@ func RegisterRoutes(mux *http.ServeMux, ctrl *controllers.ResumeController) {
 
 	mux.HandleFunc("GET /api/v1/rxresume/user", ctrl.GetUserResumeByAdmin)
 	mux.HandleFunc("PUT /api/v1/rxresume/user", ctrl.UpdateUserResumeByAdmin)
+	mux.HandleFunc("GET /api/v1/rxresume/user/pdf-status", ctrl.GetUserPDFStatusByAdmin)
 	mux.HandleFunc("POST /api/v1/rxresume/user/picture", ctrl.UploadUserPictureByAdmin)
 
 	mux.HandleFunc("GET /api/v1/rxresume/public/media", ctrl.DownloadPublicMedia)

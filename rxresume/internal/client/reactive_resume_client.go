@@ -44,7 +44,7 @@ func NewReactiveResumeClient(baseURL, frontendURL, secretKey string) ReactiveRes
 		frontendURL: frontendURL,
 		secretKey:   secretKey,
 		httpClient: &http.Client{
-			Timeout: 15 * time.Second,
+			Timeout: 3 * time.Minute,
 		},
 	}
 }
@@ -229,7 +229,7 @@ func (c *reactiveResumeClient) sendRxResumeUpdate(ctx context.Context, userID, r
 	}
 }
 
-// ExportResumePDF requests the rendered PDF binary from Reactive Resume service.
+// ExportResumePDF requests the rendered PDF binary from Reactive Resume service using the public endpoint.
 func (c *reactiveResumeClient) ExportResumePDF(ctx context.Context, userID string) ([]byte, error) {
 	reqURL := fmt.Sprintf("%s/api/resumes/%s/cv-%s/pdf", c.baseURL, userID, userID)
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, reqURL, nil)
@@ -237,9 +237,9 @@ func (c *reactiveResumeClient) ExportResumePDF(ctx context.Context, userID strin
 		return nil, err
 	}
 
+	req.Header.Set(headerContentType, contentTypeJSON)
 	req.Header.Set(headerSecretKey, c.secretKey)
-	// We might also need X-User-ID if the patched auth expects it
-	req.Header.Set(headerUserID, "internal-export")
+	req.Header.Set(headerUserID, userID)
 
 	resp, err := c.httpClient.Do(req)
 	if err != nil {

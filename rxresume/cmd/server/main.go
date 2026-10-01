@@ -47,7 +47,7 @@ func main() {
 		os.Setenv("PUBSUB_EMULATOR_HOST", cfg.PubSubEmulatorHost)
 	}
 
-	syncQueue, err := worker.NewPubSubSyncQueue(ctx, cfg.GCPProjectID, cfg.PubSubSyncTopic, cfg.PubSubSyncSubscription, repo, rxClient)
+	syncQueue, err := worker.NewPubSubSyncQueue(ctx, cfg.GCPProjectID, cfg.PubSubSyncTopic, cfg.PubSubSyncSubscription, repo, rxClient, storageService)
 	if err != nil {
 		log.Fatalf("Warning: Failed to initialize Pub/Sub queue: %v", err)
 	}

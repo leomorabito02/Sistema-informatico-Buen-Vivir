@@ -40,8 +40,8 @@ func main() {
 	jobApplicationRepo := repositories.NewJobApplicationRepository(firestoreClient)
 
 	// Services
-	jobOfferService := services.NewJobOfferService(jobOfferRepo)
-	jobApplicationService := services.NewJobApplicationService(jobApplicationRepo, authServiceClient)
+	jobOfferService := services.NewJobOfferService(jobOfferRepo, jobApplicationRepo)
+	jobApplicationService := services.NewJobApplicationService(jobApplicationRepo, jobOfferRepo, authServiceClient)
 
 	// Controllers
 	jobOfferController := controllers.NewJobOfferController(jobOfferService)

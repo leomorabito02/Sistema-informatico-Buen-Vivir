@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"encoding/json"
+	"errors"
 	"io"
 	"net/http"
 	"path/filepath"
@@ -48,6 +49,18 @@ func (c *ResumeController) GetMyResume(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set(headerContentType, contentTypeJSON)
 	_ = json.NewEncoder(w).Encode(resume)
+}
+
+// GetMyPDFStatus returns whether the PDF is ready in GCS for the logged-in participant.
+func (c *ResumeController) GetMyPDFStatus(w http.ResponseWriter, r *http.Request) {
+	userID := r.Header.Get(headerXUserID)
+	if userID == "" {
+		http.Error(w, errMissingUserID, http.StatusUnauthorized)
+		return
+	}
+	ready := c.service.GetPDFStatus(r.Context(), userID)
+	w.Header().Set(headerContentType, contentTypeJSON)
+	_ = json.NewEncoder(w).Encode(map[string]bool{"ready": ready})
 }
 
 // UpdateMyResume updates the resume content of the logged-in participant.
@@ -224,6 +237,25 @@ func (c *ResumeController) GetUserResumeByAdmin(w http.ResponseWriter, r *http.R
 	_ = json.NewEncoder(w).Encode(resume)
 }
 
+// GetUserPDFStatusByAdmin allows volunteers and administrators to check PDF status.
+func (c *ResumeController) GetUserPDFStatusByAdmin(w http.ResponseWriter, r *http.Request) {
+	role := r.Header.Get(headerXUserRole)
+	if !isStaffRole(role) {
+		http.Error(w, errInsufficientPerms, http.StatusForbidden)
+		return
+	}
+
+	userID := r.URL.Query().Get("user_id")
+	if userID == "" {
+		http.Error(w, errMissingParamUserID, http.StatusBadRequest)
+		return
+	}
+
+	ready := c.service.GetPDFStatus(r.Context(), userID)
+	w.Header().Set(headerContentType, contentTypeJSON)
+	_ = json.NewEncoder(w).Encode(map[string]bool{"ready": ready})
+}
+
 // UpdateUserResumeByAdmin allows volunteers and administrators to update any participant's resume.
 func (c *ResumeController) UpdateUserResumeByAdmin(w http.ResponseWriter, r *http.Request) {
 	role := r.Header.Get(headerXUserRole)
@@ -363,6 +395,15 @@ func (c *ResumeController) DownloadPublicPDF(w http.ResponseWriter, r *http.Requ
 
 	pdfBytes, err := c.service.ExportPDF(r.Context(), userID)
 	if err != nil {
+		if errors.Is(err, services.ErrPDFNotReady) {
+			w.Header().Set(headerContentType, contentTypeJSON)
+			w.WriteHeader(http.StatusAccepted)
+			_ = json.NewEncoder(w).Encode(map[string]interface{}{
+				"ready":   false,
+				"message": "El PDF está siendo generado. Por favor, espere.",
+			})
+			return
+		}
 		http.Error(w, "error generating PDF: "+err.Error(), http.StatusInternalServerError)
 		return
 	}

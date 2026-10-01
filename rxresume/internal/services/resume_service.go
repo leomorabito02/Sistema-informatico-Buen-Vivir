@@ -2,6 +2,7 @@ package services
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"net/url"
@@ -28,7 +29,10 @@ type ResumeService interface {
 	UploadPicture(ctx context.Context, userID string, filename string, reader io.Reader) (*models.Resume, error)
 	ExportPDF(ctx context.Context, userID string) ([]byte, error)
 	DownloadMedia(ctx context.Context, path string) (io.ReadCloser, error)
+	GetPDFStatus(ctx context.Context, userID string) bool
 }
+
+var ErrPDFNotReady = errors.New("pdf not ready")
 
 type resumeService struct {
 	repo      repositories.ResumeRepository
@@ -115,6 +119,7 @@ func (s *resumeService) UpdateResume(ctx context.Context, userID string, data *m
 	if err != nil {
 		return nil, err
 	}
+	_ = s.storage.DeleteFile(ctx, fmt.Sprintf("pdfs/%s.pdf", userID))
 	s.syncQueue.Enqueue(userID)
 	return resume, nil
 }
@@ -150,6 +155,7 @@ func (s *resumeService) GenerateResume(ctx context.Context, userID string, profi
 	if err != nil {
 		return nil, err
 	}
+	_ = s.storage.DeleteFile(ctx, fmt.Sprintf("pdfs/%s.pdf", userID))
 	s.syncQueue.Enqueue(userID)
 	return resume, nil
 }
@@ -182,6 +188,7 @@ func (s *resumeService) ParseAndUploadPDF(ctx context.Context, userID string, fi
 	if err != nil {
 		return nil, err
 	}
+	_ = s.storage.DeleteFile(ctx, fmt.Sprintf("pdfs/%s.pdf", userID))
 	s.syncQueue.Enqueue(userID)
 
 	return resume, nil
@@ -238,6 +245,7 @@ func (s *resumeService) UploadPicture(ctx context.Context, userID string, filena
 	if err != nil {
 		return nil, err
 	}
+	_ = s.storage.DeleteFile(ctx, fmt.Sprintf("pdfs/%s.pdf", userID))
 	s.syncQueue.Enqueue(userID)
 
 	return resume, nil
@@ -265,6 +273,7 @@ func (s *resumeService) DeleteSectionItem(ctx context.Context, userID string, se
 	if err != nil {
 		return nil, err
 	}
+	_ = s.storage.DeleteFile(ctx, fmt.Sprintf("pdfs/%s.pdf", userID))
 	s.syncQueue.Enqueue(userID)
 
 	return resume, nil
@@ -311,19 +320,39 @@ func deleteSkillItem(resume *models.Resume, itemID string) {
 	resume.Data.Skills = updated
 }
 
-// ExportPDF downloads the generated PDF from Reactive Resume for a specific user.
+// GetPDFStatus checks whether the cached PDF for a user exists in GCS.
+func (s *resumeService) GetPDFStatus(ctx context.Context, userID string) bool {
+	rc, err := s.storage.DownloadFile(ctx, fmt.Sprintf("pdfs/%s.pdf", userID))
+	if err != nil {
+		return false
+	}
+	rc.Close()
+	return true
+}
+
+// ExportPDF downloads the generated PDF from Reactive Resume for a specific user, with GCS caching.
 func (s *resumeService) ExportPDF(ctx context.Context, userID string) ([]byte, error) {
 	resume, err := s.GetResumeByUserID(ctx, userID)
 	if err != nil {
 		return nil, err
 	}
-	if resume.RxResumeID == "" {
-		return nil, fmt.Errorf("resume not synchronized with Reactive Resume yet")
-	}
-	// Force sync to ensure Reactive Resume has the latest data before generating PDF
-	if err := s.rxClient.SyncResume(ctx, resume); err != nil {
-		return nil, fmt.Errorf("failed to sync resume before exporting: %w", err)
+
+	objectName := fmt.Sprintf("pdfs/%s.pdf", userID)
+
+	// 1. Try to serve cached PDF from GCS
+	if rc, err := s.storage.DownloadFile(ctx, objectName); err == nil {
+		defer rc.Close()
+		if pdfBytes, err := io.ReadAll(rc); err == nil && len(pdfBytes) > 0 {
+			return pdfBytes, nil
+		}
 	}
 
-	return s.rxClient.ExportResumePDF(ctx, userID)
+	// 2. Fallback check - if we're here, the worker hasn't finished or failed
+	// We won't block waiting for it, we just return an error so the FE can poll
+	if resume.RxResumeID != "" {
+		return nil, ErrPDFNotReady
+	}
+	
+	// Edge case: first time, but normally enqueue should handle this
+	return nil, ErrPDFNotReady
 }

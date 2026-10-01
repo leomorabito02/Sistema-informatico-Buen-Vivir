@@ -124,8 +124,8 @@ services:
     read_only: true
     tmpfs:
       - /tmp
-    mem_limit: 512m
-    cpus: "0.5"
+    mem_limit: 1024m
+    cpus: "1"
     depends_on:
       - gcs-emulator
       - pubsub-emulator
@@ -159,7 +159,7 @@ services:
     container_name: buenvivir-pubsub-emulator
     ports:
       - "8086:8086"
-    command: gcloud beta emulators pubsub start --project=buenvivir-gcp-project --host-port=0.0.0.0:8086
+    command: gcloud beta emulators pubsub start --project=ceibuenvivir --host-port=0.0.0.0:8086
     networks:
       - buenvivir-net
 

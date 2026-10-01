@@ -9,11 +9,16 @@
       </p>
     </div>
     <div class="flex gap-2">
+      <div *ngIf="pdfPolling" class="flex items-center gap-2 text-sm text-gray-600 bg-white px-3 py-2 rounded-md shadow-sm border border-gray-200">
+        <p-progressSpinner styleClass="w-5 h-5" strokeWidth="4"></p-progressSpinner>
+        <span class="font-medium">Generando PDF...</span>
+      </div>
       <p-button
+        *ngIf="!pdfPolling"
         label="Descargar PDF"
         icon="pi pi-download"
         (onClick)="downloadPdf()"
-        [disabled]="!resume?.pdf_url"
+        [disabled]="!pdfReady && !resume?.pdf_url"
         styleClass="p-button-success"
       ></p-button>
       <p-button
