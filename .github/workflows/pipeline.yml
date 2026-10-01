@@ -422,6 +422,63 @@ jobs:
           docker tag rxresume:${{ github.sha }} "$IMAGE_URI"
           docker push "$IMAGE_URI"
 
+  ci-human-promotion:
+    name: CI — Human Promotion Service (Go)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+          cache-dependency-path: human-promotion/go.sum
+
+      - name: Download Go modules
+        working-directory: human-promotion
+        run: go mod download
+
+      - name: Go vet
+        working-directory: human-promotion
+        run: go vet ./...
+
+      - name: Run Go Unit Tests
+        working-directory: human-promotion
+        run: go test -v -coverprofile=coverage.out ./...
+
+      - name: Go Security Scan (gosec)
+        working-directory: human-promotion
+        run: |
+          go install github.com/securego/gosec/v2/cmd/gosec@latest
+          gosec -fmt sarif -out gosec-results.sarif ./...
+        continue-on-error: true
+
+      - name: Docker build (human-promotion)
+        run: docker build -t human-promotion:${{ github.sha }} -f human-promotion/Dockerfile ./human-promotion
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: '${{ secrets.GCP_CREDENTIALS }}'
+
+      - name: Setup Google Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Configure Docker for Artifact Registry
+        run: gcloud auth configure-docker ${{ secrets.ARTIFACT_REGISTRY_HOST }} --quiet
+
+      - name: Push human-promotion image to Artifact Registry
+        run: |
+          IMAGE_URI="${{ secrets.ARTIFACT_REGISTRY_HOST }}/${{ secrets.GCP_PROJECT_ID }}/${{ secrets.ARTIFACT_REGISTRY_REPO }}/human-promotion:${{ github.sha }}"
+          docker tag human-promotion:${{ github.sha }} "$IMAGE_URI"
+          docker push "$IMAGE_URI"
+
   ci-reactive-resume:
     name: CI — Reactive Resume (Node)
     runs-on: ubuntu-latest
@@ -534,7 +591,7 @@ jobs:
   ci-gate:
     name: CI — Gate (Verificación general)
     runs-on: ubuntu-latest
-    needs: [ci-secrets, ci-frontend, ci-auth, ci-education, ci-rxresume, ci-reactive-resume, ci-api-gateway]
+    needs: [ci-secrets, ci-frontend, ci-auth, ci-education, ci-rxresume, ci-human-promotion, ci-reactive-resume, ci-api-gateway]
     if: always()
 
     steps:
@@ -933,6 +990,59 @@ jobs:
           gcloud run services update-traffic "$SERVICE" --region="$REGION" --to-latest --project="${{ secrets.GCP_PROJECT_ID }}"
 
 
+  cd-human-promotion:
+    name: CD — Human Promotion Service (Cloud Run)
+    runs-on: ubuntu-latest
+    needs: [cd-setup]
+    environment: ${{ needs.cd-setup.outputs.env_name }}
+    timeout-minutes: 15
+    env:
+      GOOGLE_APPLICATION_CREDENTIALS_BASE64: ""
+    outputs:
+      service_url: ${{ steps.deploy.outputs.url }}
+
+    steps:
+      - name: Authenticate GCP (Workload Identity)
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+
+      - name: Verify human-promotion image in Artifact Registry
+        run: |
+          IMAGE_URI="${{ secrets.ARTIFACT_REGISTRY_HOST }}/${{ secrets.GCP_PROJECT_ID }}/${{ secrets.ARTIFACT_REGISTRY_REPO }}/human-promotion:${{ github.sha }}"
+          gcloud artifacts docker images describe "$IMAGE_URI" > /dev/null || (echo "::error::Image $IMAGE_URI not found in Artifact Registry" && exit 1)
+
+      - name: Prepare Firestore credentials (base64)
+        run: |
+          echo "GOOGLE_APPLICATION_CREDENTIALS_BASE64=$(echo -n "$FIREBASE_JSON" | base64 -w 0)" >> $GITHUB_ENV
+        env:
+          FIREBASE_JSON: ${{ secrets.GOOGLE_APPLICATION_CREDENTIALS }}
+
+      # La clave AES-256 NO viaja por el pipeline: el servicio la lee de
+      # Secret Manager en el arranque (ENCRYPTION_KEY_SECRET = nombre
+      # completo del secreto). La service account necesita el rol
+      # roles/secretmanager.secretAccessor sobre ese secreto.
+      - name: Deploy Human Promotion to Cloud Run
+        id: deploy
+        uses: google-github-actions/deploy-cloudrun@v2
+        with:
+          service: 'human-promotion-${{ needs.cd-setup.outputs.service_suffix }}'
+          region: '${{ secrets.GCP_REGION }}'
+          image: '${{ secrets.ARTIFACT_REGISTRY_HOST }}/${{ secrets.GCP_PROJECT_ID }}/${{ secrets.ARTIFACT_REGISTRY_REPO }}/human-promotion:${{ github.sha }}'
+          flags: '--no-allow-unauthenticated --min-instances=0 --max-instances=1 --cpu=1 --memory=512Mi --service-account=${{ secrets.GCP_SERVICE_ACCOUNT }}'
+          env_vars: |-
+            JWT_SECRET=${{ secrets.JWT_SECRET }}
+            GOOGLE_APPLICATION_CREDENTIALS_BASE64=${{ env.GOOGLE_APPLICATION_CREDENTIALS_BASE64 }}
+            CORS_ALLOWED_ORIGINS=${{ secrets.CORS_ALLOWED_ORIGINS }}
+            ENCRYPTION_KEY_SECRET=${{ vars.HUMAN_PROMOTION_ENCRYPTION_KEY_SECRET }}
+            AUTH_SERVICE_GRPC_TARGET=${{ vars.AUTH_SERVICE_GRPC_TARGET }}
+
+      - name: Ensure 100% traffic routed to latest Cloud Run revision
+        run: |
+          SERVICE="human-promotion-${{ needs.cd-setup.outputs.service_suffix }}"
+          gcloud run services update-traffic "$SERVICE" --region="${{ secrets.GCP_REGION }}" --to-latest --project="${{ secrets.GCP_PROJECT_ID }}"
+
   cd-rxresume:
     name: CD — RxResume Service (Cloud Run)
     runs-on: ubuntu-latest
@@ -1006,7 +1116,7 @@ jobs:
   cd-api-gateway:
     name: CD — API Gateway (Google Cloud)
     runs-on: ubuntu-latest
-    needs: [cd-setup, cd-auth, cd-education, cd-rxresume, cd-reactive-resume]
+    needs: [cd-setup, cd-auth, cd-education, cd-rxresume, cd-reactive-resume, cd-human-promotion]
     environment: ${{ needs.cd-setup.outputs.env_name }}
     timeout-minutes: 30
     outputs:
@@ -1042,6 +1152,7 @@ jobs:
 
           export RXRESUME_SERVICE_URL=$(gcloud run services describe "rxresume-$SUFFIX" --region="${{ secrets.GCP_REGION }}" --format='value(status.url)')
           export REACTIVE_RESUME_URL=$(gcloud run services describe "reactive-resume-$SUFFIX" --region="${{ secrets.GCP_REGION }}" --format='value(status.url)')
+          export HUMAN_PROMOTION_SERVICE_URL=$(gcloud run services describe "human-promotion-$SUFFIX" --region="${{ secrets.GCP_REGION }}" --format='value(status.url)')
           export FIREBASE_PROJECT_ID="${{ secrets.FIREBASE_PROJECT_ID }}"
           envsubst < openapi.yaml > openapi-resolved.yaml
           echo "openapi.yaml resolved for env: $SUFFIX (auth=$AUTH_URL, education=$EDU_URL)"

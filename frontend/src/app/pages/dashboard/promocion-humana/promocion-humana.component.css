@@ -1,0 +1,93 @@
+.page-container {
+  padding: 1.5rem;
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+.header-section {
+  margin-bottom: 2rem;
+}
+
+.page-title {
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: var(--primary);
+  margin: 0 0 0.5rem 0;
+}
+
+.page-subtitle {
+  color: var(--text-muted);
+  margin: 0;
+}
+
+.field-label {
+  display: block;
+  font-weight: 600;
+  color: var(--text-primary, #1d1d1b);
+  margin-bottom: 0.5rem;
+}
+
+:host ::ng-deep .search-field,
+:host ::ng-deep .search-field input {
+  width: 100%;
+}
+
+.hint {
+  display: block;
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  margin-top: 0.4rem;
+}
+
+.state-box {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1.25rem 0;
+  color: var(--text-muted);
+}
+
+.empty-state {
+  color: var(--text-muted);
+  text-align: center;
+  padding: 1.5rem 0 0.5rem;
+  margin: 0;
+}
+
+.result-list {
+  list-style: none;
+  margin: 1.25rem 0 0;
+  padding: 0;
+}
+
+.result-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.85rem 0;
+  border-top: 1px solid var(--border, rgba(29, 29, 27, 0.2));
+}
+
+.result-info {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.result-name {
+  font-weight: 600;
+  color: var(--text-primary, #1d1d1b);
+}
+
+@media (max-width: 576px) {
+  .page-container {
+    padding: 1rem;
+  }
+
+  .result-item {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}

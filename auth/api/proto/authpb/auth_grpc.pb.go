@@ -19,7 +19,10 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	AuthService_GetParticipant_FullMethodName = "/auth.AuthService/GetParticipant"
+	AuthService_GetParticipant_FullMethodName        = "/auth.AuthService/GetParticipant"
+	AuthService_GetParticipantProfile_FullMethodName = "/auth.AuthService/GetParticipantProfile"
+	AuthService_SearchParticipants_FullMethodName    = "/auth.AuthService/SearchParticipants"
+	AuthService_GetUsersByIDs_FullMethodName         = "/auth.AuthService/GetUsersByIDs"
 )
 
 // AuthServiceClient is the client API for AuthService service.
@@ -27,6 +30,15 @@ const (
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type AuthServiceClient interface {
 	GetParticipant(ctx context.Context, in *GetParticipantRequest, opts ...grpc.CallOption) (*GetParticipantResponse, error)
+	// Promoción Humana (HU-31, HU-34): datos de perfil del participante,
+	// buscándolo por participant_id o por user_id (el token del
+	// participante solo trae su user_id).
+	GetParticipantProfile(ctx context.Context, in *GetParticipantProfileRequest, opts ...grpc.CallOption) (*ParticipantProfile, error)
+	// Promoción Humana (HU-36): búsqueda parcial por nombre o apellido.
+	SearchParticipants(ctx context.Context, in *SearchParticipantsRequest, opts ...grpc.CallOption) (*SearchParticipantsResponse, error)
+	// Promoción Humana (HU-33, HU-37): nombre y apellido de los usuarios
+	// responsables de hitos y creadores de fichas.
+	GetUsersByIDs(ctx context.Context, in *GetUsersByIDsRequest, opts ...grpc.CallOption) (*GetUsersByIDsResponse, error)
 }
 
 type authServiceClient struct {
@@ -47,11 +59,50 @@ func (c *authServiceClient) GetParticipant(ctx context.Context, in *GetParticipa
 	return out, nil
 }
 
+func (c *authServiceClient) GetParticipantProfile(ctx context.Context, in *GetParticipantProfileRequest, opts ...grpc.CallOption) (*ParticipantProfile, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ParticipantProfile)
+	err := c.cc.Invoke(ctx, AuthService_GetParticipantProfile_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *authServiceClient) SearchParticipants(ctx context.Context, in *SearchParticipantsRequest, opts ...grpc.CallOption) (*SearchParticipantsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(SearchParticipantsResponse)
+	err := c.cc.Invoke(ctx, AuthService_SearchParticipants_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *authServiceClient) GetUsersByIDs(ctx context.Context, in *GetUsersByIDsRequest, opts ...grpc.CallOption) (*GetUsersByIDsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetUsersByIDsResponse)
+	err := c.cc.Invoke(ctx, AuthService_GetUsersByIDs_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // AuthServiceServer is the server API for AuthService service.
 // All implementations must embed UnimplementedAuthServiceServer
 // for forward compatibility.
 type AuthServiceServer interface {
 	GetParticipant(context.Context, *GetParticipantRequest) (*GetParticipantResponse, error)
+	// Promoción Humana (HU-31, HU-34): datos de perfil del participante,
+	// buscándolo por participant_id o por user_id (el token del
+	// participante solo trae su user_id).
+	GetParticipantProfile(context.Context, *GetParticipantProfileRequest) (*ParticipantProfile, error)
+	// Promoción Humana (HU-36): búsqueda parcial por nombre o apellido.
+	SearchParticipants(context.Context, *SearchParticipantsRequest) (*SearchParticipantsResponse, error)
+	// Promoción Humana (HU-33, HU-37): nombre y apellido de los usuarios
+	// responsables de hitos y creadores de fichas.
+	GetUsersByIDs(context.Context, *GetUsersByIDsRequest) (*GetUsersByIDsResponse, error)
 	mustEmbedUnimplementedAuthServiceServer()
 }
 
@@ -64,6 +115,15 @@ type UnimplementedAuthServiceServer struct{}
 
 func (UnimplementedAuthServiceServer) GetParticipant(context.Context, *GetParticipantRequest) (*GetParticipantResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method GetParticipant not implemented")
+}
+func (UnimplementedAuthServiceServer) GetParticipantProfile(context.Context, *GetParticipantProfileRequest) (*ParticipantProfile, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetParticipantProfile not implemented")
+}
+func (UnimplementedAuthServiceServer) SearchParticipants(context.Context, *SearchParticipantsRequest) (*SearchParticipantsResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method SearchParticipants not implemented")
+}
+func (UnimplementedAuthServiceServer) GetUsersByIDs(context.Context, *GetUsersByIDsRequest) (*GetUsersByIDsResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetUsersByIDs not implemented")
 }
 func (UnimplementedAuthServiceServer) mustEmbedUnimplementedAuthServiceServer() {}
 func (UnimplementedAuthServiceServer) testEmbeddedByValue()                     {}
@@ -104,6 +164,60 @@ func _AuthService_GetParticipant_Handler(srv interface{}, ctx context.Context, d
 	return interceptor(ctx, in, info, handler)
 }
 
+func _AuthService_GetParticipantProfile_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetParticipantProfileRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AuthServiceServer).GetParticipantProfile(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AuthService_GetParticipantProfile_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AuthServiceServer).GetParticipantProfile(ctx, req.(*GetParticipantProfileRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AuthService_SearchParticipants_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SearchParticipantsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AuthServiceServer).SearchParticipants(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AuthService_SearchParticipants_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AuthServiceServer).SearchParticipants(ctx, req.(*SearchParticipantsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AuthService_GetUsersByIDs_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetUsersByIDsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AuthServiceServer).GetUsersByIDs(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AuthService_GetUsersByIDs_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AuthServiceServer).GetUsersByIDs(ctx, req.(*GetUsersByIDsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // AuthService_ServiceDesc is the grpc.ServiceDesc for AuthService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -114,6 +228,18 @@ var AuthService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetParticipant",
 			Handler:    _AuthService_GetParticipant_Handler,
+		},
+		{
+			MethodName: "GetParticipantProfile",
+			Handler:    _AuthService_GetParticipantProfile_Handler,
+		},
+		{
+			MethodName: "SearchParticipants",
+			Handler:    _AuthService_SearchParticipants_Handler,
+		},
+		{
+			MethodName: "GetUsersByIDs",
+			Handler:    _AuthService_GetUsersByIDs_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

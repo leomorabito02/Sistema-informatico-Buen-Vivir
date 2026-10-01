@@ -1,0 +1,44 @@
+<div class="page-container">
+  <div class="header-section">
+    <h1 class="page-title">
+      <i class="pi pi-compass mr-2" aria-hidden="true"></i>Mi proceso
+    </h1>
+    <p class="page-subtitle">
+      Los momentos importantes de tu recorrido en el centro.
+    </p>
+  </div>
+
+  <div *ngIf="loading" class="state-box">
+    <p-progressSpinner
+      strokeWidth="4"
+      [style]="{ width: '40px', height: '40px' }"
+      aria-label="Cargando"
+    ></p-progressSpinner>
+    <span>Cargando tu línea de tiempo…</span>
+  </div>
+
+  <p-message
+    *ngIf="!loading && error"
+    severity="error"
+    [text]="error"
+    styleClass="w-full"
+  ></p-message>
+
+  <p-card *ngIf="!loading && !error" styleClass="p-card-shadow">
+    <p *ngIf="hitos.length === 0" class="empty-state">
+      Todavía no hay momentos registrados en tu línea de tiempo.
+    </p>
+
+    <ol *ngIf="hitos.length > 0" class="timeline">
+      <li *ngFor="let h of hitos" class="timeline-item">
+        <span class="timeline-dot" aria-hidden="true"></span>
+        <div class="timeline-content">
+          <time class="timeline-date" [attr.datetime]="h.fecha">{{
+            formatDMY(h.fecha)
+          }}</time>
+          <p class="texto-libre">{{ h.descripcion }}</p>
+        </div>
+      </li>
+    </ol>
+  </p-card>
+</div>

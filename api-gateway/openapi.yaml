@@ -2345,6 +2345,274 @@ paths:
               type: boolean
             Access-Control-Max-Age:
               type: integer
+  /api/v1/human-promotion/participantes:
+    get:
+      summary: GET /api/v1/human-promotion/participantes
+      operationId: get__api_v1_human_promotion_participantes
+      x-google-backend:
+        address: ${HUMAN_PROMOTION_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+        jwt_audience: ${HUMAN_PROMOTION_SERVICE_URL}
+      responses:
+        '200':
+          description: OK
+    options:
+      summary: CORS preflight for /api/v1/human-promotion/participantes
+      operationId: options__api_v1_human_promotion_participantes
+      x-google-backend:
+        address: ${HUMAN_PROMOTION_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+        jwt_audience: ${HUMAN_PROMOTION_SERVICE_URL}
+      responses:
+        '200':
+          description: OK
+          headers:
+            Access-Control-Allow-Origin:
+              type: string
+            Access-Control-Allow-Methods:
+              type: string
+            Access-Control-Allow-Headers:
+              type: string
+            Access-Control-Expose-Headers:
+              type: string
+            Access-Control-Allow-Credentials:
+              type: boolean
+            Access-Control-Max-Age:
+              type: integer
+  /api/v1/human-promotion/fichas:
+    get:
+      summary: GET /api/v1/human-promotion/fichas
+      operationId: get__api_v1_human_promotion_fichas
+      x-google-backend:
+        address: ${HUMAN_PROMOTION_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+        jwt_audience: ${HUMAN_PROMOTION_SERVICE_URL}
+      responses:
+        '200':
+          description: OK
+    post:
+      summary: POST /api/v1/human-promotion/fichas
+      operationId: post__api_v1_human_promotion_fichas
+      x-google-backend:
+        address: ${HUMAN_PROMOTION_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+        jwt_audience: ${HUMAN_PROMOTION_SERVICE_URL}
+      responses:
+        '200':
+          description: OK
+    options:
+      summary: CORS preflight for /api/v1/human-promotion/fichas
+      operationId: options__api_v1_human_promotion_fichas
+      x-google-backend:
+        address: ${HUMAN_PROMOTION_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+        jwt_audience: ${HUMAN_PROMOTION_SERVICE_URL}
+      responses:
+        '200':
+          description: OK
+          headers:
+            Access-Control-Allow-Origin:
+              type: string
+            Access-Control-Allow-Methods:
+              type: string
+            Access-Control-Allow-Headers:
+              type: string
+            Access-Control-Expose-Headers:
+              type: string
+            Access-Control-Allow-Credentials:
+              type: boolean
+            Access-Control-Max-Age:
+              type: integer
+  /api/v1/human-promotion/fichas/{id}:
+    get:
+      summary: GET /api/v1/human-promotion/fichas/{id}
+      operationId: get__api_v1_human_promotion_fichas_id
+      x-google-backend:
+        address: ${HUMAN_PROMOTION_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+        jwt_audience: ${HUMAN_PROMOTION_SERVICE_URL}
+      responses:
+        '200':
+          description: OK
+    put:
+      summary: PUT /api/v1/human-promotion/fichas/{id}
+      operationId: put__api_v1_human_promotion_fichas_id
+      x-google-backend:
+        address: ${HUMAN_PROMOTION_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+        jwt_audience: ${HUMAN_PROMOTION_SERVICE_URL}
+      responses:
+        '200':
+          description: OK
+    options:
+      summary: CORS preflight for /api/v1/human-promotion/fichas/{id}
+      operationId: options__api_v1_human_promotion_fichas_id
+      x-google-backend:
+        address: ${HUMAN_PROMOTION_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+        jwt_audience: ${HUMAN_PROMOTION_SERVICE_URL}
+      responses:
+        '200':
+          description: OK
+          headers:
+            Access-Control-Allow-Origin:
+              type: string
+            Access-Control-Allow-Methods:
+              type: string
+            Access-Control-Allow-Headers:
+              type: string
+            Access-Control-Expose-Headers:
+              type: string
+            Access-Control-Allow-Credentials:
+              type: boolean
+            Access-Control-Max-Age:
+              type: integer
+  /api/v1/human-promotion/fichas/{id}/pdf:
+    get:
+      summary: GET /api/v1/human-promotion/fichas/{id}/pdf
+      operationId: get__api_v1_human_promotion_fichas_id_pdf
+      x-google-backend:
+        address: ${HUMAN_PROMOTION_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+        jwt_audience: ${HUMAN_PROMOTION_SERVICE_URL}
+      responses:
+        '200':
+          description: OK
+    options:
+      summary: CORS preflight for /api/v1/human-promotion/fichas/{id}/pdf
+      operationId: options__api_v1_human_promotion_fichas_id_pdf
+      x-google-backend:
+        address: ${HUMAN_PROMOTION_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+        jwt_audience: ${HUMAN_PROMOTION_SERVICE_URL}
+      responses:
+        '200':
+          description: OK
+          headers:
+            Access-Control-Allow-Origin:
+              type: string
+            Access-Control-Allow-Methods:
+              type: string
+            Access-Control-Allow-Headers:
+              type: string
+            Access-Control-Expose-Headers:
+              type: string
+            Access-Control-Allow-Credentials:
+              type: boolean
+            Access-Control-Max-Age:
+              type: integer
+  /api/v1/human-promotion/fichas/{id}/hitos:
+    get:
+      summary: GET /api/v1/human-promotion/fichas/{id}/hitos
+      operationId: get__api_v1_human_promotion_fichas_id_hitos
+      x-google-backend:
+        address: ${HUMAN_PROMOTION_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+        jwt_audience: ${HUMAN_PROMOTION_SERVICE_URL}
+      responses:
+        '200':
+          description: OK
+    post:
+      summary: POST /api/v1/human-promotion/fichas/{id}/hitos
+      operationId: post__api_v1_human_promotion_fichas_id_hitos
+      x-google-backend:
+        address: ${HUMAN_PROMOTION_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+        jwt_audience: ${HUMAN_PROMOTION_SERVICE_URL}
+      responses:
+        '200':
+          description: OK
+    options:
+      summary: CORS preflight for /api/v1/human-promotion/fichas/{id}/hitos
+      operationId: options__api_v1_human_promotion_fichas_id_hitos
+      x-google-backend:
+        address: ${HUMAN_PROMOTION_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+        jwt_audience: ${HUMAN_PROMOTION_SERVICE_URL}
+      responses:
+        '200':
+          description: OK
+          headers:
+            Access-Control-Allow-Origin:
+              type: string
+            Access-Control-Allow-Methods:
+              type: string
+            Access-Control-Allow-Headers:
+              type: string
+            Access-Control-Expose-Headers:
+              type: string
+            Access-Control-Allow-Credentials:
+              type: boolean
+            Access-Control-Max-Age:
+              type: integer
+  /api/v1/human-promotion/fichas/{id}/hitos/{hitoId}:
+    put:
+      summary: PUT /api/v1/human-promotion/fichas/{id}/hitos/{hitoId}
+      operationId: put__api_v1_human_promotion_fichas_id_hitos_hitoId
+      x-google-backend:
+        address: ${HUMAN_PROMOTION_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+        jwt_audience: ${HUMAN_PROMOTION_SERVICE_URL}
+      responses:
+        '200':
+          description: OK
+    options:
+      summary: CORS preflight for /api/v1/human-promotion/fichas/{id}/hitos/{hitoId}
+      operationId: options__api_v1_human_promotion_fichas_id_hitos_hitoId
+      x-google-backend:
+        address: ${HUMAN_PROMOTION_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+        jwt_audience: ${HUMAN_PROMOTION_SERVICE_URL}
+      responses:
+        '200':
+          description: OK
+          headers:
+            Access-Control-Allow-Origin:
+              type: string
+            Access-Control-Allow-Methods:
+              type: string
+            Access-Control-Allow-Headers:
+              type: string
+            Access-Control-Expose-Headers:
+              type: string
+            Access-Control-Allow-Credentials:
+              type: boolean
+            Access-Control-Max-Age:
+              type: integer
+  /api/v1/human-promotion/mi-linea-de-tiempo:
+    get:
+      summary: GET /api/v1/human-promotion/mi-linea-de-tiempo
+      operationId: get__api_v1_human_promotion_mi_linea_de_tiempo
+      x-google-backend:
+        address: ${HUMAN_PROMOTION_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+        jwt_audience: ${HUMAN_PROMOTION_SERVICE_URL}
+      responses:
+        '200':
+          description: OK
+    options:
+      summary: CORS preflight for /api/v1/human-promotion/mi-linea-de-tiempo
+      operationId: options__api_v1_human_promotion_mi_linea_de_tiempo
+      x-google-backend:
+        address: ${HUMAN_PROMOTION_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+        jwt_audience: ${HUMAN_PROMOTION_SERVICE_URL}
+      responses:
+        '200':
+          description: OK
+          headers:
+            Access-Control-Allow-Origin:
+              type: string
+            Access-Control-Allow-Methods:
+              type: string
+            Access-Control-Allow-Headers:
+              type: string
+            Access-Control-Expose-Headers:
+              type: string
+            Access-Control-Allow-Credentials:
+              type: boolean
+            Access-Control-Max-Age:
+              type: integer
 securityDefinitions:
   jwt:
     type: apiKey

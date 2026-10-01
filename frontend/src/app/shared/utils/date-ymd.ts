@@ -37,3 +37,15 @@ export function parseYMD(s: string): Date {
   const [y, m, d] = s.split("-").map(Number);
   return new Date(y, m - 1, d);
 }
+
+/**
+ * Pasa "YYYY-MM-DD" (o un ISO que empiece así) a "DD/MM/AAAA", el formato
+ * que piden las historias de Promoción Humana (HU-31). Sin `Date`, para
+ * que no se corra el día por el huso horario.
+ */
+export function formatDMY(s: string | null | undefined): string {
+  if (!s) return "";
+  const [y, m, d] = s.slice(0, 10).split("-");
+  if (!y || !m || !d) return s;
+  return `${d}/${m}/${y}`;
+}
