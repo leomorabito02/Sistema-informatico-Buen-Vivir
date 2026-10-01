@@ -67,6 +67,31 @@ services:
     networks:
       - buenvivir-net
 
+  human-promotion:
+    build:
+      context: ./human-promotion
+      dockerfile: Dockerfile
+    env_file:
+      - ./human-promotion/.env
+    environment:
+      - AUTH_SERVICE_GRPC_TARGET=auth-service:50051
+    ports:
+      - "8085:8085"
+    depends_on:
+      - auth-service
+    restart: on-failure
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    read_only: true
+    tmpfs:
+      - /tmp
+    mem_limit: 512m
+    cpus: "1"
+    networks:
+      - buenvivir-net
+
   api-gateway:
     image: nginx:alpine
     container_name: buenvivir-api-gateway

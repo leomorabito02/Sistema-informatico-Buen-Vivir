@@ -125,6 +125,419 @@ func (x *GetParticipantResponse) GetApprovalStatus() string {
 	return ""
 }
 
+type GetParticipantProfileRequest struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Types that are valid to be assigned to Lookup:
+	//
+	//	*GetParticipantProfileRequest_ParticipantId
+	//	*GetParticipantProfileRequest_UserId
+	Lookup        isGetParticipantProfileRequest_Lookup `protobuf_oneof:"lookup"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetParticipantProfileRequest) Reset() {
+	*x = GetParticipantProfileRequest{}
+	mi := &file_auth_proto_msgTypes[2]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetParticipantProfileRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetParticipantProfileRequest) ProtoMessage() {}
+
+func (x *GetParticipantProfileRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_auth_proto_msgTypes[2]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetParticipantProfileRequest.ProtoReflect.Descriptor instead.
+func (*GetParticipantProfileRequest) Descriptor() ([]byte, []int) {
+	return file_auth_proto_rawDescGZIP(), []int{2}
+}
+
+func (x *GetParticipantProfileRequest) GetLookup() isGetParticipantProfileRequest_Lookup {
+	if x != nil {
+		return x.Lookup
+	}
+	return nil
+}
+
+func (x *GetParticipantProfileRequest) GetParticipantId() string {
+	if x != nil {
+		if x, ok := x.Lookup.(*GetParticipantProfileRequest_ParticipantId); ok {
+			return x.ParticipantId
+		}
+	}
+	return ""
+}
+
+func (x *GetParticipantProfileRequest) GetUserId() string {
+	if x != nil {
+		if x, ok := x.Lookup.(*GetParticipantProfileRequest_UserId); ok {
+			return x.UserId
+		}
+	}
+	return ""
+}
+
+type isGetParticipantProfileRequest_Lookup interface {
+	isGetParticipantProfileRequest_Lookup()
+}
+
+type GetParticipantProfileRequest_ParticipantId struct {
+	ParticipantId string `protobuf:"bytes,1,opt,name=participant_id,json=participantId,proto3,oneof"`
+}
+
+type GetParticipantProfileRequest_UserId struct {
+	UserId string `protobuf:"bytes,2,opt,name=user_id,json=userId,proto3,oneof"`
+}
+
+func (*GetParticipantProfileRequest_ParticipantId) isGetParticipantProfileRequest_Lookup() {}
+
+func (*GetParticipantProfileRequest_UserId) isGetParticipantProfileRequest_Lookup() {}
+
+type ParticipantProfile struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	ParticipantId string                 `protobuf:"bytes,1,opt,name=participant_id,json=participantId,proto3" json:"participant_id,omitempty"`
+	UserId        string                 `protobuf:"bytes,2,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
+	FirstName     string                 `protobuf:"bytes,3,opt,name=first_name,json=firstName,proto3" json:"first_name,omitempty"`
+	LastName      string                 `protobuf:"bytes,4,opt,name=last_name,json=lastName,proto3" json:"last_name,omitempty"`
+	// Fecha de nacimiento en formato AAAA-MM-DD; vacía si no está cargada.
+	Birthdate      string `protobuf:"bytes,5,opt,name=birthdate,proto3" json:"birthdate,omitempty"`
+	ApprovalStatus string `protobuf:"bytes,6,opt,name=approval_status,json=approvalStatus,proto3" json:"approval_status,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
+}
+
+func (x *ParticipantProfile) Reset() {
+	*x = ParticipantProfile{}
+	mi := &file_auth_proto_msgTypes[3]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ParticipantProfile) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ParticipantProfile) ProtoMessage() {}
+
+func (x *ParticipantProfile) ProtoReflect() protoreflect.Message {
+	mi := &file_auth_proto_msgTypes[3]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ParticipantProfile.ProtoReflect.Descriptor instead.
+func (*ParticipantProfile) Descriptor() ([]byte, []int) {
+	return file_auth_proto_rawDescGZIP(), []int{3}
+}
+
+func (x *ParticipantProfile) GetParticipantId() string {
+	if x != nil {
+		return x.ParticipantId
+	}
+	return ""
+}
+
+func (x *ParticipantProfile) GetUserId() string {
+	if x != nil {
+		return x.UserId
+	}
+	return ""
+}
+
+func (x *ParticipantProfile) GetFirstName() string {
+	if x != nil {
+		return x.FirstName
+	}
+	return ""
+}
+
+func (x *ParticipantProfile) GetLastName() string {
+	if x != nil {
+		return x.LastName
+	}
+	return ""
+}
+
+func (x *ParticipantProfile) GetBirthdate() string {
+	if x != nil {
+		return x.Birthdate
+	}
+	return ""
+}
+
+func (x *ParticipantProfile) GetApprovalStatus() string {
+	if x != nil {
+		return x.ApprovalStatus
+	}
+	return ""
+}
+
+type SearchParticipantsRequest struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Al menos 2 caracteres.
+	Query string `protobuf:"bytes,1,opt,name=query,proto3" json:"query,omitempty"`
+	// Máximo de resultados; 0 o más de 50 se toma como 20.
+	Limit         int32 `protobuf:"varint,2,opt,name=limit,proto3" json:"limit,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SearchParticipantsRequest) Reset() {
+	*x = SearchParticipantsRequest{}
+	mi := &file_auth_proto_msgTypes[4]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SearchParticipantsRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SearchParticipantsRequest) ProtoMessage() {}
+
+func (x *SearchParticipantsRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_auth_proto_msgTypes[4]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SearchParticipantsRequest.ProtoReflect.Descriptor instead.
+func (*SearchParticipantsRequest) Descriptor() ([]byte, []int) {
+	return file_auth_proto_rawDescGZIP(), []int{4}
+}
+
+func (x *SearchParticipantsRequest) GetQuery() string {
+	if x != nil {
+		return x.Query
+	}
+	return ""
+}
+
+func (x *SearchParticipantsRequest) GetLimit() int32 {
+	if x != nil {
+		return x.Limit
+	}
+	return 0
+}
+
+type SearchParticipantsResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Participants  []*ParticipantProfile  `protobuf:"bytes,1,rep,name=participants,proto3" json:"participants,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SearchParticipantsResponse) Reset() {
+	*x = SearchParticipantsResponse{}
+	mi := &file_auth_proto_msgTypes[5]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SearchParticipantsResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SearchParticipantsResponse) ProtoMessage() {}
+
+func (x *SearchParticipantsResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_auth_proto_msgTypes[5]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SearchParticipantsResponse.ProtoReflect.Descriptor instead.
+func (*SearchParticipantsResponse) Descriptor() ([]byte, []int) {
+	return file_auth_proto_rawDescGZIP(), []int{5}
+}
+
+func (x *SearchParticipantsResponse) GetParticipants() []*ParticipantProfile {
+	if x != nil {
+		return x.Participants
+	}
+	return nil
+}
+
+type GetUsersByIDsRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	UserIds       []string               `protobuf:"bytes,1,rep,name=user_ids,json=userIds,proto3" json:"user_ids,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetUsersByIDsRequest) Reset() {
+	*x = GetUsersByIDsRequest{}
+	mi := &file_auth_proto_msgTypes[6]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetUsersByIDsRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetUsersByIDsRequest) ProtoMessage() {}
+
+func (x *GetUsersByIDsRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_auth_proto_msgTypes[6]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetUsersByIDsRequest.ProtoReflect.Descriptor instead.
+func (*GetUsersByIDsRequest) Descriptor() ([]byte, []int) {
+	return file_auth_proto_rawDescGZIP(), []int{6}
+}
+
+func (x *GetUsersByIDsRequest) GetUserIds() []string {
+	if x != nil {
+		return x.UserIds
+	}
+	return nil
+}
+
+type UserSummary struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	UserId        string                 `protobuf:"bytes,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
+	FirstName     string                 `protobuf:"bytes,2,opt,name=first_name,json=firstName,proto3" json:"first_name,omitempty"`
+	LastName      string                 `protobuf:"bytes,3,opt,name=last_name,json=lastName,proto3" json:"last_name,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *UserSummary) Reset() {
+	*x = UserSummary{}
+	mi := &file_auth_proto_msgTypes[7]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UserSummary) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UserSummary) ProtoMessage() {}
+
+func (x *UserSummary) ProtoReflect() protoreflect.Message {
+	mi := &file_auth_proto_msgTypes[7]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UserSummary.ProtoReflect.Descriptor instead.
+func (*UserSummary) Descriptor() ([]byte, []int) {
+	return file_auth_proto_rawDescGZIP(), []int{7}
+}
+
+func (x *UserSummary) GetUserId() string {
+	if x != nil {
+		return x.UserId
+	}
+	return ""
+}
+
+func (x *UserSummary) GetFirstName() string {
+	if x != nil {
+		return x.FirstName
+	}
+	return ""
+}
+
+func (x *UserSummary) GetLastName() string {
+	if x != nil {
+		return x.LastName
+	}
+	return ""
+}
+
+type GetUsersByIDsResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Users         []*UserSummary         `protobuf:"bytes,1,rep,name=users,proto3" json:"users,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetUsersByIDsResponse) Reset() {
+	*x = GetUsersByIDsResponse{}
+	mi := &file_auth_proto_msgTypes[8]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetUsersByIDsResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetUsersByIDsResponse) ProtoMessage() {}
+
+func (x *GetUsersByIDsResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_auth_proto_msgTypes[8]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetUsersByIDsResponse.ProtoReflect.Descriptor instead.
+func (*GetUsersByIDsResponse) Descriptor() ([]byte, []int) {
+	return file_auth_proto_rawDescGZIP(), []int{8}
+}
+
+func (x *GetUsersByIDsResponse) GetUsers() []*UserSummary {
+	if x != nil {
+		return x.Users
+	}
+	return nil
+}
+
 var File_auth_proto protoreflect.FileDescriptor
 
 const file_auth_proto_rawDesc = "" +
@@ -136,9 +549,38 @@ const file_auth_proto_rawDesc = "" +
 	"\x16GetParticipantResponse\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x17\n" +
 	"\auser_id\x18\x02 \x01(\tR\x06userId\x12'\n" +
-	"\x0fapproval_status\x18\x03 \x01(\tR\x0eapprovalStatus2Z\n" +
+	"\x0fapproval_status\x18\x03 \x01(\tR\x0eapprovalStatus\"l\n" +
+	"\x1cGetParticipantProfileRequest\x12'\n" +
+	"\x0eparticipant_id\x18\x01 \x01(\tH\x00R\rparticipantId\x12\x19\n" +
+	"\auser_id\x18\x02 \x01(\tH\x00R\x06userIdB\b\n" +
+	"\x06lookup\"\xd7\x01\n" +
+	"\x12ParticipantProfile\x12%\n" +
+	"\x0eparticipant_id\x18\x01 \x01(\tR\rparticipantId\x12\x17\n" +
+	"\auser_id\x18\x02 \x01(\tR\x06userId\x12\x1d\n" +
+	"\n" +
+	"first_name\x18\x03 \x01(\tR\tfirstName\x12\x1b\n" +
+	"\tlast_name\x18\x04 \x01(\tR\blastName\x12\x1c\n" +
+	"\tbirthdate\x18\x05 \x01(\tR\tbirthdate\x12'\n" +
+	"\x0fapproval_status\x18\x06 \x01(\tR\x0eapprovalStatus\"G\n" +
+	"\x19SearchParticipantsRequest\x12\x14\n" +
+	"\x05query\x18\x01 \x01(\tR\x05query\x12\x14\n" +
+	"\x05limit\x18\x02 \x01(\x05R\x05limit\"Z\n" +
+	"\x1aSearchParticipantsResponse\x12<\n" +
+	"\fparticipants\x18\x01 \x03(\v2\x18.auth.ParticipantProfileR\fparticipants\"1\n" +
+	"\x14GetUsersByIDsRequest\x12\x19\n" +
+	"\buser_ids\x18\x01 \x03(\tR\auserIds\"b\n" +
+	"\vUserSummary\x12\x17\n" +
+	"\auser_id\x18\x01 \x01(\tR\x06userId\x12\x1d\n" +
+	"\n" +
+	"first_name\x18\x02 \x01(\tR\tfirstName\x12\x1b\n" +
+	"\tlast_name\x18\x03 \x01(\tR\blastName\"@\n" +
+	"\x15GetUsersByIDsResponse\x12'\n" +
+	"\x05users\x18\x01 \x03(\v2\x11.auth.UserSummaryR\x05users2\xd4\x02\n" +
 	"\vAuthService\x12K\n" +
-	"\x0eGetParticipant\x12\x1b.auth.GetParticipantRequest\x1a\x1c.auth.GetParticipantResponseB.Z,buenvivir/labor-integration/api/proto/authpbb\x06proto3"
+	"\x0eGetParticipant\x12\x1b.auth.GetParticipantRequest\x1a\x1c.auth.GetParticipantResponse\x12U\n" +
+	"\x15GetParticipantProfile\x12\".auth.GetParticipantProfileRequest\x1a\x18.auth.ParticipantProfile\x12W\n" +
+	"\x12SearchParticipants\x12\x1f.auth.SearchParticipantsRequest\x1a .auth.SearchParticipantsResponse\x12H\n" +
+	"\rGetUsersByIDs\x12\x1a.auth.GetUsersByIDsRequest\x1a\x1b.auth.GetUsersByIDsResponseB.Z,buenvivir/labor-integration/api/proto/authpbb\x06proto3"
 
 var (
 	file_auth_proto_rawDescOnce sync.Once
@@ -152,19 +594,34 @@ func file_auth_proto_rawDescGZIP() []byte {
 	return file_auth_proto_rawDescData
 }
 
-var file_auth_proto_msgTypes = make([]protoimpl.MessageInfo, 2)
+var file_auth_proto_msgTypes = make([]protoimpl.MessageInfo, 9)
 var file_auth_proto_goTypes = []any{
-	(*GetParticipantRequest)(nil),  // 0: auth.GetParticipantRequest
-	(*GetParticipantResponse)(nil), // 1: auth.GetParticipantResponse
+	(*GetParticipantRequest)(nil),        // 0: auth.GetParticipantRequest
+	(*GetParticipantResponse)(nil),       // 1: auth.GetParticipantResponse
+	(*GetParticipantProfileRequest)(nil), // 2: auth.GetParticipantProfileRequest
+	(*ParticipantProfile)(nil),           // 3: auth.ParticipantProfile
+	(*SearchParticipantsRequest)(nil),    // 4: auth.SearchParticipantsRequest
+	(*SearchParticipantsResponse)(nil),   // 5: auth.SearchParticipantsResponse
+	(*GetUsersByIDsRequest)(nil),         // 6: auth.GetUsersByIDsRequest
+	(*UserSummary)(nil),                  // 7: auth.UserSummary
+	(*GetUsersByIDsResponse)(nil),        // 8: auth.GetUsersByIDsResponse
 }
 var file_auth_proto_depIdxs = []int32{
-	0, // 0: auth.AuthService.GetParticipant:input_type -> auth.GetParticipantRequest
-	1, // 1: auth.AuthService.GetParticipant:output_type -> auth.GetParticipantResponse
-	1, // [1:2] is the sub-list for method output_type
-	0, // [0:1] is the sub-list for method input_type
-	0, // [0:0] is the sub-list for extension type_name
-	0, // [0:0] is the sub-list for extension extendee
-	0, // [0:0] is the sub-list for field type_name
+	3, // 0: auth.SearchParticipantsResponse.participants:type_name -> auth.ParticipantProfile
+	7, // 1: auth.GetUsersByIDsResponse.users:type_name -> auth.UserSummary
+	0, // 2: auth.AuthService.GetParticipant:input_type -> auth.GetParticipantRequest
+	2, // 3: auth.AuthService.GetParticipantProfile:input_type -> auth.GetParticipantProfileRequest
+	4, // 4: auth.AuthService.SearchParticipants:input_type -> auth.SearchParticipantsRequest
+	6, // 5: auth.AuthService.GetUsersByIDs:input_type -> auth.GetUsersByIDsRequest
+	1, // 6: auth.AuthService.GetParticipant:output_type -> auth.GetParticipantResponse
+	3, // 7: auth.AuthService.GetParticipantProfile:output_type -> auth.ParticipantProfile
+	5, // 8: auth.AuthService.SearchParticipants:output_type -> auth.SearchParticipantsResponse
+	8, // 9: auth.AuthService.GetUsersByIDs:output_type -> auth.GetUsersByIDsResponse
+	6, // [6:10] is the sub-list for method output_type
+	2, // [2:6] is the sub-list for method input_type
+	2, // [2:2] is the sub-list for extension type_name
+	2, // [2:2] is the sub-list for extension extendee
+	0, // [0:2] is the sub-list for field type_name
 }
 
 func init() { file_auth_proto_init() }
@@ -172,13 +629,17 @@ func file_auth_proto_init() {
 	if File_auth_proto != nil {
 		return
 	}
+	file_auth_proto_msgTypes[2].OneofWrappers = []any{
+		(*GetParticipantProfileRequest_ParticipantId)(nil),
+		(*GetParticipantProfileRequest_UserId)(nil),
+	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_auth_proto_rawDesc), len(file_auth_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   2,
+			NumMessages:   9,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

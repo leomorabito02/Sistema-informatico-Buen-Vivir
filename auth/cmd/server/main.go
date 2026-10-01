@@ -40,6 +40,7 @@ func main() {
 	permissionRepo := repositories.NewPermissionRepository(db)
 	volunteerRepo := repositories.NewVolunteerRepository(db)
 	refreshTokenRepo := repositories.NewRefreshTokenRepository(db)
+	participantDirectoryRepo := repositories.NewParticipantDirectoryRepository(db)
 
 	// 4. Setup Services
 	jwtService, err := services.NewJWTServiceFromEnv()
@@ -85,7 +86,8 @@ func main() {
 	permissionController := controllers.NewPermissionController(permissionService)
 	volunteerController := controllers.NewVolunteerController(volunteerService)
 	tokenValidatorController := controllers.NewTokenValidatorController(jwtService)
-	grpcParticipantController := controllers.NewGrpcParticipantController(participantService)
+	participantDirectoryService := services.NewParticipantDirectoryService(participantDirectoryRepo)
+	grpcParticipantController := controllers.NewGrpcParticipantController(participantService, participantDirectoryService)
 
 	go func() {
 		lis, err := net.Listen("tcp", ":50051")

@@ -8,6 +8,7 @@ import { guestGuard } from "./core/guards/guest.guard";
 import { adminGuard } from "./core/guards/admin.guard";
 import { adminOrVolunteerGuard } from "./core/guards/admin-volunteer.guard";
 import { teacherGuard } from "./core/guards/teacher.guard";
+import { participantGuard } from "./core/guards/participant.guard";
 
 export const routes: Routes = [
   {
@@ -257,6 +258,30 @@ export const routes: Routes = [
         loadComponent: () =>
           import("./pages/dashboard/asistencia-general/asistencia-general.component").then(
             (m) => m.AsistenciaGeneralComponent,
+          ),
+      },
+      {
+        path: "promocion-humana",
+        canActivate: [adminOrVolunteerGuard],
+        loadComponent: () =>
+          import("./pages/dashboard/promocion-humana/promocion-humana.component").then(
+            (m) => m.PromocionHumanaComponent,
+          ),
+      },
+      {
+        path: "promocion-humana/participantes/:participanteId",
+        canActivate: [adminOrVolunteerGuard],
+        loadComponent: () =>
+          import("./pages/dashboard/promocion-humana/ficha/ficha.component").then(
+            (m) => m.FichaComponent,
+          ),
+      },
+      {
+        path: "mi-proceso",
+        canActivate: [participantGuard],
+        loadComponent: () =>
+          import("./pages/dashboard/mi-proceso/mi-proceso.component").then(
+            (m) => m.MiProcesoComponent,
           ),
       },
       {
