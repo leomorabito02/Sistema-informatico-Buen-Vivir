@@ -1,11 +1,15 @@
 package worker
 
 import (
+	"bytes"
 	"context"
+	"fmt"
 	"log"
+	"time"
 
 	"buenvivir/rxresume/internal/client"
 	"buenvivir/rxresume/internal/repositories"
+	"buenvivir/rxresume/internal/storage"
 )
 
 type SyncQueue interface {
@@ -17,13 +21,15 @@ type syncQueue struct {
 	queue    chan string
 	repo     repositories.ResumeRepository
 	rxClient client.ReactiveResumeClient
+	storage  storage.ObjectStorageService
 }
 
-func NewSyncQueue(repo repositories.ResumeRepository, rxClient client.ReactiveResumeClient) SyncQueue {
+func NewSyncQueue(repo repositories.ResumeRepository, rxClient client.ReactiveResumeClient, storage storage.ObjectStorageService) SyncQueue {
 	return &syncQueue{
 		queue:    make(chan string, 1000), // Buffer for 1000 sync jobs
 		repo:     repo,
 		rxClient: rxClient,
+		storage:  storage,
 	}
 }
 
@@ -66,8 +72,27 @@ func (q *syncQueue) process(ctx context.Context, userID string) {
 	err = q.rxClient.SyncResume(ctx, resume)
 	if err != nil {
 		log.Printf("Sync worker: Error syncing resume for user %s to RxResume: %v", userID, err)
-		// Here a DLQ (Dead Letter Queue) or retry mechanism could be implemented for production
+		return
+	}
+	
+	_ = q.repo.Save(ctx, resume)
+	log.Printf("Sync worker: Successfully synced resume for user %s", userID)
+
+	// 3. Generate PDF and upload to GCS
+	pdfCtx, pdfCancel := context.WithTimeout(context.Background(), 3*time.Minute)
+	defer pdfCancel()
+
+	pdfBytes, err := q.rxClient.ExportResumePDF(pdfCtx, userID)
+	if err != nil {
+		log.Printf("Sync worker: Error generating PDF for user %s: %v", userID, err)
+		return
+	}
+
+	objectName := fmt.Sprintf("pdfs/%s.pdf", userID)
+	_, err = q.storage.UploadFile(ctx, objectName, bytes.NewReader(pdfBytes), "application/pdf")
+	if err != nil {
+		log.Printf("Sync worker: Error uploading PDF to GCS for user %s: %v", userID, err)
 	} else {
-		log.Printf("Sync worker: Successfully synced resume for user %s", userID)
+		log.Printf("Sync worker: PDF generated and cached in GCS for user %s", userID)
 	}
 }

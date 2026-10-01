@@ -247,6 +247,23 @@ export class RxResumeService {
       .pipe(catchError(this.handleError));
   }
 
+  // getPDFStatus returns whether the PDF is ready in GCS.
+  getPDFStatus(): Observable<{ ready: boolean }> {
+    return this.http
+      .get<{ ready: boolean }>(`${this.apiUrl}/api/v1/rxresume/me/pdf-status`, {
+        withCredentials: true,
+      })
+      .pipe(catchError(this.handleError));
+  }
+
+  getUserPDFStatusByAdmin(userId: string): Observable<{ ready: boolean }> {
+    return this.http
+      .get<{ ready: boolean }>(`${this.apiUrl}/api/v1/rxresume/user/pdf-status?user_id=${userId}`, {
+        withCredentials: true,
+      })
+      .pipe(catchError(this.handleError));
+  }
+
   // downloadPublicPDF triggers the PDF download for a public CV.
   downloadPublicPDF(userId: string): void {
     this.http

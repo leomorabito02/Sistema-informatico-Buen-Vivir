@@ -1,4 +1,4 @@
-import { Component, OnInit, inject } from "@angular/core";
+import { Component, OnInit, OnDestroy, inject } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { ActivatedRoute } from "@angular/router";
 import { FormsModule, NgForm } from "@angular/forms";
@@ -36,7 +36,7 @@ import { ProfileService } from "../../../services/profile.service";
   templateUrl: "./cv.component.html",
   styleUrls: ["./cv.component.css"],
 })
-export class CvComponent implements OnInit {
+export class CvComponent implements OnInit, OnDestroy {
   private readonly rxResumeService = inject(RxResumeService);
   private readonly profileService = inject(ProfileService);
   private readonly route = inject(ActivatedRoute);
@@ -46,7 +46,10 @@ export class CvComponent implements OnInit {
   loading = false;
   generating = false;
   uploadingPicture = false;
+  pdfReady = false;
+  pdfPolling = false;
   message = "";
+  private pdfPollInterval: ReturnType<typeof setInterval> | null = null;
 
   templates = [
 
@@ -99,6 +102,7 @@ export class CvComponent implements OnInit {
     resumeObservable.subscribe({
       next: (res) => {
         this.resume = res;
+        this.checkInitialPDFStatus();
 
         // Auto-load missing fields from user profile
         this.profileService.getMyProfile().subscribe({
@@ -138,6 +142,54 @@ export class CvComponent implements OnInit {
     });
   }
 
+  private checkInitialPDFStatus() {
+    const statusObs = this.userId
+      ? this.rxResumeService.getUserPDFStatusByAdmin(this.userId)
+      : this.rxResumeService.getPDFStatus();
+
+    statusObs.subscribe({
+      next: (res) => {
+        this.pdfReady = res.ready;
+      }
+    });
+  }
+
+  // Llamar después de guardar exitosamente
+  private startPDFPolling() {
+    this.pdfReady = false;
+    this.pdfPolling = true;
+
+    // Limpiar cualquier poll previo
+    if (this.pdfPollInterval) clearInterval(this.pdfPollInterval);
+
+    this.pdfPollInterval = setInterval(() => {
+      const statusObs = this.userId
+        ? this.rxResumeService.getUserPDFStatusByAdmin(this.userId)
+        : this.rxResumeService.getPDFStatus();
+
+      statusObs.subscribe({
+        next: (res) => {
+          if (res.ready) {
+            this.pdfReady = true;
+            this.pdfPolling = false;
+            clearInterval(this.pdfPollInterval!);
+            this.pdfPollInterval = null;
+            this.message = 'PDF listo. Hacé click en "Descargar PDF" para obtenerlo.';
+          }
+        },
+        error: (err) => {
+          if (err.status === 401 || err.status === 403) {
+            this.pdfPolling = false;
+            clearInterval(this.pdfPollInterval!);
+            this.pdfPollInterval = null;
+            this.message = 'Tu sesión expiró. Por favor, actualiza la página y vuelve a iniciar sesión.';
+          }
+          // Ignorar otros errores de polling, seguir intentando
+        },
+      });
+    }, 3000); // Poll cada 3 segundos
+  }
+
   generateResume(form?: NgForm) {
     if (form?.invalid) {
       this.message = "Por favor, completa los campos requeridos correctamente.";
@@ -158,13 +210,18 @@ export class CvComponent implements OnInit {
       next: (res) => {
         this.resume = res;
         this.generating = false;
-        this.message = "¡Currículum guardado y generado exitosamente!";
+        this.message = "¡Currículum guardado! Generando PDF...";
+        this.startPDFPolling();
       },
       error: (err) => {
         this.generating = false;
         this.message = err.message || "Error al generar el currículum.";
       },
     });
+  }
+
+  ngOnDestroy() {
+    if (this.pdfPollInterval) clearInterval(this.pdfPollInterval);
   }
 
   downloadPdf() {

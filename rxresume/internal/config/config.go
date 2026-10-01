@@ -49,7 +49,7 @@ func LoadConfig() *Config {
 
 	gcpProjectID := os.Getenv("GCP_PROJECT_ID")
 	if gcpProjectID == "" {
-		gcpProjectID = "buenvivir-gcp-project"
+		gcpProjectID = "ceibuenvivir"
 	}
 
 	gcpBucketName := os.Getenv("GCP_BUCKET_NAME")

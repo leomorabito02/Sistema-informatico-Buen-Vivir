@@ -14,7 +14,7 @@ type JobOffer struct {
 	Salary       string    `firestore:"salario" json:"salario"`
 	Schedule     string    `firestore:"horario" json:"horario"`
 	Requirements []string  `firestore:"requisitos" json:"requisitos"`
-	Deadline     time.Time `firestore:"fecha_limite" json:"fecha_limite"`
+	Deadline     time.Time `firestore:"fecha_limite" json:"fecha_limite,omitempty"`
 	Status       string    `firestore:"estado" json:"estado"`
 	ApprovedBy   string    `firestore:"aprobado_por" json:"aprobado_por"`
 
