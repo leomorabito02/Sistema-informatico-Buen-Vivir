@@ -8,7 +8,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"buenvivir/rxresume/internal/models"
+	"buenvivir/rxresume/internal/dto"
 	"buenvivir/rxresume/internal/services"
 )
 
@@ -71,18 +71,18 @@ func (c *ResumeController) UpdateMyResume(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	var data models.ResumeData
-	if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
+	var req dto.UpdateResumeRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		http.Error(w, errInvalidJSON, http.StatusBadRequest)
 		return
 	}
-	data.Sanitize()
-	if err := data.Validate(); err != nil {
+	req.Sanitize()
+	if err := req.Validate(); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	resume, err := c.service.UpdateResume(r.Context(), userID, &data)
+	resume, err := c.service.UpdateResume(r.Context(), userID, &req.ResumeData)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -270,18 +270,18 @@ func (c *ResumeController) UpdateUserResumeByAdmin(w http.ResponseWriter, r *htt
 		return
 	}
 
-	var data models.ResumeData
-	if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
+	var req dto.UpdateResumeRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		http.Error(w, errInvalidJSON, http.StatusBadRequest)
 		return
 	}
-	data.Sanitize()
-	if err := data.Validate(); err != nil {
+	req.Sanitize()
+	if err := req.Validate(); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	resume, err := c.service.UpdateResume(r.Context(), userID, &data)
+	resume, err := c.service.UpdateResume(r.Context(), userID, &req.ResumeData)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -335,18 +335,18 @@ func (c *ResumeController) GenerateMyResume(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	var data models.ProfileInput
-	if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
+	var req dto.GenerateResumeRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		http.Error(w, errInvalidJSON, http.StatusBadRequest)
 		return
 	}
-	data.Sanitize()
-	if err := data.Validate(); err != nil {
+	req.Sanitize()
+	if err := req.Validate(); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	resume, err := c.service.GenerateResume(r.Context(), userID, &data)
+	resume, err := c.service.GenerateResume(r.Context(), userID, &req)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return

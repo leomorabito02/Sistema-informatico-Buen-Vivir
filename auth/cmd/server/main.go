@@ -87,8 +87,7 @@ func main() {
 	volunteerController := controllers.NewVolunteerController(volunteerService)
 	tokenValidatorController := controllers.NewTokenValidatorController(jwtService)
 	participantDirectoryService := services.NewParticipantDirectoryService(participantDirectoryRepo)
-	grpcParticipantController := controllers.NewGrpcParticipantController(participantService, participantDirectoryService)
-
+	grpcAuthController := controllers.NewGrpcAuthController(participantService, companyService, userService, participantDirectoryService)
 	go func() {
 		lis, err := net.Listen("tcp", ":50051")
 		if err != nil {
@@ -96,7 +95,7 @@ func main() {
 			return
 		}
 		grpcServer := grpc.NewServer()
-		authpb.RegisterAuthServiceServer(grpcServer, grpcParticipantController)
+		authpb.RegisterAuthServiceServer(grpcServer, grpcAuthController)
 		slog.Info("Servicio Auth (gRPC) escuchando en el puerto 50051")
 		if err := grpcServer.Serve(lis); err != nil {
 			slog.Error("failed to serve gRPC", "error", err)

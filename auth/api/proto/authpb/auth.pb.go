@@ -538,6 +538,150 @@ func (x *GetUsersByIDsResponse) GetUsers() []*UserSummary {
 	return nil
 }
 
+type GetCompanyRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	CompanyId     string                 `protobuf:"bytes,1,opt,name=company_id,json=companyId,proto3" json:"company_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetCompanyRequest) Reset() {
+	*x = GetCompanyRequest{}
+	mi := &file_auth_proto_msgTypes[9]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetCompanyRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetCompanyRequest) ProtoMessage() {}
+
+func (x *GetCompanyRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_auth_proto_msgTypes[9]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetCompanyRequest.ProtoReflect.Descriptor instead.
+func (*GetCompanyRequest) Descriptor() ([]byte, []int) {
+	return file_auth_proto_rawDescGZIP(), []int{9}
+}
+
+func (x *GetCompanyRequest) GetCompanyId() string {
+	if x != nil {
+		return x.CompanyId
+	}
+	return ""
+}
+
+type GetCompanyResponse struct {
+	state          protoimpl.MessageState `protogen:"open.v1"`
+	CompanyId      string                 `protobuf:"bytes,1,opt,name=company_id,json=companyId,proto3" json:"company_id,omitempty"`
+	UserId         string                 `protobuf:"bytes,2,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
+	BusinessName   string                 `protobuf:"bytes,3,opt,name=business_name,json=businessName,proto3" json:"business_name,omitempty"`
+	Cuit           string                 `protobuf:"bytes,4,opt,name=cuit,proto3" json:"cuit,omitempty"`
+	ApprovalStatus string                 `protobuf:"bytes,5,opt,name=approval_status,json=approvalStatus,proto3" json:"approval_status,omitempty"`
+	UserEmail      string                 `protobuf:"bytes,6,opt,name=user_email,json=userEmail,proto3" json:"user_email,omitempty"`
+	UserPhone      string                 `protobuf:"bytes,7,opt,name=user_phone,json=userPhone,proto3" json:"user_phone,omitempty"`
+	UserStatus     string                 `protobuf:"bytes,8,opt,name=user_status,json=userStatus,proto3" json:"user_status,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
+}
+
+func (x *GetCompanyResponse) Reset() {
+	*x = GetCompanyResponse{}
+	mi := &file_auth_proto_msgTypes[10]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetCompanyResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetCompanyResponse) ProtoMessage() {}
+
+func (x *GetCompanyResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_auth_proto_msgTypes[10]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetCompanyResponse.ProtoReflect.Descriptor instead.
+func (*GetCompanyResponse) Descriptor() ([]byte, []int) {
+	return file_auth_proto_rawDescGZIP(), []int{10}
+}
+
+func (x *GetCompanyResponse) GetCompanyId() string {
+	if x != nil {
+		return x.CompanyId
+	}
+	return ""
+}
+
+func (x *GetCompanyResponse) GetUserId() string {
+	if x != nil {
+		return x.UserId
+	}
+	return ""
+}
+
+func (x *GetCompanyResponse) GetBusinessName() string {
+	if x != nil {
+		return x.BusinessName
+	}
+	return ""
+}
+
+func (x *GetCompanyResponse) GetCuit() string {
+	if x != nil {
+		return x.Cuit
+	}
+	return ""
+}
+
+func (x *GetCompanyResponse) GetApprovalStatus() string {
+	if x != nil {
+		return x.ApprovalStatus
+	}
+	return ""
+}
+
+func (x *GetCompanyResponse) GetUserEmail() string {
+	if x != nil {
+		return x.UserEmail
+	}
+	return ""
+}
+
+func (x *GetCompanyResponse) GetUserPhone() string {
+	if x != nil {
+		return x.UserPhone
+	}
+	return ""
+}
+
+func (x *GetCompanyResponse) GetUserStatus() string {
+	if x != nil {
+		return x.UserStatus
+	}
+	return ""
+}
+
 var File_auth_proto protoreflect.FileDescriptor
 
 const file_auth_proto_rawDesc = "" +
@@ -575,12 +719,30 @@ const file_auth_proto_rawDesc = "" +
 	"first_name\x18\x02 \x01(\tR\tfirstName\x12\x1b\n" +
 	"\tlast_name\x18\x03 \x01(\tR\blastName\"@\n" +
 	"\x15GetUsersByIDsResponse\x12'\n" +
-	"\x05users\x18\x01 \x03(\v2\x11.auth.UserSummaryR\x05users2\xd4\x02\n" +
+	"\x05users\x18\x01 \x03(\v2\x11.auth.UserSummaryR\x05users\"2\n" +
+	"\x11GetCompanyRequest\x12\x1d\n" +
+	"\n" +
+	"company_id\x18\x01 \x01(\tR\tcompanyId\"\x8d\x02\n" +
+	"\x12GetCompanyResponse\x12\x1d\n" +
+	"\n" +
+	"company_id\x18\x01 \x01(\tR\tcompanyId\x12\x17\n" +
+	"\auser_id\x18\x02 \x01(\tR\x06userId\x12#\n" +
+	"\rbusiness_name\x18\x03 \x01(\tR\fbusinessName\x12\x12\n" +
+	"\x04cuit\x18\x04 \x01(\tR\x04cuit\x12'\n" +
+	"\x0fapproval_status\x18\x05 \x01(\tR\x0eapprovalStatus\x12\x1d\n" +
+	"\n" +
+	"user_email\x18\x06 \x01(\tR\tuserEmail\x12\x1d\n" +
+	"\n" +
+	"user_phone\x18\a \x01(\tR\tuserPhone\x12\x1f\n" +
+	"\vuser_status\x18\b \x01(\tR\n" +
+	"userStatus2\x95\x03\n" +
 	"\vAuthService\x12K\n" +
 	"\x0eGetParticipant\x12\x1b.auth.GetParticipantRequest\x1a\x1c.auth.GetParticipantResponse\x12U\n" +
 	"\x15GetParticipantProfile\x12\".auth.GetParticipantProfileRequest\x1a\x18.auth.ParticipantProfile\x12W\n" +
 	"\x12SearchParticipants\x12\x1f.auth.SearchParticipantsRequest\x1a .auth.SearchParticipantsResponse\x12H\n" +
-	"\rGetUsersByIDs\x12\x1a.auth.GetUsersByIDsRequest\x1a\x1b.auth.GetUsersByIDsResponseB.Z,buenvivir/labor-integration/api/proto/authpbb\x06proto3"
+	"\rGetUsersByIDs\x12\x1a.auth.GetUsersByIDsRequest\x1a\x1b.auth.GetUsersByIDsResponse\x12?\n" +
+	"\n" +
+	"GetCompany\x12\x17.auth.GetCompanyRequest\x1a\x18.auth.GetCompanyResponseB.Z,buenvivir/labor-integration/api/proto/authpbb\x06proto3"
 
 var (
 	file_auth_proto_rawDescOnce sync.Once
@@ -594,7 +756,7 @@ func file_auth_proto_rawDescGZIP() []byte {
 	return file_auth_proto_rawDescData
 }
 
-var file_auth_proto_msgTypes = make([]protoimpl.MessageInfo, 9)
+var file_auth_proto_msgTypes = make([]protoimpl.MessageInfo, 11)
 var file_auth_proto_goTypes = []any{
 	(*GetParticipantRequest)(nil),        // 0: auth.GetParticipantRequest
 	(*GetParticipantResponse)(nil),       // 1: auth.GetParticipantResponse
@@ -605,23 +767,27 @@ var file_auth_proto_goTypes = []any{
 	(*GetUsersByIDsRequest)(nil),         // 6: auth.GetUsersByIDsRequest
 	(*UserSummary)(nil),                  // 7: auth.UserSummary
 	(*GetUsersByIDsResponse)(nil),        // 8: auth.GetUsersByIDsResponse
+	(*GetCompanyRequest)(nil),            // 9: auth.GetCompanyRequest
+	(*GetCompanyResponse)(nil),           // 10: auth.GetCompanyResponse
 }
 var file_auth_proto_depIdxs = []int32{
-	3, // 0: auth.SearchParticipantsResponse.participants:type_name -> auth.ParticipantProfile
-	7, // 1: auth.GetUsersByIDsResponse.users:type_name -> auth.UserSummary
-	0, // 2: auth.AuthService.GetParticipant:input_type -> auth.GetParticipantRequest
-	2, // 3: auth.AuthService.GetParticipantProfile:input_type -> auth.GetParticipantProfileRequest
-	4, // 4: auth.AuthService.SearchParticipants:input_type -> auth.SearchParticipantsRequest
-	6, // 5: auth.AuthService.GetUsersByIDs:input_type -> auth.GetUsersByIDsRequest
-	1, // 6: auth.AuthService.GetParticipant:output_type -> auth.GetParticipantResponse
-	3, // 7: auth.AuthService.GetParticipantProfile:output_type -> auth.ParticipantProfile
-	5, // 8: auth.AuthService.SearchParticipants:output_type -> auth.SearchParticipantsResponse
-	8, // 9: auth.AuthService.GetUsersByIDs:output_type -> auth.GetUsersByIDsResponse
-	6, // [6:10] is the sub-list for method output_type
-	2, // [2:6] is the sub-list for method input_type
-	2, // [2:2] is the sub-list for extension type_name
-	2, // [2:2] is the sub-list for extension extendee
-	0, // [0:2] is the sub-list for field type_name
+	3,  // 0: auth.SearchParticipantsResponse.participants:type_name -> auth.ParticipantProfile
+	7,  // 1: auth.GetUsersByIDsResponse.users:type_name -> auth.UserSummary
+	0,  // 2: auth.AuthService.GetParticipant:input_type -> auth.GetParticipantRequest
+	2,  // 3: auth.AuthService.GetParticipantProfile:input_type -> auth.GetParticipantProfileRequest
+	4,  // 4: auth.AuthService.SearchParticipants:input_type -> auth.SearchParticipantsRequest
+	6,  // 5: auth.AuthService.GetUsersByIDs:input_type -> auth.GetUsersByIDsRequest
+	9,  // 6: auth.AuthService.GetCompany:input_type -> auth.GetCompanyRequest
+	1,  // 7: auth.AuthService.GetParticipant:output_type -> auth.GetParticipantResponse
+	3,  // 8: auth.AuthService.GetParticipantProfile:output_type -> auth.ParticipantProfile
+	5,  // 9: auth.AuthService.SearchParticipants:output_type -> auth.SearchParticipantsResponse
+	8,  // 10: auth.AuthService.GetUsersByIDs:output_type -> auth.GetUsersByIDsResponse
+	10, // 11: auth.AuthService.GetCompany:output_type -> auth.GetCompanyResponse
+	7,  // [7:12] is the sub-list for method output_type
+	2,  // [2:7] is the sub-list for method input_type
+	2,  // [2:2] is the sub-list for extension type_name
+	2,  // [2:2] is the sub-list for extension extendee
+	0,  // [0:2] is the sub-list for field type_name
 }
 
 func init() { file_auth_proto_init() }
@@ -639,7 +805,7 @@ func file_auth_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_auth_proto_rawDesc), len(file_auth_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   9,
+			NumMessages:   11,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

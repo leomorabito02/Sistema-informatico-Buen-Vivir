@@ -12,6 +12,7 @@ import (
 
 type AuthServiceClient interface {
 	GetParticipant(ctx context.Context, participantID string) (*authpb.GetParticipantResponse, error)
+	GetCompany(ctx context.Context, companyID string) (*authpb.GetCompanyResponse, error)
 	Close() error
 }
 
@@ -37,6 +38,13 @@ func (c *authServiceClient) GetParticipant(ctx context.Context, participantID st
 		ParticipantId: participantID,
 	}
 	return c.client.GetParticipant(ctx, req)
+}
+
+func (c *authServiceClient) GetCompany(ctx context.Context, companyID string) (*authpb.GetCompanyResponse, error) {
+	req := &authpb.GetCompanyRequest{
+		CompanyId: companyID,
+	}
+	return c.client.GetCompany(ctx, req)
 }
 
 func (c *authServiceClient) Close() error {

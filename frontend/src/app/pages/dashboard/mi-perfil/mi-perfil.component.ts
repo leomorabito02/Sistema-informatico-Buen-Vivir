@@ -1,6 +1,7 @@
 import { Component, OnInit, inject } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import {
+  AbstractControlOptions,
   FormBuilder,
   FormGroup,
   ReactiveFormsModule,
@@ -9,15 +10,15 @@ import {
 import { Auth, signInWithPopup, GoogleAuthProvider } from "@angular/fire/auth";
 import { from, switchMap } from "rxjs";
 import { ProfileService } from "../../../services/profile.service";
-import { User, ProfileResponse } from "../../../core/models/auth.model";
+import { ProfileResponse } from "../../../core/models/auth.model";
 import {
   LucideAngularModule,
   User as UserIcon,
   Shield,
   Briefcase,
   Lock,
-  CheckCircle,
-  AlertCircle,
+  CircleCheck,
+  CircleAlert,
   Eye,
   EyeOff,
   Link,
@@ -32,16 +33,16 @@ import {
   styleUrls: ["./mi-perfil.component.css"],
 })
 export class MiPerfilComponent implements OnInit {
-  private fb = inject(FormBuilder);
-  private profileService = inject(ProfileService);
-  private auth = inject(Auth);
+  private readonly fb = inject(FormBuilder);
+  private readonly profileService = inject(ProfileService);
+  private readonly auth = inject(Auth);
 
   readonly UserIcon = UserIcon;
   readonly ShieldIcon = Shield;
   readonly BriefcaseIcon = Briefcase;
   readonly LockIcon = Lock;
-  readonly CheckCircleIcon = CheckCircle;
-  readonly AlertCircleIcon = AlertCircle;
+  readonly CheckCircleIcon = CircleCheck;
+  readonly AlertCircleIcon = CircleAlert;
   readonly EyeIcon = Eye;
   readonly EyeOffIcon = EyeOff;
   readonly LinkIcon = Link;
@@ -64,6 +65,12 @@ export class MiPerfilComponent implements OnInit {
   showNewPassword = false;
   showConfirmPassword = false;
 
+  isEditingProfile = false;
+  profileForm!: FormGroup;
+  profileUpdateLoading = false;
+  profileUpdateSuccess = "";
+  profileUpdateError = "";
+
   constructor() {
     this.passwordForm = this.fb.group(
       {
@@ -71,7 +78,7 @@ export class MiPerfilComponent implements OnInit {
         newPassword: ["", [Validators.required, Validators.minLength(8)]],
         confirmPassword: ["", Validators.required],
       },
-      { validators: this.passwordMatchValidator },
+      { validators: [this.passwordMatchValidator] } as AbstractControlOptions,
     );
   }
 
@@ -83,12 +90,79 @@ export class MiPerfilComponent implements OnInit {
     this.profileService.getMyProfile().subscribe({
       next: (data) => {
         this.profileData = data;
+        this.initProfileForm();
         this.loading = false;
       },
       error: (_err) => {
         this.error = "Error al cargar el perfil";
         this.loading = false;
       },
+    });
+  }
+
+  initProfileForm() {
+    if (!this.profileData) return;
+    const user = this.profileData.user;
+    const roleData = this.profileData.role_data || {};
+
+    const controls: any = {
+      email: [user.email || "", [Validators.required, Validators.email]],
+      phone: [user.phone || ""],
+    };
+
+    const role = user.role_id;
+    if (role === 'role_company') {
+      if (this.canEditCompanyFields()) {
+        controls['cuit'] = [roleData['cuit'] || ""];
+        controls['business_name'] = [roleData['business_name'] || ""];
+      }
+    } else if (role === 'role_participant') {
+      controls['emergency_contact_name'] = [roleData['emergency_contact_name'] || ""];
+      controls['emergency_contact_phone'] = [roleData['emergency_contact_phone'] || ""];
+      controls['address'] = [roleData['address'] || ""];
+    } else if (role === 'role_teacher') {
+      controls['specialization'] = [roleData['specialization'] || ""];
+    }
+
+    this.profileForm = this.fb.group(controls);
+  }
+
+  canEditCompanyFields(): boolean {
+    if (!this.profileData?.role_data) return false;
+    const status = this.profileData.role_data['approval_status'];
+    const cuit = this.profileData.role_data['cuit'];
+    const businessName = this.profileData.role_data['business_name'];
+    return status === 'pending' || !cuit || !businessName;
+  }
+
+  toggleEditProfile() {
+    this.isEditingProfile = !this.isEditingProfile;
+    if (!this.isEditingProfile && this.profileData) {
+      this.initProfileForm();
+      this.profileUpdateSuccess = "";
+      this.profileUpdateError = "";
+    }
+  }
+
+  saveProfile() {
+    if (this.profileForm.invalid) return;
+    this.profileUpdateLoading = true;
+    this.profileUpdateSuccess = "";
+    this.profileUpdateError = "";
+
+    const data = this.profileForm.value;
+
+    this.profileService.updateProfile(data).subscribe({
+      next: () => {
+        this.profileUpdateSuccess = "Perfil actualizado correctamente.";
+        this.profileUpdateLoading = false;
+        this.isEditingProfile = false;
+        this.loadProfile();
+      },
+      error: (err) => {
+        this.profileUpdateError = err.error?.error || "Error al actualizar el perfil.";
+        this.profileUpdateLoading = false;
+      }
     });
   }
 
@@ -139,7 +213,7 @@ export class MiPerfilComponent implements OnInit {
     };
     return (
       labelMap[k] ||
-      k.replace(/_/g, " ").replace(/\b\w/g, (l) => l.toUpperCase())
+      k.replaceAll("_", " ").replace(/\b\w/g, (l) => l.toUpperCase())
     );
   }
 
@@ -173,7 +247,7 @@ export class MiPerfilComponent implements OnInit {
     if (
       (k.endsWith("_at") || k.endsWith("date")) &&
       typeof value === "string" &&
-      !isNaN(Date.parse(value))
+      !Number.isNaN(Date.parse(value))
     ) {
       try {
         return new Date(value).toLocaleDateString("es-AR", {

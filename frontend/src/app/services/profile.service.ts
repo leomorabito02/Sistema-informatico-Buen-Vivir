@@ -6,9 +6,6 @@ import { catchError } from "rxjs/operators";
 import {
   User,
   ProfileResponse,
-  UpdateParticipantProfile,
-  UpdateCompanyProfile,
-  UpdateTeacherProfile,
 } from "../core/models/auth.model";
 
 interface PasswordUpdateRequest {
@@ -25,7 +22,7 @@ interface GoogleLinkRequest {
   providedIn: "root",
 })
 export class ProfileService {
-  private http = inject(HttpClient);
+  private readonly http = inject(HttpClient);
   private readonly apiUrl = environment.apiUrl;
 
   constructor() {}
@@ -69,10 +66,7 @@ export class ProfileService {
       .pipe(catchError(this.handleError));
   }
 
-  updateProfile(
-    data:
-      UpdateParticipantProfile | UpdateCompanyProfile | UpdateTeacherProfile,
-  ): Observable<User> {
+  updateProfile(data: Record<string, any>): Observable<User> {
     return this.http
       .put<User>(`${this.apiUrl}/api/v1/profile/me`, data, {
         withCredentials: true,
@@ -80,7 +74,7 @@ export class ProfileService {
       .pipe(catchError(this.handleError));
   }
 
-  private handleError = (error: HttpErrorResponse) => {
+  private readonly handleError = (error: HttpErrorResponse) => {
     let errorMessage =
       "Ocurrió un error inesperado. Por favor, intente nuevamente.";
     if (error.error && (error.error as { message?: string }).message) {

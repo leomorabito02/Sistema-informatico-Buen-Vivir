@@ -18,6 +18,7 @@ type JobApplicationRepository interface {
 	ListByParticipant(ctx context.Context, participantID string) ([]*models.JobApplication, error)
 	UpdateStatus(ctx context.Context, applicationID string, status string) error
 	GetByID(ctx context.Context, applicationID string) (*models.JobApplication, error)
+	Delete(ctx context.Context, applicationID string) error
 }
 
 type jobApplicationRepository struct {
@@ -123,6 +124,11 @@ func (r *jobApplicationRepository) UpdateStatus(ctx context.Context, application
 		{Path: "estado", Value: status},
 		{Path: "updated_at", Value: time.Now()},
 	})
+	return err
+}
+
+func (r *jobApplicationRepository) Delete(ctx context.Context, applicationID string) error {
+	_, err := r.client.Collection("job_applications").Doc(applicationID).Delete(ctx)
 	return err
 }
 

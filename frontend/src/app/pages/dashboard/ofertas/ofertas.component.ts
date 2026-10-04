@@ -13,6 +13,9 @@ import { DropdownModule } from "primeng/dropdown";
 import { JobOfferService, JobOffer, JobApplication } from "../../../services/job-offer.service";
 import { AuthService } from "../../../services/auth.service";
 import { RxResumeService, Resume } from "../../../services/rxresume.service";
+import { UsersService } from "../../../services/users.service";
+import { ProfileService } from "../../../services/profile.service";
+import { User } from "../../../core/models/auth.model";
 
 @Component({
   selector: "app-ofertas",
@@ -61,7 +64,15 @@ export class OfertasComponent implements OnInit {
   jobs: JobOffer[] = [];
   filteredJobs: JobOffer[] = [];
   isCompany = false;
+  isParticipant = false;
+  isAdminOrVolunteer = false;
   userId = "";
+  currentUserName = "";
+  
+  // Tabs for filtering
+  currentTab = "Disponibles"; // For participants
+  companyTab = "Todas"; // For companies
+  adminTab = "Pendientes"; // For admin/volunteer
 
   employmentTypes = [
     { label: 'Todos', value: null },
@@ -77,11 +88,18 @@ export class OfertasComponent implements OnInit {
   appliedJobs: Set<string> = new Set();
   myApplicationsMap: Map<string, string> = new Map(); // oferta_id -> estado
 
+  // Admin Apply
+  participants: User[] = [];
+  selectedParticipant: string = "";
+  showApplyDialog = false;
+  jobToApply: JobOffer | null = null;
 
   constructor(
     private readonly jobOfferService: JobOfferService,
     private readonly authService: AuthService,
     private readonly rxResumeService: RxResumeService,
+    private readonly usersService: UsersService,
+    private readonly profileService: ProfileService,
     private readonly confirmationService: ConfirmationService,
     private readonly messageService: MessageService
   ) {}
@@ -91,6 +109,8 @@ export class OfertasComponent implements OnInit {
       next: (res) => {
         if (res?.role_id) {
           this.isCompany = res.role_id === "role_company";
+          this.isParticipant = res.role_id === "role_participant";
+          this.isAdminOrVolunteer = res.role_id === "role_admin" || res.role_id === "role_volunteer";
         }
         const r = res as any;
         const uid = r.user_id || res?.user?.user_id;
@@ -98,12 +118,32 @@ export class OfertasComponent implements OnInit {
           this.userId = uid;
         }
         
-        if (!this.isCompany) {
+        if (this.isParticipant) {
           this.loadMyApplications();
         }
+        if (this.isAdminOrVolunteer) {
+          this.loadParticipants();
+        }
+
+        this.profileService.getMyProfile().subscribe({
+          next: (profile) => {
+            if (this.isCompany && profile.role_data?.business_name) {
+              this.currentUserName = profile.role_data.business_name;
+            } else if (profile.user?.first_name && profile.user?.last_name) {
+              this.currentUserName = `${profile.user.first_name} ${profile.user.last_name}`;
+            }
+          }
+        });
       }
     });
     this.loadJobs();
+  }
+
+  loadParticipants() {
+    this.usersService.listByRole("role_participant").subscribe({
+      next: (users) => this.participants = users,
+      error: () => console.warn("No se pudieron cargar los participantes")
+    });
   }
 
   loadMyApplications() {
@@ -147,13 +187,38 @@ export class OfertasComponent implements OnInit {
       );
     }
     
+    // Tab filters
+    if (this.isParticipant) {
+      if (this.currentTab === 'Disponibles') {
+        filtered = filtered.filter(j => !this.appliedJobs.has(j.id!));
+      } else if (this.currentTab === 'Postuladas') {
+        filtered = filtered.filter(j => this.appliedJobs.has(j.id!));
+      }
+    } else if (this.isCompany) {
+      if (this.companyTab !== 'Todas') {
+        filtered = filtered.filter(j => j.estado === this.companyTab);
+      }
+    } else if (this.isAdminOrVolunteer) {
+      if (this.adminTab !== 'Todas') {
+        filtered = filtered.filter(j => j.estado === this.adminTab);
+      }
+    }
+    
     this.filteredJobs = filtered;
+  }
+  
+  setTab(tab: string) {
+    if (this.isParticipant) this.currentTab = tab;
+    else if (this.isCompany) this.companyTab = tab;
+    else if (this.isAdminOrVolunteer) this.adminTab = tab;
+    this.filterJobs();
   }
 
   openNewJobDialog() {
     this.isEditing = false;
     this.newJob = {
       empresa_id: "",
+      creador_nombre: this.currentUserName,
       titulo: "",
       descripcion: "",
       ubicacion: "",
@@ -163,10 +228,11 @@ export class OfertasComponent implements OnInit {
       horario: "",
       requisitos: [],
       fecha_limite: "",
-      estado: "Activa",
+      estado: "Pendiente",
     };
     this.currentRequisito = "";
     this.showDialog = true;
+    this.messageService.add({severity:'info', summary:'Aviso', detail:'La oferta quedará en estado Pendiente hasta ser aprobada.'});
   }
 
   openEditJobDialog(job: JobOffer) {
@@ -301,6 +367,33 @@ export class OfertasComponent implements OnInit {
     });
   }
 
+  openApplyDialog(job: JobOffer) {
+    this.jobToApply = job;
+    this.selectedParticipant = "";
+    this.showApplyDialog = true;
+  }
+
+  submitAdminApplication() {
+    if (!this.jobToApply?.id || !this.selectedParticipant) {
+      this.messageService.add({severity:'warn', summary:'Aviso', detail:'Seleccione un participante.'});
+      return;
+    }
+
+    this.jobOfferService.applyToOffer({ oferta_id: this.jobToApply.id, participante_id: this.selectedParticipant }).subscribe({
+      next: () => {
+        this.messageService.add({severity:'success', summary:'Éxito', detail:'Participante postulado correctamente.'});
+        this.showApplyDialog = false;
+      },
+      error: (err) => {
+        if (err.status === 409) {
+          this.messageService.add({severity:'warn', summary:'Aviso', detail:'El participante ya está postulado.'});
+        } else {
+          this.messageService.add({severity:'error', summary:'Error', detail:'Hubo un problema al postular.'});
+        }
+      }
+    });
+  }
+
   showApplications(job: JobOffer) {
     if (!job.id) return;
     this.currentJobTitle = job.titulo;
@@ -326,14 +419,45 @@ export class OfertasComponent implements OnInit {
     });
   }
 
+  showAcceptanceModal = false;
+  acceptanceMessage = "";
+
   updateApplicationStatus(candidate: { app: JobApplication, resume?: Resume }, status: string) {
     if (!candidate.app.id) return;
     this.jobOfferService.updateApplicationStatus(candidate.app.id, status).subscribe({
       next: () => {
         candidate.app.estado = status;
-        this.messageService.add({severity:'success', summary:'Éxito', detail:`Postulación marcada como ${status}`});
+        if (this.isCompany && status === 'Aceptado') {
+          const participantName = candidate.resume?.data?.basics?.name || 'este participante';
+          this.acceptanceMessage = `Has aceptado a ${participantName}. Ponte en contacto con los responsables para continuar.`;
+          this.showAcceptanceModal = true;
+        } else {
+          this.messageService.add({severity:'success', summary:'Éxito', detail:`Postulación marcada como ${status}`});
+        }
       },
       error: () => this.messageService.add({severity:'error', summary:'Error', detail:'Hubo un problema al actualizar el estado.'})
+    });
+  }
+
+  approveJob(job: JobOffer) {
+    if (!job.id) return;
+    this.jobOfferService.approveOffer(job.id).subscribe({
+      next: () => {
+        this.messageService.add({severity:'success', summary:'Éxito', detail:'Oferta aprobada.'});
+        this.loadJobs();
+      },
+      error: () => this.messageService.add({severity:'error', summary:'Error', detail:'Hubo un problema al aprobar.'})
+    });
+  }
+
+  rejectJob(job: JobOffer) {
+    if (!job.id) return;
+    this.jobOfferService.rejectOffer(job.id).subscribe({
+      next: () => {
+        this.messageService.add({severity:'success', summary:'Éxito', detail:'Oferta rechazada.'});
+        this.loadJobs();
+      },
+      error: () => this.messageService.add({severity:'error', summary:'Error', detail:'Hubo un problema al rechazar.'})
     });
   }
 }

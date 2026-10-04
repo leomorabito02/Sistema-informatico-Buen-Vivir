@@ -6,6 +6,7 @@ option go_package = "buenvivir/labor-integration/api/proto/authpb";
 
 service AuthService {
   rpc GetParticipant(GetParticipantRequest) returns (GetParticipantResponse);
+  rpc GetCompany(GetCompanyRequest) returns (GetCompanyResponse);
 }
 
 message GetParticipantRequest {
@@ -16,4 +17,19 @@ message GetParticipantResponse {
   string id = 1;
   string user_id = 2;
   string approval_status = 3;
+}
+
+message GetCompanyRequest {
+  string company_id = 1;
+}
+
+message GetCompanyResponse {
+  string company_id = 1;
+  string user_id = 2;
+  string business_name = 3;
+  string cuit = 4;
+  string approval_status = 5;
+  string user_email = 6;
+  string user_phone = 7;
+  string user_status = 8;
 }
