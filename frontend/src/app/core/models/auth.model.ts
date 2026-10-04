@@ -81,7 +81,12 @@ export interface RegisterRequest {
   role: string;
 }
 
-export interface UpdateParticipantProfile {
+export interface UpdateBaseProfile {
+  email?: string;
+  phone?: string;
+}
+
+export interface UpdateParticipantProfile extends UpdateBaseProfile {
   birthdate?: string;
   dni?: string;
   address?: string;
@@ -90,12 +95,15 @@ export interface UpdateParticipantProfile {
   emergency_contact_phone?: string;
 }
 
-export interface UpdateCompanyProfile {
+export interface UpdateCompanyProfile extends UpdateBaseProfile {
   business_name?: string;
   cuit?: string;
 }
 
-export interface UpdateTeacherProfile {
+export interface UpdateTeacherProfile extends UpdateBaseProfile {
   specialization?: string;
   is_external?: boolean;
+}
+
+export interface UpdateVolunteerProfile extends UpdateBaseProfile {
 }

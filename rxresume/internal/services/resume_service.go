@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"buenvivir/rxresume/internal/client"
+	"buenvivir/rxresume/internal/dto"
 	"buenvivir/rxresume/internal/models"
 	"buenvivir/rxresume/internal/parser"
 	"buenvivir/rxresume/internal/repositories"
@@ -25,7 +26,7 @@ type ResumeService interface {
 	UpdateResume(ctx context.Context, userID string, data *models.ResumeData) (*models.Resume, error)
 	ParseAndUploadPDF(ctx context.Context, userID string, filename string, reader io.Reader) (*models.Resume, error)
 	DeleteSectionItem(ctx context.Context, userID string, section string, itemID string) (*models.Resume, error)
-	GenerateResume(ctx context.Context, userID string, profileData *models.ProfileInput) (*models.Resume, error)
+	GenerateResume(ctx context.Context, userID string, profileData *dto.GenerateResumeRequest) (*models.Resume, error)
 	UploadPicture(ctx context.Context, userID string, filename string, reader io.Reader) (*models.Resume, error)
 	ExportPDF(ctx context.Context, userID string) ([]byte, error)
 	DownloadMedia(ctx context.Context, path string) (io.ReadCloser, error)
@@ -125,7 +126,7 @@ func (s *resumeService) UpdateResume(ctx context.Context, userID string, data *m
 }
 
 // GenerateResume synchronizes the resume with Reactive Resume explicitly and updates profile info.
-func (s *resumeService) GenerateResume(ctx context.Context, userID string, profileData *models.ProfileInput) (*models.Resume, error) {
+func (s *resumeService) GenerateResume(ctx context.Context, userID string, profileData *dto.GenerateResumeRequest) (*models.Resume, error) {
 	resume, err := s.GetResumeByUserID(ctx, userID)
 	if err != nil {
 		return nil, err

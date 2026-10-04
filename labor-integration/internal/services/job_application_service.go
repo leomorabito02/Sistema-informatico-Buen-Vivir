@@ -79,6 +79,32 @@ func (s *JobApplicationService) UpdateStatus(ctx context.Context, applicationID 
 }
 
 
-func (s *JobApplicationService) ListByOffer(ctx context.Context, offerID string) ([]*models.JobApplication, error) {
+func (s *JobApplicationService) ListByOffer(ctx context.Context, offerID string, role string, userID string) ([]*models.JobApplication, error) {
+	if role == "role_company" {
+		offer, err := s.offerRepo.GetByID(ctx, offerID)
+		if err != nil {
+			return nil, err
+		}
+		if offer.CompanyID != userID {
+			return nil, errors.New("unauthorized: you do not own this offer")
+		}
+	}
+	// admin and volunteer can view all applications, participant maybe not, but we allow them or we can restrict.
+	// We'll let admin, volunteer and the owner company view it.
 	return s.repo.ListByOffer(ctx, offerID)
+}
+
+func (s *JobApplicationService) DeleteApplication(ctx context.Context, appID string, role string, userID string) error {
+	app, err := s.repo.GetByID(ctx, appID)
+	if err != nil {
+		return err
+	}
+
+	if role != "role_admin" && role != "role_volunteer" {
+		if app.ParticipantID != userID {
+			return errors.New("unauthorized: you do not have permission to delete this application")
+		}
+	}
+
+	return s.repo.Delete(ctx, appID)
 }

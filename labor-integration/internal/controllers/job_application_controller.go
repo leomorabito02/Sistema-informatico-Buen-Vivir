@@ -4,11 +4,14 @@ import (
 	"encoding/json"
 	"net/http"
 
+	"buenvivir/labor-integration/internal/dto"
 	"buenvivir/labor-integration/internal/models"
 	"buenvivir/labor-integration/internal/services"
 
 	"github.com/go-chi/chi/v5"
 )
+
+const headerUserRole = "X-User-Role"
 
 type JobApplicationController struct {
 	service *services.JobApplicationService
@@ -19,14 +22,22 @@ func NewJobApplicationController(service *services.JobApplicationService) *JobAp
 }
 
 func (c *JobApplicationController) Apply(w http.ResponseWriter, r *http.Request) {
-	var application models.JobApplication
-	if err := json.NewDecoder(r.Body).Decode(&application); err != nil {
+	var req dto.CreateJobApplicationRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		http.Error(w, "invalid request", http.StatusBadRequest)
 		return
 	}
 
-	// Seguridad: Sobrescribir el ParticipantID con el ID autenticado desde el Gateway
-	application.ParticipantID = r.Header.Get("X-User-ID")
+	application := models.JobApplication{
+		OfferID:       req.OfferID,
+		ParticipantID: req.ParticipantID,
+	}
+
+	role := r.Header.Get(headerUserRole)
+	if role != "role_admin" && role != "role_volunteer" {
+		// Seguridad: Sobrescribir el ParticipantID con el ID autenticado desde el Gateway si no es admin/voluntario
+		application.ParticipantID = r.Header.Get(headerUserID)
+	}
 
 	if err := c.service.ApplyToJob(r.Context(), &application); err != nil {
 		if err.Error() == "already applied" {
@@ -43,8 +54,15 @@ func (c *JobApplicationController) Apply(w http.ResponseWriter, r *http.Request)
 
 func (c *JobApplicationController) ListByOffer(w http.ResponseWriter, r *http.Request) {
 	offerID := chi.URLParam(r, "id")
-	applications, err := c.service.ListByOffer(r.Context(), offerID)
+	role := r.Header.Get(headerUserRole)
+	userID := r.Header.Get(headerUserID)
+	
+	applications, err := c.service.ListByOffer(r.Context(), offerID, role, userID)
 	if err != nil {
+		if err.Error() == "unauthorized: you do not own this offer" {
+			http.Error(w, err.Error(), http.StatusForbidden)
+			return
+		}
 		http.Error(w, "failed to list applications", http.StatusInternalServerError)
 		return
 	}
@@ -54,7 +72,7 @@ func (c *JobApplicationController) ListByOffer(w http.ResponseWriter, r *http.Re
 }
 
 func (c *JobApplicationController) ListMine(w http.ResponseWriter, r *http.Request) {
-	userID := r.Header.Get("X-User-ID")
+	userID := r.Header.Get(headerUserID)
 	if userID == "" {
 		http.Error(w, "unauthorized", http.StatusUnauthorized)
 		return
@@ -72,22 +90,20 @@ func (c *JobApplicationController) ListMine(w http.ResponseWriter, r *http.Reque
 
 func (c *JobApplicationController) UpdateStatus(w http.ResponseWriter, r *http.Request) {
 	appID := chi.URLParam(r, "id")
-	companyID := r.Header.Get("X-User-ID")
+	companyID := r.Header.Get(headerUserID)
 	
 	if companyID == "" {
 		http.Error(w, "unauthorized", http.StatusUnauthorized)
 		return
 	}
 
-	var payload struct {
-		Estado string `json:"estado"`
-	}
+	var payload dto.UpdateJobApplicationStatusRequest
 	if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
 		http.Error(w, "invalid request body", http.StatusBadRequest)
 		return
 	}
 
-	if err := c.service.UpdateStatus(r.Context(), appID, companyID, payload.Estado); err != nil {
+	if err := c.service.UpdateStatus(r.Context(), appID, companyID, payload.Status); err != nil {
 		if err.Error() == "unauthorized: you do not own the offer for this application" {
 			http.Error(w, err.Error(), http.StatusForbidden)
 			return
@@ -98,5 +114,22 @@ func (c *JobApplicationController) UpdateStatus(w http.ResponseWriter, r *http.R
 
 	w.WriteHeader(http.StatusOK)
 	w.Write([]byte(`{"message":"status updated"}`))
+}
+
+func (c *JobApplicationController) Delete(w http.ResponseWriter, r *http.Request) {
+	appID := chi.URLParam(r, "id")
+	role := r.Header.Get(headerUserRole)
+	userID := r.Header.Get(headerUserID)
+
+	if err := c.service.DeleteApplication(r.Context(), appID, role, userID); err != nil {
+		if err.Error() == "unauthorized: you do not have permission to delete this application" {
+			http.Error(w, err.Error(), http.StatusForbidden)
+			return
+		}
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
 }
 

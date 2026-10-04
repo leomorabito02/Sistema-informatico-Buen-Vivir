@@ -6,6 +6,7 @@ import "time"
 type JobOffer struct {
 	ID           string    `firestore:"id,omitempty" json:"id"`
 	CompanyID    string    `firestore:"empresa_id" json:"empresa_id"`
+	CreatorName  string    `firestore:"creador_nombre,omitempty" json:"creador_nombre,omitempty"`
 	Title        string    `firestore:"titulo" json:"titulo"`
 	Description  string    `firestore:"descripcion" json:"descripcion"`
 	Location     string    `firestore:"ubicacion" json:"ubicacion"`

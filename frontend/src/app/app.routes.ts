@@ -292,13 +292,6 @@ export const routes: Routes = [
           ),
       },
       {
-        path: "insercion",
-        loadComponent: () =>
-          import("./pages/dashboard/insercion/insercion.component").then(
-            (m) => m.InsercionComponent,
-          ),
-      },
-      {
         path: "notificaciones",
         loadComponent: () =>
           import("./pages/dashboard/notificaciones/notificaciones.component").then(

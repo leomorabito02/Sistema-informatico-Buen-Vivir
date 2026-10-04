@@ -18,6 +18,8 @@ service AuthService {
   // Promoción Humana (HU-33, HU-37): nombre y apellido de los usuarios
   // responsables de hitos y creadores de fichas.
   rpc GetUsersByIDs(GetUsersByIDsRequest) returns (GetUsersByIDsResponse);
+
+  rpc GetCompany(GetCompanyRequest) returns (GetCompanyResponse);
 }
 
 message GetParticipantRequest {
@@ -70,4 +72,19 @@ message UserSummary {
 
 message GetUsersByIDsResponse {
   repeated UserSummary users = 1;
+}
+
+message GetCompanyRequest {
+  string company_id = 1;
+}
+
+message GetCompanyResponse {
+  string company_id = 1;
+  string user_id = 2;
+  string business_name = 3;
+  string cuit = 4;
+  string approval_status = 5;
+  string user_email = 6;
+  string user_phone = 7;
+  string user_status = 8;
 }

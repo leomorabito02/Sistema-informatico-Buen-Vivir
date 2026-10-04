@@ -12,20 +12,24 @@ import (
 	"auth/internal/services"
 )
 
-type GrpcParticipantController struct {
+type GrpcAuthController struct {
 	authpb.UnimplementedAuthServiceServer
 	participantService services.ParticipantService
+	companyService     services.CompanyService
+	userService        services.UserService
 	directoryService   services.ParticipantDirectoryService
 }
 
-func NewGrpcParticipantController(participantService services.ParticipantService, directoryService services.ParticipantDirectoryService) *GrpcParticipantController {
-	return &GrpcParticipantController{
+func NewGrpcAuthController(participantService services.ParticipantService, companyService services.CompanyService, userService services.UserService, directoryService services.ParticipantDirectoryService) *GrpcAuthController {
+	return &GrpcAuthController{
 		participantService: participantService,
+		companyService:     companyService,
+		userService:        userService,
 		directoryService:   directoryService,
 	}
 }
 
-func (c *GrpcParticipantController) GetParticipant(ctx context.Context, req *authpb.GetParticipantRequest) (*authpb.GetParticipantResponse, error) {
+func (c *GrpcAuthController) GetParticipant(ctx context.Context, req *authpb.GetParticipantRequest) (*authpb.GetParticipantResponse, error) {
 	if req.ParticipantId == "" {
 		return nil, status.Error(codes.InvalidArgument, "participant_id is required")
 	}
@@ -45,9 +49,37 @@ func (c *GrpcParticipantController) GetParticipant(ctx context.Context, req *aut
 	}, nil
 }
 
-// GetParticipantProfile devuelve nombre, apellido y fecha de nacimiento
-// del participante, buscándolo por participant_id o por user_id.
-func (c *GrpcParticipantController) GetParticipantProfile(ctx context.Context, req *authpb.GetParticipantProfileRequest) (*authpb.ParticipantProfile, error) {
+func (c *GrpcAuthController) GetCompany(ctx context.Context, req *authpb.GetCompanyRequest) (*authpb.GetCompanyResponse, error) {
+	if req.CompanyId == "" {
+		return nil, status.Error(codes.InvalidArgument, "company_id is required")
+	}
+
+	company, err := c.companyService.GetCompanyByID(ctx, req.CompanyId)
+	if err != nil {
+		return nil, status.Error(codes.Internal, err.Error())
+	}
+	if company == nil {
+		return nil, status.Error(codes.NotFound, "company not found")
+	}
+
+	user, err := c.userService.GetUserByID(ctx, company.UserID)
+	if err != nil {
+		return nil, status.Error(codes.Internal, err.Error())
+	}
+
+	return &authpb.GetCompanyResponse{
+		CompanyId:      company.CompanyID,
+		UserId:         company.UserID,
+		BusinessName:   company.BusinessName,
+		Cuit:           company.Cuit,
+		ApprovalStatus: company.ApprovalStatus,
+		UserEmail:      user.Email,
+		UserPhone:      user.Phone,
+		UserStatus:     user.Status,
+	}, nil
+}
+
+func (c *GrpcAuthController) GetParticipantProfile(ctx context.Context, req *authpb.GetParticipantProfileRequest) (*authpb.ParticipantProfile, error) {
 	var (
 		row *repositories.ParticipantProfileRow
 		err error
@@ -66,9 +98,7 @@ func (c *GrpcParticipantController) GetParticipantProfile(ctx context.Context, r
 	return toParticipantProfile(row), nil
 }
 
-// SearchParticipants busca participantes por coincidencia parcial de
-// nombre o apellido.
-func (c *GrpcParticipantController) SearchParticipants(ctx context.Context, req *authpb.SearchParticipantsRequest) (*authpb.SearchParticipantsResponse, error) {
+func (c *GrpcAuthController) SearchParticipants(ctx context.Context, req *authpb.SearchParticipantsRequest) (*authpb.SearchParticipantsResponse, error) {
 	rows, err := c.directoryService.SearchParticipants(ctx, req.GetQuery(), int(req.GetLimit()))
 	if err != nil {
 		return nil, directoryError(err)
@@ -80,9 +110,7 @@ func (c *GrpcParticipantController) SearchParticipants(ctx context.Context, req 
 	return &authpb.SearchParticipantsResponse{Participants: out}, nil
 }
 
-// GetUsersByIDs devuelve nombre y apellido de cada usuario encontrado;
-// los ids inexistentes simplemente no aparecen en la respuesta.
-func (c *GrpcParticipantController) GetUsersByIDs(ctx context.Context, req *authpb.GetUsersByIDsRequest) (*authpb.GetUsersByIDsResponse, error) {
+func (c *GrpcAuthController) GetUsersByIDs(ctx context.Context, req *authpb.GetUsersByIDsRequest) (*authpb.GetUsersByIDsResponse, error) {
 	rows, err := c.directoryService.GetUserSummaries(ctx, req.GetUserIds())
 	if err != nil {
 		return nil, directoryError(err)
@@ -113,8 +141,6 @@ func toParticipantProfile(row *repositories.ParticipantProfileRow) *authpb.Parti
 	}
 }
 
-// directoryError traduce los errores del directorio a códigos gRPC sin
-// exponer detalles internos de la base.
 func directoryError(err error) error {
 	switch {
 	case errors.Is(err, services.ErrInvalidDirectoryRequest):

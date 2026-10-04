@@ -15,6 +15,7 @@ type JobOfferRepository interface {
 	Update(ctx context.Context, id string, offer *models.JobOffer) error
 	Delete(ctx context.Context, id string) error
 	UpdateStatus(ctx context.Context, id string, status string) error
+	UpdateStatusAndApprover(ctx context.Context, id string, status string, approvedBy string) error
 	GetByID(ctx context.Context, id string) (*models.JobOffer, error)
 }
 
@@ -72,6 +73,14 @@ func (r *jobOfferRepository) Delete(ctx context.Context, id string) error {
 func (r *jobOfferRepository) UpdateStatus(ctx context.Context, id string, status string) error {
 	_, err := r.client.Collection("job_offers").Doc(id).Update(ctx, []firestore.Update{
 		{Path: "estado", Value: status},
+	})
+	return err
+}
+
+func (r *jobOfferRepository) UpdateStatusAndApprover(ctx context.Context, id string, status string, approvedBy string) error {
+	_, err := r.client.Collection("job_offers").Doc(id).Update(ctx, []firestore.Update{
+		{Path: "estado", Value: status},
+		{Path: "aprobado_por", Value: approvedBy},
 	})
 	return err
 }

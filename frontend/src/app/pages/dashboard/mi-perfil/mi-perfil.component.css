@@ -51,7 +51,8 @@
   gap: 1.5rem;
 }
 
-.info-item label {
+.info-item label,
+.info-item .label-text {
   display: block;
   font-size: 0.875rem;
   color: var(--text-gray);
@@ -76,13 +77,13 @@
   font-size: 0.875rem;
   font-weight: 600;
   background-color: #fee2e2;
-  color: #ef4444;
+  color: #b91c1c;
   border: none;
 }
 
 .status-badge.active {
   background-color: #dcfce7;
-  color: #22c55e;
+  color: #15803d;
 }
 
 .password-form {
@@ -168,6 +169,54 @@
 .btn-primary:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+.btn-secondary {
+  padding: 0.5rem 1rem;
+  background-color: transparent;
+  color: var(--primary, #485839);
+  border: 1px solid var(--primary, #485839);
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease-in-out;
+  font-family: inherit;
+}
+
+.btn-secondary:hover {
+  background-color: rgba(72, 88, 57, 0.1);
+}
+
+.profile-actions-header {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 1rem;
+}
+
+.form-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 1.5rem;
+}
+
+.form-actions .btn-primary {
+  width: auto;
+}
+
+.form-input {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--border-color, #e5e7eb);
+  border-radius: 8px;
+  font-size: 1rem;
+  transition: all 0.2s;
+}
+
+.form-input:focus {
+  outline: none;
+  border-color: var(--primary, #485839);
+  box-shadow: 0 0 0 3px rgba(72, 88, 57, 0.1);
 }
 
 .alert {

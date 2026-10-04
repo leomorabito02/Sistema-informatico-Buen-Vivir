@@ -406,45 +406,7 @@ func (s *authService) GetApprovalStatus(ctx context.Context, roleID, userID stri
 }
 
 func (s *authService) GetMyProfile(ctx context.Context, roleID, userID string) (map[string]interface{}, error) {
-	user, err := s.userRepo.FindByID(ctx, userID)
-	if err != nil {
-		return nil, errors.New("usuario no encontrado")
-	}
-
-	profile := map[string]interface{}{
-		"user": map[string]interface{}{
-			"user_id":        user.UserID,
-			"first_name":     user.FirstName,
-			"last_name":      user.LastName,
-			"email":          user.Email,
-			"phone":          user.Phone,
-			"created_at":     user.CreatedAt,
-			"role_id":        user.RoleID,
-			"status":         user.Status,
-			"google_auth_id": user.GoogleAuthID,
-		},
-	}
-
-	var tableName string
-	switch roleID {
-	case "role_teacher":
-		tableName = "teachers"
-	case "role_volunteer":
-		tableName = "volunteers"
-	case "role_participant":
-		tableName = "participants"
-	case "role_company":
-		tableName = "companies"
-	}
-
-	if tableName != "" {
-		roleData, err := s.querier.GetRoleData(ctx, tableName, userID)
-		if err == nil {
-			profile["role_data"] = roleData
-		}
-	}
-
-	return profile, nil
+	return s.GetUserProfile(ctx, userID)
 }
 
 func (s *authService) GetUserProfile(ctx context.Context, userID string) (map[string]interface{}, error) {
@@ -467,8 +429,14 @@ func (s *authService) GetUserProfile(ctx context.Context, userID string) (map[st
 		},
 	}
 
+	s.appendRoleDataToProfile(ctx, profile, user.RoleID, userID)
+
+	return profile, nil
+}
+
+func (s *authService) appendRoleDataToProfile(ctx context.Context, profile map[string]interface{}, roleID, userID string) {
 	var tableName string
-	switch user.RoleID {
+	switch roleID {
 	case "role_teacher":
 		tableName = "teachers"
 	case "role_volunteer":
@@ -477,16 +445,34 @@ func (s *authService) GetUserProfile(ctx context.Context, userID string) (map[st
 		tableName = "participants"
 	case "role_company":
 		tableName = "companies"
+	default:
+		return
 	}
 
-	if tableName != "" {
-		roleData, err := s.querier.GetRoleData(ctx, tableName, userID)
-		if err == nil {
-			profile["role_data"] = roleData
-		}
+	roleData, err := s.querier.GetRoleData(ctx, tableName, userID)
+	if err != nil {
+		return
 	}
 
-	return profile, nil
+	s.resolveApproverName(ctx, roleData)
+	profile["role_data"] = roleData
+}
+
+func (s *authService) resolveApproverName(ctx context.Context, roleData map[string]interface{}) {
+	approverIDRaw, ok := roleData["approved_by"]
+	if !ok || approverIDRaw == nil {
+		return
+	}
+
+	approverID, ok := approverIDRaw.(string)
+	if !ok || approverID == "" {
+		return
+	}
+
+	approver, err := s.userRepo.FindByID(ctx, approverID)
+	if err == nil {
+		roleData["approved_by"] = fmt.Sprintf("%s %s", approver.FirstName, approver.LastName)
+	}
 }
 
 func (s *authService) UpdateMyPassword(ctx context.Context, userID, oldPassword, newPassword string) error {

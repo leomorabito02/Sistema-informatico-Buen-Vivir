@@ -8,6 +8,29 @@ import (
 
 // UpdateMyProfile dynamically updates the specific role table for the user
 func (s *authService) UpdateMyProfile(ctx context.Context, roleID, userID string, data map[string]interface{}) error {
+	var updateBaseUser bool
+	user, err := s.userRepo.FindByID(ctx, userID)
+	if err != nil {
+		return fmt.Errorf("error obteniendo usuario: %w", err)
+	}
+
+	if email, ok := data["email"].(string); ok {
+		user.Email = email
+		updateBaseUser = true
+		delete(data, "email")
+	}
+	if phone, ok := data["phone"].(string); ok {
+		user.Phone = phone
+		updateBaseUser = true
+		delete(data, "phone")
+	}
+
+	if updateBaseUser {
+		if err := s.userRepo.Update(ctx, user); err != nil {
+			return fmt.Errorf("error actualizando usuario base: %w", err)
+		}
+	}
+
 	var tableName string
 	switch roleID {
 	case "role_participant":
@@ -19,7 +42,10 @@ func (s *authService) UpdateMyProfile(ctx context.Context, roleID, userID string
 	case "role_volunteer":
 		tableName = "volunteers"
 	default:
-		return errors.New("rol no soporta perfil extra o es inválido")
+		if len(data) > 0 {
+			return errors.New("rol no soporta perfil extra o es inválido")
+		}
+		return nil
 	}
 
 	// Remove unupdatable fields just in case
@@ -38,7 +64,7 @@ func (s *authService) UpdateMyProfile(ctx context.Context, roleID, userID string
 		return nil // nothing to update
 	}
 
-	err := s.querier.UpdateRoleData(ctx, tableName, userID, data)
+	err = s.querier.UpdateRoleData(ctx, tableName, userID, data)
 	if err != nil {
 		return fmt.Errorf("error actualizando perfil: %w", err)
 	}

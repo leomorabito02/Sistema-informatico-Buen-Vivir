@@ -6,6 +6,7 @@ import { environment } from '../../environments/environment';
 export interface JobOffer {
   id?: string;
   empresa_id: string;
+  creador_nombre?: string;
   titulo: string;
   descripcion: string;
   ubicacion: string;
@@ -50,6 +51,14 @@ export class JobOfferService {
 
   deleteOffer(id: string): Observable<void> {
     return this.http.delete<void>(`${this.apiUrl}/${id}`, { withCredentials: true });
+  }
+
+  approveOffer(id: string): Observable<void> {
+    return this.http.put<void>(`${this.apiUrl}/${id}/approve`, {}, { withCredentials: true });
+  }
+
+  rejectOffer(id: string): Observable<void> {
+    return this.http.put<void>(`${this.apiUrl}/${id}/reject`, {}, { withCredentials: true });
   }
 
   applyToOffer(application: Partial<JobApplication>): Observable<JobApplication> {

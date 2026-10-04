@@ -16,69 +16,103 @@
   </div>
 
   <div class="profile-content" *ngIf="!loading && !error && profileData">
-    <!-- Información Personal (Solo lectura) -->
-    <section class="profile-section">
-      <div class="section-header">
-        <lucide-icon [img]="UserIcon" size="20"></lucide-icon>
-        <h2>Información Personal</h2>
-      </div>
+    <div class="profile-actions-header">
+      <button type="button" class="btn-secondary" (click)="toggleEditProfile()">
+        {{ isEditingProfile ? 'Cancelar Edición' : 'Editar Perfil' }}
+      </button>
+    </div>
 
-      <div class="info-grid">
-        <div class="info-item">
-          <label>Nombre</label>
-          <div class="info-value">
-            {{ profileData.user.first_name }} {{ profileData.user.last_name }}
-          </div>
-        </div>
-        <div class="info-item">
-          <label>Correo Electrónico</label>
-          <div class="info-value">{{ profileData.user.email }}</div>
-        </div>
-        <div class="info-item">
-          <label>Teléfono</label>
-          <div class="info-value">
-            {{ profileData.user.phone || "No especificado" }}
-          </div>
-        </div>
-        <div class="info-item">
-          <label>Estado</label>
-          <div
-            class="info-value status-badge"
-            [class.active]="profileData.user.status === 'active'"
-          >
-            {{ profileData.user.status | titlecase }}
-          </div>
-        </div>
-      </div>
-    </section>
+    <div *ngIf="profileUpdateSuccess" class="alert alert-success">
+      <lucide-icon [img]="CheckCircleIcon" size="20"></lucide-icon>
+      {{ profileUpdateSuccess }}
+    </div>
 
-    <!-- Información de Rol (Solo lectura) -->
-    <section class="profile-section" *ngIf="profileData.role_data">
-      <div class="section-header">
-        <lucide-icon [img]="BriefcaseIcon" size="20"></lucide-icon>
-        <h2>
-          Información de Rol ({{ getRoleName(profileData.user.role_id) }})
-        </h2>
-      </div>
+    <div *ngIf="profileUpdateError" class="alert alert-error">
+      <lucide-icon [img]="AlertCircleIcon" size="20"></lucide-icon>
+      {{ profileUpdateError }}
+    </div>
 
-      <div class="info-grid">
-        <ng-container *ngFor="let item of profileData.role_data | keyvalue">
-          <div
-            class="info-item"
-            *ngIf="
-              item.key !== 'user_id' &&
-              item.key !== 'id' &&
-              item.key !== 'deleted_at'
-            "
-          >
-            <label>{{ getRoleKeyLabel(item.key) }}</label>
+    <form *ngIf="profileForm" [formGroup]="profileForm" (ngSubmit)="saveProfile()">
+      <!-- Información Personal -->
+      <section class="profile-section">
+        <div class="section-header">
+          <lucide-icon [img]="UserIcon" size="20"></lucide-icon>
+          <h2>Información Personal</h2>
+        </div>
+
+        <div class="info-grid">
+          <div class="info-item">
+            <span class="label-text">Nombre</span>
             <div class="info-value">
-              {{ formatRoleValue(item.key, item.value) }}
+              {{ profileData.user.first_name }} {{ profileData.user.last_name }}
             </div>
           </div>
-        </ng-container>
+          <div class="info-item">
+            <label for="email">Correo Electrónico</label>
+            <div class="info-value" *ngIf="!isEditingProfile">{{ profileData.user.email }}</div>
+            <div *ngIf="isEditingProfile" class="input-wrapper">
+              <input id="email" type="email" class="form-input" formControlName="email">
+            </div>
+          </div>
+          <div class="info-item">
+            <label for="phone">Teléfono</label>
+            <div class="info-value" *ngIf="!isEditingProfile">
+              {{ profileData.user.phone || "No especificado" }}
+            </div>
+            <div *ngIf="isEditingProfile" class="input-wrapper">
+              <input id="phone" type="text" class="form-input" formControlName="phone">
+            </div>
+          </div>
+          <div class="info-item">
+            <span class="label-text">Estado</span>
+            <div
+              class="info-value status-badge"
+              [class.active]="profileData.user.status === 'active'"
+            >
+              {{ profileData.user.status | titlecase }}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Información de Rol -->
+      <section class="profile-section" *ngIf="profileData.role_data">
+        <div class="section-header">
+          <lucide-icon [img]="BriefcaseIcon" size="20"></lucide-icon>
+          <h2>
+            Información de Rol ({{ getRoleName(profileData.user.role_id) }})
+          </h2>
+        </div>
+
+        <div class="info-grid">
+          <ng-container *ngFor="let item of profileData.role_data | keyvalue">
+            <div
+              class="info-item"
+              *ngIf="
+                item.key !== 'user_id' &&
+                item.key !== 'id' &&
+                item.key !== 'deleted_at'
+              "
+            >
+              <label [for]="item.key">{{ getRoleKeyLabel(item.key) }}</label>
+              <div class="info-value" *ngIf="!isEditingProfile || !profileForm.contains(item.key)">
+                {{ formatRoleValue(item.key, item.value) }}
+              </div>
+              <div *ngIf="isEditingProfile && profileForm.contains(item.key)" class="input-wrapper">
+                <input type="text" class="form-input" [id]="item.key" [formControlName]="item.key">
+              </div>
+            </div>
+          </ng-container>
+        </div>
+      </section>
+
+      <div class="form-actions" *ngIf="isEditingProfile">
+        <button type="submit" class="btn-primary" [disabled]="profileForm.invalid || profileUpdateLoading">
+          <span *ngIf="!profileUpdateLoading">Guardar Cambios</span>
+          <span *ngIf="profileUpdateLoading">Guardando...</span>
+        </button>
       </div>
-    </section>
+    </form>
 
     <!-- Vinculación de Google -->
     <section class="profile-section">
