@@ -42,30 +42,32 @@ services:
     networks:
       - buenvivir-net
 
-  labor-integration:
-    build:
-      context: ./labor-integration
-      dockerfile: Dockerfile
-    env_file:
-      - ./labor-integration/.env
-    environment:
-      - AUTH_SERVICE_GRPC_TARGET=auth-service:50051
-    ports:
-      - "8310:8080"
-    depends_on:
-      - auth-service
-    restart: on-failure
-    security_opt:
-      - no-new-privileges:true
-    cap_drop:
-      - ALL
-    read_only: true
-    tmpfs:
-      - /tmp
-    mem_limit: 1024m
-    cpus: "1"
-    networks:
-      - buenvivir-net
+  # labor-integration, rxresume-service y reactive-resume comentados en local:
+  # faltan sus .env reales y el código del submódulo reactive-resume (pedir a Leonardo).
+#  labor-integration:
+#    build:
+#      context: ./labor-integration
+#      dockerfile: Dockerfile
+#    env_file:
+#      - ./labor-integration/.env
+#    environment:
+#      - AUTH_SERVICE_GRPC_TARGET=auth-service:50051
+#    ports:
+#      - "8310:8080"
+#    depends_on:
+#      - auth-service
+#    restart: on-failure
+#    security_opt:
+#      - no-new-privileges:true
+#    cap_drop:
+#      - ALL
+#    read_only: true
+#    tmpfs:
+#      - /tmp
+#    mem_limit: 1024m
+#    cpus: "1"
+#    networks:
+#      - buenvivir-net
 
   human-promotion:
     build:
@@ -102,57 +104,58 @@ services:
     depends_on:
       - auth-service
       - education-service
-      - rxresume-service
-      - labor-integration
+#      - rxresume-service
+#      - labor-integration
     restart: on-failure
     networks:
       - buenvivir-net
 
-  rxresume-service:
-    build:
-      context: ./rxresume
-      dockerfile: Dockerfile
-    env_file:
-      - ./rxresume/.env
-    ports:
-      - "8087:8080"
-    restart: on-failure
-    security_opt:
-      - no-new-privileges:true
-    cap_drop:
-      - ALL
-    read_only: true
-    tmpfs:
-      - /tmp
-    mem_limit: 1024m
-    cpus: "1"
-    depends_on:
-      - gcs-emulator
-      - pubsub-emulator
-      - reactive-resume
-    networks:
-      - buenvivir-net
+  # (comentado en local, ver nota en labor-integration)
+#  rxresume-service:
+#    build:
+#      context: ./rxresume
+#      dockerfile: Dockerfile
+#    env_file:
+#      - ./rxresume/.env
+#    ports:
+#      - "8087:8080"
+#    restart: on-failure
+#    security_opt:
+#      - no-new-privileges:true
+#    cap_drop:
+#      - ALL
+#    read_only: true
+#    tmpfs:
+#      - /tmp
+#    mem_limit: 1024m
+#    cpus: "1"
+#    depends_on:
+#      - gcs-emulator
+#      - pubsub-emulator
+#      - reactive-resume
+#    networks:
+#      - buenvivir-net
 
-  reactive-resume:
-    build:
-      context: ./rxresume/reactive-resume
-      dockerfile: Dockerfile
-    container_name: buenvivir-reactive-resume
-    env_file:
-      - ./rxresume/reactive-resume/.env
-    environment:
-      - NODE_OPTIONS=--dns-result-order=ipv4first
-    ports:
-      - "3000:3000"
-    volumes:
-      - rxresume-data:/app/data
-    extra_hosts:
-      - "localhost:host-gateway"
-    restart: on-failure
-    mem_limit: 1024m
-    cpus: "1"
-    networks:
-      - buenvivir-net
+#  reactive-resume:
+#    build:
+#      context: ./rxresume/reactive-resume
+#      dockerfile: Dockerfile
+#    container_name: buenvivir-reactive-resume
+#    env_file:
+#      - ./rxresume/reactive-resume/.env
+#    environment:
+#      - NODE_OPTIONS=--dns-result-order=ipv4first
+#    ports:
+#      - "3000:3000"
+#    volumes:
+#      - rxresume-data:/app/data
+#    extra_hosts:
+#      - "localhost:host-gateway"
+#    restart: on-failure
+#    mem_limit: 1024m
+#    cpus: "1"
+#    networks:
+#      - buenvivir-net
 
   pubsub-emulator:
     image: gcr.io/google.com/cloudsdktool/cloud-sdk:emulators
