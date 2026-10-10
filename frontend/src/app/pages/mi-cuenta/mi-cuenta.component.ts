@@ -7,10 +7,10 @@ import {
   Shield,
   Laptop,
   Lock,
-  ArrowLeft,
 } from "lucide-angular";
 import { HeaderComponent } from "../../components/layout/header/header.component";
 import { FooterComponent } from "../../components/layout/footer/footer.component";
+import { BackLinkComponent } from "../../shared/components/back-link.component";
 
 @Component({
   selector: "app-mi-cuenta",
@@ -23,6 +23,7 @@ import { FooterComponent } from "../../components/layout/footer/footer.component
     LucideAngularModule,
     HeaderComponent,
     FooterComponent,
+    BackLinkComponent,
   ],
   templateUrl: "./mi-cuenta.component.html",
   styleUrl: "./mi-cuenta.component.css",
@@ -32,5 +33,4 @@ export class MiCuentaComponent {
   readonly ShieldIcon = Shield;
   readonly LaptopIcon = Laptop;
   readonly LockIcon = Lock;
-  readonly ArrowLeftIcon = ArrowLeft;
 }

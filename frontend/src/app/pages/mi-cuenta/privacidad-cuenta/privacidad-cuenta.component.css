@@ -47,7 +47,7 @@
 
 .btn-sm {
   padding: 0.4rem 0.85rem;
-  font-size: 0.825rem;
+  font-size: var(--font-size-sm);
 }
 
 .alert-success {
@@ -58,6 +58,6 @@
   border-radius: 0.5rem;
   display: flex;
   align-items: center;
-  font-size: 0.9rem;
+  font-size: var(--font-size-sm);
   font-weight: 500;
 }

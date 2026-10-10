@@ -36,6 +36,14 @@ func (m *MockUserService) GetUserByID(ctx context.Context, id string) (*dto.User
 	return args.Get(0).(*dto.UserResponse), args.Error(1)
 }
 
+func (m *MockUserService) GetParticipantsHistory(ctx context.Context) ([]dto.ParticipantHistoryResponse, error) {
+	args := m.Called(ctx)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).([]dto.ParticipantHistoryResponse), args.Error(1)
+}
+
 func (m *MockUserService) GetAllUsers(ctx context.Context) ([]dto.UserResponse, error) {
 	args := m.Called(ctx)
 	if args.Get(0) == nil {
@@ -243,4 +251,31 @@ func TestUserController_DeleteUser_ServiceError(t *testing.T) {
 	ctrl.DeleteUser(w, req)
 
 	assert.Equal(t, http.StatusInternalServerError, w.Code)
+}
+
+func TestUserController_GetParticipantsHistory(t *testing.T) {
+	cases := []struct {
+		name   string
+		ret    []dto.ParticipantHistoryResponse
+		err    error
+		status int
+	}{
+		{"ok", []dto.ParticipantHistoryResponse{{UserID: "usr-1", Status: "active"}}, nil, http.StatusOK},
+		{"forbidden", nil, errors.New("forbidden: only administrators"), http.StatusForbidden},
+		{"db", nil, errors.New("db error"), http.StatusInternalServerError},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			mockSvc := new(MockUserService)
+			ctrl := controllers.NewUserController(mockSvc)
+			mockSvc.On("GetParticipantsHistory", mock.Anything).Return(tc.ret, tc.err)
+
+			w := httptest.NewRecorder()
+			ctrl.GetParticipantsHistory(w, httptest.NewRequest("GET", "/users/participants/history", nil))
+			assert.Equal(t, tc.status, w.Code)
+			if tc.status == http.StatusOK {
+				assert.Contains(t, w.Body.String(), `"user_id":"usr-1"`)
+			}
+		})
+	}
 }

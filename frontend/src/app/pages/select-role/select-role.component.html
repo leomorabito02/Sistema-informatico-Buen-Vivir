@@ -20,7 +20,12 @@
 
         <!-- Error message -->
         <div *ngIf="loginError" class="error-msg">
-          <span class="error-icon">⚠️</span>
+          <lucide-icon
+            [img]="CircleAlert"
+            [size]="18"
+            class="error-icon"
+            aria-hidden="true"
+          ></lucide-icon>
           <span>{{ loginError }}</span>
         </div>
 
@@ -34,8 +39,11 @@
             (click)="selectAccount(account)"
             [id]="'select-role-' + account.role_id"
           >
-            <div class="account-icon">
-              {{ roleIcons[account.role_id] || "👤" }}
+            <div class="account-icon" aria-hidden="true">
+              <lucide-icon
+                [img]="roleIcons[account.role_id] || defaultRoleIcon"
+                [size]="22"
+              ></lucide-icon>
             </div>
             <div class="account-info">
               <span class="account-role-name">{{ account.role_name }}</span>
@@ -57,9 +65,7 @@
       </div>
 
       <div class="auth-footer">
-        <a routerLink="/login" class="auth-link"
-          >← Volver al inicio de sesión</a
-        >
+        <a routerLink="/login" class="auth-link">Volver al inicio de sesión</a>
       </div>
     </div>
   </div>

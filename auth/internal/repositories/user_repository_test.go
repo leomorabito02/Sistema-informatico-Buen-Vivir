@@ -5,6 +5,7 @@ import (
 	"errors"
 	"regexp"
 	"testing"
+	"time"
 
 	"auth/internal/models"
 	"auth/internal/repositories"
@@ -96,7 +97,7 @@ func TestUserRepository_FindAllByEmail(t *testing.T) {
 		assert.Nil(t, users)
 		assert.Contains(t, err.Error(), "usuario no encontrado")
 	})
-	
+
 	t.Run("DBError", func(t *testing.T) {
 		mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "users" WHERE email = $1 AND "users"."deleted_at" IS NULL`)).
 			WithArgs("error@test.com").
@@ -134,7 +135,7 @@ func TestUserRepository_FindAllByGoogleID(t *testing.T) {
 		assert.Nil(t, users)
 		assert.Contains(t, err.Error(), "no se encontró ninguna cuenta")
 	})
-	
+
 	t.Run("DBError", func(t *testing.T) {
 		mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "users" WHERE google_auth_id = $1 AND "users"."deleted_at" IS NULL`)).
 			WithArgs("error").
@@ -173,7 +174,7 @@ func TestUserRepository_FindByID(t *testing.T) {
 		assert.Nil(t, user)
 		assert.Contains(t, err.Error(), "usuario no encontrado")
 	})
-	
+
 	t.Run("DBError", func(t *testing.T) {
 		mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "users" WHERE user_id = $1 AND "users"."deleted_at" IS NULL ORDER BY "users"."user_id" LIMIT $2`)).
 			WithArgs("error", 1).
@@ -319,5 +320,35 @@ func TestUserRepository_Delete(t *testing.T) {
 		err := repo.Delete(context.Background(), "error")
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "db error")
+	})
+}
+
+func TestUserRepository_FindParticipantsHistory(t *testing.T) {
+	db, mock := setupTestDB(t)
+	repo := repositories.NewUserRepository(db)
+	query := regexp.QuoteMeta(`SELECT u.user_id, u.status, u.created_at, u.updated_at, u.deleted_at,`)
+
+	t.Run("IncluyeBajas", func(t *testing.T) {
+		alta := time.Date(2026, 1, 10, 0, 0, 0, 0, time.UTC)
+		baja := time.Date(2026, 4, 15, 0, 0, 0, 0, time.UTC)
+		mock.ExpectQuery(query).WillReturnRows(
+			sqlmock.NewRows([]string{"user_id", "status", "created_at", "updated_at", "deleted_at", "approval_status", "approval_date"}).
+				AddRow("usr-1", "active", alta, alta, nil, "approved", alta).
+				AddRow("usr-2", "active", alta, alta, baja, "approved", nil))
+
+		rows, err := repo.FindParticipantsHistory(context.Background())
+		require.NoError(t, err)
+		require.Len(t, rows, 2)
+		assert.Nil(t, rows[0].DeletedAt)
+		require.NotNil(t, rows[1].DeletedAt)
+		assert.True(t, baja.Equal(*rows[1].DeletedAt))
+		assert.Nil(t, rows[1].ApprovalDate)
+	})
+
+	t.Run("DBError", func(t *testing.T) {
+		mock.ExpectQuery(query).WillReturnError(errors.New("db error"))
+		rows, err := repo.FindParticipantsHistory(context.Background())
+		assert.Error(t, err)
+		assert.Nil(t, rows)
 	})
 }

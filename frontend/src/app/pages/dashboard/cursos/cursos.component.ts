@@ -6,8 +6,6 @@ import { ButtonModule } from "primeng/button";
 import { CardModule } from "primeng/card";
 import { TagModule } from "primeng/tag";
 import { InputTextModule } from "primeng/inputtext";
-import { ProgressSpinnerModule } from "primeng/progressspinner";
-import { MessageModule } from "primeng/message";
 import { TooltipModule } from "primeng/tooltip";
 import { DialogModule } from "primeng/dialog";
 import { SelectModule } from "primeng/select";
@@ -21,6 +19,9 @@ import {
   richTextToPlain,
 } from "../../../core/models/education.model";
 import { RichTextComponent } from "../../../shared/components/rich-text.component";
+import { LoadingStateComponent } from "../../../shared/components/loading-state.component";
+import { ErrorStateComponent } from "../../../shared/components/error-state.component";
+import { EmptyStateComponent } from "../../../shared/components/empty-state.component";
 import { todayYMD } from "../../../shared/utils/date-ymd";
 
 interface Option {
@@ -44,14 +45,15 @@ interface CursoVM {
   selector: "app-cursos",
   standalone: true,
   imports: [
+    LoadingStateComponent,
+    ErrorStateComponent,
+    EmptyStateComponent,
     CommonModule,
     FormsModule,
     ButtonModule,
     CardModule,
     TagModule,
     InputTextModule,
-    ProgressSpinnerModule,
-    MessageModule,
     TooltipModule,
     DialogModule,
     SelectModule,

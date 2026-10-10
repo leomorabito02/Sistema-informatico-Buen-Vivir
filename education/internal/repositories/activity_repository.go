@@ -27,8 +27,8 @@ type ActivityRepository interface {
 	// actividad, así que si la actividad se reprograma, sus asistencias
 	// se mueven con ella.
 	Update(ctx context.Context, id string, input models.ActivityInput) (*models.Activity, error)
-	// Delete borra la actividad junto con sus entregas y asistencias en
-	// una sola transacción, para que el progreso (entregadas / total) no
+	// Delete borra la actividad junto con sus entregas, asistencias y
+	// habilidades asociadas en una sola transacción, para que el progreso (entregadas / total) no
 	// quede contando registros de una actividad que ya no existe. Los
 	// adjuntos del bucket los limpia el service (ver
 	// ActivityService.DeleteActivity).
@@ -152,8 +152,12 @@ func (r *activityRepository) Delete(ctx context.Context, id string) error {
 			}
 			return err
 		}
+		// También se borran sus vínculos de Actividad_Habilidad: si no,
+		// el curso seguiría mostrando habilidades de una actividad que ya
+		// no existe. Las habilidades que los participantes ya ganaron
+		// (participante_habilidades) se conservan: las aprendieron igual.
 		var related []*firestore.DocumentSnapshot
-		for _, col := range []string{submissionsCollection, attendancesCollection} {
+		for _, col := range []string{submissionsCollection, attendancesCollection, activitySkillsCollection} {
 			docs, err := tx.Documents(r.client.Collection(col).Where("actividad_id", "==", id)).GetAll()
 			if err != nil {
 				return err

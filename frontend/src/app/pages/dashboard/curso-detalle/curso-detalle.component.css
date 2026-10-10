@@ -1,24 +1,9 @@
 .page-container {
-  padding: 1.5rem;
   max-width: 1000px;
-  margin: 0 auto;
 }
 
 .top-bar {
   margin-bottom: 1.25rem;
-}
-
-.state-box {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  padding: 2rem;
-  color: var(--text-muted);
-}
-
-.empty-state {
-  color: var(--text-muted);
-  padding: 1rem 0;
 }
 
 .muted {
@@ -42,7 +27,7 @@
 }
 
 .course-title {
-  font-size: 1.75rem;
+  font-size: var(--font-size-page-title);
   font-weight: 700;
   color: var(--primary);
   margin: 0 0 1rem;
@@ -57,7 +42,7 @@
 }
 
 .course-meta dt {
-  font-size: 0.8rem;
+  font-size: var(--font-size-sm);
   color: var(--text-muted);
   margin-bottom: 0.2rem;
 }
@@ -97,12 +82,12 @@
 }
 
 .progress-head strong {
-  font-size: 1.5rem;
+  font-size: var(--font-size-2xl);
 }
 
 .progress-card .muted {
   margin: 0.5rem 0 0;
-  font-size: 0.85rem;
+  font-size: var(--font-size-sm);
 }
 
 :host ::ng-deep .progress-bar {
@@ -124,7 +109,7 @@
 }
 
 .activities-head h2 {
-  font-size: 1.25rem;
+  font-size: var(--font-size-xl);
   color: var(--primary);
   margin: 0;
 }
@@ -152,7 +137,7 @@
 .activity-date {
   font-weight: 600;
   color: var(--primary);
-  font-size: 0.9rem;
+  font-size: var(--font-size-sm);
   white-space: nowrap;
 }
 
@@ -161,7 +146,7 @@
 }
 
 .activity-body h3 {
-  font-size: 1rem;
+  font-size: var(--font-size-base);
   margin: 0 0 0.35rem;
   color: var(--text-main);
   overflow-wrap: anywhere;
@@ -170,7 +155,7 @@
 .activity-consigna {
   margin: 0;
   color: #4b5563;
-  font-size: 0.9rem;
+  font-size: var(--font-size-sm);
   white-space: pre-line;
   display: -webkit-box;
   -webkit-line-clamp: 3;
@@ -228,7 +213,7 @@
 .entrega-detalle h4,
 .entrega-hecha h4,
 .consigna-box h4 {
-  font-size: 0.85rem;
+  font-size: var(--font-size-sm);
   color: var(--primary);
   margin: 0.75rem 0 0.35rem;
 }
@@ -267,7 +252,7 @@
 }
 
 .file-list .muted {
-  font-size: 0.8rem;
+  font-size: var(--font-size-sm);
   flex-shrink: 0;
 }
 
@@ -324,7 +309,7 @@
 }
 
 .entrega-estado .pi {
-  font-size: 1.5rem;
+  font-size: var(--font-size-2xl);
 }
 
 .entrega-estado div {
@@ -333,20 +318,16 @@
 }
 
 .entrega-estado span {
-  font-size: 0.85rem;
+  font-size: var(--font-size-sm);
 }
 
 @media (max-width: 640px) {
-  .page-container {
-    padding: 1rem;
-  }
-
   .course-header {
     padding: 1.1rem;
   }
 
   .course-title {
-    font-size: 1.4rem;
+    font-size: var(--font-size-2xl);
   }
 
   .activity-item {
@@ -357,4 +338,41 @@
   .activity-actions {
     justify-content: flex-start;
   }
+}
+
+/* Habilidades (HU-21 / HU-58): del curso y de cada actividad */
+.course-skills {
+  margin-top: var(--space-4);
+}
+
+.course-skills-title {
+  margin: 0 0 var(--space-2);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-muted);
+}
+
+.skill-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.skill-chip {
+  padding: var(--space-1) var(--space-3);
+  border-radius: var(--radius-full);
+  background: var(--color-primary-soft);
+  color: var(--color-text);
+  font-size: var(--font-size-sm);
+}
+
+.skill-chips-sm {
+  margin-top: var(--space-2);
+}
+
+.skill-chips-sm .skill-chip {
+  font-size: var(--font-size-xs);
 }

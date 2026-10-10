@@ -32,13 +32,16 @@ func decodeJSONBody(r *http.Request, dst any) error {
 // (edición concurrente en Contentful), 422 si Contentful rechazó la
 // entry por validación (ej. publicar un borrador incompleto, con el
 // detalle de qué campos faltan), y 502 para cualquier otra falla
-// de infraestructura (Contentful o Firestore).
+// de infraestructura (Contentful o Firestore). 503 si una dependencia
+// opcional (la IA de sugerencias) no pudo responder.
 func writeError(w http.ResponseWriter, err error) {
 	switch {
 	case services.IsValidationError(err):
 		writeErrorJSON(w, http.StatusBadRequest, err.Error())
 	case services.IsForbiddenError(err):
 		writeErrorJSON(w, http.StatusForbidden, err.Error())
+	case services.IsUnavailableError(err):
+		writeErrorJSON(w, http.StatusServiceUnavailable, err.Error())
 	case repositories.IsNotFound(err):
 		writeErrorJSON(w, http.StatusNotFound, "recurso no encontrado")
 	case repositories.IsConflict(err):

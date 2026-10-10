@@ -10,8 +10,6 @@ import { DialogModule } from "primeng/dialog";
 import { SelectModule } from "primeng/select";
 import { InputTextModule } from "primeng/inputtext";
 import { ToastModule } from "primeng/toast";
-import { ProgressSpinnerModule } from "primeng/progressspinner";
-import { MessageModule } from "primeng/message";
 import { MessageService } from "primeng/api";
 import { forkJoin } from "rxjs";
 import { EducationService } from "../../../services/education.service";
@@ -24,6 +22,8 @@ import {
   plainToRichText,
   richTextToPlain,
 } from "../../../core/models/education.model";
+import { LoadingStateComponent } from "../../../shared/components/loading-state.component";
+import { ErrorStateComponent } from "../../../shared/components/error-state.component";
 
 interface CourseVM {
   id: string;
@@ -40,6 +40,8 @@ interface CourseVM {
   selector: "app-mis-cursos",
   standalone: true,
   imports: [
+    LoadingStateComponent,
+    ErrorStateComponent,
     CommonModule,
     FormsModule,
     RouterLink,
@@ -51,8 +53,6 @@ interface CourseVM {
     SelectModule,
     InputTextModule,
     ToastModule,
-    ProgressSpinnerModule,
-    MessageModule,
   ],
   providers: [MessageService],
   templateUrl: "./mis-cursos.component.html",

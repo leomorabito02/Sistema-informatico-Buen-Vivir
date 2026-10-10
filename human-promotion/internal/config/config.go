@@ -29,6 +29,12 @@ type Config struct {
 	// labor-integration). De ahí salen nombre, apellido y fecha de
 	// nacimiento de los participantes y la búsqueda por nombre.
 	AuthServiceGRPCTarget string
+
+	// EducationServiceURL es la base de education-service, ej.
+	// "http://education-service:8210" en Docker. De ahí salen las
+	// habilidades del participante que se muestran en la ficha y en su
+	// PDF. Opcional: vacía, la ficha se muestra sin habilidades.
+	EducationServiceURL string
 }
 
 // LoadConfig arma la configuración a partir de variables de entorno.
@@ -47,5 +53,6 @@ func LoadConfig() *Config {
 		EncryptionKeyBase64: strings.TrimSpace(os.Getenv("ENCRYPTION_KEY")),
 
 		AuthServiceGRPCTarget: strings.TrimSpace(os.Getenv("AUTH_SERVICE_GRPC_TARGET")),
+		EducationServiceURL:   strings.TrimSpace(os.Getenv("EDUCATION_SERVICE_URL")),
 	}
 }

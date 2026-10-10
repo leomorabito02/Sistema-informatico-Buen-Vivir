@@ -4,14 +4,15 @@ import { FormsModule } from "@angular/forms";
 import { RouterLink } from "@angular/router";
 import { ButtonModule } from "primeng/button";
 import { SelectModule } from "primeng/select";
-import { ProgressSpinnerModule } from "primeng/progressspinner";
-import { MessageModule } from "primeng/message";
 import { forkJoin, of } from "rxjs";
 import { catchError, map, switchMap } from "rxjs/operators";
 
 import { EducationService } from "../../../services/education.service";
 import { Activity, Course } from "../../../core/models/education.model";
 import { todayYMD } from "../../../shared/utils/date-ymd";
+import { LoadingStateComponent } from "../../../shared/components/loading-state.component";
+import { ErrorStateComponent } from "../../../shared/components/error-state.component";
+import { EmptyStateComponent } from "../../../shared/components/empty-state.component";
 import {
   AttendanceMatrixComponent,
   AttendanceMatrixRow,
@@ -34,13 +35,14 @@ interface Option {
   selector: "app-asistencia-cursos",
   standalone: true,
   imports: [
+    LoadingStateComponent,
+    ErrorStateComponent,
+    EmptyStateComponent,
     CommonModule,
     FormsModule,
     RouterLink,
     ButtonModule,
     SelectModule,
-    ProgressSpinnerModule,
-    MessageModule,
     AttendanceMatrixComponent,
   ],
   templateUrl: "./asistencia-cursos.component.html",

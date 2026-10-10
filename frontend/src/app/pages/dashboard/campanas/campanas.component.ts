@@ -4,6 +4,7 @@ import { CardModule } from "primeng/card";
 import { ButtonModule } from "primeng/button";
 import { TagModule } from "primeng/tag";
 import { ProgressBarModule } from "primeng/progressbar";
+import { EmptyStateComponent } from "../../../shared/components/empty-state.component";
 
 interface Campaign {
   name: string;
@@ -24,6 +25,7 @@ interface Campaign {
     ButtonModule,
     TagModule,
     ProgressBarModule,
+    EmptyStateComponent,
   ],
   templateUrl: "./campanas.component.html",
   styleUrls: ["./campanas.component.css"],

@@ -1,6 +1,7 @@
 import { ComponentFixture, TestBed } from "@angular/core/testing";
 import { NoopAnimationsModule } from "@angular/platform-browser/animations";
 import { of, throwError } from "rxjs";
+import { ConfirmationService, MessageService } from "primeng/api";
 import { DashboardUser, UsuariosComponent } from "./usuarios.component";
 import { AuthService } from "../../../services/auth.service";
 import { UsersService } from "../../../services/users.service";
@@ -93,6 +94,7 @@ describe("UsuariosComponent", () => {
       "getUserProfile",
       "updateUser",
       "updateRoleData",
+      "deleteUser",
     ]);
     education = jasmine.createSpyObj<EducationService>("EducationService", [
       "getBulkUserCourses",
@@ -126,6 +128,20 @@ describe("UsuariosComponent", () => {
     fixture = TestBed.createComponent(UsuariosComponent);
     component = fixture.componentInstance;
     fixture.detectChanges();
+  }
+
+  /** Espía de los toasts (MessageService propio del componente). */
+  function spyToasts(): jasmine.Spy {
+    return spyOn(fixture.debugElement.injector.get(MessageService), "add");
+  }
+
+  /** Acepta en el acto la confirmación que pida el componente. */
+  function autoConfirm(): jasmine.Spy {
+    const confirm = fixture.debugElement.injector.get(ConfirmationService);
+    return spyOn(confirm, "confirm").and.callFake((c: any) => {
+      c.accept();
+      return confirm;
+    });
   }
 
   it("maps API users to rows and loads their courses in one batch", () => {
@@ -184,9 +200,7 @@ describe("UsuariosComponent", () => {
   it("keeps the list when the courses batch fails", () => {
     setup(admin, [apiUser({ user_id: "u1" })], true);
     expect(component.filteredUsers.length).toBe(1);
-    expect(component.filteredUsers[0].coursesStatus).toBe(
-      "No implementado aún",
-    );
+    expect(component.filteredUsers[0].coursesStatus).toBe("—");
   });
 
   it("shows an empty list when the API returns nothing", () => {
@@ -195,9 +209,19 @@ describe("UsuariosComponent", () => {
     expect(education.getBulkUserCourses).not.toHaveBeenCalled();
   });
 
-  it("shows an empty list when the API fails", () => {
+  it("shows the error state when the API fails, and retries", () => {
     setup(admin, null);
     expect(component.users).toEqual([]);
+    expect(component.loading).toBeFalse();
+    expect(component.loadError).toBe("auth caído");
+    expect(
+      fixture.nativeElement.querySelector("app-error-state"),
+    ).not.toBeNull();
+
+    usersService.listUsers.and.returnValue(of([apiUser({ user_id: "u1" })]));
+    component.reload();
+    expect(component.loadError).toBe("");
+    expect(component.users.length).toBe(1);
   });
 
   it("still loads users when the session check fails", () => {
@@ -254,11 +278,17 @@ describe("UsuariosComponent", () => {
 
   it("creates a user and reloads the list", () => {
     setup(admin, []);
-    spyOn(window, "alert");
+    const toasts = spyToasts();
     usersService.createUser.and.returnValue(of({}));
 
     component.createUser();
     expect(usersService.createUser).not.toHaveBeenCalled(); // faltan datos
+    expect(toasts).toHaveBeenCalledWith(
+      jasmine.objectContaining({
+        severity: "warn",
+        detail: "Completar todos los campos obligatorios para continuar",
+      }),
+    );
 
     component.newUserForm = {
       first_name: "N",
@@ -279,11 +309,17 @@ describe("UsuariosComponent", () => {
     );
     expect(component.showNewUserModal).toBeFalse();
     expect(usersService.listUsers).toHaveBeenCalledTimes(2);
+    expect(toasts).toHaveBeenCalledWith(
+      jasmine.objectContaining({
+        severity: "success",
+        detail: "Usuario creado correctamente",
+      }),
+    );
   });
 
   it("shows the backend message when creating a user fails", () => {
     setup(admin, []);
-    spyOn(window, "alert");
+    const toasts = spyToasts();
     usersService.createUser.and.returnValue(
       throwError(() => new Error("ya existe una cuenta")),
     );
@@ -295,7 +331,12 @@ describe("UsuariosComponent", () => {
 
     component.createUser();
 
-    expect(window.alert).toHaveBeenCalledWith("ya existe una cuenta");
+    expect(toasts).toHaveBeenCalledWith(
+      jasmine.objectContaining({
+        severity: "error",
+        detail: "ya existe una cuenta",
+      }),
+    );
   });
 
   it("opens the detail with profile and enrollments of a participant", () => {
@@ -338,14 +379,16 @@ describe("UsuariosComponent", () => {
 
   it("does not let a volunteer edit non-participants", () => {
     setup({ user: apiUser({ role_id: "role_volunteer" }) }, []);
-    spyOn(window, "alert");
+    const toasts = spyToasts();
     const teacher = row({
       originalUser: apiUser({ user_id: "t1", role_id: "role_teacher" }),
     });
 
     component.openEditUser(teacher, new Event("click"));
 
-    expect(window.alert).toHaveBeenCalled();
+    expect(toasts).toHaveBeenCalledWith(
+      jasmine.objectContaining({ severity: "info" }),
+    );
     expect(component.showEditModal).toBeFalse();
   });
 
@@ -442,16 +485,72 @@ describe("UsuariosComponent", () => {
     expect(usersService.updateRoleData).not.toHaveBeenCalled();
   });
 
-  it("alerts when saving fails", () => {
+  it("shows an error toast when saving fails", () => {
     setup(admin, []);
-    spyOn(window, "alert");
+    const toasts = spyToasts();
     usersService.updateUser.and.returnValue(throwError(() => new Error("403")));
     component.selectedUser = row({ originalUser: apiUser({ user_id: "u1" }) });
 
     component.saveEdit();
 
-    expect(window.alert).toHaveBeenCalledWith(
-      "Error al actualizar usuario base: 403",
+    expect(toasts).toHaveBeenCalledWith(
+      jasmine.objectContaining({ severity: "error", detail: "403" }),
     );
+  });
+
+  describe("eliminar usuario", () => {
+    const ana = () =>
+      row({ name: "Ana", originalUser: apiUser({ user_id: "u9" }) });
+
+    it("pide confirmación, borra, avisa y recarga la lista", () => {
+      setup(admin, []);
+      const toasts = spyToasts();
+      const confirm = autoConfirm();
+      usersService.deleteUser.and.returnValue(of(undefined));
+
+      component.deleteUser(ana(), new Event("click"));
+
+      expect(confirm).toHaveBeenCalledWith(
+        jasmine.objectContaining({ header: "Eliminar usuario" }),
+      );
+      expect(usersService.deleteUser).toHaveBeenCalledWith("u9");
+      expect(toasts).toHaveBeenCalledWith(
+        jasmine.objectContaining({ severity: "success" }),
+      );
+      expect(usersService.listUsers).toHaveBeenCalledTimes(2);
+    });
+
+    it("no borra si se cancela la confirmación", () => {
+      setup(admin, []);
+      const confirm = fixture.debugElement.injector.get(ConfirmationService);
+      spyOn(confirm, "confirm").and.returnValue(confirm);
+
+      component.deleteUser(ana(), new Event("click"));
+
+      expect(usersService.deleteUser).not.toHaveBeenCalled();
+    });
+
+    it("muestra el error del backend si no se pudo borrar", () => {
+      setup(admin, []);
+      const toasts = spyToasts();
+      autoConfirm();
+      usersService.deleteUser.and.returnValue(
+        throwError(() => new Error("forbidden")),
+      );
+
+      component.deleteUser(ana(), new Event("click"));
+
+      expect(toasts).toHaveBeenCalledWith(
+        jasmine.objectContaining({ severity: "error", detail: "forbidden" }),
+      );
+      expect(usersService.listUsers).toHaveBeenCalledTimes(1);
+    });
+
+    it("ignora filas sin id de usuario", () => {
+      setup(admin, []);
+      const confirm = autoConfirm();
+      component.deleteUser(row({}), new Event("click"));
+      expect(confirm).not.toHaveBeenCalled();
+    });
   });
 });

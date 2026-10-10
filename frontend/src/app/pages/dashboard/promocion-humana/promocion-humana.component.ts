@@ -9,8 +9,6 @@ import { IconFieldModule } from "primeng/iconfield";
 import { InputIconModule } from "primeng/inputicon";
 import { ButtonModule } from "primeng/button";
 import { TagModule } from "primeng/tag";
-import { ProgressSpinnerModule } from "primeng/progressspinner";
-import { MessageModule } from "primeng/message";
 import { Subject, of } from "rxjs";
 import {
   catchError,
@@ -22,6 +20,9 @@ import {
 } from "rxjs/operators";
 
 import { HumanPromotionService } from "../../../services/human-promotion.service";
+import { LoadingStateComponent } from "../../../shared/components/loading-state.component";
+import { ErrorStateComponent } from "../../../shared/components/error-state.component";
+import { EmptyStateComponent } from "../../../shared/components/empty-state.component";
 import { ResultadoBusqueda } from "../../../core/models/human-promotion.model";
 
 /** Tiempo de espera antes de consultar mientras se escribe. */
@@ -38,6 +39,9 @@ const MIN_CARACTERES = 2;
   selector: "app-promocion-humana",
   standalone: true,
   imports: [
+    LoadingStateComponent,
+    ErrorStateComponent,
+    EmptyStateComponent,
     CommonModule,
     FormsModule,
     RouterLink,
@@ -47,8 +51,6 @@ const MIN_CARACTERES = 2;
     InputIconModule,
     ButtonModule,
     TagModule,
-    ProgressSpinnerModule,
-    MessageModule,
   ],
   templateUrl: "./promocion-humana.component.html",
   styleUrls: ["./promocion-humana.component.css"],

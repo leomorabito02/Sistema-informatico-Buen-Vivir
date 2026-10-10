@@ -20,6 +20,7 @@ type UserService interface {
 	GetAllUsers(ctx context.Context) ([]dto.UserResponse, error)
 	UpdateUser(ctx context.Context, id string, req *dto.UpdateUserRequest) (*dto.UserResponse, error)
 	DeleteUser(ctx context.Context, id string) error
+	GetParticipantsHistory(ctx context.Context) ([]dto.ParticipantHistoryResponse, error)
 }
 
 type userService struct {
@@ -202,4 +203,28 @@ func (s *userService) checkUpdatePermissions(ctx context.Context, user *models.U
 	req.RoleID = ""
 	req.Status = ""
 	return nil
+}
+
+func (s *userService) GetParticipantsHistory(ctx context.Context) ([]dto.ParticipantHistoryResponse, error) {
+	reqRole, _ := ctx.Value(middlewares.RoleIDKey).(string)
+	if reqRole != "role_admin" && reqRole != "role_dev" {
+		return nil, errors.New("forbidden: only administrators can see the participants history")
+	}
+	rows, err := s.userRepo.FindParticipantsHistory(ctx)
+	if err != nil {
+		return nil, err
+	}
+	result := make([]dto.ParticipantHistoryResponse, len(rows))
+	for i, r := range rows {
+		result[i] = dto.ParticipantHistoryResponse{
+			UserID:         r.UserID,
+			Status:         r.Status,
+			ApprovalStatus: r.ApprovalStatus,
+			ApprovalDate:   r.ApprovalDate,
+			CreatedAt:      r.CreatedAt,
+			UpdatedAt:      r.UpdatedAt,
+			DeletedAt:      r.DeletedAt,
+		}
+	}
+	return result, nil
 }

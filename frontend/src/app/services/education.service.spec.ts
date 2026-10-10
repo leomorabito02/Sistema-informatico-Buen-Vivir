@@ -272,7 +272,7 @@ describe("EducationService", () => {
         next: () => fail("expected error"),
         error: (err: Error) => {
           expect(err.message).toBe(
-            "No tenés permisos para esta acción en Educación.",
+            "No tenés permisos para esta acción. Si creés que es un error, consultá con la persona responsable del centro.",
           );
         },
       });
@@ -285,7 +285,7 @@ describe("EducationService", () => {
         next: () => fail("expected error"),
         error: (err: Error) => {
           expect(err.message).toBe(
-            "El recurso solicitado no existe o no está publicado.",
+            "No encontramos lo que buscabas: puede que se haya borrado o que todavía no esté publicado. Volvé a la lista para ver lo actualizado.",
           );
         },
       });
@@ -298,7 +298,7 @@ describe("EducationService", () => {
         next: () => fail("expected error"),
         error: (err: Error) => {
           expect(err.message).toBe(
-            "El módulo de Educación no pudo responder (Contentful/Firestore).",
+            "El servidor de cursos no respondió. Esperá unos minutos y volvé a intentar.",
           );
         },
       });
@@ -311,12 +311,53 @@ describe("EducationService", () => {
         next: () => fail("expected error"),
         error: (err: Error) => {
           expect(err.message).toBe(
-            "Ocurrió un error al comunicarse con el módulo de Educación.",
+            "No pudimos completar la acción. Volvé a intentar en unos minutos; si sigue pasando, avisá al equipo del centro.",
           );
         },
       });
       const req = httpMock.expectOne(`${getBaseUrl()}/api/cursos`);
-      req.flush(null, { status: 500, statusText: "Internal Error" });
+      req.flush(null, { status: 418, statusText: "Teapot" });
+    });
+
+    it("oculta el detalle técnico de un 502 y de un body inválido", () => {
+      const mensajes: string[] = [];
+      service
+        .listCourses()
+        .subscribe({ error: (e: Error) => mensajes.push(e.message) });
+      service
+        .listCourses()
+        .subscribe({ error: (e: Error) => mensajes.push(e.message) });
+      service
+        .listCourses()
+        .subscribe({ error: (e: Error) => mensajes.push(e.message) });
+      const [a, b, c] = httpMock.match(`${getBaseUrl()}/api/cursos`);
+      a.flush(
+        { error: "error de infraestructura: rpc error: code = Unavailable" },
+        { status: 502, statusText: "Bad Gateway" },
+      );
+      b.flush(
+        { error: "body inválido: unexpected EOF" },
+        { status: 400, statusText: "Bad Request" },
+      );
+      c.error(new ProgressEvent("error"), { status: 0 });
+
+      expect(mensajes[0]).toContain("El servidor de cursos no respondió");
+      expect(mensajes[1]).toContain("Revisá el formulario");
+      expect(mensajes[2]).toContain("No hay conexión");
+    });
+
+    it("muestra las reglas de negocio del backend con mayúscula inicial", () => {
+      let message = "";
+      service
+        .listCourses()
+        .subscribe({ error: (e: Error) => (message = e.message) });
+      httpMock
+        .expectOne(`${getBaseUrl()}/api/cursos`)
+        .flush(
+          { error: "la actividad no pertenece a ese curso" },
+          { status: 400, statusText: "Bad Request" },
+        );
+      expect(message).toBe("La actividad no pertenece a ese curso");
     });
 
     it("should handle JSON error body", () => {

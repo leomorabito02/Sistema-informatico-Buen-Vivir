@@ -33,6 +33,7 @@ type Controllers struct {
 	GeneralAttendance *controllers.GeneralAttendanceController
 	Activity          *controllers.ActivityController
 	Submission        *controllers.SubmissionController
+	Skill             *controllers.SkillController
 }
 
 func RegisterRoutes(
@@ -51,6 +52,7 @@ func RegisterRoutes(
 		r.Get(apiCursosID, ctrls.Course.Get)
 		r.Get("/api/areas-formativas", ctrls.TrainingArea.List)
 		r.Get("/api/materiales", ctrls.Material.List)
+		r.Get("/api/cursos/{id}/habilidades", ctrls.Skill.CourseSkills)
 
 		// -- adjuntos de una entrega: cualquier rol autenticado llega,
 		//    y SubmissionController.DownloadFile decide por rol (admin/
@@ -74,6 +76,10 @@ func RegisterRoutes(
 			// GET estático: chi lo resuelve antes que /api/cursos/{id}
 			// (registrado arriba para cualquier rol), así que no lo tapa.
 			r.Get("/api/cursos/borradores", ctrls.Course.ListDrafts)
+
+			// Dashboard: todas las habilidades ganadas. Ruta estática, no
+			// choca con GET /api/habilidades (catálogo, más abajo).
+			r.Get("/api/habilidades/otorgadas", ctrls.Skill.GrantedSkills)
 
 			r.Post("/api/cursos", ctrls.Course.Create)
 			r.Put(apiCursosID, ctrls.Course.Update)
@@ -127,9 +133,25 @@ func RegisterRoutes(
 			r.Post("/api/asistencia-general", ctrls.GeneralAttendance.Register)
 
 			r.Get("/api/participants/{id}/inscripciones", ctrls.Enrollment.ListByParticipant)
+			r.Get("/api/participants/{id}/habilidades", ctrls.Skill.ParticipantSkills)
 			r.Get("/api/docentes/{id}/cursos", ctrls.Course.ListByTeacherAdmin)
 
 			r.Post("/api/bulk-cursos-usuarios", ctrls.Enrollment.GetBulkUserCourses)
+		})
+
+		// -- habilidades de las actividades (HU-21 / HU-58): admin,
+		//    voluntario y docente interno. El docente solo opera sobre
+		//    sus cursos: SkillController.authorizeCourse lo verifica según
+		//    el rol (rutas compartidas, no duplicadas bajo /api/docente).
+		r.Group(func(r chi.Router) {
+			r.Use(middlewares.RequireRole("role_admin", "role_volunteer", "role_teacher"))
+			r.Use(middlewares.RequireInternalTeacher)
+
+			r.Get("/api/habilidades", ctrls.Skill.SearchCatalog)
+			r.Get("/api/habilidades/categorias", ctrls.Skill.Categories)
+			r.Put("/api/actividades/{actividadId}/habilidades", ctrls.Skill.SetActivitySkills)
+			// POST estático: no choca con PUT/DELETE /api/actividades/{actividadId}.
+			r.Post("/api/actividades/sugerir-habilidades", ctrls.Skill.Suggest)
 		})
 
 		// -- docente responsable: role_teacher interno --
@@ -161,6 +183,7 @@ func RegisterRoutes(
 			r.Get("/cursos", ctrls.Submission.ListMyCourses)
 			r.Get("/cursos/{id}", ctrls.Submission.GetMyCourse)
 			r.Post("/actividades/{actividadId}/entrega", ctrls.Submission.Submit)
+			r.Get("/habilidades", ctrls.Skill.MySkills)
 		})
 	})
 }

@@ -3,6 +3,7 @@ package controllers
 import (
 	"encoding/json"
 	"net/http"
+	"strings"
 
 	"auth/internal/dto"
 	"auth/internal/services"
@@ -104,4 +105,20 @@ func (c *UserController) DeleteUser(w http.ResponseWriter, r *http.Request) {
 	}
 
 	utils.JSONResponse(w, http.StatusOK, true, map[string]string{"message": "Usuario eliminado correctamente"}, nil)
+}
+
+// GetParticipantsHistory responde GET /api/v1/users/participants/history
+// (solo admin): todos los participantes, también los dados de baja, con
+// sus fechas. Lo consume el servicio de Dashboard.
+func (c *UserController) GetParticipantsHistory(w http.ResponseWriter, r *http.Request) {
+	rows, err := c.userService.GetParticipantsHistory(r.Context())
+	if err != nil {
+		status := http.StatusInternalServerError
+		if strings.HasPrefix(err.Error(), "forbidden") {
+			status = http.StatusForbidden
+		}
+		utils.JSONResponse(w, status, false, nil, err.Error())
+		return
+	}
+	utils.JSONResponse(w, http.StatusOK, true, rows, nil)
 }

@@ -121,6 +121,27 @@ export class UsersService {
       );
   }
 
+  /**
+   * DELETE /api/v1/users/{id}. auth-service permite borrar cualquier cuenta
+   * a role_admin / role_dev y solo la propia al resto.
+   */
+  deleteUser(id: string): Observable<void> {
+    return this.http
+      .delete<unknown>(`${this.apiUrl}/api/v1/users/${id}`, {
+        withCredentials: true,
+      })
+      .pipe(
+        map(() => undefined),
+        catchError((err) => {
+          const message =
+            err.status === 401
+              ? "Tu sesión expiró o no es válida. Volvé a iniciar sesión."
+              : err.error?.error || "Error al eliminar el usuario";
+          return throwError(() => new Error(message));
+        }),
+      );
+  }
+
   updateRoleData(tableName: string, id: string, data: any): Observable<any> {
     return this.http
       .put(`${this.apiUrl}/api/v1/${tableName}/${id}`, data, {

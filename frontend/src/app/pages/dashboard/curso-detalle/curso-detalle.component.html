@@ -6,29 +6,20 @@
 
 <div class="page-container">
   <div class="top-bar">
-    <p-button
-      label="Volver"
-      icon="pi pi-arrow-left"
-      [outlined]="true"
-      size="small"
-      (onClick)="volver()"
-    ></p-button>
+    <app-back-link (back)="volver()"></app-back-link>
   </div>
 
-  <div *ngIf="loading" class="state-box">
-    <p-progressSpinner
-      strokeWidth="4"
-      [style]="{ width: '48px', height: '48px' }"
-    ></p-progressSpinner>
-    <span>Cargando curso…</span>
-  </div>
+  <app-loading-state
+    *ngIf="loading"
+    variant="detail"
+    label="Cargando curso…"
+  ></app-loading-state>
 
-  <p-message
+  <app-error-state
     *ngIf="!loading && error"
-    severity="error"
-    [text]="error"
-    styleClass="w-full"
-  ></p-message>
+    [message]="error"
+    (retry)="cargar()"
+  ></app-error-state>
 
   <ng-container *ngIf="!loading && !error && curso">
     <!-- Datos del curso -->
@@ -66,6 +57,17 @@
       <div class="course-desc">
         <app-rich-text [doc]="curso.description"></app-rich-text>
       </div>
+
+      <div *ngIf="habilidadesCurso.length > 0" class="course-skills">
+        <h2 class="course-skills-title">
+          Habilidades que desarrolla este curso
+        </h2>
+        <ul class="skill-chips">
+          <li *ngFor="let h of habilidadesCurso" class="skill-chip">
+            {{ h.nombre }}
+          </li>
+        </ul>
+      </div>
     </section>
 
     <!-- Progreso del participante (HU-20) -->
@@ -97,13 +99,13 @@
         ></p-button>
       </div>
 
-      <p *ngIf="actividades.length === 0" class="empty-state">
+      <app-empty-state *ngIf="actividades.length === 0">
         {{
           puedeGestionar
             ? 'Este curso todavía no tiene actividades. Creá la primera con "Nueva actividad".'
             : "Este curso todavía no tiene actividades."
         }}
-      </p>
+      </app-empty-state>
 
       <ul class="activity-list">
         <li *ngFor="let a of actividades" class="activity-item">
@@ -114,6 +116,15 @@
           <div class="activity-body">
             <h3>{{ a.titulo }}</h3>
             <p class="activity-consigna">{{ a.consigna }}</p>
+            <ul
+              *ngIf="habilidadesDe(a.id).length > 0"
+              class="skill-chips skill-chips-sm"
+              aria-label="Habilidades que desarrolla"
+            >
+              <li *ngFor="let h of habilidadesDe(a.id)" class="skill-chip">
+                {{ h.nombre }}
+              </li>
+            </ul>
             <div *ngIf="esParticipante" class="activity-status">
               <p-tag
                 *ngIf="a.entrega; else pendiente"
@@ -186,8 +197,8 @@
 <p-dialog
   [(visible)]="formVisible"
   [modal]="true"
-  [style]="{ width: '560px' }"
-  [breakpoints]="{ '640px': '94vw' }"
+  [style]="{ width: '640px' }"
+  [breakpoints]="{ '700px': '94vw' }"
   [header]="editando ? 'Editar actividad' : 'Nueva actividad'"
   styleClass="activity-dialog"
 >
@@ -226,6 +237,14 @@
       Es la fecha con la que queda registrada la asistencia de quienes la
       entreguen.
     </small>
+
+    <app-activity-skills
+      [cursoId]="cursoId"
+      [actividadId]="editando?.id ?? ''"
+      [titulo]="form.titulo"
+      [consigna]="form.consigna"
+      [(skills)]="formSkills"
+    ></app-activity-skills>
   </form>
 
   <ng-template pTemplate="footer">
@@ -252,13 +271,11 @@
   [breakpoints]="{ '900px': '96vw' }"
   [header]="'Entregas — ' + (entregasActividad?.titulo ?? '')"
 >
-  <div *ngIf="loadingEntregas" class="state-box">
-    <p-progressSpinner
-      strokeWidth="4"
-      [style]="{ width: '32px', height: '32px' }"
-    ></p-progressSpinner>
-    <span>Cargando entregas…</span>
-  </div>
+  <app-loading-state
+    *ngIf="loadingEntregas"
+    variant="table"
+    label="Cargando entregas…"
+  ></app-loading-state>
 
   <ng-container *ngIf="!loadingEntregas">
     <p class="entregas-resumen" *ngIf="entregas.length > 0">

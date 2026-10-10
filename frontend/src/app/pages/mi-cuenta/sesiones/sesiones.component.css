@@ -19,8 +19,7 @@
 }
 
 .session-card.current-session {
-  border-left: 4px solid var(--primary);
-  background: #fbfdf9;
+  background: var(--color-primary-soft);
 }
 
 .session-icon-wrapper {
@@ -45,7 +44,7 @@
 .badge-current {
   background: var(--primary);
   color: var(--primary-foreground);
-  font-size: 0.7rem;
+  font-size: var(--font-size-xs);
   padding: 0.15rem 0.5rem;
   border-radius: 9999px;
   font-weight: 500;
@@ -53,7 +52,7 @@
 
 .btn-sm {
   padding: 0.4rem 0.85rem;
-  font-size: 0.825rem;
+  font-size: var(--font-size-sm);
 }
 
 .alert-success {
@@ -64,6 +63,6 @@
   border-radius: 0.5rem;
   display: flex;
   align-items: center;
-  font-size: 0.9rem;
+  font-size: var(--font-size-sm);
   font-weight: 500;
 }

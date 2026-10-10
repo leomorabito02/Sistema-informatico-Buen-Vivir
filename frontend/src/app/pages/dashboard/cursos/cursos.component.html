@@ -3,8 +3,7 @@
   <div class="header-section">
     <div>
       <h1 class="page-title">
-        <i class="pi pi-book mr-2"></i
-        >{{ esParticipante ? "Mis cursos" : "Catálogo de Cursos" }}
+        {{ esParticipante ? "Mis cursos" : "Catálogo de Cursos" }}
       </h1>
       <p class="page-subtitle">
         {{
@@ -27,31 +26,24 @@
     </div>
   </div>
 
-  <div *ngIf="loading" class="state-box">
-    <p-progressSpinner
-      strokeWidth="4"
-      [style]="{ width: '48px', height: '48px' }"
-    ></p-progressSpinner>
-    <span>Cargando cursos…</span>
-  </div>
+  <app-loading-state
+    *ngIf="loading"
+    variant="cards"
+    label="Cargando cursos…"
+  ></app-loading-state>
 
-  <p-message
+  <app-error-state
     *ngIf="!loading && error"
-    severity="error"
-    [text]="error"
-    styleClass="w-full"
-  ></p-message>
+    [message]="error"
+  ></app-error-state>
 
-  <p
-    *ngIf="!loading && !error && filteredCursos.length === 0"
-    class="empty-state"
-  >
+  <app-empty-state *ngIf="!loading && !error && filteredCursos.length === 0">
     {{
       esParticipante
         ? "Todavía no estás inscripto en ningún curso. Pedile a un voluntario o administrador que te inscriba."
         : "No hay cursos publicados por ahora."
     }}
-  </p>
+  </app-empty-state>
 
   <div class="grid-container" *ngIf="!loading && !error">
     <div *ngFor="let curso of filteredCursos" class="course-card-wrapper">
@@ -179,9 +171,9 @@
   [header]="'Inscribir en: ' + (enrollCurso?.title ?? '')"
 >
   <div *ngIf="enrollCurso" class="detail">
-    <p *ngIf="participantOptions.length === 0" class="empty-state">
+    <app-empty-state *ngIf="participantOptions.length === 0" [compact]="true">
       No hay participantes aprobados en el centro todavía.
-    </p>
+    </app-empty-state>
     <div *ngIf="participantOptions.length > 0">
       <label>Participante</label>
       <p-select

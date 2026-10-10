@@ -8,9 +8,19 @@ import (
 	"google.golang.org/grpc/status"
 
 	"auth/api/proto/authpb"
+	"auth/internal/middlewares"
 	"auth/internal/repositories"
 	"auth/internal/services"
 )
+
+// serviceCtx marca una llamada gRPC como interna entre servicios. En gRPC no
+// viaja el usuario que originó el pedido, así que los servicios que chequean
+// permisos por rol (GetUserByID) la rechazaban siempre. Quien llama ya
+// validó al usuario en su propio endpoint (Inserción Laboral, por el
+// gateway); acá se lee con permisos de sistema.
+func serviceCtx(ctx context.Context) context.Context {
+	return context.WithValue(ctx, middlewares.RoleIDKey, "role_dev")
+}
 
 type GrpcAuthController struct {
 	authpb.UnimplementedAuthServiceServer
@@ -62,7 +72,7 @@ func (c *GrpcAuthController) GetCompany(ctx context.Context, req *authpb.GetComp
 		return nil, status.Error(codes.NotFound, "company not found")
 	}
 
-	user, err := c.userService.GetUserByID(ctx, company.UserID)
+	user, err := c.userService.GetUserByID(serviceCtx(ctx), company.UserID)
 	if err != nil {
 		return nil, status.Error(codes.Internal, err.Error())
 	}

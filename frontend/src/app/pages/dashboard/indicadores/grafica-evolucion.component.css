@@ -1,0 +1,87 @@
+:host {
+  display: block;
+}
+
+.grafica {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  height: 100%;
+  margin: 0;
+  padding: var(--space-5);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-xs);
+}
+
+.grafica-titulo {
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-semibold);
+}
+
+.grafica-canvas {
+  position: relative;
+  height: 16rem;
+}
+
+.grafica-estado {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  min-height: 16rem;
+  padding: var(--space-6);
+  text-align: center;
+  color: var(--color-text-muted);
+  border: 1px dashed var(--color-border-strong);
+  border-radius: var(--radius-lg);
+}
+
+.grafica-estado p {
+  margin: 0;
+  max-width: 32ch;
+}
+
+.grafica-estado .pi {
+  font-size: 1.5rem;
+}
+
+.grafica-resumen {
+  margin: 0;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+}
+
+.grafica-datos summary {
+  cursor: pointer;
+  font-size: var(--font-size-sm);
+  color: var(--color-link);
+  min-height: var(--tap-target);
+  display: flex;
+  align-items: center;
+}
+
+.tabla-scroll {
+  overflow-x: auto;
+}
+
+.grafica-datos table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--font-size-sm);
+}
+
+.grafica-datos th,
+.grafica-datos td {
+  padding: var(--space-1) var(--space-3);
+  text-align: right;
+  border-bottom: 1px solid var(--color-border);
+  white-space: nowrap;
+}
+
+.grafica-datos th[scope="row"],
+.grafica-datos thead th:first-child {
+  text-align: left;
+}

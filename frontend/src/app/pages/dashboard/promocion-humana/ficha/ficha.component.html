@@ -2,31 +2,23 @@
 
 <div class="page-container">
   <div class="top-bar">
-    <a
-      pButton
-      routerLink="/dashboard/promocion-humana"
+    <app-back-link
+      to="/dashboard/promocion-humana"
       label="Volver a la búsqueda"
-      icon="pi pi-arrow-left"
-      [outlined]="true"
-      size="small"
-    ></a>
+    ></app-back-link>
   </div>
 
-  <div *ngIf="loading" class="state-box">
-    <p-progressSpinner
-      strokeWidth="4"
-      [style]="{ width: '40px', height: '40px' }"
-      aria-label="Cargando"
-    ></p-progressSpinner>
-    <span>Cargando ficha…</span>
-  </div>
+  <app-loading-state
+    *ngIf="loading"
+    variant="detail"
+    label="Cargando ficha…"
+  ></app-loading-state>
 
-  <p-message
+  <app-error-state
     *ngIf="!loading && error"
-    severity="error"
-    [text]="error"
-    styleClass="w-full"
-  ></p-message>
+    [message]="error"
+    (retry)="cargarFicha()"
+  ></app-error-state>
 
   <ng-container *ngIf="!loading && !error">
     <div class="header-section">
@@ -218,28 +210,23 @@
         ></p-button>
       </div>
 
-      <p-message
+      <app-error-state
         *ngIf="errorHitos"
-        severity="error"
-        [text]="errorHitos"
-        styleClass="w-full"
-      ></p-message>
+        [message]="errorHitos"
+        (retry)="cargarHitos()"
+      ></app-error-state>
 
-      <div *ngIf="cargandoHitos" class="state-box">
-        <p-progressSpinner
-          strokeWidth="4"
-          [style]="{ width: '32px', height: '32px' }"
-          aria-label="Cargando"
-        ></p-progressSpinner>
-        <span>Cargando hitos…</span>
-      </div>
+      <app-loading-state
+        *ngIf="cargandoHitos"
+        variant="list"
+        label="Cargando hitos…"
+      ></app-loading-state>
 
-      <p
+      <app-empty-state
         *ngIf="!cargandoHitos && !errorHitos && hitos.length === 0"
-        class="empty-state"
       >
         Todavía no hay hitos registrados.
-      </p>
+      </app-empty-state>
 
       <ol *ngIf="!cargandoHitos && hitos.length > 0" class="timeline">
         <li *ngFor="let h of hitos" class="timeline-item">

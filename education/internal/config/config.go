@@ -55,6 +55,12 @@ type Config struct {
 	// Si queda vacío, el servicio arranca igual y las entregas se
 	// aceptan solo con texto.
 	EntregasBucket string
+
+	// SkillsAI es la configuración de la sugerencia de habilidades con IA
+	// (HU-21 / HU-58). Nada es obligatorio: si falta, el servicio arranca
+	// igual y el botón "Sugerir habilidades con IA" responde que no se
+	// pudo generar sugerencias (las habilidades se pueden cargar a mano).
+	SkillsAI SkillsAIConfig
 }
 
 // LoadConfig arma la configuración del servicio. El archivo que se
@@ -101,6 +107,7 @@ func LoadConfig() (*Config, error) {
 		AuthServiceURL:        strings.TrimRight(os.Getenv("AUTH_SERVICE_URL"), "/"),
 		EntregasBucket:        strings.TrimSpace(os.Getenv("ENTREGAS_BUCKET")),
 	}
+	cfg.SkillsAI = loadSkillsAIConfig()
 
 	if cfg.ContentfulLocale == "" {
 		cfg.ContentfulLocale = "en-US"

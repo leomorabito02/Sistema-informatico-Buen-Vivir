@@ -121,7 +121,7 @@ export function buildAttendanceMatrixRows(
       .matrix {
         border-collapse: collapse;
         width: 100%;
-        font-size: 0.9rem;
+        font-size: var(--font-size-sm);
       }
       th,
       td {
@@ -156,7 +156,7 @@ export function buildAttendanceMatrixRows(
         display: block;
         font-weight: 400;
         color: var(--text-muted);
-        font-size: 0.8rem;
+        font-size: var(--font-size-sm);
         overflow: hidden;
         text-overflow: ellipsis;
         max-width: 9rem;

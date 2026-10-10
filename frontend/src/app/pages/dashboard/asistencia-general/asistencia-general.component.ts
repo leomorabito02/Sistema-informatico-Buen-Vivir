@@ -7,13 +7,13 @@ import { CardModule } from "primeng/card";
 import { DatePickerModule } from "primeng/datepicker";
 import { InputTextModule } from "primeng/inputtext";
 import { ButtonGroupModule } from "primeng/buttongroup";
-import { ProgressSpinnerModule } from "primeng/progressspinner";
-import { MessageModule } from "primeng/message";
 import { ToastModule } from "primeng/toast";
 import { MessageService } from "primeng/api";
 
 import { EducationService } from "../../../services/education.service";
 import { formatYMD, parseYMD, todayYMD } from "../../../shared/utils/date-ymd";
+import { LoadingStateComponent } from "../../../shared/components/loading-state.component";
+import { ErrorStateComponent } from "../../../shared/components/error-state.component";
 
 interface AttendanceRow {
   participanteId: string;
@@ -38,6 +38,8 @@ interface AttendanceRow {
   selector: "app-asistencia-general",
   standalone: true,
   imports: [
+    LoadingStateComponent,
+    ErrorStateComponent,
     CommonModule,
     FormsModule,
     TableModule,
@@ -46,8 +48,6 @@ interface AttendanceRow {
     DatePickerModule,
     InputTextModule,
     ButtonGroupModule,
-    ProgressSpinnerModule,
-    MessageModule,
     ToastModule,
   ],
   providers: [MessageService],

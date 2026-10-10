@@ -1,19 +1,30 @@
 <div class="page-container">
   <div class="header-section">
     <div>
-      <h1 class="page-title">
-        <i class="pi pi-megaphone mr-2"></i>Gestión de Campañas
-      </h1>
+      <h1 class="page-title">Gestión de Campañas</h1>
       <p class="page-subtitle">
         Iniciativas comunitarias, recolección de insumos y eventos solidarios.
       </p>
     </div>
+    <!-- Sin backend todavía: el botón se ve pero avisa que no está
+         disponible, en lugar de no hacer nada al tocarlo. -->
     <p-button
       label="Crear Campaña"
       icon="pi pi-plus"
       styleClass="p-button-success"
+      [disabled]="true"
+      title="Disponible próximamente"
+      ariaLabel="Crear Campaña (disponible próximamente)"
     ></p-button>
   </div>
+
+  <app-empty-state
+    *ngIf="campaigns.length === 0"
+    title="Las campañas llegan pronto"
+  >
+    Todavía no se pueden crear ni administrar campañas desde el sistema.
+    Mientras tanto, se siguen organizando como hasta ahora.
+  </app-empty-state>
 
   <div class="grid-container">
     <div *ngFor="let camp of campaigns" class="campaign-card-wrapper">

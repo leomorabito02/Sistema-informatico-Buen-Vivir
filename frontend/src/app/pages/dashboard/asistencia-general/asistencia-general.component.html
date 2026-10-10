@@ -2,9 +2,7 @@
 <div class="page-container">
   <div class="header-section">
     <div>
-      <h1 class="page-title">
-        <i class="pi pi-calendar mr-2"></i>Asistencia general del centro
-      </h1>
+      <h1 class="page-title">Asistencia general del centro</h1>
       <p class="page-subtitle">
         Control diario de concurrencia de todo el centro, independiente de
         cursos y actividades.
@@ -21,20 +19,17 @@
     </div>
   </div>
 
-  <p-message
+  <app-error-state
     *ngIf="error"
-    severity="error"
-    [text]="error"
-    styleClass="w-full"
-  ></p-message>
+    [message]="error"
+    (retry)="cargar()"
+  ></app-error-state>
 
-  <div *ngIf="loading" class="state-box">
-    <p-progressSpinner
-      strokeWidth="4"
-      [style]="{ width: '40px', height: '40px' }"
-    ></p-progressSpinner>
-    <span>Cargando participantes…</span>
-  </div>
+  <app-loading-state
+    *ngIf="loading"
+    variant="table"
+    label="Cargando participantes…"
+  ></app-loading-state>
 
   <p-card *ngIf="!loading" styleClass="p-card-shadow">
     <p-table [value]="rows" class="p-datatable-striped">

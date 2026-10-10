@@ -9,6 +9,9 @@ import { Textarea } from "primeng/textarea";
 import { ProgressSpinnerModule } from "primeng/progressspinner";
 import { DropdownModule } from "primeng/dropdown";
 import { CheckboxModule } from "primeng/checkbox";
+import { ToastModule } from "primeng/toast";
+import { MessageService } from "primeng/api";
+import { LucideAngularModule, TriangleAlert } from "lucide-angular";
 import {
   RxResumeService,
   Resume,
@@ -32,7 +35,10 @@ import { ProfileService } from "../../../services/profile.service";
     ProgressSpinnerModule,
     DropdownModule,
     CheckboxModule,
+    ToastModule,
+    LucideAngularModule,
   ],
+  providers: [MessageService],
   templateUrl: "./cv.component.html",
   styleUrls: ["./cv.component.css"],
 })
@@ -40,6 +46,9 @@ export class CvComponent implements OnInit, OnDestroy {
   private readonly rxResumeService = inject(RxResumeService);
   private readonly profileService = inject(ProfileService);
   private readonly route = inject(ActivatedRoute);
+  private readonly messages = inject(MessageService);
+
+  readonly TriangleAlert = TriangleAlert;
 
   userId: string | null = null;
   resume: Resume | null = null;
@@ -52,22 +61,21 @@ export class CvComponent implements OnInit, OnDestroy {
   private pdfPollInterval: ReturnType<typeof setInterval> | null = null;
 
   templates = [
-
-    { label: 'Azurill', value: 'azurill' },
-    { label: 'Bronzor', value: 'bronzor' },
-    { label: 'Chikorita', value: 'chikorita' },
-    { label: 'Ditgar', value: 'ditgar' },
-    { label: 'Ditto', value: 'ditto' },
-    { label: 'Gengar', value: 'gengar' },
-    { label: 'Glalie', value: 'glalie' },
-    { label: 'Kakuna', value: 'kakuna' },
-    { label: 'Lapras', value: 'lapras' },
-    { label: 'Leafish', value: 'leafish' },
-    { label: 'Meowth', value: 'meowth' },
-    { label: 'Onyx', value: 'onyx' },
-    { label: 'Pikachu', value: 'pikachu' },
-    { label: 'Rhyhorn', value: 'rhyhorn' },
-    { label: 'Scizor', value: 'scizor' }
+    { label: "Azurill", value: "azurill" },
+    { label: "Bronzor", value: "bronzor" },
+    { label: "Chikorita", value: "chikorita" },
+    { label: "Ditgar", value: "ditgar" },
+    { label: "Ditto", value: "ditto" },
+    { label: "Gengar", value: "gengar" },
+    { label: "Glalie", value: "glalie" },
+    { label: "Kakuna", value: "kakuna" },
+    { label: "Lapras", value: "lapras" },
+    { label: "Leafish", value: "leafish" },
+    { label: "Meowth", value: "meowth" },
+    { label: "Onyx", value: "onyx" },
+    { label: "Pikachu", value: "pikachu" },
+    { label: "Rhyhorn", value: "rhyhorn" },
+    { label: "Scizor", value: "scizor" },
   ];
 
   educationStatuses = [
@@ -83,8 +91,8 @@ export class CvComponent implements OnInit, OnDestroy {
   ];
 
   ngOnInit() {
-    this.route.queryParams.subscribe(params => {
-      this.userId = params['userId'] || null;
+    this.route.queryParams.subscribe((params) => {
+      this.userId = params["userId"] || null;
       this.loadData();
     });
   }
@@ -92,11 +100,9 @@ export class CvComponent implements OnInit, OnDestroy {
   loadData() {
     this.loading = true;
 
-    
-    const resumeObservable = this.userId 
+    const resumeObservable = this.userId
       ? this.rxResumeService.getUserResumeByAdmin(this.userId)
       : this.rxResumeService.getMyResume();
-
 
     // Load resume from DB (without RxResume API call)
     resumeObservable.subscribe({
@@ -150,7 +156,7 @@ export class CvComponent implements OnInit, OnDestroy {
     statusObs.subscribe({
       next: (res) => {
         this.pdfReady = res.ready;
-      }
+      },
     });
   }
 
@@ -174,7 +180,8 @@ export class CvComponent implements OnInit, OnDestroy {
             this.pdfPolling = false;
             clearInterval(this.pdfPollInterval!);
             this.pdfPollInterval = null;
-            this.message = 'PDF listo. Hacé click en "Descargar PDF" para obtenerlo.';
+            this.message =
+              'PDF listo. Hacé click en "Descargar PDF" para obtenerlo.';
           }
         },
         error: (err) => {
@@ -182,7 +189,8 @@ export class CvComponent implements OnInit, OnDestroy {
             this.pdfPolling = false;
             clearInterval(this.pdfPollInterval!);
             this.pdfPollInterval = null;
-            this.message = 'Tu sesión expiró. Por favor, actualiza la página y vuelve a iniciar sesión.';
+            this.message =
+              "Tu sesión expiró. Actualizá la página y volvé a iniciar sesión.";
           }
           // Ignorar otros errores de polling, seguir intentando
         },
@@ -202,8 +210,11 @@ export class CvComponent implements OnInit, OnDestroy {
     this.generating = true;
     this.message = "";
 
-    const updateObservable = this.userId 
-      ? this.rxResumeService.updateUserResumeByAdmin(this.userId, this.resume.data)
+    const updateObservable = this.userId
+      ? this.rxResumeService.updateUserResumeByAdmin(
+          this.userId,
+          this.resume.data,
+        )
       : this.rxResumeService.updateMyResume(this.resume.data);
 
     updateObservable.subscribe({
@@ -228,7 +239,10 @@ export class CvComponent implements OnInit, OnDestroy {
     if (this.resume?.pdf_url && this.resume?.user_id) {
       this.rxResumeService.downloadPublicPDF(this.resume.user_id);
     } else {
-      alert("Debes generar el currículum primero.");
+      this.avisar(
+        "warn",
+        "Primero generá el currículum para poder descargarlo.",
+      );
     }
   }
 
@@ -237,14 +251,24 @@ export class CvComponent implements OnInit, OnDestroy {
       navigator.clipboard
         .writeText(this.resume.public_url)
         .then(() => {
-          alert("Enlace copiado al portapapeles: " + this.resume!.public_url);
+          this.avisar("success", "Enlace copiado. Ya podés compartirlo.");
         })
         .catch(() => {
-          alert("Error al copiar el enlace.");
+          this.avisar(
+            "error",
+            "No se pudo copiar el enlace. Intentá de nuevo.",
+          );
         });
     } else {
-      alert("Debes generar el currículum primero para poder compartirlo.");
+      this.avisar(
+        "warn",
+        "Primero generá el currículum para poder compartirlo.",
+      );
     }
+  }
+
+  private avisar(severity: "success" | "warn" | "error", detail: string) {
+    this.messages.add({ severity, detail, life: 4000 });
   }
 
   // --- Helpers for arrays ---
@@ -328,7 +352,7 @@ export class CvComponent implements OnInit, OnDestroy {
     const file = event.target.files[0];
     if (file) {
       if (file.size > 10 * 1024 * 1024) {
-        alert("La imagen no debe superar los 10MB.");
+        this.avisar("warn", "La imagen no debe superar los 10 MB.");
         return;
       }
       this.uploadingPicture = true;
@@ -344,7 +368,11 @@ export class CvComponent implements OnInit, OnDestroy {
         },
         error: (err) => {
           this.uploadingPicture = false;
-          alert("Error al subir la imagen: " + (err.message || "Desconocido"));
+          this.avisar(
+            "error",
+            "No se pudo subir la imagen" +
+              (err.message ? `: ${err.message}` : "."),
+          );
         },
       });
     }
