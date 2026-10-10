@@ -67,7 +67,7 @@
 
 .cv-name {
   margin: 0;
-  font-size: 2.5rem;
+  font-size: var(--font-size-4xl);
   font-weight: 800;
   letter-spacing: -0.05em;
   color: #ffffff;
@@ -75,7 +75,7 @@
 
 .cv-headline {
   margin: 0;
-  font-size: 1.25rem;
+  font-size: var(--font-size-xl);
   font-weight: 400;
   opacity: 0.9;
 }
@@ -85,7 +85,7 @@
   flex-wrap: wrap;
   gap: 1.5rem;
   margin-top: 1rem;
-  font-size: 0.9rem;
+  font-size: var(--font-size-sm);
   opacity: 0.85;
 }
 
@@ -122,7 +122,7 @@
 
 .section-title {
   color: var(--primary-color, #4f46e5);
-  font-size: 1.25rem;
+  font-size: var(--font-size-xl);
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.1em;
@@ -135,7 +135,7 @@
 .summary-text {
   line-height: 1.7;
   color: var(--text-color, #374151);
-  font-size: 1rem;
+  font-size: var(--font-size-base);
 }
 
 .timeline-item {
@@ -156,7 +156,7 @@
 
 .item-title {
   margin: 0;
-  font-size: 1.15rem;
+  font-size: var(--font-size-lg);
   font-weight: 600;
   color: var(--text-color, #111827);
 }
@@ -167,7 +167,7 @@
 }
 
 .item-date {
-  font-size: 0.85rem;
+  font-size: var(--font-size-sm);
   color: var(--text-color-secondary, #6b7280);
   margin-bottom: 0.5rem;
 }
@@ -189,7 +189,7 @@
   color: var(--primary-color, #4338ca);
   padding: 0.5rem 1rem;
   border-radius: 2rem;
-  font-size: 0.85rem;
+  font-size: var(--font-size-sm);
   font-weight: 600;
   display: inline-block;
 }

@@ -17,13 +17,13 @@ import { TextareaModule } from "primeng/textarea";
 import { CheckboxModule } from "primeng/checkbox";
 import { ToastModule } from "primeng/toast";
 import { ConfirmDialogModule } from "primeng/confirmdialog";
-import { ProgressSpinnerModule } from "primeng/progressspinner";
 import { MessageModule } from "primeng/message";
 import { TooltipModule } from "primeng/tooltip";
 import { MessageService, ConfirmationService } from "primeng/api";
 
 import { EducationService } from "../../../services/education.service";
 import { UsersService } from "../../../services/users.service";
+import { LoadingStateComponent } from "../../../shared/components/loading-state.component";
 import {
   Course,
   Material,
@@ -44,6 +44,7 @@ type CourseRow = Course & { publicado: boolean };
   selector: "app-admin-cursos",
   standalone: true,
   imports: [
+    LoadingStateComponent,
     CommonModule,
     FormsModule,
     ButtonModule,
@@ -58,7 +59,6 @@ type CourseRow = Course & { publicado: boolean };
     CheckboxModule,
     ToastModule,
     ConfirmDialogModule,
-    ProgressSpinnerModule,
     MessageModule,
     TooltipModule,
     RouterLink,

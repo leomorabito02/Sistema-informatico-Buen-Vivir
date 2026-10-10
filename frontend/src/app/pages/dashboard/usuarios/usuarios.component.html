@@ -1,11 +1,30 @@
+<p-toast></p-toast>
+<p-confirmDialog
+  [style]="{ width: '440px' }"
+  [breakpoints]="{ '640px': '92vw' }"
+></p-confirmDialog>
+
 <div class="user-mgmt-container">
+  <div class="header-section">
+    <div>
+      <h1 class="page-title">
+        {{ isVolunteerOnly ? "Gestión de participantes" : "Usuarios" }}
+      </h1>
+      <p class="page-subtitle">
+        {{
+          isVolunteerOnly
+            ? "Buscá y actualizá los datos de las personas participantes."
+            : "Cuentas de todas las personas que usan Buen Vivir."
+        }}
+      </p>
+    </div>
+  </div>
+
   <!-- Top Filter & Action Bar -->
   <div class="top-bar-card">
     <div class="search-input-wrapper">
-      <label for="searchInput" class="sr-only" style="display: none"
-        >Buscar usuarios</label
-      >
-      <i class="pi pi-search search-icon"></i>
+      <label for="searchInput" class="sr-only">Buscar usuarios</label>
+      <i class="pi pi-search search-icon" aria-hidden="true"></i>
       <input
         id="searchInput"
         type="text"
@@ -18,9 +37,7 @@
 
     <div class="filter-actions-group">
       <div class="select-wrapper" *ngIf="!isVolunteerOnly">
-        <label for="roleSelect" class="sr-only" style="display: none"
-          >Filtrar por rol</label
-        >
+        <label for="roleSelect" class="sr-only">Filtrar por rol</label>
         <select
           id="roleSelect"
           [(ngModel)]="selectedRole"
@@ -31,18 +48,32 @@
             {{ role }}
           </option>
         </select>
-        <i class="pi pi-chevron-down select-icon"></i>
+        <i class="pi pi-chevron-down select-icon" aria-hidden="true"></i>
       </div>
 
       <button type="button" class="btn-new-user" (click)="openNewUserModal()">
-        <i class="pi pi-plus"></i>
-        <span>Nuevo Usuario</span>
+        <i class="pi pi-plus" aria-hidden="true"></i>
+        <span>Nuevo usuario</span>
       </button>
     </div>
   </div>
 
+  <app-loading-state
+    *ngIf="loading"
+    variant="table"
+    [rows]="6"
+    label="Cargando usuarios…"
+  ></app-loading-state>
+
+  <app-error-state
+    *ngIf="!loading && loadError"
+    title="No pudimos cargar los usuarios"
+    [message]="loadError"
+    (retry)="reload()"
+  ></app-error-state>
+
   <!-- Data Table Card -->
-  <div class="table-card">
+  <div class="table-card" *ngIf="!loading && !loadError">
     <table class="custom-user-table">
       <thead>
         <tr>
@@ -112,17 +143,20 @@
                 type="button"
                 class="btn-action btn-edit"
                 title="Editar"
+                [attr.aria-label]="'Editar a ' + user.name"
                 (click)="openEditUser(user, $event)"
               >
-                <i class="pi pi-pencil"></i>
+                <i class="pi pi-pencil" aria-hidden="true"></i>
               </button>
               <button
+                *ngIf="!isVolunteerOnly"
                 type="button"
                 class="btn-action btn-delete"
                 title="Eliminar"
+                [attr.aria-label]="'Eliminar a ' + user.name"
                 (click)="deleteUser(user, $event)"
               >
-                <i class="pi pi-trash"></i>
+                <i class="pi pi-trash" aria-hidden="true"></i>
               </button>
             </div>
           </td>
@@ -248,12 +282,34 @@
           >
         </p>
 
-        <div *ngIf="selectedUser.originalUser?.role_id === 'role_participant'" style="grid-column: 1 / -1; display: flex; gap: 10px; margin-top: 10px;">
-          <a [href]="'/cv-public/' + selectedUser.originalUser?.user_id" target="_blank" class="p-button p-button-sm p-button-outlined" style="text-decoration: none;">
-            <i class="pi pi-external-link mr-2" style="margin-right: 0.5rem;"></i> Ver CV Público
+        <div
+          *ngIf="selectedUser.originalUser?.role_id === 'role_participant'"
+          style="
+            grid-column: 1 / -1;
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+          "
+        >
+          <a
+            [href]="'/cv-public/' + selectedUser.originalUser?.user_id"
+            target="_blank"
+            class="p-button p-button-sm p-button-outlined"
+            style="text-decoration: none"
+          >
+            <i
+              class="pi pi-external-link mr-2"
+              style="margin-right: 0.5rem"
+            ></i>
+            Ver CV Público
           </a>
-          <button type="button" class="p-button p-button-sm p-button-secondary" (click)="goToEditCV(selectedUser)">
-            <i class="pi pi-pencil mr-2" style="margin-right: 0.5rem;"></i> Editar CV
+          <button
+            type="button"
+            class="p-button p-button-sm p-button-secondary"
+            (click)="goToEditCV(selectedUser)"
+          >
+            <i class="pi pi-pencil mr-2" style="margin-right: 0.5rem"></i>
+            Editar CV
           </button>
         </div>
 
@@ -694,10 +750,7 @@
               {{ role }}
             </option>
           </select>
-          <p
-            class="input-hint"
-            style="margin-top: 0.5rem; font-size: 0.85rem; color: #666"
-          >
+          <p class="input-hint">
             <span *ngIf="newUserForm.role_id === 'role_volunteer'"
               >El voluntario tendrá acceso a gestionar participantes y
               cursos.</span

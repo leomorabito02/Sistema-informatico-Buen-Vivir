@@ -56,6 +56,7 @@ func main() {
 	attendanceRepo := repositories.NewAttendanceRepository(firestoreClient)
 	submissionRepo := repositories.NewSubmissionRepository(firestoreClient)
 	generalAttendanceRepo := repositories.NewGeneralAttendanceRepository(firestoreClient)
+	skillRepo := repositories.NewSkillRepository(firestoreClient)
 	authServiceClient := repositories.NewAuthServiceClient(cfg.AuthServiceURL)
 
 	jwtService := services.NewJWTService()
@@ -70,6 +71,8 @@ func main() {
 	attendanceService := services.NewAttendanceService(attendanceRepo)
 	progressService := services.NewProgressService(activityRepo, enrollmentRepo, attendanceRepo)
 	generalAttendanceService := services.NewGeneralAttendanceService(generalAttendanceRepo, authServiceClient)
+	skillService := services.NewSkillService(skillRepo, submissionRepo)
+	skillSuggestionService := services.NewSkillSuggestionService(skillRepo, skillProviders(cfg, googleCredentials), cfg.SkillsAI.Timeout, cfg.SkillsAI.MaxRetries)
 	submissionService := services.NewSubmissionService(submissionRepo, activityRepo, enrollmentRepo, courseRepo, fileStorage, authServiceClient)
 
 	courseController := controllers.NewCourseController(courseService)
@@ -89,6 +92,7 @@ func main() {
 	generalAttendanceController := controllers.NewGeneralAttendanceController(generalAttendanceService)
 	activityController := controllers.NewActivityController(courseService, activityService, submissionService)
 	submissionController := controllers.NewSubmissionController(courseService, activityService, submissionService)
+	skillController := controllers.NewSkillController(courseService, activityService, skillService, skillSuggestionService, submissionService)
 
 	r := chi.NewRouter()
 	middlewares.SetupMiddlewares(r)
@@ -107,6 +111,7 @@ func main() {
 			GeneralAttendance: generalAttendanceController,
 			Activity:          activityController,
 			Submission:        submissionController,
+			Skill:             skillController,
 		},
 	)
 
@@ -114,4 +119,31 @@ func main() {
 	if err := http.ListenAndServe(":"+cfg.Port, r); err != nil {
 		log.Fatalf("error al iniciar el servidor: %v", err)
 	}
+}
+
+// skillProviders arma la lista de proveedores de IA para sugerir
+// habilidades, en orden de preferencia: Gemini (principal) y OpenAI
+// (respaldo). Los que no están configurados se omiten; si falla la
+// configuración de Gemini el servicio arranca igual (con OpenAI, o sin
+// IA), porque sugerir habilidades es una ayuda, no algo imprescindible.
+func skillProviders(cfg *config.Config, googleCredentials []byte) []services.SugeridorHabilidades {
+	var providers []services.SugeridorHabilidades
+	ai := cfg.SkillsAI
+	if ai.GeminiEnabled() {
+		gemini, err := repositories.NewGeminiClient(ai.VertexProjectID, ai.VertexLocation, ai.GeminiModel, googleCredentials)
+		if err != nil {
+			log.Printf("Gemini deshabilitado: %v", err)
+		} else {
+			providers = append(providers, gemini)
+		}
+	}
+	if ai.OpenAIEnabled() {
+		providers = append(providers, repositories.NewOpenAIClient(ai.OpenAIAPIKey, ai.OpenAIModel))
+	}
+	names := make([]string, len(providers))
+	for i, p := range providers {
+		names[i] = p.Nombre()
+	}
+	log.Printf("sugerencia de habilidades con IA: proveedores %v", names)
+	return providers
 }

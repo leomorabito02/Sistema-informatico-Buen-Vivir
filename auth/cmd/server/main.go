@@ -166,6 +166,10 @@ func main() {
 			r.Route("/users", func(r chi.Router) {
 				r.Post("/", userController.CreateUser)
 				r.Get("/", userController.GetAllUsers)
+				// Dashboard: participantes con altas y bajas. Ruta estática:
+				// chi la resuelve antes que /{id}.
+				r.With(middlewares.RequireRole("role_admin", "role_dev")).
+					Get("/participants/history", userController.GetParticipantsHistory)
 				r.Get("/{id}", userController.GetUser)
 				r.Get("/{id}/profile", authController.GetUserProfile)
 				r.Put("/{id}", userController.UpdateUser)

@@ -2,9 +2,7 @@
 <div class="page-container">
   <div class="header-section">
     <div>
-      <h1 class="page-title">
-        <i class="pi pi-user-plus mr-2"></i>Inscripción a cursos
-      </h1>
+      <h1 class="page-title">Inscripción a cursos</h1>
       <p class="page-subtitle">
         Inscribí participantes aprobados en cursos publicados y consultá quiénes
         ya están inscriptos.
@@ -12,12 +10,7 @@
     </div>
   </div>
 
-  <p-message
-    *ngIf="error"
-    severity="error"
-    [text]="error"
-    styleClass="w-full"
-  ></p-message>
+  <app-error-state *ngIf="error" [message]="error"></app-error-state>
   <p-message
     *ngIf="participantsError"
     severity="warn"
@@ -25,18 +18,19 @@
     styleClass="w-full"
   ></p-message>
 
-  <div *ngIf="loading" class="state-box">
-    <p-progressSpinner
-      strokeWidth="4"
-      [style]="{ width: '40px', height: '40px' }"
-    ></p-progressSpinner>
-    <span>Cargando cursos y participantes…</span>
-  </div>
+  <app-loading-state
+    *ngIf="loading"
+    variant="list"
+    label="Cargando cursos y participantes…"
+  ></app-loading-state>
 
   <ng-container *ngIf="!loading">
-    <p *ngIf="courseOptions.length === 0 && !error" class="empty-state">
+    <app-empty-state
+      *ngIf="courseOptions.length === 0 && !error"
+      [compact]="true"
+    >
       No hay cursos publicados todavía.
-    </p>
+    </app-empty-state>
 
     <div *ngIf="courseOptions.length > 0" class="course-picker">
       <label>Curso</label>
@@ -54,9 +48,12 @@
     <div *ngIf="selectedCourseId" class="two-col">
       <!-- Inscribir -->
       <p-card header="Inscribir participante" styleClass="p-card-shadow">
-        <p *ngIf="participantOptions.length === 0" class="empty-state">
+        <app-empty-state
+          *ngIf="participantOptions.length === 0"
+          [compact]="true"
+        >
           No hay participantes aprobados en el centro todavía.
-        </p>
+        </app-empty-state>
         <div *ngIf="participantOptions.length > 0" class="new-enrollment">
           <p-select
             [options]="availableParticipantOptions"
@@ -84,12 +81,10 @@
 
       <!-- Inscriptos -->
       <p-card header="Inscriptos en el curso" styleClass="p-card-shadow">
-        <div *ngIf="loadingEnrollments" class="state-box">
-          <p-progressSpinner
-            strokeWidth="4"
-            [style]="{ width: '28px', height: '28px' }"
-          ></p-progressSpinner>
-        </div>
+        <app-loading-state
+          *ngIf="loadingEnrollments"
+          variant="table"
+        ></app-loading-state>
 
         <p-table
           *ngIf="!loadingEnrollments"

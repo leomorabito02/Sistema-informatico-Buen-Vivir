@@ -7,11 +7,16 @@ import { TagModule } from "primeng/tag";
 import { InputTextModule } from "primeng/inputtext";
 import { CardModule } from "primeng/card";
 import { DialogModule } from "primeng/dialog";
+import { ToastModule } from "primeng/toast";
+import { ConfirmDialogModule } from "primeng/confirmdialog";
+import { ConfirmationService, MessageService } from "primeng/api";
 import { AuthService } from "../../../services/auth.service";
 import { UsersService } from "../../../services/users.service";
 import { EducationService } from "../../../services/education.service";
 import { User } from "../../../core/models/auth.model";
 import { Router } from "@angular/router";
+import { LoadingStateComponent } from "../../../shared/components/loading-state.component";
+import { ErrorStateComponent } from "../../../shared/components/error-state.component";
 
 export interface DashboardUser {
   id: string;
@@ -39,7 +44,12 @@ export interface DashboardUser {
     InputTextModule,
     CardModule,
     DialogModule,
+    ToastModule,
+    ConfirmDialogModule,
+    LoadingStateComponent,
+    ErrorStateComponent,
   ],
+  providers: [MessageService, ConfirmationService],
   templateUrl: "./usuarios.component.html",
   styleUrls: ["./usuarios.component.css"],
 })
@@ -48,6 +58,12 @@ export class UsuariosComponent implements OnInit {
   private readonly usersService = inject(UsersService);
   private readonly educationService = inject(EducationService);
   private readonly router = inject(Router);
+  private readonly messages = inject(MessageService);
+  private readonly confirmation = inject(ConfirmationService);
+
+  /** Carga inicial de la lista (para skeleton y estado de error). */
+  loading = true;
+  loadError = "";
 
   searchTerm: string = "";
   selectedRole: string = "Todos los roles";
@@ -113,9 +129,17 @@ export class UsuariosComponent implements OnInit {
     });
   }
 
+  /** Reintento desde el estado de error. */
+  reload() {
+    this.loadUsers();
+  }
+
   private loadUsers() {
+    this.loading = true;
+    this.loadError = "";
     this.usersService.listUsers().subscribe({
       next: (data: User[]) => {
+        this.loading = false;
         if (data && data.length > 0) {
           this.users = data.map((u) => this.mapUserToDashboardUser(u));
           this.loadUserCoursesBatch();
@@ -126,6 +150,9 @@ export class UsuariosComponent implements OnInit {
       },
       error: (err) => {
         console.error("Error loading users:", err);
+        this.loading = false;
+        this.loadError =
+          err?.message || "No se pudo obtener el listado de usuarios.";
         this.users = [];
         this.filterUsers();
       },
@@ -177,7 +204,7 @@ export class UsuariosComponent implements OnInit {
       role: roleName,
       status: displayStatus,
       roleApprovalStatus: (u as any).role_approval_status,
-      coursesStatus: "No implementado aún",
+      coursesStatus: "—",
       originalUser: u,
     };
   }
@@ -255,6 +282,11 @@ export class UsuariosComponent implements OnInit {
       !this.newUserForm.password ||
       !this.newUserForm.role_id
     ) {
+      this.messages.add({
+        severity: "warn",
+        summary: "Faltan datos",
+        detail: "Completar todos los campos obligatorios para continuar",
+      });
       return;
     }
 
@@ -269,7 +301,11 @@ export class UsuariosComponent implements OnInit {
 
     this.usersService.createUser(payload).subscribe({
       next: () => {
-        alert("Usuario creado correctamente");
+        this.messages.add({
+          severity: "success",
+          summary: "Listo",
+          detail: "Usuario creado correctamente",
+        });
         this.showNewUserModal = false;
         this.loadUsers();
       },
@@ -280,7 +316,11 @@ export class UsuariosComponent implements OnInit {
           err.error?.message ||
           err.error?.error ||
           "Hubo un error al crear el usuario. Por favor verifica los datos e intentalo de nuevo.";
-        alert(errorMsg);
+        this.messages.add({
+          severity: "error",
+          summary: "No se pudo crear el usuario",
+          detail: errorMsg,
+        });
       },
     });
   }
@@ -301,7 +341,11 @@ export class UsuariosComponent implements OnInit {
       user.originalUser?.role_id !== "role_participant"
     ) {
       // Si el rol es distinto a role_participant, bloqueamos.
-      alert("Como voluntario solo tienes permisos para editar participantes.");
+      this.messages.add({
+        severity: "info",
+        summary: "Sin permiso",
+        detail: "Como voluntario solo podés editar participantes.",
+      });
       return;
     }
 
@@ -383,9 +427,45 @@ export class UsuariosComponent implements OnInit {
     }
   }
 
+  /**
+   * Baja de usuario (DELETE /api/v1/users/{id}). Pide confirmación antes;
+   * el backend solo deja borrar cuentas ajenas a role_admin / role_dev,
+   * por eso el botón se muestra solo a quien no es voluntario.
+   */
   deleteUser(user: DashboardUser, event: Event) {
     event.stopPropagation();
-    // Lógica para eliminar usuario
+    const userId = user.originalUser?.user_id;
+    if (!userId) return;
+
+    this.confirmation.confirm({
+      header: "Eliminar usuario",
+      message: `¿Seguro que querés eliminar a ${user.name}? Esta acción no se puede deshacer.`,
+      icon: "pi pi-exclamation-triangle",
+      acceptLabel: "Eliminar",
+      rejectLabel: "Cancelar",
+      acceptButtonStyleClass: "p-button-danger",
+      rejectButtonStyleClass: "p-button-text",
+      defaultFocus: "reject",
+      accept: () => {
+        this.usersService.deleteUser(userId).subscribe({
+          next: () => {
+            this.messages.add({
+              severity: "success",
+              summary: "Listo",
+              detail: "El usuario se eliminó correctamente",
+            });
+            this.loadUsers();
+          },
+          error: (err: Error) => {
+            this.messages.add({
+              severity: "error",
+              summary: "No se pudo eliminar el usuario",
+              detail: err.message,
+            });
+          },
+        });
+      },
+    });
   }
 
   saveEdit() {
@@ -413,7 +493,11 @@ export class UsuariosComponent implements OnInit {
       },
       error: (err) => {
         console.error("Error updating user:", err);
-        alert("Error al actualizar usuario base: " + err.message);
+        this.messages.add({
+          severity: "error",
+          summary: "No se pudieron guardar los cambios",
+          detail: err.message,
+        });
       },
     });
   }
@@ -484,19 +568,30 @@ export class UsuariosComponent implements OnInit {
         },
         error: (err) => {
           console.error("Error updating role data:", err);
-          alert("Error al guardar la información del rol: " + err.message);
+          this.messages.add({
+            severity: "error",
+            summary: "No se pudo guardar la información del rol",
+            detail: err.message,
+          });
         },
       });
   }
 
   private finishSave() {
+    this.messages.add({
+      severity: "success",
+      summary: "Listo",
+      detail: "Cambios guardados correctamente",
+    });
     this.showEditModal = false;
     this.loadUsers(); // Recargar la lista para reflejar los cambios
   }
 
   goToEditCV(user: DashboardUser) {
     if (user?.originalUser?.user_id) {
-      this.router.navigate(['/dashboard/cv'], { queryParams: { userId: user.originalUser.user_id } });
+      this.router.navigate(["/dashboard/cv"], {
+        queryParams: { userId: user.originalUser.user_id },
+      });
     }
   }
 }

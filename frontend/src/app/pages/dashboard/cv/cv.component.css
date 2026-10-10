@@ -1,35 +1,8 @@
-.page-container {
-  padding: 1.5rem;
-  max-width: 1200px;
-  margin: 0 auto;
-}
-
-.header-section {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 1rem;
-  margin-bottom: 2rem;
-}
-
-.page-title {
-  font-size: 1.75rem;
-  font-weight: 700;
-  color: var(--primary);
-  margin: 0 0 0.5rem 0;
-}
-
-.page-subtitle {
-  color: var(--text-muted);
-  margin: 0;
-}
-
 .field label {
   display: block;
   margin-bottom: 0.5rem;
   font-weight: 500;
-  font-size: 0.9rem;
+  font-size: var(--font-size-sm);
 }
 
 .field-grid {
@@ -66,4 +39,10 @@
 
 @media (max-width: 840px) {
   /* Handled by Tailwind md: breakpoint */
+}
+
+.cv-warn-icon {
+  display: inline-block;
+  vertical-align: -2px;
+  margin-right: var(--space-1);
 }

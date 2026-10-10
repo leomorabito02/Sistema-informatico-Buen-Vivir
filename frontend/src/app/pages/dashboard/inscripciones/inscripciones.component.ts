@@ -6,7 +6,6 @@ import { ButtonModule } from "primeng/button";
 import { TagModule } from "primeng/tag";
 import { CardModule } from "primeng/card";
 import { SelectModule } from "primeng/select";
-import { ProgressSpinnerModule } from "primeng/progressspinner";
 import { MessageModule } from "primeng/message";
 import { ToastModule } from "primeng/toast";
 import { MessageService } from "primeng/api";
@@ -15,6 +14,9 @@ import { forkJoin } from "rxjs";
 import { EducationService } from "../../../services/education.service";
 import { Course, Enrollment } from "../../../core/models/education.model";
 import { todayYMD } from "../../../shared/utils/date-ymd";
+import { LoadingStateComponent } from "../../../shared/components/loading-state.component";
+import { ErrorStateComponent } from "../../../shared/components/error-state.component";
+import { EmptyStateComponent } from "../../../shared/components/empty-state.component";
 
 interface Option {
   label: string;
@@ -39,6 +41,9 @@ type EnrollmentRow = Enrollment & { nombreCompleto: string };
   selector: "app-inscripciones",
   standalone: true,
   imports: [
+    LoadingStateComponent,
+    ErrorStateComponent,
+    EmptyStateComponent,
     CommonModule,
     FormsModule,
     TableModule,
@@ -46,7 +51,6 @@ type EnrollmentRow = Enrollment & { nombreCompleto: string };
     TagModule,
     CardModule,
     SelectModule,
-    ProgressSpinnerModule,
     MessageModule,
     ToastModule,
   ],

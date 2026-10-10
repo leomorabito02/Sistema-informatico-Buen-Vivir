@@ -29,4 +29,14 @@ describe("CampanasComponent", () => {
   it("should create", () => {
     expect(component).toBeTruthy();
   });
+
+  it("avisa que las campañas todavía no están disponibles", () => {
+    const el: HTMLElement = fixture.nativeElement;
+    expect(el.querySelector("app-empty-state")?.textContent).toContain(
+      "Las campañas llegan pronto",
+    );
+    expect(
+      el.querySelector("p-button button")?.hasAttribute("disabled"),
+    ).toBeTrue();
+  });
 });

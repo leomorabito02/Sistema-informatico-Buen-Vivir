@@ -30,11 +30,14 @@ type fichaService struct {
 	repo   repositories.FichaRepository
 	cipher crypto.FieldCipher
 	auth   repositories.AuthDirectory
+	// skills puede ser nil (EDUCATION_SERVICE_URL sin configurar): la
+	// ficha se arma igual, sin habilidades.
+	skills repositories.SkillDirectory
 	now    func() time.Time
 }
 
-func NewFichaService(repo repositories.FichaRepository, cipher crypto.FieldCipher, auth repositories.AuthDirectory) FichaService {
-	return &fichaService{repo: repo, cipher: cipher, auth: auth, now: time.Now}
+func NewFichaService(repo repositories.FichaRepository, cipher crypto.FieldCipher, auth repositories.AuthDirectory, skills repositories.SkillDirectory) FichaService {
+	return &fichaService{repo: repo, cipher: cipher, auth: auth, skills: skills, now: time.Now}
 }
 
 func (s *fichaService) Create(ctx context.Context, actorID string, input models.CreateFichaInput) (*models.FichaProcesoPersonal, error) {
@@ -225,6 +228,17 @@ func (s *fichaService) completarDetalle(ctx context.Context, ficha *models.Ficha
 			slog.Warn("no se pudo obtener el nombre del creador de la ficha", slog.String("ficha_id", ficha.ID), slog.String("error", err.Error()))
 		} else {
 			detalle.CreadoPorNombre = nombres[ficha.CreadoPor]
+		}
+	}
+
+	// Habilidades ganadas en Educación (HU-21 / HU-58). Mismo criterio que
+	// los datos de Auth: si Educación no responde, la ficha sale igual.
+	if s.skills != nil {
+		habilidades, err := s.skills.HabilidadesDe(ctx, ficha.ParticipanteID)
+		if err != nil {
+			slog.Warn("no se pudieron obtener las habilidades del participante", slog.String("ficha_id", ficha.ID), slog.String("error", err.Error()))
+		} else {
+			detalle.Habilidades = habilidades
 		}
 	}
 	return detalle

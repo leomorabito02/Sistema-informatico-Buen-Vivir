@@ -4,6 +4,7 @@ import { inject } from "@angular/core";
 import { catchError, switchMap } from "rxjs/operators";
 import { throwError, BehaviorSubject, filter, take } from "rxjs";
 import { AuthService } from "../../services/auth.service";
+import { SessionPromptService } from "../../services/session-prompt.service";
 
 let isRefreshing = false;
 const refreshTokenSubject = new BehaviorSubject<any>(null);
@@ -20,6 +21,7 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
   });
 
   const authService = inject(AuthService);
+  const sessionPrompt = inject(SessionPromptService);
 
   return next(clonedReq).pipe(
     catchError((error: HttpErrorResponse) => {
@@ -28,25 +30,28 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
           isRefreshing = true;
           refreshTokenSubject.next(null);
 
-          const extend = confirm("Tu sesión expiró. ¿Deseas extenderla?");
-          if (extend) {
-            return authService.refreshToken().pipe(
-              switchMap((res) => {
-                isRefreshing = false;
-                refreshTokenSubject.next(res);
-                return next(clonedReq);
-              }),
-              catchError((err) => {
+          // Diálogo propio de la app (no el confirm() del navegador).
+          return sessionPrompt.ask().pipe(
+            switchMap((extend) => {
+              if (!extend) {
                 isRefreshing = false;
                 authService.logout();
-                return throwError(() => err);
-              }),
-            );
-          } else {
-            isRefreshing = false;
-            authService.logout();
-            return throwError(() => error);
-          }
+                return throwError(() => error);
+              }
+              return authService.refreshToken().pipe(
+                switchMap((res) => {
+                  isRefreshing = false;
+                  refreshTokenSubject.next(res);
+                  return next(clonedReq);
+                }),
+                catchError((err) => {
+                  isRefreshing = false;
+                  authService.logout();
+                  return throwError(() => err);
+                }),
+              );
+            }),
+          );
         } else {
           return refreshTokenSubject.pipe(
             filter((token) => token != null),

@@ -11,23 +11,30 @@ import {
 import { of, throwError } from "rxjs";
 import { authInterceptor } from "./auth.interceptor";
 import { AuthService } from "../../services/auth.service";
+import { SessionPromptService } from "../../services/session-prompt.service";
 import { LoginResponse } from "../models/auth.model";
 
 describe("authInterceptor", () => {
   let http: HttpClient;
   let httpMock: HttpTestingController;
   let authService: jasmine.SpyObj<AuthService>;
+  let prompt: jasmine.SpyObj<SessionPromptService>;
 
   beforeEach(() => {
     authService = jasmine.createSpyObj<AuthService>("AuthService", [
       "refreshToken",
       "logout",
     ]);
+    prompt = jasmine.createSpyObj<SessionPromptService>(
+      "SessionPromptService",
+      ["ask"],
+    );
     TestBed.configureTestingModule({
       providers: [
         provideHttpClient(withInterceptors([authInterceptor])),
         provideHttpClientTesting(),
         { provide: AuthService, useValue: authService },
+        { provide: SessionPromptService, useValue: prompt },
       ],
     });
 
@@ -68,7 +75,7 @@ describe("authInterceptor", () => {
   });
 
   it("should refresh the session and retry when the user accepts extending it", () => {
-    spyOn(window, "confirm").and.returnValue(true);
+    prompt.ask.and.returnValue(of(true));
     authService.refreshToken.and.returnValue(
       of({ token: "t" } as LoginResponse),
     );
@@ -86,7 +93,7 @@ describe("authInterceptor", () => {
   });
 
   it("should log out when the user declines extending the session", () => {
-    spyOn(window, "confirm").and.returnValue(false);
+    prompt.ask.and.returnValue(of(false));
     let status = 0;
     http.get("/api/cursos").subscribe({ error: (e) => (status = e.status) });
 
@@ -100,7 +107,7 @@ describe("authInterceptor", () => {
   });
 
   it("should log out when the refresh fails", () => {
-    spyOn(window, "confirm").and.returnValue(true);
+    prompt.ask.and.returnValue(of(true));
     authService.refreshToken.and.returnValue(
       throwError(() => new Error("refresh vencido")),
     );
@@ -116,7 +123,6 @@ describe("authInterceptor", () => {
   });
 
   it("should not try to refresh on auth endpoints or other errors", () => {
-    const confirmSpy = spyOn(window, "confirm");
     http.post("/api/v1/auth/login", {}).subscribe({ error: () => undefined });
     http.get("/api/cursos").subscribe({ error: () => undefined });
 
@@ -127,7 +133,7 @@ describe("authInterceptor", () => {
       .expectOne("/api/cursos")
       .flush("", { status: 500, statusText: "Server Error" });
 
-    expect(confirmSpy).not.toHaveBeenCalled();
+    expect(prompt.ask).not.toHaveBeenCalled();
     expect(authService.refreshToken).not.toHaveBeenCalled();
   });
 });

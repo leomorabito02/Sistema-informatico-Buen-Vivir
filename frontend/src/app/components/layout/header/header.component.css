@@ -1,136 +1,335 @@
-.app-header {
+/* Navegación del panel al estilo de las apps de comunidad tipo Humand:
+   barra lateral blanca fija con ícono + texto por sección y barra superior
+   fina con notificaciones y avatar. En celular/tablet la barra lateral es
+   un panel que se abre con el botón de menú.
+   Sin encapsulación: todo va bajo .app-header (salvo el menú de usuario,
+   que PrimeNG monta en <body>). El corrimiento del contenido lo da
+   .app-shell en styles.css. */
+
+/* ── Barra lateral ─────────────────────────────────────────────────────── */
+.app-header .app-sidebar {
+  position: fixed;
+  inset: 0 auto 0 0;
+  z-index: 120;
+  display: flex;
+  flex-direction: column;
+  width: var(--sidebar-width);
+  background: var(--color-surface);
+  border-right: 1px solid var(--color-border);
+}
+
+.app-header .sidebar-top {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 10px 24px;
-  background-color: #556b4e; /* Dark green background */
-  color: #ffffff;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  font-family: "Palo Seco", "Poppins", "Inter", sans-serif;
+  gap: var(--space-2);
+  min-height: var(--header-height);
+  padding: var(--space-3) var(--space-4);
 }
 
-.header-left {
+.app-header .sidebar-nav {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--space-2) var(--space-3) var(--space-6);
+}
+
+.app-header .nav-list,
+.app-header .nav-sublist {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.app-header .nav-entry + .nav-entry {
+  margin-top: var(--space-1);
+}
+
+.app-header .nav-item {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: var(--space-3);
+  width: 100%;
+  min-height: 48px;
+  padding: var(--space-2) var(--space-3);
+  border: none;
+  border-radius: var(--radius-lg);
+  background: transparent;
+  color: var(--color-text);
+  font: inherit;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  text-align: left;
+  text-decoration: none;
+  cursor: pointer;
+  transition: var(--transition-interactive);
 }
 
-.logo-container {
+.app-header .nav-item:hover {
+  background: var(--color-surface-alt);
+}
+
+.app-header .nav-icon {
+  display: inline-flex;
+  color: var(--color-text-muted);
+  transition: var(--transition-interactive);
+}
+
+.app-header .nav-label {
+  flex: 1;
+  min-width: 0;
+}
+
+/* Sección actual: pastilla verde suave, ícono y texto en verde */
+.app-header .nav-item.is-active,
+.app-header .nav-group.has-active {
+  background: var(--color-primary-soft);
+  color: var(--color-primary);
+  font-weight: var(--font-weight-semibold);
+}
+
+.app-header .nav-item.is-active .nav-icon,
+.app-header .nav-group.has-active .nav-icon {
+  color: var(--color-primary);
+}
+
+.app-header .nav-chevron {
+  color: var(--color-text-muted);
+  transition: transform var(--duration-base) var(--ease-standard);
+}
+
+.app-header .nav-group[aria-expanded="true"] .nav-chevron {
+  transform: rotate(180deg);
+}
+
+/* Subítems: alineados con el texto del grupo y una guía vertical */
+.app-header .nav-sublist {
+  margin: var(--space-1) 0 var(--space-2) calc(var(--space-3) + 10px);
+  padding-left: var(--space-4);
+  border-left: 2px solid var(--color-border);
+}
+
+.app-header .nav-subitem {
+  display: flex;
+  align-items: center;
+  min-height: 40px;
+  padding: var(--space-1) var(--space-3);
+  border-radius: var(--radius-md);
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+  text-decoration: none;
+  transition: var(--transition-interactive);
+}
+
+.app-header .nav-subitem:hover {
+  background: var(--color-surface-alt);
+  color: var(--color-text);
+}
+
+.app-header .nav-subitem.is-active {
+  color: var(--color-primary);
+  font-weight: var(--font-weight-semibold);
+  background: var(--color-primary-soft);
+}
+
+/* ── Marca ─────────────────────────────────────────────────────────────── */
+.app-header .brand {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-width: 0;
+  color: var(--color-text);
+  text-decoration: none;
+  border-radius: var(--radius-md);
+}
+
+.app-header .brand-logo {
   width: 40px;
   height: 40px;
-  border-radius: 8px;
-  background-color: #43543d; /* Slightly darker green for logo background */
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  overflow: hidden;
-  padding: 4px;
+  border-radius: var(--radius-lg);
+  flex-shrink: 0;
 }
 
-.logo-img {
-  width: 100%;
-  height: auto;
-  object-fit: contain;
-}
-
-.brand-info {
+.app-header .brand-text {
   display: flex;
   flex-direction: column;
+  line-height: var(--line-height-tight);
 }
 
-.brand-name {
-  margin: 0;
-  font-size: 16px;
-  font-weight: 600;
-  line-height: 1.2;
+.app-header .brand-name {
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-primary);
 }
 
-.user-role {
-  font-size: 11px;
-  color: #b5c5b1; /* Lighter green for subtitle */
-  text-transform: capitalize;
+.app-header .brand-role {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
 }
 
-.header-center {
+/* ── Barra superior ────────────────────────────────────────────────────── */
+.app-header .app-topbar {
+  position: sticky;
+  top: 0;
+  z-index: 100;
   display: flex;
   align-items: center;
-  gap: 24px;
+  gap: var(--space-2);
+  min-height: var(--header-height);
+  padding: 0 var(--space-4);
+  background: color-mix(in srgb, var(--color-surface) 92%, transparent);
+  backdrop-filter: blur(8px);
+  border-bottom: 1px solid var(--color-border);
 }
 
-.header-center a {
-  color: #ffffff;
-  text-decoration: none;
-  font-size: 13px;
-  font-weight: 500;
-  padding: 6px 12px;
-  border-radius: 4px;
-  transition:
-    background-color 0.2s ease,
-    opacity 0.2s ease;
-  opacity: 0.9;
-}
-
-.header-center a:hover {
-  background-color: rgba(255, 255, 255, 0.1);
-  opacity: 1;
-}
-
-.header-center a.active {
-  background-color: rgba(255, 255, 255, 0.15);
-  font-weight: 600;
-  opacity: 1;
-}
-
-.header-right {
+.app-header .header-actions {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: var(--space-2);
+  margin-left: auto;
 }
 
-.icon-btn {
-  background: none;
-  border: none;
-  color: #ffffff;
-  cursor: pointer;
-  padding: 6px;
-  display: flex;
+.app-header .icon-btn,
+.app-header .user-btn {
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  border-radius: 50%;
-  transition: background-color 0.2s;
-  position: relative;
-}
-
-.icon-btn:hover {
-  background-color: rgba(255, 255, 255, 0.1);
-}
-
-.notification-dot {
-  position: absolute;
-  top: 4px;
-  right: 4px;
-  width: 8px;
-  height: 8px;
-  background-color: #e53e3e;
-  border-radius: 50%;
-  border: 2px solid #556b4e;
-}
-
-.btn-logout {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  background-color: #e53e3e; /* Red logout button */
-  color: white;
+  gap: var(--space-2);
+  min-width: var(--tap-target);
+  min-height: var(--tap-target);
+  padding: 0 var(--space-2);
   border: none;
-  border-radius: 6px;
-  padding: 8px 16px;
-  font-size: 13px;
-  font-weight: 600;
+  border-radius: var(--radius-full);
+  background: transparent;
+  color: var(--color-text);
+  font: inherit;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  text-decoration: none;
   cursor: pointer;
-  transition: background-color 0.2s;
+  transition: var(--transition-interactive);
 }
 
-.btn-logout:hover {
-  background-color: #c53030;
+.app-header .icon-btn:hover,
+.app-header .user-btn:hover {
+  background: var(--color-surface-alt);
+}
+
+.app-header .user-btn {
+  padding: var(--space-1) var(--space-3) var(--space-1) var(--space-1);
+  text-align: left;
+}
+
+/* Avatar con iniciales, como en el perfil de las apps de comunidad */
+.app-header .avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  flex-shrink: 0;
+  border-radius: var(--radius-full);
+  background: var(--color-primary);
+  color: var(--color-on-primary);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: 0.02em;
+}
+
+.app-header .user-text {
+  display: flex;
+  flex-direction: column;
+  line-height: var(--line-height-tight);
+}
+
+.app-header .user-name {
+  max-width: 10rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.app-header .user-role {
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-regular);
+  color: var(--color-text-muted);
+}
+
+.app-header .user-chevron {
+  color: var(--color-text-muted);
+}
+
+/* Botones solo de celular/tablet */
+.app-header .menu-toggle,
+.app-header .sidebar-close {
+  display: none;
+}
+
+.app-header .sidebar-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 110;
+  background: var(--color-overlay);
+}
+
+/* ── Saltar al contenido (visible solo con teclado) ────────────────────── */
+.app-header .skip-link {
+  position: fixed;
+  left: var(--space-4);
+  top: -100px;
+  z-index: 200;
+  padding: var(--space-2) var(--space-4);
+  background: var(--color-primary);
+  color: var(--color-on-primary);
+  border-radius: var(--radius-md);
+  text-decoration: none;
+  font-weight: var(--font-weight-medium);
+}
+
+.app-header .skip-link:focus {
+  top: var(--space-2);
+}
+
+/* ── Celular / tablet: la barra lateral pasa a ser un panel ────────────── */
+@media (max-width: 960px) {
+  .app-header .app-sidebar {
+    width: min(var(--sidebar-width), 85vw);
+    box-shadow: var(--shadow-lg);
+    transform: translateX(-100%);
+    visibility: hidden;
+    transition:
+      transform var(--duration-slow) var(--ease-standard),
+      visibility var(--duration-slow);
+  }
+
+  .app-header.sidebar-open .app-sidebar {
+    transform: none;
+    visibility: visible;
+  }
+
+  .app-header .menu-toggle,
+  .app-header .sidebar-close {
+    display: inline-flex;
+  }
+}
+
+@media (max-width: 480px) {
+  .app-header .user-text,
+  .app-header .user-chevron {
+    display: none;
+  }
+
+  .app-header .user-btn {
+    padding: var(--space-1);
+  }
+}
+
+/* Menú de usuario (va en <body> por appendTo, fuera de .app-header) */
+.user-menu.p-menu {
+  min-width: 12rem;
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+}
+
+.user-menu .p-menu-item-link {
+  min-height: var(--tap-target);
 }

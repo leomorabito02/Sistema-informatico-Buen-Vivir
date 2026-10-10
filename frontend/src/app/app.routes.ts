@@ -298,6 +298,21 @@ export const routes: Routes = [
             (m) => m.NotificacionesComponent,
           ),
       },
+      {
+        path: "indicadores",
+        canActivate: [adminGuard],
+        loadComponent: () =>
+          import("./pages/dashboard/indicadores/dashboard-page.component").then(
+            (m) => m.DashboardPageComponent,
+          ),
+      },
+      {
+        path: "ayuda",
+        loadComponent: () =>
+          import("./pages/dashboard/ayuda/ayuda.component").then(
+            (m) => m.AyudaComponent,
+          ),
+      },
     ],
   },
 ];

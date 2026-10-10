@@ -1,4 +1,9 @@
 {
+  "/api/v1/dashboard": {
+    "target": "http://localhost:8080",
+    "secure": false,
+    "changeOrigin": true
+  },
   "/api/v1/human-promotion": {
     "target": "http://localhost:8085",
     "secure": false,

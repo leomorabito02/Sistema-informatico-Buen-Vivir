@@ -56,3 +56,25 @@ func IsForbiddenError(err error) bool {
 	_, ok := err.(*ForbiddenError)
 	return ok
 }
+
+// UnavailableError señala que una dependencia externa opcional no pudo
+// responder y el pedido no se puede completar ahora, pero el resto del
+// sistema sigue funcionando (por ejemplo, ninguna IA pudo sugerir
+// habilidades: se pueden cargar a mano). Los controllers responden 503
+// con el mensaje tal cual, porque está pensado para mostrarse en pantalla.
+type UnavailableError struct {
+	Message string
+}
+
+func (e *UnavailableError) Error() string {
+	return e.Message
+}
+
+func NewUnavailableError(message string) error {
+	return &UnavailableError{Message: message}
+}
+
+func IsUnavailableError(err error) bool {
+	_, ok := err.(*UnavailableError)
+	return ok
+}

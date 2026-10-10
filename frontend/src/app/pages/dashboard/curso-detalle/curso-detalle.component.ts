@@ -11,8 +11,6 @@ import { InputTextModule } from "primeng/inputtext";
 import { TextareaModule } from "primeng/textarea";
 import { TableModule } from "primeng/table";
 import { ProgressBarModule } from "primeng/progressbar";
-import { ProgressSpinnerModule } from "primeng/progressspinner";
-import { MessageModule } from "primeng/message";
 import { TooltipModule } from "primeng/tooltip";
 import { ToastModule } from "primeng/toast";
 import { ConfirmationService, MessageService } from "primeng/api";
@@ -21,6 +19,9 @@ import { Observable, catchError, map, of, switchMap } from "rxjs";
 import { AuthService } from "../../../services/auth.service";
 import { EducationService } from "../../../services/education.service";
 import { UsersService } from "../../../services/users.service";
+import { SkillsService } from "../../../services/skills.service";
+import { Skill, SkillInput, skillKey } from "../../../core/models/skills.model";
+import { ActivitySkillsComponent } from "./activity-skills/activity-skills.component";
 import {
   Activity,
   ActivityInput,
@@ -36,6 +37,10 @@ import {
   activityFechaToDate,
   toActivityFecha,
 } from "../../../shared/utils/date-ymd";
+import { LoadingStateComponent } from "../../../shared/components/loading-state.component";
+import { ErrorStateComponent } from "../../../shared/components/error-state.component";
+import { EmptyStateComponent } from "../../../shared/components/empty-state.component";
+import { BackLinkComponent } from "../../../shared/components/back-link.component";
 
 /**
  * - gestion: role_admin / role_dev / role_volunteer — cualquier curso,
@@ -83,6 +88,9 @@ const EXTENSIONES_PERMITIDAS = [
   selector: "app-curso-detalle",
   standalone: true,
   imports: [
+    LoadingStateComponent,
+    ErrorStateComponent,
+    EmptyStateComponent,
     CommonModule,
     FormsModule,
     ButtonModule,
@@ -94,11 +102,11 @@ const EXTENSIONES_PERMITIDAS = [
     TextareaModule,
     TableModule,
     ProgressBarModule,
-    ProgressSpinnerModule,
-    MessageModule,
     TooltipModule,
     ToastModule,
     RichTextComponent,
+    BackLinkComponent,
+    ActivitySkillsComponent,
   ],
   providers: [MessageService, ConfirmationService],
   templateUrl: "./curso-detalle.component.html",
@@ -110,6 +118,7 @@ export class CursoDetalleComponent implements OnInit {
   private authService = inject(AuthService);
   private education = inject(EducationService);
   private users = inject(UsersService);
+  private skills = inject(SkillsService);
   private toast = inject(MessageService);
   private confirm = inject(ConfirmationService);
 
@@ -118,6 +127,8 @@ export class CursoDetalleComponent implements OnInit {
 
   cursoId = "";
   modo: Modo = "sin-acceso";
+  /** Rol de la sesión: decide el destino de "Volver" sin historial. */
+  private roleId = "";
   loading = true;
   error = "";
 
@@ -125,6 +136,13 @@ export class CursoDetalleComponent implements OnInit {
   docenteNombre = "";
   actividades: ParticipantActivity[] = [];
   progreso: ParticipantProgress | null = null;
+
+  // --- habilidades (HU-21 / HU-58) ---
+  /** Habilidades de todo el curso: la unión de las de sus actividades. */
+  habilidadesCurso: Skill[] = [];
+  habilidadesPorActividad: Record<string, Skill[]> = {};
+  /** Habilidades de la actividad que se está creando / editando. */
+  formSkills: SkillInput[] = [];
 
   // --- gestión: alta / edición de actividad ---
   formVisible = false;
@@ -153,6 +171,7 @@ export class CursoDetalleComponent implements OnInit {
     this.authService.isAuthenticated().subscribe({
       next: (res) => {
         const roleId = res.role_id ?? res.user?.role_id ?? "";
+        this.roleId = roleId;
         this.modo = modoPorRol(roleId);
         this.cargar();
       },
@@ -209,6 +228,7 @@ export class CursoDetalleComponent implements OnInit {
       next: () => {
         this.loading = false;
         this.resolverDocente();
+        this.cargarHabilidades();
       },
       error: (err: Error) => {
         this.loading = false;
@@ -250,6 +270,24 @@ export class CursoDetalleComponent implements OnInit {
     return message;
   }
 
+  /**
+   * Habilidades del curso y de cada actividad. Si falla, el detalle se
+   * muestra igual, sin habilidades: no es lo principal de la pantalla.
+   */
+  private cargarHabilidades() {
+    this.skills
+      .getCourseSkills(this.cursoId)
+      .pipe(catchError(() => of({ habilidades: [], porActividad: {} })))
+      .subscribe((res) => {
+        this.habilidadesCurso = res.habilidades;
+        this.habilidadesPorActividad = res.porActividad;
+      });
+  }
+
+  habilidadesDe(actividadId: string): Skill[] {
+    return this.habilidadesPorActividad[actividadId] ?? [];
+  }
+
   /** Nombre del docente responsable; si auth-service no lo resuelve para este rol, se omite. */
   private resolverDocente() {
     const id = this.curso?.responsibleTeacher;
@@ -272,13 +310,20 @@ export class CursoDetalleComponent implements OnInit {
       history.back();
       return;
     }
-    const destino =
-      this.modo === "docente"
-        ? "/dashboard/mis-cursos"
-        : this.modo === "gestion"
-          ? "/dashboard/gestion-cursos"
-          : "/dashboard/cursos";
-    this.router.navigateByUrl(destino);
+    this.router.navigateByUrl(this.destinoVolver());
+  }
+
+  /**
+   * Destino de "Volver" cuando no hay pantalla previa (se entró por URL).
+   * Gestión de cursos es solo de role_admin / role_dev (adminGuard): el
+   * voluntario, aunque comparta el modo "gestion", vuelve al catálogo.
+   */
+  destinoVolver(): string {
+    if (this.modo === "docente") return "/dashboard/mis-cursos";
+    if (this.roleId === "role_admin" || this.roleId === "role_dev") {
+      return "/dashboard/gestion-cursos";
+    }
+    return "/dashboard/cursos";
   }
 
   modeSeverity(
@@ -302,6 +347,7 @@ export class CursoDetalleComponent implements OnInit {
   nuevaActividad() {
     this.editando = null;
     this.form = { titulo: "", consigna: "", fecha: null };
+    this.formSkills = [];
     this.formVisible = true;
   }
 
@@ -312,6 +358,7 @@ export class CursoDetalleComponent implements OnInit {
       consigna: a.consigna ?? "",
       fecha: activityFechaToDate(a.fecha),
     };
+    this.formSkills = this.habilidadesDe(a.id).map((h) => ({ ...h }));
     this.formVisible = true;
   }
 
@@ -343,8 +390,6 @@ export class CursoDetalleComponent implements OnInit {
     this.guardando = true;
     req$.subscribe({
       next: (actividad) => {
-        this.guardando = false;
-        this.formVisible = false;
         this.actividades = ordenarPorFecha(
           editando
             ? this.actividades.map((a) =>
@@ -352,11 +397,7 @@ export class CursoDetalleComponent implements OnInit {
               )
             : [...this.actividades, actividad],
         );
-        this.toast.add({
-          severity: "success",
-          summary: editando ? "Actividad actualizada" : "Actividad creada",
-          detail: actividad.titulo,
-        });
+        this.guardarHabilidades(actividad, !!editando);
       },
       error: (err: Error) => {
         this.guardando = false;
@@ -364,6 +405,61 @@ export class CursoDetalleComponent implements OnInit {
           severity: "error",
           summary: "No se pudo guardar la actividad",
           detail: err.message,
+        });
+      },
+    });
+  }
+
+  /**
+   * Segundo paso del guardado: las habilidades de la actividad. Van en
+   * otro pedido porque una actividad nueva recién tiene id después de
+   * crearse. Si este paso falla, la actividad ya quedó guardada: se avisa
+   * y se puede volver a editarla para reintentar.
+   */
+  private guardarHabilidades(actividad: Activity, editando: boolean) {
+    const antes = this.habilidadesDe(actividad.id);
+    const claves = (lista: { nombre: string }[]) =>
+      lista
+        .map((h) => skillKey(h.nombre))
+        .sort()
+        .join("|");
+    const cambiaron = claves(antes) !== claves(this.formSkills);
+
+    const terminar = (detalle: string) => {
+      this.guardando = false;
+      this.formVisible = false;
+      this.toast.add({
+        severity: "success",
+        summary: editando ? "Actividad actualizada" : "Actividad creada",
+        detail: detalle,
+      });
+    };
+
+    if (!cambiaron) {
+      terminar(actividad.titulo);
+      return;
+    }
+    this.skills.setActivitySkills(actividad.id, this.formSkills).subscribe({
+      next: () => {
+        this.cargarHabilidades();
+        const n = this.formSkills.length;
+        terminar(
+          n === 0
+            ? actividad.titulo + ". Se quitaron sus habilidades."
+            : actividad.titulo +
+                ", con " +
+                n +
+                (n === 1 ? " habilidad." : " habilidades."),
+        );
+      },
+      error: (err: Error) => {
+        this.guardando = false;
+        this.formVisible = false;
+        this.toast.add({
+          severity: "warn",
+          summary: "La actividad se guardó, pero sus habilidades no",
+          detail: err.message + " Editá la actividad para volver a intentarlo.",
+          life: 8000,
         });
       },
     });

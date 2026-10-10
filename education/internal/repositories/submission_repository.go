@@ -30,8 +30,9 @@ func SubmissionDocID(actividadID, participanteID string) string {
 type SubmissionRepository interface {
 	// CreateWithAttendance crea la entrega y, en la misma transacción,
 	// escribe la Asistencia del participante en esa actividad con
-	// presente=true y fecha = activity.Fecha. O se guardan las dos o
-	// ninguna. Devuelve ErrAlreadySubmitted si ya había una entrega.
+	// presente=true y fecha = activity.Fecha, y le asigna al participante
+	// las habilidades de la actividad que todavía no tenía. O se guarda
+	// todo o nada. Devuelve ErrAlreadySubmitted si ya había una entrega.
 	CreateWithAttendance(ctx context.Context, activity *models.Activity, sub models.Submission) (*models.Submission, error)
 	Get(ctx context.Context, id string) (*models.Submission, error)
 	ListByActivity(ctx context.Context, actividadID string) ([]models.Submission, error)
@@ -63,10 +64,37 @@ func (r *submissionRepository) CreateWithAttendance(ctx context.Context, activit
 	}
 
 	err := r.client.RunTransaction(ctx, func(ctx context.Context, tx *firestore.Transaction) error {
+		// Habilidades (HU-21): entregar la actividad le da al participante
+		// las habilidades que esa actividad desarrolla. Va en la misma
+		// transacción que la entrega para que no pueda quedar una entrega
+		// sin sus habilidades (o habilidades sin entrega). Firestore pide
+		// leer todo antes de la primera escritura.
+		newSkills, err := r.missingParticipantSkills(tx, activity.ID, sub.ParticipanteID)
+		if err != nil {
+			return err
+		}
+
 		if err := tx.Create(r.client.Collection(submissionsCollection).Doc(docID), sub); err != nil {
 			return err
 		}
-		return tx.Set(r.client.Collection(attendancesCollection).Doc(docID), attendance)
+		if err := tx.Set(r.client.Collection(attendancesCollection).Doc(docID), attendance); err != nil {
+			return err
+		}
+		for _, habilidadID := range newSkills {
+			ps := models.ParticipantSkill{
+				ParticipanteID: sub.ParticipanteID,
+				HabilidadID:    habilidadID,
+				Origen:         models.SkillOrigenActividad,
+				Fecha:          sub.FechaEntrega,
+				ActividadID:    activity.ID,
+				CursoID:        activity.CursoID,
+			}
+			ref := r.client.Collection(participantSkillsCollection).Doc(ParticipantSkillDocID(sub.ParticipanteID, habilidadID))
+			if err := tx.Create(ref, ps); err != nil {
+				return err
+			}
+		}
+		return nil
 	})
 	if err != nil {
 		if status.Code(err) == codes.AlreadyExists {
@@ -76,6 +104,40 @@ func (r *submissionRepository) CreateWithAttendance(ctx context.Context, activit
 	}
 	sub.ID = docID
 	return &sub, nil
+}
+
+// missingParticipantSkills devuelve las habilidades de la actividad que
+// el participante todavía no tiene. Las que ya tiene (ganadas en otra
+// actividad) no se tocan: se conserva la primera vez que las obtuvo.
+func (r *submissionRepository) missingParticipantSkills(tx *firestore.Transaction, actividadID, participanteID string) ([]string, error) {
+	links, err := tx.Documents(r.client.Collection(activitySkillsCollection).Where("actividad_id", "==", actividadID)).GetAll()
+	if err != nil {
+		return nil, err
+	}
+	if len(links) == 0 {
+		return nil, nil
+	}
+	ids := make([]string, 0, len(links))
+	refs := make([]*firestore.DocumentRef, 0, len(links))
+	for _, l := range links {
+		var link models.ActivitySkill
+		if err := l.DataTo(&link); err != nil {
+			return nil, err
+		}
+		ids = append(ids, link.HabilidadID)
+		refs = append(refs, r.client.Collection(participantSkillsCollection).Doc(ParticipantSkillDocID(participanteID, link.HabilidadID)))
+	}
+	owned, err := tx.GetAll(refs)
+	if err != nil {
+		return nil, err
+	}
+	missing := make([]string, 0, len(ids))
+	for i, doc := range owned {
+		if !doc.Exists() {
+			missing = append(missing, ids[i])
+		}
+	}
+	return missing, nil
 }
 
 func (r *submissionRepository) Get(ctx context.Context, id string) (*models.Submission, error) {

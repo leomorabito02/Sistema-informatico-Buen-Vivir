@@ -49,20 +49,20 @@
 }
 
 .logo-name {
-  font-size: 1.15rem;
+  font-size: var(--font-size-lg);
   font-weight: 700;
   color: var(--text-main);
 }
 
 .footer-desc {
-  font-size: 0.875rem;
+  font-size: var(--font-size-sm);
   color: var(--text-muted);
   line-height: 1.6;
   margin: 0;
 }
 
 .footer-col h3 {
-  font-size: 0.95rem;
+  font-size: var(--font-size-base);
   font-weight: 600;
   color: var(--text-main);
   margin: 0 0 1rem 0;
@@ -76,10 +76,10 @@
 }
 
 .footer-links a {
-  font-size: 0.875rem;
+  font-size: var(--font-size-sm);
   color: var(--text-muted);
   text-decoration: none;
-  transition: color 0.2s ease;
+  transition: color var(--duration-base) var(--ease-standard);
   width: fit-content;
 }
 
@@ -101,7 +101,7 @@
   display: flex;
   align-items: flex-start;
   gap: 0.625rem;
-  font-size: 0.875rem;
+  font-size: var(--font-size-sm);
   color: var(--text-muted);
 }
 
@@ -116,7 +116,7 @@
 .footer-contact-list a {
   color: var(--text-muted);
   text-decoration: none;
-  transition: color 0.2s ease;
+  transition: color var(--duration-base) var(--ease-standard);
 }
 
 .footer-contact-list a:hover {
@@ -151,7 +151,7 @@
 }
 
 .copyright-text {
-  font-size: 0.825rem;
+  font-size: var(--font-size-sm);
   color: var(--text-muted);
   margin: 0;
 }
@@ -161,7 +161,7 @@
   align-items: center;
   flex-wrap: wrap;
   gap: 0.6rem;
-  font-size: 0.825rem;
+  font-size: var(--font-size-sm);
   color: var(--text-muted);
 }
 
@@ -204,12 +204,12 @@
   background: #ffffff;
   border: 1px solid var(--border);
   border-radius: 9999px;
-  font-size: 0.825rem;
+  font-size: var(--font-size-sm);
   font-weight: 500;
   color: var(--text-main);
   text-decoration: none;
   line-height: 1;
-  transition: all 0.2s ease;
+  transition: var(--transition-interactive);
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
 }
 
@@ -244,6 +244,6 @@
 
 .author-separator {
   color: var(--text-muted);
-  font-size: 0.8rem;
+  font-size: var(--font-size-sm);
   font-weight: 500;
 }

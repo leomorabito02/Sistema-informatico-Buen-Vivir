@@ -1,9 +1,7 @@
 <div class="page-container">
   <div class="header-section">
     <div>
-      <h1 class="page-title">
-        <i class="pi pi-users mr-2" aria-hidden="true"></i>Promoción humana
-      </h1>
+      <h1 class="page-title">Promoción humana</h1>
       <p class="page-subtitle">
         Buscá a un participante por nombre o apellido para ver o crear su ficha
         de proceso personal.
@@ -34,28 +32,19 @@
     >
 
     <div aria-live="polite" class="results-region">
-      <p-message
-        *ngIf="error"
-        severity="error"
-        [text]="error"
-        styleClass="w-full mt-3"
-      ></p-message>
+      <app-error-state *ngIf="error" [message]="error"></app-error-state>
 
-      <div *ngIf="buscando" class="state-box">
-        <p-progressSpinner
-          strokeWidth="4"
-          [style]="{ width: '32px', height: '32px' }"
-          aria-label="Buscando"
-        ></p-progressSpinner>
-        <span>Buscando participantes…</span>
-      </div>
+      <app-loading-state
+        *ngIf="buscando"
+        variant="list"
+        label="Buscando participantes…"
+      ></app-loading-state>
 
-      <p
+      <app-empty-state
         *ngIf="!buscando && buscado && !error && resultados.length === 0"
-        class="empty-state"
       >
         No se encontraron participantes con ese nombre.
-      </p>
+      </app-empty-state>
 
       <ul *ngIf="!buscando && resultados.length > 0" class="result-list">
         <li *ngFor="let r of resultados" class="result-item">

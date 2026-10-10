@@ -4,9 +4,7 @@
 
   <div class="header-section">
     <div>
-      <h1 class="page-title">
-        <i class="pi pi-cog mr-2"></i>Gestión de Cursos (Administración)
-      </h1>
+      <h1 class="page-title">Gestión de Cursos (Administración)</h1>
       <p class="page-subtitle">
         Alta, edición y baja de cursos, áreas formativas y materiales. Al crear
         un curso con un docente responsable y publicarlo, aparece en el catálogo
@@ -30,13 +28,11 @@
     </button>
   </div>
 
-  <div *ngIf="loading" class="state-box">
-    <p-progressSpinner
-      strokeWidth="4"
-      [style]="{ width: '44px', height: '44px' }"
-    ></p-progressSpinner>
-    <span>Cargando…</span>
-  </div>
+  <app-loading-state
+    *ngIf="loading"
+    variant="table"
+    label="Cargando…"
+  ></app-loading-state>
 
   <!-- ==================== CURSOS ==================== -->
   <div *ngIf="!loading && section === 'cursos'">
@@ -264,9 +260,8 @@
     </p-card>
     <p class="hint">
       Para <strong>Video</strong> o <strong>Link</strong> alcanza con pegar la
-      URL (YouTube, Drive, etc.). La subida de archivos binarios todavía no está
-      implementada; el <code>Asset ID</code> es opcional y debe existir ya en
-      Contentful.
+      URL (YouTube, Drive, etc.). Para un <strong>PDF</strong> o una imagen,
+      subí el archivo desde el formulario del material.
     </p>
   </div>
 </div>
@@ -475,21 +470,21 @@
           materialFileError ||
             (materialFile
               ? materialFile.name + " listo para subir"
-              : "Se sube a Contentful al guardar.")
+              : "Se sube al guardar el material.")
         }}
       </small>
     </label>
 
     <label *ngIf="materialForm.type === 'PDF'">
-      Asset ID de Contentful (opcional)
+      Archivo ya cargado en el gestor de contenidos (opcional)
       <input
         pInputText
         [(ngModel)]="materialForm.fileAssetId"
         placeholder="ej. 3xAmPl3AssetId"
       />
       <small class="muted">
-        Alternativa a subir el archivo: pegar el id de un Asset que ya existe en
-        Contentful.
+        En lugar de subir el archivo, pegá el identificador (Asset ID) de un
+        archivo que ya esté en Contentful.
       </small>
     </label>
   </div>

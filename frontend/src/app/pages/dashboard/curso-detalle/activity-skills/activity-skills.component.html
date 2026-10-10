@@ -1,0 +1,159 @@
+<section class="skills-editor" aria-labelledby="skills-editor-title">
+  <div class="se-head">
+    <h3 id="skills-editor-title">Habilidades que desarrolla esta actividad</h3>
+    <p-button
+      [outlined]="true"
+      size="small"
+      [disabled]="!puedeSugerir || cargando"
+      [loading]="cargando"
+      (onClick)="sugerir()"
+    >
+      <lucide-icon
+        [img]="Sparkles"
+        [size]="16"
+        aria-hidden="true"
+      ></lucide-icon>
+      <span>Sugerir habilidades con IA</span>
+    </p-button>
+  </div>
+  <p *ngIf="!puedeSugerir" class="se-hint">
+    Completá el título y la consigna para pedir sugerencias.
+  </p>
+
+  <!-- Habilidades asignadas en el formulario -->
+  <ul *ngIf="skills.length > 0; else sinAsignadas" class="se-assigned">
+    <li *ngFor="let s of skills" class="se-chip">
+      <span class="se-chip-name">{{ s.nombre }}</span>
+      <span class="se-chip-cat">{{ s.categoria }}</span>
+      <button
+        type="button"
+        class="se-chip-remove"
+        [attr.aria-label]="'Quitar ' + s.nombre"
+        (click)="quitar(s)"
+      >
+        <lucide-icon [img]="X" [size]="14" aria-hidden="true"></lucide-icon>
+      </button>
+    </li>
+  </ul>
+  <ng-template #sinAsignadas>
+    <p class="se-hint">Todavía no hay habilidades asignadas.</p>
+  </ng-template>
+
+  <!-- Sugerencias de la IA (no se guardan hasta aceptarlas) -->
+  <app-loading-state
+    *ngIf="cargando"
+    variant="list"
+    [rows]="2"
+    label="Buscando sugerencias…"
+  ></app-loading-state>
+
+  <app-error-state
+    *ngIf="errorSugerencias"
+    title="No pudimos generar sugerencias"
+    [message]="errorSugerencias"
+    (retry)="sugerir()"
+  ></app-error-state>
+
+  <app-empty-state *ngIf="sinSugerencias" [compact]="true">
+    No encontramos habilidades nuevas para sugerir.
+  </app-empty-state>
+
+  <div *ngIf="sugerencias.length > 0" class="se-suggestions">
+    <div class="se-suggestions-head">
+      <span>Sugerencias</span>
+      <p-button
+        [text]="true"
+        size="small"
+        [disabled]="lleno"
+        (onClick)="aceptarTodas()"
+      >
+        <lucide-icon
+          [img]="CheckCheck"
+          [size]="16"
+          aria-hidden="true"
+        ></lucide-icon>
+        <span>Aceptar todas</span>
+      </p-button>
+    </div>
+
+    <article *ngFor="let s of sugerencias" class="se-card">
+      <div class="se-card-body">
+        <div class="se-card-title">
+          <strong>{{ s.nombre }}</strong>
+          <p-tag [value]="s.categoria" severity="secondary"></p-tag>
+          <small *ngIf="s.existente" class="se-hint">
+            Ya está en el catálogo
+          </small>
+        </div>
+        <p class="se-card-why">{{ s.justificacion }}</p>
+      </div>
+      <div class="se-card-actions">
+        <p-button
+          size="small"
+          [disabled]="lleno"
+          [ariaLabel]="'Aceptar ' + s.nombre"
+          (onClick)="aceptar(s)"
+        >
+          <lucide-icon
+            [img]="Check"
+            [size]="16"
+            aria-hidden="true"
+          ></lucide-icon>
+          <span>Aceptar</span>
+        </p-button>
+        <p-button
+          size="small"
+          [text]="true"
+          severity="secondary"
+          [ariaLabel]="'Descartar ' + s.nombre"
+          (onClick)="descartar(s)"
+        >
+          <lucide-icon [img]="X" [size]="16" aria-hidden="true"></lucide-icon>
+          <span>Descartar</span>
+        </p-button>
+      </div>
+    </article>
+  </div>
+
+  <!-- Carga manual, con autocompletado del catálogo -->
+  <div class="se-manual">
+    <label for="skill-manual">Agregar una habilidad a mano</label>
+    <div class="se-manual-row">
+      <p-autoComplete
+        inputId="skill-manual"
+        name="skillManual"
+        [(ngModel)]="manual"
+        [suggestions]="catalogoFiltrado"
+        optionLabel="nombre"
+        [minLength]="1"
+        [delay]="300"
+        placeholder="Ej.: Trabajo en equipo"
+        appendTo="body"
+        (completeMethod)="buscarCatalogo($event)"
+        (keydown.enter)="$event.preventDefault(); agregarManual()"
+      ></p-autoComplete>
+      <p-select
+        *ngIf="manualNombre && !manualDelCatalogo"
+        name="skillManualCategoria"
+        [options]="categorias"
+        [(ngModel)]="manualCategoria"
+        placeholder="Categoría"
+        ariaLabel="Categoría de la habilidad nueva"
+        appendTo="body"
+      ></p-select>
+      <p-button
+        [outlined]="true"
+        [disabled]="!puedeAgregarManual"
+        ariaLabel="Agregar habilidad"
+        (onClick)="agregarManual()"
+      >
+        <lucide-icon [img]="Plus" [size]="16" aria-hidden="true"></lucide-icon>
+        <span>Agregar</span>
+      </p-button>
+    </div>
+    <small class="se-hint">
+      Máximo {{ maxSkills }} habilidades por actividad. Quienes entreguen la
+      actividad las suman a su perfil.
+    </small>
+  </div>
+</section>

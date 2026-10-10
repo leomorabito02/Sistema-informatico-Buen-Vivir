@@ -8,7 +8,6 @@ import { CheckboxModule } from "primeng/checkbox";
 import { DatePickerModule } from "primeng/datepicker";
 import { DialogModule } from "primeng/dialog";
 import { MessageModule } from "primeng/message";
-import { ProgressSpinnerModule } from "primeng/progressspinner";
 import { SelectModule } from "primeng/select";
 import { TagModule } from "primeng/tag";
 import { TextareaModule } from "primeng/textarea";
@@ -37,6 +36,10 @@ import {
   parseYMD,
   todayYMD,
 } from "../../../../shared/utils/date-ymd";
+import { LoadingStateComponent } from "../../../../shared/components/loading-state.component";
+import { ErrorStateComponent } from "../../../../shared/components/error-state.component";
+import { EmptyStateComponent } from "../../../../shared/components/empty-state.component";
+import { BackLinkComponent } from "../../../../shared/components/back-link.component";
 
 interface Opcion {
   label: string;
@@ -64,6 +67,9 @@ interface HitoForm {
   selector: "app-ficha",
   standalone: true,
   imports: [
+    LoadingStateComponent,
+    ErrorStateComponent,
+    EmptyStateComponent,
     CommonModule,
     FormsModule,
     RouterLink,
@@ -73,11 +79,11 @@ interface HitoForm {
     DatePickerModule,
     DialogModule,
     MessageModule,
-    ProgressSpinnerModule,
     SelectModule,
     TagModule,
     TextareaModule,
     ToastModule,
+    BackLinkComponent,
   ],
   providers: [MessageService],
   templateUrl: "./ficha.component.html",

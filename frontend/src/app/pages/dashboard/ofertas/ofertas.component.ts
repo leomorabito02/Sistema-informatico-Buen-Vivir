@@ -318,7 +318,7 @@ export class OfertasComponent implements OnInit {
 
   confirmDelete(job: JobOffer) {
     this.confirmationService.confirm({
-      message: '¿Estás seguro de que deseas eliminar esta oferta laboral?',
+      message: '¿Querés eliminar esta oferta laboral? Esta acción no se puede deshacer.',
       header: 'Confirmar Eliminación',
       icon: 'pi-exclamation-triangle',
       acceptLabel: 'Sí',
@@ -341,7 +341,7 @@ export class OfertasComponent implements OnInit {
     if (!job.id || !this.userId) return;
 
     this.confirmationService.confirm({
-      message: '¿Estás seguro que deseas postularte a esta oferta laboral? Asegúrate de tener tu CV actualizado en tu perfil.',
+      message: '¿Querés postularte a esta oferta laboral? Antes, revisá que tu CV esté actualizado en Mi CV.',
       header: 'Confirmar Postulación',
       icon: 'pi pi-check-circle',
       acceptLabel: 'Sí, postularme',

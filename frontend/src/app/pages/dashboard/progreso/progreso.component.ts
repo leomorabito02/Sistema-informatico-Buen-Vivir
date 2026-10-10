@@ -5,9 +5,10 @@ import { TableModule } from "primeng/table";
 import { CardModule } from "primeng/card";
 import { ProgressBarModule } from "primeng/progressbar";
 import { SelectModule } from "primeng/select";
-import { ProgressSpinnerModule } from "primeng/progressspinner";
-import { MessageModule } from "primeng/message";
 import { EducationService } from "../../../services/education.service";
+import { LoadingStateComponent } from "../../../shared/components/loading-state.component";
+import { ErrorStateComponent } from "../../../shared/components/error-state.component";
+import { EmptyStateComponent } from "../../../shared/components/empty-state.component";
 import {
   Course,
   ParticipantProgress,
@@ -22,14 +23,15 @@ interface CourseOption {
   selector: "app-progreso",
   standalone: true,
   imports: [
+    LoadingStateComponent,
+    ErrorStateComponent,
+    EmptyStateComponent,
     CommonModule,
     FormsModule,
     TableModule,
     CardModule,
     ProgressBarModule,
     SelectModule,
-    ProgressSpinnerModule,
-    MessageModule,
   ],
   templateUrl: "./progreso.component.html",
   styleUrls: ["./progreso.component.css"],

@@ -522,22 +522,45 @@ export class EducationService {
   }
 
   // ---------------------------------------------------------------------
+  /**
+   * Mensaje para la persona: qué pasó y qué puede hacer. El texto del
+   * backend se muestra solo cuando es una regla de negocio en castellano
+   * (400, 403, 409, 422, 503); los errores técnicos (404 genérico, 5xx,
+   * sin conexión) se reemplazan por un mensaje con una sugerencia.
+   */
   private readonly handleError = (error: HttpErrorResponse) => {
-    let message = "Ocurrió un error al comunicarse con el módulo de Educación.";
     const body = error.error as { error?: string } | string | null;
-    if (body && typeof body === "object" && body.error) {
-      message = body.error;
+    const backendMsg =
+      body && typeof body === "object" && body.error ? body.error : "";
+    const legible =
+      backendMsg &&
+      [400, 403, 409, 422, 503].includes(error.status) &&
+      !/^body inválido/i.test(backendMsg);
+
+    let message =
+      "No pudimos completar la acción. Volvé a intentar en unos minutos; si sigue pasando, avisá al equipo del centro.";
+    if (legible) {
+      message = backendMsg.charAt(0).toUpperCase() + backendMsg.slice(1);
+    } else if (error.status === 0) {
+      message =
+        "No hay conexión con el servidor. Revisá tu internet y volvé a intentar.";
+    } else if (error.status === 400) {
+      message =
+        "Algunos datos no son válidos. Revisá el formulario y volvé a intentar.";
     } else if (error.status === 401) {
       message = "Tu sesión expiró o no es válida. Volvé a iniciar sesión.";
     } else if (error.status === 403) {
-      message = "No tenés permisos para esta acción en Educación.";
-    } else if (error.status === 404) {
-      message = "El recurso solicitado no existe o no está publicado.";
-    } else if (error.status === 413) {
-      message = "Los archivos superan el tamaño permitido (10 MB cada uno).";
-    } else if (error.status === 502) {
       message =
-        "El módulo de Educación no pudo responder (Contentful/Firestore).";
+        "No tenés permisos para esta acción. Si creés que es un error, consultá con la persona responsable del centro.";
+    } else if (error.status === 404) {
+      message =
+        "No encontramos lo que buscabas: puede que se haya borrado o que todavía no esté publicado. Volvé a la lista para ver lo actualizado.";
+    } else if (error.status === 413) {
+      message =
+        "Los archivos superan el tamaño permitido (10 MB cada uno). Elegí archivos más chicos o subilos de a uno.";
+    } else if (error.status >= 500) {
+      message =
+        "El servidor de cursos no respondió. Esperá unos minutos y volvé a intentar.";
     }
     return throwError(() => new Error(message));
   };

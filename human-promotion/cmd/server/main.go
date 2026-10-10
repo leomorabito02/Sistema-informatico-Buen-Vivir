@@ -54,7 +54,7 @@ func main() {
 	hitoRepo := repositories.NewHitoRepository(firestoreClient)
 
 	jwtService := services.NewJWTService()
-	fichaService := services.NewFichaService(fichaRepo, fieldCipher, authDirectory)
+	fichaService := services.NewFichaService(fichaRepo, fieldCipher, authDirectory, repositories.NewEducationClient(cfg.EducationServiceURL))
 	hitoService := services.NewHitoService(hitoRepo, fichaRepo, fieldCipher, authDirectory)
 	participanteService := services.NewParticipanteService(authDirectory, fichaRepo, hitoRepo, fieldCipher)
 	pdfService := services.NewPDFService(fichaService, hitoService)

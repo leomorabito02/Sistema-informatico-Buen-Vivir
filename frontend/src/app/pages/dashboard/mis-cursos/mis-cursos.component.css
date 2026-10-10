@@ -1,46 +1,12 @@
-.page-container {
-  padding: 1.5rem;
-  max-width: 1200px;
-  margin: 0 auto;
-}
-
-.header-section {
-  margin-bottom: 2rem;
-}
-
-.page-title {
-  font-size: 1.75rem;
-  font-weight: 700;
-  color: var(--primary);
-  margin: 0 0 0.5rem 0;
-}
-
-.page-subtitle {
-  color: var(--text-muted);
-  margin: 0;
-}
-
 .action-buttons {
   display: flex;
   gap: 0.5rem;
   flex-wrap: wrap;
 }
 
-.state-box {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  padding: 2rem;
-  color: var(--text-muted);
-}
-.empty-state {
-  color: var(--text-muted);
-  padding: 1rem;
-}
-
 .mat-h {
   margin: 1rem 0 0.5rem;
-  font-size: 0.95rem;
+  font-size: var(--font-size-base);
   color: var(--primary);
 }
 .mat-list {
@@ -65,7 +31,7 @@
   display: flex;
   flex-direction: column;
   gap: 0.3rem;
-  font-size: 0.85rem;
+  font-size: var(--font-size-sm);
   font-weight: 600;
   color: #334155;
 }
@@ -74,7 +40,7 @@
 }
 .muted {
   color: var(--text-muted);
-  font-size: 0.85rem;
+  font-size: var(--font-size-sm);
   font-weight: 400;
 }
 .muted.err {

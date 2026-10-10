@@ -23,6 +23,10 @@ type UserRepository interface {
 	Delete(ctx context.Context, id string) error
 	CountActiveParticipants(ctx context.Context) (int64, error)
 	CountVolunteers(ctx context.Context) (int64, error)
+	// FindParticipantsHistory devuelve todos los participantes, también
+	// los dados de baja (soft delete), con sus fechas de alta,
+	// aprobación y baja. Para el Dashboard.
+	FindParticipantsHistory(ctx context.Context) ([]models.ParticipantHistory, error)
 }
 
 type userRepository struct {
@@ -220,4 +224,21 @@ func (r *userRepository) CountActiveParticipants(ctx context.Context) (int64, er
 
 func (r *userRepository) CountVolunteers(ctx context.Context) (int64, error) {
 	return r.countAcceptedUsersByRole(ctx, "role_volunteer", "volunteers")
+}
+
+func (r *userRepository) FindParticipantsHistory(ctx context.Context) ([]models.ParticipantHistory, error) {
+	var rows []models.ParticipantHistory
+	// Raw a propósito: hay que ver también a los usuarios borrados
+	// (deleted_at no nulo), que GORM filtra en las consultas normales.
+	err := r.db.WithContext(ctx).Raw(`
+		SELECT u.user_id, u.status, u.created_at, u.updated_at, u.deleted_at,
+		       p.approval_status, p.approval_date
+		FROM users u
+		JOIN participants p ON p.user_id = u.user_id
+		WHERE u.role_id IN ('role_participant', 'participant')
+		ORDER BY u.created_at`).Scan(&rows).Error
+	if err != nil {
+		return nil, err
+	}
+	return rows, nil
 }

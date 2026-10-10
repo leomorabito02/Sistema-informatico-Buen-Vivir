@@ -12,6 +12,8 @@ import { CursoDetalleComponent } from "./curso-detalle.component";
 import { AuthService } from "../../../services/auth.service";
 import { EducationService } from "../../../services/education.service";
 import { UsersService } from "../../../services/users.service";
+import { SkillsService } from "../../../services/skills.service";
+import { Skill } from "../../../core/models/skills.model";
 import { Activity, Course } from "../../../core/models/education.model";
 
 describe("CursoDetalleComponent", () => {
@@ -19,6 +21,12 @@ describe("CursoDetalleComponent", () => {
   let component: CursoDetalleComponent;
   let education: jasmine.SpyObj<EducationService>;
   let auth: jasmine.SpyObj<AuthService>;
+  let skills: jasmine.SpyObj<SkillsService>;
+  const excel: Skill = {
+    id: "uso-de-excel",
+    nombre: "Uso de Excel",
+    categoria: "Tecnología",
+  };
 
   const curso: Course = {
     id: "c1",
@@ -74,6 +82,15 @@ describe("CursoDetalleComponent", () => {
       "downloadSubmissionFile",
     ]);
     auth = jasmine.createSpyObj("AuthService", ["isAuthenticated"]);
+    skills = jasmine.createSpyObj("SkillsService", [
+      "getCourseSkills",
+      "setActivitySkills",
+      "suggest",
+      "searchCatalog",
+    ]);
+    skills.getCourseSkills.and.returnValue(
+      of({ habilidades: [excel], porActividad: { a1: [excel] } }),
+    );
     const users = jasmine.createSpyObj("UsersService", ["listUsers"]);
     users.listUsers.and.returnValue(
       of([{ user_id: "t1", first_name: "María", last_name: "Rodríguez" }]),
@@ -94,6 +111,7 @@ describe("CursoDetalleComponent", () => {
         { provide: EducationService, useValue: education },
         { provide: AuthService, useValue: auth },
         { provide: UsersService, useValue: users },
+        { provide: SkillsService, useValue: skills },
         {
           provide: ActivatedRoute,
           useValue: { snapshot: { paramMap: convertToParamMap({ id: "c1" }) } },
@@ -306,5 +324,118 @@ describe("CursoDetalleComponent", () => {
     expect(component.tamanoLegible(3 * 1024 * 1024)).toBe("3.0 MB");
     expect(component.iconoArchivo("application/pdf")).toBe("pi-file-pdf");
     expect(component.iconoArchivo("image/png")).toBe("pi-image");
+  });
+
+  describe("habilidades (HU-21)", () => {
+    it("muestra las del curso y las de cada actividad", () => {
+      setup("role_admin");
+      expect(skills.getCourseSkills).toHaveBeenCalledWith("c1");
+      expect(component.habilidadesCurso).toEqual([excel]);
+      expect(component.habilidadesDe("a1")).toEqual([excel]);
+      expect(component.habilidadesDe("otra")).toEqual([]);
+      const texto = fixture.nativeElement.textContent as string;
+      expect(texto).toContain("Habilidades que desarrolla este curso");
+    });
+
+    it("si no se pueden cargar, el detalle se muestra igual", () => {
+      skills.getCourseSkills.and.returnValue(
+        throwError(() => new Error("caído")),
+      );
+      setup("role_admin");
+      expect(component.error).toBe("");
+      expect(component.habilidadesCurso).toEqual([]);
+    });
+
+    it("al editar, carga las de la actividad y guarda solo si cambiaron", () => {
+      setup("role_admin");
+      education.updateCourseActivity.and.returnValue(
+        of(act("a1", "2026-10-05T00:00:00Z")),
+      );
+
+      component.editarActividad(component.actividades[0]);
+      expect(component.formSkills).toEqual([excel]);
+      component.guardarActividad();
+      expect(skills.setActivitySkills).not.toHaveBeenCalled();
+      expect(component.formVisible).toBeFalse();
+
+      skills.setActivitySkills.and.returnValue(of([]));
+      component.editarActividad(component.actividades[0]);
+      component.formSkills = [];
+      component.guardarActividad();
+      expect(skills.setActivitySkills).toHaveBeenCalledWith("a1", []);
+    });
+
+    it("una actividad nueva guarda sus habilidades con el id recién creado", () => {
+      setup("role_teacher");
+      education.createActivity.and.returnValue(
+        of(act("nueva", "2026-10-20T00:00:00Z")),
+      );
+      skills.setActivitySkills.and.returnValue(of([excel]));
+
+      component.nuevaActividad();
+      component.form = { titulo: "t", consigna: "c", fecha: new Date() };
+      component.formSkills = [
+        { nombre: "Uso de Excel", categoria: "Tecnología" },
+      ];
+      component.guardarActividad();
+
+      expect(skills.setActivitySkills).toHaveBeenCalledWith("nueva", [
+        { nombre: "Uso de Excel", categoria: "Tecnología" },
+      ]);
+      expect(component.guardando).toBeFalse();
+      expect(component.formVisible).toBeFalse();
+    });
+
+    it("si fallan las habilidades, avisa que la actividad sí se guardó", () => {
+      setup("role_admin");
+      education.createCourseActivity.and.returnValue(
+        of(act("nueva", "2026-10-20T00:00:00Z")),
+      );
+      skills.setActivitySkills.and.returnValue(
+        throwError(() => new Error("categoría inválida.")),
+      );
+      component.nuevaActividad();
+      component.form = { titulo: "t", consigna: "c", fecha: new Date() };
+      component.formSkills = [{ nombre: "X", categoria: "Oficio" }];
+      component.guardarActividad();
+
+      expect(component.actividades.map((a) => a.id)).toContain("nueva");
+      expect(component.guardando).toBeFalse();
+      expect(component.formVisible).toBeFalse();
+    });
+  });
+
+  describe("Volver sin pantalla previa", () => {
+    it("el voluntario vuelve al catálogo, no a gestión (solo admin)", () => {
+      setup("role_volunteer");
+      expect(component.destinoVolver()).toBe("/dashboard/cursos");
+    });
+
+    it("el administrador vuelve a gestión de cursos", () => {
+      setup("role_admin");
+      expect(component.destinoVolver()).toBe("/dashboard/gestion-cursos");
+    });
+
+    it("el docente vuelve a sus cursos", () => {
+      setup("role_teacher");
+      expect(component.destinoVolver()).toBe("/dashboard/mis-cursos");
+    });
+
+    it("el participante vuelve a sus cursos del catálogo", () => {
+      education.getMyCourse.and.returnValue(
+        of({
+          curso,
+          actividades: [],
+          progreso: {
+            participanteId: "p1",
+            actividadesTotal: 0,
+            actividadesAsistidas: 0,
+            porcentajeAsistencia: 0,
+          },
+        }),
+      );
+      setup("role_participant");
+      expect(component.destinoVolver()).toBe("/dashboard/cursos");
+    });
   });
 });

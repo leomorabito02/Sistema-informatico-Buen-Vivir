@@ -22,6 +22,19 @@ type UpdateUserRequest struct {
 	Status    string `json:"status" validate:"omitempty,oneof=active suspended"`
 }
 
+// ParticipantHistoryResponse es un participante en el historial que usa
+// el Dashboard (GET /api/v1/users/participants/history). Incluye a los
+// dados de baja: deleted_at es la fecha de la baja lógica.
+type ParticipantHistoryResponse struct {
+	UserID         string     `json:"user_id"`
+	Status         string     `json:"status"`
+	ApprovalStatus string     `json:"approval_status"`
+	ApprovalDate   *time.Time `json:"approval_date"`
+	CreatedAt      time.Time  `json:"created_at"`
+	UpdatedAt      time.Time  `json:"updated_at"`
+	DeletedAt      *time.Time `json:"deleted_at"`
+}
+
 type UserResponse struct {
 	UserID    string    `json:"user_id"`
 	FirstName string    `json:"first_name"`

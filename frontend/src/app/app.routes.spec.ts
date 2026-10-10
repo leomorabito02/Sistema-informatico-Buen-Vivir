@@ -25,7 +25,7 @@ describe("App Routes", () => {
     const dashboardRoute = routes.find((r) => r.path === "dashboard");
     expect(dashboardRoute?.component).toBe(DashboardComponent);
     expect(dashboardRoute?.canActivate).toEqual([authGuard]);
-    expect(dashboardRoute?.children).toHaveSize(21);
+    expect(dashboardRoute?.children).toHaveSize(22);
   });
 
   it("should lazy load pending-approval component", async () => {
@@ -109,12 +109,13 @@ describe("App Routes", () => {
     "seguimiento",
     "asistencia",
     "campanas",
-    "insercion",
     "cursos/:id",
     "inscripciones",
     "asistencia-cursos",
     "asistencia-general",
     "notificaciones",
+    "ayuda",
+    "indicadores",
   ];
 
   childrenRoutes.forEach((childPath) => {

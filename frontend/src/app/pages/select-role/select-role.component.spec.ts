@@ -1,4 +1,12 @@
 import { ComponentFixture, TestBed } from "@angular/core/testing";
+import {
+  BookOpen,
+  Building2,
+  Code,
+  Handshake,
+  ShieldCheck,
+  Sprout,
+} from "lucide-angular";
 import { SelectRoleComponent } from "./select-role.component";
 import { Router, provideRouter } from "@angular/router";
 import { AuthService } from "../../services/auth.service";
@@ -32,12 +40,12 @@ describe("SelectRoleComponent", () => {
       component = fixture.componentInstance;
       expect(component.loginError).toBe("");
       expect(component.loadingAccountId).toBe("");
-      expect(component.roleIcons["role_admin"]).toBe("🛡️");
-      expect(component.roleIcons["role_dev"]).toBe("💻");
-      expect(component.roleIcons["role_participant"]).toBe("🌱");
-      expect(component.roleIcons["role_company"]).toBe("🏢");
-      expect(component.roleIcons["role_teacher"]).toBe("📚");
-      expect(component.roleIcons["role_volunteer"]).toBe("🤝");
+      expect(component.roleIcons["role_admin"]).toBe(ShieldCheck);
+      expect(component.roleIcons["role_dev"]).toBe(Code);
+      expect(component.roleIcons["role_participant"]).toBe(Sprout);
+      expect(component.roleIcons["role_company"]).toBe(Building2);
+      expect(component.roleIcons["role_teacher"]).toBe(BookOpen);
+      expect(component.roleIcons["role_volunteer"]).toBe(Handshake);
     });
 
     it("should redirect to login if no accounts in state", () => {

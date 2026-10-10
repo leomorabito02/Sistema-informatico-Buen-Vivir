@@ -1,22 +1,21 @@
-<div class="account-page-container">
+<div class="account-page-container app-shell">
   <app-header></app-header>
 
-  <main class="account-main container py-8">
-    <div class="account-header-row mb-6">
+  <main
+    id="contenido-principal"
+    class="account-main page-container"
+    tabindex="-1"
+  >
+    <!-- Mismo encabezado que el resto de las pantallas del panel -->
+    <div class="header-section">
       <div>
-        <h1 class="text-2xl font-bold text-foreground">Mi Cuenta</h1>
-        <p class="text-sm text-muted">
+        <h1 class="page-title">Mi Cuenta</h1>
+        <p class="page-subtitle">
           Gestión de datos personales, seguridad, sesiones activas y
           preferencias de privacidad.
         </p>
       </div>
-      <a routerLink="/dashboard" class="btn btn-outline-primary btn-sm">
-        <lucide-angular
-          [img]="ArrowLeftIcon"
-          class="icon-sm icon-mr"
-        ></lucide-angular>
-        Volver al Dashboard
-      </a>
+      <app-back-link to="/dashboard" label="Volver al inicio"></app-back-link>
     </div>
 
     <!-- Sub-navigation Tabs -->

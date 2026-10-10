@@ -1,24 +1,251 @@
+// Package services arma los datos del dashboard a partir de lo que
+// devuelve cada servicio de origen. No guarda nada: cada pedido consulta
+// en vivo (el Dashboard es un agregador, sin base de datos propia).
 package services
 
 import (
 	"context"
+	"net/url"
+	"strings"
+	"sync"
+	"time"
 
+	"buenvivir/dashboard/internal/clients"
 	"buenvivir/dashboard/internal/models"
-	"buenvivir/dashboard/internal/repositories"
 )
 
+// Consultas en paralelo por servicio (actividades de cada curso,
+// postulaciones de cada oferta): sin saturar al servicio de origen.
+const maxParalelo = 8
+
 type DashboardService interface {
-	GetMetrics(ctx context.Context) (*models.Metrics, error)
+	Participantes(ctx context.Context, cred clients.Credentials) ([]models.Participante, error)
+	Cursos(ctx context.Context, cred clients.Credentials) ([]models.Curso, error)
+	Habilidades(ctx context.Context, cred clients.Credentials) ([]models.ParticipanteHabilidad, error)
+	Postulaciones(ctx context.Context, cred clients.Credentials) ([]models.Postulacion, error)
+	Areas(ctx context.Context, cred clients.Credentials) ([]models.Area, error)
 }
 
 type dashboardService struct {
-	repo repositories.DashboardRepository
+	auth      *clients.Upstream
+	education *clients.Upstream
+	labor     *clients.Upstream
 }
 
-func NewDashboardService(repo repositories.DashboardRepository) DashboardService {
-	return &dashboardService{repo: repo}
+func NewDashboardService(auth, education, labor *clients.Upstream) DashboardService {
+	return &dashboardService{auth: auth, education: education, labor: labor}
 }
 
-func (s *dashboardService) GetMetrics(ctx context.Context) (*models.Metrics, error) {
-	return s.repo.GetMetrics(ctx)
+// ── Participantes (Autenticación) ─────────────────────────────────────
+
+func (s *dashboardService) Participantes(ctx context.Context, cred clients.Credentials) ([]models.Participante, error) {
+	var res models.AuthResponse[[]models.ParticipantHistory]
+	if err := s.auth.GetJSON(ctx, "/api/v1/users/participants/history", cred, &res); err != nil {
+		return nil, err
+	}
+	out := make([]models.Participante, 0, len(res.Data))
+	for _, h := range res.Data {
+		if p, ok := MapParticipante(h); ok {
+			out = append(out, p)
+		}
+	}
+	return out, nil
+}
+
+// MapParticipante aplica la definición de "participante activo" del
+// sistema (la misma que CountActiveParticipants en auth): rol
+// participante, cuenta activa y aprobada, sin baja lógica.
+//
+//   - Alta: la fecha de aprobación, o la de creación si no hay.
+//   - Baja: la baja lógica (deleted_at); si la cuenta está bloqueada, la
+//     última modificación (auth no guarda cuándo se bloqueó).
+//   - Los que nunca fueron aprobados no cuentan (ok = false).
+func MapParticipante(h models.ParticipantHistory) (models.Participante, bool) {
+	aprobado := h.ApprovalStatus == "approved" || h.ApprovalStatus == "accepted"
+	if !aprobado {
+		return models.Participante{}, false
+	}
+	alta := h.CreatedAt
+	if h.ApprovalDate != nil && !h.ApprovalDate.IsZero() {
+		alta = *h.ApprovalDate
+	}
+	p := models.Participante{ID: h.UserID, Rol: "participante", Estado: "activo", FechaAlta: alta}
+	switch {
+	case h.DeletedAt != nil:
+		baja := *h.DeletedAt
+		p.Estado, p.FechaBaja = "baja", &baja
+	case h.Status != "active":
+		baja := h.UpdatedAt
+		p.Estado, p.FechaBaja = "baja", &baja
+	}
+	return p, true
+}
+
+// ── Cursos y áreas (Educación) ────────────────────────────────────────
+
+func (s *dashboardService) Areas(ctx context.Context, cred clients.Credentials) ([]models.Area, error) {
+	var areas []models.TrainingArea
+	if err := s.education.GetJSON(ctx, "/api/areas-formativas", cred, &areas); err != nil {
+		return nil, err
+	}
+	out := make([]models.Area, len(areas))
+	for i, a := range areas {
+		out[i] = models.Area{ID: a.ID, Nombre: a.Name}
+	}
+	return out, nil
+}
+
+// cursosBase trae publicados y borradores, sin actividades.
+func (s *dashboardService) cursosBase(ctx context.Context, cred clients.Credentials) ([]models.Curso, error) {
+	var publicados, borradores []models.Course
+	if err := s.education.GetJSON(ctx, "/api/cursos", cred, &publicados); err != nil {
+		return nil, err
+	}
+	if err := s.education.GetJSON(ctx, "/api/cursos/borradores", cred, &borradores); err != nil {
+		return nil, err
+	}
+	out := make([]models.Curso, 0, len(publicados)+len(borradores))
+	for _, c := range publicados {
+		out = append(out, MapCurso(c, "activo"))
+	}
+	for _, c := range borradores {
+		out = append(out, MapCurso(c, "borrador"))
+	}
+	return out, nil
+}
+
+func MapCurso(c models.Course, estado string) models.Curso {
+	curso := models.Curso{ID: c.ID, Titulo: c.Title, Estado: estado, Actividades: []models.Actividad{}}
+	if c.TrainingArea != nil {
+		curso.AreaID = c.TrainingArea.ID
+	}
+	if t, err := time.Parse(time.RFC3339, c.CreatedAt); err == nil {
+		curso.FechaCreacion = t
+	}
+	return curso
+}
+
+func (s *dashboardService) Cursos(ctx context.Context, cred clients.Credentials) ([]models.Curso, error) {
+	cursos, err := s.cursosBase(ctx, cred)
+	if err != nil {
+		return nil, err
+	}
+	err = enParalelo(ctx, len(cursos), func(ctx context.Context, i int) error {
+		var acts []models.Activity
+		path := "/api/cursos/" + url.PathEscape(cursos[i].ID) + "/actividades"
+		if err := s.education.GetJSON(ctx, path, cred, &acts); err != nil {
+			return err
+		}
+		for _, a := range acts {
+			cursos[i].Actividades = append(cursos[i].Actividades, models.Actividad{ID: a.ID, Fecha: a.Fecha})
+		}
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	return cursos, nil
+}
+
+// ── Habilidades (Educación) ───────────────────────────────────────────
+
+func (s *dashboardService) Habilidades(ctx context.Context, cred clients.Credentials) ([]models.ParticipanteHabilidad, error) {
+	var otorgadas []models.GrantedSkill
+	if err := s.education.GetJSON(ctx, "/api/habilidades/otorgadas", cred, &otorgadas); err != nil {
+		return nil, err
+	}
+	// El área sale del curso en que se ganó la habilidad.
+	cursos, err := s.cursosBase(ctx, cred)
+	if err != nil {
+		return nil, err
+	}
+	areaPorCurso := make(map[string]string, len(cursos))
+	for _, c := range cursos {
+		areaPorCurso[c.ID] = c.AreaID
+	}
+	out := make([]models.ParticipanteHabilidad, len(otorgadas))
+	for i, g := range otorgadas {
+		out[i] = models.ParticipanteHabilidad{
+			ID:             g.ParticipanteID + "_" + g.HabilidadID,
+			ParticipanteID: g.ParticipanteID,
+			CursoID:        g.CursoID,
+			AreaID:         areaPorCurso[g.CursoID],
+			Origen:         g.Origen,
+			// Por diseño solo se ganan habilidades que el admin, el
+			// docente o el voluntariado guardó en la actividad.
+			Estado: "aceptada",
+			Fecha:  g.Fecha,
+		}
+	}
+	return out, nil
+}
+
+// ── Postulaciones (Inserción Laboral) ─────────────────────────────────
+
+func (s *dashboardService) Postulaciones(ctx context.Context, cred clients.Credentials) ([]models.Postulacion, error) {
+	var ofertas []models.JobOffer
+	if err := s.labor.GetJSON(ctx, "/api/v1/labor-integration/offers", cred, &ofertas); err != nil {
+		return nil, err
+	}
+	porOferta := make([][]models.JobApplication, len(ofertas))
+	err := enParalelo(ctx, len(ofertas), func(ctx context.Context, i int) error {
+		path := "/api/v1/labor-integration/offers/" + url.PathEscape(ofertas[i].ID) + "/applications"
+		return s.labor.GetJSON(ctx, path, cred, &porOferta[i])
+	})
+	if err != nil {
+		return nil, err
+	}
+	out := []models.Postulacion{}
+	for _, apps := range porOferta {
+		for _, a := range apps {
+			out = append(out, MapPostulacion(a))
+		}
+	}
+	return out, nil
+}
+
+// MapPostulacion traduce el estado que usa Inserción Laboral. La empresa
+// marca "Aceptado" a quien elige: eso es una inserción ("seleccionado").
+func MapPostulacion(a models.JobApplication) models.Postulacion {
+	estado := "postulado"
+	switch strings.ToLower(strings.TrimSpace(a.Status)) {
+	case "aceptado", "seleccionado", "contratado":
+		estado = "seleccionado"
+	case "rechazado":
+		estado = "rechazado"
+	case "en revisión", "en revision", "en_revision":
+		estado = "en_revision"
+	}
+	fecha := a.UpdatedAt
+	if fecha.IsZero() {
+		fecha = a.ApplicationDate
+	}
+	return models.Postulacion{ID: a.ID, ParticipanteID: a.ParticipantID, Estado: estado, FechaEstado: fecha}
+}
+
+// enParalelo corre fn para 0..n-1 con hasta maxParalelo a la vez y
+// devuelve el primer error (cancela el resto).
+func enParalelo(ctx context.Context, n int, fn func(ctx context.Context, i int) error) error {
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+	sem := make(chan struct{}, maxParalelo)
+	var wg sync.WaitGroup
+	var once sync.Once
+	var primero error
+	for i := 0; i < n; i++ {
+		wg.Add(1)
+		sem <- struct{}{}
+		go func(i int) {
+			defer wg.Done()
+			defer func() { <-sem }()
+			if err := fn(ctx, i); err != nil {
+				once.Do(func() {
+					primero = err
+					cancel()
+				})
+			}
+		}(i)
+	}
+	wg.Wait()
+	return primero
 }

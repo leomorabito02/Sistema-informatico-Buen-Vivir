@@ -7,7 +7,7 @@
             [img]="ArrowLeftIcon"
             class="icon-sm icon-mr"
           ></lucide-angular>
-          Volver al Inicio
+          Volver al inicio
         </a>
         <div class="legal-brand">
           <img src="assets/logo.png" alt="Logo Buen Vivir" class="legal-logo" />
@@ -100,7 +100,7 @@
           @if (!isSubmitted) {
             <h2>Enviar una Consulta</h2>
             <p class="form-desc">
-              Completa el formulario a continuación y nos pondremos en contacto
+              Completá el formulario a continuación y nos pondremos en contacto
               a la brevedad.
             </p>
 
@@ -126,7 +126,7 @@
                   contactForm.get("name")?.invalid &&
                   contactForm.get("name")?.touched
                 ) {
-                  <span class="error-msg">Ingresa tu nombre completo.</span>
+                  <span class="error-msg">Ingresá tu nombre completo.</span>
                 }
               </div>
 
@@ -148,7 +148,7 @@
                   contactForm.get("email")?.touched
                 ) {
                   <span class="error-msg"
-                    >Ingresa un correo electrónico válido.</span
+                    >Ingresá un correo electrónico válido.</span
                   >
                 }
               </div>
@@ -164,7 +164,7 @@
                     contactForm.get('subject')?.touched
                   "
                 >
-                  <option value="">Selecciona un asunto...</option>
+                  <option value="">Seleccioná un asunto...</option>
                   <option value="cursos">Consulta sobre Cursos</option>
                   <option value="empleo">
                     Bolsa de Empleo / Inserción Laboral
@@ -181,7 +181,7 @@
                   contactForm.get("subject")?.invalid &&
                   contactForm.get("subject")?.touched
                 ) {
-                  <span class="error-msg">Selecciona un asunto.</span>
+                  <span class="error-msg">Seleccioná un asunto.</span>
                 }
               </div>
 
@@ -191,7 +191,7 @@
                   id="message"
                   rows="4"
                   formControlName="message"
-                  placeholder="Escribe tu mensaje o consulta..."
+                  placeholder="Escribí tu mensaje o consulta..."
                   class="form-control"
                   [class.is-invalid]="
                     contactForm.get('message')?.invalid &&
@@ -224,7 +224,7 @@
                   contactForm.get("privacyAccepted")?.touched
                 ) {
                   <span class="error-msg"
-                    >Debes aceptar la política de privacidad.</span
+                    >Tenés que aceptar la política de privacidad.</span
                   >
                 }
               </div>

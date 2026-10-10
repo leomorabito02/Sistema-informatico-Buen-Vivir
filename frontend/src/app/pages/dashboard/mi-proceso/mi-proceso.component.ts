@@ -1,11 +1,12 @@
 import { Component, OnInit, inject } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { CardModule } from "primeng/card";
-import { MessageModule } from "primeng/message";
-import { ProgressSpinnerModule } from "primeng/progressspinner";
 
 import { HumanPromotionService } from "../../../services/human-promotion.service";
 import { HitoParticipante } from "../../../core/models/human-promotion.model";
+import { LoadingStateComponent } from "../../../shared/components/loading-state.component";
+import { ErrorStateComponent } from "../../../shared/components/error-state.component";
+import { EmptyStateComponent } from "../../../shared/components/empty-state.component";
 import { formatDMY } from "../../../shared/utils/date-ymd";
 
 /**
@@ -17,7 +18,13 @@ import { formatDMY } from "../../../shared/utils/date-ymd";
 @Component({
   selector: "app-mi-proceso",
   standalone: true,
-  imports: [CommonModule, CardModule, MessageModule, ProgressSpinnerModule],
+  imports: [
+    LoadingStateComponent,
+    ErrorStateComponent,
+    EmptyStateComponent,
+    CommonModule,
+    CardModule,
+  ],
   templateUrl: "./mi-proceso.component.html",
   styleUrls: ["./mi-proceso.component.css"],
 })

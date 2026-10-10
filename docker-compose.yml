@@ -94,6 +94,30 @@ services:
     networks:
       - buenvivir-net
 
+  # Dashboard (HU-52 a HU-55): agregador sin base de datos. Consulta a
+  # auth, education y labor-integration con las credenciales del admin.
+  # Sin puerto publicado: solo se llega por el API Gateway, que valida el
+  # token y le pasa el rol (X-User-Role).
+  dashboard-service:
+    build:
+      context: ./dashboard
+      dockerfile: Dockerfile
+    environment:
+      - PORT=8090
+      - AUTH_SERVICE_URL=http://auth-service:8080
+      - EDUCATION_SERVICE_URL=http://education-service:8210
+      - LABOR_SERVICE_URL=http://labor-integration:8080
+    restart: on-failure
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    read_only: true
+    mem_limit: 256m
+    cpus: "0.5"
+    networks:
+      - buenvivir-net
+
   api-gateway:
     image: nginx:alpine
     container_name: buenvivir-api-gateway

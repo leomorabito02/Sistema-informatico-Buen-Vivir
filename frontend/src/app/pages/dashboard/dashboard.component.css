@@ -15,11 +15,52 @@
   flex: 1;
   min-width: 0;
   overflow-x: auto;
-  background: #ffffff;
+  background: var(--color-bg);
 }
 
 @media (max-width: 900px) {
   .dashboard-body {
     flex-direction: column;
   }
+}
+
+.acceso-denegado {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  max-width: var(--container-max);
+  margin: var(--space-4) auto 0;
+  padding: var(--space-4) var(--space-5);
+  background: var(--color-danger-soft);
+  color: var(--color-text);
+  border: 1px solid var(--red-200);
+  border-radius: var(--radius-lg);
+}
+
+.acceso-denegado p {
+  flex: 1;
+  margin: 0;
+}
+
+.acceso-denegado .pi-lock {
+  margin-top: 0.3rem;
+  color: var(--color-danger);
+}
+
+.acceso-cerrar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: var(--tap-target);
+  min-height: var(--tap-target);
+  margin: calc(var(--space-3) * -1) calc(var(--space-3) * -1) 0 0;
+  border: none;
+  border-radius: var(--radius-full);
+  background: transparent;
+  color: var(--color-text);
+  cursor: pointer;
+}
+
+.acceso-cerrar:hover {
+  background: var(--red-100);
 }

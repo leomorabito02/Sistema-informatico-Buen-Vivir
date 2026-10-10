@@ -6,6 +6,8 @@ import (
 	"strings"
 
 	"github.com/golang-jwt/jwt/v5"
+
+	"buenvivir/human-promotion/internal/repositories"
 )
 
 type contextKey string
@@ -61,6 +63,9 @@ func AuthMiddleware(jwtService JWTService) func(http.Handler) http.Handler {
 
 			ctx := context.WithValue(r.Context(), UserIDKey, userID)
 			ctx = context.WithValue(ctx, RoleIDKey, roleID)
+			// El token se guarda para reenviarlo a education-service al
+			// pedir las habilidades del participante (ver SkillDirectory).
+			ctx = repositories.ContextWithToken(ctx, tokenString)
 
 			next.ServeHTTP(w, r.WithContext(ctx))
 		})
