@@ -22,6 +22,9 @@ import (
 )
 
 func main() {
+	// Load local .env if present (fallback for local development)
+	config.LoadEnvFile()
+
 	// 1. Setup Logger
 	config.InitLogger()
 	slog.Info("Starting Auth Service...")
@@ -44,6 +47,7 @@ func main() {
 	volunteerRepo := repositories.NewVolunteerRepository(db)
 	refreshTokenRepo := repositories.NewRefreshTokenRepository(db)
 	participantDirectoryRepo := repositories.NewParticipantDirectoryRepository(db)
+	storageCleanupRepo := repositories.NewStorageCleanupRepository(db)
 
 	// Setup Storage
 	storageSvc, err := storage.NewObjectStorageService(
@@ -84,9 +88,13 @@ func main() {
 	roleService := services.NewRoleService(roleRepo)
 	companyService := services.NewCompanyService(companyRepo)
 	teacherService := services.NewTeacherService(teacherRepo)
-	participantService := services.NewParticipantService(participantRepo, participantDocRepo, storageSvc, userRepo)
+	participantService := services.NewParticipantService(participantRepo, participantDocRepo, storageSvc, userRepo, storageCleanupRepo)
 	permissionService := services.NewPermissionService(permissionRepo)
 	volunteerService := services.NewVolunteerService(volunteerRepo, userRepo)
+
+	// Iniciar worker de reconciliación asíncrona de archivos huérfanos
+	cleanupWorker := services.NewStorageCleanupWorker(storageCleanupRepo, storageSvc)
+	cleanupWorker.Start(context.Background(), 5*time.Minute)
 
 	// Sincronizar contadores de impacto en Cloudflare Worker KV al iniciar el servicio
 	services.NewKVSyncService(userRepo).SyncImpactStatsAsync()

@@ -192,7 +192,7 @@ func TestUserRepository_FindAll(t *testing.T) {
 	repo := repositories.NewUserRepository(db)
 
 	t.Run("Success", func(t *testing.T) {
-		mock.ExpectQuery(regexp.QuoteMeta(`SELECT users.*, COALESCE(p.approval_status, c.approval_status, t.approval_status, v.approval_status) AS role_approval_status FROM "users" LEFT JOIN participants p ON users.user_id = p.user_id LEFT JOIN companies c ON users.user_id = c.user_id LEFT JOIN teachers t ON users.user_id = t.user_id LEFT JOIN volunteers v ON users.user_id = v.user_id WHERE "users"."deleted_at" IS NULL`)).
+		mock.ExpectQuery(regexp.QuoteMeta(`SELECT users.*, COALESCE(p.approval_status, c.approval_status, t.approval_status, v.approval_status) AS role_approval_status, p.image_url AS image_url FROM "users" LEFT JOIN participants p ON users.user_id = p.user_id LEFT JOIN companies c ON users.user_id = c.user_id LEFT JOIN teachers t ON users.user_id = t.user_id LEFT JOIN volunteers v ON users.user_id = v.user_id WHERE "users"."deleted_at" IS NULL`)).
 			WillReturnRows(sqlmock.NewRows([]string{"user_id", "email"}).
 				AddRow("usr-1", "test@test.com").
 				AddRow("usr-2", "test2@test.com"))
@@ -203,7 +203,7 @@ func TestUserRepository_FindAll(t *testing.T) {
 	})
 
 	t.Run("DBError", func(t *testing.T) {
-		mock.ExpectQuery(regexp.QuoteMeta(`SELECT users.*, COALESCE(p.approval_status, c.approval_status, t.approval_status, v.approval_status) AS role_approval_status FROM "users" LEFT JOIN participants p ON users.user_id = p.user_id LEFT JOIN companies c ON users.user_id = c.user_id LEFT JOIN teachers t ON users.user_id = t.user_id LEFT JOIN volunteers v ON users.user_id = v.user_id WHERE "users"."deleted_at" IS NULL`)).
+		mock.ExpectQuery(regexp.QuoteMeta(`SELECT users.*, COALESCE(p.approval_status, c.approval_status, t.approval_status, v.approval_status) AS role_approval_status, p.image_url AS image_url FROM "users" LEFT JOIN participants p ON users.user_id = p.user_id LEFT JOIN companies c ON users.user_id = c.user_id LEFT JOIN teachers t ON users.user_id = t.user_id LEFT JOIN volunteers v ON users.user_id = v.user_id WHERE "users"."deleted_at" IS NULL`)).
 			WillReturnError(errors.New("db error"))
 
 		users, err := repo.FindAll(context.Background())

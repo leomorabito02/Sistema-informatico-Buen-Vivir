@@ -57,7 +57,6 @@ export class CvComponent implements OnInit, OnDestroy {
   resume: Resume | null = null;
   loading = false;
   generating = false;
-  uploadingPicture = false;
   pdfReady = false;
   pdfPolling = false;
   message = "";
@@ -360,58 +359,6 @@ export class CvComponent implements OnInit, OnDestroy {
   removeLanguage(index: number) {
     if (this.resume?.data?.languages) {
       this.resume.data.languages.splice(index, 1);
-    }
-  }
-
-  onPictureSelected(event: any) {
-    const file = event.target.files[0];
-    if (file) {
-      if (file.size > 10 * 1024 * 1024) {
-        this.avisar("warn", "La imagen no debe superar los 10 MB.");
-        return;
-      }
-      this.uploadingPicture = true;
-
-      const uploadObservable = this.userId
-        ? this.rxResumeService.uploadUserPictureByAdmin(this.userId, file)
-        : this.rxResumeService.uploadPicture(file);
-
-      uploadObservable.subscribe({
-        next: (res) => {
-          this.resume = res;
-          this.uploadingPicture = false;
-          const newPic = res.data?.basics?.picture;
-          if (newPic) {
-            if (this.userId) {
-              this.usersService.getUserProfile(this.userId).subscribe({
-                next: (profile) => {
-                  const partId = profile.role_data?.participant_id;
-                  if (partId) {
-                    this.usersService
-                      .updateRoleData("participants", partId, { image_url: newPic })
-                      .subscribe({
-                        error: (err) => console.error("Error sincronizando foto en rol:", err),
-                      });
-                  }
-                },
-                error: (err) => console.error("Error obteniendo perfil para sincronizar foto:", err),
-              });
-            } else {
-              this.profileService.updateProfile({ image_url: newPic }).subscribe({
-                error: (err) => console.error("Error sincronizando foto en perfil:", err),
-              });
-            }
-          }
-        },
-        error: (err) => {
-          this.uploadingPicture = false;
-          this.avisar(
-            "error",
-            "No se pudo subir la imagen" +
-              (err.message ? `: ${err.message}` : "."),
-          );
-        },
-      });
     }
   }
 }

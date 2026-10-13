@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"io"
+	"mime/multipart"
 
 	"auth/internal/controllers"
 	"auth/internal/dto"
@@ -303,4 +304,274 @@ func TestParticipantController_DeleteParticipant_ServiceError(t *testing.T) {
 	ctrl.DeleteParticipant(w, req)
 
 	assert.Equal(t, http.StatusInternalServerError, w.Code)
+}
+
+func TestParticipantController_DeleteDocument_Success(t *testing.T) {
+	mockSvc := new(MockParticipantService)
+	ctrl := controllers.NewParticipantController(mockSvc)
+
+	mockSvc.On("DeleteDocument", mock.Anything, "part-1", "doc-1").Return(nil)
+
+	req := httptest.NewRequest("DELETE", "/participants/part-1/documents/doc-1", nil)
+	rctx := chi.NewRouteContext()
+	rctx.URLParams.Add("id", "part-1")
+	rctx.URLParams.Add("docId", "doc-1")
+	req = req.WithContext(context.WithValue(req.Context(), chi.RouteCtxKey, rctx))
+
+	w := httptest.NewRecorder()
+	ctrl.DeleteDocument(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+}
+
+func createMultipartReq(method, url string, fieldName, fileName string, content []byte, extraFields map[string]string) (*http.Request, error) {
+	body := &bytes.Buffer{}
+	writer := multipart.NewWriter(body)
+	if fieldName != "" && fileName != "" {
+		part, err := writer.CreateFormFile(fieldName, fileName)
+		if err != nil {
+			return nil, err
+		}
+		if _, err := part.Write(content); err != nil {
+			return nil, err
+		}
+	}
+	for k, v := range extraFields {
+		if err := writer.WriteField(k, v); err != nil {
+			return nil, err
+		}
+	}
+	if err := writer.Close(); err != nil {
+		return nil, err
+	}
+
+	req := httptest.NewRequest(method, url, body)
+	req.Header.Set("Content-Type", writer.FormDataContentType())
+	return req, nil
+}
+
+func TestParticipantController_UploadDocument_Success(t *testing.T) {
+	mockSvc := new(MockParticipantService)
+	ctrl := controllers.NewParticipantController(mockSvc)
+
+	pdfContent := []byte("%PDF-1.4\n%sample pdf document content")
+	mockSvc.On("UploadDocument", mock.Anything, "part-1", "My Document", mock.Anything, "application/pdf", "sample.pdf").
+		Return(&models.ParticipantDocument{ID: "doc-1", Name: "My Document"}, nil)
+
+	req, err := createMultipartReq("POST", "/participants/part-1/documents", "file", "sample.pdf", pdfContent, map[string]string{
+		"name": "My Document",
+	})
+	assert.NoError(t, err)
+
+	rctx := chi.NewRouteContext()
+	rctx.URLParams.Add("id", "part-1")
+	req = req.WithContext(context.WithValue(req.Context(), chi.RouteCtxKey, rctx))
+
+	w := httptest.NewRecorder()
+	ctrl.UploadDocument(w, req)
+
+	assert.Equal(t, http.StatusCreated, w.Code)
+}
+
+func TestParticipantController_UploadDocument_DisallowedExtension(t *testing.T) {
+	mockSvc := new(MockParticipantService)
+	ctrl := controllers.NewParticipantController(mockSvc)
+
+	req, err := createMultipartReq("POST", "/participants/part-1/documents", "file", "script.exe", []byte("binary data"), nil)
+	assert.NoError(t, err)
+
+	rctx := chi.NewRouteContext()
+	rctx.URLParams.Add("id", "part-1")
+	req = req.WithContext(context.WithValue(req.Context(), chi.RouteCtxKey, rctx))
+
+	w := httptest.NewRecorder()
+	ctrl.UploadDocument(w, req)
+
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+	assert.Contains(t, w.Body.String(), "extensión no permitida")
+}
+
+func TestParticipantController_UploadDocument_SpoofedMime(t *testing.T) {
+	mockSvc := new(MockParticipantService)
+	ctrl := controllers.NewParticipantController(mockSvc)
+
+	// Filename says .pdf, but content is plaintext
+	req, err := createMultipartReq("POST", "/participants/part-1/documents", "file", "fake.pdf", []byte("plain text script"), nil)
+	assert.NoError(t, err)
+
+	rctx := chi.NewRouteContext()
+	rctx.URLParams.Add("id", "part-1")
+	req = req.WithContext(context.WithValue(req.Context(), chi.RouteCtxKey, rctx))
+
+	w := httptest.NewRecorder()
+	ctrl.UploadDocument(w, req)
+
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+	assert.Contains(t, w.Body.String(), "tipo de contenido MIME no permitido")
+}
+
+func TestParticipantController_UploadDocument_Forbidden(t *testing.T) {
+	mockSvc := new(MockParticipantService)
+	ctrl := controllers.NewParticipantController(mockSvc)
+
+	pdfContent := []byte("%PDF-1.4\n%sample pdf content")
+	mockSvc.On("UploadDocument", mock.Anything, "part-1", "sample.pdf", mock.Anything, "application/pdf", "sample.pdf").
+		Return(nil, errors.New("forbidden: access denied to other participant profiles"))
+
+	req, err := createMultipartReq("POST", "/participants/part-1/documents", "file", "sample.pdf", pdfContent, nil)
+	assert.NoError(t, err)
+
+	rctx := chi.NewRouteContext()
+	rctx.URLParams.Add("id", "part-1")
+	req = req.WithContext(context.WithValue(req.Context(), chi.RouteCtxKey, rctx))
+
+	w := httptest.NewRecorder()
+	ctrl.UploadDocument(w, req)
+
+	assert.Equal(t, http.StatusForbidden, w.Code)
+}
+
+func TestParticipantController_UploadDocument_InternalErrorMasked(t *testing.T) {
+	mockSvc := new(MockParticipantService)
+	ctrl := controllers.NewParticipantController(mockSvc)
+
+	pdfContent := []byte("%PDF-1.4\n%sample pdf content")
+	mockSvc.On("UploadDocument", mock.Anything, "part-1", "sample.pdf", mock.Anything, "application/pdf", "sample.pdf").
+		Return(nil, errors.New("failed to connect to database host at 10.0.0.1:5432"))
+
+	req, err := createMultipartReq("POST", "/participants/part-1/documents", "file", "sample.pdf", pdfContent, nil)
+	assert.NoError(t, err)
+
+	rctx := chi.NewRouteContext()
+	rctx.URLParams.Add("id", "part-1")
+	req = req.WithContext(context.WithValue(req.Context(), chi.RouteCtxKey, rctx))
+
+	w := httptest.NewRecorder()
+	ctrl.UploadDocument(w, req)
+
+	assert.Equal(t, http.StatusInternalServerError, w.Code)
+	assert.Contains(t, w.Body.String(), "Error interno al procesar la solicitud")
+	assert.NotContains(t, w.Body.String(), "10.0.0.1")
+}
+
+func TestParticipantController_GetDocuments_Forbidden(t *testing.T) {
+	mockSvc := new(MockParticipantService)
+	ctrl := controllers.NewParticipantController(mockSvc)
+
+	mockSvc.On("GetDocuments", mock.Anything, "part-1").
+		Return(nil, errors.New("forbidden: access denied to other participant documents"))
+
+	req := httptest.NewRequest("GET", "/participants/part-1/documents", nil)
+	rctx := chi.NewRouteContext()
+	rctx.URLParams.Add("id", "part-1")
+	req = req.WithContext(context.WithValue(req.Context(), chi.RouteCtxKey, rctx))
+
+	w := httptest.NewRecorder()
+	ctrl.GetDocuments(w, req)
+
+	assert.Equal(t, http.StatusForbidden, w.Code)
+}
+
+func TestParticipantController_GetDocuments_Success(t *testing.T) {
+	mockSvc := new(MockParticipantService)
+	ctrl := controllers.NewParticipantController(mockSvc)
+
+	mockSvc.On("GetDocuments", mock.Anything, "part-1").
+		Return([]models.ParticipantDocument{{ID: "doc-1", Name: "Cert"}}, nil)
+
+	req := httptest.NewRequest("GET", "/participants/part-1/documents", nil)
+	rctx := chi.NewRouteContext()
+	rctx.URLParams.Add("id", "part-1")
+	req = req.WithContext(context.WithValue(req.Context(), chi.RouteCtxKey, rctx))
+
+	w := httptest.NewRecorder()
+	ctrl.GetDocuments(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+	assert.Contains(t, w.Body.String(), "Cert")
+}
+
+func TestParticipantController_UpdateDocument_Success(t *testing.T) {
+	mockSvc := new(MockParticipantService)
+	ctrl := controllers.NewParticipantController(mockSvc)
+
+	pngContent := []byte("\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01\x00\x00\x00\x01\x08\x06\x00\x00\x00\x1f\x15c4")
+	mockSvc.On("UpdateDocument", mock.Anything, "part-1", "doc-1", "Updated Name", mock.Anything, "image/png", "image.png").
+		Return(&models.ParticipantDocument{ID: "doc-1", Name: "Updated Name"}, nil)
+
+	req, err := createMultipartReq("PUT", "/participants/part-1/documents/doc-1", "file", "image.png", pngContent, map[string]string{
+		"name": "Updated Name",
+	})
+	assert.NoError(t, err)
+
+	rctx := chi.NewRouteContext()
+	rctx.URLParams.Add("id", "part-1")
+	rctx.URLParams.Add("docId", "doc-1")
+	req = req.WithContext(context.WithValue(req.Context(), chi.RouteCtxKey, rctx))
+
+	w := httptest.NewRecorder()
+	ctrl.UpdateDocument(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+	assert.Contains(t, w.Body.String(), "Updated Name")
+}
+
+func TestParticipantController_DeleteDocument_Forbidden(t *testing.T) {
+	mockSvc := new(MockParticipantService)
+	ctrl := controllers.NewParticipantController(mockSvc)
+
+	mockSvc.On("DeleteDocument", mock.Anything, "part-1", "doc-1").
+		Return(errors.New("document does not belong to participant"))
+
+	req := httptest.NewRequest("DELETE", "/participants/part-1/documents/doc-1", nil)
+	rctx := chi.NewRouteContext()
+	rctx.URLParams.Add("id", "part-1")
+	rctx.URLParams.Add("docId", "doc-1")
+	req = req.WithContext(context.WithValue(req.Context(), chi.RouteCtxKey, rctx))
+
+	w := httptest.NewRecorder()
+	ctrl.DeleteDocument(w, req)
+
+	assert.Equal(t, http.StatusForbidden, w.Code)
+}
+
+func TestParticipantController_DownloadDocument_NotFound(t *testing.T) {
+	mockSvc := new(MockParticipantService)
+	ctrl := controllers.NewParticipantController(mockSvc)
+
+	mockSvc.On("DownloadDocument", mock.Anything, "part-1", "doc-1").
+		Return(nil, "", "", errors.New("document not found"))
+
+	req := httptest.NewRequest("GET", "/participants/part-1/documents/doc-1/download", nil)
+	rctx := chi.NewRouteContext()
+	rctx.URLParams.Add("id", "part-1")
+	rctx.URLParams.Add("docId", "doc-1")
+	req = req.WithContext(context.WithValue(req.Context(), chi.RouteCtxKey, rctx))
+
+	w := httptest.NewRecorder()
+	ctrl.DownloadDocument(w, req)
+
+	assert.Equal(t, http.StatusNotFound, w.Code)
+}
+
+func TestParticipantController_DownloadDocument_Success(t *testing.T) {
+	mockSvc := new(MockParticipantService)
+	ctrl := controllers.NewParticipantController(mockSvc)
+
+	mockSvc.On("DownloadDocument", mock.Anything, "part-1", "doc-1").
+		Return(io.NopCloser(bytes.NewBufferString("%PDF-sample")), "application/pdf", "sample.pdf", nil)
+
+	req := httptest.NewRequest("GET", "/participants/part-1/documents/doc-1/download", nil)
+	rctx := chi.NewRouteContext()
+	rctx.URLParams.Add("id", "part-1")
+	rctx.URLParams.Add("docId", "doc-1")
+	req = req.WithContext(context.WithValue(req.Context(), chi.RouteCtxKey, rctx))
+
+	w := httptest.NewRecorder()
+	ctrl.DownloadDocument(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+	assert.Equal(t, "application/pdf", w.Header().Get("Content-Type"))
+	assert.Contains(t, w.Header().Get("Content-Disposition"), "sample.pdf")
+	assert.Equal(t, "%PDF-sample", w.Body.String())
 }

@@ -98,8 +98,19 @@ describe("UsuariosComponent", () => {
       "updateRoleData",
       "deleteUser",
       "getParticipantDocuments",
+      "uploadParticipantDocument",
+      "updateParticipantDocument",
+      "deleteParticipantDocument",
+      "downloadParticipantDocument",
     ]);
     usersService.getParticipantDocuments.and.returnValue(of([]));
+    usersService.uploadParticipantDocument.and.returnValue(
+      of({ id: "pdoc-1", name: "doc1.pdf" }),
+    );
+    usersService.updateParticipantDocument.and.returnValue(
+      of({ id: "pdoc-1", name: "doc1_edit.pdf" }),
+    );
+    usersService.deleteParticipantDocument.and.returnValue(of({ success: true }));
     education = jasmine.createSpyObj<EducationService>("EducationService", [
       "getBulkUserCourses",
       "getParticipantEnrollments",
@@ -612,5 +623,79 @@ describe("UsuariosComponent", () => {
     expect(usersService.updateRoleData).toHaveBeenCalledWith("participants", "part-1", {
       image_url: "https://gcp.bucket/pictures/p1/pic.jpg",
     });
+  });
+
+  it("uploads a document for a participant", () => {
+    setup(admin, []);
+    const participantRow = row({
+      id: "p1",
+      role: "Participante",
+      originalUser: apiUser({ user_id: "p1", role_id: "role_participant" }),
+      profileData: { role_data: { participant_id: "part-1" } },
+    });
+    component.selectedUser = participantRow;
+    component.participantDocuments = [];
+
+    const file = new File(["dummy"], "dni.pdf", { type: "application/pdf" });
+    const event = { target: { files: [file], value: "C:\\fakepath\\dni.pdf" } };
+
+    component.onDocumentSelected(event);
+
+    expect(usersService.uploadParticipantDocument).toHaveBeenCalledWith("part-1", file, "dni.pdf");
+    expect(component.participantDocuments).toHaveSize(1);
+    expect(component.participantDocuments[0].id).toBe("pdoc-1");
+  });
+
+  it("manages document edit state and updates document", () => {
+    setup(admin, []);
+    const participantRow = row({
+      id: "p1",
+      role: "Participante",
+      originalUser: apiUser({ user_id: "p1", role_id: "role_participant" }),
+      profileData: { role_data: { participant_id: "part-1" } },
+    });
+    component.selectedUser = participantRow;
+    component.participantDocuments = [{ id: "pdoc-1", name: "doc1.pdf" }];
+
+    component.startEditDocument(component.participantDocuments[0]);
+    expect(component.editingDocId).toBe("pdoc-1");
+    expect(component.editingDocName).toBe("doc1.pdf");
+
+    component.editingDocName = "doc1_edit.pdf";
+    const replaceFile = new File(["updated"], "doc1_new.pdf", { type: "application/pdf" });
+    component.onEditDocFileSelected({ target: { files: [replaceFile] } });
+
+    component.saveEditDocument("pdoc-1");
+
+    expect(usersService.updateParticipantDocument).toHaveBeenCalledWith(
+      "part-1",
+      "pdoc-1",
+      replaceFile,
+      "doc1_edit.pdf",
+    );
+    expect(component.participantDocuments[0].name).toBe("doc1_edit.pdf");
+    expect(component.editingDocId).toBeNull();
+  });
+
+  it("deletes a document for a participant", () => {
+    setup(admin, []);
+    spyOn(window, "confirm").and.returnValue(true);
+    const participantRow = row({
+      id: "p1",
+      role: "Participante",
+      originalUser: apiUser({ user_id: "p1", role_id: "role_participant" }),
+      profileData: { role_data: { participant_id: "part-1" } },
+    });
+    component.selectedUser = participantRow;
+    component.participantDocuments = [
+      { id: "pdoc-1", name: "doc1.pdf" },
+      { id: "pdoc-2", name: "doc2.pdf" },
+    ];
+
+    component.deleteDocument("pdoc-1");
+
+    expect(usersService.deleteParticipantDocument).toHaveBeenCalledWith("part-1", "pdoc-1");
+    expect(component.participantDocuments).toHaveSize(1);
+    expect(component.participantDocuments[0].id).toBe("pdoc-2");
   });
 });

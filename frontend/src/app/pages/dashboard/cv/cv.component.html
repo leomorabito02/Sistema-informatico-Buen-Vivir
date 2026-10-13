@@ -79,11 +79,10 @@
               ></p-dropdown>
             </div>
 
-            <div class="field mb-3">
-              <label for="picture">Foto de Perfil</label>
+            <div class="field mb-3" *ngIf="cv.basics.picture">
+              <span class="block font-medium mb-1">Foto de Perfil</span>
               <div class="flex items-center gap-2">
                 <img
-                  *ngIf="cv.basics.picture"
                   [src]="resolveImageUrl(cv.basics.picture)"
                   alt="Foto de Perfil"
                   class="w-16 h-16 rounded-full object-cover border border-gray-300 shrink-0"
@@ -94,17 +93,6 @@
                     max-height: 64px;
                   "
                 />
-                <input
-                  type="file"
-                  id="picture"
-                  accept="image/*"
-                  (change)="onPictureSelected($event)"
-                  class="p-inputtext p-component flex-1"
-                />
-                <p-progressSpinner
-                  *ngIf="uploadingPicture"
-                  styleClass="w-8 h-8"
-                ></p-progressSpinner>
               </div>
             </div>
 
@@ -559,7 +547,7 @@
             >
               <img
                 *ngIf="cv.basics.picture"
-                [src]="cv.basics.picture"
+                [src]="resolveImageUrl(cv.basics.picture)"
                 alt="Foto de perfil en vista previa"
                 class="w-24 h-24 rounded-full object-cover mb-2 border border-gray-200"
                 style="
