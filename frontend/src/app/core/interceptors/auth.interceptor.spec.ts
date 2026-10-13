@@ -13,6 +13,7 @@ import { authInterceptor } from "./auth.interceptor";
 import { AuthService } from "../../services/auth.service";
 import { SessionPromptService } from "../../services/session-prompt.service";
 import { LoginResponse } from "../models/auth.model";
+import { environment } from "../../../environments/environment";
 
 describe("authInterceptor", () => {
   let http: HttpClient;
@@ -72,6 +73,18 @@ describe("authInterceptor", () => {
     const req = httpMock.expectOne("https://example.com/data");
     expect(req.request.withCredentials).toBeFalse();
     req.flush({});
+  });
+
+  it("should add credentials to environment.apiUrl requests", () => {
+    const originalApiUrl = environment.apiUrl;
+    (environment as any).apiUrl = "http://localhost:8080";
+    const targetUrl = "http://localhost:8080/api/v1/users";
+    http.get(targetUrl).subscribe();
+
+    const req = httpMock.expectOne(targetUrl);
+    expect(req.request.withCredentials).toBe(true);
+    req.flush({});
+    (environment as any).apiUrl = originalApiUrl;
   });
 
   it("should refresh the session and retry when the user accepts extending it", () => {

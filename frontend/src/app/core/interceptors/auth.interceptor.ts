@@ -5,14 +5,18 @@ import { catchError, switchMap } from "rxjs/operators";
 import { throwError, BehaviorSubject, filter, take } from "rxjs";
 import { AuthService } from "../../services/auth.service";
 import { SessionPromptService } from "../../services/session-prompt.service";
+import { environment } from "../../../environments/environment";
 
 let isRefreshing = false;
 const refreshTokenSubject = new BehaviorSubject<any>(null);
 
 export const authInterceptor: HttpInterceptorFn = (req, next) => {
-  const isExternal =
-    req.url.startsWith("http") && !req.url.startsWith(window.location.origin);
-  if (isExternal) {
+  const isApiUrl = !!environment.apiUrl && req.url.startsWith(environment.apiUrl);
+  const isInternal =
+    req.url.startsWith("/") ||
+    req.url.startsWith(window.location.origin) ||
+    isApiUrl;
+  if (!isInternal) {
     return next(req);
   }
 

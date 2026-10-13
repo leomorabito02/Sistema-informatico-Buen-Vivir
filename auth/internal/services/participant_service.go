@@ -33,23 +33,33 @@ type participantService struct {
 	userRepo        repositories.UserRepository
 	docRepo         repositories.ParticipantDocumentRepository
 	storage         storage.ObjectStorageService
+	cleanupRepo     repositories.StorageCleanupRepository
 }
 
 func NewParticipantService(
 	participantRepo repositories.ParticipantRepository,
 	docRepo repositories.ParticipantDocumentRepository,
 	storage storage.ObjectStorageService,
-	opts ...repositories.UserRepository,
+	opts ...any,
 ) ParticipantService {
 	var userRepo repositories.UserRepository
-	if len(opts) > 0 {
-		userRepo = opts[0]
+	var cleanupRepo repositories.StorageCleanupRepository
+
+	for _, opt := range opts {
+		switch v := opt.(type) {
+		case repositories.UserRepository:
+			userRepo = v
+		case repositories.StorageCleanupRepository:
+			cleanupRepo = v
+		}
 	}
+
 	return &participantService{
 		participantRepo: participantRepo,
 		docRepo:         docRepo,
 		storage:         storage,
 		userRepo:        userRepo,
+		cleanupRepo:     cleanupRepo,
 	}
 }
 

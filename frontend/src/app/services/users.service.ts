@@ -171,9 +171,11 @@ export class UsersService {
     if (name) {
       formData.append("name", name);
     }
-    return this.http.post(`${this.apiUrl}/api/v1/participants/${participantId}/documents`, formData, {
-      withCredentials: true,
-    });
+    return this.http
+      .post<{ success: boolean; data: any }>(`${this.apiUrl}/api/v1/participants/${participantId}/documents`, formData, {
+        withCredentials: true,
+      })
+      .pipe(map((res) => res?.data || res));
   }
 
   updateParticipantDocument(participantId: string, docId: string, file?: File, name?: string): Observable<any> {
@@ -181,9 +183,11 @@ export class UsersService {
     if (file) formData.append("file", file);
     if (name) formData.append("name", name);
     
-    return this.http.put(`${this.apiUrl}/api/v1/participants/${participantId}/documents/${docId}`, formData, {
-      withCredentials: true,
-    });
+    return this.http
+      .put<{ success: boolean; data: any }>(`${this.apiUrl}/api/v1/participants/${participantId}/documents/${docId}`, formData, {
+        withCredentials: true,
+      })
+      .pipe(map((res) => res?.data || res));
   }
 
   deleteParticipantDocument(participantId: string, docId: string): Observable<any> {

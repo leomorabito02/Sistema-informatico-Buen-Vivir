@@ -106,6 +106,9 @@ export class UsuariosComponent implements OnInit {
   editForm: any = {};
   participantDocuments: any[] = [];
   uploadingDocument: boolean = false;
+  editingDocId: string | null = null;
+  editingDocName: string = '';
+  editingDocFile: File | null = null;
 
   ngOnInit() {
     this.checkCurrentUserPermissions();
@@ -359,6 +362,7 @@ export class UsuariosComponent implements OnInit {
     }
 
     this.selectedUser = user;
+    this.cancelEditDocument();
 
     // Inicializar el formulario con los datos básicos
     const userStatusRaw = user.originalUser?.status || "active";
@@ -770,10 +774,70 @@ export class UsuariosComponent implements OnInit {
         error: (err) => {
           console.error("Error al subir documento:", err);
           this.uploadingDocument = false;
-          alert("Error al subir el documento.");
+          const errorMsg =
+            err.error?.error ||
+            err.error?.message ||
+            err.message ||
+            "Error al subir el documento.";
+          alert(errorMsg);
         }
       });
     }
+  }
+
+  startEditDocument(doc: any) {
+    this.editingDocId = doc.id;
+    this.editingDocName = doc.name || "";
+    this.editingDocFile = null;
+  }
+
+  cancelEditDocument() {
+    this.editingDocId = null;
+    this.editingDocName = "";
+    this.editingDocFile = null;
+  }
+
+  onEditDocFileSelected(event: any) {
+    this.editingDocFile = event.target?.files?.[0] || null;
+  }
+
+  saveEditDocument(docId: string) {
+    const participantId = this.selectedUser?.profileData?.role_data?.participant_id;
+    if (!participantId) return;
+
+    if (!this.editingDocName.trim()) {
+      alert("El nombre del documento no puede estar vacío.");
+      return;
+    }
+
+    this.uploadingDocument = true;
+    this.usersService
+      .updateParticipantDocument(
+        participantId,
+        docId,
+        this.editingDocFile || undefined,
+        this.editingDocName.trim(),
+      )
+      .subscribe({
+        next: (updatedDoc) => {
+          this.uploadingDocument = false;
+          const idx = this.participantDocuments.findIndex((d) => d.id === docId);
+          if (idx !== -1) {
+            this.participantDocuments[idx] = updatedDoc;
+          }
+          this.cancelEditDocument();
+        },
+        error: (err) => {
+          console.error("Error al actualizar documento:", err);
+          this.uploadingDocument = false;
+          const errorMsg =
+            err.error?.error ||
+            err.error?.message ||
+            err.message ||
+            "Error al actualizar el documento.";
+          alert(errorMsg);
+        },
+      });
   }
 
   deleteDocument(docId: string) {
@@ -782,10 +846,18 @@ export class UsuariosComponent implements OnInit {
        this.usersService.deleteParticipantDocument(participantId, docId).subscribe({
           next: () => {
              this.participantDocuments = this.participantDocuments.filter(d => d.id !== docId);
+             if (this.editingDocId === docId) {
+               this.cancelEditDocument();
+             }
           },
           error: (err) => {
              console.error("Error al eliminar documento:", err);
-             alert("Error al eliminar el documento.");
+             const errorMsg =
+               err.error?.error ||
+               err.error?.message ||
+               err.message ||
+               "Error al eliminar el documento.";
+             alert(errorMsg);
           }
        });
      }
@@ -808,7 +880,12 @@ export class UsuariosComponent implements OnInit {
         },
         error: (err) => {
           console.error("Error al descargar documento:", err);
-          alert("No se pudo descargar el documento.");
+          const errorMsg =
+            err.error?.error ||
+            err.error?.message ||
+            err.message ||
+            "No se pudo descargar el documento.";
+          alert(errorMsg);
         }
       });
     }
