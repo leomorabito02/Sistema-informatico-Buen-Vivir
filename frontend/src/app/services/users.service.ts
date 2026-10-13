@@ -156,6 +156,49 @@ export class UsersService {
       );
   }
 
+  // Document Management Methods for Participants
+  getParticipantDocuments(participantId: string): Observable<any[]> {
+    return this.http
+      .get<{ success: boolean; data: any[] }>(`${this.apiUrl}/api/v1/participants/${participantId}/documents`, {
+        withCredentials: true,
+      })
+      .pipe(map(res => res.data));
+  }
+
+  uploadParticipantDocument(participantId: string, file: File, name: string): Observable<any> {
+    const formData = new FormData();
+    formData.append("file", file);
+    if (name) {
+      formData.append("name", name);
+    }
+    return this.http.post(`${this.apiUrl}/api/v1/participants/${participantId}/documents`, formData, {
+      withCredentials: true,
+    });
+  }
+
+  updateParticipantDocument(participantId: string, docId: string, file?: File, name?: string): Observable<any> {
+    const formData = new FormData();
+    if (file) formData.append("file", file);
+    if (name) formData.append("name", name);
+    
+    return this.http.put(`${this.apiUrl}/api/v1/participants/${participantId}/documents/${docId}`, formData, {
+      withCredentials: true,
+    });
+  }
+
+  deleteParticipantDocument(participantId: string, docId: string): Observable<any> {
+    return this.http.delete(`${this.apiUrl}/api/v1/participants/${participantId}/documents/${docId}`, {
+      withCredentials: true,
+    });
+  }
+
+  downloadParticipantDocument(participantId: string, docId: string): Observable<Blob> {
+    return this.http.get(`${this.apiUrl}/api/v1/participants/${participantId}/documents/${docId}/download`, {
+      withCredentials: true,
+      responseType: 'blob'
+    });
+  }
+
   private readonly handleError = (error: HttpErrorResponse) => {
     let message = "No se pudo obtener el listado de usuarios.";
     const body = error.error as { errors?: string; error?: string } | null;

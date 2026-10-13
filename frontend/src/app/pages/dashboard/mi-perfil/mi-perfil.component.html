@@ -99,7 +99,16 @@
                 {{ formatRoleValue(item.key, item.value) }}
               </div>
               <div *ngIf="isEditingProfile && profileForm.contains(item.key)" class="input-wrapper">
-                <input type="text" class="form-input" [id]="item.key" [formControlName]="item.key">
+                <ng-container *ngIf="item.key !== 'image_url'; else fileInput">
+                  <input type="text" class="form-input" [id]="item.key" [formControlName]="item.key">
+                </ng-container>
+                <ng-template #fileInput>
+                  <div style="display: flex; align-items: center; gap: 1rem;">
+                    <img *ngIf="profileData.role_data['image_url'] || profileData.role_data['profile_picture_url']" [src]="resolveImageUrl(profileData.role_data['image_url'] || profileData.role_data['profile_picture_url'])" alt="Preview" style="width: 50px; height: 50px; object-fit: cover; border-radius: 50%; border: 1px solid #dee2e6;">
+                    <input type="file" class="form-input" [id]="item.key" accept="image/*" (change)="onPictureSelected($event)" [disabled]="uploadingPicture">
+                  </div>
+                  <small *ngIf="uploadingPicture">Subiendo foto...</small>
+                </ng-template>
               </div>
             </div>
           </ng-container>
@@ -113,6 +122,37 @@
         </button>
       </div>
     </form>
+
+    <!-- Documentación (solo participantes) -->
+    <section class="profile-section" *ngIf="profileData.user.role_id === 'role_participant'">
+      <div class="section-header">
+        <lucide-icon [img]="BriefcaseIcon" size="20"></lucide-icon>
+        <h2>Gestión de Documentos</h2>
+      </div>
+      
+      <div class="form-group mb-4" style="margin-bottom: 1.5rem;">
+        <label for="newDocFile" style="display: block; margin-bottom: 0.5rem; font-weight: 500;">Subir Nuevo Documento</label>
+        <input type="file" id="newDocFile" class="form-input" (change)="onDocumentSelected($event)" [disabled]="uploadingDocument">
+        <small *ngIf="uploadingDocument" style="color: #666; display: block; margin-top: 0.25rem;">Subiendo documento...</small>
+      </div>
+
+      <div class="mt-3">
+        <strong>Documentación Subida:</strong>
+        <ul class="document-list" *ngIf="participantDocuments && participantDocuments.length > 0; else noDocs" style="list-style: none; padding: 0; margin: 0.5rem 0;">
+          <li *ngFor="let doc of participantDocuments" style="display: flex; justify-content: space-between; align-items: center; padding: 0.75rem; border: 1px solid #e2e8f0; border-radius: 6px; margin-bottom: 0.5rem; background-color: #f8fafc;">
+            <a href="#" (click)="downloadDocument(doc.id, doc.name, $event)" class="doc-link" style="text-decoration: none; color: #2196F3; display: flex; align-items: center; font-weight: 500;">
+              <i class="pi pi-file mr-2" style="font-size: 1.2rem;"></i> {{ doc.name }}
+            </a>
+            <button type="button" class="btn-action btn-delete" (click)="deleteDocument(doc.id)" title="Eliminar documento" style="background: none; border: none; color: #dc3545; cursor: pointer; padding: 0.5rem; border-radius: 4px; transition: background-color 0.2s;">
+              <i class="pi pi-trash" style="font-size: 1.1rem;"></i>
+            </button>
+          </li>
+        </ul>
+        <ng-template #noDocs>
+          <p class="text-muted text-sm mt-1 mb-0" style="color: #64748b; font-style: italic;">No hay documentos subidos.</p>
+        </ng-template>
+      </div>
+    </section>
 
     <!-- Vinculación de Google -->
     <section class="profile-section">

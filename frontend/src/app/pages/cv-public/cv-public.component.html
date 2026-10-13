@@ -13,7 +13,7 @@
     <div class="cv-header">
       <div class="profile-pic-container" *ngIf="resume.data?.basics?.picture">
         <img
-          [src]="resume.data.basics.picture"
+          [src]="resolveImageUrl(resume.data.basics.picture)"
           alt="Foto de perfil"
           class="profile-pic"
         />

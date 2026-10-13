@@ -10,6 +10,7 @@ import { DialogModule } from "primeng/dialog";
 import { ToastModule } from "primeng/toast";
 import { ConfirmDialogModule } from "primeng/confirmdialog";
 import { ConfirmationService, MessageService } from "primeng/api";
+import { ProgressSpinnerModule } from "primeng/progressspinner";
 import { AuthService } from "../../../services/auth.service";
 import { UsersService } from "../../../services/users.service";
 import { EducationService } from "../../../services/education.service";
@@ -17,6 +18,8 @@ import { User } from "../../../core/models/auth.model";
 import { Router } from "@angular/router";
 import { LoadingStateComponent } from "../../../shared/components/loading-state.component";
 import { ErrorStateComponent } from "../../../shared/components/error-state.component";
+import { RxResumeService } from "../../../services/rxresume.service";
+import { environment } from "../../../../environments/environment";
 
 export interface DashboardUser {
   id: string;
@@ -26,6 +29,7 @@ export interface DashboardUser {
   role: string;
   status: string; // 'Activo' | 'Pendiente' | 'Bloqueado'
   roleApprovalStatus?: string; // 'approved' | 'pending' | 'rejected'
+  image_url?: string;
   coursesStatus: string;
   originalUser?: any; // To store full backend data if needed
   profileData?: any; // Full profile data fetched on demand
@@ -48,22 +52,24 @@ export interface DashboardUser {
     ConfirmDialogModule,
     LoadingStateComponent,
     ErrorStateComponent,
+    ProgressSpinnerModule,
   ],
   providers: [MessageService, ConfirmationService],
   templateUrl: "./usuarios.component.html",
   styleUrls: ["./usuarios.component.css"],
 })
 export class UsuariosComponent implements OnInit {
-  private readonly authService = inject(AuthService);
-  private readonly usersService = inject(UsersService);
-  private readonly educationService = inject(EducationService);
-  private readonly router = inject(Router);
+	private readonly authService = inject(AuthService);
+	private readonly usersService = inject(UsersService);
+	private readonly educationService = inject(EducationService);
+	private readonly router = inject(Router);
   private readonly messages = inject(MessageService);
   private readonly confirmation = inject(ConfirmationService);
 
   /** Carga inicial de la lista (para skeleton y estado de error). */
   loading = true;
   loadError = "";
+	private readonly rxResumeService = inject(RxResumeService);
 
   searchTerm: string = "";
   selectedRole: string = "Todos los roles";
@@ -98,6 +104,8 @@ export class UsuariosComponent implements OnInit {
   showEditModal: boolean = false;
   selectedUser: DashboardUser | null = null;
   editForm: any = {};
+  participantDocuments: any[] = [];
+  uploadingDocument: boolean = false;
 
   ngOnInit() {
     this.checkCurrentUserPermissions();
@@ -204,6 +212,7 @@ export class UsuariosComponent implements OnInit {
       role: roleName,
       status: displayStatus,
       roleApprovalStatus: (u as any).role_approval_status,
+      image_url: u.image_url,
       coursesStatus: "—",
       originalUser: u,
     };
@@ -399,6 +408,37 @@ export class UsuariosComponent implements OnInit {
               .split("T")[0];
           }
         }
+
+        if (profile.role_data?.participant_id) {
+          this.usersService.getParticipantDocuments(profile.role_data.participant_id).subscribe({
+            next: (docs) => this.participantDocuments = docs || [],
+            error: (err) => console.error("Error fetching docs", err)
+          });
+        } else {
+          this.participantDocuments = [];
+        }
+
+        if (
+          user.originalUser.role_id === "role_participant" ||
+          user.role === "Participante"
+        ) {
+          this.rxResumeService.getUserResumeByAdmin(userId).subscribe({
+            next: (resume) => {
+              const cvPic = resume?.data?.basics?.picture;
+              if (cvPic) {
+                user.image_url = cvPic;
+                if (user.profileData?.role_data) {
+                  user.profileData.role_data.image_url = cvPic;
+                }
+                if (populateEditForm) {
+                  this.editForm.image_url = cvPic;
+                }
+              }
+            },
+            error: () => {},
+          });
+        }
+
         if (onComplete) onComplete();
       },
       error: (err) => {
@@ -468,6 +508,103 @@ export class UsuariosComponent implements OnInit {
     });
   }
 
+  uploadingPicture = false;
+
+  resolveImageUrl(url?: string): string {
+    if (!url) return "";
+    if (url.startsWith("http://localhost:8080/api/v1/")) {
+      const path = url.replace("http://localhost:8080", "");
+      return `${environment.apiUrl || ""}${path}`;
+    }
+    if (url.startsWith("/")) {
+      return `${environment.apiUrl || ""}${url}`;
+    }
+    return url;
+  }
+
+  canEditPicture(): boolean {
+    if (!this.selectedUser) return false;
+    const isParticipant =
+      this.selectedUser.originalUser?.role_id === "role_participant" ||
+      this.selectedUser.role === "Participante";
+    return (
+      isParticipant &&
+      (this.currentUserRoleId === "role_admin" ||
+        this.currentUserRoleId === "admin" ||
+        this.isVolunteerOnly)
+    );
+  }
+
+  onDetailPictureSelected(event: any) {
+    const file = event.target?.files?.[0];
+    if (file && this.selectedUser?.originalUser?.user_id) {
+      if (file.size > 10 * 1024 * 1024) {
+        alert("La imagen no debe superar los 10MB.");
+        return;
+      }
+      this.uploadingPicture = true;
+      const userId = this.selectedUser.originalUser.user_id;
+
+      this.rxResumeService
+        .uploadUserPictureByAdmin(userId, file)
+        .subscribe({
+          next: (resume) => {
+            this.uploadingPicture = false;
+            const newPic = resume.data?.basics?.picture;
+            if (newPic && this.selectedUser) {
+              this.selectedUser.image_url = newPic;
+              if (this.selectedUser.profileData?.role_data) {
+                this.selectedUser.profileData.role_data.image_url = newPic;
+              }
+              const inList = this.users.find((u) => u.id === userId);
+              if (inList) inList.image_url = newPic;
+
+              const partId =
+                this.selectedUser.profileData?.role_data?.participant_id;
+              if (partId) {
+                this.usersService
+                  .updateRoleData("participants", partId, { image_url: newPic })
+                  .subscribe({
+                    error: (err) =>
+                      console.error("Error sincronizando imagen en rol:", err),
+                  });
+              }
+            }
+          },
+          error: (err) => {
+            console.error("Error al subir foto:", err);
+            this.uploadingPicture = false;
+            alert(
+              "Error al subir la foto de perfil: " +
+                (err.message || "Desconocido"),
+            );
+          },
+        });
+    }
+  }
+
+  onPictureSelected(event: any) {
+    const file = event.target.files[0];
+    if (file && this.selectedUser?.originalUser?.user_id) {
+      this.uploadingPicture = true;
+      this.rxResumeService.uploadUserPictureByAdmin(this.selectedUser.originalUser.user_id, file).subscribe({
+        next: (resume) => {
+          this.uploadingPicture = false;
+          if (resume.data?.basics?.picture) {
+            this.editForm.image_url = resume.data.basics.picture;
+            // Update immediately in db
+            this.saveEdit();
+          }
+        },
+        error: (err) => {
+          console.error("Error al subir foto:", err);
+          this.uploadingPicture = false;
+          alert("Error al subir la foto de perfil.");
+        }
+      });
+    }
+  }
+
   saveEdit() {
     if (!this.selectedUser?.originalUser?.user_id) return;
 
@@ -516,6 +653,45 @@ export class UsuariosComponent implements OnInit {
     return tableMap[roleId] || "";
   }
 
+  private buildParticipantPayload(): Record<string, any> {
+    const raw = this.editForm;
+    const payload: Record<string, any> = {
+      birthdate: raw.birthdate ? new Date(raw.birthdate).toISOString() : undefined,
+      dni: raw.dni || "",
+      address: raw.address || "",
+      gender: raw.gender || "",
+      emergency_contact_name: raw.emergency_contact_name || "",
+      emergency_contact_phone: raw.emergency_contact_phone || "",
+      image_url: raw.image_url || "",
+      doc_url: raw.doc_url || "",
+    };
+
+    if (raw.approval_status) {
+      payload['approval_status'] = raw.approval_status;
+      if (raw.approval_status === "approved" && this.currentUserId) {
+        payload['approved_by'] = this.currentUserId;
+      }
+    }
+    return payload;
+  }
+
+  private buildGenericRolePayload(): Record<string, any> {
+    const rolePayload: any = { ...this.editForm };
+    delete rolePayload.first_name;
+    delete rolePayload.last_name;
+    delete rolePayload.phone;
+    delete rolePayload.status;
+
+    if (rolePayload.approval_status === "approved" && this.currentUserId) {
+      rolePayload.approved_by = this.currentUserId;
+    }
+    rolePayload.birthdate = rolePayload.birthdate
+      ? new Date(rolePayload.birthdate).toISOString()
+      : null;
+
+    return rolePayload;
+  }
+
   private updateRoleSpecificData(userId: string, roleId: string) {
     const tableName = this.getRoleTableName(roleId);
     if (!tableName) {
@@ -531,33 +707,16 @@ export class UsuariosComponent implements OnInit {
     };
     const key = idKeyMap[tableName];
 
-    // Si no existe la ID del rol (ej. volunteer_id) en el formulario, significa que
-    // el registro del rol no existe en la base de datos para este usuario.
-    // No podemos hacer un PUT.
     if (key && !this.editForm[key]) {
       this.finishSave();
       return;
     }
 
     const targetRoleId = key ? this.editForm[key] : userId;
-
-    // Creamos un payload limpio con las propiedades del role
-    const rolePayload = { ...this.editForm };
-    delete rolePayload.first_name;
-    delete rolePayload.last_name;
-    delete rolePayload.phone;
-    delete rolePayload.status;
-
-    if (rolePayload.approval_status === "approved" && this.currentUserId) {
-      rolePayload.approved_by = this.currentUserId;
-    }
-
-    // Formatear fechas para enviarlas como RFC3339 / ISO
-    if (rolePayload.birthdate) {
-      rolePayload.birthdate = new Date(rolePayload.birthdate).toISOString();
-    } else {
-      rolePayload.birthdate = null;
-    }
+    const rolePayload =
+      tableName === "participants"
+        ? this.buildParticipantPayload()
+        : this.buildGenericRolePayload();
 
     // Enviar petición para actualizar el rol
     this.usersService
@@ -589,8 +748,68 @@ export class UsuariosComponent implements OnInit {
 
   goToEditCV(user: DashboardUser) {
     if (user?.originalUser?.user_id) {
-      this.router.navigate(["/dashboard/cv"], {
+      void this.router.navigate(["/dashboard/cv"], {
         queryParams: { userId: user.originalUser.user_id },
+      });
+    }
+  }
+
+  onDocumentSelected(event: any) {
+    const file = event.target.files[0];
+    const participantId = this.selectedUser?.profileData?.role_data?.participant_id;
+    if (file && participantId) {
+      this.uploadingDocument = true;
+      this.usersService.uploadParticipantDocument(participantId, file, file.name).subscribe({
+        next: (doc) => {
+          this.uploadingDocument = false;
+          if (doc) {
+            this.participantDocuments.push(doc);
+          }
+          event.target.value = ''; // Reset input
+        },
+        error: (err) => {
+          console.error("Error al subir documento:", err);
+          this.uploadingDocument = false;
+          alert("Error al subir el documento.");
+        }
+      });
+    }
+  }
+
+  deleteDocument(docId: string) {
+    const participantId = this.selectedUser?.profileData?.role_data?.participant_id;
+    if (participantId && confirm("¿Estás seguro de que deseas eliminar este documento?")) {
+       this.usersService.deleteParticipantDocument(participantId, docId).subscribe({
+          next: () => {
+             this.participantDocuments = this.participantDocuments.filter(d => d.id !== docId);
+          },
+          error: (err) => {
+             console.error("Error al eliminar documento:", err);
+             alert("Error al eliminar el documento.");
+          }
+       });
+     }
+  }
+
+  downloadDocument(docId: string, docName: string, event: Event) {
+    event.preventDefault(); // Prevent navigating to href
+    const participantId = this.selectedUser?.profileData?.role_data?.participant_id;
+    if (participantId) {
+      this.usersService.downloadParticipantDocument(participantId, docId).subscribe({
+        next: (blob: Blob) => {
+          const url = window.URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = docName;
+          document.body.appendChild(a);
+          a.click();
+          window.URL.revokeObjectURL(url);
+          a.remove();
+        },
+        error: (err) => {
+          console.error("Error al descargar documento:", err);
+          alert("No se pudo descargar el documento.");
+        }
       });
     }
   }

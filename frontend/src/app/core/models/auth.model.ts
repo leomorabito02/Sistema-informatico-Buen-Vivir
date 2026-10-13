@@ -20,6 +20,7 @@ export interface User {
   created_at: string;
   updated_at: string;
   role_data?: RoleData;
+  image_url?: string;
 }
 
 export interface RoleData {

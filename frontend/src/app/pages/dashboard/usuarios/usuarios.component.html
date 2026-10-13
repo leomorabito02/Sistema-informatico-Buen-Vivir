@@ -97,7 +97,10 @@
           <td>
             <div class="user-profile-cell">
               <div class="avatar-circle">
-                <i class="pi pi-user"></i>
+                <img *ngIf="user.image_url; else noTableAvatar" [src]="resolveImageUrl(user.image_url)" alt="Avatar" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;">
+                <ng-template #noTableAvatar>
+                  <i class="pi pi-user"></i>
+                </ng-template>
               </div>
               <span class="user-name">{{ user.name }}</span>
             </div>
@@ -183,27 +186,58 @@
       <div
         class="profile-header"
         *ngIf="
-          selectedUser.profileData?.role_data?.image_url ||
-            selectedUser.profileData?.role_data?.profile_picture_url;
+          selectedUser.image_url ||
+          selectedUser.profileData?.role_data?.['image_url'] ||
+          selectedUser.profileData?.role_data?.['profile_picture_url'];
           else defaultAvatar
         "
       >
-        <img
-          [src]="
-            selectedUser.profileData.role_data.image_url ||
-            selectedUser.profileData.role_data.profile_picture_url
-          "
-          alt="Foto de perfil"
-          class="profile-picture"
-        />
+        <div class="profile-picture-wrapper">
+          <img
+            [src]="
+              resolveImageUrl(
+                selectedUser.image_url ||
+                selectedUser.profileData?.role_data?.['image_url'] ||
+                selectedUser.profileData?.role_data?.['profile_picture_url']
+              )
+            "
+            alt="Foto de perfil"
+            class="profile-picture"
+          />
+        </div>
       </div>
       <ng-template #defaultAvatar>
         <div class="profile-header">
-          <div class="avatar-circle large">
-            <i class="pi pi-user"></i>
+          <div class="profile-picture-wrapper">
+            <div class="avatar-circle large">
+              <i class="pi pi-user"></i>
+            </div>
+            <button
+              *ngIf="canEditPicture()"
+              type="button"
+              class="btn-change-picture"
+              (click)="detailPhotoInput.click()"
+              [disabled]="uploadingPicture"
+              title="Subir foto de perfil"
+            >
+              <i class="pi pi-camera"></i>
+            </button>
           </div>
         </div>
       </ng-template>
+      <label for="detailPhotoInput" class="sr-only" style="display: none;">Foto de perfil</label>
+      <input
+        id="detailPhotoInput"
+        #detailPhotoInput
+        type="file"
+        accept="image/*"
+        (change)="onDetailPictureSelected($event)"
+        style="display: none;"
+      />
+      <div *ngIf="uploadingPicture" class="picture-uploading-indicator">
+        <p-progressSpinner styleClass="w-5 h-5" strokeWidth="4"></p-progressSpinner>
+        <span>Subiendo foto...</span>
+      </div>
 
       <!-- General User Info -->
       <div class="detail-grid">
@@ -275,12 +309,19 @@
           <strong>Tel. Emergencia:</strong>
           {{ roleData["emergency_contact_phone"] }}
         </p>
-        <p *ngIf="roleData['doc_url']">
+        <div *ngIf="roleData['participant_id']" class="mt-3">
           <strong>Documentación:</strong>
-          <a [href]="roleData['doc_url']" target="_blank" class="doc-link"
-            ><i class="pi pi-external-link"></i> Ver documentación</a
-          >
-        </p>
+          <ul class="document-list" *ngIf="participantDocuments && participantDocuments.length > 0; else noDocs" style="list-style: none; padding: 0; margin: 0.5rem 0;">
+            <li *ngFor="let doc of participantDocuments" style="padding: 0.5rem 0;">
+              <a href="#" (click)="downloadDocument(doc.id, doc.name, $event)" class="doc-link" style="text-decoration: none; color: #2196F3;">
+                <i class="pi pi-file mr-2"></i> {{ doc.name }}
+              </a>
+            </li>
+          </ul>
+          <ng-template #noDocs>
+            <p class="text-muted text-sm mt-1 mb-0">No hay documentos subidos.</p>
+          </ng-template>
+        </div>
 
         <div
           *ngIf="selectedUser.originalUser?.role_id === 'role_participant'"
@@ -547,24 +588,47 @@
                 />
               </div>
               <div class="form-group">
-                <label for="editImageUrl">URL de Imagen</label>
-                <input
-                  type="url"
-                  id="editImageUrl"
-                  class="form-control"
-                  name="image_url"
-                  [(ngModel)]="editForm.image_url"
-                />
+                <label for="editImageUrl">Foto de Perfil (Sincronizada con CV)</label>
+                <div style="display: flex; align-items: center; gap: 1rem; margin-top: 0.5rem;">
+                  <img *ngIf="editForm.image_url" [src]="resolveImageUrl(editForm.image_url)" alt="Preview" style="width: 50px; height: 50px; object-fit: cover; border-radius: 50%; border: 1px solid #dee2e6;">
+                  <input
+                    type="file"
+                    id="editImageUrl"
+                    class="form-control"
+                    accept="image/*"
+                    (change)="onPictureSelected($event)"
+                    [disabled]="uploadingPicture"
+                  />
+                </div>
+                <small *ngIf="uploadingPicture">Subiendo foto...</small>
               </div>
               <div class="form-group">
-                <label for="editDocUrl">URL de Documento</label>
+                <h6 class="mt-3" id="docSubidaLabel">Documentación Subida</h6>
+                <ul class="document-list" style="list-style: none; padding: 0; margin: 0.5rem 0;" aria-labelledby="docSubidaLabel">
+                  <li *ngFor="let doc of participantDocuments" style="display: flex; justify-content: space-between; align-items: center; padding: 0.5rem; border: 1px solid #eee; border-radius: 4px; margin-bottom: 0.5rem;">
+                    <a href="#" (click)="downloadDocument(doc.id, doc.name, $event)" style="text-decoration: none; color: #2196F3; cursor: pointer;">
+                      <i class="pi pi-file mr-2"></i> {{ doc.name }}
+                    </a>
+                    <button type="button" class="btn-action btn-delete" (click)="deleteDocument(doc.id)" title="Eliminar documento">
+                      <i class="pi pi-trash"></i>
+                    </button>
+                  </li>
+                  <li *ngIf="participantDocuments.length === 0" style="color: #666; font-size: 0.9rem;">
+                    No hay documentos subidos.
+                  </li>
+                </ul>
+              </div>
+              
+              <div class="form-group">
+                <label for="newDocFile">Subir Nuevo Documento</label>
                 <input
-                  type="url"
-                  id="editDocUrl"
+                  type="file"
+                  id="newDocFile"
                   class="form-control"
-                  name="doc_url"
-                  [(ngModel)]="editForm.doc_url"
+                  (change)="onDocumentSelected($event)"
+                  [disabled]="uploadingDocument"
                 />
+                <small *ngIf="uploadingDocument" style="color: #2196F3;">Subiendo documento...</small>
               </div>
             </ng-container>
 

@@ -24,6 +24,9 @@ import {
   Link,
   Unlink,
 } from "lucide-angular";
+import { RxResumeService } from "../../../services/rxresume.service";
+import { UsersService } from "../../../services/users.service";
+import { environment } from "../../../../environments/environment";
 
 @Component({
   selector: "app-mi-perfil",
@@ -36,6 +39,20 @@ export class MiPerfilComponent implements OnInit {
   private readonly fb = inject(FormBuilder);
   private readonly profileService = inject(ProfileService);
   private readonly auth = inject(Auth);
+  private readonly rxResumeService = inject(RxResumeService);
+  private readonly usersService = inject(UsersService);
+
+  resolveImageUrl(url?: string | null | unknown): string {
+    if (!url || typeof url !== "string") return "";
+    if (url.startsWith("http://localhost:8080/api/v1/")) {
+      const path = url.replace("http://localhost:8080", "");
+      return `${environment.apiUrl || ""}${path}`;
+    }
+    if (url.startsWith("/")) {
+      return `${environment.apiUrl || ""}${url}`;
+    }
+    return url;
+  }
 
   readonly UserIcon = UserIcon;
   readonly ShieldIcon = Shield;
@@ -63,6 +80,9 @@ export class MiPerfilComponent implements OnInit {
 
   showOldPassword = false;
   showNewPassword = false;
+
+  participantDocuments: any[] = [];
+  uploadingDocument = false;
   showConfirmPassword = false;
 
   isEditingProfile = false;
@@ -91,6 +111,12 @@ export class MiPerfilComponent implements OnInit {
       next: (data) => {
         this.profileData = data;
         this.initProfileForm();
+        if (data.role_data?.['participant_id']) {
+          this.usersService.getParticipantDocuments(data.role_data['participant_id'] as string).subscribe({
+            next: (docs) => this.participantDocuments = docs || [],
+            error: (err) => console.error("Error fetching docs", err)
+          });
+        }
         this.loading = false;
       },
       error: (_err) => {
@@ -164,6 +190,89 @@ export class MiPerfilComponent implements OnInit {
         this.profileUpdateLoading = false;
       }
     });
+  }
+
+  uploadingPicture = false;
+
+  onPictureSelected(event: any) {
+    const file = event.target.files[0];
+    if (file) {
+      this.uploadingPicture = true;
+      this.rxResumeService.uploadPicture(file).subscribe({
+        next: (resume) => {
+          this.uploadingPicture = false;
+          if (resume.data?.basics?.picture) {
+            this.profileForm.patchValue({ image_url: resume.data.basics.picture });
+            this.saveProfile();
+          }
+        },
+        error: (err) => {
+          console.error("Error al subir foto:", err);
+          this.uploadingPicture = false;
+          alert("Error al subir la foto de perfil.");
+        }
+      });
+    }
+  }
+
+  onDocumentSelected(event: any) {
+    const file = event.target.files[0];
+    const participantId = this.profileData?.role_data?.['participant_id'] as string;
+    if (file && participantId) {
+      this.uploadingDocument = true;
+      this.usersService.uploadParticipantDocument(participantId, file, file.name).subscribe({
+        next: (doc) => {
+          this.uploadingDocument = false;
+          if (doc) {
+            this.participantDocuments.push(doc);
+          }
+          event.target.value = '';
+        },
+        error: (err) => {
+          console.error("Error al subir documento:", err);
+          this.uploadingDocument = false;
+          alert("Error al subir el documento.");
+        }
+      });
+    }
+  }
+
+  deleteDocument(docId: string) {
+    const participantId = this.profileData?.role_data?.['participant_id'] as string;
+    if (participantId && confirm("¿Estás seguro de que deseas eliminar este documento?")) {
+       this.usersService.deleteParticipantDocument(participantId, docId).subscribe({
+          next: () => {
+             this.participantDocuments = this.participantDocuments.filter(d => d.id !== docId);
+          },
+          error: (err) => {
+             console.error("Error al eliminar documento:", err);
+             alert("Error al eliminar el documento.");
+          }
+       });
+    }
+  }
+
+  downloadDocument(docId: string, docName: string, event: Event) {
+    event.preventDefault();
+    const participantId = this.profileData?.role_data?.['participant_id'] as string;
+    if (participantId) {
+      this.usersService.downloadParticipantDocument(participantId, docId).subscribe({
+        next: (blob: Blob) => {
+          const url = window.URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = docName;
+          document.body.appendChild(a);
+          a.click();
+          window.URL.revokeObjectURL(url);
+          a.remove();
+        },
+        error: (err) => {
+          console.error("Error al descargar documento:", err);
+          alert("No se pudo descargar el documento.");
+        }
+      });
+    }
   }
 
   getRoleName(roleId?: string): string {

@@ -16,9 +16,10 @@ type User struct {
 	Status         string    `json:"status" gorm:"not null"`
 	GoogleAuthID   string    `json:"google_auth_id"`
 	RoleID         string    `json:"role_id" gorm:"index;not null"`
-	Role           *Role     `json:"role,omitempty"`
-	RoleApprovalStatus string `json:"role_approval_status" gorm:"->;-:migration"`
-	TwofaEnabled   bool      `json:"twofa_enabled" gorm:"not null"`
+	Role               *Role     `json:"role,omitempty"`
+	RoleApprovalStatus string    `json:"role_approval_status" gorm:"->;-:migration"`
+	ImageURL           string    `json:"image_url" gorm:"->;-:migration"`
+	TwofaEnabled       bool      `json:"twofa_enabled" gorm:"not null"`
 	TwofaSecret    string    `json:"-" gorm:"not null"`
 	TwofaSeed      string    `json:"-" gorm:"not null"`
 	CreatedAt      time.Time      `json:"created_at" gorm:"autoCreateTime"`

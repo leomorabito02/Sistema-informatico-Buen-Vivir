@@ -44,6 +44,7 @@ type UserResponse struct {
 	Status    string    `json:"status"`
 	RoleID    string    `json:"role_id"`
 	RoleApprovalStatus string `json:"role_approval_status,omitempty"`
+	ImageURL           string `json:"image_url,omitempty"`
 	CreatedAt time.Time `json:"created_at"`
 	UpdatedAt time.Time `json:"updated_at"`
 }
@@ -58,6 +59,7 @@ func ToUserResponse(u *models.User) *UserResponse {
 		Status:    u.Status,
 		RoleID:    u.RoleID,
 		RoleApprovalStatus: u.RoleApprovalStatus,
+		ImageURL:  u.ImageURL,
 		CreatedAt: u.CreatedAt,
 		UpdatedAt: u.UpdatedAt,
 	}

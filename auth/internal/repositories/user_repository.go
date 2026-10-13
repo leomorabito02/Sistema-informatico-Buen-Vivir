@@ -86,7 +86,7 @@ func (r *userRepository) FindAll(ctx context.Context) ([]models.User, error) {
 	var users []models.User
 	err := r.db.WithContext(ctx).
 		Table("users").
-		Select("users.*, COALESCE(p.approval_status, c.approval_status, t.approval_status, v.approval_status) AS role_approval_status").
+		Select("users.*, COALESCE(p.approval_status, c.approval_status, t.approval_status, v.approval_status) AS role_approval_status, p.image_url AS image_url").
 		Joins("LEFT JOIN participants p ON users.user_id = p.user_id").
 		Joins("LEFT JOIN companies c ON users.user_id = c.user_id").
 		Joins("LEFT JOIN teachers t ON users.user_id = t.user_id").

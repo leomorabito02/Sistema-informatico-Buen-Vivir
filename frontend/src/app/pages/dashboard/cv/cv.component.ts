@@ -21,6 +21,8 @@ import {
   LanguageItem,
 } from "../../../services/rxresume.service";
 import { ProfileService } from "../../../services/profile.service";
+import { UsersService } from "../../../services/users.service";
+import { environment } from "../../../../environments/environment";
 
 @Component({
   selector: "app-cv",
@@ -45,6 +47,7 @@ import { ProfileService } from "../../../services/profile.service";
 export class CvComponent implements OnInit, OnDestroy {
   private readonly rxResumeService = inject(RxResumeService);
   private readonly profileService = inject(ProfileService);
+  private readonly usersService = inject(UsersService);
   private readonly route = inject(ActivatedRoute);
   private readonly messages = inject(MessageService);
 
@@ -59,6 +62,18 @@ export class CvComponent implements OnInit, OnDestroy {
   pdfPolling = false;
   message = "";
   private pdfPollInterval: ReturnType<typeof setInterval> | null = null;
+
+  resolveImageUrl(url?: string): string {
+    if (!url) return "";
+    if (url.startsWith("http://localhost:8080/api/v1/")) {
+      const path = url.replace("http://localhost:8080", "");
+      return `${environment.apiUrl || ""}${path}`;
+    }
+    if (url.startsWith("/")) {
+      return `${environment.apiUrl || ""}${url}`;
+    }
+    return url;
+  }
 
   templates = [
     { label: "Azurill", value: "azurill" },
@@ -365,6 +380,28 @@ export class CvComponent implements OnInit, OnDestroy {
         next: (res) => {
           this.resume = res;
           this.uploadingPicture = false;
+          const newPic = res.data?.basics?.picture;
+          if (newPic) {
+            if (this.userId) {
+              this.usersService.getUserProfile(this.userId).subscribe({
+                next: (profile) => {
+                  const partId = profile.role_data?.participant_id;
+                  if (partId) {
+                    this.usersService
+                      .updateRoleData("participants", partId, { image_url: newPic })
+                      .subscribe({
+                        error: (err) => console.error("Error sincronizando foto en rol:", err),
+                      });
+                  }
+                },
+                error: (err) => console.error("Error obteniendo perfil para sincronizar foto:", err),
+              });
+            } else {
+              this.profileService.updateProfile({ image_url: newPic }).subscribe({
+                error: (err) => console.error("Error sincronizando foto en perfil:", err),
+              });
+            }
+          }
         },
         error: (err) => {
           this.uploadingPicture = false;

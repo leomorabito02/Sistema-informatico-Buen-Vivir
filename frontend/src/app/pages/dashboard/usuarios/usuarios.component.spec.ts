@@ -6,6 +6,7 @@ import { DashboardUser, UsuariosComponent } from "./usuarios.component";
 import { AuthService } from "../../../services/auth.service";
 import { UsersService } from "../../../services/users.service";
 import { EducationService } from "../../../services/education.service";
+import { RxResumeService } from "../../../services/rxresume.service";
 import { MeResponse, User } from "../../../core/models/auth.model";
 
 function apiUser(overrides: Partial<User>): User {
@@ -43,6 +44,7 @@ describe("UsuariosComponent", () => {
   let authService: jasmine.SpyObj<AuthService>;
   let usersService: jasmine.SpyObj<UsersService>;
   let education: jasmine.SpyObj<EducationService>;
+  let rxResumeService: jasmine.SpyObj<RxResumeService>;
 
   const admin: MeResponse = {
     user: apiUser({ user_id: "admin-1" }),
@@ -95,12 +97,24 @@ describe("UsuariosComponent", () => {
       "updateUser",
       "updateRoleData",
       "deleteUser",
+      "getParticipantDocuments",
     ]);
+    usersService.getParticipantDocuments.and.returnValue(of([]));
     education = jasmine.createSpyObj<EducationService>("EducationService", [
       "getBulkUserCourses",
       "getParticipantEnrollments",
       "getTeacherCourses",
     ]);
+    rxResumeService = jasmine.createSpyObj<RxResumeService>("RxResumeService", [
+      "getUserResumeByAdmin",
+      "uploadUserPictureByAdmin",
+    ]);
+    rxResumeService.getUserResumeByAdmin.and.returnValue(
+      of({ data: { basics: { picture: "" } } } as any),
+    );
+    rxResumeService.uploadUserPictureByAdmin.and.returnValue(
+      of({ data: { basics: { picture: "" } } } as any),
+    );
     authService.isAuthenticated.and.returnValue(
       me ? of(me) : throwError(() => new Error("sin sesión")),
     );
@@ -122,6 +136,7 @@ describe("UsuariosComponent", () => {
         { provide: AuthService, useValue: authService },
         { provide: UsersService, useValue: usersService },
         { provide: EducationService, useValue: education },
+        { provide: RxResumeService, useValue: rxResumeService },
       ],
     });
 
@@ -194,12 +209,12 @@ describe("UsuariosComponent", () => {
     expect(component.users[1].status).toBe("Bloqueado");
     expect(component.users[1].coursesStatus).toBe("Sin cursos");
     expect(component.users[2].phone).toBe("-");
-    expect(component.filteredUsers.length).toBe(5);
+    expect(component.filteredUsers).toHaveSize(5);
   });
 
   it("keeps the list when the courses batch fails", () => {
     setup(admin, [apiUser({ user_id: "u1" })], true);
-    expect(component.filteredUsers.length).toBe(1);
+    expect(component.filteredUsers).toHaveSize(1);
     expect(component.filteredUsers[0].coursesStatus).toBe("—");
   });
 
@@ -221,13 +236,13 @@ describe("UsuariosComponent", () => {
     usersService.listUsers.and.returnValue(of([apiUser({ user_id: "u1" })]));
     component.reload();
     expect(component.loadError).toBe("");
-    expect(component.users.length).toBe(1);
+    expect(component.users).toHaveSize(1);
   });
 
   it("still loads users when the session check fails", () => {
     setup(null, [apiUser({ user_id: "u1", first_name: "Ana" })]);
     expect(usersService.listUsers).toHaveBeenCalled();
-    expect(component.users.length).toBe(1);
+    expect(component.users).toHaveSize(1);
   });
 
   it("filters by name, email, phone, role and the selected role", () => {
@@ -551,6 +566,51 @@ describe("UsuariosComponent", () => {
       const confirm = autoConfirm();
       component.deleteUser(row({}), new Event("click"));
       expect(confirm).not.toHaveBeenCalled();
+    });
+  });
+
+  it("checks canEditPicture correctly for staff and participants", () => {
+    setup(admin, []);
+    component.currentUserRoleId = "role_admin";
+    component.selectedUser = row({
+      role: "Participante",
+      originalUser: apiUser({ user_id: "p1", role_id: "role_participant" }),
+    });
+    expect(component.canEditPicture()).toBeTrue();
+
+    component.selectedUser = row({
+      role: "Docente",
+      originalUser: apiUser({ user_id: "t1", role_id: "role_teacher" }),
+    });
+    expect(component.canEditPicture()).toBeFalse();
+  });
+
+  it("uploads and synchronizes participant detail picture", () => {
+    setup(admin, []);
+    usersService.updateRoleData.and.returnValue(of({}));
+    const fakeResume = {
+      data: { basics: { picture: "https://gcp.bucket/pictures/p1/pic.jpg" } },
+    } as any;
+    rxResumeService.uploadUserPictureByAdmin.and.returnValue(of(fakeResume));
+
+    const participantRow = row({
+      id: "p1",
+      role: "Participante",
+      originalUser: apiUser({ user_id: "p1", role_id: "role_participant" }),
+      profileData: { role_data: { participant_id: "part-1", image_url: "" } },
+    });
+    component.users = [participantRow];
+    component.selectedUser = participantRow;
+
+    const file = new File(["dummy"], "photo.png", { type: "image/png" });
+    const event = { target: { files: [file] } };
+
+    component.onDetailPictureSelected(event);
+
+    expect(rxResumeService.uploadUserPictureByAdmin).toHaveBeenCalledWith("p1", file);
+    expect(component.selectedUser.image_url).toBe("https://gcp.bucket/pictures/p1/pic.jpg");
+    expect(usersService.updateRoleData).toHaveBeenCalledWith("participants", "part-1", {
+      image_url: "https://gcp.bucket/pictures/p1/pic.jpg",
     });
   });
 });
