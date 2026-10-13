@@ -5,7 +5,6 @@ import {
   LucideAngularModule,
   User,
   Shield,
-  Laptop,
   Lock,
 } from "lucide-angular";
 import { HeaderComponent } from "../../components/layout/header/header.component";
@@ -31,6 +30,5 @@ import { BackLinkComponent } from "../../shared/components/back-link.component";
 export class MiCuentaComponent {
   readonly UserIcon = User;
   readonly ShieldIcon = Shield;
-  readonly LaptopIcon = Laptop;
   readonly LockIcon = Lock;
 }

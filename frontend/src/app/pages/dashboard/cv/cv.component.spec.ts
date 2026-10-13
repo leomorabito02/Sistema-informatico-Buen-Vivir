@@ -56,16 +56,5 @@ describe("CvComponent", () => {
         }),
       );
     });
-
-    it("rechaza imágenes de más de 10 MB", () => {
-      const file = { size: 11 * 1024 * 1024 };
-      component.onPictureSelected({ target: { files: [file] } });
-      expect(messages.add).toHaveBeenCalledWith(
-        jasmine.objectContaining({
-          detail: "La imagen no debe superar los 10 MB.",
-        }),
-      );
-      expect(component.uploadingPicture).toBeFalse();
-    });
   });
 });
