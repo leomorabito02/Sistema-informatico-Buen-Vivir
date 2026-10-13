@@ -124,13 +124,6 @@ export const routes: Routes = [
           ),
       },
       {
-        path: "sesiones",
-        loadComponent: () =>
-          import("./pages/mi-cuenta/sesiones/sesiones.component").then(
-            (m) => m.SesionesComponent,
-          ),
-      },
-      {
         path: "privacidad",
         loadComponent: () =>
           import("./pages/mi-cuenta/privacidad-cuenta/privacidad-cuenta.component").then(
