@@ -3,6 +3,8 @@ package client
 import (
 	"buenvivir/rxresume/internal/models"
 	"fmt"
+	"os"
+	"strings"
 )
 
 // MapToRxResumeDTO takes existing RxResume JSON data and merges our internal Resume data into it.
@@ -188,12 +190,21 @@ func mergeBasics(data map[string]interface{}, resume *models.Resume) {
 	basics["headline"] = resume.Data.Basics.Headline
 	basics["location"] = resume.Data.Basics.Location
 	if resume.Data.Basics.Picture != "" {
+		pictureURL := resume.Data.Basics.Picture
+		if strings.HasPrefix(pictureURL, "/") {
+			publicAPIURL := os.Getenv("PUBLIC_API_URL")
+			if publicAPIURL == "" {
+				publicAPIURL = "http://localhost:8080"
+			}
+			pictureURL = fmt.Sprintf("%s%s", strings.TrimRight(publicAPIURL, "/"), pictureURL)
+		}
+
 		if picture, ok := data["picture"].(map[string]interface{}); ok {
-			picture["url"] = resume.Data.Basics.Picture
+			picture["url"] = pictureURL
 			picture["hidden"] = false
 		} else {
 			data["picture"] = map[string]interface{}{
-				"url":          resume.Data.Basics.Picture,
+				"url":          pictureURL,
 				"hidden":       false,
 				"size":         120,
 				"aspectRatio":  1,

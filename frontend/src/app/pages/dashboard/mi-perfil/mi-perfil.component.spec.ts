@@ -10,10 +10,15 @@ import { of, throwError } from "rxjs";
 import { ReactiveFormsModule } from "@angular/forms";
 import { Auth, GoogleAuthProvider, signInWithPopup } from "@angular/fire/auth";
 
+import { RxResumeService } from "../../../services/rxresume.service";
+import { UsersService } from "../../../services/users.service";
+
 describe("MiPerfilComponent", () => {
   let component: MiPerfilComponent;
   let fixture: ComponentFixture<MiPerfilComponent>;
   let profileServiceSpy: jasmine.SpyObj<ProfileService>;
+  let rxResumeServiceSpy: jasmine.SpyObj<RxResumeService>;
+  let usersServiceSpy: jasmine.SpyObj<UsersService>;
   let mockAuth: any;
 
   beforeEach(async () => {
@@ -27,12 +32,22 @@ describe("MiPerfilComponent", () => {
       of({ user: { email: "test@test.com" }, roles: [] } as any),
     );
 
+    rxResumeServiceSpy = jasmine.createSpyObj("RxResumeService", [
+      "uploadPicture",
+    ]);
+
+    usersServiceSpy = jasmine.createSpyObj("UsersService", [
+      "updateRoleData",
+    ]);
+
     mockAuth = {};
 
     await TestBed.configureTestingModule({
       imports: [MiPerfilComponent, ReactiveFormsModule],
       providers: [
         { provide: ProfileService, useValue: profileServiceSpy },
+        { provide: RxResumeService, useValue: rxResumeServiceSpy },
+        { provide: UsersService, useValue: usersServiceSpy },
         { provide: Auth, useValue: mockAuth },
       ],
     }).compileComponents();

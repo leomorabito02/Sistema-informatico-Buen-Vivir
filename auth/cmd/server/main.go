@@ -11,9 +11,11 @@ import (
 	"auth/api/proto/authpb"
 	"auth/config"
 	"auth/internal/controllers"
+	"context"
 	"auth/internal/middlewares"
 	"auth/internal/repositories"
 	"auth/internal/services"
+	"auth/internal/storage"
 	"google.golang.org/grpc"
 	"net"
 
@@ -37,10 +39,23 @@ func main() {
 	companyRepo := repositories.NewCompanyRepository(db)
 	teacherRepo := repositories.NewTeacherRepository(db)
 	participantRepo := repositories.NewParticipantRepository(db)
+	participantDocRepo := repositories.NewParticipantDocumentRepository(db)
 	permissionRepo := repositories.NewPermissionRepository(db)
 	volunteerRepo := repositories.NewVolunteerRepository(db)
 	refreshTokenRepo := repositories.NewRefreshTokenRepository(db)
 	participantDirectoryRepo := repositories.NewParticipantDirectoryRepository(db)
+
+	// Setup Storage
+	storageSvc, err := storage.NewObjectStorageService(
+		context.Background(),
+		os.Getenv("GCP_PROJECT_ID"),
+		os.Getenv("GCP_BUCKET_NAME"),
+		os.Getenv("GCP_EMULATOR_HOST"),
+		os.Getenv("GOOGLE_APPLICATION_CREDENTIALS"),
+	)
+	if err != nil {
+		slog.Warn("GCP Storage initialization failed, skipping file uploads", "error", err)
+	}
 
 	// 4. Setup Services
 	jwtService, err := services.NewJWTServiceFromEnv()
@@ -69,7 +84,7 @@ func main() {
 	roleService := services.NewRoleService(roleRepo)
 	companyService := services.NewCompanyService(companyRepo)
 	teacherService := services.NewTeacherService(teacherRepo)
-	participantService := services.NewParticipantService(participantRepo, userRepo)
+	participantService := services.NewParticipantService(participantRepo, participantDocRepo, storageSvc, userRepo)
 	permissionService := services.NewPermissionService(permissionRepo)
 	volunteerService := services.NewVolunteerService(volunteerRepo, userRepo)
 
@@ -213,6 +228,14 @@ func main() {
 				r.Get("/{id}", participantController.GetParticipant)
 				r.Put("/{id}", participantController.UpdateParticipant)
 				r.Delete("/{id}", participantController.DeleteParticipant)
+				
+				r.Route("/{id}/documents", func(r chi.Router) {
+					r.Post("/", participantController.UploadDocument)
+					r.Get("/", participantController.GetDocuments)
+					r.Get("/{docId}/download", participantController.DownloadDocument)
+					r.Put("/{docId}", participantController.UpdateDocument)
+					r.Delete("/{docId}", participantController.DeleteDocument)
+				})
 			})
 
 			// Permissions CRUD

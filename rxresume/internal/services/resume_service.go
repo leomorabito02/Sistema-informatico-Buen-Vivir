@@ -236,7 +236,7 @@ func (s *resumeService) UploadPicture(ctx context.Context, userID string, filena
 		}
 	}
 
-	proxyURL := fmt.Sprintf("%s/api/v1/rxresume/public/media?path=%s", publicAPIURL, objectName)
+	proxyURL := fmt.Sprintf("/api/v1/rxresume/public/media?path=%s", objectName)
 	resume.Data.Basics.Picture = proxyURL
 	resume.UpdatedAt = time.Now()
 

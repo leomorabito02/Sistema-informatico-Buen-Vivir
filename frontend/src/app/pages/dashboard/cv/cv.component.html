@@ -84,7 +84,7 @@
               <div class="flex items-center gap-2">
                 <img
                   *ngIf="cv.basics.picture"
-                  [src]="cv.basics.picture"
+                  [src]="resolveImageUrl(cv.basics.picture)"
                   alt="Foto de Perfil"
                   class="w-16 h-16 rounded-full object-cover border border-gray-300 shrink-0"
                   style="

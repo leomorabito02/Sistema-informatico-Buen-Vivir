@@ -223,7 +223,7 @@
 
 .status-blocked {
   background-color: #f7e6e6;
-  color: #d13030;
+  color: #b71c1c;
 }
 
 .status-warning-icon {
@@ -341,6 +341,52 @@
   height: 120px;
   font-size: var(--font-size-5xl);
   margin: 0 auto;
+}
+
+.profile-picture-wrapper {
+  position: relative;
+  display: inline-block;
+  margin: 0 auto;
+}
+
+.btn-change-picture {
+  position: absolute;
+  bottom: 4px;
+  right: 4px;
+  background-color: #2e7d32;
+  color: #ffffff;
+  border: 2px solid #ffffff;
+  border-radius: 50%;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 14px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+  transition: background-color 0.2s, transform 0.1s;
+}
+
+.btn-change-picture:hover {
+  background-color: #1b5e20;
+  transform: scale(1.08);
+}
+
+.btn-change-picture:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.picture-uploading-indicator {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-size: 13px;
+  color: #555555;
+  margin-top: -1rem;
+  margin-bottom: 1.5rem;
 }
 
 .doc-link {

@@ -166,13 +166,13 @@ export class AuthService {
       .post(`${this.apiUrl}/api/v1/auth/logout`, {}, { withCredentials: true })
       .subscribe({
         next: () => {
-          this.auth.signOut();
-          this.router.navigate(["/login"]);
+          void this.auth.signOut();
+          void this.router.navigate(["/login"]);
         },
         error: () => {
           // Even if the backend request fails, clear the Firebase session and redirect
-          this.auth.signOut();
-          this.router.navigate(["/login"]);
+          void this.auth.signOut();
+          void this.router.navigate(["/login"]);
         },
       });
   }

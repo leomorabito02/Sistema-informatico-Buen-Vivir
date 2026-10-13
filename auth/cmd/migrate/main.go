@@ -25,6 +25,7 @@ func main() {
 		&models.User{},
 		&models.Company{},
 		&models.Participant{},
+		&models.ParticipantDocument{},
 		&models.Teacher{},
 		&models.Volunteer{},
 		&models.PasswordRecovery{},

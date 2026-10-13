@@ -5,6 +5,8 @@ import { RxResumeService, Resume } from "../../services/rxresume.service";
 import { ProgressSpinnerModule } from "primeng/progressspinner";
 import { ButtonModule } from "primeng/button";
 
+import { environment } from "../../../environments/environment";
+
 @Component({
   selector: "app-cv-public",
   standalone: true,
@@ -20,6 +22,18 @@ export class CvPublicComponent implements OnInit {
   loading = true;
   error = false;
   userId = "";
+
+  resolveImageUrl(url?: string | null): string {
+    if (!url || typeof url !== "string") return "";
+    if (url.startsWith("http://localhost:8080/api/v1/")) {
+      const path = url.replace("http://localhost:8080", "");
+      return `${environment.apiUrl || ""}${path}`;
+    }
+    if (url.startsWith("/")) {
+      return `${environment.apiUrl || ""}${url}`;
+    }
+    return url;
+  }
 
   ngOnInit() {
     this.userId = this.route.snapshot.paramMap.get("id") || "";

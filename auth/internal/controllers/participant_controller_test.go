@@ -9,8 +9,11 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"io"
+
 	"auth/internal/controllers"
 	"auth/internal/dto"
+	"auth/internal/models"
 	"github.com/go-chi/chi/v5"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
@@ -55,6 +58,43 @@ func (m *MockParticipantService) UpdateParticipant(ctx context.Context, id strin
 func (m *MockParticipantService) DeleteParticipant(ctx context.Context, id string) error {
 	args := m.Called(ctx, id)
 	return args.Error(0)
+}
+
+func (m *MockParticipantService) DeleteDocument(ctx context.Context, participantID string, docID string) error {
+	args := m.Called(ctx, participantID, docID)
+	return args.Error(0)
+}
+
+func (m *MockParticipantService) DownloadDocument(ctx context.Context, participantID string, docID string) (io.ReadCloser, string, string, error) {
+	args := m.Called(ctx, participantID, docID)
+	if args.Get(0) == nil {
+		return nil, "", "", args.Error(3)
+	}
+	return args.Get(0).(io.ReadCloser), args.String(1), args.String(2), args.Error(3)
+}
+
+func (m *MockParticipantService) UploadDocument(ctx context.Context, participantID string, docName string, file io.Reader, contentType string, originalName string) (*models.ParticipantDocument, error) {
+	args := m.Called(ctx, participantID, docName, file, contentType, originalName)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*models.ParticipantDocument), args.Error(1)
+}
+
+func (m *MockParticipantService) GetDocuments(ctx context.Context, participantID string) ([]models.ParticipantDocument, error) {
+	args := m.Called(ctx, participantID)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).([]models.ParticipantDocument), args.Error(1)
+}
+
+func (m *MockParticipantService) UpdateDocument(ctx context.Context, participantID string, docID string, newName string, file io.Reader, contentType string, originalName string) (*models.ParticipantDocument, error) {
+	args := m.Called(ctx, participantID, docID, newName, file, contentType, originalName)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*models.ParticipantDocument), args.Error(1)
 }
 
 func TestParticipantController_GetParticipant_Success(t *testing.T) {
@@ -189,6 +229,26 @@ func TestParticipantController_UpdateParticipant_Success(t *testing.T) {
 	rctx.URLParams.Add("id", "part-1")
 	req = req.WithContext(context.WithValue(req.Context(), chi.RouteCtxKey, rctx))
 	
+	w := httptest.NewRecorder()
+	ctrl.UpdateParticipant(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+}
+
+func TestParticipantController_UpdateParticipant_RelativeURL(t *testing.T) {
+	mockSvc := new(MockParticipantService)
+	ctrl := controllers.NewParticipantController(mockSvc)
+
+	mockSvc.On("UpdateParticipant", mock.Anything, "part-1", mock.MatchedBy(func(req *dto.UpdateParticipantRequest) bool {
+		return req.ImageURL == "/api/v1/rxresume/public/media?path=images/user1.jpg"
+	})).Return(&dto.ParticipantResponse{ParticipantID: "part-1", ImageURL: "/api/v1/rxresume/public/media?path=images/user1.jpg"}, nil)
+
+	reqBody, _ := json.Marshal(dto.UpdateParticipantRequest{ImageURL: "/api/v1/rxresume/public/media?path=images/user1.jpg"})
+	req := httptest.NewRequest("PUT", "/participants/part-1", bytes.NewBuffer(reqBody))
+	rctx := chi.NewRouteContext()
+	rctx.URLParams.Add("id", "part-1")
+	req = req.WithContext(context.WithValue(req.Context(), chi.RouteCtxKey, rctx))
+
 	w := httptest.NewRecorder()
 	ctrl.UpdateParticipant(w, req)
 

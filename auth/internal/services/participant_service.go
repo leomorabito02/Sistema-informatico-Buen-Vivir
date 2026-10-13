@@ -10,6 +10,8 @@ import (
 	"auth/internal/models"
 	"auth/internal/repositories"
 	"auth/internal/utils"
+	"io"
+	"auth/internal/storage"
 )
 
 type ParticipantService interface {
@@ -18,20 +20,35 @@ type ParticipantService interface {
 	GetAllParticipants(ctx context.Context) ([]dto.ParticipantResponse, error)
 	UpdateParticipant(ctx context.Context, id string, req *dto.UpdateParticipantRequest) (*dto.ParticipantResponse, error)
 	DeleteParticipant(ctx context.Context, id string) error
+
+	UploadDocument(ctx context.Context, participantID string, docName string, file io.Reader, contentType string, originalName string) (*models.ParticipantDocument, error)
+	GetDocuments(ctx context.Context, participantID string) ([]models.ParticipantDocument, error)
+	UpdateDocument(ctx context.Context, participantID string, docID string, newName string, file io.Reader, contentType string, originalName string) (*models.ParticipantDocument, error)
+	DeleteDocument(ctx context.Context, participantID string, docID string) error
+	DownloadDocument(ctx context.Context, participantID string, docID string) (io.ReadCloser, string, string, error)
 }
 
 type participantService struct {
 	participantRepo repositories.ParticipantRepository
 	userRepo        repositories.UserRepository
+	docRepo         repositories.ParticipantDocumentRepository
+	storage         storage.ObjectStorageService
 }
 
-func NewParticipantService(participantRepo repositories.ParticipantRepository, opts ...repositories.UserRepository) ParticipantService {
+func NewParticipantService(
+	participantRepo repositories.ParticipantRepository,
+	docRepo repositories.ParticipantDocumentRepository,
+	storage storage.ObjectStorageService,
+	opts ...repositories.UserRepository,
+) ParticipantService {
 	var userRepo repositories.UserRepository
 	if len(opts) > 0 {
 		userRepo = opts[0]
 	}
 	return &participantService{
 		participantRepo: participantRepo,
+		docRepo:         docRepo,
+		storage:         storage,
 		userRepo:        userRepo,
 	}
 }
