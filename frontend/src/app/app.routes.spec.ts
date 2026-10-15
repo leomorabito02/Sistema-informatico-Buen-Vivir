@@ -91,10 +91,9 @@ describe("App Routes", () => {
     }
   });
 
-  it("should lazy load mi-cuenta component and its children", async () => {
+  it("should redirect mi-cuenta to dashboard/mi-perfil", () => {
     const miCuenta = routes.find((r) => r.path === "mi-cuenta");
-    expect(miCuenta?.loadComponent).toBeDefined();
-    expect(miCuenta?.children?.length).toBeGreaterThan(0);
+    expect(miCuenta?.redirectTo).toBe("dashboard/mi-perfil");
   });
 
   const childrenRoutes = [
