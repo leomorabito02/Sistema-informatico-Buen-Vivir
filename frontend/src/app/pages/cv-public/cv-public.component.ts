@@ -5,7 +5,7 @@ import { RxResumeService, Resume } from "../../services/rxresume.service";
 import { ProgressSpinnerModule } from "primeng/progressspinner";
 import { ButtonModule } from "primeng/button";
 
-import { environment } from "../../../environments/environment";
+import { ImageService } from "../../services/image.service";
 
 @Component({
   selector: "app-cv-public",
@@ -17,6 +17,7 @@ import { environment } from "../../../environments/environment";
 export class CvPublicComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly rxResumeService = inject(RxResumeService);
+  private readonly imageService = inject(ImageService);
 
   resume: Resume | null = null;
   loading = true;
@@ -24,15 +25,7 @@ export class CvPublicComponent implements OnInit {
   userId = "";
 
   resolveImageUrl(url?: string | null): string {
-    if (!url || typeof url !== "string") return "";
-    if (url.startsWith("http://localhost:8080/api/v1/")) {
-      const path = url.replace("http://localhost:8080", "");
-      return `${environment.apiUrl || ""}${path}`;
-    }
-    if (url.startsWith("/")) {
-      return `${environment.apiUrl || ""}${url}`;
-    }
-    return url;
+    return this.imageService.resolveImageUrl(url);
   }
 
   ngOnInit() {
@@ -65,5 +58,9 @@ export class CvPublicComponent implements OnInit {
     if (this.userId) {
       this.rxResumeService.downloadPublicPDF(this.userId);
     }
+  }
+
+  getPrimaryColor(): string {
+    return this.resume?.data?.metadata?.design?.colors?.primary || "#485839";
   }
 }

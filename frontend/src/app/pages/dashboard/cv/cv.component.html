@@ -66,17 +66,67 @@
               Información Básica
             </h3>
 
-            <div class="field mb-3">
-              <label for="template">Plantilla del CV</label>
-              <p-dropdown
-                id="template"
-                [options]="templates"
-                name="template"
-                [(ngModel)]="cv.metadata.template"
-                optionLabel="label"
-                optionValue="value"
-                styleClass="w-full"
-              ></p-dropdown>
+            <div class="field mb-4">
+              <span class="block font-medium mb-2">Plantilla del CV</span>
+              <p-carousel
+                [value]="templates"
+                [numVisible]="3"
+                [numScroll]="1"
+                [circular]="true"
+                [responsiveOptions]="responsiveOptions"
+                styleClass="template-carousel"
+              >
+                <ng-template pTemplate="item" let-tpl>
+                  <button
+                    type="button"
+                    class="template-card"
+                    [class.selected]="cv.metadata?.template === tpl.value"
+                    (click)="selectTemplate(tpl.value)"
+                  >
+                    <div class="template-image-container">
+                      <img
+                        [src]="tpl.image"
+                        [alt]="tpl.label"
+                        class="template-thumbnail"
+                      />
+                      <span
+                        *ngIf="cv.metadata?.template === tpl.value"
+                        class="selected-badge"
+                      >
+                        <i class="pi pi-check"></i> Elegido
+                      </span>
+                    </div>
+                    <span class="template-title">{{ tpl.label }}</span>
+                  </button>
+                </ng-template>
+              </p-carousel>
+            </div>
+
+            <div class="field mb-4">
+              <span class="block font-medium mb-2">Color de la Plantilla</span>
+              <div class="flex items-center gap-3 flex-wrap">
+                <div class="flex items-center gap-2">
+                  <button
+                    type="button"
+                    *ngFor="let preset of colorPresets"
+                    class="color-preset-btn"
+                    [style.background-color]="preset.value"
+                    [title]="preset.name"
+                    [class.active]="getPrimaryColor().toLowerCase() === preset.value.toLowerCase()"
+                    (click)="setPrimaryColor(preset.value)"
+                  ></button>
+                </div>
+                <div class="flex items-center gap-2 ml-2">
+                  <p-colorPicker
+                    [ngModel]="getPrimaryColor()"
+                    (ngModelChange)="setPrimaryColor($event)"
+                    format="hex"
+                  ></p-colorPicker>
+                  <span class="text-xs text-gray-500 uppercase font-mono">{{
+                    getPrimaryColor()
+                  }}</span>
+                </div>
+              </div>
             </div>
 
             <div class="field mb-3" *ngIf="cv.basics.picture">
@@ -514,6 +564,72 @@
             </div>
           </div>
 
+          <div class="form-section-group mb-4">
+            <div class="flex justify-between items-center mb-3 border-b pb-2">
+              <h3 class="text-xl font-bold text-primary m-0">Referencias</h3>
+              <p-button
+                icon="pi pi-plus"
+                label="Agregar"
+                (onClick)="addReference()"
+                styleClass="p-button-sm p-button-outlined"
+              ></p-button>
+            </div>
+
+            <div
+              *ngIf="!cv.references || cv.references.length === 0"
+              class="text-gray-500 italic mb-3 text-sm"
+            >
+              No has agregado referencias laborales o personales.
+            </div>
+
+            <div class="space-y-3">
+              <div
+                *ngFor="let ref of cv.references; let i = index"
+                class="p-3 border border-gray-200 rounded-md bg-gray-50 flex gap-2 items-start"
+              >
+                <div class="flex-1 grid grid-cols-1 md:grid-cols-2 gap-2">
+                  <div>
+                    <label
+                      class="block text-xs font-medium text-gray-700 mb-1"
+                      [for]="'ref-name-' + i"
+                    >
+                      Nombre / Empresa / Cargo
+                    </label>
+                    <input
+                      [id]="'ref-name-' + i"
+                      pInputText
+                      name="ref-name--{{ i }}"
+                      [(ngModel)]="ref.name"
+                      placeholder="Ej: Lic. Martín Pérez (Gerente - ABC S.A.)"
+                      class="w-full p-inputtext-sm"
+                    />
+                  </div>
+                  <div>
+                    <label
+                      class="block text-xs font-medium text-gray-700 mb-1"
+                      [for]="'ref-desc-' + i"
+                    >
+                      Contacto / Relación
+                    </label>
+                    <input
+                      [id]="'ref-desc-' + i"
+                      pInputText
+                      name="ref-desc--{{ i }}"
+                      [(ngModel)]="ref.description"
+                      placeholder="Ej: Tel: +54 11 1234-5678 | martin@empresa.com"
+                      class="w-full p-inputtext-sm"
+                    />
+                  </div>
+                </div>
+                <p-button
+                  icon="pi pi-trash"
+                  (onClick)="removeReference(i)"
+                  styleClass="p-button-rounded p-button-danger p-button-text shrink-0 mt-4"
+                ></p-button>
+              </div>
+            </div>
+          </div>
+
           <div class="flex justify-end mt-6 pt-4 border-t">
             <p-button
               label="Guardar / Generar Currículum"
@@ -541,7 +657,31 @@
             <p-progressSpinner></p-progressSpinner>
           </div>
 
-          <div>
+          <div
+            [style.--resume-primary-color]="getPrimaryColor()"
+            [ngClass]="'preview-theme-' + (cv.metadata?.template || 'onyx')"
+            class="preview-container"
+          >
+            <div
+              class="preview-theme-indicator flex items-center justify-between p-2 mb-3 rounded-md bg-gray-50 border border-gray-200"
+            >
+              <div class="flex items-center gap-2">
+                <span
+                  class="preview-color-dot"
+                  [style.background-color]="getPrimaryColor()"
+                ></span>
+                <span class="text-xs font-semibold text-gray-700"
+                  >Diseño: {{ getSelectedTemplateLabel() }}</span
+                >
+              </div>
+              <p-button
+                label="Ver diseño"
+                icon="pi pi-eye"
+                (onClick)="openTemplateModal()"
+                styleClass="p-button-text p-button-xs text-xs"
+              ></p-button>
+            </div>
+
             <div
               class="preview-header text-center pb-3 mb-4 border-b flex flex-col items-center"
             >
@@ -718,12 +858,49 @@
                   </div>
                 </ng-template>
               </div>
+
+              <div class="preview-block">
+                <h4
+                  class="font-semibold text-primary uppercase text-sm mb-1 border-b pb-1"
+                >
+                  Referencias
+                </h4>
+                <div *ngIf="cv.references?.length; else noRefs">
+                  <div *ngFor="let ref of cv.references" class="mb-2">
+                    <div class="font-medium text-sm">{{ ref.name }}</div>
+                    <div class="text-xs text-gray-500" *ngIf="ref.description">
+                      {{ ref.description }}
+                    </div>
+                  </div>
+                </div>
+                <ng-template #noRefs>
+                  <div class="text-xs text-gray-400 italic">
+                    Sin referencias cargadas.
+                  </div>
+                </ng-template>
+              </div>
             </div>
           </div>
         </p-card>
       </div>
     </div>
   </div>
+
+  <p-dialog
+    [(visible)]="showTemplateModal"
+    [header]="'Diseño de plantilla: ' + getSelectedTemplateLabel()"
+    [modal]="true"
+    [style]="{ width: '90vw', maxWidth: '600px' }"
+    [dismissableMask]="true"
+  >
+    <div class="text-center p-2">
+      <img
+        [src]="getSelectedTemplateImage()"
+        [alt]="getSelectedTemplateLabel()"
+        class="w-full h-auto rounded border shadow-sm max-h-[75vh] object-contain mx-auto"
+      />
+    </div>
+  </p-dialog>
 
   <!-- Empty State UI if absolutely no resume is found -->
   <div
