@@ -110,7 +110,9 @@ describe("UsuariosComponent", () => {
     usersService.updateParticipantDocument.and.returnValue(
       of({ id: "pdoc-1", name: "doc1_edit.pdf" }),
     );
-    usersService.deleteParticipantDocument.and.returnValue(of({ success: true }));
+    usersService.deleteParticipantDocument.and.returnValue(
+      of({ success: true }),
+    );
     education = jasmine.createSpyObj<EducationService>("EducationService", [
       "getBulkUserCourses",
       "getParticipantEnrollments",
@@ -618,11 +620,20 @@ describe("UsuariosComponent", () => {
 
     component.onDetailPictureSelected(event);
 
-    expect(rxResumeService.uploadUserPictureByAdmin).toHaveBeenCalledWith("p1", file);
-    expect(component.selectedUser.image_url).toBe("https://gcp.bucket/pictures/p1/pic.jpg");
-    expect(usersService.updateRoleData).toHaveBeenCalledWith("participants", "part-1", {
-      image_url: "https://gcp.bucket/pictures/p1/pic.jpg",
-    });
+    expect(rxResumeService.uploadUserPictureByAdmin).toHaveBeenCalledWith(
+      "p1",
+      file,
+    );
+    expect(component.selectedUser.image_url).toBe(
+      "https://gcp.bucket/pictures/p1/pic.jpg",
+    );
+    expect(usersService.updateRoleData).toHaveBeenCalledWith(
+      "participants",
+      "part-1",
+      {
+        image_url: "https://gcp.bucket/pictures/p1/pic.jpg",
+      },
+    );
   });
 
   it("uploads a document for a participant", () => {
@@ -641,7 +652,11 @@ describe("UsuariosComponent", () => {
 
     component.onDocumentSelected(event);
 
-    expect(usersService.uploadParticipantDocument).toHaveBeenCalledWith("part-1", file, "dni.pdf");
+    expect(usersService.uploadParticipantDocument).toHaveBeenCalledWith(
+      "part-1",
+      file,
+      "dni.pdf",
+    );
     expect(component.participantDocuments).toHaveSize(1);
     expect(component.participantDocuments[0].id).toBe("pdoc-1");
   });
@@ -662,7 +677,9 @@ describe("UsuariosComponent", () => {
     expect(component.editingDocName).toBe("doc1.pdf");
 
     component.editingDocName = "doc1_edit.pdf";
-    const replaceFile = new File(["updated"], "doc1_new.pdf", { type: "application/pdf" });
+    const replaceFile = new File(["updated"], "doc1_new.pdf", {
+      type: "application/pdf",
+    });
     component.onEditDocFileSelected({ target: { files: [replaceFile] } });
 
     component.saveEditDocument("pdoc-1");
@@ -694,7 +711,10 @@ describe("UsuariosComponent", () => {
 
     component.deleteDocument("pdoc-1");
 
-    expect(usersService.deleteParticipantDocument).toHaveBeenCalledWith("part-1", "pdoc-1");
+    expect(usersService.deleteParticipantDocument).toHaveBeenCalledWith(
+      "part-1",
+      "pdoc-1",
+    );
     expect(component.participantDocuments).toHaveSize(1);
     expect(component.participantDocuments[0].id).toBe("pdoc-2");
   });

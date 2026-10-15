@@ -186,7 +186,7 @@ func (c *ParticipantController) UploadDocument(w http.ResponseWriter, r *http.Re
 		utils.JSONResponse(w, http.StatusBadRequest, false, nil, "Archivo es requerido")
 		return
 	}
-	defer file.Close()
+	defer func() { _ = file.Close() }()
 
 	validatedContentType, err := validateUploadedFile(file, header)
 	if err != nil {
@@ -245,7 +245,7 @@ func (c *ParticipantController) UpdateDocument(w http.ResponseWriter, r *http.Re
 	file, header, err := r.FormFile("file")
 	var contentType, filename string
 	if err == nil {
-		defer file.Close()
+		defer func() { _ = file.Close() }()
 		validatedContentType, valErr := validateUploadedFile(file, header)
 		if valErr != nil {
 			utils.JSONResponse(w, http.StatusBadRequest, false, nil, valErr.Error())
@@ -301,12 +301,14 @@ func (c *ParticipantController) DownloadDocument(w http.ResponseWriter, r *http.
 		mapParticipantError(w, err, "DownloadDocument")
 		return
 	}
-	defer reader.Close()
+	defer func() { _ = reader.Close() }()
 
 	if contentType != "" {
 		w.Header().Set(contentTypeHeader, contentType)
 	}
 	w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=\"%s\"", filename))
 	
-	io.Copy(w, reader)
+	if _, err := io.Copy(w, reader); err != nil {
+		slog.Warn("Failed to stream participant document", "participant_id", id, "doc_id", docID, "error", err)
+	}
 }
