@@ -1,0 +1,267 @@
+{
+  "usuarios": [
+    {
+      "email": "prueba.dashboard.p1@buenvivir.test",
+      "user_id": "usr-bJoNDhoqyc7u",
+      "rol": "participante"
+    },
+    {
+      "email": "prueba.dashboard.p2@buenvivir.test",
+      "user_id": "usr-13LYgQlHd7CT",
+      "rol": "participante"
+    },
+    {
+      "email": "prueba.dashboard.p3@buenvivir.test",
+      "user_id": "usr-LXYClkEMQpnK",
+      "rol": "participante"
+    },
+    {
+      "email": "prueba.dashboard.p4@buenvivir.test",
+      "user_id": "usr-K8mgFKp7ahK8",
+      "rol": "participante"
+    },
+    {
+      "email": "prueba.dashboard.p5@buenvivir.test",
+      "user_id": "usr-KW6jUmszpvXY",
+      "rol": "participante"
+    },
+    {
+      "email": "prueba.dashboard.p6@buenvivir.test",
+      "user_id": "usr-fsSy47H7Kxoy",
+      "rol": "participante"
+    },
+    {
+      "email": "prueba.dashboard.p7@buenvivir.test",
+      "user_id": "usr-n6Ave2by0YI0",
+      "rol": "participante"
+    },
+    {
+      "email": "prueba.dashboard.p8@buenvivir.test",
+      "user_id": "usr-u09bJfnwbtuu",
+      "rol": "participante"
+    },
+    {
+      "email": "prueba.dashboard.empresa@buenvivir.test",
+      "user_id": "usr-bNGfZNqEZSsf",
+      "rol": "empresa"
+    }
+  ],
+  "cursos": [
+    {
+      "id": "1t67n3tNF23Yb6z6SSjR0D",
+      "titulo": "Prueba dashboard: Huerta urbana"
+    },
+    {
+      "id": "6Kllqqpqye9C0gle05O7Mn",
+      "titulo": "Prueba dashboard: Carpintería básica"
+    },
+    {
+      "id": "3e7MrPGcBkkHVsZ6TPO2Tp",
+      "titulo": "Prueba dashboard: Panadería para emprender"
+    }
+  ],
+  "actividades": [
+    {
+      "id": "IeVglfxBymLBVMTLJ3CB",
+      "curso": "1t67n3tNF23Yb6z6SSjR0D",
+      "fecha": "2026-08-30T15:00:00Z"
+    },
+    {
+      "id": "z6XWhrlM9h3cXcXLYhXO",
+      "curso": "1t67n3tNF23Yb6z6SSjR0D",
+      "fecha": "2026-09-14T15:00:00Z"
+    },
+    {
+      "id": "f3Nd2XdWrfnibBK0vZIf",
+      "curso": "6Kllqqpqye9C0gle05O7Mn",
+      "fecha": "2026-09-19T15:00:00Z"
+    },
+    {
+      "id": "GSJCo6vAUNp8gFFne6CE",
+      "curso": "6Kllqqpqye9C0gle05O7Mn",
+      "fecha": "2026-10-24T15:00:00Z"
+    },
+    {
+      "id": "aMy5Uu1J4F7DOGIs1ZCj",
+      "curso": "3e7MrPGcBkkHVsZ6TPO2Tp",
+      "fecha": "2026-09-29T15:00:00Z"
+    },
+    {
+      "id": "ugOvFiDxqQmnuVUOpK6e",
+      "curso": "3e7MrPGcBkkHVsZ6TPO2Tp",
+      "fecha": "2026-10-29T15:00:00Z"
+    },
+    {
+      "id": "z6irUt7aP1WvHjYlyDKW",
+      "curso": "3e7MrPGcBkkHVsZ6TPO2Tp",
+      "fecha": "2026-11-13T15:00:00Z"
+    }
+  ],
+  "inscripciones": [
+    {
+      "curso": "1t67n3tNF23Yb6z6SSjR0D",
+      "participante": "part-2mm3M5hUAO"
+    },
+    {
+      "curso": "1t67n3tNF23Yb6z6SSjR0D",
+      "participante": "part-fnCdfr6Ufa"
+    },
+    {
+      "curso": "1t67n3tNF23Yb6z6SSjR0D",
+      "participante": "part-ygggzjiipP"
+    },
+    {
+      "curso": "1t67n3tNF23Yb6z6SSjR0D",
+      "participante": "part-mbZfSFh4mR"
+    },
+    {
+      "curso": "1t67n3tNF23Yb6z6SSjR0D",
+      "participante": "part-p0DdNFoxhs"
+    },
+    {
+      "curso": "6Kllqqpqye9C0gle05O7Mn",
+      "participante": "part-ygggzjiipP"
+    },
+    {
+      "curso": "6Kllqqpqye9C0gle05O7Mn",
+      "participante": "part-mbZfSFh4mR"
+    },
+    {
+      "curso": "6Kllqqpqye9C0gle05O7Mn",
+      "participante": "part-p0DdNFoxhs"
+    },
+    {
+      "curso": "6Kllqqpqye9C0gle05O7Mn",
+      "participante": "part-YSXMWx08Ls"
+    },
+    {
+      "curso": "6Kllqqpqye9C0gle05O7Mn",
+      "participante": "part-Sa6KwA83SR"
+    },
+    {
+      "curso": "3e7MrPGcBkkHVsZ6TPO2Tp",
+      "participante": "part-2mm3M5hUAO"
+    },
+    {
+      "curso": "3e7MrPGcBkkHVsZ6TPO2Tp",
+      "participante": "part-fnCdfr6Ufa"
+    },
+    {
+      "curso": "3e7MrPGcBkkHVsZ6TPO2Tp",
+      "participante": "part-YSXMWx08Ls"
+    },
+    {
+      "curso": "3e7MrPGcBkkHVsZ6TPO2Tp",
+      "participante": "part-7wZ6hgsCNG"
+    }
+  ],
+  "entregas": [
+    {
+      "actividad": "IeVglfxBymLBVMTLJ3CB",
+      "participante": "part-2mm3M5hUAO"
+    },
+    {
+      "actividad": "IeVglfxBymLBVMTLJ3CB",
+      "participante": "part-fnCdfr6Ufa"
+    },
+    {
+      "actividad": "IeVglfxBymLBVMTLJ3CB",
+      "participante": "part-ygggzjiipP"
+    },
+    {
+      "actividad": "IeVglfxBymLBVMTLJ3CB",
+      "participante": "part-p0DdNFoxhs"
+    },
+    {
+      "actividad": "z6XWhrlM9h3cXcXLYhXO",
+      "participante": "part-2mm3M5hUAO"
+    },
+    {
+      "actividad": "z6XWhrlM9h3cXcXLYhXO",
+      "participante": "part-fnCdfr6Ufa"
+    },
+    {
+      "actividad": "z6XWhrlM9h3cXcXLYhXO",
+      "participante": "part-mbZfSFh4mR"
+    },
+    {
+      "actividad": "z6XWhrlM9h3cXcXLYhXO",
+      "participante": "part-p0DdNFoxhs"
+    },
+    {
+      "actividad": "f3Nd2XdWrfnibBK0vZIf",
+      "participante": "part-ygggzjiipP"
+    },
+    {
+      "actividad": "f3Nd2XdWrfnibBK0vZIf",
+      "participante": "part-p0DdNFoxhs"
+    },
+    {
+      "actividad": "f3Nd2XdWrfnibBK0vZIf",
+      "participante": "part-YSXMWx08Ls"
+    },
+    {
+      "actividad": "f3Nd2XdWrfnibBK0vZIf",
+      "participante": "part-Sa6KwA83SR"
+    },
+    {
+      "actividad": "aMy5Uu1J4F7DOGIs1ZCj",
+      "participante": "part-fnCdfr6Ufa"
+    },
+    {
+      "actividad": "aMy5Uu1J4F7DOGIs1ZCj",
+      "participante": "part-YSXMWx08Ls"
+    },
+    {
+      "actividad": "aMy5Uu1J4F7DOGIs1ZCj",
+      "participante": "part-7wZ6hgsCNG"
+    }
+  ],
+  "ofertas": [
+    {
+      "id": "pUixfipGBBY0ilHh0IH6",
+      "titulo": "Ayudante de vivero"
+    },
+    {
+      "id": "jnaoiXhQExCiqsQoRuhw",
+      "titulo": "Auxiliar de panadería"
+    }
+  ],
+  "postulaciones": [
+    {
+      "id": "tet8RgLnc1l1rpEr8jP7",
+      "oferta": "pUixfipGBBY0ilHh0IH6",
+      "estado": "Postulado"
+    },
+    {
+      "id": "bJ5WqaYCQjgwPI8j5laG",
+      "oferta": "pUixfipGBBY0ilHh0IH6",
+      "estado": "Aceptado"
+    },
+    {
+      "id": "IzB0ozRaBLMWH2EAIV8r",
+      "oferta": "pUixfipGBBY0ilHh0IH6",
+      "estado": "Postulado"
+    },
+    {
+      "id": "OZf6L2BVLWX7XutnF94s",
+      "oferta": "pUixfipGBBY0ilHh0IH6",
+      "estado": "Rechazado"
+    },
+    {
+      "id": "zQQpI9yo7e0fd0jWGJUU",
+      "oferta": "jnaoiXhQExCiqsQoRuhw",
+      "estado": "Postulado"
+    },
+    {
+      "id": "yrkYiKsBH6RhANPGgkRg",
+      "oferta": "jnaoiXhQExCiqsQoRuhw",
+      "estado": "Aceptado"
+    },
+    {
+      "id": "mKAc09qxpQh9HzdH2hqV",
+      "oferta": "jnaoiXhQExCiqsQoRuhw",
+      "estado": "Postulado"
+    }
+  ]
+}
