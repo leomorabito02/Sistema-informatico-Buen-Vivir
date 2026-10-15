@@ -1,8 +1,4 @@
 import { Routes } from "@angular/router";
-import { LandingComponent } from "./pages/landing/landing.component";
-import { LoginComponent } from "./pages/login/login.component";
-import { DashboardComponent } from "./pages/dashboard/dashboard.component";
-import { RegisterComponent } from "./pages/register/register.component";
 import { authGuard } from "./core/guards/auth.guard";
 import { guestGuard } from "./core/guards/guest.guard";
 import { adminGuard } from "./core/guards/admin.guard";
@@ -13,16 +9,23 @@ import { participantGuard } from "./core/guards/participant.guard";
 export const routes: Routes = [
   {
     path: "",
-    component: LandingComponent,
+    loadComponent: () =>
+      import("./pages/landing/landing.component").then(
+        (m) => m.LandingComponent,
+      ),
   },
   {
     path: "login",
-    component: LoginComponent,
+    loadComponent: () =>
+      import("./pages/login/login.component").then((m) => m.LoginComponent),
     canActivate: [guestGuard],
   },
   {
     path: "register",
-    component: RegisterComponent,
+    loadComponent: () =>
+      import("./pages/register/register.component").then(
+        (m) => m.RegisterComponent,
+      ),
     canActivate: [guestGuard],
   },
   {
@@ -98,43 +101,15 @@ export const routes: Routes = [
   },
   {
     path: "mi-cuenta",
-    canActivate: [authGuard],
-    loadComponent: () =>
-      import("./pages/mi-cuenta/mi-cuenta.component").then(
-        (m) => m.MiCuentaComponent,
-      ),
-    children: [
-      {
-        path: "",
-        redirectTo: "datos-personales",
-        pathMatch: "full",
-      },
-      {
-        path: "datos-personales",
-        loadComponent: () =>
-          import("./pages/mi-cuenta/datos-personales/datos-personales.component").then(
-            (m) => m.DatosPersonalesComponent,
-          ),
-      },
-      {
-        path: "seguridad",
-        loadComponent: () =>
-          import("./pages/mi-cuenta/seguridad/seguridad.component").then(
-            (m) => m.SeguridadComponent,
-          ),
-      },
-      {
-        path: "privacidad",
-        loadComponent: () =>
-          import("./pages/mi-cuenta/privacidad-cuenta/privacidad-cuenta.component").then(
-            (m) => m.PrivacidadCuentaComponent,
-          ),
-      },
-    ],
+    redirectTo: "dashboard/mi-perfil",
+    pathMatch: "prefix",
   },
   {
     path: "dashboard",
-    component: DashboardComponent,
+    loadComponent: () =>
+      import("./pages/dashboard/dashboard.component").then(
+        (m) => m.DashboardComponent,
+      ),
     canActivate: [authGuard],
     children: [
       {
