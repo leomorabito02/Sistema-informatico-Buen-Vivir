@@ -111,54 +111,17 @@
               "
             >
               <label [for]="item.key">{{ getRoleKeyLabel(item.key) }}</label>
-              <div
-                class="info-value"
-                *ngIf="!isEditingProfile || !profileForm.contains(item.key)"
-              >
+              <div class="info-value" *ngIf="!isEditingProfile || !profileForm.contains(item.key)">
                 {{ formatRoleValue(item.key, item.value) }}
               </div>
-              <div
-                *ngIf="isEditingProfile && profileForm.contains(item.key)"
-                class="input-wrapper"
-              >
+              <div *ngIf="isEditingProfile && profileForm.contains(item.key)" class="input-wrapper">
                 <ng-container *ngIf="item.key !== 'image_url'; else fileInput">
-                  <input
-                    type="text"
-                    class="form-input"
-                    [id]="item.key"
-                    [formControlName]="item.key"
-                  />
+                  <input type="text" class="form-input" [id]="item.key" [formControlName]="item.key">
                 </ng-container>
                 <ng-template #fileInput>
-                  <div style="display: flex; align-items: center; gap: 1rem">
-                    <img
-                      *ngIf="
-                        profileData.role_data['image_url'] ||
-                        profileData.role_data['profile_picture_url']
-                      "
-                      [src]="
-                        resolveImageUrl(
-                          profileData.role_data['image_url'] ||
-                            profileData.role_data['profile_picture_url']
-                        )
-                      "
-                      alt="Preview"
-                      style="
-                        width: 50px;
-                        height: 50px;
-                        object-fit: cover;
-                        border-radius: 50%;
-                        border: 1px solid #dee2e6;
-                      "
-                    />
-                    <input
-                      type="file"
-                      class="form-input"
-                      [id]="item.key"
-                      accept="image/*"
-                      (change)="onPictureSelected($event)"
-                      [disabled]="uploadingPicture"
-                    />
+                  <div style="display: flex; align-items: center; gap: 1rem;">
+                    <img *ngIf="profileData.role_data['image_url'] || profileData.role_data['profile_picture_url']" [src]="resolveImageUrl(profileData.role_data['image_url'] || profileData.role_data['profile_picture_url'])" alt="Preview" style="width: 50px; height: 50px; object-fit: cover; border-radius: 50%; border: 1px solid #dee2e6;">
+                    <input type="file" class="form-input" [id]="item.key" accept="image/*" (change)="onPictureSelected($event)" [disabled]="uploadingPicture">
                   </div>
                   <small *ngIf="uploadingPicture">Subiendo foto...</small>
                 </ng-template>

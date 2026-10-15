@@ -1,6 +1,7 @@
 import { ComponentFixture, TestBed } from "@angular/core/testing";
 import { HeaderComponent, NAV_BY_ROLE } from "./header.component";
 import { AuthService } from "../../../services/auth.service";
+import { ProfileService } from "../../../services/profile.service";
 import { Router, provideRouter } from "@angular/router";
 import { provideNoopAnimations } from "@angular/platform-browser/animations";
 import { MenuItem } from "primeng/api";
@@ -19,6 +20,7 @@ describe("HeaderComponent", () => {
   let component: HeaderComponent;
   let fixture: ComponentFixture<HeaderComponent>;
   let mockAuthService: jasmine.SpyObj<AuthService>;
+  let mockProfileService: jasmine.SpyObj<ProfileService>;
 
   function create(me: unknown) {
     mockAuthService.isAuthenticated.and.returnValue(of(me as any));
@@ -36,10 +38,16 @@ describe("HeaderComponent", () => {
       of({ role_id: "role_participant" } as any),
     );
 
+    mockProfileService = jasmine.createSpyObj("ProfileService", [
+      "getMyProfile",
+    ]);
+    mockProfileService.getMyProfile.and.returnValue(of({} as any));
+
     await TestBed.configureTestingModule({
       imports: [HeaderComponent],
       providers: [
         { provide: AuthService, useValue: mockAuthService },
+        { provide: ProfileService, useValue: mockProfileService },
         provideRouter([{ path: "**", children: [] }]),
         provideNoopAnimations(),
       ],
@@ -170,6 +178,7 @@ describe("HeaderComponent", () => {
     });
 
     it("cada sección del menú de todos los roles tiene su propio ícono", () => {
+      create({ role_id: "role_participant" });
       for (const items of Object.values(NAV_BY_ROLE)) {
         for (const item of items) {
           expect(component.iconFor(item))
@@ -188,9 +197,7 @@ describe("HeaderComponent", () => {
       component.toggleGroup(cursos);
       fixture.detectChanges();
       expect(component.isExpanded(cursos)).toBeTrue();
-      expect(
-        fixture.nativeElement.querySelectorAll(".nav-subitem").length,
-      ).toBe(3);
+      expect(fixture.nativeElement.querySelectorAll(".nav-subitem")).toHaveSize(3);
 
       component.toggleGroup(cursos);
       expect(component.isExpanded(cursos)).toBeFalse();
@@ -276,5 +283,70 @@ describe("HeaderComponent", () => {
     );
     expect(el.querySelector(".user-name")?.textContent).toContain("Sofía");
     expect(el.querySelector('[aria-label="Notificaciones"]')).not.toBeNull();
+  });
+
+  describe("Avatar display and fallback", () => {
+    it("renders avatar image when user has image_url", () => {
+      create({
+        role_id: "role_participant",
+        user: {
+          first_name: "Ana",
+          image_url: "https://example.com/avatar.jpg",
+        },
+      });
+
+      expect(component.avatarUrl).toBe("https://example.com/avatar.jpg");
+      const img = fixture.nativeElement.querySelector(".avatar-img");
+      expect(img).not.toBeNull();
+      expect(img?.getAttribute("src")).toBe("https://example.com/avatar.jpg");
+    });
+
+    it("falls back to initials when no image is available", () => {
+      create({
+        role_id: "role_participant",
+        user: { first_name: "Ana", last_name: "Gómez" },
+      });
+
+      expect(component.avatarUrl).toBeNull();
+      const img = fixture.nativeElement.querySelector(".avatar-img");
+      expect(img).toBeNull();
+      const avatarText = fixture.nativeElement.querySelector(".avatar")?.textContent;
+      expect(avatarText).toContain("AG");
+    });
+
+    it("falls back to initials when avatar image fails to load", () => {
+      create({
+        role_id: "role_participant",
+        user: {
+          first_name: "Ana",
+          last_name: "Gómez",
+          image_url: "https://example.com/broken.jpg",
+        },
+      });
+
+      expect(component.avatarUrl).toBe("https://example.com/broken.jpg");
+      component.onAvatarError();
+      fixture.detectChanges();
+
+      expect(component.avatarUrl).toBeNull();
+      const img = fixture.nativeElement.querySelector(".avatar-img");
+      expect(img).toBeNull();
+      const avatarText = fixture.nativeElement.querySelector(".avatar")?.textContent;
+      expect(avatarText).toContain("AG");
+    });
+
+    it("resolves relative and localhost api urls correctly", () => {
+      expect(component.resolveImageUrl(null)).toBe("");
+      expect(component.resolveImageUrl("")).toBe("");
+      expect(component.resolveImageUrl("https://cdn.example.com/photo.png")).toBe(
+        "https://cdn.example.com/photo.png",
+      );
+      expect(
+        component.resolveImageUrl("http://localhost:8080/api/v1/uploads/pic.png"),
+      ).toContain("/api/v1/uploads/pic.png");
+      expect(component.resolveImageUrl("/uploads/pic.png")).toContain(
+        "/uploads/pic.png",
+      );
+    });
   });
 });

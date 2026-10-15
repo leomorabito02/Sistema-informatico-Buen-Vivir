@@ -130,6 +130,30 @@ describe("MiPerfilComponent", () => {
     ).toContain("2023");
   });
 
+  it("should render role image as img and not as text link", () => {
+    component.profileData = {
+      user: {
+        email: "test@test.com",
+        user_id: "u-1",
+        role_id: "role_participant",
+        first_name: "Test",
+        last_name: "User",
+        phone: "",
+        status: "active",
+        twofa_enabled: false,
+        created_at: "",
+        updated_at: "",
+      },
+      role_data: { image_url: "https://example.com/role-avatar.jpg" },
+    };
+    component.isEditingProfile = false;
+    fixture.detectChanges();
+
+    const img = fixture.nativeElement.querySelector(".role-profile-picture");
+    expect(img).not.toBeNull();
+    expect(img?.getAttribute("src")).toBe("https://example.com/role-avatar.jpg");
+  });
+
   describe("Password Change", () => {
     it("should validate password match", () => {
       component.passwordForm.patchValue({
