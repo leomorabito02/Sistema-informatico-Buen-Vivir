@@ -358,5 +358,68 @@
         </button>
       </form>
     </section>
+
+    <!-- Privacidad y Derechos de Datos (Ley 25.326) -->
+    <section class="profile-section">
+      <div class="section-header">
+        <lucide-icon [img]="ShieldAlertIcon" size="20"></lucide-icon>
+        <h2>Privacidad y Derechos de Datos (Ley 25.326)</h2>
+      </div>
+
+      <p class="privacy-intro">
+        Gestión de tus derechos ARCO (Acceso, Rectificación, Cancelación y Oposición) ante el Centro de Ecología Integral Buen Vivir.
+      </p>
+
+      <div *ngIf="isExported" class="alert alert-success">
+        <lucide-icon [img]="CheckCircleIcon" size="20"></lucide-icon>
+        Se ha generado y descargado el informe en PDF con tus datos personales.
+      </div>
+
+      <div class="privacy-cards-grid">
+        <div class="privacy-card">
+          <div class="privacy-card-header">
+            <div class="privacy-icon-badge bg-primary-subtle">
+              <lucide-icon [img]="DownloadIcon" size="20"></lucide-icon>
+            </div>
+            <div>
+              <h3>Derecho de Acceso (Art. 14 Ley 25.326)</h3>
+              <p>
+                Podés descargar un informe oficial en formato PDF con la totalidad de tus datos personales, rol, cursos inscriptos o dictados, postulaciones y legajo registrado.
+              </p>
+            </div>
+          </div>
+          <button
+            type="button"
+            (click)="exportUserData()"
+            class="btn-outline-primary"
+            [disabled]="isExporting"
+          >
+            <lucide-icon [img]="DownloadIcon" size="16"></lucide-icon>
+            {{ isExporting ? 'Generando PDF...' : 'Descargar informe en PDF' }}
+          </button>
+        </div>
+
+        <div class="privacy-card danger-card">
+          <div class="privacy-card-header">
+            <div class="privacy-icon-badge bg-destructive-subtle">
+              <lucide-icon [img]="TrashIcon" size="20"></lucide-icon>
+            </div>
+            <div>
+              <h3>Derecho de Cancelación / Supresión</h3>
+              <p>
+                Si querés solicitar la baja definitiva de tu cuenta y la eliminación de tus datos personales de las bases de datos de la institución, podés enviar una solicitud a nuestro responsable de privacidad conforme al Artículo 16 de la Ley 25.326.
+              </p>
+            </div>
+          </div>
+          <a
+            href="mailto:ceibuenvivir7@gmail.com?subject=Solicitud%20de%20Supresion%20de%20Datos%20Ley%2025326"
+            class="btn-danger-link"
+          >
+            <lucide-icon [img]="ShieldAlertIcon" size="16"></lucide-icon>
+            Solicitar eliminación de datos (AAIP)
+          </a>
+        </div>
+      </div>
+    </section>
   </div>
 </div>

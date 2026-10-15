@@ -206,7 +206,6 @@ export class HeaderComponent implements OnInit {
 
   readonly userItems: MenuItem[] = [
     { label: "Mi perfil", routerLink: "/dashboard/mi-perfil" },
-    { label: "Mi cuenta", routerLink: "/mi-cuenta" },
     { label: "Ayuda", routerLink: "/dashboard/ayuda" },
     { separator: true },
     { label: "Cerrar sesión", command: () => this.logout() },
