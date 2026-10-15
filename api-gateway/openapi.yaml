@@ -2424,6 +2424,11 @@ paths:
             Access-Control-Max-Age:
               type: integer
   /api/v1/human-promotion/fichas/{id}:
+    parameters:
+    - name: id
+      in: path
+      required: true
+      type: string
     get:
       summary: GET /api/v1/human-promotion/fichas/{id}
       operationId: get__api_v1_human_promotion_fichas_id
@@ -2468,6 +2473,11 @@ paths:
             Access-Control-Max-Age:
               type: integer
   /api/v1/human-promotion/fichas/{id}/pdf:
+    parameters:
+    - name: id
+      in: path
+      required: true
+      type: string
     get:
       summary: GET /api/v1/human-promotion/fichas/{id}/pdf
       operationId: get__api_v1_human_promotion_fichas_id_pdf
@@ -2502,6 +2512,11 @@ paths:
             Access-Control-Max-Age:
               type: integer
   /api/v1/human-promotion/fichas/{id}/hitos:
+    parameters:
+    - name: id
+      in: path
+      required: true
+      type: string
     get:
       summary: GET /api/v1/human-promotion/fichas/{id}/hitos
       operationId: get__api_v1_human_promotion_fichas_id_hitos
@@ -2546,6 +2561,15 @@ paths:
             Access-Control-Max-Age:
               type: integer
   /api/v1/human-promotion/fichas/{id}/hitos/{hitoId}:
+    parameters:
+    - name: id
+      in: path
+      required: true
+      type: string
+    - name: hitoId
+      in: path
+      required: true
+      type: string
     put:
       summary: PUT /api/v1/human-promotion/fichas/{id}/hitos/{hitoId}
       operationId: put__api_v1_human_promotion_fichas_id_hitos_hitoId

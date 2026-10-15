@@ -29,9 +29,9 @@ func NewObjectStorageService(ctx context.Context, projectID, bucketName, emulato
 		opts = append(opts, option.WithEndpoint(emulatorHost), option.WithoutAuthentication())
 	} else if credsPath != "" {
 		if credsPath[0] == '{' {
-			opts = append(opts, option.WithCredentialsJSON([]byte(credsPath)))
+			opts = append(opts, option.WithCredentialsJSON([]byte(credsPath))) //nolint:staticcheck // mismo criterio que firebase_service.go: credenciales inline
 		} else {
-			opts = append(opts, option.WithCredentialsFile(credsPath))
+			opts = append(opts, option.WithCredentialsFile(credsPath)) //nolint:staticcheck // mismo criterio que firebase_service.go: archivo de credenciales
 		}
 	}
 

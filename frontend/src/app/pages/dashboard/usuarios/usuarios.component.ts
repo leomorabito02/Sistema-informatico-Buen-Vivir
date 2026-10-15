@@ -59,17 +59,17 @@ export interface DashboardUser {
   styleUrls: ["./usuarios.component.css"],
 })
 export class UsuariosComponent implements OnInit {
-	private readonly authService = inject(AuthService);
-	private readonly usersService = inject(UsersService);
-	private readonly educationService = inject(EducationService);
-	private readonly router = inject(Router);
+  private readonly authService = inject(AuthService);
+  private readonly usersService = inject(UsersService);
+  private readonly educationService = inject(EducationService);
+  private readonly router = inject(Router);
   private readonly messages = inject(MessageService);
   private readonly confirmation = inject(ConfirmationService);
 
   /** Carga inicial de la lista (para skeleton y estado de error). */
   loading = true;
   loadError = "";
-	private readonly rxResumeService = inject(RxResumeService);
+  private readonly rxResumeService = inject(RxResumeService);
 
   searchTerm: string = "";
   selectedRole: string = "Todos los roles";
@@ -107,7 +107,7 @@ export class UsuariosComponent implements OnInit {
   participantDocuments: any[] = [];
   uploadingDocument: boolean = false;
   editingDocId: string | null = null;
-  editingDocName: string = '';
+  editingDocName: string = "";
   editingDocFile: File | null = null;
 
   ngOnInit() {
@@ -414,10 +414,12 @@ export class UsuariosComponent implements OnInit {
         }
 
         if (profile.role_data?.participant_id) {
-          this.usersService.getParticipantDocuments(profile.role_data.participant_id).subscribe({
-            next: (docs) => this.participantDocuments = docs || [],
-            error: (err) => console.error("Error fetching docs", err)
-          });
+          this.usersService
+            .getParticipantDocuments(profile.role_data.participant_id)
+            .subscribe({
+              next: (docs) => (this.participantDocuments = docs || []),
+              error: (err) => console.error("Error fetching docs", err),
+            });
         } else {
           this.participantDocuments = [];
         }
@@ -549,41 +551,39 @@ export class UsuariosComponent implements OnInit {
       this.uploadingPicture = true;
       const userId = this.selectedUser.originalUser.user_id;
 
-      this.rxResumeService
-        .uploadUserPictureByAdmin(userId, file)
-        .subscribe({
-          next: (resume) => {
-            this.uploadingPicture = false;
-            const newPic = resume.data?.basics?.picture;
-            if (newPic && this.selectedUser) {
-              this.selectedUser.image_url = newPic;
-              if (this.selectedUser.profileData?.role_data) {
-                this.selectedUser.profileData.role_data.image_url = newPic;
-              }
-              const inList = this.users.find((u) => u.id === userId);
-              if (inList) inList.image_url = newPic;
-
-              const partId =
-                this.selectedUser.profileData?.role_data?.participant_id;
-              if (partId) {
-                this.usersService
-                  .updateRoleData("participants", partId, { image_url: newPic })
-                  .subscribe({
-                    error: (err) =>
-                      console.error("Error sincronizando imagen en rol:", err),
-                  });
-              }
+      this.rxResumeService.uploadUserPictureByAdmin(userId, file).subscribe({
+        next: (resume) => {
+          this.uploadingPicture = false;
+          const newPic = resume.data?.basics?.picture;
+          if (newPic && this.selectedUser) {
+            this.selectedUser.image_url = newPic;
+            if (this.selectedUser.profileData?.role_data) {
+              this.selectedUser.profileData.role_data.image_url = newPic;
             }
-          },
-          error: (err) => {
-            console.error("Error al subir foto:", err);
-            this.uploadingPicture = false;
-            alert(
-              "Error al subir la foto de perfil: " +
-                (err.message || "Desconocido"),
-            );
-          },
-        });
+            const inList = this.users.find((u) => u.id === userId);
+            if (inList) inList.image_url = newPic;
+
+            const partId =
+              this.selectedUser.profileData?.role_data?.participant_id;
+            if (partId) {
+              this.usersService
+                .updateRoleData("participants", partId, { image_url: newPic })
+                .subscribe({
+                  error: (err) =>
+                    console.error("Error sincronizando imagen en rol:", err),
+                });
+            }
+          }
+        },
+        error: (err) => {
+          console.error("Error al subir foto:", err);
+          this.uploadingPicture = false;
+          alert(
+            "Error al subir la foto de perfil: " +
+              (err.message || "Desconocido"),
+          );
+        },
+      });
     }
   }
 
@@ -591,21 +591,23 @@ export class UsuariosComponent implements OnInit {
     const file = event.target.files[0];
     if (file && this.selectedUser?.originalUser?.user_id) {
       this.uploadingPicture = true;
-      this.rxResumeService.uploadUserPictureByAdmin(this.selectedUser.originalUser.user_id, file).subscribe({
-        next: (resume) => {
-          this.uploadingPicture = false;
-          if (resume.data?.basics?.picture) {
-            this.editForm.image_url = resume.data.basics.picture;
-            // Update immediately in db
-            this.saveEdit();
-          }
-        },
-        error: (err) => {
-          console.error("Error al subir foto:", err);
-          this.uploadingPicture = false;
-          alert("Error al subir la foto de perfil.");
-        }
-      });
+      this.rxResumeService
+        .uploadUserPictureByAdmin(this.selectedUser.originalUser.user_id, file)
+        .subscribe({
+          next: (resume) => {
+            this.uploadingPicture = false;
+            if (resume.data?.basics?.picture) {
+              this.editForm.image_url = resume.data.basics.picture;
+              // Update immediately in db
+              this.saveEdit();
+            }
+          },
+          error: (err) => {
+            console.error("Error al subir foto:", err);
+            this.uploadingPicture = false;
+            alert("Error al subir la foto de perfil.");
+          },
+        });
     }
   }
 
@@ -660,7 +662,9 @@ export class UsuariosComponent implements OnInit {
   private buildParticipantPayload(): Record<string, any> {
     const raw = this.editForm;
     const payload: Record<string, any> = {
-      birthdate: raw.birthdate ? new Date(raw.birthdate).toISOString() : undefined,
+      birthdate: raw.birthdate
+        ? new Date(raw.birthdate).toISOString()
+        : undefined,
       dni: raw.dni || "",
       address: raw.address || "",
       gender: raw.gender || "",
@@ -671,9 +675,9 @@ export class UsuariosComponent implements OnInit {
     };
 
     if (raw.approval_status) {
-      payload['approval_status'] = raw.approval_status;
+      payload["approval_status"] = raw.approval_status;
       if (raw.approval_status === "approved" && this.currentUserId) {
-        payload['approved_by'] = this.currentUserId;
+        payload["approved_by"] = this.currentUserId;
       }
     }
     return payload;
@@ -760,28 +764,31 @@ export class UsuariosComponent implements OnInit {
 
   onDocumentSelected(event: any) {
     const file = event.target.files[0];
-    const participantId = this.selectedUser?.profileData?.role_data?.participant_id;
+    const participantId =
+      this.selectedUser?.profileData?.role_data?.participant_id;
     if (file && participantId) {
       this.uploadingDocument = true;
-      this.usersService.uploadParticipantDocument(participantId, file, file.name).subscribe({
-        next: (doc) => {
-          this.uploadingDocument = false;
-          if (doc) {
-            this.participantDocuments.push(doc);
-          }
-          event.target.value = ''; // Reset input
-        },
-        error: (err) => {
-          console.error("Error al subir documento:", err);
-          this.uploadingDocument = false;
-          const errorMsg =
-            err.error?.error ||
-            err.error?.message ||
-            err.message ||
-            "Error al subir el documento.";
-          alert(errorMsg);
-        }
-      });
+      this.usersService
+        .uploadParticipantDocument(participantId, file, file.name)
+        .subscribe({
+          next: (doc) => {
+            this.uploadingDocument = false;
+            if (doc) {
+              this.participantDocuments.push(doc);
+            }
+            event.target.value = ""; // Reset input
+          },
+          error: (err) => {
+            console.error("Error al subir documento:", err);
+            this.uploadingDocument = false;
+            const errorMsg =
+              err.error?.error ||
+              err.error?.message ||
+              err.message ||
+              "Error al subir el documento.";
+            alert(errorMsg);
+          },
+        });
     }
   }
 
@@ -802,7 +809,8 @@ export class UsuariosComponent implements OnInit {
   }
 
   saveEditDocument(docId: string) {
-    const participantId = this.selectedUser?.profileData?.role_data?.participant_id;
+    const participantId =
+      this.selectedUser?.profileData?.role_data?.participant_id;
     if (!participantId) return;
 
     if (!this.editingDocName.trim()) {
@@ -821,7 +829,9 @@ export class UsuariosComponent implements OnInit {
       .subscribe({
         next: (updatedDoc) => {
           this.uploadingDocument = false;
-          const idx = this.participantDocuments.findIndex((d) => d.id === docId);
+          const idx = this.participantDocuments.findIndex(
+            (d) => d.id === docId,
+          );
           if (idx !== -1) {
             this.participantDocuments[idx] = updatedDoc;
           }
@@ -841,53 +851,64 @@ export class UsuariosComponent implements OnInit {
   }
 
   deleteDocument(docId: string) {
-    const participantId = this.selectedUser?.profileData?.role_data?.participant_id;
-    if (participantId && confirm("¿Estás seguro de que deseas eliminar este documento?")) {
-       this.usersService.deleteParticipantDocument(participantId, docId).subscribe({
+    const participantId =
+      this.selectedUser?.profileData?.role_data?.participant_id;
+    if (
+      participantId &&
+      confirm("¿Estás seguro de que deseas eliminar este documento?")
+    ) {
+      this.usersService
+        .deleteParticipantDocument(participantId, docId)
+        .subscribe({
           next: () => {
-             this.participantDocuments = this.participantDocuments.filter(d => d.id !== docId);
-             if (this.editingDocId === docId) {
-               this.cancelEditDocument();
-             }
+            this.participantDocuments = this.participantDocuments.filter(
+              (d) => d.id !== docId,
+            );
+            if (this.editingDocId === docId) {
+              this.cancelEditDocument();
+            }
           },
           error: (err) => {
-             console.error("Error al eliminar documento:", err);
-             const errorMsg =
-               err.error?.error ||
-               err.error?.message ||
-               err.message ||
-               "Error al eliminar el documento.";
-             alert(errorMsg);
-          }
-       });
-     }
+            console.error("Error al eliminar documento:", err);
+            const errorMsg =
+              err.error?.error ||
+              err.error?.message ||
+              err.message ||
+              "Error al eliminar el documento.";
+            alert(errorMsg);
+          },
+        });
+    }
   }
 
   downloadDocument(docId: string, docName: string, event: Event) {
     event.preventDefault(); // Prevent navigating to href
-    const participantId = this.selectedUser?.profileData?.role_data?.participant_id;
+    const participantId =
+      this.selectedUser?.profileData?.role_data?.participant_id;
     if (participantId) {
-      this.usersService.downloadParticipantDocument(participantId, docId).subscribe({
-        next: (blob: Blob) => {
-          const url = window.URL.createObjectURL(blob);
-          const a = document.createElement('a');
-          a.href = url;
-          a.download = docName;
-          document.body.appendChild(a);
-          a.click();
-          window.URL.revokeObjectURL(url);
-          a.remove();
-        },
-        error: (err) => {
-          console.error("Error al descargar documento:", err);
-          const errorMsg =
-            err.error?.error ||
-            err.error?.message ||
-            err.message ||
-            "No se pudo descargar el documento.";
-          alert(errorMsg);
-        }
-      });
+      this.usersService
+        .downloadParticipantDocument(participantId, docId)
+        .subscribe({
+          next: (blob: Blob) => {
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = docName;
+            document.body.appendChild(a);
+            a.click();
+            window.URL.revokeObjectURL(url);
+            a.remove();
+          },
+          error: (err) => {
+            console.error("Error al descargar documento:", err);
+            const errorMsg =
+              err.error?.error ||
+              err.error?.message ||
+              err.message ||
+              "No se pudo descargar el documento.";
+            alert(errorMsg);
+          },
+        });
     }
   }
 }
