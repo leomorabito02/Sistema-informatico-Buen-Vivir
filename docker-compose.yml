@@ -42,7 +42,6 @@ services:
     networks:
       - buenvivir-net
 
- 
   labor-integration:
     build:
       context: ./labor-integration
@@ -76,6 +75,7 @@ services:
       - ./human-promotion/.env
     environment:
       - AUTH_SERVICE_GRPC_TARGET=auth-service:50051
+      - EDUCATION_SERVICE_URL=http://education-service:8210
     ports:
       - "8085:8085"
     depends_on:
@@ -132,7 +132,6 @@ services:
     restart: on-failure
     networks:
       - buenvivir-net
-
 
   rxresume-service:
     build:
