@@ -8,6 +8,7 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
+	"buenvivir/education/internal/events/producers"
 	"buenvivir/education/internal/models"
 )
 
@@ -67,10 +68,13 @@ type SkillRepository interface {
 
 type skillRepository struct {
 	client *firestore.Client
+	events *producers.Educacion
 }
 
-func NewSkillRepository(client *firestore.Client) SkillRepository {
-	return &skillRepository{client: client}
+// NewSkillRepository recibe opcionalmente el productor de eventos
+// (habilidad.otorgada en las asignaciones retroactivas).
+func NewSkillRepository(client *firestore.Client, events ...*producers.Educacion) SkillRepository {
+	return &skillRepository{client: client, events: firstProducer(events)}
 }
 
 func (r *skillRepository) ListCatalog(ctx context.Context) ([]models.Skill, error) {
@@ -224,7 +228,7 @@ func (r *skillRepository) GrantToParticipants(ctx context.Context, participanteI
 				ActividadID:    grant.ActividadID,
 				CursoID:        grant.CursoID,
 			}
-			if _, err := col.Doc(ParticipantSkillDocID(p, h)).Create(ctx, ps); err != nil {
+			if err := r.grantOne(ctx, col.Doc(ParticipantSkillDocID(p, h)), ps); err != nil {
 				if status.Code(err) == codes.AlreadyExists {
 					continue
 				}
@@ -232,7 +236,24 @@ func (r *skillRepository) GrantToParticipants(ctx context.Context, participanteI
 			}
 		}
 	}
+	r.events.Notify()
 	return nil
+}
+
+// grantOne crea una asignación. Con eventos activos va en una
+// transacción chica junto con su habilidad.otorgada (outbox); sin
+// eventos es un Create simple, como antes.
+func (r *skillRepository) grantOne(ctx context.Context, ref *firestore.DocumentRef, ps models.ParticipantSkill) error {
+	if !r.events.Enabled() {
+		_, err := ref.Create(ctx, ps)
+		return err
+	}
+	return r.client.RunTransaction(ctx, func(ctx context.Context, tx *firestore.Transaction) error {
+		if err := tx.Create(ref, ps); err != nil {
+			return err
+		}
+		return r.events.HabilidadOtorgada(ctx, tx, ps)
+	})
 }
 
 func (r *skillRepository) ListByParticipant(ctx context.Context, participanteID string) ([]models.ParticipantSkill, error) {

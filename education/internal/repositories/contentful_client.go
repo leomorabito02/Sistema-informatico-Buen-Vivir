@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"time"
@@ -59,6 +60,10 @@ type ContentfulClient struct {
 	cdaBaseURL    string
 	cmaBaseURL    string
 	uploadBaseURL string
+
+	// cache de las lecturas de la CDA (nil = sin caché). Ver
+	// content_cache.go.
+	cache *contentCache
 }
 
 func NewContentfulClient(cfg *config.Config) *ContentfulClient {
@@ -72,7 +77,15 @@ func NewContentfulClient(cfg *config.Config) *ContentfulClient {
 		cdaBaseURL:    defaultCDABaseURL,
 		cmaBaseURL:    defaultCMABaseURL,
 		uploadBaseURL: defaultUploadBaseURL,
+		cache:         newContentCache(cfg.Events.ContentCacheTTL),
 	}
+}
+
+// InvalidateCache vence las lecturas cacheadas de la CDA (las conserva
+// como respaldo ante una caída de Contentful). La llama el consumidor de
+// contenido-eventos.
+func (c *ContentfulClient) InvalidateCache() {
+	c.cache.invalidate()
 }
 
 func (c *ContentfulClient) Locale() string {
@@ -144,15 +157,37 @@ func (c *ContentfulClient) doCDA(ctx context.Context, method, path string, query
 	if query == nil {
 		query = url.Values{}
 	}
-	query.Set("access_token", c.cdaToken)
+	// La clave de la caché no incluye el token (Encode ordena las claves,
+	// así que la misma consulta da siempre la misma clave).
+	cacheKey := method + " " + path + "?" + query.Encode()
+	cacheable := method == http.MethodGet && c.cache != nil
+	if cacheable {
+		if body, fresh, ok := c.cache.get(cacheKey); ok && fresh {
+			return body, http.StatusOK, nil
+		}
+	}
 
+	query.Set("access_token", c.cdaToken)
 	reqURL := fmt.Sprintf("%s/spaces/%s/environments/%s%s?%s", c.cdaBaseURL, c.spaceID, c.environment, path, query.Encode())
 	req, err := http.NewRequestWithContext(ctx, method, reqURL, nil)
 	if err != nil {
 		return nil, 0, err
 	}
 
-	return c.do(req)
+	body, status, err := c.do(req)
+	if !cacheable {
+		return body, status, err
+	}
+	if err == nil {
+		c.cache.put(cacheKey, body)
+		return body, status, nil
+	}
+	if stale, _, ok := c.cache.get(cacheKey); ok && isTransient(status) {
+		slog.WarnContext(ctx, "Contentful no disponible: se sirve contenido cacheado (stale)",
+			slog.String("path", path), slog.Int("status", status), slog.String("error", err.Error()))
+		return stale, http.StatusOK, nil
+	}
+	return body, status, err
 }
 
 // -- Content Management API (escritura) --
@@ -292,7 +327,14 @@ func (c *ContentfulClient) doCMA(ctx context.Context, method, path string, extra
 		req.Header.Set(k, v)
 	}
 
-	return c.do(req)
+	respBody, status, err := c.do(req)
+	if err == nil && method != http.MethodGet {
+		// Una escritura propia cambia lo que devuelve la CDA: se vence la
+		// caché para que este mismo usuario vea su cambio enseguida (el
+		// webhook de Contentful avisa a las demás instancias).
+		c.cache.invalidate()
+	}
+	return respBody, status, err
 }
 
 func (c *ContentfulClient) do(req *http.Request) ([]byte, int, error) {

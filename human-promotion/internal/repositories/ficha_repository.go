@@ -10,6 +10,8 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
+	"buenvivir/human-promotion/internal/audit"
+	"buenvivir/human-promotion/internal/events/producers"
 	"buenvivir/human-promotion/internal/models"
 )
 
@@ -30,6 +32,10 @@ type FichaRepository interface {
 	// FindIDsByParticipantes devuelve participante_id -> id de ficha para
 	// los participantes que ya tienen ficha (lo usa la búsqueda, HU-36).
 	FindIDsByParticipantes(ctx context.Context, participanteIDs []string) (map[string]string, error)
+	// DeactivateByParticipante da de baja (lógica) la ficha de un
+	// participante que se dio de baja en auth-service. Devuelve false si
+	// no tenía ficha o ya estaba de baja (idempotente).
+	DeactivateByParticipante(ctx context.Context, participanteID string) (bool, error)
 }
 
 // firestoreInLimit es el máximo de valores que admite un filtro "in".
@@ -37,10 +43,20 @@ const firestoreInLimit = 30
 
 type fichaRepository struct {
 	client *firestore.Client
+	events *producers.PromocionHumana
 }
 
-func NewFichaRepository(client *firestore.Client) FichaRepository {
-	return &fichaRepository{client: client}
+// NewFichaRepository recibe opcionalmente el productor de eventos (sin
+// él no se publica nada; la auditoría se escribe siempre).
+func NewFichaRepository(client *firestore.Client, events ...*producers.PromocionHumana) FichaRepository {
+	return &fichaRepository{client: client, events: firstProducer(events)}
+}
+
+func firstProducer(ps []*producers.PromocionHumana) *producers.PromocionHumana {
+	if len(ps) > 0 {
+		return ps[0]
+	}
+	return nil
 }
 
 // Create corre en una transacción: la consulta por participante_id y el
@@ -58,7 +74,13 @@ func (r *fichaRepository) Create(ctx context.Context, doc models.FichaDocument) 
 		if len(existing) > 0 {
 			return ErrAlreadyExists
 		}
-		return tx.Create(ref, doc)
+		if err := tx.Create(ref, doc); err != nil {
+			return err
+		}
+		if err := r.events.FichaCreada(ctx, tx, ref.ID, doc.ParticipanteID); err != nil {
+			return err
+		}
+		return audit.RecordTx(ctx, r.client, tx, audit.AccionCrear, audit.RecursoFicha, ref.ID)
 	})
 	if err == ErrAlreadyExists {
 		return "", err
@@ -66,6 +88,7 @@ func (r *fichaRepository) Create(ctx context.Context, doc models.FichaDocument) 
 	if err != nil {
 		return "", fmt.Errorf("error creando la ficha: %w", err)
 	}
+	r.events.Notify()
 	return ref.ID, nil
 }
 
@@ -103,10 +126,24 @@ func (r *fichaRepository) GetByParticipante(ctx context.Context, participanteID 
 }
 
 func (r *fichaRepository) UpdateContenido(ctx context.Context, id, situacionActual, avances string, updatedAt time.Time) error {
-	_, err := r.client.Collection(fichasCollection).Doc(id).Update(ctx, []firestore.Update{
-		{Path: "situacion_actual", Value: situacionActual},
-		{Path: "avances", Value: avances},
-		{Path: "updated_at", Value: updatedAt},
+	ref := r.client.Collection(fichasCollection).Doc(id)
+	err := r.client.RunTransaction(ctx, func(ctx context.Context, tx *firestore.Transaction) error {
+		snap, err := tx.Get(ref)
+		if err != nil {
+			return err
+		}
+		participanteID, _ := snap.Data()["participante_id"].(string)
+		if err := tx.Update(ref, []firestore.Update{
+			{Path: "situacion_actual", Value: situacionActual},
+			{Path: "avances", Value: avances},
+			{Path: "updated_at", Value: updatedAt},
+		}); err != nil {
+			return err
+		}
+		if err := r.events.FichaActualizada(ctx, tx, id, participanteID); err != nil {
+			return err
+		}
+		return audit.RecordTx(ctx, r.client, tx, audit.AccionActualizar, audit.RecursoFicha, id)
 	})
 	if status.Code(err) == codes.NotFound {
 		return ErrNotFound
@@ -114,6 +151,7 @@ func (r *fichaRepository) UpdateContenido(ctx context.Context, id, situacionActu
 	if err != nil {
 		return fmt.Errorf("error actualizando la ficha: %w", err)
 	}
+	r.events.Notify()
 	return nil
 }
 
@@ -135,4 +173,34 @@ func (r *fichaRepository) FindIDsByParticipantes(ctx context.Context, participan
 		}
 	}
 	return out, nil
+}
+
+func (r *fichaRepository) DeactivateByParticipante(ctx context.Context, participanteID string) (bool, error) {
+	col := r.client.Collection(fichasCollection)
+	changed := false
+	err := r.client.RunTransaction(ctx, func(ctx context.Context, tx *firestore.Transaction) error {
+		changed = false
+		docs, err := tx.Documents(col.Where("participante_id", "==", participanteID).Limit(1)).GetAll()
+		if err != nil {
+			return err
+		}
+		if len(docs) == 0 {
+			return nil
+		}
+		if estado, _ := docs[0].Data()["estado"].(string); estado == models.FichaEstadoBaja {
+			return nil
+		}
+		changed = true
+		if err := tx.Update(docs[0].Ref, []firestore.Update{
+			{Path: "estado", Value: models.FichaEstadoBaja},
+			{Path: "fecha_baja", Value: time.Now().UTC()},
+		}); err != nil {
+			return err
+		}
+		return audit.RecordTx(ctx, r.client, tx, audit.AccionBaja, audit.RecursoFicha, docs[0].Ref.ID)
+	})
+	if err != nil {
+		return false, fmt.Errorf("error dando de baja la ficha: %w", err)
+	}
+	return changed, nil
 }

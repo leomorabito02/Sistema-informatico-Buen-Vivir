@@ -3,19 +3,30 @@ package main
 import (
 	"context"
 	"log"
+	"log/slog"
 	"net/http"
+	"os"
 
+	"cloud.google.com/go/firestore"
 	"github.com/go-chi/chi/v5"
+	"google.golang.org/api/option"
 
 	"buenvivir/education/internal/config"
 	"buenvivir/education/internal/controllers"
+	"buenvivir/education/internal/events"
+	"buenvivir/education/internal/events/consumers"
+	"buenvivir/education/internal/events/producers"
 	"buenvivir/education/internal/middlewares"
+	"buenvivir/education/internal/outbox"
 	"buenvivir/education/internal/repositories"
 	"buenvivir/education/internal/routes"
 	"buenvivir/education/internal/services"
 )
 
 func main() {
+	// Logs estructurados en JSON (Cloud Run los manda a Cloud Logging).
+	slog.SetDefault(slog.New(slog.NewJSONHandler(os.Stdout, nil)))
+
 	cfg, err := config.LoadConfig()
 	if err != nil {
 		log.Fatalf("configuración inválida: %v", err)
@@ -48,22 +59,31 @@ func main() {
 		log.Printf("ENTREGAS_BUCKET vacío: las entregas se aceptan solo con texto, sin adjuntos")
 	}
 
+	// Mensajería asíncrona (docs/eventos/README.md): el productor escribe
+	// en el outbox y el relay publica en Pub/Sub.
+	relay := startRelay(ctx, cfg, firestoreClient, googleCredentials)
+	var writer *outbox.Writer
+	if relay != nil {
+		writer = outbox.NewWriter(firestoreClient, events.ProducerEducacion, relay.Notify)
+	}
+	eventProducer := producers.NewEducacion(writer, cfg.Events.TopicEducacion, cfg.Events.TopicContenido)
+
 	courseRepo := repositories.NewCourseRepository(contentfulClient)
 	trainingAreaRepo := repositories.NewTrainingAreaRepository(contentfulClient)
 	materialRepo := repositories.NewMaterialRepository(contentfulClient)
 	activityRepo := repositories.NewActivityRepository(firestoreClient)
-	enrollmentRepo := repositories.NewEnrollmentRepository(firestoreClient)
+	enrollmentRepo := repositories.NewEnrollmentRepository(firestoreClient, eventProducer)
 	attendanceRepo := repositories.NewAttendanceRepository(firestoreClient)
-	submissionRepo := repositories.NewSubmissionRepository(firestoreClient)
-	generalAttendanceRepo := repositories.NewGeneralAttendanceRepository(firestoreClient)
-	skillRepo := repositories.NewSkillRepository(firestoreClient)
+	submissionRepo := repositories.NewSubmissionRepository(firestoreClient, eventProducer)
+	generalAttendanceRepo := repositories.NewGeneralAttendanceRepository(firestoreClient, eventProducer)
+	skillRepo := repositories.NewSkillRepository(firestoreClient, eventProducer)
 	authServiceClient := repositories.NewAuthServiceClient(cfg.AuthServiceURL)
 
 	jwtService := services.NewJWTService()
 	kvSyncService := services.NewKVSyncService(courseRepo)
 	kvSyncService.SyncCourseStatsAsync()
 
-	courseService := services.NewCourseService(courseRepo, kvSyncService)
+	courseService := services.NewCourseServiceWithEvents(courseRepo, eventProducer, kvSyncService)
 	trainingAreaService := services.NewTrainingAreaService(trainingAreaRepo)
 	materialService := services.NewMaterialService(materialRepo)
 	activityService := services.NewActivityService(activityRepo, fileStorage)
@@ -115,8 +135,10 @@ func main() {
 		},
 	)
 
+	handler := routes.WithAsync(r, asyncEndpoints(cfg, firestoreClient, enrollmentRepo, contentfulClient, eventProducer, relay))
+
 	log.Printf("Servicio Education escuchando en :%s (appEnv=%s, contentfulEnvironment=%s)", cfg.Port, cfg.AppEnv, cfg.ContentfulEnvironment)
-	if err := http.ListenAndServe(":"+cfg.Port, r); err != nil {
+	if err := http.ListenAndServe(":"+cfg.Port, handler); err != nil {
 		log.Fatalf("error al iniciar el servidor: %v", err)
 	}
 }
@@ -146,4 +168,49 @@ func skillProviders(cfg *config.Config, googleCredentials []byte) []services.Sug
 	}
 	log.Printf("sugerencia de habilidades con IA: proveedores %v", names)
 	return providers
+}
+
+// startRelay arranca el publicador del outbox si hay proyecto de Pub/Sub
+// configurado (PUBSUB_PROJECT_ID). Sin él, el servicio no publica
+// eventos y devuelve nil.
+func startRelay(ctx context.Context, cfg *config.Config, client *firestore.Client, googleCredentials []byte) *outbox.Relay {
+	if !cfg.Events.PublishEnabled() {
+		log.Printf("PUBSUB_PROJECT_ID vacío: education no publica eventos")
+		return nil
+	}
+	var opts []option.ClientOption
+	if googleCredentials != nil {
+		opts = append(opts, option.WithCredentialsJSON(googleCredentials)) //nolint:staticcheck // mismo criterio que NewFirestoreClient (credenciales inline)
+	}
+	publisher, err := outbox.NewPubSubPublisher(ctx, cfg.Events.ProjectID, opts...)
+	if err != nil {
+		log.Fatalf("no se pudo inicializar Pub/Sub: %v", err)
+	}
+	relay := outbox.NewRelay(client, publisher, slog.Default())
+	go relay.Run(ctx)
+	return relay
+}
+
+// asyncEndpoints arma los endpoints de eventos según la configuración:
+// los push de Pub/Sub solo si se puede verificar quién los manda, y el
+// webhook de Contentful solo si tiene secreto y hay dónde publicar.
+func asyncEndpoints(cfg *config.Config, client *firestore.Client, enrollments repositories.EnrollmentRepository, contentful *repositories.ContentfulClient, producer *producers.Educacion, relay *outbox.Relay) routes.AsyncEndpoints {
+	var a routes.AsyncEndpoints
+	if cfg.Events.ContentfulWebhookSecret != "" && producer.Enabled() {
+		a.ContentfulWebhook = http.HandlerFunc(controllers.NewContentfulWebhookController(cfg.Events.ContentfulWebhookSecret, producer).Receive)
+	}
+	if !cfg.Events.ConsumeEnabled() {
+		return a
+	}
+	verifier, err := events.NewPushVerifier(cfg.Events.PushAuth, cfg.Events.PushAudience, cfg.Events.PushServiceAccounts, cfg.AppEnv == config.AppEnvProduction)
+	if err != nil {
+		log.Fatalf("configuración de Pub/Sub inválida: %v", err)
+	}
+	store := outbox.NewFirestoreProcessedStore(client)
+	a.Usuarios = consumers.NewUsuarios(verifier, store, enrollments, slog.Default())
+	a.Contenido = consumers.NewContenido(verifier, store, contentful, slog.Default())
+	if relay != nil {
+		a.OutboxFlush = relay.FlushHandler(verifier)
+	}
+	return a
 }

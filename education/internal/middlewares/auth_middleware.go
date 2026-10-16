@@ -6,6 +6,8 @@ import (
 	"strings"
 
 	"github.com/golang-jwt/jwt/v5"
+
+	"buenvivir/education/internal/events"
 )
 
 type contextKey string
@@ -67,6 +69,8 @@ func AuthMiddleware(jwtService JWTService) func(http.Handler) http.Handler {
 			ctx = context.WithValue(ctx, RoleIDKey, roleID)
 			ctx = context.WithValue(ctx, IsExternalKey, isExternal)
 			ctx = context.WithValue(ctx, TokenKey, tokenString)
+			// Actor de los eventos que se publiquen en este request.
+			ctx = events.WithActor(ctx, userID)
 
 			next.ServeHTTP(w, r.WithContext(ctx))
 		})

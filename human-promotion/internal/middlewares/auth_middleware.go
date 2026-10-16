@@ -2,11 +2,14 @@ package middlewares
 
 import (
 	"context"
+	"net"
 	"net/http"
 	"strings"
 
 	"github.com/golang-jwt/jwt/v5"
 
+	"buenvivir/human-promotion/internal/audit"
+	"buenvivir/human-promotion/internal/events"
 	"buenvivir/human-promotion/internal/repositories"
 )
 
@@ -66,6 +69,9 @@ func AuthMiddleware(jwtService JWTService) func(http.Handler) http.Handler {
 			// El token se guarda para reenviarlo a education-service al
 			// pedir las habilidades del participante (ver SkillDirectory).
 			ctx = repositories.ContextWithToken(ctx, tokenString)
+			// Actor e IP de los eventos y del registro de auditoría.
+			ctx = events.WithActor(ctx, userID)
+			ctx = audit.WithClientIP(ctx, clientIP(r.RemoteAddr))
 
 			next.ServeHTTP(w, r.WithContext(ctx))
 		})
@@ -76,4 +82,13 @@ func AuthMiddleware(jwtService JWTService) func(http.Handler) http.Handler {
 func UserIDFromContext(ctx context.Context) string {
 	userID, _ := ctx.Value(UserIDKey).(string)
 	return userID
+}
+
+// clientIP saca el puerto de RemoteAddr (que middleware.RealIP ya
+// reemplazó por la IP del cliente si vino por el gateway).
+func clientIP(remoteAddr string) string {
+	if host, _, err := net.SplitHostPort(remoteAddr); err == nil {
+		return host
+	}
+	return remoteAddr
 }
