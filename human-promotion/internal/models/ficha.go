@@ -22,7 +22,15 @@ type FichaDocument struct {
 	Avances         string    `firestore:"avances"`
 	CreadoPor       string    `firestore:"creado_por"`
 	UpdatedAt       time.Time `firestore:"updated_at"`
+	// Estado y FechaBaja: baja lógica cuando el participante se da de
+	// baja en auth-service (evento usuarios.participante.eliminado). La
+	// ficha no se borra: se conserva el historial.
+	Estado    string     `firestore:"estado,omitempty"`
+	FechaBaja *time.Time `firestore:"fecha_baja,omitempty"`
 }
+
+// FichaEstadoBaja es el estado de una ficha dada de baja.
+const FichaEstadoBaja = "baja"
 
 // CreateFichaInput es el body de POST /fichas.
 type CreateFichaInput struct {

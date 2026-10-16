@@ -234,9 +234,13 @@ export class RxResumeService {
     formData.append("file", file, file.name);
 
     return this.http
-      .post<Resume>(`${this.apiUrl}/api/v1/rxresume/user/picture?user_id=${userId}`, formData, {
-        withCredentials: true,
-      })
+      .post<Resume>(
+        `${this.apiUrl}/api/v1/rxresume/user/picture?user_id=${userId}`,
+        formData,
+        {
+          withCredentials: true,
+        },
+      )
       .pipe(catchError(this.handleError));
   }
 
@@ -258,9 +262,12 @@ export class RxResumeService {
 
   getUserPDFStatusByAdmin(userId: string): Observable<{ ready: boolean }> {
     return this.http
-      .get<{ ready: boolean }>(`${this.apiUrl}/api/v1/rxresume/user/pdf-status?user_id=${userId}`, {
-        withCredentials: true,
-      })
+      .get<{ ready: boolean }>(
+        `${this.apiUrl}/api/v1/rxresume/user/pdf-status?user_id=${userId}`,
+        {
+          withCredentials: true,
+        },
+      )
       .pipe(catchError(this.handleError));
   }
 

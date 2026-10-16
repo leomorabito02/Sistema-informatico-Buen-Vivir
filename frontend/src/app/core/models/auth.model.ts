@@ -106,5 +106,4 @@ export interface UpdateTeacherProfile extends UpdateBaseProfile {
   is_external?: boolean;
 }
 
-export interface UpdateVolunteerProfile extends UpdateBaseProfile {
-}
+export interface UpdateVolunteerProfile extends UpdateBaseProfile {}

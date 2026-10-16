@@ -1,7 +1,7 @@
-import { Injectable } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
-import { Observable } from 'rxjs';
-import { environment } from '../../environments/environment';
+import { Injectable } from "@angular/core";
+import { HttpClient } from "@angular/common/http";
+import { Observable } from "rxjs";
+import { environment } from "../../environments/environment";
 
 export interface JobOffer {
   id?: string;
@@ -30,7 +30,7 @@ export interface JobApplication {
 }
 
 @Injectable({
-  providedIn: 'root'
+  providedIn: "root",
 })
 export class JobOfferService {
   private readonly apiUrl = `${environment.apiUrl}/api/v1/labor-integration/offers`;
@@ -42,38 +42,71 @@ export class JobOfferService {
   }
 
   createOffer(offer: JobOffer): Observable<JobOffer> {
-    return this.http.post<JobOffer>(this.apiUrl, offer, { withCredentials: true });
+    return this.http.post<JobOffer>(this.apiUrl, offer, {
+      withCredentials: true,
+    });
   }
 
   updateOffer(id: string, offer: JobOffer): Observable<JobOffer> {
-    return this.http.put<JobOffer>(`${this.apiUrl}/${id}`, offer, { withCredentials: true });
+    return this.http.put<JobOffer>(`${this.apiUrl}/${id}`, offer, {
+      withCredentials: true,
+    });
   }
 
   deleteOffer(id: string): Observable<void> {
-    return this.http.delete<void>(`${this.apiUrl}/${id}`, { withCredentials: true });
+    return this.http.delete<void>(`${this.apiUrl}/${id}`, {
+      withCredentials: true,
+    });
   }
 
   approveOffer(id: string): Observable<void> {
-    return this.http.put<void>(`${this.apiUrl}/${id}/approve`, {}, { withCredentials: true });
+    return this.http.put<void>(
+      `${this.apiUrl}/${id}/approve`,
+      {},
+      { withCredentials: true },
+    );
   }
 
   rejectOffer(id: string): Observable<void> {
-    return this.http.put<void>(`${this.apiUrl}/${id}/reject`, {}, { withCredentials: true });
+    return this.http.put<void>(
+      `${this.apiUrl}/${id}/reject`,
+      {},
+      { withCredentials: true },
+    );
   }
 
-  applyToOffer(application: Partial<JobApplication>): Observable<JobApplication> {
-    return this.http.post<JobApplication>(`${environment.apiUrl}/api/v1/labor-integration/applications`, application, { withCredentials: true });
+  applyToOffer(
+    application: Partial<JobApplication>,
+  ): Observable<JobApplication> {
+    return this.http.post<JobApplication>(
+      `${environment.apiUrl}/api/v1/labor-integration/applications`,
+      application,
+      { withCredentials: true },
+    );
   }
 
   getApplicationsForOffer(offerId: string): Observable<JobApplication[]> {
-    return this.http.get<JobApplication[]>(`${this.apiUrl}/${offerId}/applications`, { withCredentials: true });
+    return this.http.get<JobApplication[]>(
+      `${this.apiUrl}/${offerId}/applications`,
+      { withCredentials: true },
+    );
   }
 
   getMyApplications(): Observable<JobApplication[]> {
-    return this.http.get<JobApplication[]>(`${environment.apiUrl}/api/v1/labor-integration/applications/me`, { withCredentials: true });
+    return this.http.get<JobApplication[]>(
+      `${environment.apiUrl}/api/v1/labor-integration/applications/me`,
+      { withCredentials: true },
+    );
   }
 
-  updateApplicationStatus(applicationId: string, status: string): Observable<void> {
-    return this.http.put<void>(`${environment.apiUrl}/api/v1/labor-integration/applications/${applicationId}/status`, { estado: status }, { withCredentials: true });
+  updateApplicationStatus(
+    applicationId: string,
+    status: string,
+  ): Observable<void> {
+    return this.http.put<void>(
+      `${environment.apiUrl}/api/v1/labor-integration/applications/${applicationId}/status`,
+      { estado: status },
+      { withCredentials: true },
+    );
   }
 }

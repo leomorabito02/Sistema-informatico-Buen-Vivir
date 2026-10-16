@@ -1,0 +1,3 @@
+[submodule "rxresume/reactive-resume"]
+	path = rxresume/reactive-resume
+	url = https://github.com/AmruthPillai/Reactive-Resume.git

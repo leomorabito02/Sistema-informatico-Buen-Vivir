@@ -126,11 +126,13 @@ export class MiPerfilComponent implements OnInit {
       next: (data) => {
         this.profileData = data;
         this.initProfileForm();
-        if (data.role_data?.['participant_id']) {
-          this.usersService.getParticipantDocuments(data.role_data['participant_id'] as string).subscribe({
-            next: (docs) => this.participantDocuments = docs || [],
-            error: (err) => console.error("Error fetching docs", err)
-          });
+        if (data.role_data?.["participant_id"]) {
+          this.usersService
+            .getParticipantDocuments(data.role_data["participant_id"] as string)
+            .subscribe({
+              next: (docs) => (this.participantDocuments = docs || []),
+              error: (err) => console.error("Error fetching docs", err),
+            });
         }
         this.loading = false;
       },
@@ -152,17 +154,21 @@ export class MiPerfilComponent implements OnInit {
     };
 
     const role = user.role_id;
-    if (role === 'role_company') {
+    if (role === "role_company") {
       if (this.canEditCompanyFields()) {
-        controls['cuit'] = [roleData['cuit'] || ""];
-        controls['business_name'] = [roleData['business_name'] || ""];
+        controls["cuit"] = [roleData["cuit"] || ""];
+        controls["business_name"] = [roleData["business_name"] || ""];
       }
-    } else if (role === 'role_participant') {
-      controls['emergency_contact_name'] = [roleData['emergency_contact_name'] || ""];
-      controls['emergency_contact_phone'] = [roleData['emergency_contact_phone'] || ""];
-      controls['address'] = [roleData['address'] || ""];
-    } else if (role === 'role_teacher') {
-      controls['specialization'] = [roleData['specialization'] || ""];
+    } else if (role === "role_participant") {
+      controls["emergency_contact_name"] = [
+        roleData["emergency_contact_name"] || "",
+      ];
+      controls["emergency_contact_phone"] = [
+        roleData["emergency_contact_phone"] || "",
+      ];
+      controls["address"] = [roleData["address"] || ""];
+    } else if (role === "role_teacher") {
+      controls["specialization"] = [roleData["specialization"] || ""];
     }
 
     this.profileForm = this.fb.group(controls);
@@ -170,10 +176,10 @@ export class MiPerfilComponent implements OnInit {
 
   canEditCompanyFields(): boolean {
     if (!this.profileData?.role_data) return false;
-    const status = this.profileData.role_data['approval_status'];
-    const cuit = this.profileData.role_data['cuit'];
-    const businessName = this.profileData.role_data['business_name'];
-    return status === 'pending' || !cuit || !businessName;
+    const status = this.profileData.role_data["approval_status"];
+    const cuit = this.profileData.role_data["cuit"];
+    const businessName = this.profileData.role_data["business_name"];
+    return status === "pending" || !cuit || !businessName;
   }
 
   toggleEditProfile() {
@@ -201,9 +207,10 @@ export class MiPerfilComponent implements OnInit {
         this.loadProfile();
       },
       error: (err) => {
-        this.profileUpdateError = err.error?.error || "Error al actualizar el perfil.";
+        this.profileUpdateError =
+          err.error?.error || "Error al actualizar el perfil.";
         this.profileUpdateLoading = false;
-      }
+      },
     });
   }
 
@@ -217,7 +224,9 @@ export class MiPerfilComponent implements OnInit {
         next: (resume) => {
           this.uploadingPicture = false;
           if (resume.data?.basics?.picture) {
-            this.profileForm.patchValue({ image_url: resume.data.basics.picture });
+            this.profileForm.patchValue({
+              image_url: resume.data.basics.picture,
+            });
             this.saveProfile();
           }
         },
@@ -225,68 +234,85 @@ export class MiPerfilComponent implements OnInit {
           console.error("Error al subir foto:", err);
           this.uploadingPicture = false;
           alert("Error al subir la foto de perfil.");
-        }
+        },
       });
     }
   }
 
   onDocumentSelected(event: any) {
     const file = event.target.files[0];
-    const participantId = this.profileData?.role_data?.['participant_id'] as string;
+    const participantId = this.profileData?.role_data?.[
+      "participant_id"
+    ] as string;
     if (file && participantId) {
       this.uploadingDocument = true;
-      this.usersService.uploadParticipantDocument(participantId, file, file.name).subscribe({
-        next: (doc) => {
-          this.uploadingDocument = false;
-          if (doc) {
-            this.participantDocuments.push(doc);
-          }
-          event.target.value = '';
-        },
-        error: (err) => {
-          console.error("Error al subir documento:", err);
-          this.uploadingDocument = false;
-          alert("Error al subir el documento.");
-        }
-      });
+      this.usersService
+        .uploadParticipantDocument(participantId, file, file.name)
+        .subscribe({
+          next: (doc) => {
+            this.uploadingDocument = false;
+            if (doc) {
+              this.participantDocuments.push(doc);
+            }
+            event.target.value = "";
+          },
+          error: (err) => {
+            console.error("Error al subir documento:", err);
+            this.uploadingDocument = false;
+            alert("Error al subir el documento.");
+          },
+        });
     }
   }
 
   deleteDocument(docId: string) {
-    const participantId = this.profileData?.role_data?.['participant_id'] as string;
-    if (participantId && confirm("¿Estás seguro de que deseas eliminar este documento?")) {
-       this.usersService.deleteParticipantDocument(participantId, docId).subscribe({
+    const participantId = this.profileData?.role_data?.[
+      "participant_id"
+    ] as string;
+    if (
+      participantId &&
+      confirm("¿Estás seguro de que deseas eliminar este documento?")
+    ) {
+      this.usersService
+        .deleteParticipantDocument(participantId, docId)
+        .subscribe({
           next: () => {
-             this.participantDocuments = this.participantDocuments.filter(d => d.id !== docId);
+            this.participantDocuments = this.participantDocuments.filter(
+              (d) => d.id !== docId,
+            );
           },
           error: (err) => {
-             console.error("Error al eliminar documento:", err);
-             alert("Error al eliminar el documento.");
-          }
-       });
+            console.error("Error al eliminar documento:", err);
+            alert("Error al eliminar el documento.");
+          },
+        });
     }
   }
 
   downloadDocument(docId: string, docName: string, event: Event) {
     event.preventDefault();
-    const participantId = this.profileData?.role_data?.['participant_id'] as string;
+    const participantId = this.profileData?.role_data?.[
+      "participant_id"
+    ] as string;
     if (participantId) {
-      this.usersService.downloadParticipantDocument(participantId, docId).subscribe({
-        next: (blob: Blob) => {
-          const url = window.URL.createObjectURL(blob);
-          const a = document.createElement('a');
-          a.href = url;
-          a.download = docName;
-          document.body.appendChild(a);
-          a.click();
-          window.URL.revokeObjectURL(url);
-          a.remove();
-        },
-        error: (err) => {
-          console.error("Error al descargar documento:", err);
-          alert("No se pudo descargar el documento.");
-        }
-      });
+      this.usersService
+        .downloadParticipantDocument(participantId, docId)
+        .subscribe({
+          next: (blob: Blob) => {
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = docName;
+            document.body.appendChild(a);
+            a.click();
+            window.URL.revokeObjectURL(url);
+            a.remove();
+          },
+          error: (err) => {
+            console.error("Error al descargar documento:", err);
+            alert("No se pudo descargar el documento.");
+          },
+        });
     }
   }
 
@@ -481,9 +507,17 @@ export class MiPerfilComponent implements OnInit {
     userResume: any;
   }> {
     const [courses, jobApplications, userResume] = await Promise.all([
-      firstValueFrom(this.educationService.listMyEnrolledCourses().pipe(catchError(() => of([])))),
-      firstValueFrom(this.jobOfferService.getMyApplications().pipe(catchError(() => of([])))),
-      firstValueFrom(this.rxResumeService.getMyResume().pipe(catchError(() => of(null)))),
+      firstValueFrom(
+        this.educationService
+          .listMyEnrolledCourses()
+          .pipe(catchError(() => of([]))),
+      ),
+      firstValueFrom(
+        this.jobOfferService.getMyApplications().pipe(catchError(() => of([]))),
+      ),
+      firstValueFrom(
+        this.rxResumeService.getMyResume().pipe(catchError(() => of(null))),
+      ),
     ]);
 
     let enrolledCourses: any[] = [];
@@ -492,7 +526,9 @@ export class MiPerfilComponent implements OnInit {
         courses.map(async (c) => {
           try {
             const detail = await firstValueFrom(
-              this.educationService.getMyCourse(c.id).pipe(catchError(() => of(null))),
+              this.educationService
+                .getMyCourse(c.id)
+                .pipe(catchError(() => of(null))),
             );
             return detail || { curso: c, actividades: [], progreso: null };
           } catch {
@@ -502,7 +538,11 @@ export class MiPerfilComponent implements OnInit {
       );
     }
 
-    return { enrolledCourses, jobApplications: jobApplications || [], userResume };
+    return {
+      enrolledCourses,
+      jobApplications: jobApplications || [],
+      userResume,
+    };
   }
 
   private async fetchTeacherData(): Promise<any[]> {
@@ -515,7 +555,9 @@ export class MiPerfilComponent implements OnInit {
       courses.map(async (c) => {
         try {
           const acts = await firstValueFrom(
-            this.educationService.listActivities(c.id).pipe(catchError(() => of([]))),
+            this.educationService
+              .listActivities(c.id)
+              .pipe(catchError(() => of([]))),
           );
           return { curso: c, actividades: acts || [] };
         } catch {
@@ -525,7 +567,10 @@ export class MiPerfilComponent implements OnInit {
     );
   }
 
-  private async fetchCompanyData(empresaId: string, userId: string): Promise<any[]> {
+  private async fetchCompanyData(
+    empresaId: string,
+    userId: string,
+  ): Promise<any[]> {
     const allOffers = await firstValueFrom(
       this.jobOfferService.getOffers().pipe(catchError(() => of([]))),
     );
@@ -534,7 +579,12 @@ export class MiPerfilComponent implements OnInit {
     );
   }
 
-  private renderPdfHeader(doc: any, margen: number, anchoUtil: number, y: number): number {
+  private renderPdfHeader(
+    doc: any,
+    margen: number,
+    anchoUtil: number,
+    y: number,
+  ): number {
     doc.setFont("helvetica", "bold");
     doc.setFontSize(16);
     doc.setTextColor("#485839");
@@ -555,7 +605,11 @@ export class MiPerfilComponent implements OnInit {
       y,
     );
     y += 4;
-    doc.text(`Fecha de emisión: ${new Date().toLocaleString("es-AR")}`, margen, y);
+    doc.text(
+      `Fecha de emisión: ${new Date().toLocaleString("es-AR")}`,
+      margen,
+      y,
+    );
     y += 4;
 
     doc.setDrawColor("#d6d4c6");
@@ -598,7 +652,11 @@ export class MiPerfilComponent implements OnInit {
     y += 3;
 
     const roleKeys = Object.keys(roleData).filter(
-      (k) => !["approval_date", "approved_by", "deleted_at"].includes(k) && roleData[k] !== undefined && roleData[k] !== null && roleData[k] !== "",
+      (k) =>
+        !["approval_date", "approved_by", "deleted_at"].includes(k) &&
+        roleData[k] !== undefined &&
+        roleData[k] !== null &&
+        roleData[k] !== "",
     );
 
     if (roleKeys.length > 0) {
@@ -615,7 +673,11 @@ export class MiPerfilComponent implements OnInit {
 
       for (const k of roleKeys) {
         checkPageBreak(5);
-        doc.text(`• ${this.getRoleKeyLabel(k)}: ${this.formatRoleValue(k, roleData[k])}`, margen + 2, y);
+        doc.text(
+          `• ${this.getRoleKeyLabel(k)}: ${this.formatRoleValue(k, roleData[k])}`,
+          margen + 2,
+          y,
+        );
         y += 5;
       }
       y += 3;
@@ -660,7 +722,9 @@ export class MiPerfilComponent implements OnInit {
 
       for (const act of item.actividades) {
         checkPageBreak(6);
-        const estado = act.entrega ? `Entregado el ${new Date(act.entrega.fechaEntrega).toLocaleDateString("es-AR")}` : "Sin entregar";
+        const estado = act.entrega
+          ? `Entregado el ${new Date(act.entrega.fechaEntrega).toLocaleDateString("es-AR")}`
+          : "Sin entregar";
         doc.text(`    - ${act.titulo}: ${estado}`, margen + 4, y);
         y += 4;
       }
@@ -686,7 +750,11 @@ export class MiPerfilComponent implements OnInit {
       doc.setFont("helvetica", "italic");
       doc.setFontSize(9);
       doc.setTextColor("#66655b");
-      doc.text("No se registran inscripciones a cursos actualmente.", margen + 2, y);
+      doc.text(
+        "No se registran inscripciones a cursos actualmente.",
+        margen + 2,
+        y,
+      );
       return y + 6;
     }
 
@@ -723,12 +791,20 @@ export class MiPerfilComponent implements OnInit {
       doc.setFont("helvetica", "bold");
       doc.setFontSize(10);
       doc.setTextColor("#1d1d1b");
-      doc.text(`Curso: ${tc.curso?.title || "Sin título"} (${tc.curso?.mode || "Modalidad general"})`, margen + 2, y);
+      doc.text(
+        `Curso: ${tc.curso?.title || "Sin título"} (${tc.curso?.mode || "Modalidad general"})`,
+        margen + 2,
+        y,
+      );
       y += 5;
 
       doc.setFont("helvetica", "normal");
       doc.setFontSize(9);
-      doc.text(`  Total de actividades creadas: ${tc.actividades?.length || 0}`, margen + 2, y);
+      doc.text(
+        `  Total de actividades creadas: ${tc.actividades?.length || 0}`,
+        margen + 2,
+        y,
+      );
       y += 6;
     }
     return y;
@@ -755,15 +831,27 @@ export class MiPerfilComponent implements OnInit {
     doc.text(`• Titular: ${userResume.data.basics.name || ""}`, margen + 4, y);
     y += 4.5;
     if (userResume.data.basics.headline) {
-      doc.text(`• Titular / Especialidad: ${userResume.data.basics.headline}`, margen + 4, y);
+      doc.text(
+        `• Titular / Especialidad: ${userResume.data.basics.headline}`,
+        margen + 4,
+        y,
+      );
       y += 4.5;
     }
     if (userResume.data.work?.length) {
-      doc.text(`• Experiencias laborales registradas: ${userResume.data.work.length}`, margen + 4, y);
+      doc.text(
+        `• Experiencias laborales registradas: ${userResume.data.work.length}`,
+        margen + 4,
+        y,
+      );
       y += 4.5;
     }
     if (userResume.data.education?.length) {
-      doc.text(`• Estudios y certificaciones: ${userResume.data.education.length}`, margen + 4, y);
+      doc.text(
+        `• Estudios y certificaciones: ${userResume.data.education.length}`,
+        margen + 4,
+        y,
+      );
       y += 4.5;
     }
     return y + 3;
@@ -788,7 +876,11 @@ export class MiPerfilComponent implements OnInit {
       doc.setFont("helvetica", "italic");
       doc.setFontSize(9);
       doc.setTextColor("#66655b");
-      doc.text("No se registran postulaciones a ofertas laborales.", margen + 2, y);
+      doc.text(
+        "No se registran postulaciones a ofertas laborales.",
+        margen + 2,
+        y,
+      );
       y += 6;
     } else {
       doc.setFont("helvetica", "normal");
@@ -796,14 +888,26 @@ export class MiPerfilComponent implements OnInit {
       doc.setTextColor("#1d1d1b");
       for (const app of jobApplications) {
         checkPageBreak(5);
-        const fecha = app.fecha_postulacion ? new Date(app.fecha_postulacion).toLocaleDateString("es-AR") : "Fecha no registrada";
-        doc.text(`• Postulación a Oferta ID ${app.oferta_id || ""}: Estado ${app.estado || "Pendiente"} (${fecha})`, margen + 2, y);
+        const fecha = app.fecha_postulacion
+          ? new Date(app.fecha_postulacion).toLocaleDateString("es-AR")
+          : "Fecha no registrada";
+        doc.text(
+          `• Postulación a Oferta ID ${app.oferta_id || ""}: Estado ${app.estado || "Pendiente"} (${fecha})`,
+          margen + 2,
+          y,
+        );
         y += 5;
       }
       y += 3;
     }
 
-    return this.renderPdfResumeBlock(doc, userResume, margen, y, checkPageBreak);
+    return this.renderPdfResumeBlock(
+      doc,
+      userResume,
+      margen,
+      y,
+      checkPageBreak,
+    );
   }
 
   private renderCompanyOffers(
@@ -833,7 +937,11 @@ export class MiPerfilComponent implements OnInit {
     doc.setTextColor("#1d1d1b");
     for (const off of companyOffers) {
       checkPageBreak(5);
-      doc.text(`• ${off.titulo} - Modalidad: ${off.modalidad} | Estado: ${off.estado}`, margen + 2, y);
+      doc.text(
+        `• ${off.titulo} - Modalidad: ${off.modalidad} | Estado: ${off.estado}`,
+        margen + 2,
+        y,
+      );
       y += 5;
     }
     return y + 3;
@@ -859,8 +967,11 @@ export class MiPerfilComponent implements OnInit {
     doc.setTextColor("#1d1d1b");
     for (const docItem of this.participantDocuments) {
       checkPageBreak(5);
-      const docName = docItem.nombre || docItem.name || docItem.type || "Documento";
-      const subido = docItem.uploaded_at ? new Date(docItem.uploaded_at).toLocaleDateString("es-AR") : "Registrado";
+      const docName =
+        docItem.nombre || docItem.name || docItem.type || "Documento";
+      const subido = docItem.uploaded_at
+        ? new Date(docItem.uploaded_at).toLocaleDateString("es-AR")
+        : "Registrado";
       doc.text(`• ${docName} (${subido})`, margen + 2, y);
       y += 5;
     }
@@ -890,7 +1001,7 @@ export class MiPerfilComponent implements OnInit {
       } else if (roleId === "role_teacher") {
         teacherCourses = await this.fetchTeacherData();
       } else if (roleId === "role_company") {
-        const empresaId = (roleData['company_id'] as string) || user.user_id;
+        const empresaId = (roleData["company_id"] as string) || user.user_id;
         companyOffers = await this.fetchCompanyData(empresaId, user.user_id);
       }
 
@@ -908,15 +1019,47 @@ export class MiPerfilComponent implements OnInit {
       };
 
       y = this.renderPdfHeader(doc, margen, anchoUtil, y);
-      y = this.renderPdfAccountAndRole(doc, user, roleData, margen, y, checkPageBreak);
+      y = this.renderPdfAccountAndRole(
+        doc,
+        user,
+        roleData,
+        margen,
+        y,
+        checkPageBreak,
+      );
 
       if (roleId === "role_participant") {
-        y = this.renderParticipantCourses(doc, enrolledCourses, margen, y, checkPageBreak);
-        y = this.renderParticipantLabor(doc, jobApplications, userResume, margen, y, checkPageBreak);
+        y = this.renderParticipantCourses(
+          doc,
+          enrolledCourses,
+          margen,
+          y,
+          checkPageBreak,
+        );
+        y = this.renderParticipantLabor(
+          doc,
+          jobApplications,
+          userResume,
+          margen,
+          y,
+          checkPageBreak,
+        );
       } else if (roleId === "role_teacher") {
-        y = this.renderTeacherCourses(doc, teacherCourses, margen, y, checkPageBreak);
+        y = this.renderTeacherCourses(
+          doc,
+          teacherCourses,
+          margen,
+          y,
+          checkPageBreak,
+        );
       } else if (roleId === "role_company") {
-        y = this.renderCompanyOffers(doc, companyOffers, margen, y, checkPageBreak);
+        y = this.renderCompanyOffers(
+          doc,
+          companyOffers,
+          margen,
+          y,
+          checkPageBreak,
+        );
       }
 
       this.renderParticipantDocumentsSection(doc, margen, y, checkPageBreak);
@@ -935,7 +1078,7 @@ export class MiPerfilComponent implements OnInit {
         doc.text(`Página ${i} de ${pageCount}`, 210 - margen - 20, 290);
       }
 
-      const dni = (roleData['dni'] as string) || user.user_id;
+      const dni = (roleData["dni"] as string) || user.user_id;
       doc.save(`mis_datos_buen_vivir_${dni}.pdf`);
 
       this.isExported = true;
