@@ -11,7 +11,8 @@ let isRefreshing = false;
 const refreshTokenSubject = new BehaviorSubject<any>(null);
 
 export const authInterceptor: HttpInterceptorFn = (req, next) => {
-  const isApiUrl = !!environment.apiUrl && req.url.startsWith(environment.apiUrl);
+  const isApiUrl =
+    !!environment.apiUrl && req.url.startsWith(environment.apiUrl);
   const isInternal =
     req.url.startsWith("/") ||
     req.url.startsWith(window.location.origin) ||

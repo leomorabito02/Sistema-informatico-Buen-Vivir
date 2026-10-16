@@ -2,8 +2,11 @@ package services
 
 import (
 	"context"
+	"log/slog"
 	"strings"
 
+	"buenvivir/education/internal/events"
+	"buenvivir/education/internal/events/producers"
 	"buenvivir/education/internal/models"
 	"buenvivir/education/internal/repositories"
 )
@@ -57,14 +60,37 @@ type CourseService interface {
 type courseService struct {
 	repo   repositories.CourseRepository
 	kvSync KVSyncService
+	events *producers.Educacion
 }
 
 func NewCourseService(repo repositories.CourseRepository, kvSync ...KVSyncService) CourseService {
+	return NewCourseServiceWithEvents(repo, nil, kvSync...)
+}
+
+// NewCourseServiceWithEvents es NewCourseService publicando los eventos
+// de cursos (curso.*, contenido_docente.*). events nil = no publica.
+func NewCourseServiceWithEvents(repo repositories.CourseRepository, events *producers.Educacion, kvSync ...KVSyncService) CourseService {
 	var sync KVSyncService
 	if len(kvSync) > 0 {
 		sync = kvSync[0]
 	}
-	return &courseService{repo: repo, kvSync: sync}
+	return &courseService{repo: repo, kvSync: sync, events: events}
+}
+
+// publish registra un evento de curso. Los cursos viven en Contentful,
+// sin transacción compartida con el outbox: el evento se escribe
+// después de que Contentful confirmó el cambio. Si esa escritura falla,
+// el cambio ya está hecho y no se revierte: se deja en el log (con el
+// correlation id) para poder reenviarlo. Ver docs/eventos/README.md.
+func (s *courseService) publish(ctx context.Context, eventType, cursoID string, emit func() error) {
+	if err := emit(); err != nil {
+		slog.ErrorContext(ctx, "no se pudo registrar el evento de curso",
+			slog.String("event_type", eventType),
+			slog.String("curso_id", cursoID),
+			slog.String("correlation_id", events.CorrelationIDFrom(ctx)),
+			slog.String("resultado", "error"),
+			slog.String("error", err.Error()))
+	}
 }
 
 func (s *courseService) syncKV() {
@@ -96,6 +122,7 @@ func (s *courseService) CreateCourse(ctx context.Context, input models.CourseInp
 	course, err := s.repo.Create(ctx, input)
 	if err == nil {
 		s.syncKV()
+		s.publish(ctx, events.CursoCreado, course.ID, func() error { return s.events.CursoCreado(ctx, course) })
 	}
 	return course, err
 }
@@ -110,6 +137,7 @@ func (s *courseService) UpdateCourse(ctx context.Context, id string, input model
 	course, err := s.repo.Update(ctx, id, input)
 	if err == nil {
 		s.syncKV()
+		s.publish(ctx, events.CursoActualizado, course.ID, func() error { return s.events.CursoActualizado(ctx, course) })
 	}
 	return course, err
 }
@@ -121,6 +149,7 @@ func (s *courseService) DeleteCourse(ctx context.Context, id string) error {
 	err := s.repo.Delete(ctx, id)
 	if err == nil {
 		s.syncKV()
+		s.publish(ctx, events.CursoEliminado, id, func() error { return s.events.CursoEliminado(ctx, id) })
 	}
 	return err
 }
@@ -132,6 +161,11 @@ func (s *courseService) PublishCourse(ctx context.Context, id string) error {
 	err := s.repo.Publish(ctx, id)
 	if err == nil {
 		s.syncKV()
+		// Publicar es la moderación editorial del curso: lo aprueba para
+		// el catálogo (HU-23). No existe todavía un "rechazo" explícito.
+		s.publish(ctx, events.ContenidoDocenteModerado, id, func() error {
+			return s.events.ContenidoDocenteModerado(ctx, id, events.ModeracionAprobado)
+		})
 	}
 	return err
 }
@@ -215,6 +249,8 @@ func (s *courseService) CreateCourseAsTeacher(ctx context.Context, teacherID str
 	course, err := s.repo.Create(ctx, input)
 	if err == nil {
 		s.syncKV()
+		s.publish(ctx, events.CursoCreado, course.ID, func() error { return s.events.CursoCreado(ctx, course) })
+		s.publish(ctx, events.ContenidoDocenteSubido, course.ID, func() error { return s.events.ContenidoDocenteSubido(ctx, course) })
 	}
 	return course, err
 }
@@ -232,6 +268,7 @@ func (s *courseService) UpdateCourseAsTeacher(ctx context.Context, id, teacherID
 	course, err := s.repo.Update(ctx, id, input)
 	if err == nil {
 		s.syncKV()
+		s.publish(ctx, events.CursoActualizado, course.ID, func() error { return s.events.CursoActualizado(ctx, course) })
 	}
 	return course, err
 }

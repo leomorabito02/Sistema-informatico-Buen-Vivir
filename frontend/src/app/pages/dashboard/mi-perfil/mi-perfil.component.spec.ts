@@ -33,14 +33,23 @@ describe("MiPerfilComponent", () => {
       "unlinkGoogleAccount",
     ]);
     profileServiceSpy.getMyProfile.and.returnValue(
-      of({ user: { email: "test@test.com", user_id: "u-1", role_id: "role_participant" }, roles: [] } as any),
+      of({
+        user: {
+          email: "test@test.com",
+          user_id: "u-1",
+          role_id: "role_participant",
+        },
+        roles: [],
+      } as any),
     );
 
     rxResumeServiceSpy = jasmine.createSpyObj("RxResumeService", [
       "uploadPicture",
       "getMyResume",
     ]);
-    rxResumeServiceSpy.getMyResume.and.returnValue(of({ data: { basics: { name: "Test User" } } } as any));
+    rxResumeServiceSpy.getMyResume.and.returnValue(
+      of({ data: { basics: { name: "Test User" } } } as any),
+    );
 
     usersServiceSpy = jasmine.createSpyObj("UsersService", [
       "updateRoleData",

@@ -40,6 +40,11 @@ func (m *MockEnrollmentRepository) Create(ctx context.Context, e models.Enrollme
 	return args.Get(0).(*models.Enrollment), args.Error(1)
 }
 
+func (m *MockEnrollmentRepository) DeactivateByParticipant(ctx context.Context, participanteID, motivo string) (int, error) {
+	args := m.Called(ctx, participanteID, motivo)
+	return args.Int(0), args.Error(1)
+}
+
 func (m *MockEnrollmentRepository) ListByParticipants(ctx context.Context, participantIDs []string) ([]models.Enrollment, error) {
 	args := m.Called(ctx, participantIDs)
 	if args.Get(0) == nil {

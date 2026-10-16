@@ -61,6 +61,10 @@ type Config struct {
 	// igual y el botón "Sugerir habilidades con IA" responde que no se
 	// pudo generar sugerencias (las habilidades se pueden cargar a mano).
 	SkillsAI SkillsAIConfig
+
+	// Events es la mensajería asíncrona con Pub/Sub (ver
+	// docs/eventos/README.md). Desactivada si falta PUBSUB_PROJECT_ID.
+	Events EventsConfig
 }
 
 // LoadConfig arma la configuración del servicio. El archivo que se
@@ -108,6 +112,7 @@ func LoadConfig() (*Config, error) {
 		EntregasBucket:        strings.TrimSpace(os.Getenv("ENTREGAS_BUCKET")),
 	}
 	cfg.SkillsAI = loadSkillsAIConfig()
+	cfg.Events = loadEventsConfig()
 
 	if cfg.ContentfulLocale == "" {
 		cfg.ContentfulLocale = "en-US"

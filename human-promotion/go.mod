@@ -12,7 +12,15 @@ require (
 	google.golang.org/grpc v1.83.2
 )
 
-require github.com/go-pdf/fpdf v0.9.0
+require (
+	cloud.google.com/go/pubsub/v2 v2.6.0
+	github.com/go-pdf/fpdf v0.9.0
+)
+
+require (
+	github.com/google/uuid v1.6.0 // indirect
+	go.opencensus.io v0.24.0 // indirect
+)
 
 require (
 	cloud.google.com/go v0.123.0 // indirect

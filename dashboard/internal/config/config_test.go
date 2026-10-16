@@ -19,3 +19,29 @@ func TestLoadConfig_DefaultsYVariables(t *testing.T) {
 		t.Fatalf("variables de entorno: %+v", cfg)
 	}
 }
+
+func TestLoadConfig_CacheYPush(t *testing.T) {
+	t.Setenv("DASHBOARD_CACHE_TTL", "")
+	t.Setenv("PUBSUB_PUSH_AUTH", "")
+	t.Setenv("PUBSUB_PUSH_AUDIENCE", "")
+	t.Setenv("PUBSUB_PUSH_SERVICE_ACCOUNTS", "")
+	cfg := config.LoadConfig()
+	if cfg.CacheTTL.Minutes() != 5 || cfg.ConsumeEnabled() {
+		t.Fatalf("por defecto: %+v", cfg)
+	}
+
+	t.Setenv("APP_ENV", "production")
+	t.Setenv("DASHBOARD_CACHE_TTL", "30s")
+	t.Setenv("PUBSUB_PUSH_AUDIENCE", "https://dashboard.run.app/eventos")
+	t.Setenv("PUBSUB_PUSH_SERVICE_ACCOUNTS", "push-dashboard@p.iam.gserviceaccount.com, ")
+	cfg = config.LoadConfig()
+	if cfg.CacheTTL.Seconds() != 30 || !cfg.Production || !cfg.ConsumeEnabled() || len(cfg.PushServiceAccounts) != 1 {
+		t.Fatalf("con variables: %+v", cfg)
+	}
+
+	t.Setenv("PUBSUB_PUSH_AUDIENCE", "")
+	t.Setenv("PUBSUB_PUSH_AUTH", "disabled")
+	if !config.LoadConfig().ConsumeEnabled() {
+		t.Fatal("local con el emulador")
+	}
+}

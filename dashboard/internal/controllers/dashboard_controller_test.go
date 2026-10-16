@@ -42,7 +42,7 @@ func (f *fakeService) Areas(context.Context, clients.Credentials) ([]models.Area
 
 func newMux(svc *fakeService) *http.ServeMux {
 	mux := http.NewServeMux()
-	routes.RegisterRoutes(mux, controllers.NewDashboardController(svc))
+	routes.RegisterRoutes(mux, controllers.NewDashboardController(svc), nil)
 	return mux
 }
 
@@ -119,5 +119,23 @@ func TestHealth_Y_Metodos(t *testing.T) {
 	mux.ServeHTTP(w, req)
 	if w.Code != http.StatusMethodNotAllowed {
 		t.Fatalf("solo lectura: %d", w.Code)
+	}
+}
+
+func TestRegisterRoutes_EventosSoloSiHayHandler(t *testing.T) {
+	mux := http.NewServeMux()
+	routes.RegisterRoutes(mux, controllers.NewDashboardController(&fakeService{}), http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusNoContent)
+	}))
+	rec := httptest.NewRecorder()
+	mux.ServeHTTP(rec, httptest.NewRequest(http.MethodPost, "/eventos", nil))
+	if rec.Code != http.StatusNoContent {
+		t.Fatalf("POST /eventos: %d", rec.Code)
+	}
+
+	rec = httptest.NewRecorder()
+	newMux(&fakeService{}).ServeHTTP(rec, httptest.NewRequest(http.MethodPost, "/eventos", nil))
+	if rec.Code != http.StatusNotFound {
+		t.Fatalf("sin configuración no se expone: %d", rec.Code)
 	}
 }

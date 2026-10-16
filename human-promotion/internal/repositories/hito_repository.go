@@ -9,6 +9,9 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
+	"buenvivir/human-promotion/internal/audit"
+	"buenvivir/human-promotion/internal/events"
+	"buenvivir/human-promotion/internal/events/producers"
 	"buenvivir/human-promotion/internal/models"
 )
 
@@ -28,17 +31,55 @@ type HitoRepository interface {
 
 type hitoRepository struct {
 	client *firestore.Client
+	events *producers.PromocionHumana
 }
 
-func NewHitoRepository(client *firestore.Client) HitoRepository {
-	return &hitoRepository{client: client}
+// NewHitoRepository recibe opcionalmente el productor de eventos (sin
+// él no se publica nada; la auditoría se escribe siempre).
+func NewHitoRepository(client *firestore.Client, events ...*producers.PromocionHumana) HitoRepository {
+	return &hitoRepository{client: client, events: firstProducer(events)}
+}
+
+// participanteDeFicha lee, dentro de la transacción, el participante de
+// la ficha del hito (es la ordering key de los eventos de hitos).
+func (r *hitoRepository) participanteDeFicha(tx *firestore.Transaction, fichaID string) (string, error) {
+	snap, err := tx.Get(r.client.Collection(fichasCollection).Doc(fichaID))
+	if status.Code(err) == codes.NotFound {
+		return "", nil
+	}
+	if err != nil {
+		return "", err
+	}
+	participanteID, _ := snap.Data()["participante_id"].(string)
+	return participanteID, nil
+}
+
+func hitoPayload(id, participanteID string, doc models.HitoDocument) events.HitoPayload {
+	return events.HitoPayload{
+		HitoID: id, FichaID: doc.FichaID, ParticipanteID: participanteID,
+		Fecha: doc.Fecha, VisibleParticipante: doc.VisibleParticipante,
+	}
 }
 
 func (r *hitoRepository) Create(ctx context.Context, doc models.HitoDocument) (string, error) {
 	ref := r.client.Collection(hitosCollection).NewDoc()
-	if _, err := ref.Create(ctx, doc); err != nil {
+	err := r.client.RunTransaction(ctx, func(ctx context.Context, tx *firestore.Transaction) error {
+		participanteID, err := r.participanteDeFicha(tx, doc.FichaID)
+		if err != nil {
+			return err
+		}
+		if err := tx.Create(ref, doc); err != nil {
+			return err
+		}
+		if err := r.events.Hito(ctx, tx, true, hitoPayload(ref.ID, participanteID, doc)); err != nil {
+			return err
+		}
+		return audit.RecordTx(ctx, r.client, tx, audit.AccionCrear, audit.RecursoHito, ref.ID)
+	})
+	if err != nil {
 		return "", fmt.Errorf("error creando el hito: %w", err)
 	}
+	r.events.Notify()
 	return ref.ID, nil
 }
 
@@ -58,11 +99,24 @@ func (r *hitoRepository) GetByID(ctx context.Context, id string) (*models.HitoDo
 }
 
 func (r *hitoRepository) Update(ctx context.Context, id string, doc models.HitoDocument) error {
-	_, err := r.client.Collection(hitosCollection).Doc(id).Update(ctx, []firestore.Update{
-		{Path: "fecha", Value: doc.Fecha},
-		{Path: "descripcion", Value: doc.Descripcion},
-		{Path: "responsable_id", Value: doc.ResponsableID},
-		{Path: "visible_participante", Value: doc.VisibleParticipante},
+	ref := r.client.Collection(hitosCollection).Doc(id)
+	err := r.client.RunTransaction(ctx, func(ctx context.Context, tx *firestore.Transaction) error {
+		participanteID, err := r.participanteDeFicha(tx, doc.FichaID)
+		if err != nil {
+			return err
+		}
+		if err := tx.Update(ref, []firestore.Update{
+			{Path: "fecha", Value: doc.Fecha},
+			{Path: "descripcion", Value: doc.Descripcion},
+			{Path: "responsable_id", Value: doc.ResponsableID},
+			{Path: "visible_participante", Value: doc.VisibleParticipante},
+		}); err != nil {
+			return err
+		}
+		if err := r.events.Hito(ctx, tx, false, hitoPayload(id, participanteID, doc)); err != nil {
+			return err
+		}
+		return audit.RecordTx(ctx, r.client, tx, audit.AccionActualizar, audit.RecursoHito, id)
 	})
 	if status.Code(err) == codes.NotFound {
 		return ErrNotFound
@@ -70,6 +124,7 @@ func (r *hitoRepository) Update(ctx context.Context, id string, doc models.HitoD
 	if err != nil {
 		return fmt.Errorf("error actualizando el hito: %w", err)
 	}
+	r.events.Notify()
 	return nil
 }
 

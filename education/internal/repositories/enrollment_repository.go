@@ -8,6 +8,7 @@ import (
 	"cloud.google.com/go/firestore"
 	"google.golang.org/api/iterator"
 
+	"buenvivir/education/internal/events/producers"
 	"buenvivir/education/internal/models"
 )
 
@@ -28,14 +29,32 @@ type EnrollmentRepository interface {
 	// Fuerza fecha_inscripcion a "ahora" y, si Estado viene vacío, lo
 	// deja en "activa".
 	Create(ctx context.Context, e models.Enrollment) (*models.Enrollment, error)
+	// DeactivateByParticipant da de baja las inscripciones activas de un
+	// participante que se dio de baja en auth-service (evento
+	// usuarios.participante.eliminado). No borra nada: conserva el
+	// historial con estado "baja" y el motivo. Devuelve cuántas cambió;
+	// repetirlo no cambia nada (idempotente).
+	DeactivateByParticipant(ctx context.Context, participanteID, motivo string) (int, error)
 }
 
 type enrollmentRepository struct {
 	client *firestore.Client
+	events *producers.Educacion
 }
 
-func NewEnrollmentRepository(client *firestore.Client) EnrollmentRepository {
-	return &enrollmentRepository{client: client}
+// NewEnrollmentRepository recibe opcionalmente el productor de eventos:
+// sin él (o nil) no se publica nada.
+func NewEnrollmentRepository(client *firestore.Client, events ...*producers.Educacion) EnrollmentRepository {
+	return &enrollmentRepository{client: client, events: firstProducer(events)}
+}
+
+// firstProducer resuelve el parámetro opcional de productor de eventos
+// de los constructores de repositorios.
+func firstProducer(ps []*producers.Educacion) *producers.Educacion {
+	if len(ps) > 0 {
+		return ps[0]
+	}
+	return nil
 }
 
 func (r *enrollmentRepository) ListByCourse(ctx context.Context, cursoID string) ([]models.Enrollment, error) {
@@ -109,10 +128,45 @@ func (r *enrollmentRepository) Create(ctx context.Context, e models.Enrollment) 
 		e.Estado = models.EnrollmentEstadoActiva
 	}
 
-	ref, _, err := r.client.Collection(enrollmentsCollection).Add(ctx, e)
+	// La inscripción y su evento (inscripcion.creada) se escriben en la
+	// misma transacción: o quedan las dos cosas, o ninguna (outbox).
+	ref := r.client.Collection(enrollmentsCollection).NewDoc()
+	e.ID = ref.ID
+	err := r.client.RunTransaction(ctx, func(ctx context.Context, tx *firestore.Transaction) error {
+		if err := tx.Create(ref, e); err != nil {
+			return err
+		}
+		return r.events.InscripcionCreada(ctx, tx, e)
+	})
 	if err != nil {
 		return nil, fmt.Errorf("error creando inscripcion: %w", err)
 	}
-	e.ID = ref.ID
+	r.events.Notify()
 	return &e, nil
+}
+
+func (r *enrollmentRepository) DeactivateByParticipant(ctx context.Context, participanteID, motivo string) (int, error) {
+	docs, err := r.client.Collection(enrollmentsCollection).
+		Where("participante_id", "==", participanteID).
+		Where("estado", "==", models.EnrollmentEstadoActiva).
+		Documents(ctx).GetAll()
+	if err != nil {
+		return 0, fmt.Errorf("error listando inscripciones activas: %w", err)
+	}
+	if len(docs) == 0 {
+		return 0, nil
+	}
+	now := time.Now().UTC()
+	batch := r.client.Batch() //nolint:staticcheck // lote chico y atómico, mismo criterio que AttendanceRepository
+	for _, d := range docs {
+		batch.Update(d.Ref, []firestore.Update{
+			{Path: "estado", Value: models.EnrollmentEstadoBaja},
+			{Path: "motivo_baja", Value: motivo},
+			{Path: "fecha_baja", Value: now},
+		})
+	}
+	if _, err := batch.Commit(ctx); err != nil {
+		return 0, fmt.Errorf("error dando de baja inscripciones: %w", err)
+	}
+	return len(docs), nil
 }
