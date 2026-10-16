@@ -118,21 +118,21 @@
                 </div>
                 <div class="flex items-center gap-2 ml-2">
                   <p-colorPicker
+                    name="primaryColor"
+                    [ngModelOptions]="{ standalone: true }"
                     [ngModel]="getPrimaryColor()"
                     (ngModelChange)="setPrimaryColor($event)"
                     format="hex"
                   ></p-colorPicker>
-                  <span class="text-xs text-gray-500 uppercase font-mono">{{
-                    getPrimaryColor()
-                  }}</span>
                 </div>
               </div>
             </div>
 
-            <div class="field mb-3" *ngIf="cv.basics.picture">
+            <div class="field mb-3">
               <span class="block font-medium mb-1">Foto de Perfil</span>
-              <div class="flex items-center gap-2">
+              <div class="flex items-center gap-3">
                 <img
+                  *ngIf="cv.basics.picture"
                   [src]="resolveImageUrl(cv.basics.picture)"
                   alt="Foto de Perfil"
                   class="w-16 h-16 rounded-full object-cover border border-gray-300 shrink-0"
@@ -143,6 +143,16 @@
                     max-height: 64px;
                   "
                 />
+                <div
+                  *ngIf="!cv.basics.picture"
+                  class="w-16 h-16 rounded-full bg-gray-100 border border-gray-300 flex items-center justify-center text-gray-400 shrink-0"
+                  style="width: 64px; height: 64px;"
+                >
+                  <i class="pi pi-user text-2xl"></i>
+                </div>
+                <span class="text-xs text-gray-500">
+                  La foto de perfil se gestiona desde el perfil del usuario.
+                </span>
               </div>
             </div>
 
@@ -311,6 +321,8 @@
                       <p-checkbox
                         [binary]="true"
                         [inputId]="'current-' + i"
+                        [name]="'current-' + i"
+                        [ngModelOptions]="{ standalone: true }"
                         [ngModel]="job.endDate === 'Present'"
                         (ngModelChange)="
                           $event
@@ -413,6 +425,8 @@
                       <p-checkbox
                         [binary]="true"
                         [inputId]="'edu-current-' + i"
+                        [name]="'edu-current-' + i"
+                        [ngModelOptions]="{ standalone: true }"
                         [ngModel]="edu.endDate === 'Present'"
                         (ngModelChange)="
                           $event
@@ -662,26 +676,6 @@
             [ngClass]="'preview-theme-' + (cv.metadata?.template || 'onyx')"
             class="preview-container"
           >
-            <div
-              class="preview-theme-indicator flex items-center justify-between p-2 mb-3 rounded-md bg-gray-50 border border-gray-200"
-            >
-              <div class="flex items-center gap-2">
-                <span
-                  class="preview-color-dot"
-                  [style.background-color]="getPrimaryColor()"
-                ></span>
-                <span class="text-xs font-semibold text-gray-700"
-                  >Diseño: {{ getSelectedTemplateLabel() }}</span
-                >
-              </div>
-              <p-button
-                label="Ver diseño"
-                icon="pi pi-eye"
-                (onClick)="openTemplateModal()"
-                styleClass="p-button-text p-button-xs text-xs"
-              ></p-button>
-            </div>
-
             <div
               class="preview-header text-center pb-3 mb-4 border-b flex flex-col items-center"
             >

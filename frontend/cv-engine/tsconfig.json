@@ -1,0 +1,28 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ES2022",
+    "moduleResolution": "bundler",
+    "baseUrl": ".",
+    "jsx": "react-jsx",
+    "strict": false,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "types": ["node"],
+    "lib": ["ES2023", "DOM"],
+    "paths": {
+      "@reactive-resume/schema/*": ["./vendor/schema/*"],
+      "@reactive-resume/schema": ["./vendor/schema/index.ts"],
+      "@reactive-resume/utils/*": ["./vendor/utils/*"],
+      "@reactive-resume/utils": ["./vendor/utils/index.ts"],
+      "@reactive-resume/resume/*": ["./vendor/resume/*"],
+      "@reactive-resume/resume": ["./vendor/resume/index.ts"],
+      "@reactive-resume/pdf/*": ["./vendor/pdf/*"],
+      "@reactive-resume/pdf": ["./vendor/pdf/index.ts"],
+      "@reactive-resume/fonts": ["./src/fonts.ts"],
+      "@reactive-resume/fonts/*": ["./src/fonts.ts"],
+      "#react-pdf-renderer": ["@react-pdf/renderer"]
+    }
+  },
+  "include": ["src/**/*", "test/**/*"]
+}

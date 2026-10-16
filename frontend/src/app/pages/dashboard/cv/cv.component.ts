@@ -1,7 +1,9 @@
-import { Component, OnInit, OnDestroy, inject } from "@angular/core";
+import { Component, OnInit, ChangeDetectorRef, inject } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { ActivatedRoute } from "@angular/router";
 import { FormsModule, NgForm } from "@angular/forms";
+import { forkJoin, of } from "rxjs";
+import { catchError } from "rxjs/operators";
 import { CardModule } from "primeng/card";
 import { ButtonModule } from "primeng/button";
 import { InputTextModule } from "primeng/inputtext";
@@ -27,7 +29,8 @@ import {
 import { ProfileService } from "../../../services/profile.service";
 import { UsersService } from "../../../services/users.service";
 import { ImageService } from "../../../services/image.service";
-import { ProfileResponse } from "../../../core/models/auth.model";
+import { CvPdfService } from "../../../services/cv-pdf.service";
+import { User, RoleData } from "../../../core/models/auth.model";
 
 @Component({
   selector: "app-cv",
@@ -52,13 +55,15 @@ import { ProfileResponse } from "../../../core/models/auth.model";
   templateUrl: "./cv.component.html",
   styleUrls: ["./cv.component.css"],
 })
-export class CvComponent implements OnInit, OnDestroy {
+export class CvComponent implements OnInit {
   private readonly rxResumeService = inject(RxResumeService);
   private readonly profileService = inject(ProfileService);
   private readonly usersService = inject(UsersService);
   private readonly imageService = inject(ImageService);
+  private readonly cvPdfService = inject(CvPdfService);
   private readonly route = inject(ActivatedRoute);
   private readonly messages = inject(MessageService);
+  private readonly cdr = inject(ChangeDetectorRef);
 
   readonly TriangleAlert = TriangleAlert;
 
@@ -69,13 +74,13 @@ export class CvComponent implements OnInit, OnDestroy {
   pdfReady = false;
   pdfPolling = false;
   message = "";
-  private pdfPollInterval: ReturnType<typeof setInterval> | null = null;
+  userProfilePicture = "";
 
   resolveImageUrl(url?: string): string {
     return this.imageService.resolveImageUrl(url);
   }
 
-  templates = [
+  readonly templates = [
     { label: "Azurill", value: "azurill", image: "assets/cv-templates/azurill.png" },
     { label: "Bronzor", value: "bronzor", image: "assets/cv-templates/bronzor.png" },
     { label: "Chikorita", value: "chikorita", image: "assets/cv-templates/chikorita.png" },
@@ -132,42 +137,49 @@ export class CvComponent implements OnInit, OnDestroy {
   loadData() {
     this.loading = true;
 
-    const resumeObservable = this.userId
+    const resume$ = this.userId
       ? this.rxResumeService.getUserResumeByAdmin(this.userId)
       : this.rxResumeService.getMyResume();
 
-    // Load resume from DB (without RxResume API call)
-    resumeObservable.subscribe({
-      next: (res) => {
-        this.resume = res;
-        this.checkInitialPDFStatus();
+    const profile$ = this.userId
+      ? this.usersService
+          .getUserProfile(this.userId)
+          .pipe(catchError(() => of(null)))
+      : this.profileService
+          .getMyProfile()
+          .pipe(catchError(() => of(null)));
 
-        // Auto-load missing fields from user profile
-        this.profileService.getMyProfile().subscribe({
-          next: (profileRes) => {
-            this.populateBasicsFromProfile(profileRes);
-            this.ensureResumeMetadata();
-            this.loading = false;
-          },
-          error: () => {
-            this.ensureResumeMetadata();
-            this.loading = false; // Ignore profile error, we still have resume
-          },
-        });
+    forkJoin({
+      resume: resume$,
+      profile: profile$,
+    }).subscribe({
+      next: ({ resume, profile }) => {
+        this.resume = resume;
+        this.checkInitialPDFStatus();
+        if (profile) {
+          this.populateBasicsFromProfile(profile);
+        }
+        this.ensureResumeMetadata();
+        this.loading = false;
+        this.cdr.detectChanges();
       },
       error: () => {
         this.loading = false;
+        this.cdr.detectChanges();
       },
     });
   }
 
-  private populateBasicsFromProfile(profileRes: ProfileResponse): void {
+  private populateBasicsFromProfile(profileRes: {
+    user?: Partial<User>;
+    role_data?: Partial<RoleData>;
+  }): void {
     const basics = this.resume?.data?.basics;
     const user = profileRes.user;
     if (!basics) return;
 
     if (!basics.name && user) {
-      basics.name = `${user.first_name} ${user.last_name}`.trim();
+      basics.name = `${user.first_name || ""} ${user.last_name || ""}`.trim();
     }
     if (!basics.email && user?.email) {
       basics.email = user.email;
@@ -177,6 +189,15 @@ export class CvComponent implements OnInit, OnDestroy {
     }
     if (!basics.location && profileRes.role_data?.address) {
       basics.location = profileRes.role_data.address;
+    }
+
+    const userPic =
+      user?.image_url ||
+      (profileRes.role_data?.["image_url"] as string | undefined) ||
+      (profileRes.role_data?.["profile_picture_url"] as string | undefined);
+    if (userPic) {
+      this.userProfilePicture = userPic;
+      basics.picture = userPic;
     }
   }
 
@@ -208,63 +229,22 @@ export class CvComponent implements OnInit, OnDestroy {
   }
 
   private checkInitialPDFStatus() {
-    const statusObs = this.userId
-      ? this.rxResumeService.getUserPDFStatusByAdmin(this.userId)
-      : this.rxResumeService.getPDFStatus();
-
-    statusObs.subscribe({
-      next: (res) => {
-        this.pdfReady = res.ready;
-      },
-    });
-  }
-
-  // Llamar después de guardar exitosamente
-  private startPDFPolling() {
-    this.pdfReady = false;
-    this.pdfPolling = true;
-
-    // Limpiar cualquier poll previo
-    if (this.pdfPollInterval) clearInterval(this.pdfPollInterval);
-
-    this.pdfPollInterval = setInterval(() => {
-      const statusObs = this.userId
-        ? this.rxResumeService.getUserPDFStatusByAdmin(this.userId)
-        : this.rxResumeService.getPDFStatus();
-
-      statusObs.subscribe({
-        next: (res) => {
-          if (res.ready) {
-            this.pdfReady = true;
-            this.pdfPolling = false;
-            clearInterval(this.pdfPollInterval!);
-            this.pdfPollInterval = null;
-            this.message =
-              'PDF listo. Hacé click en "Descargar PDF" para obtenerlo.';
-          }
-        },
-        error: (err) => {
-          if (err.status === 401 || err.status === 403) {
-            this.pdfPolling = false;
-            clearInterval(this.pdfPollInterval!);
-            this.pdfPollInterval = null;
-            this.message =
-              "Tu sesión expiró. Actualizá la página y volvé a iniciar sesión.";
-          }
-          // Ignorar otros errores de polling, seguir intentando
-        },
-      });
-    }, 3000); // Poll cada 3 segundos
+    this.pdfReady = true;
   }
 
   generateResume(form?: NgForm) {
     if (form?.invalid) {
       this.message = "Por favor, completa los campos requeridos correctamente.";
-      // Mark all as touched to show errors
       form.control.markAllAsTouched();
       return;
     }
     if (!this.resume?.data) return;
+
+    if (this.resume.data.basics) {
+      if (!this.resume.data.basics.picture && this.userProfilePicture) {
+        this.resume.data.basics.picture = this.userProfilePicture;
+      }
+    }
 
     this.generating = true;
     this.message = "";
@@ -280,8 +260,9 @@ export class CvComponent implements OnInit, OnDestroy {
       next: (res) => {
         this.resume = res;
         this.generating = false;
-        this.message = "¡Currículum guardado! Generando PDF...";
-        this.startPDFPolling();
+        this.pdfReady = true;
+        this.message = "¡Currículum guardado y listo para descargar!";
+        this.avisar("success", "Currículum guardado correctamente.");
       },
       error: (err) => {
         this.generating = false;
@@ -290,25 +271,47 @@ export class CvComponent implements OnInit, OnDestroy {
     });
   }
 
-  ngOnDestroy() {
-    if (this.pdfPollInterval) clearInterval(this.pdfPollInterval);
-  }
 
-  downloadPdf() {
-    if (this.resume?.pdf_url && this.resume?.user_id) {
-      this.rxResumeService.downloadPublicPDF(this.resume.user_id);
-    } else {
+
+  async downloadPdf() {
+    if (!this.resume?.data) {
       this.avisar(
         "warn",
         "Primero generá el currículum para poder descargarlo.",
       );
+      return;
+    }
+
+    const id = this.userId || this.resume.user_id || "usuario";
+    const filename = `cv-${id}.pdf`;
+    const picToUse = this.resume.data.basics.picture || this.userProfilePicture;
+    const picture = this.resolveImageUrl(picToUse);
+
+    try {
+      await this.cvPdfService.downloadPdf(this.resume, filename, {
+        primaryColor: this.getPrimaryColor(),
+        pictureUrl: picture,
+      });
+    } catch {
+      if (this.resume?.user_id) {
+        this.rxResumeService.downloadPublicPDF(this.resume.user_id);
+      }
     }
   }
 
   shareResume() {
     if (this.resume?.public_url) {
+      const path = this.resume.public_url;
+      const origin =
+        typeof window !== "undefined" ? window.location.origin : "";
+      let fullUrl = path;
+      if (!path.startsWith("http")) {
+        const normalizedPath = path.startsWith("/") ? path : `/${path}`;
+        fullUrl = `${origin}${normalizedPath}`;
+      }
+
       navigator.clipboard
-        .writeText(this.resume.public_url)
+        .writeText(fullUrl)
         .then(() => {
           this.avisar("success", "Enlace copiado. Ya podés compartirlo.");
         })

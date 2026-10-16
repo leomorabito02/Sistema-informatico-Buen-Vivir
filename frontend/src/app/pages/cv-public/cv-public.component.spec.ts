@@ -5,6 +5,7 @@ import { provideHttpClient } from "@angular/common/http";
 import { ActivatedRoute } from "@angular/router";
 import { of, throwError } from "rxjs";
 import { RxResumeService, Resume } from "../../services/rxresume.service";
+import { CvPdfService } from "../../services/cv-pdf.service";
 
 describe("CvPublicComponent", () => {
   let component: CvPublicComponent;
@@ -144,12 +145,19 @@ describe("CvPublicComponent", () => {
     expect(component.getPrimaryColor()).toBe("#485839");
   });
 
-  it("should trigger PDF download when downloadPDF is called", () => {
+  it("should trigger PDF download via cvPdfService or fallback", async () => {
+    const cvPdfService = TestBed.inject(CvPdfService);
+    spyOn(cvPdfService, "downloadPdf").and.resolveTo();
     spyOn(rxResumeService, "downloadPublicPDF");
     component.userId = "user-123";
+    component.resume = mockResume;
 
-    component.downloadPDF();
+    await component.downloadPDF();
 
+    expect(cvPdfService.downloadPdf).toHaveBeenCalled();
+
+    component.resume = null;
+    await component.downloadPDF();
     expect(rxResumeService.downloadPublicPDF).toHaveBeenCalledWith("user-123");
   });
 });

@@ -134,6 +134,7 @@ export interface ProfileInput {
   phone: string;
   location: string;
   headline: string;
+  picture?: string;
 }
 
 @Injectable({

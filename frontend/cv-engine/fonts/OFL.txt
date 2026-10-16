@@ -1,0 +1,5 @@
+SIL OPEN FONT LICENSE Version 1.1 - 26 February 2007
+
+Both Poppins (Copyright 2020 The Poppins Project Authors, Indian Type Foundry)
+and IBM Plex (Copyright 2017 IBM Corp.) are licensed under the SIL Open Font License, Version 1.1.
+This license is available with a FAQ at: http://scripts.sil.org/OFL
