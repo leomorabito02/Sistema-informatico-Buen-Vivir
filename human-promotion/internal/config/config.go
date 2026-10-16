@@ -35,6 +35,51 @@ type Config struct {
 	// habilidades del participante que se muestran en la ficha y en su
 	// PDF. Opcional: vacía, la ficha se muestra sin habilidades.
 	EducationServiceURL string
+
+	// Events es la mensajería asíncrona con Pub/Sub (ver
+	// docs/eventos/README.md). Desactivada si falta PUBSUB_PROJECT_ID.
+	Events EventsConfig
+}
+
+// EventsConfig: misma convención de variables que education.
+type EventsConfig struct {
+	// Production es APP_ENV=production: ahí no se puede desactivar la
+	// verificación de los push.
+	Production          bool
+	ProjectID           string
+	TopicPromocion      string
+	PushAuth            string
+	PushAudience        string
+	PushServiceAccounts []string
+}
+
+// PublishEnabled dice si el servicio publica eventos.
+func (e EventsConfig) PublishEnabled() bool { return e.ProjectID != "" }
+
+// ConsumeEnabled dice si hay configuración para recibir push.
+func (e EventsConfig) ConsumeEnabled() bool {
+	return e.PushAuth == "disabled" || (e.PushAudience != "" && len(e.PushServiceAccounts) > 0)
+}
+
+func loadEventsConfig() EventsConfig {
+	topic := strings.TrimSpace(os.Getenv("PUBSUB_TOPIC_PROMOCION_HUMANA"))
+	if topic == "" {
+		topic = "promocion-humana-eventos"
+	}
+	var accounts []string
+	for _, a := range strings.Split(os.Getenv("PUBSUB_PUSH_SERVICE_ACCOUNTS"), ",") {
+		if a = strings.TrimSpace(a); a != "" {
+			accounts = append(accounts, a)
+		}
+	}
+	return EventsConfig{
+		Production:          strings.TrimSpace(os.Getenv("APP_ENV")) == "production",
+		ProjectID:           strings.TrimSpace(os.Getenv("PUBSUB_PROJECT_ID")),
+		TopicPromocion:      topic,
+		PushAuth:            strings.TrimSpace(os.Getenv("PUBSUB_PUSH_AUTH")),
+		PushAudience:        strings.TrimSpace(os.Getenv("PUBSUB_PUSH_AUDIENCE")),
+		PushServiceAccounts: accounts,
+	}
 }
 
 // LoadConfig arma la configuración a partir de variables de entorno.
@@ -54,5 +99,6 @@ func LoadConfig() *Config {
 
 		AuthServiceGRPCTarget: strings.TrimSpace(os.Getenv("AUTH_SERVICE_GRPC_TARGET")),
 		EducationServiceURL:   strings.TrimSpace(os.Getenv("EDUCATION_SERVICE_URL")),
+		Events:                loadEventsConfig(),
 	}
 }

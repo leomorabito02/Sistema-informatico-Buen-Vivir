@@ -1,0 +1,65 @@
+package outbox
+
+import (
+	"context"
+	"fmt"
+	"sync"
+
+	"cloud.google.com/go/pubsub/v2"
+	"google.golang.org/api/option"
+)
+
+// PubSubPublisher publica en GCP Pub/Sub (o en el emulador, si está
+// PUBSUB_EMULATOR_HOST: la librería lo detecta sola).
+type PubSubPublisher struct {
+	client *pubsub.Client
+
+	mu         sync.Mutex
+	publishers map[string]*pubsub.Publisher
+}
+
+func NewPubSubPublisher(ctx context.Context, projectID string, opts ...option.ClientOption) (*PubSubPublisher, error) {
+	client, err := pubsub.NewClient(ctx, projectID, opts...)
+	if err != nil {
+		return nil, fmt.Errorf("no se pudo crear el cliente de Pub/Sub: %w", err)
+	}
+	return &PubSubPublisher{client: client, publishers: map[string]*pubsub.Publisher{}}, nil
+}
+
+func (p *PubSubPublisher) publisher(topic string) *pubsub.Publisher {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	if pub, ok := p.publishers[topic]; ok {
+		return pub
+	}
+	pub := p.client.Publisher(topic)
+	// Habilita ordering keys: los mensajes con la misma clave
+	// (participante_id) llegan en el orden en que se publicaron.
+	pub.EnableMessageOrdering = true
+	p.publishers[topic] = pub
+	return pub
+}
+
+func (p *PubSubPublisher) Publish(ctx context.Context, topic string, msg Message) error {
+	pub := p.publisher(topic)
+	res := pub.Publish(ctx, &pubsub.Message{Data: msg.Data, Attributes: msg.Attributes, OrderingKey: msg.OrderingKey})
+	if _, err := res.Get(ctx); err != nil {
+		if msg.OrderingKey != "" {
+			// Tras un error, Pub/Sub frena esa ordering key hasta que se
+			// la reanuda explícitamente.
+			pub.ResumePublish(msg.OrderingKey)
+		}
+		return fmt.Errorf("pub/sub %s: %w", topic, err)
+	}
+	return nil
+}
+
+// Close vacía los publishers y cierra el cliente.
+func (p *PubSubPublisher) Close() error {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	for _, pub := range p.publishers {
+		pub.Stop()
+	}
+	return p.client.Close()
+}

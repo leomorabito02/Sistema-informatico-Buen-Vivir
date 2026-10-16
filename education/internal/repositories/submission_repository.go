@@ -10,6 +10,7 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
+	"buenvivir/education/internal/events/producers"
 	"buenvivir/education/internal/models"
 )
 
@@ -44,10 +45,14 @@ type SubmissionRepository interface {
 
 type submissionRepository struct {
 	client *firestore.Client
+	events *producers.Educacion
 }
 
-func NewSubmissionRepository(client *firestore.Client) SubmissionRepository {
-	return &submissionRepository{client: client}
+// NewSubmissionRepository recibe opcionalmente el productor de eventos
+// (asistencia.registrada, habilidad.otorgada y
+// curso.completado_por_participante salen de cada entrega).
+func NewSubmissionRepository(client *firestore.Client, events ...*producers.Educacion) SubmissionRepository {
+	return &submissionRepository{client: client, events: firstProducer(events)}
 }
 
 func (r *submissionRepository) CreateWithAttendance(ctx context.Context, activity *models.Activity, sub models.Submission) (*models.Submission, error) {
@@ -73,6 +78,10 @@ func (r *submissionRepository) CreateWithAttendance(ctx context.Context, activit
 		if err != nil {
 			return err
 		}
+		completes, err := r.completesCourse(tx, activity, sub.ParticipanteID)
+		if err != nil {
+			return err
+		}
 
 		if err := tx.Create(r.client.Collection(submissionsCollection).Doc(docID), sub); err != nil {
 			return err
@@ -93,6 +102,16 @@ func (r *submissionRepository) CreateWithAttendance(ctx context.Context, activit
 			if err := tx.Create(ref, ps); err != nil {
 				return err
 			}
+			if err := r.events.HabilidadOtorgada(ctx, tx, ps); err != nil {
+				return err
+			}
+		}
+		// Eventos (outbox): en la misma transacción que la entrega.
+		if err := r.events.AsistenciaRegistrada(ctx, tx, docID, activity.CursoID, attendance); err != nil {
+			return err
+		}
+		if completes {
+			return r.events.CursoCompletado(ctx, tx, activity.CursoID, sub.ParticipanteID, sub.FechaEntrega)
 		}
 		return nil
 	})
@@ -103,7 +122,41 @@ func (r *submissionRepository) CreateWithAttendance(ctx context.Context, activit
 		return nil, fmt.Errorf("error registrando entrega: %w", err)
 	}
 	sub.ID = docID
+	r.events.Notify()
 	return &sub, nil
+}
+
+// completesCourse dice si, con esta entrega, el participante completa
+// todas las actividades del curso (todas las demás ya tienen entrega).
+// Solo se calcula si hay que publicar eventos: son lecturas extra que
+// la entrega en sí no necesita.
+func (r *submissionRepository) completesCourse(tx *firestore.Transaction, activity *models.Activity, participanteID string) (bool, error) {
+	if !r.events.Enabled() || activity.CursoID == "" {
+		return false, nil
+	}
+	activities, err := tx.Documents(r.client.Collection(activitiesCollection).Where("curso_id", "==", activity.CursoID)).GetAll()
+	if err != nil {
+		return false, err
+	}
+	others := make([]*firestore.DocumentRef, 0, len(activities))
+	for _, a := range activities {
+		if a.Ref.ID != activity.ID {
+			others = append(others, r.client.Collection(submissionsCollection).Doc(SubmissionDocID(a.Ref.ID, participanteID)))
+		}
+	}
+	if len(others) == 0 {
+		return true, nil
+	}
+	submitted, err := tx.GetAll(others)
+	if err != nil {
+		return false, err
+	}
+	for _, d := range submitted {
+		if !d.Exists() {
+			return false, nil
+		}
+	}
+	return true, nil
 }
 
 // missingParticipantSkills devuelve las habilidades de la actividad que
