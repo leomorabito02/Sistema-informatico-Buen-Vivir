@@ -487,10 +487,10 @@ jobs:
           docker tag human-promotion:${{ github.sha }} "$IMAGE_URI"
           docker push "$IMAGE_URI"
 
-  ci-reactive-resume:
-    name: CI — Reactive Resume (Node)
+  ci-cv-renderer:
+    name: CI — CV Renderer (Node)
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 15
 
     steps:
       - name: Checkout repository
@@ -519,24 +519,20 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ${{ env.STORE_PATH }}
-          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('rxresume/reactive-resume/pnpm-lock.yaml') }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('frontend/pnpm-lock.yaml') }}
           restore-keys: |
             ${{ runner.os }}-pnpm-store-
 
       - name: Install dependencies
-        working-directory: rxresume/reactive-resume
+        working-directory: frontend
         run: pnpm install --frozen-lockfile
 
-      - name: Build Reactive Resume
-        working-directory: rxresume/reactive-resume
-        run: pnpm build
-
-      - name: Test Reactive Resume
-        working-directory: rxresume/reactive-resume
+      - name: Test cv-engine
+        working-directory: frontend/cv-engine
         run: pnpm test
 
-      - name: Docker build (reactive-resume)
-        run: docker build -t reactive-resume:${{ github.sha }} -f rxresume/reactive-resume/Dockerfile ./rxresume/reactive-resume
+      - name: Docker build (cv-renderer)
+        run: docker build -t cv-renderer:${{ github.sha }} -f frontend/cv-engine/Dockerfile ./frontend
 
       - name: Authenticate to Google Cloud
         if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/testing')
@@ -552,11 +548,10 @@ jobs:
         if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/testing')
         run: gcloud auth configure-docker ${{ secrets.ARTIFACT_REGISTRY_HOST }} --quiet
 
-      - name: Push reactive-resume image to Artifact Registry
-        if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/testing')
+      - name: Push cv-renderer image to Artifact Registry
         run: |
-          IMAGE_URI="${{ secrets.ARTIFACT_REGISTRY_HOST }}/${{ secrets.GCP_PROJECT_ID }}/${{ secrets.ARTIFACT_REGISTRY_REPO }}/reactive-resume:${{ github.sha }}"
-          docker tag reactive-resume:${{ github.sha }} "$IMAGE_URI"
+          IMAGE_URI="${{ secrets.ARTIFACT_REGISTRY_HOST }}/${{ secrets.GCP_PROJECT_ID }}/${{ secrets.ARTIFACT_REGISTRY_REPO }}/cv-renderer:${{ github.sha }}"
+          docker tag cv-renderer:${{ github.sha }} "$IMAGE_URI"
           docker push "$IMAGE_URI"
 
   ci-api-gateway:
@@ -581,6 +576,7 @@ jobs:
           export GATEWAY_HOST="validate.example.com"
           export AUTH_SERVICE_URL="https://auth.example.com"
           export EDUCATION_SERVICE_URL="https://education.example.com"
+          export RXRESUME_SERVICE_URL="https://rxresume.example.com"
           export HUMAN_PROMOTION_SERVICE_URL="https://human-promotion.example.com"
           export FIREBASE_PROJECT_ID="validate-project"
           envsubst < openapi.yaml > openapi-resolved.yaml
@@ -602,7 +598,7 @@ jobs:
   ci-gate:
     name: CI — Gate (Verificación general)
     runs-on: ubuntu-latest
-    needs: [ci-secrets, ci-frontend, ci-auth, ci-education, ci-rxresume, ci-human-promotion, ci-reactive-resume, ci-api-gateway]
+    needs: [ci-secrets, ci-frontend, ci-auth, ci-education, ci-rxresume, ci-human-promotion, ci-cv-renderer, ci-api-gateway]
     if: always()
 
     steps:
@@ -622,6 +618,14 @@ jobs:
           fi
           if [ "${{ needs.ci-api-gateway.result }}" != "success" ]; then
             echo "::error::ci-api-gateway failed."
+            exit 1
+          fi
+          if [ "${{ needs.ci-cv-renderer.result }}" != "success" ]; then
+            echo "::error::ci-cv-renderer failed."
+            exit 1
+          fi
+          if [ "${{ needs.ci-rxresume.result }}" != "success" ]; then
+            echo "::error::ci-rxresume failed."
             exit 1
           fi
           echo "All CI jobs passed. Gate cleared."
@@ -1054,10 +1058,48 @@ jobs:
           SERVICE="human-promotion-${{ needs.cd-setup.outputs.service_suffix }}"
           gcloud run services update-traffic "$SERVICE" --region="${{ secrets.GCP_REGION }}" --to-latest --project="${{ secrets.GCP_PROJECT_ID }}"
 
+  cd-cv-renderer:
+    name: CD — CV Renderer (Cloud Run)
+    runs-on: ubuntu-latest
+    needs: [cd-setup]
+    environment: ${{ needs.cd-setup.outputs.env_name }}
+    timeout-minutes: 15
+    outputs:
+      service_url: ${{ steps.deploy.outputs.url }}
+
+    steps:
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: '${{ secrets.GCP_CREDENTIALS }}'
+
+      - name: Verify Image exists
+        id: pre-deploy
+        run: |
+          IMAGE="${{ secrets.ARTIFACT_REGISTRY_HOST }}/${{ secrets.GCP_PROJECT_ID }}/${{ secrets.ARTIFACT_REGISTRY_REPO }}/cv-renderer:${{ github.sha }}"
+          gcloud container images describe "$IMAGE" || (echo "::error::Image $IMAGE not found in registry" && exit 1)
+
+      - name: Deploy CV Renderer to Cloud Run
+        id: deploy
+        uses: google-github-actions/deploy-cloudrun@v2
+        with:
+          service: 'cv-renderer-${{ needs.cd-setup.outputs.service_suffix }}'
+          region: '${{ secrets.GCP_REGION }}'
+          image: '${{ secrets.ARTIFACT_REGISTRY_HOST }}/${{ secrets.GCP_PROJECT_ID }}/${{ secrets.ARTIFACT_REGISTRY_REPO }}/cv-renderer:${{ github.sha }}'
+          flags: '--no-allow-unauthenticated --min-instances=0 --max-instances=1 --cpu=1 --memory=1Gi --service-account=${{ secrets.GCP_SERVICE_ACCOUNT }}'
+          env_vars: |-
+            PORT=5005
+            NODE_ENV=production
+
+      - name: Ensure 100% traffic routed to latest Cloud Run revision
+        run: |
+          SERVICE="cv-renderer-${{ needs.cd-setup.outputs.service_suffix }}"
+          gcloud run services update-traffic "$SERVICE" --region="${{ secrets.GCP_REGION }}" --to-latest --project="${{ secrets.GCP_PROJECT_ID }}"
+
   cd-rxresume:
     name: CD — RxResume Service (Cloud Run)
     runs-on: ubuntu-latest
-    needs: [cd-setup]
+    needs: [cd-setup, cd-cv-renderer]
     environment: ${{ needs.cd-setup.outputs.env_name }}
     timeout-minutes: 15
     env:
@@ -1086,48 +1128,20 @@ jobs:
           image: '${{ secrets.ARTIFACT_REGISTRY_HOST }}/${{ secrets.GCP_PROJECT_ID }}/${{ secrets.ARTIFACT_REGISTRY_REPO }}/rxresume:${{ github.sha }}'
           flags: '--no-allow-unauthenticated --min-instances=0 --max-instances=1 --cpu=1 --memory=1Gi --service-account=${{ secrets.GCP_SERVICE_ACCOUNT }}'
           env_vars: |-
-            AUTH_SERVICE_URL=${{ vars.AUTH_SERVICE_URL }}
-            REACTIVE_RESUME_URL=${{ vars.REACTIVE_RESUME_URL }}
-            REACTIVE_RESUME_PUBLIC_URL=${{ vars.REACTIVE_RESUME_PUBLIC_URL }}
+            DATABASE_URL=${{ secrets.DATABASE_URL_RXRESUME }}
+            RENDERER_URL=${{ needs.cd-cv-renderer.outputs.service_url }}
+            GCP_PROJECT_ID=${{ secrets.GCP_PROJECT_ID }}
+            GCP_BUCKET_NAME=${{ vars.GCP_BUCKET_NAME || 'buenvivir-resumes-bucket' }}
 
-  cd-reactive-resume:
-    name: CD — Reactive Resume (Cloud Run)
-    runs-on: ubuntu-latest
-    needs: [cd-setup]
-    environment: ${{ needs.cd-setup.outputs.env_name }}
-    timeout-minutes: 15
-    outputs:
-      service_url: ${{ steps.deploy.outputs.url }}
-
-    steps:
-      - name: Authenticate to Google Cloud
-        uses: google-github-actions/auth@v2
-        with:
-          credentials_json: '${{ secrets.GCP_CREDENTIALS }}'
-
-      - name: Verify Image exists
-        id: pre-deploy
+      - name: Ensure 100% traffic routed to latest Cloud Run revision
         run: |
-          IMAGE="${{ secrets.ARTIFACT_REGISTRY_HOST }}/${{ secrets.GCP_PROJECT_ID }}/${{ secrets.ARTIFACT_REGISTRY_REPO }}/reactive-resume:${{ github.sha }}"
-          gcloud container images describe "$IMAGE" || (echo "::error::Image $IMAGE not found in registry" && exit 1)
-
-      - name: Deploy Reactive Resume to Cloud Run
-        id: deploy
-        uses: google-github-actions/deploy-cloudrun@v2
-        with:
-          service: 'reactive-resume-${{ needs.cd-setup.outputs.service_suffix }}'
-          region: '${{ secrets.GCP_REGION }}'
-          image: '${{ secrets.ARTIFACT_REGISTRY_HOST }}/${{ secrets.GCP_PROJECT_ID }}/${{ secrets.ARTIFACT_REGISTRY_REPO }}/reactive-resume:${{ github.sha }}'
-          flags: '--allow-unauthenticated --min-instances=0 --max-instances=1 --cpu=1 --memory=1Gi --service-account=${{ secrets.GCP_SERVICE_ACCOUNT }}'
-          env_vars: |-
-            PORT=${{ vars.PORT }}
-            SERVER_PORT=${{ vars.SERVER_PORT }}
-            APP_URL=${{ vars.APP_URL }}
+          SERVICE="rxresume-${{ needs.cd-setup.outputs.service_suffix }}"
+          gcloud run services update-traffic "$SERVICE" --region="${{ secrets.GCP_REGION }}" --to-latest --project="${{ secrets.GCP_PROJECT_ID }}"
 
   cd-api-gateway:
     name: CD — API Gateway (Google Cloud)
     runs-on: ubuntu-latest
-    needs: [cd-setup, cd-auth, cd-education, cd-rxresume, cd-reactive-resume, cd-human-promotion]
+    needs: [cd-setup, cd-auth, cd-education, cd-rxresume, cd-cv-renderer, cd-human-promotion]
     environment: ${{ needs.cd-setup.outputs.env_name }}
     timeout-minutes: 30
     outputs:
@@ -1162,7 +1176,6 @@ jobs:
           export EDUCATION_SERVICE_URL="$EDU_URL"
 
           export RXRESUME_SERVICE_URL=$(gcloud run services describe "rxresume-$SUFFIX" --region="${{ secrets.GCP_REGION }}" --format='value(status.url)')
-          export REACTIVE_RESUME_URL=$(gcloud run services describe "reactive-resume-$SUFFIX" --region="${{ secrets.GCP_REGION }}" --format='value(status.url)')
           export HUMAN_PROMOTION_SERVICE_URL=$(gcloud run services describe "human-promotion-$SUFFIX" --region="${{ secrets.GCP_REGION }}" --format='value(status.url)')
           export FIREBASE_PROJECT_ID="${{ secrets.FIREBASE_PROJECT_ID }}"
           envsubst < openapi.yaml > openapi-resolved.yaml
@@ -1314,7 +1327,7 @@ jobs:
   cd-smoke:
     name: CD — Smoke Tests
     runs-on: ubuntu-latest
-    needs: [cd-setup, cd-auth, cd-education, cd-rxresume, cd-reactive-resume, cd-api-gateway, cd-frontend, cd-worker]
+    needs: [cd-setup, cd-auth, cd-education, cd-rxresume, cd-cv-renderer, cd-api-gateway, cd-frontend, cd-worker]
     environment: ${{ needs.cd-setup.outputs.env_name }}
     timeout-minutes: 15
 
@@ -1393,7 +1406,7 @@ jobs:
   cd-dast-zap:
     name: CD — DAST (OWASP ZAP)
     runs-on: ubuntu-latest
-    needs: [cd-setup, cd-smoke, cd-auth, cd-education, cd-rxresume, cd-reactive-resume, cd-api-gateway]
+    needs: [cd-setup, cd-smoke, cd-auth, cd-education, cd-rxresume, cd-cv-renderer, cd-api-gateway]
     environment: ${{ needs.cd-setup.outputs.env_name }}
     timeout-minutes: 15
 
@@ -1437,7 +1450,7 @@ jobs:
   cd-rollback:
     name: CD — Rollback (auto)
     runs-on: ubuntu-latest
-    needs: [cd-setup, cd-auth, cd-education, cd-rxresume, cd-reactive-resume, cd-frontend, cd-smoke, cd-dast-zap, cd-load-k6]
+    needs: [cd-setup, cd-auth, cd-education, cd-rxresume, cd-cv-renderer, cd-frontend, cd-smoke, cd-dast-zap, cd-load-k6]
     environment: ${{ needs.cd-setup.outputs.env_name }}
     timeout-minutes: 15
     if: always() && (needs.cd-smoke.result == 'failure' || needs.cd-dast-zap.result == 'failure' || needs.cd-load-k6.result == 'failure')

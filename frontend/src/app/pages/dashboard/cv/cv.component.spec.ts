@@ -182,4 +182,64 @@ describe("CvComponent", () => {
       expect(component.resume?.data?.references?.length).toBe(0);
     });
   });
+
+  describe("profile picture synchronization", () => {
+    it("should set picture from userProfilePicture on generateResume if basics.picture is empty", () => {
+      const rxResumeService = fixture.debugElement.injector.get(
+        // @ts-ignore
+        component["rxResumeService"].constructor
+      );
+      spyOn(rxResumeService, "updateMyResume").and.callFake((data: any) => {
+        return { subscribe: () => {} } as any;
+      });
+
+      component.resume = {
+        id: "res-1",
+        user_id: "user-1",
+        title: "Test CV",
+        pdf_url: "",
+        public_url: "",
+        rxresume_id: "rx-1",
+        data: {
+          basics: {
+            name: "Juan Perez",
+            email: "juan@test.com",
+            phone: "123456",
+            headline: "Developer",
+            location: "Buenos Aires",
+            website: "",
+            summary: "",
+            picture: "",
+            profiles: [],
+          },
+          work: [],
+          education: [],
+          skills: [],
+          certifications: [],
+          languages: [],
+          awards: [],
+          volunteer: [],
+          projects: [],
+          references: [],
+          interests: [],
+        },
+        created_at: "",
+        updated_at: "",
+      };
+      component.userProfilePicture = "https://example.com/avatar.png";
+
+      component.generateResume();
+
+      expect(component.resume.data.basics.picture).toBe(
+        "https://example.com/avatar.png"
+      );
+      expect(rxResumeService.updateMyResume).toHaveBeenCalledWith(
+        jasmine.objectContaining({
+          basics: jasmine.objectContaining({
+            picture: "https://example.com/avatar.png",
+          }),
+        })
+      );
+    });
+  });
 });

@@ -426,6 +426,7 @@ func (s *authService) GetUserProfile(ctx context.Context, userID string) (map[st
 			"role_id":        user.RoleID,
 			"status":         user.Status,
 			"google_auth_id": user.GoogleAuthID,
+			"image_url":      user.ImageURL,
 		},
 	}
 
@@ -435,6 +436,10 @@ func (s *authService) GetUserProfile(ctx context.Context, userID string) (map[st
 }
 
 func (s *authService) appendRoleDataToProfile(ctx context.Context, profile map[string]interface{}, roleID, userID string) {
+	if s.querier == nil {
+		return
+	}
+
 	var tableName string
 	switch roleID {
 	case "role_teacher":
@@ -456,6 +461,12 @@ func (s *authService) appendRoleDataToProfile(ctx context.Context, profile map[s
 
 	s.resolveApproverName(ctx, roleData)
 	profile["role_data"] = roleData
+
+	if uMap, ok := profile["user"].(map[string]interface{}); ok {
+		if img, ok := roleData["image_url"].(string); ok && img != "" {
+			uMap["image_url"] = img
+		}
+	}
 }
 
 func (s *authService) resolveApproverName(ctx context.Context, roleData map[string]interface{}) {

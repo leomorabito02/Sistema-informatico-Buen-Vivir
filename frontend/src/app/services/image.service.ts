@@ -10,13 +10,22 @@ export class ImageService {
    */
   resolveImageUrl(url?: string | boolean | null): string {
     if (!url || typeof url !== "string") return "";
-    if (url.startsWith("http://localhost:8080/api/v1/")) {
-      const path = url.replace("http://localhost:8080", "");
-      return `${environment.apiUrl || ""}${path}`;
+    const trimmed = url.trim();
+    if (!trimmed) return "";
+    const base =
+      environment.apiUrl ||
+      (typeof window !== "undefined" ? window.location.origin : "");
+    let fullUrl = trimmed;
+    if (fullUrl.startsWith("http://localhost:8080/api/v1/")) {
+      const path = fullUrl.replace("http://localhost:8080", "");
+      fullUrl = `${base}${path}`;
+    } else if (fullUrl.startsWith("/")) {
+      fullUrl = `${base}${fullUrl}`;
     }
-    if (url.startsWith("/")) {
-      return `${environment.apiUrl || ""}${url}`;
+    try {
+      return encodeURI(decodeURI(fullUrl));
+    } catch {
+      return encodeURI(fullUrl);
     }
-    return url;
   }
 }

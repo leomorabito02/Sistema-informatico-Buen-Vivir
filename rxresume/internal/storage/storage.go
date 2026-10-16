@@ -18,16 +18,13 @@ type ObjectStorageService interface {
 type gcsStorageService struct {
 	client     *storage.Client
 	bucketName string
-	emulator   string
 }
 
-// NewObjectStorageService initializes a GCP Cloud Storage client with local emulator fallback support.
-func NewObjectStorageService(ctx context.Context, projectID, bucketName, emulatorHost, credsPath string) (ObjectStorageService, error) {
+// NewObjectStorageService initializes a real GCP Cloud Storage client.
+func NewObjectStorageService(ctx context.Context, projectID, bucketName, credsPath string) (ObjectStorageService, error) {
 	var opts []option.ClientOption
 
-	if emulatorHost != "" {
-		opts = append(opts, option.WithEndpoint(emulatorHost), option.WithoutAuthentication())
-	} else if credsPath != "" {
+	if credsPath != "" {
 		if credsPath[0] == '{' {
 			opts = append(opts, option.WithCredentialsJSON([]byte(credsPath)))
 		} else {
@@ -43,11 +40,10 @@ func NewObjectStorageService(ctx context.Context, projectID, bucketName, emulato
 	return &gcsStorageService{
 		client:     client,
 		bucketName: bucketName,
-		emulator:   emulatorHost,
 	}, nil
 }
 
-// UploadFile uploads a reader stream to GCP Object Storage and returns the public or emulated file URL.
+// UploadFile uploads a reader stream to GCP Object Storage and returns the public file URL.
 func (s *gcsStorageService) UploadFile(ctx context.Context, objectName string, content io.Reader, contentType string) (string, error) {
 	bucket := s.client.Bucket(s.bucketName)
 	obj := bucket.Object(objectName)
@@ -62,10 +58,6 @@ func (s *gcsStorageService) UploadFile(ctx context.Context, objectName string, c
 
 	if err := wc.Close(); err != nil {
 		return "", fmt.Errorf("failed to close object writer: %w", err)
-	}
-
-	if s.emulator != "" {
-		return fmt.Sprintf("%s/%s/%s", s.emulator, s.bucketName, objectName), nil
 	}
 
 	return fmt.Sprintf("https://storage.googleapis.com/%s/%s", s.bucketName, objectName), nil

@@ -6,6 +6,7 @@ import { ProgressSpinnerModule } from "primeng/progressspinner";
 import { ButtonModule } from "primeng/button";
 
 import { ImageService } from "../../services/image.service";
+import { CvPdfService } from "../../services/cv-pdf.service";
 
 @Component({
   selector: "app-cv-public",
@@ -18,6 +19,7 @@ export class CvPublicComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly rxResumeService = inject(RxResumeService);
   private readonly imageService = inject(ImageService);
+  private readonly cvPdfService = inject(CvPdfService);
 
   resume: Resume | null = null;
   loading = true;
@@ -54,10 +56,25 @@ export class CvPublicComponent implements OnInit {
     });
   }
 
-  downloadPDF() {
-    if (this.userId) {
-      this.rxResumeService.downloadPublicPDF(this.userId);
+  async downloadPDF() {
+    if (!this.userId) return;
+
+    if (this.resume?.data) {
+      const filename = `cv-${this.userId}.pdf`;
+      const picture = this.resolveImageUrl(this.resume.data.basics?.picture);
+
+      try {
+        await this.cvPdfService.downloadPdf(this.resume, filename, {
+          primaryColor: this.getPrimaryColor(),
+          pictureUrl: picture,
+        });
+        return;
+      } catch {
+        // Fallback to backend PDF generation
+      }
     }
+
+    this.rxResumeService.downloadPublicPDF(this.userId);
   }
 
   getPrimaryColor(): string {
