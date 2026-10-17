@@ -19,7 +19,7 @@ import { Router } from "@angular/router";
 import { LoadingStateComponent } from "../../../shared/components/loading-state.component";
 import { ErrorStateComponent } from "../../../shared/components/error-state.component";
 import { RxResumeService } from "../../../services/rxresume.service";
-import { environment } from "../../../../environments/environment";
+import { ImageService } from "../../../services/image.service";
 
 export interface DashboardUser {
   id: string;
@@ -69,7 +69,8 @@ export class UsuariosComponent implements OnInit {
   /** Carga inicial de la lista (para skeleton y estado de error). */
   loading = true;
   loadError = "";
-  private readonly rxResumeService = inject(RxResumeService);
+	private readonly rxResumeService = inject(RxResumeService);
+  private readonly imageService = inject(ImageService);
 
   searchTerm: string = "";
   selectedRole: string = "Todos los roles";
@@ -517,15 +518,7 @@ export class UsuariosComponent implements OnInit {
   uploadingPicture = false;
 
   resolveImageUrl(url?: string): string {
-    if (!url) return "";
-    if (url.startsWith("http://localhost:8080/api/v1/")) {
-      const path = url.replace("http://localhost:8080", "");
-      return `${environment.apiUrl || ""}${path}`;
-    }
-    if (url.startsWith("/")) {
-      return `${environment.apiUrl || ""}${url}`;
-    }
-    return url;
+    return this.imageService.resolveImageUrl(url);
   }
 
   canEditPicture(): boolean {

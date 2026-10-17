@@ -7,4 +7,7 @@ dist
 .vscode
 .idea
 coverage
+reports
+.stryker-tmp
+**/node_modules
 npm-debug.log*

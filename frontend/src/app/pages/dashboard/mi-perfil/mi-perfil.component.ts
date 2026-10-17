@@ -32,7 +32,7 @@ import { RxResumeService } from "../../../services/rxresume.service";
 import { UsersService } from "../../../services/users.service";
 import { EducationService } from "../../../services/education.service";
 import { JobOfferService } from "../../../services/job-offer.service";
-import { environment } from "../../../../environments/environment";
+import { ImageService } from "../../../services/image.service";
 
 @Component({
   selector: "app-mi-perfil",
@@ -49,17 +49,10 @@ export class MiPerfilComponent implements OnInit {
   private readonly usersService = inject(UsersService);
   private readonly educationService = inject(EducationService);
   private readonly jobOfferService = inject(JobOfferService);
+  private readonly imageService = inject(ImageService);
 
   resolveImageUrl(url?: string | boolean | null): string {
-    if (!url || typeof url !== "string") return "";
-    if (url.startsWith("http://localhost:8080/api/v1/")) {
-      const path = url.replace("http://localhost:8080", "");
-      return `${environment.apiUrl || ""}${path}`;
-    }
-    if (url.startsWith("/")) {
-      return `${environment.apiUrl || ""}${url}`;
-    }
-    return url;
+    return this.imageService.resolveImageUrl(url);
   }
 
   readonly UserIcon = UserIcon;
@@ -151,6 +144,7 @@ export class MiPerfilComponent implements OnInit {
     const controls: any = {
       email: [user.email || "", [Validators.required, Validators.email]],
       phone: [user.phone || ""],
+      image_url: [user.image_url || roleData['image_url'] || ""],
     };
 
     const role = user.role_id;

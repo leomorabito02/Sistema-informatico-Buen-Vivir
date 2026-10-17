@@ -152,79 +152,24 @@ services:
     mem_limit: 1024m
     cpus: "1"
     depends_on:
-      - gcs-emulator
-      - pubsub-emulator
-      - reactive-resume
+      - cv-renderer
     networks:
       - buenvivir-net
 
-  reactive-resume:
+  cv-renderer:
     build:
-      context: ./rxresume/reactive-resume
-      dockerfile: Dockerfile
-    container_name: buenvivir-reactive-resume
-    env_file:
-      - ./rxresume/reactive-resume/.env
-    environment:
-      - NODE_OPTIONS=--dns-result-order=ipv4first
-    ports:
-      - "3000:3000"
-    volumes:
-      - rxresume-data:/app/data
-    extra_hosts:
-      - "localhost:host-gateway"
+      context: ./frontend
+      dockerfile: cv-engine/Dockerfile
+    container_name: buenvivir-cv-renderer
     restart: on-failure
-    mem_limit: 1024m
-    cpus: "1"
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    mem_limit: 512m
+    cpus: "0.5"
     networks:
       - buenvivir-net
-
-  pubsub-emulator:
-    image: gcr.io/google.com/cloudsdktool/cloud-sdk:emulators
-    container_name: buenvivir-pubsub-emulator
-    ports:
-      - "8086:8086"
-    command: gcloud beta emulators pubsub start --project=ceibuenvivir --host-port=0.0.0.0:8086
-    networks:
-      - buenvivir-net
-
-  pubsub-init:
-    image: alpine/curl
-    container_name: buenvivir-pubsub-init
-    depends_on:
-      - pubsub-emulator
-    networks:
-      - buenvivir-net
-    command: >
-      sh -c "
-        sleep 5;
-        curl -s -X PUT 'http://pubsub-emulator:8086/v1/projects/ceibuenvivir/topics/rxresume-sync-topic';
-        curl -s -X PUT 'http://pubsub-emulator:8086/v1/projects/ceibuenvivir/subscriptions/rxresume-sync-sub' -H 'Content-Type: application/json' -d '{\"topic\":\"projects/ceibuenvivir/topics/rxresume-sync-topic\"}';
-        echo 'Pub/Sub initialized'
-      "
-
-  gcs-emulator:
-    image: fsouza/fake-gcs-server
-    container_name: buenvivir-gcs-emulator
-    ports:
-      - "4443:4443"
-    command: -scheme http -public-host localhost:4443
-    networks:
-      - buenvivir-net
-
-  gcs-init:
-    image: alpine/curl
-    container_name: buenvivir-gcs-init
-    depends_on:
-      - gcs-emulator
-    networks:
-      - buenvivir-net
-    command: >
-      sh -c "
-        sleep 5;
-        curl -s -X POST -H 'Content-Type: application/json' -d '{\"name\":\"ceibuenvivir-bucket\"}' http://gcs-emulator:4443/storage/v1/b;
-        echo 'GCS initialized'
-      "
 
   frontend:
     build:
@@ -251,6 +196,3 @@ services:
 networks:
   buenvivir-net:
     driver: bridge
-
-volumes:
-  rxresume-data:

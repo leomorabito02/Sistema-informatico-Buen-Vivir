@@ -1,23 +1,23 @@
 package services
 
 import (
+	"bytes"
 	"context"
+	"encoding/base64"
 	"errors"
 	"fmt"
 	"io"
+	"net/http"
 	"net/url"
-	"os"
 	"path/filepath"
 	"strings"
 	"time"
 
-	"buenvivir/rxresume/internal/client"
 	"buenvivir/rxresume/internal/dto"
 	"buenvivir/rxresume/internal/models"
-	"buenvivir/rxresume/internal/parser"
+	"buenvivir/rxresume/internal/renderer"
 	"buenvivir/rxresume/internal/repositories"
 	"buenvivir/rxresume/internal/storage"
-	"buenvivir/rxresume/internal/worker"
 )
 
 type ResumeService interface {
@@ -33,29 +33,29 @@ type ResumeService interface {
 	GetPDFStatus(ctx context.Context, userID string) bool
 }
 
+const (
+	picturesStoragePrefix = "pictures/"
+	contentTypeJPEG       = "image/jpeg"
+	contentTypePNG        = "image/png"
+)
+
 var ErrPDFNotReady = errors.New("pdf not ready")
 
 type resumeService struct {
-	repo      repositories.ResumeRepository
-	storage   storage.ObjectStorageService
-	parser    parser.PDFParser
-	rxClient  client.ReactiveResumeClient
-	syncQueue worker.SyncQueue
+	repo     repositories.ResumeRepository
+	storage  storage.ObjectStorageService
+	renderer renderer.Client
 }
 
 func NewResumeService(
 	repo repositories.ResumeRepository,
 	storage storage.ObjectStorageService,
-	parser parser.PDFParser,
-	rxClient client.ReactiveResumeClient,
-	syncQueue worker.SyncQueue,
+	rendererClient renderer.Client,
 ) ResumeService {
 	return &resumeService{
-		repo:      repo,
-		storage:   storage,
-		parser:    parser,
-		rxClient:  rxClient,
-		syncQueue: syncQueue,
+		repo:     repo,
+		storage:  storage,
+		renderer: rendererClient,
 	}
 }
 
@@ -97,15 +97,28 @@ func (s *resumeService) GetResumeByUserID(ctx context.Context, userID string) (*
 			return nil, err
 		}
 	}
+
+	// Always ensure standard accessible URLs
+	resume.PDFURL = fmt.Sprintf("/api/v1/rxresume/public/%s/pdf", userID)
+	resume.PublicURL = fmt.Sprintf("/cv-public/%s", userID)
+
 	return resume, nil
 }
 
 // GetAllResumes returns all participants' resumes for staff.
 func (s *resumeService) GetAllResumes(ctx context.Context) ([]models.Resume, error) {
-	return s.repo.FindAllParticipants(ctx)
+	resumes, err := s.repo.FindAllParticipants(ctx)
+	if err != nil {
+		return nil, err
+	}
+	for i := range resumes {
+		resumes[i].PDFURL = fmt.Sprintf("/api/v1/rxresume/public/%s/pdf", resumes[i].UserID)
+		resumes[i].PublicURL = fmt.Sprintf("/cv-public/%s", resumes[i].UserID)
+	}
+	return resumes, nil
 }
 
-// UpdateResume handles full updates to a resume, syncing with self-hosted Reactive Resume instance.
+// UpdateResume handles full updates to a resume and invalidates the cached PDF.
 func (s *resumeService) UpdateResume(ctx context.Context, userID string, data *models.ResumeData) (*models.Resume, error) {
 	resume, err := s.GetResumeByUserID(ctx, userID)
 	if err != nil {
@@ -120,12 +133,14 @@ func (s *resumeService) UpdateResume(ctx context.Context, userID string, data *m
 	if err != nil {
 		return nil, err
 	}
+
+	// Invalidate cached PDF
 	_ = s.storage.DeleteFile(ctx, fmt.Sprintf("pdfs/%s.pdf", userID))
-	s.syncQueue.Enqueue(userID)
+
 	return resume, nil
 }
 
-// GenerateResume synchronizes the resume with Reactive Resume explicitly and updates profile info.
+// GenerateResume updates resume with profile info and invalidates cached PDF.
 func (s *resumeService) GenerateResume(ctx context.Context, userID string, profileData *dto.GenerateResumeRequest) (*models.Resume, error) {
 	resume, err := s.GetResumeByUserID(ctx, userID)
 	if err != nil {
@@ -147,6 +162,9 @@ func (s *resumeService) GenerateResume(ctx context.Context, userID string, profi
 	if profileData.Headline != "" {
 		resume.Data.Basics.Headline = profileData.Headline
 	}
+	if profileData.Picture != "" {
+		resume.Data.Basics.Picture = profileData.Picture
+	}
 
 	resume.UpdatedAt = time.Now()
 
@@ -156,8 +174,10 @@ func (s *resumeService) GenerateResume(ctx context.Context, userID string, profi
 	if err != nil {
 		return nil, err
 	}
+
+	// Invalidate cached PDF
 	_ = s.storage.DeleteFile(ctx, fmt.Sprintf("pdfs/%s.pdf", userID))
-	s.syncQueue.Enqueue(userID)
+
 	return resume, nil
 }
 
@@ -175,11 +195,6 @@ func (s *resumeService) ParseAndUploadPDF(ctx context.Context, userID string, fi
 		return nil, fmt.Errorf("failed to upload pdf to storage: %w", err)
 	}
 
-	parsedData, err := s.parser.ParsePDFToResume(reader, cleanName)
-	if err == nil && parsedData != nil {
-		resume.Data = *parsedData
-	}
-
 	resume.PDFURL = gcsURL
 	resume.UpdatedAt = time.Now()
 
@@ -189,13 +204,56 @@ func (s *resumeService) ParseAndUploadPDF(ctx context.Context, userID string, fi
 	if err != nil {
 		return nil, err
 	}
-	_ = s.storage.DeleteFile(ctx, fmt.Sprintf("pdfs/%s.pdf", userID))
-	s.syncQueue.Enqueue(userID)
 
+	_ = s.storage.DeleteFile(ctx, fmt.Sprintf("pdfs/%s.pdf", userID))
 	return resume, nil
 }
 
-// UploadPicture uploads the picture to Reactive Resume and saves the URL in our DB.
+func determineImageContentType(ext string) string {
+	switch ext {
+	case ".jpg", ".jpeg":
+		return contentTypeJPEG
+	case ".png":
+		return contentTypePNG
+	case ".gif":
+		return "image/gif"
+	case ".webp":
+		return "image/webp"
+	default:
+		return "application/octet-stream"
+	}
+}
+
+func extractStoragePath(rawURL string) string {
+	if idx := strings.Index(rawURL, "path="); idx != -1 {
+		raw := rawURL[idx+5:]
+		if amp := strings.Index(raw, "&"); amp != -1 {
+			raw = raw[:amp]
+		}
+		if unescaped, err := url.QueryUnescape(raw); err == nil && unescaped != "" {
+			return unescaped
+		}
+		return raw
+	}
+	if u, err := url.Parse(rawURL); err == nil {
+		if p := u.Query().Get("path"); p != "" {
+			return p
+		}
+	}
+	return rawURL
+}
+
+func (s *resumeService) deleteOldPicture(ctx context.Context, pictureURL string) {
+	if pictureURL == "" {
+		return
+	}
+	oldPath := extractStoragePath(pictureURL)
+	if strings.HasPrefix(oldPath, picturesStoragePrefix) {
+		_ = s.storage.DeleteFile(ctx, oldPath)
+	}
+}
+
+// UploadPicture uploads the picture to storage and saves the URL in our DB.
 func (s *resumeService) UploadPicture(ctx context.Context, userID string, filename string, reader io.Reader) (*models.Resume, error) {
 	resume, err := s.GetResumeByUserID(ctx, userID)
 	if err != nil {
@@ -203,40 +261,18 @@ func (s *resumeService) UploadPicture(ctx context.Context, userID string, filena
 	}
 
 	cleanName := filepath.Base(filename)
+	cleanName = strings.ReplaceAll(cleanName, " ", "_")
 	ext := strings.ToLower(filepath.Ext(cleanName))
-	contentType := "application/octet-stream"
-	switch ext {
-	case ".jpg", ".jpeg":
-		contentType = "image/jpeg"
-	case ".png":
-		contentType = "image/png"
-	case ".gif":
-		contentType = "image/gif"
-	case ".webp":
-		contentType = "image/webp"
-	}
+	contentType := determineImageContentType(ext)
 
-	objectName := fmt.Sprintf("pictures/%s/%d_%s", userID, time.Now().Unix(), cleanName)
-	_, err = s.storage.UploadFile(ctx, objectName, reader, contentType)
-	if err != nil {
+	objectName := fmt.Sprintf("%s%s/%d_%s", picturesStoragePrefix, userID, time.Now().Unix(), cleanName)
+	if _, err = s.storage.UploadFile(ctx, objectName, reader, contentType); err != nil {
 		return nil, fmt.Errorf("failed to upload picture to storage: %w", err)
 	}
 
-	publicAPIURL := os.Getenv("PUBLIC_API_URL")
-	if publicAPIURL == "" {
-		publicAPIURL = "http://localhost:8080"
-	}
+	s.deleteOldPicture(ctx, resume.Data.Basics.Picture)
 
-	// Delete old picture if it exists and is hosted in our bucket
-	if oldPictureURL := resume.Data.Basics.Picture; oldPictureURL != "" {
-		if u, err := url.Parse(oldPictureURL); err == nil {
-			if oldPath := u.Query().Get("path"); strings.HasPrefix(oldPath, "pictures/") {
-				_ = s.storage.DeleteFile(ctx, oldPath)
-			}
-		}
-	}
-
-	proxyURL := fmt.Sprintf("/api/v1/rxresume/public/media?path=%s", objectName)
+	proxyURL := fmt.Sprintf("/api/v1/rxresume/public/media?path=%s", url.QueryEscape(objectName))
 	resume.Data.Basics.Picture = proxyURL
 	resume.UpdatedAt = time.Now()
 
@@ -246,9 +282,8 @@ func (s *resumeService) UploadPicture(ctx context.Context, userID string, filena
 	if err != nil {
 		return nil, err
 	}
-	_ = s.storage.DeleteFile(ctx, fmt.Sprintf("pdfs/%s.pdf", userID))
-	s.syncQueue.Enqueue(userID)
 
+	_ = s.storage.DeleteFile(ctx, fmt.Sprintf("pdfs/%s.pdf", userID))
 	return resume, nil
 }
 
@@ -265,7 +300,6 @@ func (s *resumeService) DeleteSectionItem(ctx context.Context, userID string, se
 	}
 
 	deleteItemFromSection(resume, section, itemID)
-
 	resume.UpdatedAt = time.Now()
 
 	err = s.repo.Transaction(ctx, func(txRepo repositories.ResumeRepository) error {
@@ -274,9 +308,8 @@ func (s *resumeService) DeleteSectionItem(ctx context.Context, userID string, se
 	if err != nil {
 		return nil, err
 	}
-	_ = s.storage.DeleteFile(ctx, fmt.Sprintf("pdfs/%s.pdf", userID))
-	s.syncQueue.Enqueue(userID)
 
+	_ = s.storage.DeleteFile(ctx, fmt.Sprintf("pdfs/%s.pdf", userID))
 	return resume, nil
 }
 
@@ -321,26 +354,23 @@ func deleteSkillItem(resume *models.Resume, itemID string) {
 	resume.Data.Skills = updated
 }
 
-// GetPDFStatus checks whether the cached PDF for a user exists in GCS.
+// GetPDFStatus checks whether the cached PDF exists or can be rendered.
 func (s *resumeService) GetPDFStatus(ctx context.Context, userID string) bool {
 	rc, err := s.storage.DownloadFile(ctx, fmt.Sprintf("pdfs/%s.pdf", userID))
-	if err != nil {
-		return false
+	if err == nil {
+		_ = rc.Close()
+		return true
 	}
-	rc.Close()
-	return true
+	// Resume exists and can be rendered on demand
+	resume, err := s.repo.FindByUserID(ctx, userID)
+	return err == nil && resume != nil
 }
 
-// ExportPDF downloads the generated PDF from Reactive Resume for a specific user, with GCS caching.
+// ExportPDF returns the generated PDF, using GCS cache or rendering on-demand via cv-renderer.
 func (s *resumeService) ExportPDF(ctx context.Context, userID string) ([]byte, error) {
-	resume, err := s.GetResumeByUserID(ctx, userID)
-	if err != nil {
-		return nil, err
-	}
-
 	objectName := fmt.Sprintf("pdfs/%s.pdf", userID)
 
-	// 1. Try to serve cached PDF from GCS
+	// 1. Try to serve cached PDF from storage
 	if rc, err := s.storage.DownloadFile(ctx, objectName); err == nil {
 		defer rc.Close()
 		if pdfBytes, err := io.ReadAll(rc); err == nil && len(pdfBytes) > 0 {
@@ -348,12 +378,106 @@ func (s *resumeService) ExportPDF(ctx context.Context, userID string) ([]byte, e
 		}
 	}
 
-	// 2. Fallback check - if we're here, the worker hasn't finished or failed
-	// We won't block waiting for it, we just return an error so the FE can poll
-	if resume.RxResumeID != "" {
-		return nil, ErrPDFNotReady
+	// 2. Fetch resume data
+	resume, err := s.GetResumeByUserID(ctx, userID)
+	if err != nil {
+		return nil, err
 	}
-	
-	// Edge case: first time, but normally enqueue should handle this
-	return nil, ErrPDFNotReady
+
+	// Prepare resume for renderer: embed local picture as data URL if available
+	resumeForRender := *resume
+	if resumeForRender.Data.Basics.Picture != "" {
+		if dataURL := s.resolvePictureDataURL(ctx, resumeForRender.Data.Basics.Picture); dataURL != "" {
+			resumeForRender.Data.Basics.Picture = dataURL
+		}
+	}
+
+	// 3. Render on-demand via cv-renderer
+	pdfBytes, err := s.renderer.RenderPDF(ctx, &resumeForRender)
+	if err != nil {
+		return nil, fmt.Errorf("failed to render PDF: %w", err)
+	}
+
+	// 4. Cache in storage asynchronously/best-effort
+	_, _ = s.storage.UploadFile(ctx, objectName, bytes.NewReader(pdfBytes), "application/pdf")
+
+	return pdfBytes, nil
+}
+
+func parseStoragePath(picURL string) string {
+	storagePath := extractStoragePath(picURL)
+	if idx := strings.Index(storagePath, picturesStoragePrefix); idx != -1 {
+		storagePath = storagePath[idx:]
+	}
+	if unescaped, err := url.QueryUnescape(storagePath); err == nil && unescaped != "" {
+		return unescaped
+	}
+	return storagePath
+}
+
+func (s *resumeService) resolveStoragePictureDataURL(ctx context.Context, path string) string {
+	rc, err := s.storage.DownloadFile(ctx, path)
+	if err != nil {
+		return ""
+	}
+	defer rc.Close()
+
+	data, err := io.ReadAll(rc)
+	if err != nil || len(data) == 0 {
+		return ""
+	}
+
+	mimeType := contentTypeJPEG
+	if strings.ToLower(filepath.Ext(path)) == ".png" {
+		mimeType = contentTypePNG
+	}
+	return fmt.Sprintf("data:%s;base64,%s", mimeType, base64.StdEncoding.EncodeToString(data))
+}
+
+func fetchRemotePictureDataURL(ctx context.Context, rawURL string) string {
+	client := &http.Client{Timeout: 5 * time.Second}
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, rawURL, nil)
+	if err != nil {
+		return ""
+	}
+	resp, err := client.Do(req)
+	if err != nil || resp.StatusCode != http.StatusOK {
+		return ""
+	}
+	defer resp.Body.Close()
+
+	data, err := io.ReadAll(io.LimitReader(resp.Body, 5*1024*1024))
+	if err != nil || len(data) == 0 {
+		return ""
+	}
+
+	ct := resp.Header.Get("Content-Type")
+	if ct == "" {
+		ct = contentTypeJPEG
+	}
+	if idx := strings.Index(ct, ";"); idx != -1 {
+		ct = ct[:idx]
+	}
+	return fmt.Sprintf("data:%s;base64,%s", ct, base64.StdEncoding.EncodeToString(data))
+}
+
+func (s *resumeService) resolvePictureDataURL(ctx context.Context, picURL string) string {
+	if strings.HasPrefix(picURL, "data:image/") {
+		return picURL
+	}
+
+	storagePath := parseStoragePath(picURL)
+	if strings.HasPrefix(storagePath, picturesStoragePrefix) {
+		if dataURL := s.resolveStoragePictureDataURL(ctx, storagePath); dataURL != "" {
+			return dataURL
+		}
+	}
+
+	if strings.HasPrefix(picURL, "http://") || strings.HasPrefix(picURL, "https://") {
+		if dataURL := fetchRemotePictureDataURL(ctx, picURL); dataURL != "" {
+			return dataURL
+		}
+	}
+
+	return picURL
 }
