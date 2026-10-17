@@ -124,7 +124,7 @@
         title="Ayuda (tecla ?)"
       >
         <lucide-icon
-          [img]="CircleHelp"
+          [img]="CircleQuestionMark"
           [size]="20"
           aria-hidden="true"
         ></lucide-icon>
@@ -146,11 +146,20 @@
         (click)="userMenu.toggle($event)"
       >
         <span class="avatar" aria-hidden="true">
-          <ng-container *ngIf="initials; else sinIniciales">{{
-            initials
-          }}</ng-container>
-          <ng-template #sinIniciales>
-            <lucide-icon [img]="CircleUserRound" [size]="20"></lucide-icon>
+          <img
+            *ngIf="avatarUrl; else fallbackAvatar"
+            [src]="avatarUrl"
+            alt="Foto de perfil"
+            class="avatar-img"
+            (error)="onAvatarError()"
+          />
+          <ng-template #fallbackAvatar>
+            <ng-container *ngIf="initials; else sinIniciales">{{
+              initials
+            }}</ng-container>
+            <ng-template #sinIniciales>
+              <lucide-icon [img]="CircleUserRound" [size]="20"></lucide-icon>
+            </ng-template>
           </ng-template>
         </span>
         <span class="user-text">

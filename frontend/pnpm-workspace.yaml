@@ -1,5 +1,6 @@
 packages:
   - "."
+  - "cv-engine"
 allowBuilds:
   "@firebase/util": true
   esbuild: true

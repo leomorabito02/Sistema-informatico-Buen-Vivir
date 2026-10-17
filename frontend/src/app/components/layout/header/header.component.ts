@@ -27,7 +27,7 @@ import {
   CalendarCheck,
   ChevronDown,
   Circle,
-  CircleHelp,
+  CircleQuestionMark,
   CircleUserRound,
   ClipboardList,
   FileText,
@@ -41,6 +41,8 @@ import {
   X,
 } from "lucide-angular";
 import { AuthService } from "../../../services/auth.service";
+import { ProfileService } from "../../../services/profile.service";
+import { ImageService } from "../../../services/image.service";
 import { MeResponse } from "../../../core/models/auth.model";
 
 /**
@@ -188,21 +190,24 @@ const ROLE_LABELS: Record<string, string> = {
   encapsulation: ViewEncapsulation.None,
 })
 export class HeaderComponent implements OnInit {
-  private authService = inject(AuthService);
-  private router = inject(Router);
-  private destroyRef = inject(DestroyRef);
+  private readonly authService = inject(AuthService);
+  private readonly profileService = inject(ProfileService, { optional: true });
+  private readonly imageService = inject(ImageService);
+  private readonly router = inject(Router);
+  private readonly destroyRef = inject(DestroyRef);
 
   roleId = "";
   roleName = "";
   roleLabel = "";
   firstName = "";
   initials = "";
+  avatarUrl: string | null = null;
   items: MenuItem[] = [];
 
   /** Barra lateral abierta (solo cuenta en celular/tablet). */
   sidebarOpen = false;
   /** Grupos desplegados, por etiqueta. */
-  expanded = new Set<string>();
+  readonly expanded = new Set<string>();
 
   readonly userItems: MenuItem[] = [
     { label: "Mi perfil", routerLink: "/dashboard/mi-perfil" },
@@ -212,12 +217,12 @@ export class HeaderComponent implements OnInit {
   ];
 
   // Icons
-  Bell = Bell;
-  ChevronDown = ChevronDown;
-  CircleUserRound = CircleUserRound;
-  CircleHelp = CircleHelp;
-  Menu = Menu;
-  X = X;
+  readonly Bell = Bell;
+  readonly ChevronDown = ChevronDown;
+  readonly CircleUserRound = CircleUserRound;
+  readonly CircleQuestionMark = CircleQuestionMark;
+  readonly Menu = Menu;
+  readonly X = X;
 
   ngOnInit(): void {
     // Al cambiar de pantalla: se cierra el panel en celular y se despliega
@@ -242,14 +247,23 @@ export class HeaderComponent implements OnInit {
           this.firstName,
           response.user?.last_name?.trim() ?? "",
         );
+        const userPic =
+          response.user?.image_url ||
+          (response.user?.role_data?.['image_url'] as string | undefined) ||
+          (response.user?.role_data?.['profile_picture_url'] as string | undefined);
+        if (userPic) {
+          this.avatarUrl = this.resolveImageUrl(userPic);
+        }
         this.items = NAV_BY_ROLE[this.roleId.toLowerCase()] ?? [];
         this.expandActiveGroup();
+        this.loadProfileAvatar();
       },
       error: () => {
         this.roleId = "";
         this.roleName = "";
         this.roleLabel = "";
         this.items = [];
+        this.avatarUrl = null;
       },
     });
   }
@@ -323,7 +337,7 @@ export class HeaderComponent implements OnInit {
       }
     } else if (event.key === "?") {
       event.preventDefault();
-      this.router.navigateByUrl("/dashboard/ayuda");
+      void this.router.navigateByUrl("/dashboard/ayuda");
     }
   }
 
@@ -337,6 +351,42 @@ export class HeaderComponent implements OnInit {
 
   private initialsOf(first: string, last: string): string {
     return ((first[0] ?? "") + (last[0] ?? "")).toUpperCase();
+  }
+
+  resolveImageUrl(url?: string | boolean | null): string {
+    return this.imageService.resolveImageUrl(url);
+  }
+
+  onAvatarError(): void {
+    this.avatarUrl = null;
+  }
+
+  private loadProfileAvatar(): void {
+    if (!this.profileService) return;
+    this.profileService
+      .getMyProfile()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (profile) => {
+          const pic =
+            profile.user?.image_url ||
+            (profile.role_data?.['image_url'] as string | undefined) ||
+            (profile.role_data?.['profile_picture_url'] as string | undefined);
+          if (pic) {
+            this.avatarUrl = this.resolveImageUrl(pic);
+          }
+          if (!this.firstName && profile.user?.first_name) {
+            this.firstName = profile.user.first_name.trim();
+            this.initials = this.initialsOf(
+              this.firstName,
+              profile.user.last_name?.trim() ?? "",
+            );
+          }
+        },
+        error: () => {
+          // Fallback to initials / placeholder
+        },
+      });
   }
 
   logout(): void {

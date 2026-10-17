@@ -14,6 +14,7 @@ type GenerateResumeRequest struct {
 	Phone    string `json:"phone"`
 	Location string `json:"location"`
 	Headline string `json:"headline"`
+	Picture  string `json:"picture"`
 }
 
 func (p *GenerateResumeRequest) Sanitize() {
@@ -22,11 +23,15 @@ func (p *GenerateResumeRequest) Sanitize() {
 	p.Phone = html.EscapeString(strings.TrimSpace(p.Phone))
 	p.Location = html.EscapeString(strings.TrimSpace(p.Location))
 	p.Headline = html.EscapeString(strings.TrimSpace(p.Headline))
+	p.Picture = strings.TrimSpace(p.Picture)
 }
 
 func (p *GenerateResumeRequest) Validate() error {
 	if len(p.Name) > 200 {
 		return errors.New("el nombre excede la longitud máxima")
+	}
+	if len(p.Picture) > 10*1024*1024 {
+		return errors.New("la imagen excede el tamaño máximo permitido")
 	}
 	return nil
 }

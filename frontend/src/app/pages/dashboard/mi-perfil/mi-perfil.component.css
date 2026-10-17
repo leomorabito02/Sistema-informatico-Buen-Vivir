@@ -438,3 +438,18 @@ button.btn-google:hover:not(:disabled) {
 .btn-danger-link:hover {
   background-color: #b91c1c;
 }
+
+.role-profile-picture {
+  width: 56px;
+  height: 56px;
+  border-radius: var(--radius-full, 50%);
+  object-fit: cover;
+  border: 2px solid var(--color-border, #dee2e6);
+  display: block;
+}
+
+.role-picture-edit-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}

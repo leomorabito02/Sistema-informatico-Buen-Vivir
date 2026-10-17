@@ -5,9 +5,11 @@ RUN corepack enable && corepack prepare pnpm@latest --activate
 WORKDIR /app
 
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml* ./
+COPY cv-engine/package.json ./cv-engine/
 RUN pnpm install --frozen-lockfile
 
 COPY . .
+RUN pnpm --filter @buenvivir/cv-engine build
 RUN pnpm exec ng build --configuration production
 
 FROM nginxinc/nginx-unprivileged:alpine
