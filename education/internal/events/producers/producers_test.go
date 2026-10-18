@@ -7,11 +7,13 @@ import (
 	"testing"
 	"time"
 
+	"cloud.google.com/go/firestore"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"buenvivir/education/internal/events"
 	"buenvivir/education/internal/models"
+	"buenvivir/education/internal/outbox"
 )
 
 func TestProductorNilNoPublica(t *testing.T) {
@@ -104,3 +106,47 @@ func TestParseContentfulWebhook(t *testing.T) {
 	_, _, err = ParseContentfulWebhook("ContentManagement.Entry.publish", []byte(`{"sys":{}}`))
 	assert.ErrorIs(t, err, ErrWebhookInvalido)
 }
+
+func TestEducacion_WithWriter_Notify(t *testing.T) {
+	// Arrange
+	notifyCalled := false
+	writer := outbox.NewWriter(nil, events.ProducerEducacion, func() { notifyCalled = true })
+	p := NewEducacion(writer, "topic-edu", "topic-content")
+
+	// Act
+	p.Notify()
+
+	// Assert
+	assert.True(t, p.Enabled())
+	assert.True(t, notifyCalled)
+}
+
+// TestEducacion_EnabledProducer_EmitsEvents tests event emission paths when producer is enabled.
+func TestEducacion_EnabledProducer_EmitsEvents(t *testing.T) {
+	// Arrange
+	writer := outbox.NewWriter(nil, events.ProducerEducacion, nil)
+	p := NewEducacion(writer, "", "")
+	ctx := context.Background()
+	course := &models.Course{
+		ID:                 "c1",
+		ResponsibleTeacher: "t1",
+		Mode:               "Presencial",
+		TrainingArea:       &models.TrainingArea{ID: "ta1"},
+	}
+
+	// Act & Assert (each should attempt to record an event and fail validation due to empty topic)
+	assert.Error(t, p.CursoCreado(ctx, course))
+	assert.Error(t, p.CursoActualizado(ctx, course))
+	assert.Error(t, p.CursoEliminado(ctx, "c1"))
+	assert.Error(t, p.ContenidoDocenteSubido(ctx, course))
+	assert.Error(t, p.ContenidoDocenteModerado(ctx, "c1", events.ModeracionAprobado))
+	assert.Error(t, p.InscripcionCreada(ctx, &firestore.Transaction{}, models.Enrollment{ID: "e1", CursoID: "c1", ParticipanteID: "p1"}))
+	assert.Error(t, p.AsistenciaRegistrada(ctx, nil, "act1", "c1", models.Attendance{ParticipanteID: "p1"}))
+	assert.Error(t, p.CursoCompletado(ctx, nil, "c1", "p1", time.Now()))
+	assert.Error(t, p.HabilidadOtorgada(ctx, nil, models.ParticipantSkill{HabilidadID: "s1", ParticipanteID: "p1"}))
+	assert.Error(t, p.AsistenciaGeneral(ctx, nil, "ag1", models.GeneralAttendance{ParticipanteID: "p1"}, false))
+	assert.Error(t, p.AsistenciaGeneral(ctx, nil, "ag1", models.GeneralAttendance{ParticipanteID: "p1"}, true))
+	assert.Error(t, p.Contenido(ctx, "ev1", events.ContenidoPublicado, events.ContenidoPayload{EntryID: "c1"}))
+}
+
+
