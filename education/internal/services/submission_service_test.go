@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"fmt"
 	"io"
 	"strings"
 	"testing"
@@ -403,6 +404,56 @@ func TestSubmissionService_GetParticipantCourse_FinishedEnrollmentCanStillView(t
 	assert.Equal(t, 0.0, detail.Progreso.PorcentajeAsistencia)
 }
 
+func TestSubmissionService_GetParticipantCourse_Errors(t *testing.T) {
+	t.Run("Course get error propagated", func(t *testing.T) {
+		// Arrange
+		f := newSubmissionFixture(false)
+		f.enrollment.On("ListByParticipant", mock.Anything, "p1").Return([]models.Enrollment{
+			{CursoID: "c1", Estado: models.EnrollmentEstadoActiva},
+		}, nil)
+		f.courses.On("Get", mock.Anything, "c1").Return(nil, errors.New("cda down"))
+
+		// Act
+		_, err := f.svc.GetParticipantCourse(context.Background(), "p1", "c1")
+
+		// Assert
+		assert.Error(t, err)
+	})
+
+	t.Run("Activity list error propagated", func(t *testing.T) {
+		// Arrange
+		f := newSubmissionFixture(false)
+		f.enrollment.On("ListByParticipant", mock.Anything, "p1").Return([]models.Enrollment{
+			{CursoID: "c1", Estado: models.EnrollmentEstadoActiva},
+		}, nil)
+		f.courses.On("Get", mock.Anything, "c1").Return(&models.Course{ID: "c1"}, nil)
+		f.activities.On("ListByCourse", mock.Anything, "c1").Return(nil, errors.New("firestore down"))
+
+		// Act
+		_, err := f.svc.GetParticipantCourse(context.Background(), "p1", "c1")
+
+		// Assert
+		assert.Error(t, err)
+	})
+
+	t.Run("Submissions get error propagated", func(t *testing.T) {
+		// Arrange
+		f := newSubmissionFixture(false)
+		f.enrollment.On("ListByParticipant", mock.Anything, "p1").Return([]models.Enrollment{
+			{CursoID: "c1", Estado: models.EnrollmentEstadoActiva},
+		}, nil)
+		f.courses.On("Get", mock.Anything, "c1").Return(&models.Course{ID: "c1"}, nil)
+		f.activities.On("ListByCourse", mock.Anything, "c1").Return([]models.Activity{{ID: "a1"}}, nil)
+		f.repo.On("GetForParticipant", mock.Anything, "p1", []string{"a1"}).Return(nil, errors.New("db error"))
+
+		// Act
+		_, err := f.svc.GetParticipantCourse(context.Background(), "p1", "c1")
+
+		// Assert
+		assert.Error(t, err)
+	})
+}
+
 func TestSubmissionService_ListParticipantCourses_SkipsBajaAndUnpublished(t *testing.T) {
 	f := newSubmissionFixture(false)
 	f.enrollment.On("ListByParticipant", mock.Anything, "p1").Return([]models.Enrollment{
@@ -452,6 +503,19 @@ func TestSubmissionService_OpenFile_WithoutBucket(t *testing.T) {
 	assert.ErrorIs(t, err, repositories.ErrFileStorageNotConfigured)
 }
 
+func TestSubmissionService_OpenFile_StorageError(t *testing.T) {
+	// Arrange
+	f := newSubmissionFixture(true)
+	sub := &models.Submission{Archivos: []models.SubmissionFile{{Nombre: "a.pdf", Ruta: "entregas/a1/p1/x-0-a.pdf"}}}
+	f.storage.On("Open", mock.Anything, "entregas/a1/p1/x-0-a.pdf").Return(nil, errors.New("gcs down"))
+
+	// Act
+	_, _, err := f.svc.OpenFile(context.Background(), sub, 0)
+
+	// Assert
+	assert.Error(t, err)
+}
+
 func TestSubmissionService_GetSubmission(t *testing.T) {
 	f := newSubmissionFixture(false)
 	_, err := f.svc.GetSubmission(context.Background(), " ")
@@ -462,3 +526,309 @@ func TestSubmissionService_GetSubmission(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, "a1_p1", sub.ID)
 }
+
+// TestSubmissionService_VerifyParticipantEnrolled_DecisionTable tests enrollment verification with a Decision Table.
+func TestSubmissionService_VerifyParticipantEnrolled_DecisionTable(t *testing.T) {
+	decisionMatrix := []struct {
+		name        string
+		enrollments []models.Enrollment
+		repoError   error
+		expectError bool
+		isForbidden bool
+	}{
+		{
+			name:        "Case 1: No enrollments for participant",
+			enrollments: []models.Enrollment{},
+			expectError: true,
+			isForbidden: true,
+		},
+		{
+			name: "Case 2: Enrollment exists for different course",
+			enrollments: []models.Enrollment{
+				{CursoID: "other-course", Estado: models.EnrollmentEstadoActiva},
+			},
+			expectError: true,
+			isForbidden: true,
+		},
+		{
+			name: "Case 3: Enrollment is 'baja'",
+			enrollments: []models.Enrollment{
+				{CursoID: "c1", Estado: models.EnrollmentEstadoBaja},
+			},
+			expectError: true,
+			isForbidden: true,
+		},
+		{
+			name: "Case 4: Enrollment is 'activa'",
+			enrollments: []models.Enrollment{
+				{CursoID: "c1", Estado: models.EnrollmentEstadoActiva},
+			},
+			expectError: false,
+		},
+		{
+			name: "Case 5: Enrollment is 'finalizada'",
+			enrollments: []models.Enrollment{
+				{CursoID: "c1", Estado: models.EnrollmentEstadoFinalizada},
+			},
+			expectError: false,
+		},
+		{
+			name: "Case 6: Multiple enrollments (baja + activa, activa takes priority)",
+			enrollments: []models.Enrollment{
+				{CursoID: "c1", Estado: models.EnrollmentEstadoBaja},
+				{CursoID: "c1", Estado: models.EnrollmentEstadoActiva},
+			},
+			expectError: false,
+		},
+		{
+			name:        "Case 7: Repository error propagates",
+			enrollments: nil,
+			repoError:   errors.New("db error"),
+			expectError: true,
+			isForbidden: false,
+		},
+	}
+
+	for _, tt := range decisionMatrix {
+		t.Run(tt.name, func(t *testing.T) {
+			// Arrange
+			f := newSubmissionFixture(false)
+			f.enrollment.On("ListByParticipant", mock.Anything, "p1").Return(tt.enrollments, tt.repoError)
+
+			// Act
+			err := f.svc.VerifyParticipantEnrolled(context.Background(), "p1", "c1")
+
+			// Assert
+			if tt.expectError {
+				require.Error(t, err)
+				if tt.isForbidden {
+					assert.True(t, services.IsForbiddenError(err), "Expected forbidden error for: %s", tt.name)
+				}
+			} else {
+				assert.NoError(t, err)
+			}
+		})
+	}
+}
+
+// TestSubmissionService_BuildProgress_BoundaryValues tests progress calculation boundary values.
+func TestSubmissionService_BuildProgress_BoundaryValues(t *testing.T) {
+	tests := []struct {
+		name       string
+		total      int
+		entregadas int
+		expected   float64
+	}{
+		{"Boundary: 0 total, 0 entregadas (division by zero guard)", 0, 0, 0.0},
+		{"Boundary: 10 total, 0 entregadas (min progress)", 10, 0, 0.0},
+		{"Boundary: 10 total, 10 entregadas (max progress)", 10, 10, 100.0},
+		{"Nominal: 10 total, 5 entregadas (half progress)", 10, 5, 50.0},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Arrange
+			f := newSubmissionFixture(false)
+			f.enrollment.On("ListByParticipant", mock.Anything, "p1").Return([]models.Enrollment{
+				{CursoID: "c1", Estado: models.EnrollmentEstadoActiva},
+			}, nil)
+			f.courses.On("Get", mock.Anything, "c1").Return(&models.Course{ID: "c1"}, nil)
+
+			activities := make([]models.Activity, tt.total)
+			submissionsMap := make(map[string]*models.Submission, tt.entregadas)
+			for i := 0; i < tt.total; i++ {
+				id := fmt.Sprintf("a%d", i)
+				activities[i] = models.Activity{ID: id}
+				if i < tt.entregadas {
+					submissionsMap[id] = &models.Submission{ID: id + "_p1"}
+				}
+			}
+
+			f.activities.On("ListByCourse", mock.Anything, "c1").Return(activities, nil)
+			f.repo.On("GetForParticipant", mock.Anything, "p1", mock.Anything).Return(submissionsMap, nil)
+
+			// Act
+			detail, err := f.svc.GetParticipantCourse(context.Background(), "p1", "c1")
+
+			// Assert
+			require.NoError(t, err)
+			assert.Equal(t, tt.expected, detail.Progreso.PorcentajeAsistencia)
+			assert.Equal(t, tt.total, detail.Progreso.ActividadesTotal)
+			assert.Equal(t, tt.entregadas, detail.Progreso.ActividadesAsistidas)
+		})
+	}
+}
+
+// TestSubmissionService_Submit_SafeFileNameBoundaries tests filename sanitization via Submit.
+func TestSubmissionService_Submit_SafeFileNameBoundaries(t *testing.T) {
+	tests := []struct {
+		name         string
+		fileName     string
+		expectedTail string
+	}{
+		{"Boundary: dot dot becomes archivo", "..", "-archivo"},
+		{"Boundary: long filename truncated", strings.Repeat("a", 120) + ".pdf", "-" + strings.Repeat("a", 96) + ".pdf"},
+		{"Equivalence: unsafe chars sanitized", "bad?file*name.pdf", "-bad_file_name.pdf"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			f := newSubmissionFixture(true)
+			f.activities.On("Get", mock.Anything, "a1").Return(&models.Activity{ID: "a1", CursoID: "c1"}, nil)
+			f.enrollment.On("ListByParticipant", mock.Anything, "p1").Return([]models.Enrollment{
+				{CursoID: "c1", Estado: models.EnrollmentEstadoActiva},
+			}, nil)
+			f.repo.On("GetForParticipant", mock.Anything, "p1", []string{"a1"}).Return(map[string]*models.Submission{}, nil)
+
+			f.storage.On("Upload", mock.Anything, mock.MatchedBy(func(path string) bool {
+				return strings.HasSuffix(path, tt.expectedTail)
+			}), "application/pdf", mock.Anything).Return(nil)
+
+			f.repo.On("CreateWithAttendance", mock.Anything, mock.Anything, mock.Anything).Return(&models.Submission{ID: "s1"}, nil)
+
+			_, err := f.svc.Submit(context.Background(), "a1", "p1", "texto", []models.SubmissionUpload{
+				{Nombre: tt.fileName, Tipo: "application/pdf", Data: []byte("%PDF")},
+			})
+			require.NoError(t, err)
+		})
+	}
+}
+
+func TestSubmissionService_Submit_CleanupUploadsFailure(t *testing.T) {
+	// Arrange
+	f := newSubmissionFixture(true)
+	f.activities.On("Get", mock.Anything, "a1").Return(&models.Activity{ID: "a1", CursoID: "c1"}, nil)
+	f.enrollment.On("ListByParticipant", mock.Anything, "p1").Return([]models.Enrollment{
+		{CursoID: "c1", Estado: models.EnrollmentEstadoActiva},
+	}, nil)
+	f.repo.On("GetForParticipant", mock.Anything, "p1", []string{"a1"}).Return(map[string]*models.Submission{}, nil)
+	f.storage.On("Upload", mock.Anything, mock.Anything, "application/pdf", mock.Anything).Return(nil)
+	f.repo.On("CreateWithAttendance", mock.Anything, mock.Anything, mock.Anything).Return(nil, assert.AnError)
+	f.storage.On("DeletePrefix", mock.Anything, mock.Anything).Return(assert.AnError)
+
+	uploads := []models.SubmissionUpload{
+		{Nombre: "doc.pdf", Tipo: "application/pdf", Data: []byte("%PDF")},
+	}
+
+	// Act
+	sub, err := f.svc.Submit(context.Background(), "a1", "p1", "texto", uploads)
+
+	// Assert
+	assert.Error(t, err)
+	assert.Nil(t, sub)
+}
+
+// TestSubmissionService_Submit_Errors_DecisionTable tests repository errors during submit pipeline.
+func TestSubmissionService_Submit_Errors_DecisionTable(t *testing.T) {
+	t.Run("Activity get error propagated", func(t *testing.T) {
+		// Arrange
+		f := newSubmissionFixture(false)
+		f.activities.On("Get", mock.Anything, "a1").Return(nil, errors.New("activity not found"))
+
+		// Act
+		sub, err := f.svc.Submit(context.Background(), "a1", "p1", "texto", nil)
+
+		// Assert
+		assert.Error(t, err)
+		assert.Nil(t, sub)
+	})
+
+	t.Run("GetForParticipant error propagated", func(t *testing.T) {
+		// Arrange
+		f := newSubmissionFixture(false)
+		f.activities.On("Get", mock.Anything, "a1").Return(&models.Activity{ID: "a1", CursoID: "c1"}, nil)
+		f.enrollment.On("ListByParticipant", mock.Anything, "p1").Return([]models.Enrollment{
+			{CursoID: "c1", Estado: models.EnrollmentEstadoActiva},
+		}, nil)
+		f.repo.On("GetForParticipant", mock.Anything, "p1", []string{"a1"}).Return(nil, errors.New("db query error"))
+
+		// Act
+		sub, err := f.svc.Submit(context.Background(), "a1", "p1", "texto", nil)
+
+		// Assert
+		assert.Error(t, err)
+		assert.Nil(t, sub)
+	})
+}
+
+// TestSubmissionService_ListByActivity_SubmissionRepoError tests error when submission listing fails.
+func TestSubmissionService_ListByActivity_SubmissionRepoError(t *testing.T) {
+	// Arrange
+	f := newSubmissionFixture(false)
+	f.enrollment.On("ListByCourse", mock.Anything, "c1").Return([]models.Enrollment{{ParticipanteID: "p1", Estado: models.EnrollmentEstadoActiva}}, nil)
+	f.repo.On("ListByActivity", mock.Anything, "a1").Return(nil, errors.New("db error"))
+
+	// Act
+	rows, err := f.svc.ListByActivity(context.Background(), &models.Activity{ID: "a1", CursoID: "c1"}, "tok")
+
+	// Assert
+	assert.Error(t, err)
+	assert.Nil(t, rows)
+}
+
+// TestSubmissionService_ListByActivity_ListUsersErrorBestEffort tests when ListUsers fails in fillNames.
+func TestSubmissionService_ListByActivity_ListUsersErrorBestEffort(t *testing.T) {
+	// Arrange
+	f := newSubmissionFixture(false)
+	f.enrollment.On("ListByCourse", mock.Anything, "c1").Return([]models.Enrollment{{ParticipanteID: "p1", Estado: models.EnrollmentEstadoActiva}}, nil)
+	f.repo.On("ListByActivity", mock.Anything, "a1").Return([]models.Submission{}, nil)
+	f.directory.On("ListParticipants", mock.Anything, "tok").Return([]models.AuthParticipant{
+		{ParticipantID: "p1", UserID: "u1"},
+	}, nil)
+	f.directory.On("ListUsers", mock.Anything, "tok").Return(nil, errors.New("auth service error"))
+
+	// Act
+	rows, err := f.svc.ListByActivity(context.Background(), &models.Activity{ID: "a1", CursoID: "c1"}, "tok")
+
+	// Assert
+	require.NoError(t, err)
+	require.Len(t, rows, 1)
+	assert.Empty(t, rows[0].Nombre)
+}
+
+// TestSubmissionService_ListParticipantCourses_EnrollmentRepoError tests error when enrollment listing fails.
+func TestSubmissionService_ListParticipantCourses_EnrollmentRepoError(t *testing.T) {
+	// Arrange
+	f := newSubmissionFixture(false)
+	f.enrollment.On("ListByParticipant", mock.Anything, "p1").Return(nil, errors.New("firestore caído"))
+
+	// Act
+	courses, err := f.svc.ListParticipantCourses(context.Background(), "p1")
+
+	// Assert
+	assert.Error(t, err)
+	assert.Nil(t, courses)
+}
+
+// TestSubmissionService_Submit_EnrollmentRepoError tests enrollment status error propagation.
+func TestSubmissionService_Submit_EnrollmentRepoError(t *testing.T) {
+	// Arrange
+	f := newSubmissionFixture(false)
+	f.activities.On("Get", mock.Anything, "a1").Return(&models.Activity{ID: "a1", CursoID: "c1"}, nil)
+	f.enrollment.On("ListByParticipant", mock.Anything, "p1").Return(nil, errors.New("db error"))
+
+	// Act
+	sub, err := f.svc.Submit(context.Background(), "a1", "p1", "texto", nil)
+
+	// Assert
+	assert.Error(t, err)
+	assert.Nil(t, sub)
+}
+
+// TestSubmissionService_ListByActivity_NilDirectory tests safe return when participant directory is nil.
+func TestSubmissionService_ListByActivity_NilDirectory(t *testing.T) {
+	// Arrange
+	f := newSubmissionFixture(false)
+	svcWithoutDir := services.NewSubmissionService(f.repo, f.activities, f.enrollment, f.courses, nil, nil)
+	f.enrollment.On("ListByCourse", mock.Anything, "c1").Return([]models.Enrollment{{ParticipanteID: "p1", Estado: models.EnrollmentEstadoActiva}}, nil)
+	f.repo.On("ListByActivity", mock.Anything, "a1").Return([]models.Submission{}, nil)
+
+	// Act
+	rows, err := svcWithoutDir.ListByActivity(context.Background(), &models.Activity{ID: "a1", CursoID: "c1"}, "tok")
+
+	// Assert
+	require.NoError(t, err)
+	require.Len(t, rows, 1)
+	assert.Empty(t, rows[0].Nombre)
+}
+

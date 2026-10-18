@@ -85,6 +85,67 @@ func TestAuthServiceClient_NotConfigured(t *testing.T) {
 	assert.ErrorIs(t, err, ErrAuthServiceNotConfigured)
 	_, err = c.GetParticipant(t.Context(), "p1", "tok")
 	assert.ErrorIs(t, err, ErrAuthServiceNotConfigured)
+	_, err = c.ListParticipants(t.Context(), "tok")
+	assert.ErrorIs(t, err, ErrAuthServiceNotConfigured)
+	_, err = c.ListUsers(t.Context(), "tok")
+	assert.ErrorIs(t, err, ErrAuthServiceNotConfigured)
+
+	var nilClient *AuthServiceClient
+	_, err = nilClient.GetMyParticipantID(t.Context(), "tok")
+	assert.ErrorIs(t, err, ErrAuthServiceNotConfigured)
+	_, err = nilClient.GetParticipant(t.Context(), "p1", "tok")
+	assert.ErrorIs(t, err, ErrAuthServiceNotConfigured)
+	_, err = nilClient.ListParticipants(t.Context(), "tok")
+	assert.ErrorIs(t, err, ErrAuthServiceNotConfigured)
+	_, err = nilClient.ListUsers(t.Context(), "tok")
+	assert.ErrorIs(t, err, ErrAuthServiceNotConfigured)
+}
+
+func TestAuthServiceClient_GetParticipant_InvalidJSON(t *testing.T) {
+	// Arrange
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{invalid-json`))
+	}))
+	defer srv.Close()
+
+	c := NewAuthServiceClient(srv.URL)
+
+	// Act
+	_, err := c.GetParticipant(t.Context(), "p1", "tok")
+
+	// Assert
+	assert.Error(t, err)
+}
+
+func TestAuthServiceClient_DoGet_InvalidJSON(t *testing.T) {
+	// Arrange
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{invalid-json`))
+	}))
+	defer srv.Close()
+
+	c := NewAuthServiceClient(srv.URL)
+
+	// Act & Assert
+	_, err := c.ListParticipants(t.Context(), "tok")
+	assert.Error(t, err)
+
+	_, err = c.ListUsers(t.Context(), "tok")
+	assert.Error(t, err)
+}
+
+func TestAuthServiceClient_NetworkError(t *testing.T) {
+	// Arrange
+	c := NewAuthServiceClient("http://127.0.0.1:0")
+
+	// Act & Assert
+	_, err := c.GetParticipant(t.Context(), "p1", "tok")
+	assert.Error(t, err)
+
+	_, err = c.ListParticipants(t.Context(), "tok")
+	assert.Error(t, err)
 }
 
 func TestGeneralAttendanceRepository_RegisterAndList(t *testing.T) {

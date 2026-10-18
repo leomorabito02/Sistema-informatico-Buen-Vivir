@@ -3,6 +3,7 @@ package services_test
 import (
 	"context"
 	"errors"
+	"fmt"
 	"testing"
 	"time"
 
@@ -141,6 +142,35 @@ func TestSkillService_GetCourseSkills_Validation(t *testing.T) {
 	svc, _, _ := newSkillService()
 	_, err := svc.GetCourseSkills(context.Background(), " ")
 	assert.True(t, services.IsValidationError(err))
+}
+
+func TestSkillService_GetCourseSkills_Errors(t *testing.T) {
+	t.Run("ListLinksByCourse error", func(t *testing.T) {
+		// Arrange
+		svc, repo, _ := newSkillService()
+		repo.On("ListLinksByCourse", mock.Anything, "c1").Return(nil, errors.New("firestore down"))
+
+		// Act
+		_, err := svc.GetCourseSkills(context.Background(), "c1")
+
+		// Assert
+		assert.Error(t, err)
+	})
+
+	t.Run("GetCatalog error", func(t *testing.T) {
+		// Arrange
+		svc, repo, _ := newSkillService()
+		repo.On("ListLinksByCourse", mock.Anything, "c1").Return([]models.ActivitySkill{
+			{ActividadID: "a1", HabilidadID: skHuerta.ID, CursoID: "c1"},
+		}, nil)
+		repo.On("GetCatalog", mock.Anything, []string{skHuerta.ID}).Return(nil, errors.New("firestore down"))
+
+		// Act
+		_, err := svc.GetCourseSkills(context.Background(), "c1")
+
+		// Assert
+		assert.Error(t, err)
+	})
 }
 
 func TestSkillService_SetActivitySkills_NormalizesAndGrantsToPreviousSubmitters(t *testing.T) {
@@ -347,4 +377,40 @@ func TestSkillService_ListGrantedSkills_SubmissionsError(t *testing.T) {
 	subs.On("GetForParticipant", mock.Anything, "p1", []string{"a1"}).Return(nil, errors.New("caído"))
 	_, err := svc.ListGrantedSkills(context.Background())
 	assert.Error(t, err)
+}
+
+func TestSkillService_SearchCatalog_LimitBoundary(t *testing.T) {
+	// Arrange
+	svc, repo, _ := newSkillService()
+	var catalog []models.Skill
+	for i := 0; i < 25; i++ {
+		catalog = append(catalog, models.Skill{
+			ID:     fmt.Sprintf("skill-%02d", i),
+			Nombre: fmt.Sprintf("Skill %02d", i),
+		})
+	}
+	repo.On("ListCatalog", mock.Anything).Return(catalog, nil)
+
+	// Act
+	got, err := svc.SearchCatalog(context.Background(), "skill")
+
+	// Assert: capped at defaultCatalogSearchLimit (20)
+	require.NoError(t, err)
+	assert.Len(t, got, 20)
+}
+
+func TestSkillService_ListParticipantSkills_GetCatalogError(t *testing.T) {
+	// Arrange
+	svc, repo, _ := newSkillService()
+	repo.On("ListByParticipant", mock.Anything, "p1").Return([]models.ParticipantSkill{
+		{HabilidadID: "h1"},
+	}, nil)
+	repo.On("GetCatalog", mock.Anything, []string{"h1"}).Return(nil, errors.New("catalog error"))
+
+	// Act
+	got, err := svc.ListParticipantSkills(context.Background(), "p1")
+
+	// Assert
+	assert.Error(t, err)
+	assert.Nil(t, got)
 }
