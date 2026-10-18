@@ -1,0 +1,81 @@
+# Entorno de calidad del TP de Calidad de Software (decisión D-22).
+#
+# Es independiente de docker-compose.yml: otro nombre de proyecto, otra red,
+# otros puertos (18xxx, solo en 127.0.0.1) y sin volúmenes. No comparte nada
+# con el stack habitual, que puede seguir corriendo al mismo tiempo.
+#
+# Qué es real y qué no:
+#   - Contentful: real, environment "testing" (D-08). Nunca "master": está
+#     forzado abajo y además el servicio no arranca con esa combinación.
+#   - Firestore: emulador. Sin volumen: cada "up" arranca vacío y los datos
+#     son solo los sintéticos de scripts/calidad/entorno/sembrar.py.
+#   - Sin Cloud Storage, Pub/Sub, IA ni auth-service: quedan apagados.
+#     Lo que dependa de ellos responde que no está configurado.
+#
+# Uso, desde la raíz del repo (ver scripts/calidad/entorno/README.md):
+#   bash scripts/calidad/entorno/preparar_env.sh
+#   docker compose -f docker-compose.calidad.yml up -d --build
+#   python scripts/calidad/entorno/sembrar.py
+#   docker compose -f docker-compose.calidad.yml down
+
+name: buenvivir-calidad
+
+services:
+  # Mismo emulador que usan pipeline.yml y calidad-tp.yml.
+  firestore-calidad:
+    image: mtlynch/firestore-emulator:latest
+    environment:
+      FIRESTORE_PROJECT_ID: buenvivir-calidad
+      PORT: "8080"
+    ports:
+      - "127.0.0.1:18390:8080"
+    restart: on-failure
+    mem_limit: 768m
+    networks:
+      - calidad-net
+
+  education-calidad:
+    build:
+      context: ./education
+      dockerfile: Dockerfile
+    image: buenvivir-calidad/education:local
+    # Solo Contentful (testing) y un JWT_SECRET propio de este entorno.
+    # Lo genera preparar_env.sh y no se versiona.
+    env_file:
+      - ./scripts/calidad/entorno/.env.calidad
+    # "environment" gana sobre env_file: estos valores no se pueden pisar.
+    environment:
+      APP_ENV: testing
+      CONTENTFUL_ENVIRONMENT: testing
+      PORT: "8210"
+      FIRESTORE_EMULATOR_HOST: firestore-calidad:8080
+      GOOGLE_CLOUD_PROJECT: buenvivir-calidad
+      GOOGLE_APPLICATION_CREDENTIALS: ""
+      ENTREGAS_BUCKET: ""
+      AUTH_SERVICE_URL: ""
+      PUBSUB_PROJECT_ID: ""
+      VERTEX_PROJECT_ID: ""
+      OPENAI_API_KEY: ""
+      WORKER_IMPACT_URL: ""
+      CORS_ALLOWED_ORIGINS: http://localhost:18210
+    ports:
+      - "127.0.0.1:18210:8210"
+    depends_on:
+      - firestore-calidad
+    restart: on-failure
+    # Mismas restricciones que el servicio en docker-compose.yml.
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    read_only: true
+    tmpfs:
+      - /tmp
+    mem_limit: 1024m
+    cpus: "1"
+    networks:
+      - calidad-net
+
+networks:
+  calidad-net:
+    name: buenvivir-calidad-net
