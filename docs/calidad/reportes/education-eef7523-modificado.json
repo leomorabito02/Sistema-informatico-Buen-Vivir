@@ -1,0 +1,252 @@
+{
+  "fila": {
+    "fecha_utc": "2026-10-17T19:19:00Z",
+    "servicio": "education",
+    "proyecto_sonar": "buenvivir-education",
+    "commit": "eef7523-modificado",
+    "tests_en_verde": "no",
+    "quality_gate": "OK",
+    "ncloc": "8088",
+    "complexity": "1527",
+    "cognitive_complexity": "1398",
+    "bugs": "0",
+    "vulnerabilities": "0",
+    "code_smells": "33",
+    "security_hotspots": "0",
+    "reliability_rating": "1.0",
+    "security_rating": "1.0",
+    "sqale_rating": "1.0",
+    "sqale_index": "230",
+    "coverage": "80.4",
+    "line_coverage": "80.4",
+    "branch_coverage": "",
+    "lines_to_cover": "4288",
+    "uncovered_lines": "841",
+    "duplicated_lines_density": "0.2",
+    "duplicated_blocks": "2",
+    "new_coverage": "80.4",
+    "new_duplicated_lines_density": "0.12357",
+    "new_bugs": "0",
+    "new_lines": "21041",
+    "tests": "466",
+    "test_failures": "1",
+    "test_errors": "",
+    "software_quality_reliability_issues": "0",
+    "software_quality_security_issues": "0",
+    "software_quality_maintainability_issues": "33",
+    "software_quality_blocker_issues": "0",
+    "software_quality_high_issues": "17"
+  },
+  "medidas": {
+    "component": {
+      "key": "buenvivir-education",
+      "name": "Buen Vivir - Educación",
+      "qualifier": "TRK",
+      "measures": [
+        {
+          "metric": "complexity",
+          "value": "1527"
+        },
+        {
+          "metric": "duplicated_lines_density",
+          "value": "0.2",
+          "bestValue": false
+        },
+        {
+          "metric": "new_coverage",
+          "period": {
+            "index": 1,
+            "value": "80.4",
+            "bestValue": false
+          }
+        },
+        {
+          "metric": "software_quality_security_issues",
+          "value": "0",
+          "bestValue": true
+        },
+        {
+          "metric": "software_quality_high_issues",
+          "value": "17",
+          "bestValue": false
+        },
+        {
+          "metric": "sqale_index",
+          "value": "230",
+          "bestValue": false
+        },
+        {
+          "metric": "sqale_rating",
+          "value": "1.0",
+          "bestValue": true
+        },
+        {
+          "metric": "bugs",
+          "value": "0",
+          "bestValue": true
+        },
+        {
+          "metric": "test_failures",
+          "value": "1",
+          "bestValue": false
+        },
+        {
+          "metric": "lines_to_cover",
+          "value": "4288"
+        },
+        {
+          "metric": "software_quality_reliability_issues",
+          "value": "0",
+          "bestValue": true
+        },
+        {
+          "metric": "ncloc",
+          "value": "8088"
+        },
+        {
+          "metric": "software_quality_blocker_issues",
+          "value": "0",
+          "bestValue": true
+        },
+        {
+          "metric": "line_coverage",
+          "value": "80.4",
+          "bestValue": false
+        },
+        {
+          "metric": "coverage",
+          "value": "80.4",
+          "bestValue": false
+        },
+        {
+          "metric": "reliability_rating",
+          "value": "1.0",
+          "bestValue": true
+        },
+        {
+          "metric": "code_smells",
+          "value": "33",
+          "bestValue": false
+        },
+        {
+          "metric": "new_lines",
+          "period": {
+            "index": 1,
+            "value": "21041"
+          }
+        },
+        {
+          "metric": "security_rating",
+          "value": "1.0",
+          "bestValue": true
+        },
+        {
+          "metric": "security_hotspots",
+          "value": "0",
+          "bestValue": true
+        },
+        {
+          "metric": "new_bugs",
+          "period": {
+            "index": 1,
+            "value": "0",
+            "bestValue": true
+          }
+        },
+        {
+          "metric": "tests",
+          "value": "466"
+        },
+        {
+          "metric": "uncovered_lines",
+          "value": "841",
+          "bestValue": false
+        },
+        {
+          "metric": "cognitive_complexity",
+          "value": "1398",
+          "bestValue": false
+        },
+        {
+          "metric": "duplicated_blocks",
+          "value": "2",
+          "bestValue": false
+        },
+        {
+          "metric": "software_quality_maintainability_issues",
+          "value": "33",
+          "bestValue": false
+        },
+        {
+          "metric": "vulnerabilities",
+          "value": "0",
+          "bestValue": true
+        },
+        {
+          "metric": "new_duplicated_lines_density",
+          "period": {
+            "index": 1,
+            "value": "0.12357",
+            "bestValue": false
+          }
+        }
+      ]
+    }
+  },
+  "quality_gate": {
+    "projectStatus": {
+      "status": "OK",
+      "conditions": [
+        {
+          "status": "OK",
+          "metricKey": "new_coverage",
+          "comparator": "LT",
+          "errorThreshold": "80",
+          "actualValue": "80.4"
+        },
+        {
+          "status": "OK",
+          "metricKey": "coverage",
+          "comparator": "LT",
+          "errorThreshold": "80",
+          "actualValue": "80.4"
+        },
+        {
+          "status": "OK",
+          "metricKey": "new_duplicated_lines_density",
+          "comparator": "GT",
+          "errorThreshold": "5",
+          "actualValue": "0.12357"
+        },
+        {
+          "status": "OK",
+          "metricKey": "duplicated_lines_density",
+          "comparator": "GT",
+          "errorThreshold": "5",
+          "actualValue": "0.2"
+        },
+        {
+          "status": "OK",
+          "metricKey": "new_software_quality_reliability_rating",
+          "comparator": "GT",
+          "errorThreshold": "3",
+          "actualValue": "1"
+        },
+        {
+          "status": "OK",
+          "metricKey": "software_quality_reliability_rating",
+          "comparator": "GT",
+          "errorThreshold": "3",
+          "actualValue": "1"
+        }
+      ],
+      "ignoredConditions": false,
+      "period": {
+        "mode": "NUMBER_OF_DAYS",
+        "date": "2026-07-31T00:00:00-0300",
+        "parameter": "77"
+      },
+      "caycStatus": "non-compliant"
+    }
+  }
+}

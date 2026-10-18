@@ -14,3 +14,10 @@ postman
 reports/coverage/auth.out
 .angular/cache/
 .angular/cache/
+
+# TP de Calidad: salidas de cada análisis (se regeneran, no se versionan)
+.scannerwork/
+education/coverage.out
+education/test-report.json
+scripts/calidad/entorno/.env.calidad
+__pycache__/
