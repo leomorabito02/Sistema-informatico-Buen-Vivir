@@ -24,8 +24,8 @@ concurrency:
 
 env:
   GO_VERSION: '1.26'
-  SCANNER_VERSION: 8.1.0.6389        # misma versión que la local (D-14)
-  INICIO_CODIGO_NUEVO: '2026-08-01'  # D-17
+  SCANNER_VERSION: 8.1.0.6389        
+  INICIO_CODIGO_NUEVO: '2026-08-01'  
 
 jobs:
   sonarqube-education:
@@ -87,8 +87,6 @@ jobs:
           done
           echo "::error::SonarQube no arrancó"; exit 1
 
-      # El servidor es temporal y solo se ve desde este job. Igual se cambia
-      # la contraseña por defecto y se usa un token, enmascarado en los logs.
       - name: Crear token de análisis
         run: |
           CLAVE="Tp-$(openssl rand -hex 16)-A1!"
@@ -116,7 +114,7 @@ jobs:
           done
           echo "::error::El emulador de Firestore no arrancó"; exit 1
 
-      # Corre las pruebas existentes (no agrega ninguna), analiza y espera el
+      # Corre las pruebas existentes, analiza y espera el
       # quality gate. Si el gate da rojo, este paso falla.
       - name: Pruebas, cobertura y análisis SonarQube
         id: analisis
