@@ -1,8 +1,6 @@
 name: TP Calidad — Análisis estático (Educación)
 
-# Pipeline propio del TP de Calidad de Software (decisiones D-10 y D-16).
-# Es independiente de pipeline.yml: no lo modifica ni depende de él.
-#
+
 # En cada corrida levanta un SonarQube temporal dentro del job, lo configura
 # con el quality gate del Nivel 3, analiza Educación y guarda los reportes.
 # Al terminar el job, ese SonarQube se borra: la evidencia queda en el
