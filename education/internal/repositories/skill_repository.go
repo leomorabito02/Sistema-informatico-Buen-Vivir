@@ -155,60 +155,93 @@ func (r *skillRepository) SetActivitySkills(ctx context.Context, activity *model
 	var saved []models.Skill
 
 	err := r.client.RunTransaction(ctx, func(ctx context.Context, tx *firestore.Transaction) error {
-		saved = make([]models.Skill, 0, len(skills))
-
 		// Firestore exige hacer todas las lecturas de la transacción
 		// antes de la primera escritura.
-		var catalogDocs []*firestore.DocumentSnapshot
-		if len(catalogRefs) > 0 {
-			var err error
-			catalogDocs, err = tx.GetAll(catalogRefs)
-			if err != nil {
-				return err
-			}
-		}
-		current, err := tx.Documents(r.client.Collection(activitySkillsCollection).Where("actividad_id", "==", activity.ID)).GetAll()
+		catalogDocs, current, err := r.readActivitySkills(tx, catalogRefs, activity.ID)
 		if err != nil {
 			return err
 		}
-
-		keep := make(map[string]bool, len(skills))
-		for i, s := range skills {
-			keep[s.ID] = true
-			if catalogDocs[i].Exists() {
-				existing, err := skillFromDoc(catalogDocs[i])
-				if err != nil {
-					return err
-				}
-				saved = append(saved, existing)
-			} else {
-				if err := tx.Create(catalogRefs[i], s); err != nil {
-					return err
-				}
-				saved = append(saved, s)
-			}
-			link := models.ActivitySkill{ActividadID: activity.ID, HabilidadID: s.ID, CursoID: activity.CursoID}
-			if err := tx.Set(r.client.Collection(activitySkillsCollection).Doc(ActivitySkillDocID(activity.ID, s.ID)), link); err != nil {
-				return err
-			}
+		saved, err = r.writeActivitySkills(tx, activity, skills, catalogRefs, catalogDocs)
+		if err != nil {
+			return err
 		}
-		for _, d := range current {
-			var l models.ActivitySkill
-			if err := d.DataTo(&l); err != nil {
-				return err
-			}
-			if !keep[l.HabilidadID] {
-				if err := tx.Delete(d.Ref); err != nil {
-					return err
-				}
-			}
-		}
-		return nil
+		return deleteStaleLinks(tx, current, skills)
 	})
 	if err != nil {
 		return nil, fmt.Errorf("error guardando habilidades de la actividad: %w", err)
 	}
 	return saved, nil
+}
+
+// readActivitySkills lee, dentro de la transacción, las habilidades
+// pedidas del catálogo y los vínculos que la actividad ya tiene.
+func (r *skillRepository) readActivitySkills(tx *firestore.Transaction, catalogRefs []*firestore.DocumentRef, actividadID string) ([]*firestore.DocumentSnapshot, []*firestore.DocumentSnapshot, error) {
+	var catalogDocs []*firestore.DocumentSnapshot
+	if len(catalogRefs) > 0 {
+		var err error
+		catalogDocs, err = tx.GetAll(catalogRefs)
+		if err != nil {
+			return nil, nil, err
+		}
+	}
+	current, err := tx.Documents(r.client.Collection(activitySkillsCollection).Where("actividad_id", "==", actividadID)).GetAll()
+	if err != nil {
+		return nil, nil, err
+	}
+	return catalogDocs, current, nil
+}
+
+// writeActivitySkills asegura cada habilidad en el catálogo y la vincula
+// a la actividad. Devuelve las habilidades tal como quedaron en el
+// catálogo.
+func (r *skillRepository) writeActivitySkills(tx *firestore.Transaction, activity *models.Activity, skills []models.Skill, catalogRefs []*firestore.DocumentRef, catalogDocs []*firestore.DocumentSnapshot) ([]models.Skill, error) {
+	saved := make([]models.Skill, 0, len(skills))
+	for i, s := range skills {
+		skill, err := ensureInCatalog(tx, catalogRefs[i], catalogDocs[i], s)
+		if err != nil {
+			return nil, err
+		}
+		saved = append(saved, skill)
+		link := models.ActivitySkill{ActividadID: activity.ID, HabilidadID: s.ID, CursoID: activity.CursoID}
+		if err := tx.Set(r.client.Collection(activitySkillsCollection).Doc(ActivitySkillDocID(activity.ID, s.ID)), link); err != nil {
+			return nil, err
+		}
+	}
+	return saved, nil
+}
+
+// ensureInCatalog devuelve la habilidad del catálogo si ya existe (con su
+// nombre y categoría originales) o la crea si todavía no está.
+func ensureInCatalog(tx *firestore.Transaction, ref *firestore.DocumentRef, doc *firestore.DocumentSnapshot, s models.Skill) (models.Skill, error) {
+	if doc.Exists() {
+		return skillFromDoc(doc)
+	}
+	if err := tx.Create(ref, s); err != nil {
+		return models.Skill{}, err
+	}
+	return s, nil
+}
+
+// deleteStaleLinks borra los vínculos de la actividad con habilidades que
+// ya no están en la lista nueva.
+func deleteStaleLinks(tx *firestore.Transaction, current []*firestore.DocumentSnapshot, skills []models.Skill) error {
+	keep := make(map[string]bool, len(skills))
+	for _, s := range skills {
+		keep[s.ID] = true
+	}
+	for _, d := range current {
+		var l models.ActivitySkill
+		if err := d.DataTo(&l); err != nil {
+			return err
+		}
+		if keep[l.HabilidadID] {
+			continue
+		}
+		if err := tx.Delete(d.Ref); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func (r *skillRepository) GrantToParticipants(ctx context.Context, participanteIDs, habilidadIDs []string, grant models.SkillGrant) error {
