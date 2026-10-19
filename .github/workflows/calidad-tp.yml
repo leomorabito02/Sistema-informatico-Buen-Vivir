@@ -24,8 +24,15 @@ concurrency:
 
 env:
   GO_VERSION: '1.26'
-  SCANNER_VERSION: 8.1.0.6389        
-  INICIO_CODIGO_NUEVO: '2026-08-01'  
+  SCANNER_VERSION: 8.1.0.6389
+  INICIO_CODIGO_NUEVO: '2026-08-01'
+  # Herramientas de seguridad: versiones fijas para que dos corridas del
+  # mismo commit den lo mismo.
+  GOSEC_VERSION: v2.29.0
+  GOVULNCHECK_VERSION: v1.1.4
+  GITLEAKS_VERSION: v8.21.2
+  SEMGREP_VERSION: 1.95.0
+  TRIVY_VERSION: 0.57.1
 
 jobs:
   sonarqube-education:
@@ -161,3 +168,75 @@ jobs:
         run: |
           tail -1 docs/calidad/reportes/historial.csv | grep -q ',si,' \
             || { echo "::error::Hay pruebas fallidas en education"; exit 1; }
+
+  # Análisis de seguridad de Educación, en paralelo con SonarQube. Todo es
+  # análisis estático: lee el código, las librerías y la imagen, sin
+  # ejecutar el servicio. Frenan govulncheck y Trivy; gosec, Gitleaks y
+  # Semgrep solo informan (ver scripts/calidad/resumen_seguridad.py).
+  seguridad-education:
+    name: Seguridad — Educación
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      REPORTES: ${{ github.workspace }}/reportes-seguridad
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+          cache-dependency-path: education/go.sum
+
+      - name: Instalar herramientas
+        run: |
+          mkdir -p "$REPORTES"
+          go install github.com/securego/gosec/v2/cmd/gosec@${GOSEC_VERSION}
+          go install golang.org/x/vuln/cmd/govulncheck@${GOVULNCHECK_VERSION}
+          go install github.com/zricethezav/gitleaks/v8@${GITLEAKS_VERSION}
+          pip install --quiet "semgrep==${SEMGREP_VERSION}"
+          BASE=https://github.com/aquasecurity/trivy/releases/download/v${TRIVY_VERSION}
+          TGZ=trivy_${TRIVY_VERSION}_Linux-64bit.tar.gz
+          curl -sSfLO "$BASE/$TGZ"
+          curl -sSfL "$BASE/trivy_${TRIVY_VERSION}_checksums.txt" | grep " $TGZ\$" | sha256sum -c -
+          tar -xzf "$TGZ" -C "$RUNNER_TEMP" trivy
+          echo "$RUNNER_TEMP" >> "$GITHUB_PATH"
+
+      - name: gosec — errores de seguridad en el código Go
+        working-directory: education
+        run: $(go env GOPATH)/bin/gosec -quiet -fmt=json -out="$REPORTES/gosec.json" ./... || true
+
+      - name: govulncheck — vulnerabilidades conocidas en librerías
+        working-directory: education
+        run: |
+          set +e
+          $(go env GOPATH)/bin/govulncheck ./... > "$REPORTES/govulncheck.txt" 2>&1
+          echo $? > "$REPORTES/govulncheck.exit"
+          cat "$REPORTES/govulncheck.txt"
+
+      - name: Gitleaks — claves escritas en archivos
+        run: $(go env GOPATH)/bin/gitleaks dir education --redact --no-banner -f json -r "$REPORTES/gitleaks.json" || true
+
+      - name: Semgrep — patrones de código inseguro
+        run: semgrep scan --config p/golang --metrics=off --json --output "$REPORTES/semgrep.json" education || true
+
+      - name: Trivy — vulnerabilidades en la imagen Docker
+        run: |
+          docker build -q -t education-calidad:${{ github.sha }} ./education
+          trivy image --quiet --format json --output "$REPORTES/trivy.json" \
+            --ignore-unfixed --vuln-type os,library education-calidad:${{ github.sha }}
+
+      - name: Resumen y veredicto
+        run: python3 scripts/calidad/resumen_seguridad.py "$REPORTES" | tee -a "$GITHUB_STEP_SUMMARY"
+
+      - name: Subir reportes de seguridad
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: seguridad-education-${{ github.sha }}
+          path: reportes-seguridad/
+          retention-days: 30
+          if-no-files-found: warn

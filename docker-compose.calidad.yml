@@ -8,14 +8,16 @@
 #   - Contentful: real, environment "testing" (D-08). Nunca "master": está
 #     forzado abajo y además el servicio no arranca con esa combinación.
 #   - Firestore: emulador. Sin volumen: cada "up" arranca vacío y los datos
-#     son solo los sintéticos de scripts/calidad/entorno/sembrar.py.
-#   - Sin Cloud Storage, Pub/Sub, IA ni auth-service: quedan apagados.
-#     Lo que dependa de ellos responde que no está configurado.
+#     se cargan por la API con scripts/calidad/entorno/cargar_por_api.py.
+#   - auth-service: uno de prueba (scripts/calidad/entorno/auth_falso.py),
+#     con 8 participantes de prueba y el mismo formato de respuesta.
+#   - Sin Cloud Storage, Pub/Sub ni IA: quedan apagados. Lo que dependa de
+#     ellos responde que no está configurado.
 #
 # Uso, desde la raíz del repo (ver scripts/calidad/entorno/README.md):
 #   bash scripts/calidad/entorno/preparar_env.sh
 #   docker compose -f docker-compose.calidad.yml up -d --build
-#   python scripts/calidad/entorno/sembrar.py
+#   python scripts/calidad/entorno/cargar_por_api.py
 #   docker compose -f docker-compose.calidad.yml down
 
 name: buenvivir-calidad
@@ -31,6 +33,26 @@ services:
       - "127.0.0.1:18390:8080"
     restart: on-failure
     mem_limit: 768m
+    networks:
+      - calidad-net
+
+  # auth-service de prueba: responde lo que Educación le consulta
+  # (participantes, usuarios y "quién soy") para 8 participantes de prueba.
+  # No publica puertos: solo lo ve Educación, dentro de esta red.
+  auth-falso:
+    image: python:3.12.7-slim
+    command: ["python", "/app/auth_falso.py", "--puerto", "8080"]
+    volumes:
+      - ./scripts/calidad/entorno/auth_falso.py:/app/auth_falso.py:ro
+    env_file:
+      - ./scripts/calidad/entorno/.env.calidad
+    restart: on-failure
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    read_only: true
+    mem_limit: 128m
     networks:
       - calidad-net
 
@@ -52,7 +74,7 @@ services:
       GOOGLE_CLOUD_PROJECT: buenvivir-calidad
       GOOGLE_APPLICATION_CREDENTIALS: ""
       ENTREGAS_BUCKET: ""
-      AUTH_SERVICE_URL: ""
+      AUTH_SERVICE_URL: http://auth-falso:8080
       PUBSUB_PROJECT_ID: ""
       VERTEX_PROJECT_ID: ""
       OPENAI_API_KEY: ""
@@ -62,6 +84,7 @@ services:
       - "127.0.0.1:18210:8210"
     depends_on:
       - firestore-calidad
+      - auth-falso
     restart: on-failure
     # Mismas restricciones que el servicio en docker-compose.yml.
     security_opt:
