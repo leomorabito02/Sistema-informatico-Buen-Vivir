@@ -32,7 +32,7 @@ env:
   GOVULNCHECK_VERSION: v1.1.4
   GITLEAKS_VERSION: v8.21.2
   SEMGREP_VERSION: 1.95.0
-  TRIVY_VERSION: 0.57.1
+  TRIVY_VERSION: 0.75.0
 
 jobs:
   sonarqube-education:
@@ -227,7 +227,7 @@ jobs:
         run: |
           docker build -q -t education-calidad:${{ github.sha }} ./education
           trivy image --quiet --format json --output "$REPORTES/trivy.json" \
-            --ignore-unfixed --vuln-type os,library education-calidad:${{ github.sha }}
+            --ignore-unfixed --pkg-types os,library education-calidad:${{ github.sha }}
 
       - name: Resumen y veredicto
         run: python3 scripts/calidad/resumen_seguridad.py "$REPORTES" | tee -a "$GITHUB_STEP_SUMMARY"
