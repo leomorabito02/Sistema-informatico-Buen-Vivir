@@ -14,7 +14,6 @@ postman
 reports/coverage/auth.out
 .angular/cache/
 .angular/cache/
-docs/
 
 # TP de Calidad: salidas de cada análisis (se regeneran, no se versionan)
 .scannerwork/

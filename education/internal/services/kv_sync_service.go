@@ -61,6 +61,7 @@ func (s *kvSyncService) performSync(workerURL, syncToken string) {
 		return
 	}
 
+	// #nosec G704 -- workerURL is an internal endpoint from configuration
 	req, err := http.NewRequestWithContext(ctx, "POST", workerURL, bytes.NewBuffer(jsonBody))
 	if err != nil {
 		log.Printf("[Education KVSyncService] Error creating HTTP request: %v", err)
@@ -73,6 +74,7 @@ func (s *kvSyncService) performSync(workerURL, syncToken string) {
 	}
 
 	client := &http.Client{Timeout: 5 * time.Second}
+	// #nosec G704 -- outbound POST to configured internal Cloudflare worker
 	resp, err := client.Do(req)
 	if err != nil {
 		log.Printf("[Education KVSyncService] Error posting to Cloudflare Worker KV: %v", err)

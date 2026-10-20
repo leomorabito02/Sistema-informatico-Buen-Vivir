@@ -3,7 +3,6 @@ package services_test
 import (
 	"context"
 	"errors"
-	"strings"
 	"testing"
 
 	"buenvivir/education/internal/models"
@@ -228,7 +227,7 @@ func TestMaterialService_UploadMaterial_TooLarge(t *testing.T) {
 	material, err := svc.UploadMaterial(context.Background(), up)
 	assert.Error(t, err)
 	assert.Nil(t, material)
-	assert.True(t, strings.Contains(err.Error(), "máximo"))
+	assert.Equal(t, "el archivo pesa 6.0 MB y el máximo para este tipo es 5 MB", err.Error())
 }
 
 func TestMaterialService_UploadMaterial_Success(t *testing.T) {
@@ -362,7 +361,7 @@ func TestMaterialService_UploadMaterial_BoundaryValues(t *testing.T) {
 		// Assert
 		assert.Error(t, err)
 		assert.Nil(t, mat)
-		assert.Contains(t, err.Error(), "máximo")
+		assert.Equal(t, "el archivo pesa 5.0 MB y el máximo para este tipo es 5 MB", err.Error())
 	})
 }
 

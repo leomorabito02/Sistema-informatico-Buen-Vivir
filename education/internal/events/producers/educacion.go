@@ -45,10 +45,7 @@ func (p *Educacion) emit(ctx context.Context, tx *firestore.Transaction, evs ...
 	if !p.Enabled() {
 		return nil
 	}
-	if tx != nil {
-		return p.writer.AddTx(ctx, tx, evs...)
-	}
-	return p.writer.Add(ctx, evs...)
+	return p.writer.AddTx(ctx, tx, evs...)
 }
 
 func (p *Educacion) event(eventType string, payload any, orderingKey string) outbox.Event {
