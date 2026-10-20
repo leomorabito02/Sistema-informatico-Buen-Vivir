@@ -462,7 +462,8 @@ func TestCourseService_UnpublishCourse_Success(t *testing.T) {
 func TestCourseService_UnpublishCourse_RepoError(t *testing.T) {
 	// Arrange
 	repo := new(MockCourseRepository)
-	svc := services.NewCourseService(repo)
+	kvSync := new(MockKVSyncService)
+	svc := services.NewCourseServiceWithEvents(repo, nil, kvSync)
 	repo.On("Unpublish", mock.Anything, "c1").Return(errors.New("unpublish error"))
 
 	// Act
@@ -471,6 +472,7 @@ func TestCourseService_UnpublishCourse_RepoError(t *testing.T) {
 	// Assert
 	assert.Error(t, err)
 	repo.AssertExpectations(t)
+	kvSync.AssertNotCalled(t, "SyncCourseStatsAsync")
 }
 
 func TestCourseService_ListCoursesByTeacher_Success(t *testing.T) {
@@ -527,14 +529,16 @@ func TestCourseService_KVSync_CalledOnMutations(t *testing.T) {
 	repo.On("Update", mock.Anything, "c1", input).Return(course, nil)
 	repo.On("Delete", mock.Anything, "c1").Return(nil)
 	repo.On("Publish", mock.Anything, "c1").Return(nil)
+	repo.On("Unpublish", mock.Anything, "c1").Return(nil)
 	repo.On("Get", mock.Anything, "c1").Return(course, nil)
-	kvSync.On("SyncCourseStatsAsync").Times(6)
+	kvSync.On("SyncCourseStatsAsync").Times(7)
 
 	// Act
 	_, errCreate := svc.CreateCourse(ctx, input)
 	_, errUpdate := svc.UpdateCourse(ctx, "c1", input)
 	errDelete := svc.DeleteCourse(ctx, "c1")
 	errPublish := svc.PublishCourse(ctx, "c1")
+	errUnpublish := svc.UnpublishCourse(ctx, "c1")
 	_, errCreateTeacher := svc.CreateCourseAsTeacher(ctx, "teacher-1", input)
 	_, errUpdateTeacher := svc.UpdateCourseAsTeacher(ctx, "c1", "teacher-1", input)
 
@@ -543,6 +547,7 @@ func TestCourseService_KVSync_CalledOnMutations(t *testing.T) {
 	assert.NoError(t, errUpdate)
 	assert.NoError(t, errDelete)
 	assert.NoError(t, errPublish)
+	assert.NoError(t, errUnpublish)
 	assert.NoError(t, errCreateTeacher)
 	assert.NoError(t, errUpdateTeacher)
 	kvSync.AssertExpectations(t)

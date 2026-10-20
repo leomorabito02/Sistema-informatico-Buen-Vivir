@@ -179,7 +179,7 @@ func (s *skillSuggestionService) excludedSkills(ctx context.Context, req models.
 // inválido no se reintenta: se pasa directo al siguiente proveedor.
 func (s *skillSuggestionService) callWithRetries(ctx context.Context, provider SugeridorHabilidades, prompt models.SkillPrompt) ([]models.SkillSuggestion, error) {
 	var lastErr error
-	for attempt := 0; attempt <= s.maxRetries; attempt++ {
+	for attempt := 0; attempt >= 0 && attempt <= s.maxRetries; attempt++ {
 		if attempt > 0 {
 			if err := s.sleep(ctx, time.Duration(attempt)*retryBackoff); err != nil {
 				return nil, err

@@ -832,3 +832,125 @@ func TestSubmissionService_ListByActivity_NilDirectory(t *testing.T) {
 	assert.Empty(t, rows[0].Nombre)
 }
 
+func TestSubmissionService_Submit_TextLengthBoundary(t *testing.T) {
+	// Arrange
+	f := newSubmissionFixture(false)
+	f.activities.On("Get", mock.Anything, "a1").Return(&models.Activity{ID: "a1", CursoID: "c1"}, nil)
+	f.enrollment.On("ListByParticipant", mock.Anything, "p1").Return([]models.Enrollment{
+		{CursoID: "c1", Estado: models.EnrollmentEstadoActiva},
+	}, nil)
+	f.repo.On("GetForParticipant", mock.Anything, "p1", []string{"a1"}).Return(map[string]*models.Submission{}, nil)
+	f.repo.On("CreateWithAttendance", mock.Anything, mock.Anything, mock.Anything).Return(&models.Submission{ID: "s1"}, nil)
+
+	// Act & Assert: exactly 10,000 runes is accepted
+	exactText := strings.Repeat("a", 10000)
+	sub, err := f.svc.Submit(context.Background(), "a1", "p1", exactText, nil)
+	assert.NoError(t, err)
+	assert.NotNil(t, sub)
+
+	// 10,001 runes is rejected
+	tooLongText := strings.Repeat("a", 10001)
+	sub2, err2 := f.svc.Submit(context.Background(), "a1", "p1", tooLongText, nil)
+	assert.Error(t, err2)
+	assert.Nil(t, sub2)
+	assert.True(t, services.IsValidationError(err2))
+}
+
+func TestSubmissionService_Submit_UploadsCountBoundary(t *testing.T) {
+	// Arrange
+	f := newSubmissionFixture(true)
+	f.activities.On("Get", mock.Anything, "a1").Return(&models.Activity{ID: "a1", CursoID: "c1"}, nil)
+	f.enrollment.On("ListByParticipant", mock.Anything, "p1").Return([]models.Enrollment{
+		{CursoID: "c1", Estado: models.EnrollmentEstadoActiva},
+	}, nil)
+	f.repo.On("GetForParticipant", mock.Anything, "p1", []string{"a1"}).Return(map[string]*models.Submission{}, nil)
+	f.storage.On("Upload", mock.Anything, mock.Anything, "application/pdf", mock.Anything).Return(nil)
+	f.repo.On("CreateWithAttendance", mock.Anything, mock.Anything, mock.Anything).Return(&models.Submission{ID: "s1"}, nil)
+
+	// Act & Assert: exactly 5 uploads is accepted
+	uploads5 := make([]models.SubmissionUpload, 5)
+	for i := 0; i < 5; i++ {
+		uploads5[i] = models.SubmissionUpload{Nombre: fmt.Sprintf("file%d.pdf", i), Tipo: "application/pdf", Data: []byte("%PDF")}
+	}
+	sub, err := f.svc.Submit(context.Background(), "a1", "p1", "ok", uploads5)
+	assert.NoError(t, err)
+	assert.NotNil(t, sub)
+
+	// 6 uploads is rejected
+	uploads6 := make([]models.SubmissionUpload, 6)
+	for i := 0; i < 6; i++ {
+		uploads6[i] = models.SubmissionUpload{Nombre: fmt.Sprintf("file%d.pdf", i), Tipo: "application/pdf", Data: []byte("%PDF")}
+	}
+	sub6, err6 := f.svc.Submit(context.Background(), "a1", "p1", "ok", uploads6)
+	assert.Error(t, err6)
+	assert.Nil(t, sub6)
+	assert.True(t, services.IsValidationError(err6))
+}
+
+func TestSubmissionService_Submit_UploadFileBytesBoundary(t *testing.T) {
+	// Arrange
+	f := newSubmissionFixture(true)
+	f.activities.On("Get", mock.Anything, "a1").Return(&models.Activity{ID: "a1", CursoID: "c1"}, nil)
+	f.enrollment.On("ListByParticipant", mock.Anything, "p1").Return([]models.Enrollment{
+		{CursoID: "c1", Estado: models.EnrollmentEstadoActiva},
+	}, nil)
+	f.repo.On("GetForParticipant", mock.Anything, "p1", []string{"a1"}).Return(map[string]*models.Submission{}, nil)
+	f.storage.On("Upload", mock.Anything, mock.Anything, "application/pdf", mock.Anything).Return(nil)
+	f.repo.On("CreateWithAttendance", mock.Anything, mock.Anything, mock.Anything).Return(&models.Submission{ID: "s1"}, nil)
+
+	// Exact 10 MB is accepted
+	exactData := make([]byte, 10<<20)
+	copy(exactData, "%PDF")
+	sub, err := f.svc.Submit(context.Background(), "a1", "p1", "ok", []models.SubmissionUpload{
+		{Nombre: "doc.pdf", Tipo: "application/pdf", Data: exactData},
+	})
+	assert.NoError(t, err)
+	assert.NotNil(t, sub)
+
+	// 10 MB + 1 byte is rejected
+	tooBigData := make([]byte, (10<<20)+1)
+	copy(tooBigData, "%PDF")
+	sub2, err2 := f.svc.Submit(context.Background(), "a1", "p1", "ok", []models.SubmissionUpload{
+		{Nombre: "doc.pdf", Tipo: "application/pdf", Data: tooBigData},
+	})
+	assert.Error(t, err2)
+	assert.Nil(t, sub2)
+	assert.True(t, services.IsValidationError(err2))
+}
+
+func TestSubmissionService_Submit_FirstUploadFails_DoesNotCallDeletePrefix(t *testing.T) {
+	// Arrange: when upload 0 fails, len(files) == 0, so cleanupUploads must not delete anything
+	f := newSubmissionFixture(true)
+	f.activities.On("Get", mock.Anything, "a1").Return(&models.Activity{ID: "a1", CursoID: "c1"}, nil)
+	f.enrollment.On("ListByParticipant", mock.Anything, "p1").Return([]models.Enrollment{
+		{CursoID: "c1", Estado: models.EnrollmentEstadoActiva},
+	}, nil)
+	f.repo.On("GetForParticipant", mock.Anything, "p1", []string{"a1"}).Return(map[string]*models.Submission{}, nil)
+	f.storage.On("Upload", mock.Anything, mock.Anything, "application/pdf", mock.Anything).Return(errors.New("upload failed"))
+
+	// Act
+	sub, err := f.svc.Submit(context.Background(), "a1", "p1", "texto", []models.SubmissionUpload{
+		{Nombre: "file0.pdf", Tipo: "application/pdf", Data: []byte("%PDF")},
+	})
+
+	// Assert
+	assert.Error(t, err)
+	assert.Nil(t, sub)
+	f.storage.AssertNotCalled(t, "DeletePrefix", mock.Anything, mock.Anything)
+}
+
+func TestSubmissionService_EnrollmentStatus_NonBajaPreservedOverBaja(t *testing.T) {
+	// Arrange: participant has a 'finalizada' enrollment followed by a 'baja' enrollment
+	f := newSubmissionFixture(false)
+	f.enrollment.On("ListByParticipant", mock.Anything, "p1").Return([]models.Enrollment{
+		{CursoID: "c1", Estado: models.EnrollmentEstadoFinalizada},
+		{CursoID: "c1", Estado: models.EnrollmentEstadoBaja},
+	}, nil)
+
+	// Act
+	err := f.svc.VerifyParticipantEnrolled(context.Background(), "p1", "c1")
+
+	// Assert: 'finalizada' should be preserved and not overwritten by 'baja'
+	assert.NoError(t, err)
+}
+

@@ -97,6 +97,7 @@ func (c *SubmissionController) Submit(w http.ResponseWriter, r *http.Request) {
 	}
 
 	r.Body = http.MaxBytesReader(w, r.Body, maxSubmissionUploadBytes)
+	// #nosec G120 -- request body is bounded by http.MaxBytesReader above
 	if err := r.ParseMultipartForm(8 << 20); err != nil {
 		writeErrorJSON(w, http.StatusBadRequest, "no se pudo leer la entrega (¿los archivos superan el tamaño permitido?)")
 		return

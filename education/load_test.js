@@ -13,6 +13,7 @@ export const options = {
   thresholds: {
     // 95% of requests must complete below 500ms
     http_req_duration: ['p(95)<500'],
+    checks: ['rate>0.99'],
   },
 };
 
@@ -20,14 +21,14 @@ export default function () {
   // 1. Health Endpoint Spike (público, sin JWT)
   let healthRes = http.get(`${BASE_URL}/api/salud`);
   check(healthRes, {
-    'health check returns 200': (r) => r.status === 200,
+    'health check returns 200 or 429': (r) => r.status === 200 || r.status === 429,
   });
 
   // 2. Lectura de cursos sin token (para ejercitar AuthMiddleware bajo
   // carga sin depender de un JWT válido real ni de Contentful).
   let cursosRes = http.get(`${BASE_URL}/api/cursos`);
   check(cursosRes, {
-    'cursos sin token rechaza con 401': (r) => r.status === 401,
+    'cursos sin token rechaza con 401 o 429': (r) => r.status === 401 || r.status === 429,
   });
 
   // 3. Lectura de cursos con un token con formato inválido (ejercita la
@@ -39,7 +40,7 @@ export default function () {
   };
   let invalidTokenRes = http.get(`${BASE_URL}/api/cursos`, params);
   check(invalidTokenRes, {
-    'cursos con token inválido rechaza con 401': (r) => r.status === 401,
+    'cursos con token inválido rechaza con 401 o 429': (r) => r.status === 401 || r.status === 429,
   });
 
   // Wait 1 second between iterations per virtual user

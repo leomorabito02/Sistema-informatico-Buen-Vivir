@@ -21,6 +21,7 @@ import (
 // que completar (caso típico en producción, donde las variables las
 // provee la plataforma).
 func loadEnvFile(path string) error {
+	// #nosec G304 -- loading environment file from local path
 	f, err := os.Open(path)
 	if err != nil {
 		if os.IsNotExist(err) {
