@@ -158,6 +158,12 @@ describe("HeaderComponent", () => {
       expect(rutas).toContain("/dashboard/inscripciones");
     });
 
+    it("el voluntario gestiona campañas (HU-06)", () => {
+      expect(routesOf(NAV_BY_ROLE["role_volunteer"])).toContain(
+        "/dashboard/campanas",
+      );
+    });
+
     it("ningún ítem del menú dice Dashboard salvo el del admin", () => {
       const etiquetas = Object.entries(NAV_BY_ROLE)
         .filter(([r]) => r !== "role_admin" && r !== "role_dev")

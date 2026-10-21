@@ -118,6 +118,8 @@ export const NAV_BY_ROLE: Record<string, MenuItem[]> = {
         { label: "Seguimiento", routerLink: "/dashboard/seguimiento" },
       ],
     },
+    // HU-06: el voluntariado crea, edita y publica campañas.
+    { label: "Campañas", routerLink: "/dashboard/campanas" },
     { label: "Inserción laboral", routerLink: "/dashboard/ofertas" },
   ],
   role_participant: [

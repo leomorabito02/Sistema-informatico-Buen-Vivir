@@ -117,6 +117,31 @@ services:
     networks:
       - buenvivir-net
 
+  # Campañas (HU-47 a HU-51): base propia en Firestore (colección
+  # "campanas"). Valida el JWT por su cuenta, como human-promotion. Sin
+  # puerto publicado: se llega por el API Gateway. Lee JWT_SECRET y las
+  # credenciales de Firestore de campaigns/.env (ver .env.example); si el
+  # archivo no existe, el resto del stack levanta igual.
+  campaigns-service:
+    build:
+      context: ./campaigns
+      dockerfile: Dockerfile
+    env_file:
+      - path: ./campaigns/.env
+        required: false
+    environment:
+      - PORT=8080
+    restart: on-failure
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    read_only: true
+    mem_limit: 256m
+    cpus: "0.5"
+    networks:
+      - buenvivir-net
+
   api-gateway:
     image: nginx:alpine
     container_name: buenvivir-api-gateway

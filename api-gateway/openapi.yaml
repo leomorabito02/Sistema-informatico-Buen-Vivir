@@ -2637,6 +2637,206 @@ paths:
               type: boolean
             Access-Control-Max-Age:
               type: integer
+  /api/v1/campaigns:
+    get:
+      summary: GET /api/v1/campaigns
+      operationId: get__api_v1_campaigns
+      x-google-backend:
+        address: ${CAMPAIGNS_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+        jwt_audience: ${CAMPAIGNS_SERVICE_URL}
+      responses:
+        '200':
+          description: OK
+    post:
+      summary: POST /api/v1/campaigns
+      operationId: post__api_v1_campaigns
+      x-google-backend:
+        address: ${CAMPAIGNS_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+        jwt_audience: ${CAMPAIGNS_SERVICE_URL}
+      responses:
+        '200':
+          description: OK
+    options:
+      summary: CORS preflight for /api/v1/campaigns
+      operationId: options__api_v1_campaigns
+      x-google-backend:
+        address: ${CAMPAIGNS_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+        jwt_audience: ${CAMPAIGNS_SERVICE_URL}
+      responses:
+        '200':
+          description: OK
+          headers:
+            Access-Control-Allow-Origin:
+              type: string
+            Access-Control-Allow-Methods:
+              type: string
+            Access-Control-Allow-Headers:
+              type: string
+            Access-Control-Expose-Headers:
+              type: string
+            Access-Control-Allow-Credentials:
+              type: boolean
+            Access-Control-Max-Age:
+              type: integer
+  /api/v1/campaigns/publicas:
+    get:
+      summary: GET /api/v1/campaigns/publicas
+      operationId: get__api_v1_campaigns_publicas
+      x-google-backend:
+        address: ${CAMPAIGNS_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+        jwt_audience: ${CAMPAIGNS_SERVICE_URL}
+      responses:
+        '200':
+          description: OK
+    options:
+      summary: CORS preflight for /api/v1/campaigns/publicas
+      operationId: options__api_v1_campaigns_publicas
+      x-google-backend:
+        address: ${CAMPAIGNS_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+        jwt_audience: ${CAMPAIGNS_SERVICE_URL}
+      responses:
+        '200':
+          description: OK
+          headers:
+            Access-Control-Allow-Origin:
+              type: string
+            Access-Control-Allow-Methods:
+              type: string
+            Access-Control-Allow-Headers:
+              type: string
+            Access-Control-Expose-Headers:
+              type: string
+            Access-Control-Allow-Credentials:
+              type: boolean
+            Access-Control-Max-Age:
+              type: integer
+  /api/v1/campaigns/{id}:
+    parameters:
+    - name: id
+      in: path
+      required: true
+      type: string
+    get:
+      summary: GET /api/v1/campaigns/{id}
+      operationId: get__api_v1_campaigns_id
+      x-google-backend:
+        address: ${CAMPAIGNS_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+        jwt_audience: ${CAMPAIGNS_SERVICE_URL}
+      responses:
+        '200':
+          description: OK
+    put:
+      summary: PUT /api/v1/campaigns/{id}
+      operationId: put__api_v1_campaigns_id
+      x-google-backend:
+        address: ${CAMPAIGNS_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+        jwt_audience: ${CAMPAIGNS_SERVICE_URL}
+      responses:
+        '200':
+          description: OK
+    options:
+      summary: CORS preflight for /api/v1/campaigns/{id}
+      operationId: options__api_v1_campaigns_id
+      x-google-backend:
+        address: ${CAMPAIGNS_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+        jwt_audience: ${CAMPAIGNS_SERVICE_URL}
+      responses:
+        '200':
+          description: OK
+          headers:
+            Access-Control-Allow-Origin:
+              type: string
+            Access-Control-Allow-Methods:
+              type: string
+            Access-Control-Allow-Headers:
+              type: string
+            Access-Control-Expose-Headers:
+              type: string
+            Access-Control-Allow-Credentials:
+              type: boolean
+            Access-Control-Max-Age:
+              type: integer
+  /api/v1/campaigns/{id}/publicar:
+    parameters:
+    - name: id
+      in: path
+      required: true
+      type: string
+    post:
+      summary: POST /api/v1/campaigns/{id}/publicar
+      operationId: post__api_v1_campaigns_id_publicar
+      x-google-backend:
+        address: ${CAMPAIGNS_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+        jwt_audience: ${CAMPAIGNS_SERVICE_URL}
+      responses:
+        '200':
+          description: OK
+    options:
+      summary: CORS preflight for /api/v1/campaigns/{id}/publicar
+      operationId: options__api_v1_campaigns_id_publicar
+      x-google-backend:
+        address: ${CAMPAIGNS_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+        jwt_audience: ${CAMPAIGNS_SERVICE_URL}
+      responses:
+        '200':
+          description: OK
+          headers:
+            Access-Control-Allow-Origin:
+              type: string
+            Access-Control-Allow-Methods:
+              type: string
+            Access-Control-Allow-Headers:
+              type: string
+            Access-Control-Expose-Headers:
+              type: string
+            Access-Control-Allow-Credentials:
+              type: boolean
+            Access-Control-Max-Age:
+              type: integer
+  /api/v1/human-promotion/indicadores:
+    get:
+      summary: GET /api/v1/human-promotion/indicadores
+      operationId: get__api_v1_human_promotion_indicadores
+      x-google-backend:
+        address: ${HUMAN_PROMOTION_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+        jwt_audience: ${HUMAN_PROMOTION_SERVICE_URL}
+      responses:
+        '200':
+          description: OK
+    options:
+      summary: CORS preflight for /api/v1/human-promotion/indicadores
+      operationId: options__api_v1_human_promotion_indicadores
+      x-google-backend:
+        address: ${HUMAN_PROMOTION_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+        jwt_audience: ${HUMAN_PROMOTION_SERVICE_URL}
+      responses:
+        '200':
+          description: OK
+          headers:
+            Access-Control-Allow-Origin:
+              type: string
+            Access-Control-Allow-Methods:
+              type: string
+            Access-Control-Allow-Headers:
+              type: string
+            Access-Control-Expose-Headers:
+              type: string
+            Access-Control-Allow-Credentials:
+              type: boolean
+            Access-Control-Max-Age:
+              type: integer
 securityDefinitions:
   jwt:
     type: apiKey
