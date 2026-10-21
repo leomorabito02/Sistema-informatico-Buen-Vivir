@@ -27,6 +27,10 @@ type FichaDocument struct {
 	// ficha no se borra: se conserva el historial.
 	Estado    string     `firestore:"estado,omitempty"`
 	FechaBaja *time.Time `firestore:"fecha_baja,omitempty"`
+	// CreadaEn es la fecha de alta, para los indicadores del Dashboard.
+	// Las fichas anteriores a este campo no la tienen: el indicador usa
+	// el registro "crear" de la auditoría (ver IndicadoresRepository).
+	CreadaEn *time.Time `firestore:"creada_en,omitempty"`
 }
 
 // FichaEstadoBaja es el estado de una ficha dada de baja.

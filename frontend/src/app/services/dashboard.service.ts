@@ -11,6 +11,7 @@ import {
   ParticipanteHabilidadOrigen,
   ParticipanteOrigen,
   PostulacionOrigen,
+  PromocionOrigen,
   PuntoSerie,
 } from "../core/models/dashboard.model";
 import { DashboardSourcesService } from "./dashboard-sources.service";
@@ -18,11 +19,13 @@ import {
   contarPorMes,
   enRango,
   estadoCurso,
+  fichaActivaEn,
   finDelDia,
   habilidadAceptada,
   insercionLaboral,
   mesesDelPeriodo,
   participanteActivoEn,
+  participantesConSeguimiento,
 } from "./dashboard.calculos";
 
 /** Datos crudos de cada fuente; null = el servicio no respondió. */
@@ -31,11 +34,16 @@ export interface DatosOrigen {
   cursos: CursoOrigen[] | null;
   habilidades: ParticipanteHabilidadOrigen[] | null;
   postulaciones: PostulacionOrigen[] | null;
+  promocion: PromocionOrigen | null;
 }
 
 type MetaIndicador = Omit<Indicador, "valor" | "disponible">;
 
-/** Definición de los cinco indicadores (HU-52), en el orden en que se ven. */
+/**
+ * Indicadores, en el orden en que se ven: los cinco de HU-52 y los dos de
+ * Promoción Humana que pidió el equipo (el DER prevé que el Dashboard
+ * consulte también a ese servicio).
+ */
 export const INDICADORES: MetaIndicador[] = [
   {
     id: "participantesActivos",
@@ -72,6 +80,20 @@ export const INDICADORES: MetaIndicador[] = [
     modulo: "insercion",
     fuente: "insercion",
   },
+  {
+    id: "fichasActivas",
+    titulo: "Fichas activas",
+    descripcion: "Fichas de proceso personal abiertas al cierre del período.",
+    modulo: "promocion",
+    fuente: "promocion",
+  },
+  {
+    id: "participantesConSeguimiento",
+    titulo: "Participantes con seguimiento",
+    descripcion: "Participantes con al menos un hito de avance en el período.",
+    modulo: "promocion",
+    fuente: "promocion",
+  },
 ];
 
 /**
@@ -96,6 +118,7 @@ export class DashboardService {
       cursos: seguro(this.sources.cursos()),
       habilidades: seguro(this.sources.habilidades()),
       postulaciones: seguro(this.sources.postulaciones()),
+      promocion: seguro(this.sources.promocion()),
     }).pipe(map((datos) => calcularDashboard(datos, filtros)));
   }
 }
@@ -115,6 +138,8 @@ export function calcularDashboard(
     (h) => habilidadAceptada(h) && (!areaId || h.areaId === areaId),
   );
   const inserciones = datos.postulaciones?.filter(insercionLaboral);
+  // El área formativa no aplica a Promoción Humana.
+  const promocion = datos.promocion;
 
   const cursosEn = (ref: Date, estado: "en_desarrollo" | "finalizado") =>
     (cursos ?? []).filter((c) => estadoCurso(c, ref) === estado).length;
@@ -130,6 +155,12 @@ export function calcularDashboard(
       : null,
     insercionesLaborales: inserciones
       ? inserciones.filter((p) => enRango(p.fechaEstado, desde, hasta)).length
+      : null,
+    fichasActivas: promocion
+      ? promocion.fichas.filter((f) => fichaActivaEn(f, corte)).length
+      : null,
+    participantesConSeguimiento: promocion
+      ? participantesConSeguimiento(promocion.hitos, desde, hasta)
       : null,
   };
 
@@ -212,6 +243,33 @@ export function calcularDashboard(
                 desde,
                 hasta,
               ),
+            },
+          ]
+        : null,
+    },
+    {
+      id: "promocion",
+      titulo: "Fichas activas y participantes con seguimiento",
+      tipo: "bar",
+      modulo: "promocion",
+      indicadores: ["fichasActivas", "participantesConSeguimiento"],
+      series: promocion
+        ? [
+            {
+              nombre: "Fichas activas",
+              puntos: porMes(
+                (c) => promocion.fichas.filter((f) => fichaActivaEn(f, c)).length,
+              ),
+            },
+            {
+              nombre: "Con seguimiento",
+              // Cada mes: participantes con algún hito en ese mes, sin
+              // salirse del período elegido.
+              puntos: meses.map(({ mes, corte: c }) => {
+                const inicioMes = new Date(c.getFullYear(), c.getMonth(), 1);
+                const ini = inicioMes < desde ? desde : inicioMes;
+                return { mes, valor: participantesConSeguimiento(promocion.hitos, ini, c) };
+              }),
             },
           ]
         : null,

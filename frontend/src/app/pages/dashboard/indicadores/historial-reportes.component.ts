@@ -19,8 +19,15 @@ import {
       <h2 id="historial-titulo" class="historial-titulo">
         Historial de reportes
       </h2>
+      @if (reportes.errorHistorial(); as error) {
+        <p class="historial-error" role="alert">{{ error }}</p>
+      }
+      @if (errorDescarga) {
+        <p class="historial-error" role="alert">{{ errorDescarga }}</p>
+      }
       <p-table
         [value]="reportes.historial()"
+        [loading]="reportes.cargandoHistorial()"
         [paginator]="reportes.historial().length > 10"
         [rows]="10"
         responsiveLayout="stack"
@@ -41,7 +48,7 @@ import {
             <td>{{ r.fecha_generacion | date: "dd/MM/yyyy HH:mm" }}</td>
             <td>{{ periodo(r) }}</td>
             <td>{{ filtros(r) }}</td>
-            <td>{{ r.generado_por }}</td>
+            <td>{{ r.generado_por_nombre || r.generado_por }}</td>
             <td class="accion">
               <p-button
                 icon="pi pi-download"
@@ -49,7 +56,7 @@ import {
                 size="small"
                 [outlined]="true"
                 [ariaLabel]="'Descargar el reporte del ' + periodo(r)"
-                (onClick)="reportes.descargar(r)"
+                (onClick)="descargar(r)"
               ></p-button>
             </td>
           </tr>
@@ -77,11 +84,24 @@ import {
       .accion {
         text-align: right;
       }
+      .historial-error {
+        color: var(--color-danger, #b91c1c);
+      }
     `,
   ],
 })
 export class HistorialReportesComponent {
   readonly reportes = inject(ReportesService);
+  errorDescarga = "";
+
+  async descargar(r: ReporteExportado): Promise<void> {
+    this.errorDescarga = "";
+    try {
+      await this.reportes.descargar(r);
+    } catch {
+      this.errorDescarga = "No se pudo descargar el reporte. Probá de nuevo en unos minutos.";
+    }
+  }
 
   periodo(r: ReporteExportado): string {
     return `${formatoFecha(soloFecha(r.periodo_desde))} al ${formatoFecha(soloFecha(r.periodo_hasta))}`;

@@ -1,5 +1,7 @@
 import {
   CursoOrigen,
+  FichaPromocionOrigen,
+  HitoPromocionOrigen,
   ParticipanteHabilidadOrigen,
   ParticipanteOrigen,
   PostulacionOrigen,
@@ -51,6 +53,40 @@ export function habilidadAceptada(h: ParticipanteHabilidadOrigen): boolean {
 
 export function insercionLaboral(p: PostulacionOrigen): boolean {
   return p.estado === "seleccionado";
+}
+
+/**
+ * Ficha de proceso personal abierta a la fecha `ref`: ya existía y no
+ * estaba dada de baja (mismo criterio que participanteActivoEn).
+ */
+export function fichaActivaEn(f: FichaPromocionOrigen, ref: Date): boolean {
+  if (new Date(f.fechaAlta) > ref) return false;
+  if (f.estado === "baja") {
+    return !!f.fechaBaja && new Date(f.fechaBaja) > ref;
+  }
+  return true;
+}
+
+/**
+ * Participantes distintos con al menos un hito de avance entre `desde` y
+ * `hasta` (inclusive). Las fechas de los hitos son AAAA-MM-DD sin hora: se
+ * comparan como texto para que la zona horaria no corra el día.
+ */
+export function participantesConSeguimiento(
+  hitos: HitoPromocionOrigen[],
+  desde: Date,
+  hasta: Date,
+): number {
+  const d = fechaLocal(desde);
+  const h = fechaLocal(hasta);
+  return new Set(
+    hitos.filter((x) => x.fecha >= d && x.fecha <= h).map((x) => x.participanteId),
+  ).size;
+}
+
+/** "AAAA-MM-DD" de una fecha local. */
+export function fechaLocal(d: Date): string {
+  return `${claveMes(d)}-${String(d.getDate()).padStart(2, "0")}`;
 }
 
 // ── Fechas ─────────────────────────────────────────────────────────────

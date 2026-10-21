@@ -30,7 +30,13 @@ import { HistorialReportesComponent } from "./historial-reportes.component";
 import { MeResponse } from "../../../core/models/auth.model";
 
 const vacio: DashboardData = calcularDashboard(
-  { participantes: [], cursos: [], habilidades: [], postulaciones: [] },
+  {
+    participantes: [],
+    cursos: [],
+    habilidades: [],
+    postulaciones: [],
+    promocion: { fichas: [], hitos: [] },
+  },
   {
     desde: new Date(2026, 0, 1),
     hasta: new Date(2026, 1, 28),
@@ -53,12 +59,14 @@ describe("DashboardPageComponent", () => {
     dashboard.areas.and.returnValue(of([{ id: "a1", nombre: "Oficios" }]));
     reportes = jasmine.createSpyObj(
       "ReportesService",
-      ["exportar", "descargar"],
+      ["exportar", "descargar", "cargarHistorial"],
       {
         historial: () => [],
+        cargandoHistorial: () => false,
+        errorHistorial: () => null,
       },
     );
-    reportes.exportar.and.resolveTo({} as ReporteExportado);
+    reportes.exportar.and.resolveTo({ reporte: {} as ReporteExportado, guardado: true });
     const auth = jasmine.createSpyObj("AuthService", ["isAuthenticated"]);
     auth.isAuthenticated.and.returnValue(
       of({ user: { first_name: "Sofía", last_name: "Cuozzo" } } as MeResponse),
@@ -80,17 +88,19 @@ describe("DashboardPageComponent", () => {
     fixture.detectChanges();
   });
 
-  it("muestra esqueletos mientras carga y después los cinco indicadores", () => {
+  it("muestra esqueletos mientras carga y después los siete indicadores", () => {
     const el: HTMLElement = fixture.nativeElement;
     expect(component.cargando).toBeTrue();
-    expect(el.querySelectorAll("app-kpi-card").length).toBe(5);
+    expect(reportes.cargarHistorial).toHaveBeenCalled();
+    expect(el.querySelectorAll("app-kpi-card").length).toBe(7);
     expect(el.querySelector("p-skeleton")).not.toBeNull();
 
     respuesta$.next(vacio);
     fixture.detectChanges();
     expect(component.cargando).toBeFalse();
     expect(el.textContent).toContain("Participantes activos");
-    expect(el.querySelectorAll("app-grafica-evolucion").length).toBe(4);
+    expect(el.querySelectorAll("app-grafica-evolucion").length).toBe(5);
+    expect(el.textContent).toContain("Fichas activas");
     expect(el.textContent).toContain(
       "No hay datos para el período seleccionado",
     );
@@ -126,10 +136,21 @@ describe("DashboardPageComponent", () => {
     tick();
     const arg = reportes.exportar.calls.mostRecent().args[0];
     expect(arg.filtros).toBe(component.filtros);
-    expect(arg.indicadores.length).toBe(5);
-    expect(arg.graficas.length).toBe(4);
+    expect(arg.indicadores.length).toBe(7);
+    expect(arg.graficas.length).toBe(5);
     expect(arg.generadoPor).toBe("Sofía Cuozzo");
     expect(component.exportando).toBeFalse();
+  }));
+
+  it("si el PDF se descargó pero no se guardó, avisa sin decir que falló todo", fakeAsync(() => {
+    reportes.exportar.and.resolveTo({ reporte: null, guardado: false, error: "El historial de reportes no está configurado en este entorno" });
+    respuesta$.next(vacio);
+    fixture.detectChanges();
+    component.exportar();
+    tick();
+    fixture.detectChanges();
+    expect(document.body.textContent).toContain("no quedó en el historial");
+    expect(document.body.textContent).not.toContain("No se pudo exportar");
   }));
 
   it("avisa si la exportación falla", fakeAsync(() => {
@@ -273,13 +294,17 @@ describe("HistorialReportesComponent", () => {
         areaId: "a1",
         areaNombre: "Oficios",
       },
-      generado_por: "Sofía",
+      generado_por: "admin-1",
+      generado_por_nombre: "Sofía",
       fecha_generacion: "2026-10-08T15:00:00.000Z",
       url_archivo: "blob:x",
     };
     const reportes = jasmine.createSpyObj("ReportesService", ["descargar"], {
       historial: () => [reporte],
+      cargandoHistorial: () => false,
+      errorHistorial: () => null,
     });
+    reportes.descargar.and.resolveTo();
     await TestBed.configureTestingModule({
       imports: [HistorialReportesComponent],
       providers: [
@@ -292,6 +317,7 @@ describe("HistorialReportesComponent", () => {
     const el: HTMLElement = f.nativeElement;
     expect(el.textContent).toContain("01/01/2026 al 30/06/2026");
     expect(el.textContent).toContain("Módulo: Educación · Área: Oficios");
+    expect(el.textContent).toContain("Sofía");
     (el.querySelector("p-button button") as HTMLButtonElement).click();
     expect(reportes.descargar).toHaveBeenCalledWith(reporte);
   });

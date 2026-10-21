@@ -6,6 +6,7 @@ import {
   ParticipanteHabilidadOrigen,
   ParticipanteOrigen,
   PostulacionOrigen,
+  PromocionOrigen,
 } from "../core/models/dashboard.model";
 import {
   DashboardService,
@@ -21,8 +22,10 @@ import {
 } from "@angular/common/http/testing";
 import {
   estadoCurso,
+  fichaActivaEn,
   mesesDelPeriodo,
   participanteActivoEn,
+  participantesConSeguimiento,
 } from "./dashboard.calculos";
 
 const d = (s: string) => new Date(s + "T12:00:00");
@@ -136,11 +139,28 @@ const postulaciones: PostulacionOrigen[] = [
   post("s5", "seleccionado", "2026-07-15"), // fuera del período
 ];
 
+// Promoción Humana: f2 se dio de baja en abril; f3 todavía no existía.
+const promocion: PromocionOrigen = {
+  fichas: [
+    { id: "f1", participanteId: "p1", estado: "activa", fechaAlta: d("2026-01-10").toISOString() },
+    { id: "f2", participanteId: "p2", estado: "baja", fechaAlta: d("2026-02-01").toISOString(), fechaBaja: d("2026-04-15").toISOString() },
+    { id: "f3", participanteId: "p3", estado: "activa", fechaAlta: d("2026-08-01").toISOString() },
+  ],
+  hitos: [
+    { participanteId: "p1", fecha: "2026-01-20" },
+    { participanteId: "p1", fecha: "2026-03-05" },
+    { participanteId: "p2", fecha: "2026-03-31" },
+    { participanteId: "p3", fecha: "2026-07-01" }, // fuera del período
+    { participanteId: "p2", fecha: "2025-12-31" }, // fuera del período
+  ],
+};
+
 const todos: DatosOrigen = {
   participantes,
   cursos,
   habilidades,
   postulaciones,
+  promocion,
 };
 
 const valor = (data: ReturnType<typeof calcularDashboard>, id: string) =>
@@ -180,6 +200,24 @@ describe("dashboard.calculos", () => {
     ).toBeFalse();
   });
 
+  it("fichaActivaEn: cuenta desde el alta y hasta la baja", () => {
+    const [f1, f2, f3] = promocion.fichas;
+    expect(fichaActivaEn(f1, d("2026-01-09"))).toBeFalse();
+    expect(fichaActivaEn(f1, d("2026-06-30"))).toBeTrue();
+    expect(fichaActivaEn(f2, d("2026-03-31"))).toBeTrue();
+    expect(fichaActivaEn(f2, d("2026-04-30"))).toBeFalse();
+    expect(fichaActivaEn({ ...f2, fechaBaja: null }, d("2026-03-01"))).toBeFalse();
+    expect(fichaActivaEn(f3, d("2026-06-30"))).toBeFalse();
+  });
+
+  it("participantesConSeguimiento cuenta personas distintas y respeta los bordes del período", () => {
+    expect(participantesConSeguimiento(promocion.hitos, new Date(2026, 0, 1), new Date(2026, 5, 30))).toBe(2);
+    // Un hito del último día cuenta, aunque la hora local sea de noche (sin corrimiento de zona horaria).
+    expect(participantesConSeguimiento([{ participanteId: "x", fecha: "2026-06-30" }], new Date(2026, 0, 1), new Date(2026, 5, 30, 23, 0))).toBe(1);
+    expect(participantesConSeguimiento([{ participanteId: "x", fecha: "2026-01-01" }], new Date(2026, 0, 2), new Date(2026, 5, 30))).toBe(0);
+    expect(participantesConSeguimiento([], new Date(2026, 0, 1), new Date(2026, 5, 30))).toBe(0);
+  });
+
   it("mesesDelPeriodo devuelve un mes por punto y corta en la fecha 'hasta'", () => {
     const meses = mesesDelPeriodo(new Date(2026, 0, 15), new Date(2026, 2, 10));
     expect(meses.map((m) => m.mes)).toEqual(["2026-01", "2026-02", "2026-03"]);
@@ -192,7 +230,7 @@ describe("dashboard.calculos", () => {
 });
 
 describe("calcularDashboard", () => {
-  it("calcula los cinco indicadores (HU-52)", () => {
+  it("calcula los cinco indicadores de HU-52 y los dos de Promoción Humana", () => {
     const data = calcularDashboard(todos, filtros());
     expect(data.indicadores.map((i) => i.id)).toEqual([
       "participantesActivos",
@@ -200,7 +238,11 @@ describe("calcularDashboard", () => {
       "cursosFinalizados",
       "habilidadesDesarrolladas",
       "insercionesLaborales",
+      "fichasActivas",
+      "participantesConSeguimiento",
     ]);
+    expect(valor(data, "fichasActivas")).toBe(1); // f1 (f2 de baja, f3 posterior)
+    expect(valor(data, "participantesConSeguimiento")).toBe(2); // p1, p2
     expect(valor(data, "participantesActivos")).toBe(2); // p1, p2
     expect(valor(data, "cursosEnDesarrollo")).toBe(1); // c2
     expect(valor(data, "cursosFinalizados")).toBe(2); // c1, c3
@@ -216,6 +258,12 @@ describe("calcularDashboard", () => {
       "cursos",
       "habilidades",
       "inserciones",
+      "promocion",
+    ]);
+    const promoG = data.graficas.find((g) => g.id === "promocion")!;
+    expect(promoG.series!.map((s) => s.puntos.map((p) => p.valor))).toEqual([
+      [1, 2, 2, 1, 1, 1], // fichas activas: f2 entra en feb y sale en abril
+      [1, 0, 2, 0, 0, 0], // con seguimiento: enero p1; marzo p1 y p2
     ]);
     const cursosG = data.graficas.find((g) => g.id === "cursos")!;
     expect(cursosG.tipo).toBe("bar");
@@ -274,8 +322,11 @@ describe("calcularDashboard", () => {
     expect(ins.indicadores.map((i) => i.id)).toEqual(["insercionesLaborales"]);
 
     const pro = calcularDashboard(todos, filtros({ modulo: "promocion" }));
-    expect(pro.indicadores).toEqual([]);
-    expect(pro.graficas).toEqual([]);
+    expect(pro.indicadores.map((i) => i.id)).toEqual([
+      "fichasActivas",
+      "participantesConSeguimiento",
+    ]);
+    expect(pro.graficas.map((g) => g.id)).toEqual(["promocion"]);
 
     expect(visibleEnModulo("usuarios", "todos")).toBeTrue();
     expect(visibleEnModulo("usuarios", "educacion")).toBeFalse();
@@ -304,12 +355,14 @@ describe("DashboardService", () => {
       "cursos",
       "habilidades",
       "postulaciones",
+      "promocion",
       "areas",
     ]);
     sources.participantes.and.returnValue(of(participantes));
     sources.cursos.and.returnValue(of(cursos));
     sources.habilidades.and.returnValue(of(habilidades));
     sources.postulaciones.and.returnValue(of(postulaciones));
+    sources.promocion.and.returnValue(of(promocion));
     sources.areas.and.returnValue(of([]));
     TestBed.configureTestingModule({
       providers: [{ provide: DashboardSourcesService, useValue: sources }],
@@ -317,9 +370,9 @@ describe("DashboardService", () => {
     service = TestBed.inject(DashboardService);
   });
 
-  it("combina las cuatro fuentes y calcula", (done) => {
+  it("combina las cinco fuentes y calcula", (done) => {
     service.cargar(filtros()).subscribe((data) => {
-      expect(data.indicadores.length).toBe(5);
+      expect(data.indicadores.length).toBe(7);
       expect(valor(data, "insercionesLaborales")).toBe(2);
       done();
     });
@@ -332,7 +385,17 @@ describe("DashboardService", () => {
         (i) => i.id === "insercionesLaborales",
       )!;
       expect(ins.disponible).toBeFalse();
-      expect(data.indicadores.filter((i) => i.disponible).length).toBe(4);
+      expect(data.indicadores.filter((i) => i.disponible).length).toBe(6);
+      done();
+    });
+  });
+
+  it("si Promoción Humana no responde, solo sus indicadores quedan no disponibles", (done) => {
+    sources.promocion.and.returnValue(throwError(() => new Error("502")));
+    service.cargar(filtros()).subscribe((data) => {
+      const nd = data.indicadores.filter((i) => !i.disponible).map((i) => i.id);
+      expect(nd).toEqual(["fichasActivas", "participantesConSeguimiento"]);
+      expect(data.graficas.find((g) => g.id === "promocion")!.series).toBeNull();
       done();
     });
   });

@@ -5,6 +5,7 @@ package clients
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"time"
@@ -47,11 +48,21 @@ func (e *UpstreamError) Error() string {
 
 func (e *UpstreamError) Unwrap() error { return e.Err }
 
+// ErrNoConfigurado: no hay dirección para ese servicio (por ejemplo,
+// Inserción Laboral todavía no se despliega en Cloud Run). Solo falla ese
+// indicador.
+var ErrNoConfigurado = errors.New("servicio no configurado")
+
 // Upstream es un servicio de origen.
 type Upstream struct {
 	Name    string
 	BaseURL string
 	HTTP    *http.Client
+	// IDToken, si no es nil, da un token de identidad de Google para el
+	// servicio. En Cloud Run los servicios no aceptan llamadas anónimas
+	// (--no-allow-unauthenticated): el token va en X-Serverless-Authorization,
+	// así la sesión del usuario sigue viajando en Cookie y Authorization.
+	IDToken func(ctx context.Context) (string, error)
 }
 
 func NewUpstream(name, baseURL string, timeout time.Duration) *Upstream {
@@ -60,9 +71,19 @@ func NewUpstream(name, baseURL string, timeout time.Duration) *Upstream {
 
 // GetJSON hace GET a path y decodifica la respuesta JSON en out.
 func (u *Upstream) GetJSON(ctx context.Context, path string, cred Credentials, out any) error {
+	if u.BaseURL == "" {
+		return &UpstreamError{Service: u.Name, Err: ErrNoConfigurado}
+	}
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, u.BaseURL+path, nil)
 	if err != nil {
 		return &UpstreamError{Service: u.Name, Err: err}
+	}
+	if u.IDToken != nil {
+		tok, err := u.IDToken(ctx)
+		if err != nil {
+			return &UpstreamError{Service: u.Name, Err: fmt.Errorf("token de identidad: %w", err)}
+		}
+		req.Header.Set("X-Serverless-Authorization", "Bearer "+tok)
 	}
 	req.Header.Set("Accept", "application/json")
 	if cred.Cookie != "" {

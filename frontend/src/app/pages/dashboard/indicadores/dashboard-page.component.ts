@@ -79,6 +79,8 @@ export class DashboardPageComponent implements OnInit {
   private filtros$ = new BehaviorSubject<FiltrosDashboard>(this.filtros);
 
   ngOnInit(): void {
+    this.reportes.cargarHistorial();
+
     this.dashboard
       .areas()
       .pipe(takeUntilDestroyed(this.destroyRef))
@@ -136,18 +138,26 @@ export class DashboardPageComponent implements OnInit {
     this.exportando = true;
     try {
       const area = this.areas.find((a) => a.id === this.filtros.areaId);
-      await this.reportes.exportar({
+      const r = await this.reportes.exportar({
         filtros: this.filtros,
         areaNombre: area?.nombre ?? null,
         indicadores: this.datos.indicadores,
         graficas: (this.graficasVista?.toArray() ?? []).map((g) => g.paraPdf()),
         generadoPor: this.usuario,
       });
-      this.messages.add({
-        severity: "success",
-        summary: "Reporte exportado",
-        detail: "Se descargó el PDF y quedó en el historial de reportes.",
-      });
+      this.messages.add(
+        r.guardado
+          ? {
+              severity: "success",
+              summary: "Reporte exportado",
+              detail: "Se descargó el PDF y quedó en el historial de reportes.",
+            }
+          : {
+              severity: "warn",
+              summary: "Reporte descargado",
+              detail: `Se descargó el PDF, pero no quedó en el historial: ${r.error}`,
+            },
+      );
     } catch {
       this.messages.add({
         severity: "error",

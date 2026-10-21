@@ -24,16 +24,23 @@ type DashboardService interface {
 	Habilidades(ctx context.Context, cred clients.Credentials) ([]models.ParticipanteHabilidad, error)
 	Postulaciones(ctx context.Context, cred clients.Credentials) ([]models.Postulacion, error)
 	Areas(ctx context.Context, cred clients.Credentials) ([]models.Area, error)
+	Promocion(ctx context.Context, cred clients.Credentials) (models.Promocion, error)
 }
 
 type dashboardService struct {
 	auth      *clients.Upstream
 	education *clients.Upstream
 	labor     *clients.Upstream
+	promocion *clients.Upstream
 }
 
-func NewDashboardService(auth, education, labor *clients.Upstream) DashboardService {
-	return &dashboardService{auth: auth, education: education, labor: labor}
+// NewDashboardService: promocion puede ser nil (sin Promoción Humana, ese
+// indicador responde "no configurado").
+func NewDashboardService(auth, education, labor, promocion *clients.Upstream) DashboardService {
+	if promocion == nil {
+		promocion = &clients.Upstream{Name: "promoción humana"}
+	}
+	return &dashboardService{auth: auth, education: education, labor: labor, promocion: promocion}
 }
 
 // ── Participantes (Autenticación) ─────────────────────────────────────
@@ -178,6 +185,33 @@ func (s *dashboardService) Habilidades(ctx context.Context, cred clients.Credent
 		}
 	}
 	return out, nil
+}
+
+// ── Fichas e hitos (Promoción Humana) ─────────────────────────────────
+
+func (s *dashboardService) Promocion(ctx context.Context, cred clients.Credentials) (models.Promocion, error) {
+	var res models.IndicadoresPH
+	if err := s.promocion.GetJSON(ctx, "/api/v1/human-promotion/indicadores", cred, &res); err != nil {
+		return models.Promocion{}, err
+	}
+	return MapPromocion(res), nil
+}
+
+// MapPromocion traduce a los nombres que usa el frontend. Cualquier
+// estado distinto de "baja" cuenta como activa.
+func MapPromocion(res models.IndicadoresPH) models.Promocion {
+	out := models.Promocion{Fichas: []models.FichaPromocion{}, Hitos: []models.HitoPromocion{}}
+	for _, f := range res.Fichas {
+		estado := "activa"
+		if f.Estado == "baja" {
+			estado = "baja"
+		}
+		out.Fichas = append(out.Fichas, models.FichaPromocion{ID: f.ID, ParticipanteID: f.ParticipanteID, Estado: estado, FechaAlta: f.CreadaEn, FechaBaja: f.FechaBaja})
+	}
+	for _, h := range res.Hitos {
+		out.Hitos = append(out.Hitos, models.HitoPromocion{ParticipanteID: h.ParticipanteID, Fecha: h.Fecha})
+	}
+	return out
 }
 
 // ── Postulaciones (Inserción Laboral) ─────────────────────────────────

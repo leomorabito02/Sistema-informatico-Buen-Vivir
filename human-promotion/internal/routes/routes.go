@@ -13,6 +13,7 @@ type Controllers struct {
 	Ficha        *controllers.FichaController
 	Hito         *controllers.HitoController
 	Participante *controllers.ParticipanteController
+	Indicadores  *controllers.IndicadoresController
 }
 
 // RegisterRoutes registra los endpoints de Promoción Humana.
@@ -45,6 +46,15 @@ func RegisterRoutes(r chi.Router, jwtService services.JWTService, ctrls Controll
 			r.Get("/fichas/{id}/hitos", ctrls.Hito.List)
 			r.Put("/fichas/{id}/hitos/{hitoId}", ctrls.Hito.Update)
 		})
+
+		// Indicadores del Dashboard: solo administración (RequireRole deja
+		// pasar a role_admin y role_dev por el bypass global).
+		if ctrls.Indicadores != nil {
+			r.Group(func(r chi.Router) {
+				r.Use(middlewares.RequireRole("role_admin"))
+				r.Get("/indicadores", ctrls.Indicadores.Get)
+			})
+		}
 
 		r.Group(func(r chi.Router) {
 			r.Use(middlewares.RequireRole("role_participant"))
