@@ -13,8 +13,8 @@ import (
 
 // CourseService valida las reglas de negocio de "course" antes de
 // delegar en el repository. Se expone como interfaz (no struct
-// concreto) para poder testearla más adelante con un repository mock,
-// aunque por ahora no se generan tests.
+// concreto) para poder testearla con un repository mock (ver
+// course_service_test.go).
 type CourseService interface {
 	ListCourses(ctx context.Context) ([]models.Course, error)
 	GetCourse(ctx context.Context, id string) (*models.Course, error)

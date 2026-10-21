@@ -34,9 +34,9 @@ type Course struct {
 	// por auth-service) del docente responsable del curso, NO su
 	// nombre en texto libre. El Content Type de Contentful sigue
 	// declarándolo como Short text; es el backend el que reinterpreta
-	// su contenido como un id. El frontend todavía necesita un
-	// selector de docentes (que resuelva nombre -> id contra
-	// auth-service) en vez de un campo de texto libre — pendiente.
+	// su contenido como un id. El frontend lo elige con un selector de
+	// docentes que resuelve nombre -> id contra auth-service
+	// (admin-cursos.component, teacherOptions).
 	ResponsibleTeacher string        `json:"responsibleTeacher,omitempty"`
 	CoverImage         *AssetRef     `json:"coverImage,omitempty"`
 	Mode               string        `json:"mode"`
