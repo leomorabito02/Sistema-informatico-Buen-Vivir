@@ -520,9 +520,12 @@ PUBSUB_EMULATOR_HOST=localhost:8086 infra/pubsub/emulator.sh   # topics + suscri
    un consumidor que lo recalcule. El evento queda publicado para quien
    lo necesite.
 8. **Línea de tiempo**: las entradas que llegan por eventos se guardan en
-   `linea_tiempo`, pero **todavía no se muestran en ninguna pantalla**.
-   Hay que decidir si se mezclan con los hitos en la vista del
-   participante (HU-34) y en la profesional (HU-33).
+   `linea_tiempo` y se muestran **mezcladas por fecha con los hitos**, en
+   "Mi proceso" (HU-34, dentro de `GET /mi-linea-de-tiempo`, campo
+   `actividad`) y en la ficha (HU-33, `GET /fichas/{id}/actividad`). La
+   asistencia al centro se agrupa en una entrada por mes ("Asistió al
+   centro en septiembre de 2026"), sin contar días. El nombre del curso lo
+   pone el frontend con el catálogo de Educación (decisión del 21/10).
 
 ## 13. Limitaciones conocidas
 

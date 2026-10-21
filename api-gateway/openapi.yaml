@@ -2603,6 +2603,45 @@ paths:
               type: boolean
             Access-Control-Max-Age:
               type: integer
+  /api/v1/human-promotion/fichas/{id}/actividad:
+    parameters:
+    - name: id
+      in: path
+      required: true
+      type: string
+    get:
+      summary: GET /api/v1/human-promotion/fichas/{id}/actividad
+      operationId: get__api_v1_human_promotion_fichas_id_actividad
+      x-google-backend:
+        address: ${HUMAN_PROMOTION_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+        jwt_audience: ${HUMAN_PROMOTION_SERVICE_URL}
+      responses:
+        '200':
+          description: OK
+    options:
+      summary: CORS preflight for /api/v1/human-promotion/fichas/{id}/actividad
+      operationId: options__api_v1_human_promotion_fichas_id_actividad
+      x-google-backend:
+        address: ${HUMAN_PROMOTION_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+        jwt_audience: ${HUMAN_PROMOTION_SERVICE_URL}
+      responses:
+        '200':
+          description: OK
+          headers:
+            Access-Control-Allow-Origin:
+              type: string
+            Access-Control-Allow-Methods:
+              type: string
+            Access-Control-Allow-Headers:
+              type: string
+            Access-Control-Expose-Headers:
+              type: string
+            Access-Control-Allow-Credentials:
+              type: boolean
+            Access-Control-Max-Age:
+              type: integer
   /api/v1/human-promotion/mi-linea-de-tiempo:
     get:
       summary: GET /api/v1/human-promotion/mi-linea-de-tiempo

@@ -80,6 +80,25 @@ export interface HitoParticipante {
   descripcion: string;
 }
 
+/**
+ * Actividad del participante en el centro que llega por eventos de
+ * Educación: inscripciones, cursos completados y asistencia (una entrada
+ * por mes, sin contar días). No la carga el equipo y no se edita.
+ */
+export interface EntradaActividad {
+  id: string;
+  tipo: "inscripcion" | "curso_completado" | "asistencia_general";
+  fecha: string;
+  descripcion: string;
+  curso_id?: string;
+}
+
+/** Respuesta de /mi-linea-de-tiempo (HU-34). */
+export interface LineaDeTiempoPropia {
+  hitos: HitoParticipante[];
+  actividad: EntradaActividad[];
+}
+
 /** Mensaje exacto de HU-29 cuando falta un campo obligatorio. */
 export const MSG_CAMPOS_OBLIGATORIOS =
   "Completar todos los campos obligatorios para continuar";

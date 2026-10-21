@@ -27,8 +27,8 @@ type FichaDetalle struct {
 	FichaProcesoPersonal
 	Participante    *DatosParticipante `json:"participante"`
 	CreadoPorNombre string             `json:"creado_por_nombre,omitempty"`
-	// Habilidades surgen de la integración con IA en Educación (HU-21,
-	// HU-58), todavía no implementada: por ahora siempre vacío.
+	// Habilidades que ganó el participante en Educación (HU-21, HU-58).
+	// Vacío si education-service no respondió o no está configurado.
 	Habilidades []string `json:"habilidades"`
 }
 

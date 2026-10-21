@@ -9,12 +9,13 @@ import { catchError, map } from "rxjs/operators";
 import { environment } from "../../environments/environment";
 import {
   CreateFichaInput,
+  EntradaActividad,
   Ficha,
   FichaDetalle,
   Hito,
   HitoDetalle,
   HitoInput,
-  HitoParticipante,
+  LineaDeTiempoPropia,
   ResultadoBusqueda,
   UpdateFichaInput,
   UpdateFichaResponse,
@@ -131,14 +132,27 @@ export class HumanPromotionService {
       .pipe(catchError(this.handleError));
   }
 
-  // ---- Participante (HU-34) ----------------------------------------------
-  miLineaDeTiempo(): Observable<HitoParticipante[]> {
+  /** Actividad en el centro del participante de la ficha (HU-33). */
+  listarActividad(fichaId: string): Observable<EntradaActividad[]> {
     return this.http
-      .get<{
-        hitos: HitoParticipante[];
-      }>(`${this.base}/mi-linea-de-tiempo`, { withCredentials: true })
+      .get<EntradaActividad[]>(
+        `${this.base}/fichas/${encodeURIComponent(fichaId)}/actividad`,
+        { withCredentials: true },
+      )
+      .pipe(catchError(this.handleError));
+  }
+
+  // ---- Participante (HU-34) ----------------------------------------------
+  miLineaDeTiempo(): Observable<LineaDeTiempoPropia> {
+    return this.http
+      .get<Partial<LineaDeTiempoPropia>>(`${this.base}/mi-linea-de-tiempo`, {
+        withCredentials: true,
+      })
       .pipe(
-        map((res) => res.hitos ?? []),
+        map((res) => ({
+          hitos: res.hitos ?? [],
+          actividad: res.actividad ?? [],
+        })),
         catchError(this.handleError),
       );
   }
