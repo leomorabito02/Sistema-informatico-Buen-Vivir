@@ -209,6 +209,25 @@
   margin: 0.4rem 0 0;
 }
 
+.timeline-curso {
+  margin: 0.25rem 0 0;
+  font-weight: 600;
+}
+
+/* La actividad en el centro (no la carga el equipo) va más tenue. */
+.timeline-item--actividad .timeline-dot {
+  border-color: var(--text-muted);
+}
+
+.timeline-item--actividad .timeline-content {
+  background: transparent;
+  border: 1px dashed var(--border);
+}
+
+.timeline-item--actividad .meta {
+  margin: 0;
+}
+
 @media (max-width: 640px) {
   .datos-grid {
     grid-template-columns: 1fr;

@@ -207,17 +207,41 @@ paths:
         "403": { $ref: "#/components/responses/Forbidden" }
         "404": { $ref: "#/components/responses/NotFound" }
 
+  /fichas/{id}/actividad:
+    parameters:
+      - $ref: "#/components/parameters/FichaID"
+    get:
+      summary: Actividad del participante en el centro (HU-33)
+      description: |
+        Inscripciones, cursos completados y asistencia al centro (una entrada
+        por mes, sin contar días) que llegan por eventos de Educación. El
+        frontend la mezcla por fecha con los hitos. Solo admin y voluntario.
+      responses:
+        "200":
+          description: Actividad en orden cronológico (vacía si no hay)
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/EntradaActividad" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+
   /mi-linea-de-tiempo:
     get:
       summary: Línea de tiempo del participante (HU-34)
       description: |
         Solo los hitos con visible_participante = true de la ficha del participante
-        logueado (identificado por su token). Nunca incluye situación actual,
-        avances, responsables ni hitos confidenciales. La asistencia general la
-        pide el frontend a education-service.
+        logueado (identificado por su token), más su actividad en el centro
+        (la misma de /fichas/{id}/actividad). Nunca incluye situación actual,
+        avances, responsables ni hitos confidenciales.
       responses:
         "200":
-          description: Hitos visibles, en orden cronológico (vacío si no tiene ficha)
+          description: |
+            Hitos visibles y actividad, cada lista en orden cronológico. Sin
+            ficha, hitos viene vacío y la actividad se muestra igual.
           content:
             application/json:
               schema:
@@ -226,6 +250,9 @@ paths:
                   hitos:
                     type: array
                     items: { $ref: "#/components/schemas/HitoParticipante" }
+                  actividad:
+                    type: array
+                    items: { $ref: "#/components/schemas/EntradaActividad" }
         "401": { $ref: "#/components/responses/Unauthorized" }
         "403": { $ref: "#/components/responses/Forbidden" }
 
@@ -353,6 +380,19 @@ components:
         id: { type: string }
         fecha: { type: string, format: date }
         descripcion: { type: string }
+
+    EntradaActividad:
+      type: object
+      properties:
+        id: { type: string }
+        tipo:
+          type: string
+          enum: [inscripcion, curso_completado, asistencia_general]
+        fecha: { type: string, format: date }
+        descripcion: { type: string }
+        curso_id:
+          type: string
+          description: Vacío en la asistencia al centro.
 
     ResultadoBusqueda:
       type: object

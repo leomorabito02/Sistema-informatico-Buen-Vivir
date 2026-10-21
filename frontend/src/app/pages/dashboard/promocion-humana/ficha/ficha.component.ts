@@ -21,8 +21,10 @@ import {
   HumanPromotionService,
 } from "../../../../services/human-promotion.service";
 import { AuthService } from "../../../../services/auth.service";
+import { EducationService } from "../../../../services/education.service";
 import { UsersService } from "../../../../services/users.service";
 import {
+  EntradaActividad,
   FichaDetalle,
   HitoDetalle,
   HitoInput,
@@ -40,6 +42,11 @@ import { LoadingStateComponent } from "../../../../shared/components/loading-sta
 import { ErrorStateComponent } from "../../../../shared/components/error-state.component";
 import { EmptyStateComponent } from "../../../../shared/components/empty-state.component";
 import { BackLinkComponent } from "../../../../shared/components/back-link.component";
+import {
+  ItemLineaTiempo,
+  mezclarLineaDeTiempo,
+  nombresDeCursos,
+} from "../../../../shared/utils/linea-tiempo";
 
 interface Opcion {
   label: string;
@@ -62,6 +69,9 @@ interface HitoForm {
  *  - Situación actual y avances son obligatorios y editables.
  *  - Línea de tiempo con todos los hitos en orden cronológico, alta y
  *    edición en un diálogo, y exportación a PDF generada en el backend.
+ *    Mezcla, por fecha, la actividad del participante en el centro
+ *    (inscripciones, cursos completados y asistencia por mes), que llega
+ *    por eventos de Educación y no se edita.
  */
 @Component({
   selector: "app-ficha",
@@ -95,6 +105,7 @@ export class FichaComponent implements OnInit {
   private readonly service = inject(HumanPromotionService);
   private readonly auth = inject(AuthService);
   private readonly users = inject(UsersService);
+  private readonly education = inject(EducationService);
   private readonly toast = inject(MessageService);
 
   readonly maxTexto = MAX_TEXTO_FICHA;
@@ -127,6 +138,12 @@ export class FichaComponent implements OnInit {
   intentoGuardarHito = false;
   hitoForm: HitoForm = this.hitoFormVacio();
   responsables: Opcion[] = [];
+
+  // ---- actividad en el centro (solo lectura) ----
+  actividad: EntradaActividad[] = [];
+  private cursos = new Map<string, string>();
+  /** Hitos y actividad mezclados por fecha. */
+  items: ItemLineaTiempo<HitoDetalle>[] = [];
 
   descargandoPdf = false;
 
@@ -163,6 +180,7 @@ export class FichaComponent implements OnInit {
         this.ficha = ficha;
         this.loading = false;
         this.cargarHitos();
+        this.cargarActividad();
       },
       error: (err: HumanPromotionError) => {
         this.loading = false;
@@ -304,12 +322,39 @@ export class FichaComponent implements OnInit {
       next: (hitos) => {
         this.hitos = hitos;
         this.cargandoHitos = false;
+        this.actualizarLinea();
       },
       error: (err: Error) => {
         this.errorHitos = err.message;
         this.cargandoHitos = false;
       },
     });
+  }
+
+  /**
+   * La actividad es un dato secundario: si no se puede leer, la línea de
+   * tiempo se muestra igual, solo con los hitos.
+   */
+  cargarActividad() {
+    if (!this.ficha) return;
+    forkJoin({
+      actividad: this.service
+        .listarActividad(this.ficha.id)
+        .pipe(catchError(() => of([] as EntradaActividad[]))),
+      cursos: nombresDeCursos(this.education),
+    }).subscribe(({ actividad, cursos }) => {
+      this.actividad = actividad;
+      this.cursos = cursos;
+      this.actualizarLinea();
+    });
+  }
+
+  private actualizarLinea() {
+    this.items = mezclarLineaDeTiempo(this.hitos, this.actividad, this.cursos);
+  }
+
+  trackByKey(_: number, item: ItemLineaTiempo<HitoDetalle>) {
+    return item.key;
   }
 
   nuevoHito() {

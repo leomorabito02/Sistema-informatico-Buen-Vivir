@@ -431,6 +431,18 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
 
+    # Los repositorios (fichas, hitos, línea de tiempo, indicadores) se
+    # prueban contra el emulador de Firestore; sin él, esas pruebas se
+    # saltean y la cobertura queda baja.
+    services:
+      firestore:
+        image: mtlynch/firestore-emulator:latest
+        ports:
+          - 8390:8080
+
+    env:
+      FIRESTORE_EMULATOR_HOST: localhost:8390
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -452,9 +464,12 @@ jobs:
         working-directory: human-promotion
         run: go vet ./...
 
-      - name: Run Go Unit Tests
+      - name: Unit + integration tests + coverage
         working-directory: human-promotion
-        run: go test -v -coverprofile=coverage.out ./...
+        run: |
+          go test -v -coverprofile=coverage.out ./...
+          COVERAGE=$(go tool cover -func=coverage.out | grep total | awk '{print $3}')
+          echo "### Human Promotion Service Coverage: ${COVERAGE}" >> $GITHUB_STEP_SUMMARY
 
       - name: Go Security Scan (gosec)
         working-directory: human-promotion
@@ -794,6 +809,10 @@ jobs:
           fi
           if [ "${{ needs.ci-rxresume.result }}" != "success" ]; then
             echo "::error::ci-rxresume failed."
+            exit 1
+          fi
+          if [ "${{ needs.ci-human-promotion.result }}" != "success" ]; then
+            echo "::error::ci-human-promotion failed."
             exit 1
           fi
           if [ "${{ needs.ci-campaigns.result }}" != "success" ]; then

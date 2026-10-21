@@ -76,7 +76,8 @@ func main() {
 	jwtService := services.NewJWTService()
 	fichaService := services.NewFichaService(fichaRepo, fieldCipher, authDirectory, repositories.NewEducationClient(cfg.EducationServiceURL))
 	hitoService := services.NewHitoService(hitoRepo, fichaRepo, fieldCipher, authDirectory)
-	participanteService := services.NewParticipanteService(authDirectory, fichaRepo, hitoRepo, fieldCipher)
+	actividadService := services.NewActividadService(repositories.NewLineaTiempoRepository(firestoreClient), fichaRepo)
+	participanteService := services.NewParticipanteService(authDirectory, fichaRepo, hitoRepo, fieldCipher, actividadService)
 	pdfService := services.NewPDFService(fichaService, hitoService)
 
 	r := chi.NewRouter()
@@ -86,6 +87,7 @@ func main() {
 		Hito:         controllers.NewHitoController(hitoService),
 		Participante: controllers.NewParticipanteController(participanteService),
 		Indicadores:  controllers.NewIndicadoresController(repositories.NewIndicadoresRepository(firestoreClient)),
+		Actividad:    controllers.NewActividadController(actividadService),
 	})
 
 	server := &http.Server{
