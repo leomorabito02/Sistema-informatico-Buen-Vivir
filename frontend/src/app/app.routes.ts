@@ -100,6 +100,14 @@ export const routes: Routes = [
       ),
   },
   {
+    // Campañas publicadas, sin iniciar sesión (HU-50, HU-51).
+    path: "campanas-publico",
+    loadComponent: () =>
+      import("./pages/campanas-publico/campanas-publico.component").then(
+        (m) => m.CampanasPublicoComponent,
+      ),
+  },
+  {
     path: "mi-cuenta",
     redirectTo: "dashboard/mi-perfil",
     pathMatch: "prefix",
@@ -254,6 +262,8 @@ export const routes: Routes = [
       },
       {
         path: "campanas",
+        // Gestión de campañas: administración y voluntariado (HU-06).
+        canActivate: [adminOrVolunteerGuard],
         loadComponent: () =>
           import("./pages/dashboard/campanas/campanas.component").then(
             (m) => m.CampanasComponent,
