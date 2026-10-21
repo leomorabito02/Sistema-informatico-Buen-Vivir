@@ -40,9 +40,13 @@ func (f *fakeService) Areas(context.Context, clients.Credentials) ([]models.Area
 	return []models.Area{{ID: "a1"}}, f.err
 }
 
+func (f *fakeService) Promocion(context.Context, clients.Credentials) (models.Promocion, error) {
+	return models.Promocion{Fichas: []models.FichaPromocion{{ID: "f1"}}}, f.err
+}
+
 func newMux(svc *fakeService) *http.ServeMux {
 	mux := http.NewServeMux()
-	routes.RegisterRoutes(mux, controllers.NewDashboardController(svc), nil)
+	routes.RegisterRoutes(mux, routes.Rutas{Dashboard: controllers.NewDashboardController(svc)})
 	return mux
 }
 
@@ -124,9 +128,9 @@ func TestHealth_Y_Metodos(t *testing.T) {
 
 func TestRegisterRoutes_EventosSoloSiHayHandler(t *testing.T) {
 	mux := http.NewServeMux()
-	routes.RegisterRoutes(mux, controllers.NewDashboardController(&fakeService{}), http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+	routes.RegisterRoutes(mux, routes.Rutas{Dashboard: controllers.NewDashboardController(&fakeService{}), Eventos: http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusNoContent)
-	}))
+	})})
 	rec := httptest.NewRecorder()
 	mux.ServeHTTP(rec, httptest.NewRequest(http.MethodPost, "/eventos", nil))
 	if rec.Code != http.StatusNoContent {

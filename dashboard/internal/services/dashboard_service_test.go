@@ -67,7 +67,7 @@ func newFake(t *testing.T, routes map[string]any) (*fake, *clients.Upstream) {
 }
 
 func svcWith(auth, edu, labor *clients.Upstream) services.DashboardService {
-	return services.NewDashboardService(auth, edu, labor)
+	return services.NewDashboardService(auth, edu, labor, nil)
 }
 
 // ── Participantes ──────────────────────────────────────────────────────
@@ -341,4 +341,57 @@ func TestUpstream_SinRespuestaYJSONInvalido(t *testing.T) {
 	if err := bad.GetJSON(context.Background(), "/x", cred, &struct{}{}); err == nil {
 		t.Fatal("URL inválida")
 	}
+}
+
+// ── Promoción Humana ───────────────────────────────────────────────────
+
+func TestPromocion_TraduceFichasEHitos(t *testing.T) {
+	_, ph := upstreamPromocion(t, `{"fichas":[{"id":"f1","participante_id":"p1","estado":"","creada_en":"2026-03-01T00:00:00Z","fecha_baja":null},{"id":"f2","participante_id":"p2","estado":"baja","creada_en":"2026-04-01T00:00:00Z","fecha_baja":"2026-09-01T00:00:00Z"}],"hitos":[{"participante_id":"p1","fecha":"2026-09-10"}]}`)
+	got, err := services.NewDashboardService(nil, nil, nil, ph).Promocion(context.Background(), clients.Credentials{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(got.Fichas) != 2 || got.Fichas[0].Estado != "activa" || got.Fichas[1].Estado != "baja" || got.Fichas[1].FechaBaja == nil {
+		t.Fatalf("fichas: %+v", got.Fichas)
+	}
+	if !got.Fichas[0].FechaAlta.Equal(time.Date(2026, 3, 1, 0, 0, 0, 0, time.UTC)) {
+		t.Fatalf("fecha de alta: %v", got.Fichas[0].FechaAlta)
+	}
+	if len(got.Hitos) != 1 || got.Hitos[0].ParticipanteID != "p1" || got.Hitos[0].Fecha != "2026-09-10" {
+		t.Fatalf("hitos: %+v", got.Hitos)
+	}
+}
+
+func TestPromocion_SinConfigurarYConError(t *testing.T) {
+	if _, err := services.NewDashboardService(nil, nil, nil, nil).Promocion(context.Background(), clients.Credentials{}); !errors.Is(err, clients.ErrNoConfigurado) {
+		t.Fatalf("sin URL: %v", err)
+	}
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) { w.WriteHeader(http.StatusForbidden) }))
+	defer srv.Close()
+	_, err := services.NewDashboardService(nil, nil, nil, clients.NewUpstream("ph", srv.URL, time.Second)).Promocion(context.Background(), clients.Credentials{})
+	var up *clients.UpstreamError
+	if !errors.As(err, &up) || up.Status != http.StatusForbidden {
+		t.Fatalf("403: %v", err)
+	}
+}
+
+func TestPromocion_SinDatosDevuelveListasVacias(t *testing.T) {
+	_, ph := upstreamPromocion(t, `{"fichas":[],"hitos":[]}`)
+	got, err := services.NewDashboardService(nil, nil, nil, ph).Promocion(context.Background(), clients.Credentials{})
+	if err != nil || got.Fichas == nil || got.Hitos == nil {
+		t.Fatalf("%+v %v", got, err)
+	}
+}
+
+func upstreamPromocion(t *testing.T, body string) (*httptest.Server, *clients.Upstream) {
+	t.Helper()
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/api/v1/human-promotion/indicadores" {
+			w.WriteHeader(http.StatusNotFound)
+			return
+		}
+		_, _ = w.Write([]byte(body))
+	}))
+	t.Cleanup(srv.Close)
+	return srv, clients.NewUpstream("ph", srv.URL, 2*time.Second)
 }

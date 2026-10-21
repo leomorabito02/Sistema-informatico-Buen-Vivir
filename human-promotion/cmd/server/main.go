@@ -85,6 +85,7 @@ func main() {
 		Ficha:        controllers.NewFichaController(fichaService, pdfService),
 		Hito:         controllers.NewHitoController(hitoService),
 		Participante: controllers.NewParticipanteController(participanteService),
+		Indicadores:  controllers.NewIndicadoresController(repositories.NewIndicadoresRepository(firestoreClient)),
 	})
 
 	server := &http.Server{

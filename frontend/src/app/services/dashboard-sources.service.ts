@@ -8,6 +8,7 @@ import {
   ParticipanteHabilidadOrigen,
   ParticipanteOrigen,
   PostulacionOrigen,
+  PromocionOrigen,
 } from "../core/models/dashboard.model";
 
 /**
@@ -55,6 +56,11 @@ export class DashboardSourcesService {
   /** Servicio de Educación: áreas formativas. */
   areas(): Observable<AreaFormativa[]> {
     return this.http.get<AreaFormativa[]>(`${this.base}/areas`, this.opts);
+  }
+
+  /** Servicio de Promoción Humana: fichas e hitos (solo ids y fechas). */
+  promocion(): Observable<PromocionOrigen> {
+    return this.http.get<PromocionOrigen>(`${this.base}/promocion`, this.opts);
   }
 
   /** Servicio de Inserción Laboral: postulaciones de todas las ofertas. */

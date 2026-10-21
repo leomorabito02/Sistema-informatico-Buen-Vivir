@@ -113,3 +113,41 @@ type JobApplication struct {
 	ApplicationDate time.Time `json:"fecha_postulacion"`
 	UpdatedAt       time.Time `json:"updated_at"`
 }
+
+// ── Promoción Humana (indicadores agregados por el equipo) ─────────────
+
+// Promocion: fichas e hitos para "Fichas activas" y "Participantes con
+// seguimiento". Solo ids, estados y fechas: Promoción Humana nunca manda
+// el contenido confidencial de fichas ni hitos.
+type Promocion struct {
+	Fichas []FichaPromocion `json:"fichas"`
+	Hitos  []HitoPromocion  `json:"hitos"`
+}
+
+type FichaPromocion struct {
+	ID             string     `json:"id"`
+	ParticipanteID string     `json:"participanteId"`
+	Estado         string     `json:"estado"` // "activa" | "baja"
+	FechaAlta      time.Time  `json:"fechaAlta"`
+	FechaBaja      *time.Time `json:"fechaBaja"`
+}
+
+type HitoPromocion struct {
+	ParticipanteID string `json:"participanteId"`
+	Fecha          string `json:"fecha"` // AAAA-MM-DD
+}
+
+// Promoción Humana: GET /api/v1/human-promotion/indicadores.
+type IndicadoresPH struct {
+	Fichas []struct {
+		ID             string     `json:"id"`
+		ParticipanteID string     `json:"participante_id"`
+		Estado         string     `json:"estado"`
+		CreadaEn       time.Time  `json:"creada_en"`
+		FechaBaja      *time.Time `json:"fecha_baja"`
+	} `json:"fichas"`
+	Hitos []struct {
+		ParticipanteID string `json:"participante_id"`
+		Fecha          string `json:"fecha"`
+	} `json:"hitos"`
+}

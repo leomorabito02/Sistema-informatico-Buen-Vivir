@@ -1,9 +1,9 @@
 /**
  * Modelos del módulo "Dashboard y Reportes" (HU-52 a HU-55).
  *
- * El microservicio de Dashboard (dashboard/, Go) es un agregador: no tiene
- * datos propios y consulta en vivo a Autenticación, Educación e Inserción
- * Laboral. Las interfaces `*Origen` son lo que devuelve cada uno de sus
+ * El microservicio de Dashboard (dashboard/, Go) es un agregador: consulta
+ * en vivo a Autenticación, Educación, Promoción Humana e Inserción
+ * Laboral, y solo guarda el historial de reportes exportados. Las interfaces `*Origen` son lo que devuelve cada uno de sus
  * endpoints (GET /api/v1/dashboard/...), ya traducido a castellano.
  */
 
@@ -69,6 +69,30 @@ export interface PostulacionOrigen {
   fechaEstado: string; // ISO
 }
 
+/** Servicio de Promoción Humana: una ficha de proceso personal. */
+export interface FichaPromocionOrigen {
+  id: string;
+  participanteId: string;
+  estado: "activa" | "baja";
+  fechaAlta: string; // ISO
+  fechaBaja?: string | null;
+}
+
+/** Servicio de Promoción Humana: un hito de avance (solo fecha). */
+export interface HitoPromocionOrigen {
+  participanteId: string;
+  fecha: string; // AAAA-MM-DD
+}
+
+/**
+ * Promoción Humana solo manda ids, estados y fechas: nunca el contenido
+ * confidencial de fichas ni hitos.
+ */
+export interface PromocionOrigen {
+  fichas: FichaPromocionOrigen[];
+  hitos: HitoPromocionOrigen[];
+}
+
 // ── Indicadores y series ──────────────────────────────────────────────
 
 export type IndicadorId =
@@ -76,9 +100,12 @@ export type IndicadorId =
   | "cursosEnDesarrollo"
   | "cursosFinalizados"
   | "habilidadesDesarrolladas"
-  | "insercionesLaborales";
+  | "insercionesLaborales"
+  | "fichasActivas"
+  | "participantesConSeguimiento";
 
-export type FuenteDashboard = "autenticacion" | "educacion" | "insercion";
+export type FuenteDashboard =
+  "autenticacion" | "educacion" | "insercion" | "promocion";
 
 export interface Indicador {
   id: IndicadorId;
@@ -98,7 +125,7 @@ export interface PuntoSerie {
 }
 
 export type GraficaId =
-  "participantes" | "cursos" | "habilidades" | "inserciones";
+  "participantes" | "cursos" | "habilidades" | "inserciones" | "promocion";
 
 export interface SerieGrafica {
   nombre: string;
@@ -134,7 +161,11 @@ export interface ReporteExportado {
   periodo_desde: string; // ISO (fecha)
   periodo_hasta: string; // ISO (fecha)
   filtros_aplicados: FiltrosAplicados;
+  /** Id del usuario que lo exportó (FK lógica a Autenticación, DER). */
   generado_por: string;
+  /** Nombre para mostrar en el historial. */
+  generado_por_nombre: string;
   fecha_generacion: string; // ISO
+  /** Ubicación del PDF en Cloud Storage (gs://...). */
   url_archivo: string;
 }

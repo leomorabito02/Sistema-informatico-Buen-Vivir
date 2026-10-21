@@ -93,19 +93,25 @@ services:
     networks:
       - buenvivir-net
 
-  # Dashboard (HU-52 a HU-55): agregador sin base de datos. Consulta a
-  # auth, education y labor-integration con las credenciales del admin.
+  # Dashboard (HU-52 a HU-55): agregador. Consulta a auth, education,
+  # human-promotion y labor-integration con las credenciales del admin.
   # Sin puerto publicado: solo se llega por el API Gateway, que valida el
-  # token y le pasa el rol (X-User-Role).
+  # token y le pasa el rol (X-User-Role). Si dashboard/.env trae
+  # JWT_SECRET, valida el token por su cuenta; con REPORTES_BUCKET y
+  # credenciales de Google guarda el historial de reportes (HU-55).
   dashboard-service:
     build:
       context: ./dashboard
       dockerfile: Dockerfile
+    env_file:
+      - path: ./dashboard/.env
+        required: false
     environment:
       - PORT=8090
       - AUTH_SERVICE_URL=http://auth-service:8080
       - EDUCATION_SERVICE_URL=http://education-service:8210
       - LABOR_SERVICE_URL=http://labor-integration:8080
+      - HUMAN_PROMOTION_SERVICE_URL=http://human-promotion:8085
     restart: on-failure
     security_opt:
       - no-new-privileges:true
