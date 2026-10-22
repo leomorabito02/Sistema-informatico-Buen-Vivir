@@ -54,6 +54,19 @@
             {{ fechaDMY(c.fecha) }}
           </p>
           <p class="tarjeta-texto">{{ c.texto }}</p>
+          <button
+            type="button"
+            class="tarjeta-comentarios"
+            [attr.aria-expanded]="comentariosAbiertos.has(c.id)"
+            (click)="alternarComentarios(c.id)"
+          >
+            {{ comentariosAbiertos.has(c.id) ? "Ocultar comentarios" : "Ver comentarios" }}
+          </button>
+          <app-comentarios
+            *ngIf="comentariosAbiertos.has(c.id)"
+            entidadTipo="campana"
+            [entidadId]="c.id"
+          ></app-comentarios>
         </div>
       </article>
     </div>

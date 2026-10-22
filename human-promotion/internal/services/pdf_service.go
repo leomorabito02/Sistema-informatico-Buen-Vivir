@@ -19,21 +19,28 @@ var (
 	colorSuave    = [3]int{110, 110, 105}
 )
 
-// PDFService genera en el backend el PDF de la ficha y su línea de
-// hitos (HU-37). Los permisos son los mismos que los de la ficha: los
+// PDFService genera en el backend el PDF de la ficha, su línea de hitos
+// y la actividad en el centro (HU-37). Los permisos son los mismos que los de la ficha: los
 // aplica la ruta, que es la misma que protege a la ficha.
 type PDFService interface {
 	FichaPDF(ctx context.Context, fichaID string) ([]byte, error)
 }
 
 type pdfService struct {
-	fichas FichaService
-	hitos  HitoService
-	now    func() time.Time
+	fichas    FichaService
+	hitos     HitoService
+	actividad ActividadService
+	now       func() time.Time
 }
 
-func NewPDFService(fichas FichaService, hitos HitoService) PDFService {
-	return &pdfService{fichas: fichas, hitos: hitos, now: time.Now}
+// NewPDFService recibe opcionalmente la actividad en el centro (la misma
+// que muestra la ficha en pantalla); sin ella el PDF lleva solo los hitos.
+func NewPDFService(fichas FichaService, hitos HitoService, actividad ...ActividadService) PDFService {
+	s := &pdfService{fichas: fichas, hitos: hitos, now: time.Now}
+	if len(actividad) > 0 {
+		s.actividad = actividad[0]
+	}
+	return s
 }
 
 func (s *pdfService) FichaPDF(ctx context.Context, fichaID string) ([]byte, error) {
@@ -115,11 +122,39 @@ func (s *pdfService) FichaPDF(ctx context.Context, fichaID string) ([]byte, erro
 		pdf.Ln(2)
 	}
 
+	if s.actividad != nil {
+		s.seccionActividad(ctx, pdf, tr, fichaID)
+	}
+
 	var buf bytes.Buffer
 	if err := pdf.Output(&buf); err != nil {
 		return nil, fmt.Errorf("error generando el PDF: %w", err)
 	}
 	return buf.Bytes(), nil
+}
+
+// seccionActividad agrega la actividad en el centro (inscripciones,
+// cursos completados y asistencia por mes). Si no se puede leer, el PDF
+// sale igual con un aviso: es un dato complementario de la ficha.
+func (s *pdfService) seccionActividad(ctx context.Context, pdf *fpdf.Fpdf, tr func(string) string, fichaID string) {
+	pdf.Ln(2)
+	seccion(pdf, tr, "Actividad en el centro")
+	entradas, err := s.actividad.DeFicha(ctx, fichaID)
+	if err != nil {
+		parrafo(pdf, tr, "La actividad en el centro no está disponible en este momento.")
+		return
+	}
+	if len(entradas) == 0 {
+		parrafo(pdf, tr, "Todavía no hay actividad registrada en el centro.")
+		return
+	}
+	for _, e := range entradas {
+		pdf.SetFont("Helvetica", "B", 10)
+		setColor(pdf, colorPrimario)
+		pdf.MultiCell(0, 5, tr(formatoFecha(e.Fecha)), "", "L", false)
+		parrafo(pdf, tr, e.Descripcion)
+		pdf.Ln(1)
+	}
 }
 
 func seccion(pdf *fpdf.Fpdf, tr func(string) string, titulo string) {

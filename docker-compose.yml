@@ -225,6 +225,25 @@ services:
     networks:
       - buenvivir-net
 
+  # Emulador de Pub/Sub para probar los eventos en local (docs/eventos).
+  # Va en el perfil "eventos": `docker compose up` no lo levanta. Uso:
+  #   docker compose --profile eventos up -d pubsub-emulator
+  #   PUBSUB_EMULATOR_HOST=localhost:8086 infra/pubsub/emulator.sh
+  pubsub-emulator:
+    image: gcr.io/google.com/cloudsdktool/google-cloud-cli:emulators
+    container_name: buenvivir-pubsub-emulator
+    profiles: ["eventos"]
+    command: gcloud beta emulators pubsub start --host-port=0.0.0.0:8086 --project=ceibuenvivir
+    ports:
+      - "127.0.0.1:8086:8086"
+    restart: on-failure
+    security_opt:
+      - no-new-privileges:true
+    mem_limit: 512m
+    cpus: "0.5"
+    networks:
+      - buenvivir-net
+
 networks:
   buenvivir-net:
     driver: bridge

@@ -42,6 +42,7 @@ import { User } from "../../../core/models/auth.model";
 })
 export class OfertasComponent implements OnInit {
   searchTerm: string = "";
+  private busquedaTimer?: ReturnType<typeof setTimeout>;
   showDialog = false;
   isEditing = false;
   currentRequisito = "";
@@ -70,13 +71,15 @@ export class OfertasComponent implements OnInit {
   isCompany = false;
   isParticipant = false;
   isAdminOrVolunteer = false;
+  /** Aprobar y rechazar ofertas es solo del administrador (HU-41). */
+  isAdmin = false;
   userId = "";
   currentUserName = "";
 
   // Tabs for filtering
   currentTab = "Disponibles"; // For participants
   companyTab = "Todas"; // For companies
-  adminTab = "Pendientes"; // For admin/volunteer
+  adminTab = "Pendiente"; // For admin/volunteer (mismo valor que el estado de la oferta)
 
   employmentTypes = [
     { label: "Todos", value: null },
@@ -114,8 +117,9 @@ export class OfertasComponent implements OnInit {
         if (res?.role_id) {
           this.isCompany = res.role_id === "role_company";
           this.isParticipant = res.role_id === "role_participant";
+          this.isAdmin = res.role_id === "role_admin";
           this.isAdminOrVolunteer =
-            res.role_id === "role_admin" || res.role_id === "role_volunteer";
+            this.isAdmin || res.role_id === "role_volunteer";
         }
         const r = res as any;
         const uid = r.user_id || res?.user?.user_id;
@@ -164,8 +168,14 @@ export class OfertasComponent implements OnInit {
     });
   }
 
+  /** Espera a que se deje de tipear y pide las ofertas con el texto a labor-integration. */
+  buscar() {
+    clearTimeout(this.busquedaTimer);
+    this.busquedaTimer = setTimeout(() => this.loadJobs(), 300);
+  }
+
   loadJobs() {
-    this.jobOfferService.getOffers().subscribe({
+    this.jobOfferService.getOffers(this.searchTerm).subscribe({
       next: (data) => {
         this.jobs = data || [];
         this.filterJobs();
@@ -186,16 +196,6 @@ export class OfertasComponent implements OnInit {
     if (this.selectedEmploymentType) {
       filtered = filtered.filter(
         (j) => j.tipo_empleo === this.selectedEmploymentType,
-      );
-    }
-
-    const term = this.searchTerm.toLowerCase().trim();
-    if (term) {
-      filtered = filtered.filter(
-        (j) =>
-          j.titulo.toLowerCase().includes(term) ||
-          j.ubicacion.toLowerCase().includes(term) ||
-          j.tipo_empleo.toLowerCase().includes(term),
       );
     }
 

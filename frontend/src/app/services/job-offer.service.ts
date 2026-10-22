@@ -1,5 +1,5 @@
 import { Injectable } from "@angular/core";
-import { HttpClient } from "@angular/common/http";
+import { HttpClient, HttpParams } from "@angular/common/http";
 import { Observable } from "rxjs";
 import { environment } from "../../environments/environment";
 
@@ -37,8 +37,14 @@ export class JobOfferService {
 
   constructor(private readonly http: HttpClient) {}
 
-  getOffers(): Observable<JobOffer[]> {
-    return this.http.get<JobOffer[]>(this.apiUrl, { withCredentials: true });
+  /** `q` lo busca labor-integration en título, empresa y ubicación (HU-45, HU-46). */
+  getOffers(q = ""): Observable<JobOffer[]> {
+    const texto = q.trim();
+    const params = texto ? new HttpParams().set("q", texto) : undefined;
+    return this.http.get<JobOffer[]>(this.apiUrl, {
+      params,
+      withCredentials: true,
+    });
   }
 
   createOffer(offer: JobOffer): Observable<JobOffer> {

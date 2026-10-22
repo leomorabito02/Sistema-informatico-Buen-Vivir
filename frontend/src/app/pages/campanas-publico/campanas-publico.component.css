@@ -158,3 +158,21 @@
   overflow: hidden;
   clip: rect(0 0 0 0);
 }
+
+.tarjeta-comentarios {
+  margin-top: 0.75rem;
+  background: none;
+  border: none;
+  padding: 0;
+  color: var(--primary);
+  font: inherit;
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+.tarjeta-comentarios:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}

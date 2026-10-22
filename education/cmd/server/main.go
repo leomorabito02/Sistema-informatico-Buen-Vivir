@@ -77,6 +77,7 @@ func main() {
 	submissionRepo := repositories.NewSubmissionRepository(firestoreClient, eventProducer)
 	generalAttendanceRepo := repositories.NewGeneralAttendanceRepository(firestoreClient, eventProducer)
 	skillRepo := repositories.NewSkillRepository(firestoreClient, eventProducer)
+	commentRepo := repositories.NewCommentRepository(firestoreClient)
 	authServiceClient := repositories.NewAuthServiceClient(cfg.AuthServiceURL)
 
 	jwtService := services.NewJWTService()
@@ -112,6 +113,7 @@ func main() {
 	generalAttendanceController := controllers.NewGeneralAttendanceController(generalAttendanceService)
 	activityController := controllers.NewActivityController(courseService, activityService, submissionService)
 	submissionController := controllers.NewSubmissionController(courseService, activityService, submissionService)
+	commentController := controllers.NewCommentController(services.NewCommentService(commentRepo))
 	skillController := controllers.NewSkillController(courseService, activityService, skillService, skillSuggestionService, submissionService)
 
 	r := chi.NewRouter()
@@ -132,6 +134,7 @@ func main() {
 			Activity:          activityController,
 			Submission:        submissionController,
 			Skill:             skillController,
+			Comment:           commentController,
 		},
 	)
 

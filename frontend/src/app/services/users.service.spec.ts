@@ -77,13 +77,24 @@ describe("UsersService", () => {
     req.flush({ success: true } as any);
   });
 
+  it("sends the search text to the backend", () => {
+    service.listUsers({ q: "  ana " }).subscribe();
+
+    const req = httpMock.expectOne(
+      `${environment.apiUrl ?? ""}/api/v1/users?q=ana`,
+    );
+    req.flush({ success: true, data: [] });
+  });
+
   it("should list users by role", () => {
     service.listByRole("role_admin").subscribe((users) => {
       expect(users).toHaveSize(1);
       expect(users[0].first_name).toBe("Admin");
     });
 
-    const req = httpMock.expectOne(`${environment.apiUrl ?? ""}/api/v1/users`);
+    const req = httpMock.expectOne(
+      `${environment.apiUrl ?? ""}/api/v1/users?role=role_admin`,
+    );
     req.flush({ success: true, data: mockUsers });
   });
 

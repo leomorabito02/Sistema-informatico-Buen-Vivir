@@ -8,15 +8,17 @@ import { LucideAngularModule, ArrowLeft, Megaphone, Search, Calendar } from "luc
 import { FooterComponent } from "../../components/layout/footer/footer.component";
 import { CampaignsService } from "../../services/campaigns.service";
 import { Campana } from "../../core/models/campaign.model";
+import { ComentariosComponent } from "../../shared/components/comentarios.component";
 
 /**
  * Campañas publicadas, para cualquier visitante sin iniciar sesión
- * (HU-50), con búsqueda por título (HU-51). La portada enlaza acá.
+ * (HU-50), con búsqueda por título (HU-51) y comentarios (HU-24). La
+ * portada enlaza acá.
  */
 @Component({
   selector: "app-campanas-publico",
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink, LucideAngularModule, FooterComponent],
+  imports: [CommonModule, FormsModule, RouterLink, LucideAngularModule, FooterComponent, ComentariosComponent],
   templateUrl: "./campanas-publico.component.html",
   styleUrl: "./campanas-publico.component.css",
 })
@@ -31,6 +33,8 @@ export class CampanasPublicoComponent implements OnInit {
   private readonly busqueda$ = new Subject<string>();
 
   campanas: Campana[] = [];
+  /** Campañas con los comentarios abiertos: se piden recién al abrirlos. */
+  readonly comentariosAbiertos = new Set<string>();
   busqueda = "";
   cargando = true;
   error = "";
@@ -70,5 +74,10 @@ export class CampanasPublicoComponent implements OnInit {
   fechaDMY(fecha: string): string {
     const [a, m, d] = fecha.split("-");
     return d && m && a ? `${d}/${m}/${a}` : fecha;
+  }
+
+  alternarComentarios(id: string): void {
+    if (this.comentariosAbiertos.has(id)) this.comentariosAbiertos.delete(id);
+    else this.comentariosAbiertos.add(id);
   }
 }

@@ -64,6 +64,15 @@ func (c *JobOfferController) List(w http.ResponseWriter, r *http.Request) {
 		companyID = r.Header.Get(headerUserID)
 	}
 
+	// ?q= busca en título, empresa y ubicación; ?empresa= deja solo las
+	// ofertas de esa empresa (HU-45, HU-46).
+	q := r.URL.Query().Get("q")
+	empresa := r.URL.Query().Get("empresa")
+	if len([]rune(q)) > services.MaxBusquedaOfertas || len([]rune(empresa)) > services.MaxBusquedaOfertas {
+		http.Error(w, "search too long", http.StatusBadRequest)
+		return
+	}
+
 	offers, err := c.service.ListOffers(r.Context(), companyID, role)
 	if err != nil {
 		http.Error(w, "failed to list offers", http.StatusInternalServerError)
@@ -71,7 +80,7 @@ func (c *JobOfferController) List(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(offers)
+	json.NewEncoder(w).Encode(services.FiltrarOfertas(offers, q, empresa))
 }
 
 func (c *JobOfferController) Update(w http.ResponseWriter, r *http.Request) {
@@ -117,8 +126,10 @@ func (c *JobOfferController) Delete(w http.ResponseWriter, r *http.Request) {
 }
 
 func (c *JobOfferController) Approve(w http.ResponseWriter, r *http.Request) {
+	// Aprobar y rechazar es solo del administrador (HU-41); el voluntario
+	// consulta ofertas sin poder aprobarlas (HU-06).
 	role := r.Header.Get(headerUserRole)
-	if role != "role_admin" && role != "role_volunteer" {
+	if role != "role_admin" {
 		http.Error(w, "unauthorized", http.StatusForbidden)
 		return
 	}
@@ -136,7 +147,7 @@ func (c *JobOfferController) Approve(w http.ResponseWriter, r *http.Request) {
 
 func (c *JobOfferController) Reject(w http.ResponseWriter, r *http.Request) {
 	role := r.Header.Get(headerUserRole)
-	if role != "role_admin" && role != "role_volunteer" {
+	if role != "role_admin" {
 		http.Error(w, "unauthorized", http.StatusForbidden)
 		return
 	}

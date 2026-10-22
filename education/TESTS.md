@@ -3,8 +3,8 @@
 Este documento explica **qué prueba** la suite de tests de
 `education-service`, **cómo está organizada** y **cómo correrla**. Es el
 complemento automatizado de `PRUEBAS.md` (guía de pruebas manuales de la
-migración a chi) y de `docs/PRUEBAS_AUTH_EDUCATION.md` (pruebas de
-integración auth ↔ education con Postman).
+migración a chi). Las pruebas manuales con usuarios de cada rol se hacen
+con las cuentas de `docs/tesis/usuarios-de-prueba.docx`.
 
 > **Origen del diseño.** La suite se construyó **calcando el enfoque de
 > `auth/`** (mismos frameworks, misma estructura de carpetas, mismo
@@ -269,6 +269,5 @@ Espejo de los de `auth/`, en la raíz de `education/`:
 - **El poll de "asset no terminó de procesarse"** en `UploadAsset`: son
   25 intentos × 800 ms; testear el timeout tardaría 20 s, así que solo se
   cubre el camino feliz y el fallo de subida del binario.
-- **Integración auth ↔ education con JWT real**: eso es
-  `docs/PRUEBAS_AUTH_EDUCATION.md` (manual, con usuarios reales de la DB
-  de auth).
+- **Integración auth ↔ education con JWT real**: se prueba a mano con
+  las cuentas de `docs/tesis/usuarios-de-prueba.docx`.

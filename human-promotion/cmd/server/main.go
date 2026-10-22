@@ -78,7 +78,7 @@ func main() {
 	hitoService := services.NewHitoService(hitoRepo, fichaRepo, fieldCipher, authDirectory)
 	actividadService := services.NewActividadService(repositories.NewLineaTiempoRepository(firestoreClient), fichaRepo)
 	participanteService := services.NewParticipanteService(authDirectory, fichaRepo, hitoRepo, fieldCipher, actividadService)
-	pdfService := services.NewPDFService(fichaService, hitoService)
+	pdfService := services.NewPDFService(fichaService, hitoService, actividadService)
 
 	r := chi.NewRouter()
 	middlewares.SetupMiddlewares(r, cfg.CORSAllowedOrigins)
