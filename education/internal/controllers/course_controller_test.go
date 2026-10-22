@@ -7,6 +7,7 @@ import (
 	"errors"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"github.com/go-chi/chi/v5"
@@ -139,6 +140,36 @@ func TestCourseController_List_Success(t *testing.T) {
 	ctrl.List(w, req)
 
 	assert.Equal(t, http.StatusOK, w.Code)
+}
+
+func TestCourseController_List_Busqueda(t *testing.T) {
+	mockSvc := new(MockCourseService)
+	ctrl := controllers.NewCourseController(mockSvc)
+
+	mockSvc.On("ListCourses", mock.Anything).Return([]models.Course{
+		{ID: "c1", Title: "Huerta agroecológica"},
+		{ID: "c2", Title: "Panadería"},
+	}, nil)
+
+	req := httptest.NewRequest("GET", "/api/cursos?q=huerta", nil)
+	w := httptest.NewRecorder()
+	ctrl.List(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+	assert.Contains(t, w.Body.String(), `"id":"c1"`)
+	assert.NotContains(t, w.Body.String(), `"id":"c2"`)
+}
+
+func TestCourseController_List_BusquedaDemasiadoLarga(t *testing.T) {
+	mockSvc := new(MockCourseService)
+	ctrl := controllers.NewCourseController(mockSvc)
+
+	req := httptest.NewRequest("GET", "/api/cursos?q="+strings.Repeat("a", 101), nil)
+	w := httptest.NewRecorder()
+	ctrl.List(w, req)
+
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+	mockSvc.AssertNotCalled(t, "ListCourses", mock.Anything)
 }
 
 func TestCourseController_List_ServiceError(t *testing.T) {

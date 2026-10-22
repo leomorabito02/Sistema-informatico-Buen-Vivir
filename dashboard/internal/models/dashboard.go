@@ -52,6 +52,48 @@ type Area struct {
 	Nombre string `json:"nombre"`
 }
 
+// ── Resumen ya calculado (GET /api/v1/dashboard/resumen) ───────────────
+
+// Indicador es un número del dashboard (HU-52). Valor es nil y Disponible
+// false cuando el servicio de origen no respondió.
+type Indicador struct {
+	ID          string `json:"id"`
+	Titulo      string `json:"titulo"`
+	Descripcion string `json:"descripcion"`
+	Modulo      string `json:"modulo"` // "usuarios" | "educacion" | "promocion" | "insercion"
+	Fuente      string `json:"fuente"` // "autenticacion" | "educacion" | "promocion" | "insercion"
+	Valor       *int   `json:"valor"`
+	Disponible  bool   `json:"disponible"`
+}
+
+// PuntoSerie es el valor de un mes ("AAAA-MM").
+type PuntoSerie struct {
+	Mes   string `json:"mes"`
+	Valor int    `json:"valor"`
+}
+
+type SerieGrafica struct {
+	Nombre string       `json:"nombre"`
+	Puntos []PuntoSerie `json:"puntos"`
+}
+
+// Grafica es la evolución mensual de uno o más indicadores (HU-53).
+// Series es nil (null en JSON) cuando el servicio de origen no respondió.
+type Grafica struct {
+	ID          string         `json:"id"`
+	Titulo      string         `json:"titulo"`
+	Tipo        string         `json:"tipo"` // "line" | "bar"
+	Modulo      string         `json:"modulo"`
+	Indicadores []string       `json:"indicadores"`
+	Series      []SerieGrafica `json:"series"`
+}
+
+// Resumen son los indicadores y gráficas para los filtros pedidos.
+type Resumen struct {
+	Indicadores []Indicador `json:"indicadores"`
+	Graficas    []Grafica   `json:"graficas"`
+}
+
 // ── Lo que devuelve cada servicio de origen ────────────────────────────
 
 // Autenticación: GET /api/v1/users/participants/history, dentro del

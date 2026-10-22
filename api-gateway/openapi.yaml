@@ -2842,10 +2842,10 @@ paths:
               type: boolean
             Access-Control-Max-Age:
               type: integer
-  /api/v1/dashboard/participantes:
+  /api/v1/dashboard/resumen:
     get:
-      summary: GET /api/v1/dashboard/participantes
-      operationId: get__api_v1_dashboard_participantes
+      summary: GET /api/v1/dashboard/resumen
+      operationId: get__api_v1_dashboard_resumen
       x-google-backend:
         address: ${DASHBOARD_SERVICE_URL}
         path_translation: APPEND_PATH_TO_ADDRESS
@@ -2854,110 +2854,8 @@ paths:
         '200':
           description: OK
     options:
-      summary: CORS preflight for /api/v1/dashboard/participantes
-      operationId: options__api_v1_dashboard_participantes
-      x-google-backend:
-        address: ${DASHBOARD_SERVICE_URL}
-        path_translation: APPEND_PATH_TO_ADDRESS
-        jwt_audience: ${DASHBOARD_SERVICE_URL}
-      responses:
-        '200':
-          description: OK
-          headers:
-            Access-Control-Allow-Origin:
-              type: string
-            Access-Control-Allow-Methods:
-              type: string
-            Access-Control-Allow-Headers:
-              type: string
-            Access-Control-Expose-Headers:
-              type: string
-            Access-Control-Allow-Credentials:
-              type: boolean
-            Access-Control-Max-Age:
-              type: integer
-  /api/v1/dashboard/cursos:
-    get:
-      summary: GET /api/v1/dashboard/cursos
-      operationId: get__api_v1_dashboard_cursos
-      x-google-backend:
-        address: ${DASHBOARD_SERVICE_URL}
-        path_translation: APPEND_PATH_TO_ADDRESS
-        jwt_audience: ${DASHBOARD_SERVICE_URL}
-      responses:
-        '200':
-          description: OK
-    options:
-      summary: CORS preflight for /api/v1/dashboard/cursos
-      operationId: options__api_v1_dashboard_cursos
-      x-google-backend:
-        address: ${DASHBOARD_SERVICE_URL}
-        path_translation: APPEND_PATH_TO_ADDRESS
-        jwt_audience: ${DASHBOARD_SERVICE_URL}
-      responses:
-        '200':
-          description: OK
-          headers:
-            Access-Control-Allow-Origin:
-              type: string
-            Access-Control-Allow-Methods:
-              type: string
-            Access-Control-Allow-Headers:
-              type: string
-            Access-Control-Expose-Headers:
-              type: string
-            Access-Control-Allow-Credentials:
-              type: boolean
-            Access-Control-Max-Age:
-              type: integer
-  /api/v1/dashboard/habilidades:
-    get:
-      summary: GET /api/v1/dashboard/habilidades
-      operationId: get__api_v1_dashboard_habilidades
-      x-google-backend:
-        address: ${DASHBOARD_SERVICE_URL}
-        path_translation: APPEND_PATH_TO_ADDRESS
-        jwt_audience: ${DASHBOARD_SERVICE_URL}
-      responses:
-        '200':
-          description: OK
-    options:
-      summary: CORS preflight for /api/v1/dashboard/habilidades
-      operationId: options__api_v1_dashboard_habilidades
-      x-google-backend:
-        address: ${DASHBOARD_SERVICE_URL}
-        path_translation: APPEND_PATH_TO_ADDRESS
-        jwt_audience: ${DASHBOARD_SERVICE_URL}
-      responses:
-        '200':
-          description: OK
-          headers:
-            Access-Control-Allow-Origin:
-              type: string
-            Access-Control-Allow-Methods:
-              type: string
-            Access-Control-Allow-Headers:
-              type: string
-            Access-Control-Expose-Headers:
-              type: string
-            Access-Control-Allow-Credentials:
-              type: boolean
-            Access-Control-Max-Age:
-              type: integer
-  /api/v1/dashboard/postulaciones:
-    get:
-      summary: GET /api/v1/dashboard/postulaciones
-      operationId: get__api_v1_dashboard_postulaciones
-      x-google-backend:
-        address: ${DASHBOARD_SERVICE_URL}
-        path_translation: APPEND_PATH_TO_ADDRESS
-        jwt_audience: ${DASHBOARD_SERVICE_URL}
-      responses:
-        '200':
-          description: OK
-    options:
-      summary: CORS preflight for /api/v1/dashboard/postulaciones
-      operationId: options__api_v1_dashboard_postulaciones
+      summary: CORS preflight for /api/v1/dashboard/resumen
+      operationId: options__api_v1_dashboard_resumen
       x-google-backend:
         address: ${DASHBOARD_SERVICE_URL}
         path_translation: APPEND_PATH_TO_ADDRESS
@@ -2992,40 +2890,6 @@ paths:
     options:
       summary: CORS preflight for /api/v1/dashboard/areas
       operationId: options__api_v1_dashboard_areas
-      x-google-backend:
-        address: ${DASHBOARD_SERVICE_URL}
-        path_translation: APPEND_PATH_TO_ADDRESS
-        jwt_audience: ${DASHBOARD_SERVICE_URL}
-      responses:
-        '200':
-          description: OK
-          headers:
-            Access-Control-Allow-Origin:
-              type: string
-            Access-Control-Allow-Methods:
-              type: string
-            Access-Control-Allow-Headers:
-              type: string
-            Access-Control-Expose-Headers:
-              type: string
-            Access-Control-Allow-Credentials:
-              type: boolean
-            Access-Control-Max-Age:
-              type: integer
-  /api/v1/dashboard/promocion:
-    get:
-      summary: GET /api/v1/dashboard/promocion
-      operationId: get__api_v1_dashboard_promocion
-      x-google-backend:
-        address: ${DASHBOARD_SERVICE_URL}
-        path_translation: APPEND_PATH_TO_ADDRESS
-        jwt_audience: ${DASHBOARD_SERVICE_URL}
-      responses:
-        '200':
-          description: OK
-    options:
-      summary: CORS preflight for /api/v1/dashboard/promocion
-      operationId: options__api_v1_dashboard_promocion
       x-google-backend:
         address: ${DASHBOARD_SERVICE_URL}
         path_translation: APPEND_PATH_TO_ADDRESS

@@ -8,10 +8,7 @@ import { provideNoopAnimations } from "@angular/platform-browser/animations";
 import { provideRouter } from "@angular/router";
 import { Subject, of, throwError } from "rxjs";
 import { DashboardPageComponent } from "./dashboard-page.component";
-import {
-  DashboardService,
-  calcularDashboard,
-} from "../../../services/dashboard.service";
+import { DashboardService } from "../../../services/dashboard.service";
 import { ReportesService } from "../../../services/reportes.service";
 import { AuthService } from "../../../services/auth.service";
 import {
@@ -29,21 +26,86 @@ import {
 import { HistorialReportesComponent } from "./historial-reportes.component";
 import { MeResponse } from "../../../core/models/auth.model";
 
-const vacio: DashboardData = calcularDashboard(
-  {
-    participantes: [],
-    cursos: [],
-    habilidades: [],
-    postulaciones: [],
-    promocion: { fichas: [], hitos: [] },
-  },
-  {
-    desde: new Date(2026, 0, 1),
-    hasta: new Date(2026, 1, 28),
-    modulo: "todos",
-    areaId: null,
-  },
-);
+// Lo que devuelve el backend (GET /api/v1/dashboard/resumen) para un
+// período de dos meses sin datos.
+const ceros = [
+  { mes: "2026-01", valor: 0 },
+  { mes: "2026-02", valor: 0 },
+];
+const indicador = (
+  id: Indicador["id"],
+  titulo: string,
+  modulo: Indicador["modulo"],
+  fuente: Indicador["fuente"],
+): Indicador => ({
+  id,
+  titulo,
+  descripcion: titulo,
+  modulo,
+  fuente,
+  valor: 0,
+  disponible: true,
+});
+const grafica = (
+  id: Grafica["id"],
+  modulo: Grafica["modulo"],
+  series: string[],
+): Grafica => ({
+  id,
+  titulo: id,
+  tipo: "line",
+  modulo,
+  indicadores: [],
+  series: series.map((nombre) => ({ nombre, puntos: ceros })),
+});
+const vacio: DashboardData = {
+  indicadores: [
+    indicador(
+      "participantesActivos",
+      "Participantes activos",
+      "usuarios",
+      "autenticacion",
+    ),
+    indicador(
+      "cursosEnDesarrollo",
+      "Cursos en desarrollo",
+      "educacion",
+      "educacion",
+    ),
+    indicador(
+      "cursosFinalizados",
+      "Cursos finalizados",
+      "educacion",
+      "educacion",
+    ),
+    indicador(
+      "habilidadesDesarrolladas",
+      "Habilidades desarrolladas",
+      "educacion",
+      "educacion",
+    ),
+    indicador(
+      "insercionesLaborales",
+      "Inserciones laborales",
+      "insercion",
+      "insercion",
+    ),
+    indicador("fichasActivas", "Fichas activas", "promocion", "promocion"),
+    indicador(
+      "participantesConSeguimiento",
+      "Participantes con seguimiento",
+      "promocion",
+      "promocion",
+    ),
+  ],
+  graficas: [
+    grafica("participantes", "usuarios", ["Participantes activos"]),
+    grafica("cursos", "educacion", ["En desarrollo", "Finalizados"]),
+    grafica("habilidades", "educacion", ["Habilidades desarrolladas"]),
+    grafica("inserciones", "insercion", ["Inserciones laborales"]),
+    grafica("promocion", "promocion", ["Fichas activas", "Con seguimiento"]),
+  ],
+};
 
 describe("DashboardPageComponent", () => {
   let fixture: ComponentFixture<DashboardPageComponent>;
@@ -66,7 +128,10 @@ describe("DashboardPageComponent", () => {
         errorHistorial: () => null,
       },
     );
-    reportes.exportar.and.resolveTo({ reporte: {} as ReporteExportado, guardado: true });
+    reportes.exportar.and.resolveTo({
+      reporte: {} as ReporteExportado,
+      guardado: true,
+    });
     const auth = jasmine.createSpyObj("AuthService", ["isAuthenticated"]);
     auth.isAuthenticated.and.returnValue(
       of({ user: { first_name: "Sofía", last_name: "Cuozzo" } } as MeResponse),
@@ -143,7 +208,11 @@ describe("DashboardPageComponent", () => {
   }));
 
   it("si el PDF se descargó pero no se guardó, avisa sin decir que falló todo", fakeAsync(() => {
-    reportes.exportar.and.resolveTo({ reporte: null, guardado: false, error: "El historial de reportes no está configurado en este entorno" });
+    reportes.exportar.and.resolveTo({
+      reporte: null,
+      guardado: false,
+      error: "El historial de reportes no está configurado en este entorno",
+    });
     respuesta$.next(vacio);
     fixture.detectChanges();
     component.exportar();
@@ -163,6 +232,23 @@ describe("DashboardPageComponent", () => {
     expect(component.exportando).toBeFalse();
     expect(document.body.textContent).toContain("No se pudo exportar");
   }));
+
+  it("si el Dashboard no responde, muestra el error y permite reintentar", () => {
+    respuesta$.error(new Error("502"));
+    fixture.detectChanges();
+    const el: HTMLElement = fixture.nativeElement;
+    expect(component.error).toContain("No se pudieron cargar los indicadores");
+    expect(el.querySelector("app-error-state")).not.toBeNull();
+    expect(component.puedeExportar).toBeFalse();
+
+    respuesta$ = new Subject<DashboardData>();
+    component.reintentar();
+    expect(dashboard.cargar).toHaveBeenCalledTimes(2);
+    respuesta$.next(vacio);
+    fixture.detectChanges();
+    expect(component.error).toBe("");
+    expect(el.querySelectorAll("app-kpi-card").length).toBe(7);
+  });
 
   it("si las áreas no cargan, deshabilita ese filtro", () => {
     dashboard.areas.and.returnValue(throwError(() => new Error("x")));

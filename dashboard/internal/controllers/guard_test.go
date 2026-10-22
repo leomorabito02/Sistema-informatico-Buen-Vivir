@@ -56,14 +56,16 @@ func TestGuardConToken(t *testing.T) {
 	svc := &credService{}
 	mux := muxConToken(t, svc)
 	pedir := func(armar func(*http.Request)) int {
-		req := httptest.NewRequest(http.MethodGet, "/api/v1/dashboard/participantes", nil)
+		req := httptest.NewRequest(http.MethodGet, "/api/v1/dashboard/resumen?desde=2026-01-01&hasta=2026-06-30", nil)
 		armar(req)
 		rec := httptest.NewRecorder()
 		mux.ServeHTTP(rec, req)
 		return rec.Code
 	}
 
-	if c := pedir(func(r *http.Request) { r.AddCookie(&http.Cookie{Name: "__Host-access_token", Value: tokenDe(t, "role_admin")}) }); c != http.StatusOK {
+	if c := pedir(func(r *http.Request) {
+		r.AddCookie(&http.Cookie{Name: "__Host-access_token", Value: tokenDe(t, "role_admin")})
+	}); c != http.StatusOK {
 		t.Errorf("admin con cookie: %d", c)
 	}
 	if svc.visto.UserID != "admin-1" || svc.visto.UserRole != "role_admin" {
@@ -90,16 +92,6 @@ func TestGuardConToken(t *testing.T) {
 	}
 	if c := pedir(func(r *http.Request) { r.Header.Set("X-User-Role", "role_admin") }); c != http.StatusUnauthorized {
 		t.Errorf("solo el header, sin token: esperaba 401, obtuve %d", c)
-	}
-}
-
-func TestPromocion(t *testing.T) {
-	w := get(newMux(&fakeService{}), "/api/v1/dashboard/promocion", "role_admin")
-	if w.Code != http.StatusOK || !strings.Contains(w.Body.String(), `"id":"f1"`) {
-		t.Fatalf("promocion: %d %s", w.Code, w.Body.String())
-	}
-	if w := get(newMux(&fakeService{}), "/api/v1/dashboard/promocion", "role_volunteer"); w.Code != http.StatusForbidden {
-		t.Fatalf("voluntario: %d", w.Code)
 	}
 }
 

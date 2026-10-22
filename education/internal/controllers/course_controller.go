@@ -17,14 +17,30 @@ func NewCourseController(service services.CourseService) *CourseController {
 	return &CourseController{service: service}
 }
 
-// List responde GET /api/cursos
+// List responde GET /api/cursos?q=texto. q es opcional: busca en título,
+// área formativa y descripción (ver services.FiltrarCursos).
 func (c *CourseController) List(w http.ResponseWriter, r *http.Request) {
+	q, ok := busquedaCursos(w, r)
+	if !ok {
+		return
+	}
 	courses, err := c.service.ListCourses(r.Context())
 	if err != nil {
 		writeError(w, err)
 		return
 	}
-	writeJSON(w, http.StatusOK, courses)
+	writeJSON(w, http.StatusOK, services.FiltrarCursos(courses, q))
+}
+
+// busquedaCursos lee el parámetro q del catálogo; si es demasiado largo
+// responde 400 y devuelve ok = false.
+func busquedaCursos(w http.ResponseWriter, r *http.Request) (string, bool) {
+	q := r.URL.Query().Get("q")
+	if len([]rune(q)) > services.MaxBusquedaCursos {
+		writeErrorJSON(w, http.StatusBadRequest, "La búsqueda admite hasta 100 caracteres")
+		return "", false
+	}
+	return q, true
 }
 
 // ListDrafts responde GET /api/cursos/borradores (solo role_admin):
