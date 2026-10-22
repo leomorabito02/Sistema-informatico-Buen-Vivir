@@ -88,7 +88,7 @@ func (p *Educacion) CursoEliminado(ctx context.Context, cursoID string) error {
 // borrador hasta que la administración lo publique (HU-23).
 func (p *Educacion) ContenidoDocenteSubido(ctx context.Context, c *models.Course) error {
 	return p.emit(ctx, nil, p.event(events.ContenidoDocenteSubido, events.ContenidoDocenteSubidoPayload{
-		CursoID: c.ID, DocenteID: c.ResponsibleTeacher, Tipo: "curso",
+		CursoID: c.ID, DocenteID: c.ResponsibleTeacher, Tipo: events.ContenidoTipoCurso,
 	}, ""))
 }
 
@@ -97,6 +97,33 @@ func (p *Educacion) ContenidoDocenteModerado(ctx context.Context, cursoID, resul
 	return p.emit(ctx, nil, p.event(events.ContenidoDocenteModerado, events.ContenidoDocenteModeradoPayload{
 		CursoID: cursoID, Resultado: resultado,
 	}, ""))
+}
+
+// ── Contenido de docentes externos (ContenidoDocente, Firestore: van en
+// la misma transacción que el cambio) ──────────────────────────────────
+
+// MaterialDocenteSubido: un docente subió un material que queda
+// pendiente de moderación (HU-23).
+func (p *Educacion) MaterialDocenteSubido(ctx context.Context, tx *firestore.Transaction, c models.ContenidoDocente) error {
+	return p.emit(ctx, tx, p.event(events.ContenidoDocenteSubido, materialSubidoPayload(c), ""))
+}
+
+// Solo ids y el estado: ni el título ni la descripción ni el motivo del
+// rechazo (sin texto libre en los eventos, ADR 0007).
+func materialSubidoPayload(c models.ContenidoDocente) events.ContenidoDocenteSubidoPayload {
+	return events.ContenidoDocenteSubidoPayload{ContenidoID: c.ID, DocenteID: c.DocenteID, Tipo: events.ContenidoTipoMaterial}
+}
+
+func materialModeradoPayload(c models.ContenidoDocente) events.ContenidoDocenteModeradoPayload {
+	return events.ContenidoDocenteModeradoPayload{
+		ContenidoID: c.ID, DocenteID: c.DocenteID, Tipo: events.ContenidoTipoMaterial, Resultado: c.EstadoModeracion,
+	}
+}
+
+// MaterialDocenteModerado: la administración aprobó o rechazó un
+// material. Notificaciones le avisa al docente (HU-23).
+func (p *Educacion) MaterialDocenteModerado(ctx context.Context, tx *firestore.Transaction, c models.ContenidoDocente) error {
+	return p.emit(ctx, tx, p.event(events.ContenidoDocenteModerado, materialModeradoPayload(c), ""))
 }
 
 // ── Inscripciones, entregas, asistencia y habilidades (Firestore: van

@@ -35,6 +35,7 @@ type Controllers struct {
 	Submission        *controllers.SubmissionController
 	Skill             *controllers.SkillController
 	Comment           *controllers.CommentController
+	TeacherContent    *controllers.TeacherContentController
 }
 
 func RegisterRoutes(
@@ -52,6 +53,15 @@ func RegisterRoutes(
 	if ctrls.Comment != nil {
 		r.Get("/api/comentarios", ctrls.Comment.List)
 		r.With(middlewares.StrictRateLimiter()).Post("/api/comentarios", ctrls.Comment.Create)
+	}
+
+	// -- biblioteca pública (HU-25): el material aprobado de docentes
+	//    externos se ve y se descarga sin login, dejando nombre,
+	//    apellido, email y teléfono. Descargar tiene el límite estricto
+	//    por IP.
+	if ctrls.TeacherContent != nil {
+		r.Get("/api/biblioteca", ctrls.TeacherContent.ListPublic)
+		r.With(middlewares.StrictRateLimiter()).Post("/api/biblioteca/{id}/descargas", ctrls.TeacherContent.PublicDownload)
 	}
 
 	r.Group(func(r chi.Router) {
@@ -109,7 +119,30 @@ func RegisterRoutes(
 			if ctrls.Comment != nil {
 				r.Delete("/api/comentarios/{id}", ctrls.Comment.Delete)
 			}
+
+			// moderación de contenido de docentes externos (HU-23) y
+			// quién descargó de la biblioteca (HU-25)
+			if ctrls.TeacherContent != nil {
+				r.Get("/api/contenidos-docentes", ctrls.TeacherContent.List)
+				r.Post("/api/contenidos-docentes/{id}/moderacion", ctrls.TeacherContent.Moderate)
+				r.Get("/api/biblioteca/descargas", ctrls.TeacherContent.ListDownloads)
+			}
 		})
+
+		// -- contenido docente (HU-23): lo sube cualquier docente,
+		//    interno o externo (es lo único que ve el externo). Editar
+		//    es del dueño mientras está pendiente; borrar y bajar el
+		//    archivo los decide el service por rol y dueño.
+		if ctrls.TeacherContent != nil {
+			r.Group(func(r chi.Router) {
+				r.Use(middlewares.RequireRole("role_teacher"))
+				r.Post("/api/contenidos-docentes", ctrls.TeacherContent.Upload)
+				r.Get("/api/contenidos-docentes/mios", ctrls.TeacherContent.ListMine)
+				r.Put("/api/contenidos-docentes/{id}", ctrls.TeacherContent.Update)
+			})
+			r.Delete("/api/contenidos-docentes/{id}", ctrls.TeacherContent.Delete)
+			r.Get("/api/contenidos-docentes/{id}/archivo", ctrls.TeacherContent.File)
+		}
 
 		// -- materiales: crear/subir/editar los puede hacer admin O
 		//    docente interno (para adjuntar/actualizar archivos de sus

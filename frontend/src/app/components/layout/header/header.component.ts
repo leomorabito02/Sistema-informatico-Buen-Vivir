@@ -59,6 +59,9 @@ const CURSOS_GESTION: MenuItem = {
     { label: "Catálogo de cursos", routerLink: "/dashboard/cursos" },
     { label: "Gestión de cursos", routerLink: "/dashboard/gestion-cursos" },
     { label: "Inscripciones", routerLink: "/dashboard/inscripciones" },
+    // HU-23 y HU-25: moderar el material de docentes externos y ver
+    // quién descargó de la biblioteca.
+    { label: "Contenido docente", routerLink: "/dashboard/contenido-docente" },
   ],
 };
 
@@ -141,6 +144,11 @@ export const NAV_BY_ROLE: Record<string, MenuItem[]> = {
 };
 NAV_BY_ROLE["role_dev"] = NAV_BY_ROLE["role_admin"];
 
+/** El docente externo solo carga y consulta contenido (HU-23). */
+export const NAV_DOCENTE_EXTERNO: MenuItem[] = [
+  { label: "Mis contenidos", routerLink: "/dashboard/mis-contenidos" },
+];
+
 /** Ícono de cada sección de primer nivel de la barra lateral. */
 const NAV_ICONS: Record<string, LucideIconData> = {
   Dashboard: LayoutDashboard,
@@ -153,6 +161,7 @@ const NAV_ICONS: Record<string, LucideIconData> = {
   "Ofertas laborales": Briefcase,
   "Mi proceso": Sprout,
   "Mi CV": FileText,
+  "Mis contenidos": FileText,
   Progreso: TrendingUp,
   Seguimiento: ClipboardList,
   "Contacto con el centro": MessageCircle,
@@ -256,7 +265,10 @@ export class HeaderComponent implements OnInit {
         if (userPic) {
           this.avatarUrl = this.resolveImageUrl(userPic);
         }
-        this.items = NAV_BY_ROLE[this.roleId.toLowerCase()] ?? [];
+        this.items =
+          this.roleId === "role_teacher" && response.is_external
+            ? NAV_DOCENTE_EXTERNO
+            : (NAV_BY_ROLE[this.roleId.toLowerCase()] ?? []);
         this.expandActiveGroup();
         this.loadProfileAvatar();
       },

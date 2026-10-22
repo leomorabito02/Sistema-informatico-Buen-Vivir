@@ -1,0 +1,100 @@
+.lista {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  gap: 0.75rem;
+}
+
+.item {
+  border: 1px solid var(--border, #e5e5e0);
+  border-radius: 0.75rem;
+  padding: 1rem;
+  background: var(--card, #fff);
+}
+
+.item-cabecera {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.item-titulo {
+  margin: 0;
+  font-size: var(--font-size-lg);
+}
+
+.item-meta {
+  margin: 0.35rem 0 0;
+  font-size: var(--font-size-sm);
+  color: var(--muted-foreground, #66655b);
+  overflow-wrap: anywhere;
+}
+
+.item-texto {
+  margin: 0.5rem 0 0;
+  white-space: pre-line;
+}
+
+.item-motivo {
+  margin: 0.5rem 0 0;
+  color: var(--destructive, #b91c1c);
+  font-size: var(--font-size-sm);
+}
+
+.item-acciones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+}
+
+.biblioteca {
+  margin-top: 2.5rem;
+}
+
+.seccion-titulo {
+  margin: 0 0 0.25rem;
+  font-size: var(--font-size-xl, 1.25rem);
+}
+
+.estado-carga {
+  color: var(--muted-foreground, #66655b);
+}
+
+.form-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.form-grid label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+}
+
+.ayuda {
+  font-weight: 400;
+  color: var(--muted-foreground, #66655b);
+}
+
+.req,
+.form-error {
+  color: var(--destructive, #b91c1c);
+}
+
+.form-error {
+  margin: 0;
+  font-size: var(--font-size-sm);
+}
+
+.form-acciones {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+}

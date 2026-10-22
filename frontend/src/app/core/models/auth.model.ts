@@ -58,6 +58,8 @@ export interface MeResponse {
   role_id?: string;
   approval_status?: string;
   user_status?: string;
+  /** Docente externo (viene del token): solo ve "Mis contenidos" (HU-23). */
+  is_external?: boolean;
 }
 
 export interface ProfileResponse {

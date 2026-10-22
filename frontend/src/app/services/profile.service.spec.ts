@@ -7,6 +7,13 @@ import { ProfileService } from "./profile.service";
 import { environment } from "../../environments/environment";
 
 describe("ProfileService", () => {
+  // environment es un objeto compartido entre specs: se restaura para no
+  // cambiarle la URL a los specs que corren después (orden aleatorio).
+  const apiUrlOriginal = environment.apiUrl;
+  afterAll(() => {
+    environment.apiUrl = apiUrlOriginal;
+  });
+
   let service: ProfileService;
   let httpMock: HttpTestingController;
 

@@ -2,7 +2,7 @@ import { TestBed } from "@angular/core/testing";
 import { CanActivateFn, Router, UrlTree } from "@angular/router";
 import { Observable, firstValueFrom, of, throwError } from "rxjs";
 import { adminOrVolunteerGuard } from "./admin-volunteer.guard";
-import { teacherGuard } from "./teacher.guard";
+import { anyTeacherGuard, teacherGuard } from "./teacher.guard";
 import { AuthService } from "../../services/auth.service";
 import { MeResponse } from "../models/auth.model";
 
@@ -56,7 +56,24 @@ describe("adminOrVolunteerGuard / teacherGuard", () => {
       ["role_teacher", "role_dev"],
       ["role_admin", "role_volunteer", "role_participant"],
     ],
+    [
+      "anyTeacherGuard",
+      anyTeacherGuard,
+      ["role_teacher", "role_dev"],
+      ["role_admin", "role_volunteer", "role_participant", "role_company"],
+    ],
   ];
+
+  it("sends the external teacher to Mis contenidos instead of the course pages (HU-23)", async () => {
+    withRole({ role_id: "role_teacher", is_external: true });
+    await run(teacherGuard);
+    expect(router.createUrlTree).toHaveBeenCalledWith(["/dashboard/mis-contenidos"]);
+  });
+
+  it("lets the external teacher into Mis contenidos", async () => {
+    withRole({ role_id: "role_teacher", is_external: true });
+    expect(await run(anyTeacherGuard)).toBeTrue();
+  });
 
   for (const [name, guard, allowed, denied] of cases) {
     describe(name, () => {

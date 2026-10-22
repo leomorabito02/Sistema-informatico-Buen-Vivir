@@ -146,6 +146,20 @@ describe("HeaderComponent", () => {
       expect(rutas[0]).toBe("/dashboard/mis-cursos");
     });
 
+    it("el docente externo solo ve Mis contenidos (HU-23)", () => {
+      create({ role_id: "role_teacher", is_external: true });
+      expect(routesOf(component.items)).toEqual(["/dashboard/mis-contenidos"]);
+    });
+
+    it("el docente interno sigue viendo sus cursos", () => {
+      create({ role_id: "role_teacher", is_external: false });
+      expect(routesOf(component.items)[0]).toBe("/dashboard/mis-cursos");
+    });
+
+    it("el administrador modera el contenido docente", () => {
+      expect(routesOf(NAV_BY_ROLE["role_admin"])).toContain("/dashboard/contenido-docente");
+    });
+
     it("el participante no recibe rutas exclusivas del docente", () => {
       const rutas = routesOf(NAV_BY_ROLE["role_participant"]);
       expect(rutas).not.toContain("/dashboard/progreso");
@@ -203,7 +217,8 @@ describe("HeaderComponent", () => {
       component.toggleGroup(cursos);
       fixture.detectChanges();
       expect(component.isExpanded(cursos)).toBeTrue();
-      expect(fixture.nativeElement.querySelectorAll(".nav-subitem")).toHaveSize(3);
+      // Catálogo, gestión, inscripciones y contenido docente (HU-23).
+      expect(fixture.nativeElement.querySelectorAll(".nav-subitem")).toHaveSize(4);
 
       component.toggleGroup(cursos);
       expect(component.isExpanded(cursos)).toBeFalse();

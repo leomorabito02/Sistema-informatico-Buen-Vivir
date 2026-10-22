@@ -3,7 +3,7 @@ import { authGuard } from "./core/guards/auth.guard";
 import { guestGuard } from "./core/guards/guest.guard";
 import { adminGuard } from "./core/guards/admin.guard";
 import { adminOrVolunteerGuard } from "./core/guards/admin-volunteer.guard";
-import { teacherGuard } from "./core/guards/teacher.guard";
+import { anyTeacherGuard, teacherGuard } from "./core/guards/teacher.guard";
 import { participantGuard } from "./core/guards/participant.guard";
 
 export const routes: Routes = [
@@ -158,6 +158,22 @@ export const routes: Routes = [
         loadComponent: () =>
           import("./pages/dashboard/admin-cursos/admin-cursos.component").then(
             (m) => m.AdminCursosComponent,
+          ),
+      },
+      {
+        path: "mis-contenidos",
+        canActivate: [anyTeacherGuard],
+        loadComponent: () =>
+          import("./pages/dashboard/mis-contenidos/mis-contenidos.component").then(
+            (m) => m.MisContenidosComponent,
+          ),
+      },
+      {
+        path: "contenido-docente",
+        canActivate: [adminGuard],
+        loadComponent: () =>
+          import("./pages/dashboard/contenido-docente/contenido-docente.component").then(
+            (m) => m.ContenidoDocenteComponent,
           ),
       },
       {
