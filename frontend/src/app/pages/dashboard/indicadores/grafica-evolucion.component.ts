@@ -2,7 +2,7 @@ import { Component, Input, OnChanges, ViewChild } from "@angular/core";
 import { ChartModule, UIChart } from "primeng/chart";
 import { SkeletonModule } from "primeng/skeleton";
 import { Grafica } from "../../../core/models/dashboard.model";
-import { etiquetaMes } from "../../../services/dashboard.calculos";
+import { etiquetaMes } from "../../../services/dashboard.fechas";
 import { GraficaParaPdf } from "../../../services/reportes.service";
 
 /** Colores de las series, desde los tokens de la app. */

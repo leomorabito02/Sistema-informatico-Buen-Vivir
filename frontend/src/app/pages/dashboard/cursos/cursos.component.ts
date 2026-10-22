@@ -1,4 +1,5 @@
-import { Component, OnInit, inject } from "@angular/core";
+import { Component, DestroyRef, OnInit, inject } from "@angular/core";
+import { takeUntilDestroyed } from "@angular/core/rxjs-interop";
 import { CommonModule } from "@angular/common";
 import { FormsModule } from "@angular/forms";
 import { Router } from "@angular/router";
@@ -11,6 +12,14 @@ import { DialogModule } from "primeng/dialog";
 import { SelectModule } from "primeng/select";
 import { ToastModule } from "primeng/toast";
 import { MessageService } from "primeng/api";
+import { Subject, of } from "rxjs";
+import {
+  catchError,
+  debounceTime,
+  distinctUntilChanged,
+  map,
+  switchMap,
+} from "rxjs/operators";
 import { AuthService } from "../../../services/auth.service";
 import { EducationService } from "../../../services/education.service";
 import {
@@ -69,6 +78,9 @@ export class CursosComponent implements OnInit {
   private authService = inject(AuthService);
   private toast = inject(MessageService);
   private router = inject(Router);
+  private destroyRef = inject(DestroyRef);
+  /** Texto del buscador; la búsqueda la hace el backend (?q=). */
+  private busqueda$ = new Subject<string>();
 
   searchTerm = "";
   loading = true;
@@ -94,6 +106,30 @@ export class CursosComponent implements OnInit {
   inscribiendo = false;
 
   ngOnInit() {
+    // Espera a que se deje de escribir y cancela la consulta anterior si
+    // llega una nueva (switchMap).
+    this.busqueda$
+      .pipe(
+        map((t) => t.trim()),
+        debounceTime(300),
+        distinctUntilChanged(),
+        switchMap((q) =>
+          this.cursos$(q).pipe(
+            catchError((err: Error) => {
+              this.error = err.message;
+              return of(null);
+            }),
+          ),
+        ),
+        takeUntilDestroyed(this.destroyRef),
+      )
+      .subscribe((courses) => {
+        if (courses) {
+          this.error = "";
+          this.mostrar(courses);
+        }
+      });
+
     this.authService.isAuthenticated().subscribe({
       next: (res) => {
         this.roleId = res.role_id ?? res.user?.role_id ?? "";
@@ -110,14 +146,16 @@ export class CursosComponent implements OnInit {
     });
   }
 
+  private cursos$(q = "") {
+    return this.esParticipante
+      ? this.education.listMyEnrolledCourses(q)
+      : this.education.listCourses(q);
+  }
+
   private loadCursos() {
-    const cursos$ = this.esParticipante
-      ? this.education.listMyEnrolledCourses()
-      : this.education.listCourses();
-    cursos$.subscribe({
+    this.cursos$(this.searchTerm.trim()).subscribe({
       next: (courses) => {
-        this.cursos = courses.map((c) => this.toVM(c));
-        this.filteredCursos = this.cursos;
+        this.mostrar(courses);
         this.loading = false;
       },
       error: (err: Error) => {
@@ -125,6 +163,11 @@ export class CursosComponent implements OnInit {
         this.loading = false;
       },
     });
+  }
+
+  private mostrar(courses: Course[]) {
+    this.cursos = courses.map((c) => this.toVM(c));
+    this.filteredCursos = this.cursos;
   }
 
   private loadParticipantOptions() {
@@ -197,14 +240,9 @@ export class CursosComponent implements OnInit {
     };
   }
 
+  /** Lo llama el buscador en cada tecla: el backend filtra (?q=). */
   filterCursos() {
-    const term = this.searchTerm.toLowerCase().trim();
-    this.filteredCursos = this.cursos.filter(
-      (c) =>
-        c.title.toLowerCase().includes(term) ||
-        c.area.toLowerCase().includes(term) ||
-        c.descripcion.toLowerCase().includes(term),
-    );
+    this.busqueda$.next(this.searchTerm);
   }
 
   /**

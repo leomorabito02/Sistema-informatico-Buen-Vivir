@@ -3,7 +3,7 @@ import { DatePipe } from "@angular/common";
 import { TableModule } from "primeng/table";
 import { ButtonModule } from "primeng/button";
 import { ReporteExportado } from "../../../core/models/dashboard.model";
-import { formatoFecha } from "../../../services/dashboard.calculos";
+import { formatoFecha } from "../../../services/dashboard.fechas";
 import {
   NOMBRE_MODULO,
   ReportesService,

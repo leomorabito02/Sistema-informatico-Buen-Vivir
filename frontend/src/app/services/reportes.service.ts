@@ -8,7 +8,7 @@ import {
   Indicador,
   ReporteExportado,
 } from "../core/models/dashboard.model";
-import { formatoFecha } from "./dashboard.calculos";
+import { formatoFecha } from "./dashboard.fechas";
 
 /** Una gráfica tal como se ve en pantalla, lista para el PDF. */
 export interface GraficaParaPdf {

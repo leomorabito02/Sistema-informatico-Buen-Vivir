@@ -1,5 +1,9 @@
 import { Injectable, inject } from "@angular/core";
-import { HttpClient, HttpErrorResponse } from "@angular/common/http";
+import {
+  HttpClient,
+  HttpErrorResponse,
+  HttpParams,
+} from "@angular/common/http";
 import { Observable, throwError } from "rxjs";
 import { catchError } from "rxjs/operators";
 import { environment } from "../../environments/environment";
@@ -58,9 +62,13 @@ export class EducationService {
   }
 
   // ---- Catálogo (cualquier rol autenticado) -----------------------------
-  listCourses(): Observable<Course[]> {
+  /** q (opcional) busca en título, área y descripción, en el backend. */
+  listCourses(q = ""): Observable<Course[]> {
     return this.http
-      .get<Course[]>(`${this.base}/api/cursos`, { withCredentials: true })
+      .get<Course[]>(`${this.base}/api/cursos`, {
+        withCredentials: true,
+        params: busqueda(q),
+      })
       .pipe(catchError(this.handleError));
   }
 
@@ -443,10 +451,11 @@ export class EducationService {
   // ---- Participante (role_participant) ----------------------------------
 
   /** Cursos en los que el participante autenticado está inscripto. */
-  listMyEnrolledCourses(): Observable<Course[]> {
+  listMyEnrolledCourses(q = ""): Observable<Course[]> {
     return this.http
       .get<Course[]>(`${this.base}/api/participante/cursos`, {
         withCredentials: true,
+        params: busqueda(q),
       })
       .pipe(catchError(this.handleError));
   }
@@ -564,4 +573,10 @@ export class EducationService {
     }
     return throwError(() => new Error(message));
   };
+}
+
+/** Parámetro ?q= de los buscadores; vacío = sin parámetro. */
+function busqueda(q: string): HttpParams {
+  const t = q.trim();
+  return t ? new HttpParams().set("q", t) : new HttpParams();
 }

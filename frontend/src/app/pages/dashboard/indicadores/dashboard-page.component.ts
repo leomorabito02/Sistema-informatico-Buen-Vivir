@@ -7,7 +7,7 @@ import {
   inject,
 } from "@angular/core";
 import { takeUntilDestroyed } from "@angular/core/rxjs-interop";
-import { BehaviorSubject, switchMap, tap } from "rxjs";
+import { BehaviorSubject, catchError, of, switchMap, tap } from "rxjs";
 import { ButtonModule } from "primeng/button";
 import { ToastModule } from "primeng/toast";
 import { MessageService } from "primeng/api";
@@ -16,14 +16,12 @@ import {
   DashboardData,
   FiltrosDashboard,
 } from "../../../core/models/dashboard.model";
-import {
-  DashboardService,
-  INDICADORES,
-} from "../../../services/dashboard.service";
+import { DashboardService } from "../../../services/dashboard.service";
 import { ReportesService } from "../../../services/reportes.service";
 import { AuthService } from "../../../services/auth.service";
 import { BackLinkComponent } from "../../../shared/components/back-link.component";
 import { EmptyStateComponent } from "../../../shared/components/empty-state.component";
+import { ErrorStateComponent } from "../../../shared/components/error-state.component";
 import { KpiCardComponent } from "./kpi-card.component";
 import { GraficaEvolucionComponent } from "./grafica-evolucion.component";
 import {
@@ -45,6 +43,7 @@ import { HistorialReportesComponent } from "./historial-reportes.component";
     ToastModule,
     BackLinkComponent,
     EmptyStateComponent,
+    ErrorStateComponent,
     KpiCardComponent,
     GraficaEvolucionComponent,
     DashboardFiltrosComponent,
@@ -70,11 +69,13 @@ export class DashboardPageComponent implements OnInit {
 
   datos: DashboardData | null = null;
   cargando = true;
+  /** El microservicio de Dashboard no respondió. */
+  error = "";
   exportando = false;
   private usuario = "Administración";
 
-  /** Para los esqueletos de carga: uno por indicador. */
-  readonly placeholders = INDICADORES;
+  /** Para los esqueletos de carga: uno por indicador (son siete). */
+  readonly placeholders = Array.from({ length: 7 }, (_, i) => i);
 
   private filtros$ = new BehaviorSubject<FiltrosDashboard>(this.filtros);
 
@@ -107,8 +108,19 @@ export class DashboardPageComponent implements OnInit {
     // switchMap: si cambian los filtros mientras carga, gana el último.
     this.filtros$
       .pipe(
-        tap(() => (this.cargando = true)),
-        switchMap((f) => this.dashboard.cargar(f)),
+        tap(() => {
+          this.cargando = true;
+          this.error = "";
+        }),
+        switchMap((f) =>
+          this.dashboard.cargar(f).pipe(
+            catchError(() => {
+              this.error =
+                "No se pudieron cargar los indicadores. Probá de nuevo en unos minutos.";
+              return of(null);
+            }),
+          ),
+        ),
         takeUntilDestroyed(this.destroyRef),
       )
       .subscribe((d) => {
@@ -122,6 +134,10 @@ export class DashboardPageComponent implements OnInit {
     this.filtros$.next(f);
   }
 
+  reintentar(): void {
+    this.filtros$.next(this.filtros);
+  }
+
   /** El módulo elegido no tiene indicadores (por ejemplo, Promoción Humana). */
   get moduloSinIndicadores(): boolean {
     return (
@@ -130,7 +146,12 @@ export class DashboardPageComponent implements OnInit {
   }
 
   get puedeExportar(): boolean {
-    return !this.cargando && !this.exportando && !this.moduloSinIndicadores;
+    return (
+      !this.cargando &&
+      !this.exportando &&
+      !this.error &&
+      !this.moduloSinIndicadores
+    );
   }
 
   async exportar(): Promise<void> {

@@ -39,9 +39,11 @@
 
   <app-empty-state *ngIf="!loading && !error && filteredCursos.length === 0">
     {{
-      esParticipante
-        ? "Todavía no estás inscripto en ningún curso. Pedile a un voluntario o administrador que te inscriba."
-        : "No hay cursos publicados por ahora."
+      searchTerm.trim()
+        ? "No se encontraron cursos con «" + searchTerm.trim() + "»."
+        : esParticipante
+          ? "Todavía no estás inscripto en ningún curso. Pedile a un voluntario o administrador que te inscriba."
+          : "No hay cursos publicados por ahora."
     }}
   </app-empty-state>
 

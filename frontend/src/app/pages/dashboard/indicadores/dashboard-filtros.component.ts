@@ -18,7 +18,7 @@ import {
 import {
   formatoFecha,
   inicioDelDia,
-} from "../../../services/dashboard.calculos";
+} from "../../../services/dashboard.fechas";
 import { NOMBRE_MODULO } from "../../../services/reportes.service";
 
 export type RangoRapido = "mes" | "trimestre" | "anio";

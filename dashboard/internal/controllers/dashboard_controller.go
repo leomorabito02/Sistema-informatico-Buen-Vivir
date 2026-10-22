@@ -4,8 +4,10 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"log"
 	"net/http"
+	"time"
 
 	"buenvivir/dashboard/internal/auth"
 	"buenvivir/dashboard/internal/clients"
@@ -70,28 +72,43 @@ func permitir(w http.ResponseWriter, r *http.Request, next http.Handler, rol str
 	}
 }
 
-func (c *DashboardController) Participantes(w http.ResponseWriter, r *http.Request) {
-	responder(w, r, c.service.Participantes)
-}
-
-func (c *DashboardController) Cursos(w http.ResponseWriter, r *http.Request) {
-	responder(w, r, c.service.Cursos)
-}
-
-func (c *DashboardController) Habilidades(w http.ResponseWriter, r *http.Request) {
-	responder(w, r, c.service.Habilidades)
-}
-
-func (c *DashboardController) Postulaciones(w http.ResponseWriter, r *http.Request) {
-	responder(w, r, c.service.Postulaciones)
-}
-
 func (c *DashboardController) Areas(w http.ResponseWriter, r *http.Request) {
 	responder(w, r, c.service.Areas)
 }
 
-func (c *DashboardController) Promocion(w http.ResponseWriter, r *http.Request) {
-	responder(w, r, c.service.Promocion)
+// Resumen - GET /api/v1/dashboard/resumen?desde=AAAA-MM-DD&hasta=AAAA-MM-DD&modulo=todos&area=<id>
+// Indicadores y gráficas ya calculados (HU-52 a HU-54). modulo y area son
+// opcionales (por defecto, todos y todas las áreas).
+func (c *DashboardController) Resumen(w http.ResponseWriter, r *http.Request) {
+	f, msg := leerFiltros(r)
+	if msg != "" {
+		writeError(w, http.StatusBadRequest, msg)
+		return
+	}
+	writeJSON(w, http.StatusOK, services.Resumen(r.Context(), c.service, clients.FromRequest(r), f))
+}
+
+func leerFiltros(r *http.Request) (services.Filtros, string) {
+	q := r.URL.Query()
+	desde, err1 := time.ParseInLocation("2006-01-02", q.Get("desde"), services.Zona)
+	hasta, err2 := time.ParseInLocation("2006-01-02", q.Get("hasta"), services.Zona)
+	if err1 != nil || err2 != nil {
+		return services.Filtros{}, "Las fechas «desde» y «hasta» tienen que tener formato AAAA-MM-DD."
+	}
+	if desde.After(hasta) {
+		return services.Filtros{}, "La fecha «desde» no puede ser posterior a «hasta»."
+	}
+	if services.MesesEntre(desde, hasta) > services.MaxMesesPeriodo {
+		return services.Filtros{}, fmt.Sprintf("El período no puede superar los %d años.", services.MaxMesesPeriodo/12)
+	}
+	modulo := q.Get("modulo")
+	if modulo == "" {
+		modulo = services.ModuloTodos
+	}
+	if !services.ModuloValido(modulo) {
+		return services.Filtros{}, "Módulo desconocido."
+	}
+	return services.Filtros{Desde: desde, Hasta: hasta, Modulo: modulo, AreaID: q.Get("area")}, ""
 }
 
 func (c *DashboardController) HealthCheck(w http.ResponseWriter, _ *http.Request) {

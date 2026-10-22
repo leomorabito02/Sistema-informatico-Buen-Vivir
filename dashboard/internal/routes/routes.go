@@ -19,8 +19,10 @@ type Rutas struct {
 	Guard func(http.Handler) http.Handler
 }
 
-// RegisterRoutes: una ruta por fuente de datos del dashboard (HU-52 a
-// HU-55) y el historial de reportes. Todo es solo para la administración.
+// RegisterRoutes: el resumen ya calculado (HU-52 a HU-54), las áreas
+// formativas para el filtro y el historial de reportes (HU-55). Todo es
+// solo para la administración. Los datos crudos de cada servicio ya no se
+// exponen: el cálculo se hace acá y el frontend solo muestra.
 func RegisterRoutes(mux *http.ServeMux, r Rutas) {
 	ctrl := r.Dashboard
 	mux.HandleFunc("GET /health", ctrl.HealthCheck)
@@ -37,12 +39,8 @@ func RegisterRoutes(mux *http.ServeMux, r Rutas) {
 		guard = controllers.RequireAdmin
 	}
 	admin := func(h http.HandlerFunc) http.Handler { return guard(h) }
-	mux.Handle("GET /api/v1/dashboard/participantes", admin(ctrl.Participantes))
-	mux.Handle("GET /api/v1/dashboard/cursos", admin(ctrl.Cursos))
-	mux.Handle("GET /api/v1/dashboard/habilidades", admin(ctrl.Habilidades))
-	mux.Handle("GET /api/v1/dashboard/postulaciones", admin(ctrl.Postulaciones))
+	mux.Handle("GET /api/v1/dashboard/resumen", admin(ctrl.Resumen))
 	mux.Handle("GET /api/v1/dashboard/areas", admin(ctrl.Areas))
-	mux.Handle("GET /api/v1/dashboard/promocion", admin(ctrl.Promocion))
 
 	rep := r.Reportes
 	mux.Handle("POST /api/v1/dashboard/reportes", admin(rep.Registrar))

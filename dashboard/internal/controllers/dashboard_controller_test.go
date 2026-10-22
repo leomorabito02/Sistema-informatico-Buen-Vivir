@@ -2,6 +2,7 @@ package controllers_test
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"net/http"
 	"net/http/httptest"
@@ -62,15 +63,14 @@ func get(mux http.Handler, path, role string) *httptest.ResponseRecorder {
 	return w
 }
 
-func TestRutas_AdminVeCadaFuente(t *testing.T) {
+const resumen = "/api/v1/dashboard/resumen?desde=2026-01-01&hasta=2026-06-30"
+
+func TestRutas_AdminVeResumenYAreas(t *testing.T) {
 	svc := &fakeService{}
 	mux := newMux(svc)
 	for path, id := range map[string]string{
-		"/api/v1/dashboard/participantes": `"id":"u1"`,
-		"/api/v1/dashboard/cursos":        `"id":"c1"`,
-		"/api/v1/dashboard/habilidades":   `"id":"h1"`,
-		"/api/v1/dashboard/postulaciones": `"id":"p1"`,
-		"/api/v1/dashboard/areas":         `"id":"a1"`,
+		resumen:                   `"id":"participantesActivos"`,
+		"/api/v1/dashboard/areas": `"id":"a1"`,
 	} {
 		for _, role := range []string{"role_admin", "role_dev"} {
 			w := get(mux, path, role)
@@ -84,25 +84,82 @@ func TestRutas_AdminVeCadaFuente(t *testing.T) {
 	}
 }
 
+// Los datos crudos de cada servicio ya no se exponen: el cálculo se hace
+// en el Dashboard.
+func TestRutas_SinDatosCrudos(t *testing.T) {
+	mux := newMux(&fakeService{})
+	for _, p := range []string{"participantes", "cursos", "habilidades", "postulaciones", "promocion"} {
+		if w := get(mux, "/api/v1/dashboard/"+p, "role_admin"); w.Code != http.StatusNotFound {
+			t.Errorf("%s: esperaba 404, obtuve %d", p, w.Code)
+		}
+	}
+}
+
 func TestRutas_SoloAdmin(t *testing.T) {
 	mux := newMux(&fakeService{})
-	if w := get(mux, "/api/v1/dashboard/cursos", ""); w.Code != http.StatusUnauthorized {
+	if w := get(mux, resumen, ""); w.Code != http.StatusUnauthorized {
 		t.Fatalf("sin sesión: %d", w.Code)
 	}
 	for _, role := range []string{"role_volunteer", "role_participant", "role_teacher", "role_company"} {
-		if w := get(mux, "/api/v1/dashboard/cursos", role); w.Code != http.StatusForbidden {
+		if w := get(mux, resumen, role); w.Code != http.StatusForbidden {
 			t.Fatalf("%s: %d", role, w.Code)
 		}
 	}
 }
 
-func TestRutas_ErroresDeOrigen(t *testing.T) {
+func TestResumen_FuenteCaidaNoRompeElResto(t *testing.T) {
+	svc := &fakeService{err: &clients.UpstreamError{Service: "educación", Status: http.StatusInternalServerError}}
+	w := get(newMux(svc), resumen, "role_admin")
+	if w.Code != http.StatusOK {
+		t.Fatalf("el resumen responde 200 aunque fallen las fuentes: %d %s", w.Code, w.Body.String())
+	}
+	var res models.Resumen
+	if err := json.NewDecoder(w.Body).Decode(&res); err != nil {
+		t.Fatal(err)
+	}
+	for _, i := range res.Indicadores {
+		if i.Disponible || i.Valor != nil {
+			t.Errorf("%s: tendría que estar no disponible: %+v", i.ID, i)
+		}
+	}
+	for _, g := range res.Graficas {
+		if g.Series != nil {
+			t.Errorf("%s: sin datos, series tiene que ser null", g.ID)
+		}
+	}
+}
+
+func TestResumen_Filtros(t *testing.T) {
+	mux := newMux(&fakeService{})
+	for q, msg := range map[string]string{
+		"":                                   "AAAA-MM-DD",
+		"?desde=2026-01-01":                  "AAAA-MM-DD",
+		"?desde=01/01/2026&hasta=2026-06-30": "AAAA-MM-DD",
+		"?desde=2026-07-01&hasta=2026-06-30": "posterior",
+		"?desde=2000-01-01&hasta=2026-06-30": "superar",
+		"?desde=2026-01-01&hasta=2026-06-30&modulo=x": "Módulo",
+	} {
+		w := get(mux, "/api/v1/dashboard/resumen"+q, "role_admin")
+		if w.Code != http.StatusBadRequest || !strings.Contains(w.Body.String(), msg) {
+			t.Errorf("%q: esperaba 400 con %q, obtuve %d %s", q, msg, w.Code, w.Body.String())
+		}
+	}
+
+	w := get(mux, resumen+"&modulo=promocion", "role_admin")
+	var res models.Resumen
+	_ = json.NewDecoder(w.Body).Decode(&res)
+	if len(res.Indicadores) != 2 || len(res.Graficas) != 1 || res.Graficas[0].ID != "promocion" {
+		t.Errorf("módulo promoción: %+v", res)
+	}
+}
+
+func TestAreas_ErroresDeOrigen(t *testing.T) {
 	svc := &fakeService{err: &clients.UpstreamError{Service: "educación", Status: http.StatusForbidden}}
-	if w := get(newMux(svc), "/api/v1/dashboard/cursos", "role_admin"); w.Code != http.StatusForbidden {
+	if w := get(newMux(svc), "/api/v1/dashboard/areas", "role_admin"); w.Code != http.StatusForbidden {
 		t.Fatalf("un 403 del origen se respeta: %d", w.Code)
 	}
 	svc.err = &clients.UpstreamError{Service: "educación", Status: http.StatusInternalServerError}
-	w := get(newMux(svc), "/api/v1/dashboard/cursos", "role_admin")
+	w := get(newMux(svc), "/api/v1/dashboard/areas", "role_admin")
 	if w.Code != http.StatusBadGateway || !strings.Contains(w.Body.String(), "no respondió") {
 		t.Fatalf("otro error del origen es 502: %d %s", w.Code, w.Body.String())
 	}
@@ -117,7 +174,7 @@ func TestHealth_Y_Metodos(t *testing.T) {
 	if w := get(mux, "/health", ""); w.Code != http.StatusOK || !strings.Contains(w.Body.String(), "UP") {
 		t.Fatalf("health: %d", w.Code)
 	}
-	req := httptest.NewRequest(http.MethodPost, "/api/v1/dashboard/cursos", nil)
+	req := httptest.NewRequest(http.MethodPost, resumen, nil)
 	req.Header.Set("X-User-Role", "role_admin")
 	w := httptest.NewRecorder()
 	mux.ServeHTTP(w, req)

@@ -14,3 +14,6 @@ postman
 reports/coverage/auth.out
 .angular/cache/
 .angular/cache/
+
+# Carpeta de trabajo de SonarQube (sonar-scanner), se regenera en cada análisis
+.scannerwork/
