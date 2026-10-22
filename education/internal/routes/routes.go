@@ -34,6 +34,7 @@ type Controllers struct {
 	Activity          *controllers.ActivityController
 	Submission        *controllers.SubmissionController
 	Skill             *controllers.SkillController
+	Comment           *controllers.CommentController
 }
 
 func RegisterRoutes(
@@ -43,6 +44,15 @@ func RegisterRoutes(
 ) {
 	const apiCursosID = "/api/cursos/{id}"
 	r.Get("/api/salud", ctrls.Health.Health)
+
+	// -- comentarios (HU-24): públicos, como el contenido que comentan
+	//    (campañas y cursos se ven sin login). Comentar tiene el límite
+	//    estricto por IP (10 por minuto) para frenar el spam. Borrar es
+	//    del administrador, más abajo.
+	if ctrls.Comment != nil {
+		r.Get("/api/comentarios", ctrls.Comment.List)
+		r.With(middlewares.StrictRateLimiter()).Post("/api/comentarios", ctrls.Comment.Create)
+	}
 
 	r.Group(func(r chi.Router) {
 		r.Use(middlewares.AuthMiddleware(jwtService))
@@ -94,6 +104,11 @@ func RegisterRoutes(
 			// borrar material: solo admin (no hay modelo de ownership de
 			// materiales, un material puede estar linkeado a varios cursos).
 			r.Delete("/api/materiales/{id}", ctrls.Material.Delete)
+
+			// moderación de comentarios (HU-24)
+			if ctrls.Comment != nil {
+				r.Delete("/api/comentarios/{id}", ctrls.Comment.Delete)
+			}
 		})
 
 		// -- materiales: crear/subir/editar los puede hacer admin O

@@ -399,7 +399,8 @@ registro se escribe aunque Pub/Sub esté desactivado.
 
 Sin estas variables, los servicios funcionan exactamente como antes: no
 publican, no exponen `/eventos/*` y la auditoría de Promoción Humana se
-escribe igual. **El `docker-compose.yml` no se modificó.**
+escribe igual. El `docker-compose.yml` solo suma el emulador de Pub/Sub,
+en el perfil `eventos`: sin ese perfil levanta lo mismo que antes.
 
 ### Puesta en marcha en GCP
 
@@ -423,7 +424,8 @@ escribe igual. **El `docker-compose.yml` no se modificó.**
 curl -sSL -o fs.jar https://storage.googleapis.com/firebase-preview-drop/emulator/cloud-firestore-emulator-v1.19.8.jar
 java -jar fs.jar --host=127.0.0.1 --port=8390 &
 
-# Pub/Sub: el del docker-compose (buenvivir-pubsub-emulator) ya escucha en localhost:8086.
+# Pub/Sub: el del docker-compose, en el perfil "eventos" (localhost:8086).
+docker compose --profile eventos up -d pubsub-emulator
 # Sin Docker: gcloud beta emulators pubsub start --host-port=localhost:8086
 ```
 

@@ -70,7 +70,7 @@ func (s *participantService) CreateParticipant(ctx context.Context, req *dto.Cre
 	}
 
 	status := req.ApprovalStatus
-	if status == "" {
+	if status == "" || !canApprove(ctx, "role_participant") {
 		status = "pending"
 	}
 
@@ -168,7 +168,7 @@ func applyUpdates(ctx context.Context, participant *models.Participant, req *dto
 		participant.DocURL = req.DocURL
 	}
 
-	if req.ApprovalStatus != "" {
+	if req.ApprovalStatus != "" && canApprove(ctx, "role_participant") {
 		if req.ApprovalStatus == "approved" {
 			participant.ApprovalStatus = approvalStatusApproved
 			now := time.Now()

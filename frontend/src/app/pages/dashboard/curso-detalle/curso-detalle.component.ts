@@ -41,6 +41,7 @@ import { LoadingStateComponent } from "../../../shared/components/loading-state.
 import { ErrorStateComponent } from "../../../shared/components/error-state.component";
 import { EmptyStateComponent } from "../../../shared/components/empty-state.component";
 import { BackLinkComponent } from "../../../shared/components/back-link.component";
+import { ComentariosComponent } from "../../../shared/components/comentarios.component";
 
 /**
  * - gestion: role_admin / role_dev / role_volunteer — cualquier curso,
@@ -107,6 +108,7 @@ const EXTENSIONES_PERMITIDAS = [
     RichTextComponent,
     BackLinkComponent,
     ActivitySkillsComponent,
+    ComentariosComponent,
   ],
   providers: [MessageService, ConfirmationService],
   templateUrl: "./curso-detalle.component.html",
@@ -129,6 +131,11 @@ export class CursoDetalleComponent implements OnInit {
   modo: Modo = "sin-acceso";
   /** Rol de la sesión: decide el destino de "Volver" sin historial. */
   private roleId = "";
+
+  /** Moderar comentarios (HU-24) es del administrador. */
+  get esAdmin(): boolean {
+    return this.roleId === "role_admin" || this.roleId === "role_dev";
+  }
   loading = true;
   error = "";
 

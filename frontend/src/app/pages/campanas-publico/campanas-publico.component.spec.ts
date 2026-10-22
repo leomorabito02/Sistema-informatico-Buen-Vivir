@@ -4,6 +4,7 @@ import { of, throwError } from "rxjs";
 import { CampanasPublicoComponent } from "./campanas-publico.component";
 import { CampaignsService } from "../../services/campaigns.service";
 import { Campana } from "../../core/models/campaign.model";
+import { ComentariosService } from "../../services/comentarios.service";
 
 const campana: Campana = {
   id: "c1",
@@ -22,7 +23,11 @@ describe("CampanasPublicoComponent", () => {
     service = jasmine.createSpyObj<CampaignsService>("CampaignsService", ["publicas"]);
     await TestBed.configureTestingModule({
       imports: [CampanasPublicoComponent],
-      providers: [provideRouter([]), { provide: CampaignsService, useValue: service }],
+      providers: [
+        provideRouter([]),
+        { provide: CampaignsService, useValue: service },
+        { provide: ComentariosService, useValue: { listar: () => of([]) } },
+      ],
     }).compileComponents();
   });
 
@@ -41,6 +46,20 @@ describe("CampanasPublicoComponent", () => {
     expect(el.querySelectorAll(".tarjeta").length).toBe(1);
     expect(el.textContent).toContain("Campaña del árbol");
     expect(el.textContent).toContain("21/09/2026");
+  }));
+
+  it("abre los comentarios de una campaña recién al pedirlos (HU-24)", fakeAsync(() => {
+    service.publicas.and.returnValue(of([campana]));
+    crear();
+    tick(300);
+    fixture.detectChanges();
+    const el: HTMLElement = fixture.nativeElement;
+    expect(el.querySelector("app-comentarios")).toBeNull();
+
+    (el.querySelector(".tarjeta-comentarios") as HTMLButtonElement).click();
+    fixture.detectChanges();
+    expect(el.querySelector("app-comentarios")).not.toBeNull();
+    expect(el.textContent).toContain("Ocultar comentarios");
   }));
 
   it("busca por título esperando a que se deje de escribir", fakeAsync(() => {

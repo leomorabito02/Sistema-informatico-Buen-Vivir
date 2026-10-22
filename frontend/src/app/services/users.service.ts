@@ -1,5 +1,5 @@
 import { Injectable, inject } from "@angular/core";
-import { HttpClient, HttpErrorResponse } from "@angular/common/http";
+import { HttpClient, HttpErrorResponse, HttpParams } from "@angular/common/http";
 import { Observable, map, throwError } from "rxjs";
 import { catchError } from "rxjs/operators";
 import { environment } from "../../environments/environment";
@@ -20,20 +20,26 @@ interface UserProfileEnvelope {
 
 /**
  * Acceso al listado de usuarios de auth-service (`GET /api/v1/users`).
- * Solo lo permite el backend a `role_admin`; con otro rol devuelve 403/500.
+ * Lo pueden pedir admin y voluntario (el voluntario recibe solo
+ * participantes); con otro rol devuelve 403.
  *
- * Se usa, por ahora, para el selector de "docente responsable" del alta
- * de cursos (HU-14). A futuro reemplazar por un endpoint de auth-service
- * que filtre por rol del lado del servidor.
+ * El texto (`q`) y el rol (`role`) los filtra auth-service: así el
+ * buscador de Usuarios y el selector de "docente responsable" (HU-14) no
+ * bajan la lista entera.
  */
 @Injectable({ providedIn: "root" })
 export class UsersService {
   private readonly http = inject(HttpClient);
   private readonly apiUrl = environment.apiUrl ?? "";
 
-  listUsers(): Observable<User[]> {
+  listUsers(filtros: { q?: string; role?: string } = {}): Observable<User[]> {
+    let params = new HttpParams();
+    const q = filtros.q?.trim();
+    if (q) params = params.set("q", q);
+    if (filtros.role) params = params.set("role", filtros.role);
     return this.http
       .get<UsersEnvelope>(`${this.apiUrl}/api/v1/users`, {
+        params,
         withCredentials: true,
       })
       .pipe(
@@ -43,7 +49,7 @@ export class UsersService {
   }
 
   listByRole(roleId: string): Observable<User[]> {
-    return this.listUsers().pipe(
+    return this.listUsers({ role: roleId }).pipe(
       map((users) => users.filter((u) => u.role_id === roleId)),
     );
   }

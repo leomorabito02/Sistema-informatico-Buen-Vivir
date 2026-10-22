@@ -35,7 +35,7 @@ func (s *teacherService) CreateTeacher(ctx context.Context, req *dto.CreateTeach
 	}
 
 	status := req.ApprovalStatus
-	if status == "" {
+	if status == "" || !canApprove(ctx, "role_teacher") {
 		status = "pending"
 	}
 
@@ -114,11 +114,13 @@ func (s *teacherService) UpdateTeacher(ctx context.Context, id string, req *dto.
 	if req.Specialization != "" {
 		teacher.Specialization = req.Specialization
 	}
-	if req.IsExternal != nil {
+	// Interno o externo lo decide el administrador: un docente externo
+	// no puede pasarse a interno para entrar a la sección Docente.
+	if req.IsExternal != nil && isAdminRequest(ctx) {
 		teacher.IsExternal = *req.IsExternal
 	}
 	
-	if req.ApprovalStatus != "" {
+	if req.ApprovalStatus != "" && canApprove(ctx, "role_teacher") {
 		if req.ApprovalStatus == "approved" {
 			teacher.ApprovalStatus = approvalStatusApproved
 			now := time.Now()
