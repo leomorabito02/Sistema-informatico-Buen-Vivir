@@ -267,6 +267,22 @@ func TestDocenteController_ListAttendance_Success(t *testing.T) {
 	assert.Equal(t, http.StatusOK, w.Code)
 }
 
+// CP-16: un docente que pide la asistencia de una actividad de un curso
+// ajeno recibe 403 y no se consulta la asistencia.
+func TestDocenteController_ListAttendance_NotOwnerIsForbidden(t *testing.T) {
+	ctrl, courseSvc, activitySvc, _, attendanceSvc, _ := newDocenteController()
+
+	activitySvc.On("GetActivity", mock.Anything, "a1").Return(&models.Activity{ID: "a1", CursoID: "c1"}, nil)
+	courseSvc.On("VerifyOwnership", mock.Anything, "c1", "teacher-2").Return(services.NewForbiddenError("no sos el docente responsable de este curso"))
+
+	req := withChiURLParam(withTeacherContext(httptest.NewRequest("GET", "/api/docente/actividades/a1/asistencia", nil), "teacher-2"), "actividadId", "a1")
+	w := httptest.NewRecorder()
+	ctrl.ListAttendance(w, req)
+
+	assert.Equal(t, http.StatusForbidden, w.Code)
+	attendanceSvc.AssertNotCalled(t, "ListByActivity", mock.Anything, mock.Anything)
+}
+
 func TestDocenteController_ListEnrollments_Success(t *testing.T) {
 	ctrl, courseSvc, _, enrollmentSvc, _, _ := newDocenteController()
 

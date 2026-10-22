@@ -19,6 +19,7 @@ import (
 	"buenvivir/education/internal/controllers"
 	"buenvivir/education/internal/middlewares"
 	"buenvivir/education/internal/models"
+	"buenvivir/education/internal/repositories"
 	"buenvivir/education/internal/services"
 )
 
@@ -214,6 +215,22 @@ func TestSubmissionController_Submit_AlreadySubmitted(t *testing.T) {
 	var resp map[string]string
 	_ = json.Unmarshal(w.Body.Bytes(), &resp)
 	assert.Equal(t, "Ya entregaste esta actividad", resp["error"])
+}
+
+// CP-14: entrega de una actividad inexistente -> 404.
+func TestSubmissionController_Submit_ActivityNotFound(t *testing.T) {
+	ctrl, _, _, svc := newSubmissionController()
+	svc.On("ResolveParticipantID", mock.Anything, "tok").Return("p1", nil)
+	svc.On("Submit", mock.Anything, "no-existe", "p1", "x", mock.Anything).Return(nil, repositories.ErrNotFound)
+
+	body, contentType := multipartSubmission(t, "x", nil)
+	req := httptest.NewRequest("POST", "/api/participante/actividades/no-existe/entrega", body)
+	req.Header.Set("Content-Type", contentType)
+	req = withChiURLParams(withAuth(req, "u1", "role_participant", false), "actividadId", "no-existe")
+	w := httptest.NewRecorder()
+	ctrl.Submit(w, req)
+
+	assert.Equal(t, http.StatusNotFound, w.Code)
 }
 
 var entregaConArchivo = &models.Submission{
