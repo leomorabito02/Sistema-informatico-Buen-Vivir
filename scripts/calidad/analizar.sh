@@ -49,6 +49,16 @@ go test -count=1 -json -coverprofile=coverage.out ./... > test-report.json
 [ $? -eq 0 ] || TESTS_OK=no
 go tool cover -func=coverage.out | tail -1
 echo "Pruebas en verde: $TESTS_OK"
+if [ "$TESTS_OK" != "si" ]; then
+  echo "::error::Hay pruebas fallidas en $SERVICIO. Deteniendo análisis." >&2
+  exit 1
+fi
+COVERAGE=$(go tool cover -func=coverage.out | grep total | awk '{print $3}' | tr -d '%')
+echo "Cobertura total: ${COVERAGE}%"
+if ! python3 -c "import sys; sys.exit(0 if float('$COVERAGE') >= 80.0 else 1)"; then
+  echo "::error::La cobertura (${COVERAGE}%) no supera el umbral requerido del 80%." >&2
+  exit 1
+fi
 
 PY="$(command -v python3 || command -v python)"
 

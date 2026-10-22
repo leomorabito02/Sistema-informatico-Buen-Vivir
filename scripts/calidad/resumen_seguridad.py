@@ -8,10 +8,9 @@ Markdown y termina con error solo si hay un hallazgo bloqueante:
   realmente usa.
 - Trivy: una vulnerabilidad CRITICAL o HIGH con arreglo disponible en la
   imagen Docker (mismo criterio que pipeline.yml).
-
-gosec, gitleaks y Semgrep se informan pero no frenan: tienen falsos
-positivos (por ejemplo, claves de prueba en scripts de test) que primero
-hay que revisar uno por uno.
+- gosec: vulnerabilidades de severidad alta encontradas en el código Go.
+- Gitleaks: secretos, contraseñas o tokens expuestos.
+- Semgrep: patrones de código inseguro de severidad ERROR.
 
 Uso: python scripts/calidad/resumen_seguridad.py <carpeta-de-reportes>
 """
@@ -35,12 +34,16 @@ def main():
 
     gosec = leer_json(carpeta / "gosec.json")
     if gosec is None:
-        filas.append(("gosec", "Errores de seguridad en el código Go", "sin reporte", "informa"))
+        filas.append(("gosec", "Errores de seguridad en el código Go", "sin reporte", "bloquea"))
+        bloquea.append("gosec no generó reporte")
     else:
         sev = Counter(i["severity"] for i in gosec.get("Issues") or [])
+        altos = sev["HIGH"]
         filas.append(("gosec", "Errores de seguridad en el código Go",
-                      f"{sum(sev.values())} avisos (altos: {sev['HIGH']}, medios: {sev['MEDIUM']}, bajos: {sev['LOW']})",
-                      "informa"))
+                      f"{sum(sev.values())} avisos (altos: {altos}, medios: {sev['MEDIUM']}, bajos: {sev['LOW']})",
+                      "bloquea"))
+        if altos > 0:
+            bloquea.append(f"gosec encontró {altos} problemas de severidad alta")
 
     codigo = (carpeta / "govulncheck.exit").read_text().strip() if (carpeta / "govulncheck.exit").exists() else ""
     if codigo == "0":
@@ -54,20 +57,28 @@ def main():
 
     gitleaks = leer_json(carpeta / "gitleaks.json")
     if gitleaks is None:
-        filas.append(("Gitleaks", "Claves o contraseñas escritas en archivos", "sin reporte", "informa"))
+        filas.append(("Gitleaks", "Claves o contraseñas escritas en archivos", "sin reporte", "bloquea"))
+        bloquea.append("Gitleaks no generó reporte")
     else:
         archivos = sorted({h["File"].split("education/")[-1] for h in gitleaks})
-        detalle = f"{len(gitleaks)} posibles" + (f" en {', '.join(archivos)}" if archivos else "")
-        filas.append(("Gitleaks", "Claves o contraseñas escritas en archivos", detalle, "informa"))
+        arch_str = ", ".join(archivos)
+        detalle = f"{len(gitleaks)} posibles" + (f" en {arch_str}" if archivos else "")
+        filas.append(("Gitleaks", "Claves o contraseñas escritas en archivos", detalle, "bloquea"))
+        if gitleaks:
+            bloquea.append(f"Gitleaks encontró {len(gitleaks)} posibles secretos en {arch_str}")
 
     semgrep = leer_json(carpeta / "semgrep.json")
     if semgrep is None:
-        filas.append(("Semgrep", "Patrones de código inseguro (reglas de la comunidad)", "sin reporte", "informa"))
+        filas.append(("Semgrep", "Patrones de código inseguro (reglas de la comunidad)", "sin reporte", "bloquea"))
+        bloquea.append("Semgrep no generó reporte")
     else:
         sev = Counter(r["extra"]["severity"] for r in semgrep.get("results", []))
+        errores = sev["ERROR"]
         filas.append(("Semgrep", "Patrones de código inseguro (reglas de la comunidad)",
-                      f"{sum(sev.values())} avisos (ERROR: {sev['ERROR']}, WARNING: {sev['WARNING']}, INFO: {sev['INFO']})",
-                      "informa"))
+                      f"{sum(sev.values())} avisos (ERROR: {errores}, WARNING: {sev['WARNING']}, INFO: {sev['INFO']})",
+                      "bloquea"))
+        if errores > 0:
+            bloquea.append(f"Semgrep encontró {errores} problemas de severidad ERROR")
 
     trivy = leer_json(carpeta / "trivy.json")
     if trivy is None:
