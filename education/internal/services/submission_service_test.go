@@ -201,6 +201,19 @@ func TestSubmissionService_Submit_NotEnrolledIsForbidden(t *testing.T) {
 	assert.True(t, services.IsForbiddenError(err))
 }
 
+// CP-14: entregar una actividad que no existe devuelve ErrNotFound
+// (el controller lo traduce a 404) y no toca inscripciones ni entregas.
+func TestSubmissionService_Submit_ActivityNotFound(t *testing.T) {
+	f := newSubmissionFixture(false)
+	f.activities.On("Get", mock.Anything, "no-existe").Return(nil, repositories.ErrNotFound)
+
+	sub, err := f.svc.Submit(context.Background(), "no-existe", "p1", "x", nil)
+	assert.Nil(t, sub)
+	assert.True(t, repositories.IsNotFound(err))
+	f.enrollment.AssertNotCalled(t, "ListByParticipant", mock.Anything, mock.Anything)
+	f.repo.AssertNotCalled(t, "CreateWithAttendance", mock.Anything, mock.Anything, mock.Anything)
+}
+
 func TestSubmissionService_Submit_AlreadySubmitted(t *testing.T) {
 	f := newSubmissionFixture(false)
 	f.givenActivityAndEnrollment(models.EnrollmentEstadoActiva)
