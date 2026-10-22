@@ -314,6 +314,21 @@ func TestAuthController_GetMe_Success(t *testing.T) {
 	assert.Equal(t, http.StatusOK, w.Code)
 }
 
+func TestAuthController_GetMe_DiceSiElDocenteEsExterno(t *testing.T) {
+	mockSvc := new(MockAuthService)
+	ctrl := controllers.NewAuthController(mockSvc)
+	ctx := context.WithValue(context.Background(), middlewares.UserIDKey, "usr")
+	ctx = context.WithValue(ctx, middlewares.RoleIDKey, "role_teacher")
+	ctx = context.WithValue(ctx, middlewares.IsExternalKey, true)
+	req := httptest.NewRequest("GET", "/me", nil).WithContext(ctx)
+	w := httptest.NewRecorder()
+
+	mockSvc.On("GetApprovalStatus", mock.Anything, "role_teacher", "usr").Return("approved")
+	ctrl.GetMe(w, req)
+	assert.Equal(t, http.StatusOK, w.Code)
+	assert.Contains(t, w.Body.String(), `"is_external":true`)
+}
+
 
 
 func TestAuthController_UpdateMyProfile_BadJSON(t *testing.T) {

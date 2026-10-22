@@ -88,177 +88,91 @@
       </div>
     </div>
 
-    <!-- Featured Resources -->
-    <div class="lib-block">
-      <h3 class="block-title text-center">Recursos Destacados</h3>
-      <div class="resources-grid">
-        <div class="resource-card">
+    <!-- Recursos: el material de docentes que aprobó la administración
+         (HU-23). Para descargar se piden nombre, apellido, email y
+         teléfono (HU-25). -->
+    <div class="lib-block" id="biblioteca">
+      <h3 class="block-title text-center">Recursos para descargar</h3>
+
+      <p *ngIf="cargando" class="no-content-msg text-center" role="status">Cargando recursos…</p>
+      <p *ngIf="!cargando && error" class="no-content-msg text-center" role="alert">{{ error }}</p>
+      <p *ngIf="!cargando && !error && recursos.length === 0" class="no-content-msg text-center">
+        Todavía no hay recursos publicados.
+      </p>
+
+      <div class="resources-grid" *ngIf="!cargando && recursos.length">
+        <article class="resource-card" *ngFor="let r of recursos">
           <div class="resource-thumb primary-thumb">
-            <lucide-angular
-              [img]="WheatIcon"
-              class="resource-icon"
-            ></lucide-angular>
+            <lucide-angular [img]="FileTextIcon" class="resource-icon" aria-hidden="true"></lucide-angular>
           </div>
           <div class="resource-body">
             <div class="resource-meta">
-              <span class="badge badge-primary">PDF</span>
-              <span class="resource-size">5 MB</span>
+              <span class="badge badge-primary">{{ formato(r) }}</span>
+              <span class="resource-size">{{ tamano(r.archivoTamano) }}</span>
             </div>
-            <h4>Guía Completa de Panadería Artesanal</h4>
-            <p>
-              Manual profesional con técnicas de amasado, fermentación, horneado
-              y presentación de panes artesanales
-            </p>
-            <div class="resource-cat">
-              <lucide-angular
-                [img]="UtensilsCrossedIcon"
-                class="resource-cat-icon"
-              ></lucide-angular>
-              Gastronomía
-            </div>
-            <p class="no-content-msg">No hay contenido para descargar</p>
+            <h4>{{ r.titulo }}</h4>
+            <p *ngIf="r.descripcion">{{ r.descripcion }}</p>
+            <button type="button" class="btn btn-download" (click)="abrir(r)">
+              Descargar
+            </button>
           </div>
-        </div>
+        </article>
+      </div>
+    </div>
 
-        <div class="resource-card">
-          <div class="resource-thumb primary-thumb">
-            <lucide-angular
-              [img]="LeafIcon"
-              class="resource-icon"
-            ></lucide-angular>
+    <div
+      *ngIf="elegido"
+      class="descarga-overlay"
+      (click)="cerrar()"
+      (keydown.escape)="cerrar()"
+    >
+      <div
+        class="descarga-dialog"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="descarga-titulo"
+        (click)="$event.stopPropagation()"
+      >
+        <h4 id="descarga-titulo" class="descarga-titulo">Descargar «{{ elegido.titulo }}»</h4>
+        <p class="descarga-texto">
+          Dejanos tus datos para que el centro pueda acompañarte. No los
+          compartimos con nadie.
+        </p>
+        <form class="descarga-form" (ngSubmit)="descargar()" novalidate>
+          <div class="descarga-fila">
+            <label>
+              Nombre
+              <input name="nombre" [(ngModel)]="datos.nombre" maxlength="50" autocomplete="given-name" required />
+            </label>
+            <label>
+              Apellido
+              <input name="apellido" [(ngModel)]="datos.apellido" maxlength="50" autocomplete="family-name" required />
+            </label>
           </div>
-          <div class="resource-body">
-            <div class="resource-meta">
-              <span class="badge badge-primary">Guía</span>
-              <span class="resource-size">8 MB</span>
-            </div>
-            <h4>Manual de Huerta Orgánica</h4>
-            <p>
-              Cultivo sustentable en espacios reducidos, preparación de compost,
-              riego eficiente y control biológico de plagas
-            </p>
-            <div class="resource-cat">
-              <lucide-angular
-                [img]="SproutIcon"
-                class="resource-cat-icon"
-              ></lucide-angular>
-              Ecología
-            </div>
-            <p class="no-content-msg">No hay contenido para descargar</p>
+          <label>
+            Email
+            <input name="email" type="email" [(ngModel)]="datos.email" maxlength="100" autocomplete="email" required />
+          </label>
+          <label>
+            Teléfono
+            <input
+              name="telefono"
+              type="tel"
+              [(ngModel)]="datos.telefono"
+              maxlength="20"
+              autocomplete="tel"
+              placeholder="Ej.: 3547 123456"
+              required
+            />
+          </label>
+          <p *ngIf="errorForm" class="descarga-error" role="alert">{{ errorForm }}</p>
+          <div class="descarga-acciones">
+            <button type="button" class="btn btn-cta-outline-dark" (click)="cerrar()">Cancelar</button>
+            <button type="submit" class="btn btn-download" [disabled]="enviando">
+              {{ enviando ? "Preparando…" : "Descargar" }}
+            </button>
           </div>
-        </div>
-
-        <div class="resource-card">
-          <div class="resource-thumb primary-thumb">
-            <lucide-angular
-              [img]="LaptopIcon"
-              class="resource-icon"
-            ></lucide-angular>
-          </div>
-          <div class="resource-body">
-            <div class="resource-meta">
-              <span class="badge badge-primary">Vídeo</span>
-              <span class="resource-size">120 min</span>
-            </div>
-            <h4>Informática Básica para Principiantes</h4>
-            <p>
-              Serie de videos sobre sistema operativo, navegador web, email y
-              herramientas de productividad esenciales
-            </p>
-            <div class="resource-cat">
-              <lucide-angular
-                [img]="LaptopIcon"
-                class="resource-cat-icon"
-              ></lucide-angular>
-              Tecnología
-            </div>
-            <p class="no-content-msg">No hay contenido para descargar</p>
-          </div>
-        </div>
-
-        <div class="resource-card">
-          <div class="resource-thumb secondary-thumb">
-            <lucide-angular
-              [img]="ScissorsIcon"
-              class="resource-icon secondary-res-icon"
-            ></lucide-angular>
-          </div>
-          <div class="resource-body">
-            <div class="resource-meta">
-              <span class="badge badge-secondary">Guía</span>
-              <span class="resource-size">6 MB</span>
-            </div>
-            <h4>Técnicas de Costura y Diseño</h4>
-            <p>
-              Puntadas básicas, uso de máquina de coser, lectura de patrones y
-              adaptación de tallas para crear prendas
-            </p>
-            <div class="resource-cat">
-              <lucide-angular
-                [img]="ScissorsIcon"
-                class="resource-cat-icon"
-              ></lucide-angular>
-              Arte y Diseño
-            </div>
-            <p class="no-content-msg">No hay contenido para descargar</p>
-          </div>
-        </div>
-
-        <div class="resource-card">
-          <div class="resource-thumb primary-thumb">
-            <lucide-angular
-              [img]="BriefcaseIcon"
-              class="resource-icon"
-            ></lucide-angular>
-          </div>
-          <div class="resource-body">
-            <div class="resource-meta">
-              <span class="badge badge-primary">PDF</span>
-              <span class="resource-size">4 MB</span>
-            </div>
-            <h4>Guía de Emprendimiento</h4>
-            <p>
-              Pasos para crear un negocio, plan de negocios, finanzas básicas,
-              marketing y gestión de clientes
-            </p>
-            <div class="resource-cat">
-              <lucide-angular
-                [img]="BriefcaseIcon"
-                class="resource-cat-icon"
-              ></lucide-angular>
-              Negocios
-            </div>
-            <p class="no-content-msg">No hay contenido para descargar</p>
-          </div>
-        </div>
-
-        <div class="resource-card">
-          <div class="resource-thumb secondary-thumb">
-            <lucide-angular
-              [img]="SaladIcon"
-              class="resource-icon secondary-res-icon"
-            ></lucide-angular>
-          </div>
-          <div class="resource-body">
-            <div class="resource-meta">
-              <span class="badge badge-secondary">Vídeo</span>
-              <span class="resource-size">90 min</span>
-            </div>
-            <h4>Nutrición y Alimentación Saludable</h4>
-            <p>
-              Pirámide nutricional, macronutrientes, recetas saludables,
-              presupuesto alimentario y compras inteligentes
-            </p>
-            <div class="resource-cat">
-              <lucide-angular
-                [img]="HeartPulseIcon"
-                class="resource-cat-icon"
-              ></lucide-angular>
-              Salud
-            </div>
-            <p class="no-content-msg">No hay contenido para descargar</p>
-          </div>
-        </div>
+        </form>
       </div>
     </div>
 

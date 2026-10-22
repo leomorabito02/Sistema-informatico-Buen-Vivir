@@ -25,6 +25,8 @@ func TestProductorNilNoPublica(t *testing.T) {
 	assert.NoError(t, p.CursoEliminado(ctx, "c1"))
 	assert.NoError(t, p.ContenidoDocenteSubido(ctx, course))
 	assert.NoError(t, p.ContenidoDocenteModerado(ctx, "c1", events.ModeracionAprobado))
+	assert.NoError(t, p.MaterialDocenteSubido(ctx, nil, models.ContenidoDocente{ID: "m1"}))
+	assert.NoError(t, p.MaterialDocenteModerado(ctx, nil, models.ContenidoDocente{ID: "m1"}))
 	assert.NoError(t, p.InscripcionCreada(ctx, nil, models.Enrollment{}))
 	assert.NoError(t, p.AsistenciaRegistrada(ctx, nil, "a", "c", models.Attendance{}))
 	assert.NoError(t, p.CursoCompletado(ctx, nil, "c", "p", time.Now()))
@@ -45,6 +47,11 @@ func TestPayloadsSinDatosPersonales(t *testing.T) {
 		Description:  json.RawMessage(`{"texto":"descripción larga"}`),
 		TrainingArea: &models.TrainingArea{ID: "area-1", Name: "Ambiente"},
 	}
+	material := models.ContenidoDocente{
+		ID: "m1", DocenteID: "doc-1", Titulo: "Huerta en casa", Descripcion: "descripción",
+		MotivoRechazo: "texto del motivo", ArchivoNombre: "huerta.pdf", EstadoModeracion: "rechazado",
+	}
+	assert.Equal(t, events.ContenidoDocenteModeradoPayload{ContenidoID: "m1", DocenteID: "doc-1", Tipo: "material", Resultado: "rechazado"}, materialModeradoPayload(material))
 	payload := cursoPayload(course)
 	assert.Equal(t, events.CursoPayload{CursoID: "c1", AreaFormativaID: "area-1", DocenteID: "doc-1", Modalidad: "Presencial"}, payload)
 	assert.Equal(t, "", cursoPayload(&models.Course{ID: "c2"}).AreaFormativaID)
@@ -57,6 +64,8 @@ func TestPayloadsSinDatosPersonales(t *testing.T) {
 		"curso":              payload,
 		"asistencia general": events.AsistenciaGeneralPayload{AsistenciaID: "x", ParticipanteID: "p1", Fecha: "2026-10-16", Presente: true},
 		"inscripción":        events.InscripcionCreadaPayload{InscripcionID: "i", CursoID: "c", ParticipanteID: "p"},
+		"material subido":    materialSubidoPayload(material),
+		"material moderado":  materialModeradoPayload(material),
 	} {
 		raw, err := json.Marshal(v)
 		require.NoError(t, err)

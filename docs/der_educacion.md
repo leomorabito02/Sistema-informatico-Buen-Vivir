@@ -200,3 +200,51 @@ Cada tecnología guarda una parte:
 - Por eso las entregas **no pasan por Contentful**. Contentful expone sus
   archivos en una CDN pública, y las entregas son datos personales de cada
   participante.
+
+## ContenidoDocente y DescargaBiblioteca (2026-10-22)
+
+Implementan HU-23 (contenido de docentes externos con moderación) y HU-25
+(biblioteca pública con registro de descargas). Viven en Firestore, en las
+colecciones `contenidos_docentes` y `descargas_biblioteca`.
+
+**ContenidoDocente**
+
+| Campo | Tipo | Descripción |
+| --- | --- | --- |
+| id | PK | Identificador del contenido |
+| docente_id | FK Docente (Auth) | Usuario que lo subió (el `sub` del token) |
+| titulo | string | Entre 3 y 120 caracteres |
+| descripcion | string | Opcional, hasta 1000 caracteres |
+| archivo_nombre, archivo_tipo, archivo_tamano | string, string, int | Datos del archivo (PDF, Office, texto o imagen; hasta 10 MB) |
+| archivo_ruta | string | Ubicación en el bucket privado, `contenidos/{id}/...` |
+| estado_moderacion | string | pendiente / aprobado / rechazado |
+| motivo_rechazo | string | Opcional, lo ve el docente |
+| fecha_subida, fecha_moderacion | datetime | |
+| moderado_por | FK Usuario (Auth) | Administrador que lo revisó |
+
+Cambio respecto del DER: en lugar de `archivo_url` se guarda `archivo_ruta`.
+El archivo va al **mismo bucket privado que las entregas** y no a Contentful,
+porque lo pendiente no puede quedar en una CDN pública. Se descarga siempre a
+través de education-service.
+
+**DescargaBiblioteca**
+
+| Campo | Tipo | Descripción |
+| --- | --- | --- |
+| id | PK | |
+| contenido_id | FK ContenidoDocente | Material descargado |
+| nombre, apellido | string | Obligatorios |
+| email | string | Validado |
+| telefono | string | Entre 8 y 15 dígitos, se guarda sin espacios ni guiones |
+| fecha | datetime | |
+
+No es un Usuario: quien descarga no necesita cuenta. Son datos personales y
+solo los ve la administración (`GET /api/biblioteca/descargas`).
+
+**Reglas:** el docente (interno o externo) sube y su material queda pendiente;
+lo edita o elimina solo mientras está pendiente. La administración aprueba o
+rechaza con un motivo opcional, y puede volver a rechazar algo aprobado para
+sacarlo de la biblioteca. La biblioteca pública muestra solo lo aprobado, sin
+el docente ni el estado. Cada moderación publica
+`educacion.contenido_docente.moderado` con `tipo: "material"`, para que
+Notificaciones le avise al docente cuando exista.
