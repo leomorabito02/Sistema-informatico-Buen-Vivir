@@ -8,11 +8,8 @@ name: TP Calidad — Análisis estático (Educación)
 
 on:
   push:
-    branches: ['**']
-    paths:
-      - 'education/**'
-      - 'scripts/calidad/**'
-      - '.github/workflows/calidad-tp.yml'
+    branches:
+      - 'Calidad'
   workflow_dispatch:
 
 permissions:
@@ -162,17 +159,18 @@ jobs:
           retention-days: 30
           if-no-files-found: warn
 
-      # El gate no mira si las pruebas pasan: si alguna falla, la cobertura
-      # medida no es confiable, así que la corrida no puede quedar en verde.
-      - name: Exigir pruebas en verde
+      # Exige que las pruebas hayan pasado y que el Quality Gate de SonarQube esté en verde.
+      - name: Exigir pruebas en verde y quality gate
         run: |
           tail -1 docs/calidad/reportes/historial.csv | grep -q ',si,' \
             || { echo "::error::Hay pruebas fallidas en education"; exit 1; }
+          tail -1 docs/calidad/reportes/historial.csv | grep -q ',OK,' \
+            || { echo "::error::El Quality Gate de SonarQube no fue superado"; exit 1; }
 
   # Análisis de seguridad de Educación, en paralelo con SonarQube. Todo es
   # análisis estático: lee el código, las librerías y la imagen, sin
-  # ejecutar el servicio. Frenan govulncheck y Trivy; gosec, Gitleaks y
-  # Semgrep solo informan (ver scripts/calidad/resumen_seguridad.py).
+  # ejecutar el servicio. Todas las herramientas frenan ante hallazgos
+  # de seguridad bloqueantes (ver scripts/calidad/resumen_seguridad.py).
   seguridad-education:
     name: Seguridad — Educación
     runs-on: ubuntu-latest
