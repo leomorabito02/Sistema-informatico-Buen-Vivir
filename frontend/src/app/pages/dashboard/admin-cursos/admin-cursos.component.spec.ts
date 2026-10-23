@@ -32,6 +32,7 @@ describe("AdminCursosComponent", () => {
       "publishCourse",
       "unpublishCourse",
       "deleteCourse",
+      "countActiveEnrollments",
       "createTrainingArea",
       "updateTrainingArea",
       "deleteTrainingArea",
@@ -151,15 +152,41 @@ describe("AdminCursosComponent", () => {
         return confirmationServiceSpy;
       });
       educationServiceSpy.deleteCourse.and.returnValue(of(undefined));
+      educationServiceSpy.countActiveEnrollments.and.returnValue(of(2));
 
       component.deleteCourse(c);
 
+      expect(educationServiceSpy.countActiveEnrollments).toHaveBeenCalledWith(
+        "1",
+      );
+      expect(confirmationServiceSpy.confirm).toHaveBeenCalledWith(
+        jasmine.objectContaining({
+          message: jasmine.stringContaining("Tiene 2 participantes inscriptos"),
+        }),
+      );
       expect(educationServiceSpy.deleteCourse).toHaveBeenCalledWith("1");
       expect(messageServiceSpy.add).toHaveBeenCalledWith(
         jasmine.objectContaining({
           severity: "success",
         }),
       );
+    });
+
+    it("asks for the deletion even if counting enrollments fails", () => {
+      const c: any = { id: "1", title: "Course 1" };
+      educationServiceSpy.deleteCourse.and.returnValue(of(undefined));
+      educationServiceSpy.countActiveEnrollments.and.returnValue(
+        throwError(() => new Error("caído")),
+      );
+
+      component.deleteCourse(c);
+
+      expect(confirmationServiceSpy.confirm).toHaveBeenCalledWith(
+        jasmine.objectContaining({
+          message: jasmine.stringContaining("No pudimos contar"),
+        }),
+      );
+      expect(educationServiceSpy.deleteCourse).toHaveBeenCalledWith("1");
     });
   });
 

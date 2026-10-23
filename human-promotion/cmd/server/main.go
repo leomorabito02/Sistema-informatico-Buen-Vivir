@@ -76,8 +76,9 @@ func main() {
 	jwtService := services.NewJWTService()
 	fichaService := services.NewFichaService(fichaRepo, fieldCipher, authDirectory, repositories.NewEducationClient(cfg.EducationServiceURL))
 	hitoService := services.NewHitoService(hitoRepo, fichaRepo, fieldCipher, authDirectory)
-	participanteService := services.NewParticipanteService(authDirectory, fichaRepo, hitoRepo, fieldCipher)
-	pdfService := services.NewPDFService(fichaService, hitoService)
+	actividadService := services.NewActividadService(repositories.NewLineaTiempoRepository(firestoreClient), fichaRepo)
+	participanteService := services.NewParticipanteService(authDirectory, fichaRepo, hitoRepo, fieldCipher, actividadService)
+	pdfService := services.NewPDFService(fichaService, hitoService, actividadService)
 
 	r := chi.NewRouter()
 	middlewares.SetupMiddlewares(r, cfg.CORSAllowedOrigins)
@@ -85,6 +86,9 @@ func main() {
 		Ficha:        controllers.NewFichaController(fichaService, pdfService),
 		Hito:         controllers.NewHitoController(hitoService),
 		Participante: controllers.NewParticipanteController(participanteService),
+		Indicadores:  controllers.NewIndicadoresController(repositories.NewIndicadoresRepository(firestoreClient)),
+		Actividad:    controllers.NewActividadController(actividadService),
+		Auditoria:    controllers.NewAuditoriaController(services.NewAuditoriaService(repositories.NewAuditoriaRepository(firestoreClient), authDirectory)),
 	})
 
 	server := &http.Server{

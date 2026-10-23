@@ -1,4 +1,9 @@
-import { ComponentFixture, TestBed } from "@angular/core/testing";
+import {
+  ComponentFixture,
+  TestBed,
+  fakeAsync,
+  tick,
+} from "@angular/core/testing";
 import { CursosComponent } from "./cursos.component";
 import { EducationService } from "../../../services/education.service";
 import { of, throwError } from "rxjs";
@@ -24,11 +29,11 @@ describe("CursosComponent", () => {
     educationServiceSpy = jasmine.createSpyObj("EducationService", [
       "listCourses",
       "listMyEnrolledCourses",
-      "getGeneralAttendance",
+      "listTrainingAreas",
     ]);
     educationServiceSpy.listCourses.and.returnValue(of([]));
     educationServiceSpy.listMyEnrolledCourses.and.returnValue(of([]));
-    educationServiceSpy.getGeneralAttendance.and.returnValue(of([]));
+    educationServiceSpy.listTrainingAreas.and.returnValue(of([]));
     authServiceSpy = jasmine.createSpyObj("AuthService", ["isAuthenticated"]);
     authServiceSpy.isAuthenticated.and.returnValue(of(me("role_company")));
 
@@ -86,29 +91,70 @@ describe("CursosComponent", () => {
     expect(component.loading).toBeFalse();
   });
 
-  it("should filter courses correctly", () => {
-    const c1: any = {
-      id: "1",
-      title: "Angular Basics",
-      area: "Web",
-      descripcion: "learn angular",
-      mode: "Virtual",
-    };
-    const c2: any = {
-      id: "2",
-      title: "React Basics",
-      area: "Web",
-      descripcion: "learn react",
-      mode: "Virtual",
-    };
-    component.cursos = [c1, c2];
+  it("busca en el backend esperando a que se deje de escribir", fakeAsync(() => {
+    educationServiceSpy.listCourses.calls.reset();
+    educationServiceSpy.listCourses.and.returnValue(
+      of([{ id: "1", title: "Angular Basics", mode: "Virtual" } as any]),
+    );
 
-    component.searchTerm = "angular";
-    component.filterCursos();
+    for (const t of ["an", "ang", " angular "]) {
+      component.searchTerm = t;
+      component.filterCursos();
+    }
+    tick(300);
 
+    expect(educationServiceSpy.listCourses).toHaveBeenCalledOnceWith(
+      "angular",
+      "",
+    );
     expect(component.filteredCursos).toHaveSize(1);
     expect(component.filteredCursos[0].title).toBe("Angular Basics");
+  }));
+
+  it("combina el buscador con el área formativa (HU-28)", fakeAsync(() => {
+    educationServiceSpy.listCourses.calls.reset();
+    component.searchTerm = "huerta";
+    component.selectedArea = "a1";
+    component.filterCursos();
+    tick(300);
+    expect(educationServiceSpy.listCourses).toHaveBeenCalledOnceWith(
+      "huerta",
+      "a1",
+    );
+  }));
+
+  it("arma las opciones de área con 'Todas' primero", () => {
+    educationServiceSpy.listTrainingAreas.and.returnValue(
+      of([
+        { id: "a2", name: "Oficios" },
+        { id: "a1", name: "Huerta" },
+      ] as any),
+    );
+    component.ngOnInit();
+    expect(component.areaOptions.map((o) => o.value)).toEqual(["", "a1", "a2"]);
   });
+
+  it("el participante busca entre sus cursos", fakeAsync(() => {
+    component.esParticipante = true;
+    component.searchTerm = "huerta";
+    component.filterCursos();
+    tick(300);
+    expect(educationServiceSpy.listMyEnrolledCourses).toHaveBeenCalledWith(
+      "huerta",
+      "",
+    );
+  }));
+
+  it("sin resultados lo dice con el texto buscado", fakeAsync(() => {
+    educationServiceSpy.listCourses.and.returnValue(of([]));
+    component.searchTerm = "carpintería";
+    component.filterCursos();
+    tick(300);
+    fixture.detectChanges();
+    expect(fixture.nativeElement.textContent).toContain(
+      "No se encontraron cursos con «carpintería»",
+    );
+  }));
 
   it("should open the summary dialog for roles without the detail page", () => {
     const c: any = { id: "1", title: "Course 1", teacherId: "otro" };

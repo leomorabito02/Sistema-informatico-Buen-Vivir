@@ -203,6 +203,9 @@ func (c *AuthController) GetMe(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	roleID, _ := r.Context().Value(middlewares.RoleIDKey).(string)
+	// is_external viene del token: el frontend lo usa para mostrarle al
+	// docente externo solo la carga y consulta de contenido (HU-23).
+	isExternal, _ := r.Context().Value(middlewares.IsExternalKey).(bool)
 
 	status := c.authService.GetApprovalStatus(r.Context(), roleID, userID)
 
@@ -210,6 +213,7 @@ func (c *AuthController) GetMe(w http.ResponseWriter, r *http.Request) {
 		"user_id":         userID,
 		"role_id":         roleID,
 		"approval_status": status,
+		"is_external":     isExternal,
 	})
 }
 

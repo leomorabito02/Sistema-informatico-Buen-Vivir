@@ -9,16 +9,34 @@ import { catchError, map } from "rxjs/operators";
 import { environment } from "../../environments/environment";
 import {
   CreateFichaInput,
+  EntradaActividad,
   Ficha,
   FichaDetalle,
   Hito,
   HitoDetalle,
   HitoInput,
-  HitoParticipante,
+  LineaDeTiempoPropia,
   ResultadoBusqueda,
   UpdateFichaInput,
   UpdateFichaResponse,
 } from "../core/models/human-promotion.model";
+import {
+  FiltroAuditoria,
+  RegistroAuditoria,
+} from "../core/models/education.model";
+import { filtrosAuditoria } from "./education.service";
+
+/** Fila del log tal como la devuelve el backend (snake_case). */
+interface RegistroAuditoriaApi {
+  id: string;
+  usuario_id: string;
+  usuario_nombre?: string;
+  accion: string;
+  recurso: string;
+  recurso_id: string;
+  fecha: string;
+  ip?: string;
+}
 
 /** Error del servicio con el status HTTP, para distinguir "sin ficha" (404). */
 export class HumanPromotionError extends Error {
@@ -131,14 +149,52 @@ export class HumanPromotionService {
       .pipe(catchError(this.handleError));
   }
 
-  // ---- Participante (HU-34) ----------------------------------------------
-  miLineaDeTiempo(): Observable<HitoParticipante[]> {
+  /** Actividad en el centro del participante de la ficha (HU-33). */
+  listarActividad(fichaId: string): Observable<EntradaActividad[]> {
     return this.http
-      .get<{
-        hitos: HitoParticipante[];
-      }>(`${this.base}/mi-linea-de-tiempo`, { withCredentials: true })
+      .get<EntradaActividad[]>(
+        `${this.base}/fichas/${encodeURIComponent(fichaId)}/actividad`,
+        { withCredentials: true },
+      )
+      .pipe(catchError(this.handleError));
+  }
+
+  // ---- Participante (HU-34) ----------------------------------------------
+  miLineaDeTiempo(): Observable<LineaDeTiempoPropia> {
+    return this.http
+      .get<Partial<LineaDeTiempoPropia>>(`${this.base}/mi-linea-de-tiempo`, {
+        withCredentials: true,
+      })
       .pipe(
-        map((res) => res.hitos ?? []),
+        map((res) => ({
+          hitos: res.hitos ?? [],
+          actividad: res.actividad ?? [],
+        })),
+        catchError(this.handleError),
+      );
+  }
+
+  // ---- Auditoría (HU-30, HU-35: solo administración) ---------------------
+  /** Log de altas, ediciones y bajas de fichas e hitos. Solo lectura. */
+  listarAuditoria(filtro: FiltroAuditoria = {}): Observable<RegistroAuditoria[]> {
+    return this.http
+      .get<RegistroAuditoriaApi[]>(`${this.base}/auditoria`, {
+        params: filtrosAuditoria(filtro),
+        withCredentials: true,
+      })
+      .pipe(
+        map((rows) =>
+          rows.map((r) => ({
+            id: r.id,
+            usuarioId: r.usuario_id,
+            usuarioNombre: r.usuario_nombre,
+            accion: r.accion,
+            recurso: r.recurso,
+            recursoId: r.recurso_id,
+            fecha: r.fecha,
+            ip: r.ip,
+          })),
+        ),
         catchError(this.handleError),
       );
   }

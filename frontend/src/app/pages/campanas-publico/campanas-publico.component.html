@@ -1,0 +1,76 @@
+<div class="publico-page">
+  <header class="publico-header">
+    <div class="container">
+      <div class="publico-nav-top">
+        <a routerLink="/" class="btn-back">
+          <lucide-angular [img]="ArrowLeftIcon" class="icon-sm icon-mr"></lucide-angular>
+          Volver al inicio
+        </a>
+        <div class="publico-brand">
+          <img src="assets/logo.png" alt="Logo Buen Vivir" class="publico-logo" />
+          <span>Buen Vivir</span>
+        </div>
+      </div>
+      <div class="publico-hero">
+        <div class="publico-badge">
+          <lucide-angular [img]="MegaphoneIcon" class="icon-sm icon-mr"></lucide-angular>
+          Concientización
+        </div>
+        <h1 class="publico-title">Campañas del centro</h1>
+        <p class="publico-subtitle">
+          Iniciativas ambientales y sociales del Centro de Ecología Integral
+          "La Otra Orilla".
+        </p>
+      </div>
+    </div>
+  </header>
+
+  <main class="container publico-content">
+    <label class="buscador">
+      <span class="sr-only">Buscar campañas por título</span>
+      <lucide-angular [img]="SearchIcon" class="icon-sm" aria-hidden="true"></lucide-angular>
+      <input
+        type="search"
+        name="busqueda"
+        [(ngModel)]="busqueda"
+        (ngModelChange)="buscar($event)"
+        placeholder="Buscar por título…"
+      />
+    </label>
+
+    <p *ngIf="cargando" class="mensaje" role="status">Cargando campañas…</p>
+    <p *ngIf="!cargando && error" class="mensaje mensaje-error" role="alert">{{ error }}</p>
+    <p *ngIf="!cargando && !error && campanas.length === 0" class="mensaje">
+      {{ busqueda.trim() ? "No hay campañas que coincidan con «" + busqueda.trim() + "»." : "Todavía no hay campañas publicadas." }}
+    </p>
+
+    <div class="grid" *ngIf="!cargando && campanas.length">
+      <article *ngFor="let c of campanas" class="tarjeta">
+        <img [src]="c.imagen_url" [alt]="'Imagen de la campaña ' + c.titulo" class="tarjeta-img" loading="lazy" />
+        <div class="tarjeta-body">
+          <h2 class="tarjeta-titulo">{{ c.titulo }}</h2>
+          <p class="tarjeta-fecha">
+            <lucide-angular [img]="CalendarIcon" class="icon-sm icon-mr" aria-hidden="true"></lucide-angular>
+            {{ fechaDMY(c.fecha) }}
+          </p>
+          <p class="tarjeta-texto">{{ c.texto }}</p>
+          <button
+            type="button"
+            class="tarjeta-comentarios"
+            [attr.aria-expanded]="comentariosAbiertos.has(c.id)"
+            (click)="alternarComentarios(c.id)"
+          >
+            {{ comentariosAbiertos.has(c.id) ? "Ocultar comentarios" : "Ver comentarios" }}
+          </button>
+          <app-comentarios
+            *ngIf="comentariosAbiertos.has(c.id)"
+            entidadTipo="campana"
+            [entidadId]="c.id"
+          ></app-comentarios>
+        </div>
+      </article>
+    </div>
+  </main>
+
+  <app-footer></app-footer>
+</div>

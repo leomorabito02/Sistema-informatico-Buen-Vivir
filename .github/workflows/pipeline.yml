@@ -433,6 +433,18 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
 
+    # Los repositorios (fichas, hitos, línea de tiempo, indicadores) se
+    # prueban contra el emulador de Firestore; sin él, esas pruebas se
+    # saltean y la cobertura queda baja.
+    services:
+      firestore:
+        image: mtlynch/firestore-emulator:latest
+        ports:
+          - 8390:8080
+
+    env:
+      FIRESTORE_EMULATOR_HOST: localhost:8390
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -454,9 +466,12 @@ jobs:
         working-directory: human-promotion
         run: go vet ./...
 
-      - name: Run Go Unit Tests
+      - name: Unit + integration tests + coverage
         working-directory: human-promotion
-        run: go test -v -coverprofile=coverage.out ./...
+        run: |
+          go test -v -coverprofile=coverage.out ./...
+          COVERAGE=$(go tool cover -func=coverage.out | grep total | awk '{print $3}')
+          echo "### Human Promotion Service Coverage: ${COVERAGE}" >> $GITHUB_STEP_SUMMARY
 
       - name: Go Security Scan (gosec)
         working-directory: human-promotion
@@ -487,6 +502,172 @@ jobs:
         run: |
           IMAGE_URI="${{ secrets.ARTIFACT_REGISTRY_HOST }}/${{ secrets.GCP_PROJECT_ID }}/${{ secrets.ARTIFACT_REGISTRY_REPO }}/human-promotion:${{ github.sha }}"
           docker tag human-promotion:${{ github.sha }} "$IMAGE_URI"
+          docker push "$IMAGE_URI"
+
+  ci-campaigns:
+    name: CI — Campaigns Service (Go)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    # Los tests del repository corren contra el emulador de Firestore,
+    # igual que ci-education (sin él se saltean).
+    services:
+      firestore:
+        image: mtlynch/firestore-emulator:latest
+        ports:
+          - 8390:8080
+
+    env:
+      FIRESTORE_EMULATOR_HOST: localhost:8390
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+          cache-dependency-path: campaigns/go.sum
+
+      - name: Download Go modules
+        working-directory: campaigns
+        run: go mod download
+
+      - name: Go vet
+        working-directory: campaigns
+        run: go vet ./...
+
+      # -coverpkg: los handlers y middlewares se prueban desde el paquete
+      # routes; sin esto la cobertura de cada paquete sale artificialmente baja.
+      - name: Unit + integration tests + coverage
+        working-directory: campaigns
+        run: |
+          go test -v -race -coverpkg=./... -coverprofile=coverage.out ./...
+          go tool cover -func=coverage.out | tail -1
+
+      - name: Enforce coverage threshold (70%)
+        working-directory: campaigns
+        run: |
+          COVERAGE=$(go tool cover -func=coverage.out | grep total | awk '{print $3}' | tr -d '%')
+          echo "### Campaigns Service Coverage: ${COVERAGE}%" >> $GITHUB_STEP_SUMMARY
+          if (( $(echo "$COVERAGE < 70" | bc -l) )); then
+            echo "::error::Coverage ${COVERAGE}% is below the required 70% threshold."
+            exit 1
+          fi
+
+      - name: Go Security Scan (gosec)
+        working-directory: campaigns
+        run: |
+          go install github.com/securego/gosec/v2/cmd/gosec@latest
+          gosec -fmt sarif -out gosec-results.sarif ./...
+        continue-on-error: true
+
+      - name: Docker build (campaigns)
+        run: docker build -t campaigns:${{ github.sha }} -f campaigns/Dockerfile ./campaigns
+
+      - name: Authenticate to Google Cloud
+        if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/testing')
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: '${{ secrets.GCP_CREDENTIALS }}'
+
+      - name: Setup Google Cloud SDK
+        if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/testing')
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Configure Docker for Artifact Registry
+        if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/testing')
+        run: gcloud auth configure-docker ${{ secrets.ARTIFACT_REGISTRY_HOST }} --quiet
+
+      - name: Push campaigns image to Artifact Registry
+        if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/testing')
+        run: |
+          IMAGE_URI="${{ secrets.ARTIFACT_REGISTRY_HOST }}/${{ secrets.GCP_PROJECT_ID }}/${{ secrets.ARTIFACT_REGISTRY_REPO }}/campaigns:${{ github.sha }}"
+          docker tag campaigns:${{ github.sha }} "$IMAGE_URI"
+          docker push "$IMAGE_URI"
+
+  ci-dashboard:
+    name: CI — Dashboard Service (Go)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    # El repositorio del historial de reportes se prueba contra el
+    # emulador de Firestore (sin él, esa prueba se saltea).
+    services:
+      firestore:
+        image: mtlynch/firestore-emulator:latest
+        ports:
+          - 8390:8080
+
+    env:
+      FIRESTORE_EMULATOR_HOST: localhost:8390
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+          cache-dependency-path: dashboard/go.sum
+
+      - name: Download Go modules
+        working-directory: dashboard
+        run: go mod download
+
+      - name: Go vet
+        working-directory: dashboard
+        run: go vet ./...
+
+      - name: Unit + integration tests + coverage
+        working-directory: dashboard
+        run: |
+          go test -v -race -coverpkg=./... -coverprofile=coverage.out ./...
+          go tool cover -func=coverage.out | tail -1
+
+      - name: Enforce coverage threshold (70%)
+        working-directory: dashboard
+        run: |
+          COVERAGE=$(go tool cover -func=coverage.out | grep total | awk '{print $3}' | tr -d '%')
+          echo "### Dashboard Service Coverage: ${COVERAGE}%" >> $GITHUB_STEP_SUMMARY
+          if (( $(echo "$COVERAGE < 70" | bc -l) )); then
+            echo "::error::Coverage ${COVERAGE}% is below the required 70% threshold."
+            exit 1
+          fi
+
+      - name: Go Security Scan (gosec)
+        working-directory: dashboard
+        run: |
+          go install github.com/securego/gosec/v2/cmd/gosec@latest
+          gosec -fmt sarif -out gosec-results.sarif ./...
+        continue-on-error: true
+
+      - name: Docker build (dashboard)
+        run: docker build -t dashboard:${{ github.sha }} -f dashboard/Dockerfile ./dashboard
+
+      - name: Authenticate to Google Cloud
+        if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/testing')
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: '${{ secrets.GCP_CREDENTIALS }}'
+
+      - name: Setup Google Cloud SDK
+        if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/testing')
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Configure Docker for Artifact Registry
+        if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/testing')
+        run: gcloud auth configure-docker ${{ secrets.ARTIFACT_REGISTRY_HOST }} --quiet
+
+      - name: Push dashboard image to Artifact Registry
+        if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/testing')
+        run: |
+          IMAGE_URI="${{ secrets.ARTIFACT_REGISTRY_HOST }}/${{ secrets.GCP_PROJECT_ID }}/${{ secrets.ARTIFACT_REGISTRY_REPO }}/dashboard:${{ github.sha }}"
+          docker tag dashboard:${{ github.sha }} "$IMAGE_URI"
           docker push "$IMAGE_URI"
 
   ci-cv-renderer:
@@ -580,6 +761,8 @@ jobs:
           export EDUCATION_SERVICE_URL="https://education.example.com"
           export RXRESUME_SERVICE_URL="https://rxresume.example.com"
           export HUMAN_PROMOTION_SERVICE_URL="https://human-promotion.example.com"
+          export CAMPAIGNS_SERVICE_URL="https://campaigns.example.com"
+          export DASHBOARD_SERVICE_URL="https://dashboard.example.com"
           export FIREBASE_PROJECT_ID="validate-project"
           envsubst < openapi.yaml > openapi-resolved.yaml
 
@@ -600,7 +783,7 @@ jobs:
   ci-gate:
     name: CI — Gate (Verificación general)
     runs-on: ubuntu-latest
-    needs: [ci-secrets, ci-frontend, ci-auth, ci-education, ci-rxresume, ci-human-promotion, ci-cv-renderer, ci-api-gateway]
+    needs: [ci-secrets, ci-frontend, ci-auth, ci-education, ci-rxresume, ci-human-promotion, ci-campaigns, ci-dashboard, ci-cv-renderer, ci-api-gateway]
     if: always()
 
     steps:
@@ -628,6 +811,18 @@ jobs:
           fi
           if [ "${{ needs.ci-rxresume.result }}" != "success" ]; then
             echo "::error::ci-rxresume failed."
+            exit 1
+          fi
+          if [ "${{ needs.ci-human-promotion.result }}" != "success" ]; then
+            echo "::error::ci-human-promotion failed."
+            exit 1
+          fi
+          if [ "${{ needs.ci-campaigns.result }}" != "success" ]; then
+            echo "::error::ci-campaigns failed."
+            exit 1
+          fi
+          if [ "${{ needs.ci-dashboard.result }}" != "success" ]; then
+            echo "::error::ci-dashboard failed."
             exit 1
           fi
           echo "All CI jobs passed. Gate cleared."
@@ -1060,6 +1255,134 @@ jobs:
           SERVICE="human-promotion-${{ needs.cd-setup.outputs.service_suffix }}"
           gcloud run services update-traffic "$SERVICE" --region="${{ secrets.GCP_REGION }}" --to-latest --project="${{ secrets.GCP_PROJECT_ID }}"
 
+  cd-campaigns:
+    name: CD — Campaigns Service (Cloud Run)
+    runs-on: ubuntu-latest
+    needs: [cd-setup]
+    environment: ${{ needs.cd-setup.outputs.env_name }}
+    timeout-minutes: 15
+    env:
+      GOOGLE_APPLICATION_CREDENTIALS_BASE64: ""
+    outputs:
+      service_url: ${{ steps.deploy.outputs.url }}
+      prev_revision: ${{ steps.pre-deploy.outputs.prev_revision }}
+
+    steps:
+      - name: Authenticate GCP (Workload Identity)
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+
+      - name: Verify campaigns image in Artifact Registry
+        run: |
+          IMAGE_URI="${{ secrets.ARTIFACT_REGISTRY_HOST }}/${{ secrets.GCP_PROJECT_ID }}/${{ secrets.ARTIFACT_REGISTRY_REPO }}/campaigns:${{ github.sha }}"
+          gcloud artifacts docker images describe "$IMAGE_URI" > /dev/null || (echo "::error::Image $IMAGE_URI not found in Artifact Registry" && exit 1)
+
+      - name: Capture previous Cloud Run revision (for rollback)
+        id: pre-deploy
+        run: |
+          SERVICE="campaigns-${{ needs.cd-setup.outputs.service_suffix }}"
+          REGION="${{ secrets.GCP_REGION }}"
+          PREV=$(gcloud run services describe "$SERVICE" --region="$REGION" \
+            --format='value(status.latestReadyRevisionName)' 2>/dev/null || echo "")
+          echo "prev_revision=$PREV" >> $GITHUB_OUTPUT
+          echo "Previous revision: ${PREV:-none}"
+
+      - name: Prepare Firestore credentials (base64)
+        run: |
+          echo "GOOGLE_APPLICATION_CREDENTIALS_BASE64=$(echo -n "$FIREBASE_JSON" | base64 -w 0)" >> $GITHUB_ENV
+        env:
+          FIREBASE_JSON: ${{ secrets.GOOGLE_APPLICATION_CREDENTIALS }}
+
+      - name: Deploy Campaigns to Cloud Run
+        id: deploy
+        uses: google-github-actions/deploy-cloudrun@v2
+        with:
+          service: 'campaigns-${{ needs.cd-setup.outputs.service_suffix }}'
+          region: '${{ secrets.GCP_REGION }}'
+          image: '${{ secrets.ARTIFACT_REGISTRY_HOST }}/${{ secrets.GCP_PROJECT_ID }}/${{ secrets.ARTIFACT_REGISTRY_REPO }}/campaigns:${{ github.sha }}'
+          flags: '--no-allow-unauthenticated --min-instances=0 --max-instances=1 --cpu=1 --memory=256Mi --service-account=${{ secrets.GCP_SERVICE_ACCOUNT }}'
+          env_vars: |-
+            JWT_SECRET=${{ secrets.JWT_SECRET }}
+            GOOGLE_APPLICATION_CREDENTIALS_BASE64=${{ env.GOOGLE_APPLICATION_CREDENTIALS_BASE64 }}
+            CORS_ALLOWED_ORIGINS=${{ secrets.CORS_ALLOWED_ORIGINS }}
+
+      - name: Ensure 100% traffic routed to latest Cloud Run revision
+        run: |
+          SERVICE="campaigns-${{ needs.cd-setup.outputs.service_suffix }}"
+          gcloud run services update-traffic "$SERVICE" --region="${{ secrets.GCP_REGION }}" --to-latest --project="${{ secrets.GCP_PROJECT_ID }}"
+
+  cd-dashboard:
+    name: CD — Dashboard Service (Cloud Run)
+    runs-on: ubuntu-latest
+    needs: [cd-setup, cd-auth, cd-education, cd-human-promotion]
+    environment: ${{ needs.cd-setup.outputs.env_name }}
+    timeout-minutes: 15
+    env:
+      GOOGLE_APPLICATION_CREDENTIALS_BASE64: ""
+    outputs:
+      service_url: ${{ steps.deploy.outputs.url }}
+      prev_revision: ${{ steps.pre-deploy.outputs.prev_revision }}
+
+    steps:
+      - name: Authenticate GCP (Workload Identity)
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+
+      - name: Verify dashboard image in Artifact Registry
+        run: |
+          IMAGE_URI="${{ secrets.ARTIFACT_REGISTRY_HOST }}/${{ secrets.GCP_PROJECT_ID }}/${{ secrets.ARTIFACT_REGISTRY_REPO }}/dashboard:${{ github.sha }}"
+          gcloud artifacts docker images describe "$IMAGE_URI" > /dev/null || (echo "::error::Image $IMAGE_URI not found in Artifact Registry" && exit 1)
+
+      - name: Capture previous Cloud Run revision (for rollback)
+        id: pre-deploy
+        run: |
+          SERVICE="dashboard-${{ needs.cd-setup.outputs.service_suffix }}"
+          REGION="${{ secrets.GCP_REGION }}"
+          PREV=$(gcloud run services describe "$SERVICE" --region="$REGION" \
+            --format='value(status.latestReadyRevisionName)' 2>/dev/null || echo "")
+          echo "prev_revision=$PREV" >> $GITHUB_OUTPUT
+          echo "Previous revision: ${PREV:-none}"
+
+      - name: Prepare Google credentials (base64)
+        run: |
+          echo "GOOGLE_APPLICATION_CREDENTIALS_BASE64=$(echo -n "$FIREBASE_JSON" | base64 -w 0)" >> $GITHUB_ENV
+        env:
+          FIREBASE_JSON: ${{ secrets.GOOGLE_APPLICATION_CREDENTIALS }}
+
+      # El Dashboard valida el token por su cuenta (en Google Cloud el
+      # gateway no pasa el rol) y llama a los demás servicios con un token
+      # de identidad de Google (UPSTREAM_ID_TOKEN): la service account
+      # necesita roles/run.invoker sobre auth, education y human-promotion.
+      # Inserción Laboral todavía no se despliega: LABOR_SERVICE_URL vacío
+      # = ese indicador sale como "No disponible".
+      - name: Deploy Dashboard to Cloud Run
+        id: deploy
+        uses: google-github-actions/deploy-cloudrun@v2
+        with:
+          service: 'dashboard-${{ needs.cd-setup.outputs.service_suffix }}'
+          region: '${{ secrets.GCP_REGION }}'
+          image: '${{ secrets.ARTIFACT_REGISTRY_HOST }}/${{ secrets.GCP_PROJECT_ID }}/${{ secrets.ARTIFACT_REGISTRY_REPO }}/dashboard:${{ github.sha }}'
+          flags: '--no-allow-unauthenticated --min-instances=0 --max-instances=1 --cpu=1 --memory=256Mi --service-account=${{ secrets.GCP_SERVICE_ACCOUNT }}'
+          env_vars: |-
+            APP_ENV=${{ needs.cd-setup.outputs.app_env }}
+            JWT_SECRET=${{ secrets.JWT_SECRET }}
+            AUTH_SERVICE_URL=${{ needs.cd-auth.outputs.service_url }}
+            EDUCATION_SERVICE_URL=${{ needs.cd-education.outputs.service_url }}
+            HUMAN_PROMOTION_SERVICE_URL=${{ needs.cd-human-promotion.outputs.service_url }}
+            LABOR_SERVICE_URL=
+            UPSTREAM_ID_TOKEN=true
+            REPORTES_BUCKET=ceibuenvivir-bucket
+            GOOGLE_APPLICATION_CREDENTIALS_BASE64=${{ env.GOOGLE_APPLICATION_CREDENTIALS_BASE64 }}
+
+      - name: Ensure 100% traffic routed to latest Cloud Run revision
+        run: |
+          SERVICE="dashboard-${{ needs.cd-setup.outputs.service_suffix }}"
+          gcloud run services update-traffic "$SERVICE" --region="${{ secrets.GCP_REGION }}" --to-latest --project="${{ secrets.GCP_PROJECT_ID }}"
+
   cd-cv-renderer:
     name: CD — CV Renderer (Cloud Run)
     runs-on: ubuntu-latest
@@ -1143,7 +1466,7 @@ jobs:
   cd-api-gateway:
     name: CD — API Gateway (Google Cloud)
     runs-on: ubuntu-latest
-    needs: [cd-setup, cd-auth, cd-education, cd-rxresume, cd-cv-renderer, cd-human-promotion]
+    needs: [cd-setup, cd-auth, cd-education, cd-rxresume, cd-cv-renderer, cd-human-promotion, cd-campaigns, cd-dashboard]
     environment: ${{ needs.cd-setup.outputs.env_name }}
     timeout-minutes: 30
     outputs:
@@ -1179,6 +1502,8 @@ jobs:
 
           export RXRESUME_SERVICE_URL=$(gcloud run services describe "rxresume-$SUFFIX" --region="${{ secrets.GCP_REGION }}" --format='value(status.url)')
           export HUMAN_PROMOTION_SERVICE_URL=$(gcloud run services describe "human-promotion-$SUFFIX" --region="${{ secrets.GCP_REGION }}" --format='value(status.url)')
+          export CAMPAIGNS_SERVICE_URL=$(gcloud run services describe "campaigns-$SUFFIX" --region="${{ secrets.GCP_REGION }}" --format='value(status.url)')
+          export DASHBOARD_SERVICE_URL=$(gcloud run services describe "dashboard-$SUFFIX" --region="${{ secrets.GCP_REGION }}" --format='value(status.url)')
           export FIREBASE_PROJECT_ID="${{ secrets.FIREBASE_PROJECT_ID }}"
           envsubst < openapi.yaml > openapi-resolved.yaml
           echo "openapi.yaml resolved for env: $SUFFIX (auth=$AUTH_URL, education=$EDU_URL)"
@@ -1329,7 +1654,7 @@ jobs:
   cd-smoke:
     name: CD — Smoke Tests
     runs-on: ubuntu-latest
-    needs: [cd-setup, cd-auth, cd-education, cd-rxresume, cd-cv-renderer, cd-api-gateway, cd-frontend, cd-worker]
+    needs: [cd-setup, cd-auth, cd-education, cd-rxresume, cd-cv-renderer, cd-campaigns, cd-dashboard, cd-api-gateway, cd-frontend, cd-worker]
     environment: ${{ needs.cd-setup.outputs.env_name }}
     timeout-minutes: 15
 
@@ -1354,10 +1679,55 @@ jobs:
           id_token_audience: ${{ needs.cd-education.outputs.service_url }}
           id_token_include_email: true
 
+      - name: Mint ID token for Campaigns Service
+        id: auth_campaigns
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+          token_format: id_token
+          id_token_audience: ${{ needs.cd-campaigns.outputs.service_url }}
+          id_token_include_email: true
+
+      - name: Mint ID token for Dashboard Service
+        id: auth_dashboard
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+          token_format: id_token
+          id_token_audience: ${{ needs.cd-dashboard.outputs.service_url }}
+          id_token_include_email: true
+
       - name: Setup gcloud
         uses: google-github-actions/setup-gcloud@v2
         with:
           project_id: ${{ secrets.GCP_PROJECT_ID }}
+
+      - name: Smoke test — Dashboard Service (/health y protección)
+        run: |
+          DSH_URL="${{ needs.cd-dashboard.outputs.service_url }}"
+          TOKEN="${{ steps.auth_dashboard.outputs.id_token }}"
+          curl --retry 3 --retry-delay 5 --fail --silent --show-error --max-time 15 \
+            -H "X-Serverless-Authorization: Bearer $TOKEN" "$DSH_URL/health" | grep -q '"status":"UP"' \
+            || { echo "::error::Dashboard /health no respondió UP"; exit 1; }
+          # Sin sesión de usuario, los indicadores tienen que responder 401.
+          STATUS=$(curl --retry 3 --retry-delay 5 --silent --output /dev/null --write-out "%{http_code}" --max-time 15 \
+            -H "X-Serverless-Authorization: Bearer $TOKEN" "$DSH_URL/api/v1/dashboard/resumen?desde=2026-01-01&hasta=2026-01-31")
+          [ "$STATUS" = "401" ] || { echo "::error::Dashboard sin sesión respondió $STATUS (se esperaba 401)"; exit 1; }
+          echo "Dashboard health: OK"
+
+      - name: Smoke test — Campaigns Service (/health y listado público)
+        run: |
+          CMP_URL="${{ needs.cd-campaigns.outputs.service_url }}"
+          TOKEN="${{ steps.auth_campaigns.outputs.id_token }}"
+          curl --retry 3 --retry-delay 5 --fail --silent --show-error --max-time 15 \
+            -H "Authorization: Bearer $TOKEN" "$CMP_URL/health" | grep -q '"status":"UP"' \
+            || { echo "::error::Campaigns /health no respondió UP"; exit 1; }
+          curl --retry 3 --retry-delay 5 --fail --silent --show-error --max-time 15 \
+            -H "Authorization: Bearer $TOKEN" "$CMP_URL/api/v1/campaigns/publicas" > /dev/null \
+            || { echo "::error::Campaigns listado público falló (¿Firestore?)"; exit 1; }
+          echo "Campaigns health: OK"
 
       - name: Smoke test — Education Service (/api/salud)
         run: |
@@ -1452,7 +1822,7 @@ jobs:
   cd-rollback:
     name: CD — Rollback (auto)
     runs-on: ubuntu-latest
-    needs: [cd-setup, cd-auth, cd-education, cd-rxresume, cd-cv-renderer, cd-frontend, cd-smoke, cd-dast-zap, cd-load-k6]
+    needs: [cd-setup, cd-auth, cd-education, cd-rxresume, cd-cv-renderer, cd-campaigns, cd-dashboard, cd-frontend, cd-smoke, cd-dast-zap, cd-load-k6]
     environment: ${{ needs.cd-setup.outputs.env_name }}
     timeout-minutes: 15
     if: always() && (needs.cd-smoke.result == 'failure' || needs.cd-dast-zap.result == 'failure' || needs.cd-load-k6.result == 'failure')
@@ -1490,6 +1860,33 @@ jobs:
               --region="$REGION" \
               --to-revisions "$PREV=100"
             echo "Cloud Run rollback complete."
+          else
+            echo "::warning::No previous revision found. Manual intervention required."
+          fi
+
+      - name: Rollback Dashboard (Cloud Run — previous revision)
+        run: |
+          SERVICE="dashboard-${{ needs.cd-setup.outputs.service_suffix }}"
+          REGION="${{ secrets.GCP_REGION }}"
+          PREV="${{ needs.cd-dashboard.outputs.prev_revision }}"
+          if [ -n "$PREV" ]; then
+            gcloud run services update-traffic "$SERVICE" \
+              --region="$REGION" \
+              --to-revisions "$PREV=100"
+          else
+            echo "::warning::No previous revision found. Manual intervention required."
+          fi
+
+      - name: Rollback Campaigns (Cloud Run — previous revision)
+        run: |
+          SERVICE="campaigns-${{ needs.cd-setup.outputs.service_suffix }}"
+          REGION="${{ secrets.GCP_REGION }}"
+          PREV="${{ needs.cd-campaigns.outputs.prev_revision }}"
+          if [ -n "$PREV" ]; then
+            echo "Rolling back Cloud Run to revision: $PREV"
+            gcloud run services update-traffic "$SERVICE" \
+              --region="$REGION" \
+              --to-revisions "$PREV=100"
           else
             echo "::warning::No previous revision found. Manual intervention required."
           fi

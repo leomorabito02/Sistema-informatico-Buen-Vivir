@@ -3,7 +3,7 @@ import { authGuard } from "./core/guards/auth.guard";
 import { guestGuard } from "./core/guards/guest.guard";
 import { adminGuard } from "./core/guards/admin.guard";
 import { adminOrVolunteerGuard } from "./core/guards/admin-volunteer.guard";
-import { teacherGuard } from "./core/guards/teacher.guard";
+import { anyTeacherGuard, teacherGuard } from "./core/guards/teacher.guard";
 import { participantGuard } from "./core/guards/participant.guard";
 
 export const routes: Routes = [
@@ -100,6 +100,14 @@ export const routes: Routes = [
       ),
   },
   {
+    // Campañas publicadas, sin iniciar sesión (HU-50, HU-51).
+    path: "campanas-publico",
+    loadComponent: () =>
+      import("./pages/campanas-publico/campanas-publico.component").then(
+        (m) => m.CampanasPublicoComponent,
+      ),
+  },
+  {
     path: "mi-cuenta",
     redirectTo: "dashboard/mi-perfil",
     pathMatch: "prefix",
@@ -150,6 +158,22 @@ export const routes: Routes = [
         loadComponent: () =>
           import("./pages/dashboard/admin-cursos/admin-cursos.component").then(
             (m) => m.AdminCursosComponent,
+          ),
+      },
+      {
+        path: "mis-contenidos",
+        canActivate: [anyTeacherGuard],
+        loadComponent: () =>
+          import("./pages/dashboard/mis-contenidos/mis-contenidos.component").then(
+            (m) => m.MisContenidosComponent,
+          ),
+      },
+      {
+        path: "contenido-docente",
+        canActivate: [adminGuard],
+        loadComponent: () =>
+          import("./pages/dashboard/contenido-docente/contenido-docente.component").then(
+            (m) => m.ContenidoDocenteComponent,
           ),
       },
       {
@@ -254,6 +278,8 @@ export const routes: Routes = [
       },
       {
         path: "campanas",
+        // Gestión de campañas: administración y voluntariado (HU-06).
+        canActivate: [adminOrVolunteerGuard],
         loadComponent: () =>
           import("./pages/dashboard/campanas/campanas.component").then(
             (m) => m.CampanasComponent,
@@ -272,6 +298,15 @@ export const routes: Routes = [
         loadComponent: () =>
           import("./pages/dashboard/indicadores/dashboard-page.component").then(
             (m) => m.DashboardPageComponent,
+          ),
+      },
+      {
+        // Registro de auditoría (HU-30, HU-35): solo administración.
+        path: "auditoria",
+        canActivate: [adminGuard],
+        loadComponent: () =>
+          import("./pages/dashboard/auditoria/auditoria.component").then(
+            (m) => m.AuditoriaComponent,
           ),
       },
       {

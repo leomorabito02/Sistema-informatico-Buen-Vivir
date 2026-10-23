@@ -13,6 +13,9 @@ type Controllers struct {
 	Ficha        *controllers.FichaController
 	Hito         *controllers.HitoController
 	Participante *controllers.ParticipanteController
+	Indicadores  *controllers.IndicadoresController
+	Actividad    *controllers.ActividadController
+	Auditoria    *controllers.AuditoriaController
 }
 
 // RegisterRoutes registra los endpoints de Promoción Humana.
@@ -44,7 +47,26 @@ func RegisterRoutes(r chi.Router, jwtService services.JWTService, ctrls Controll
 			r.Post("/fichas/{id}/hitos", ctrls.Hito.Create)
 			r.Get("/fichas/{id}/hitos", ctrls.Hito.List)
 			r.Put("/fichas/{id}/hitos/{hitoId}", ctrls.Hito.Update)
+			r.Get("/fichas/{id}/actividad", ctrls.Actividad.List)
 		})
+
+		// Indicadores del Dashboard: solo administración (RequireRole deja
+		// pasar a role_admin y role_dev por el bypass global).
+		if ctrls.Indicadores != nil {
+			r.Group(func(r chi.Router) {
+				r.Use(middlewares.RequireRole("role_admin"))
+				r.Get("/indicadores", ctrls.Indicadores.Get)
+			})
+		}
+
+		// Log de auditoría de fichas e hitos (HU-35): solo lectura y solo
+		// administración. No hay rutas para editarlo ni borrarlo.
+		if ctrls.Auditoria != nil {
+			r.Group(func(r chi.Router) {
+				r.Use(middlewares.RequireRole("role_admin"))
+				r.Get("/auditoria", ctrls.Auditoria.List)
+			})
+		}
 
 		r.Group(func(r chi.Router) {
 			r.Use(middlewares.RequireRole("role_participant"))

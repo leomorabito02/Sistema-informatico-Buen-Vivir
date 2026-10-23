@@ -153,8 +153,8 @@ tarea; **pendiente** = falta coordinarlo con quien mantiene ese servicio.
 | `educacion.habilidad.otorgada` | Educación | Dashboard | HU-21, HU-58 | `habilidad_id`, `participante_id`, `actividad_id`, `curso_id`, `origen`, `fecha` | nuevo (reemplaza a `habilidad.aceptada`, ver supuestos) |
 | `educacion.asistencia_general.registrada` | Educación | Promoción Humana | HU-19bis | `asistencia_id`, `participante_id`, `fecha` (AAAA-MM-DD), `presente` | nuevo |
 | `educacion.asistencia_general.actualizada` | Educación | — | HU-19bis | ídem | nuevo |
-| `educacion.contenido_docente.subido` | Educación | Notificaciones *(futuro)* | HU-23 | `curso_id`, `docente_id`, `tipo` ("curso") | nuevo |
-| `educacion.contenido_docente.moderado` | Educación | Notificaciones *(futuro)* | HU-23 | `curso_id`, `resultado` ("aprobado") | nuevo |
+| `educacion.contenido_docente.subido` | Educación | Notificaciones *(futuro)* | HU-23 | `docente_id`, `tipo` ("curso" con `curso_id` o "material" con `contenido_id`) | nuevo |
+| `educacion.contenido_docente.moderado` | Educación | Notificaciones *(futuro)* | HU-23 | `resultado` ("aprobado" o "rechazado"); curso: `curso_id`; material: `contenido_id`, `docente_id`, `tipo` | nuevo |
 | `promocion_humana.ficha.creada` | Promoción Humana | — | HU-29 | `ficha_id`, `participante_id` | nuevo |
 | `promocion_humana.ficha.actualizada` | Promoción Humana | — | HU-30 | ídem | nuevo |
 | `promocion_humana.hito.registrado` | Promoción Humana | — | HU-32 | `hito_id`, `ficha_id`, `participante_id`, `fecha`, `visible_participante` | nuevo |
@@ -181,9 +181,10 @@ OR attributes.event_type = "educacion.contenido_docente.subido"
   participante con `participante_id` contra Autenticación, y el título
   del curso con `curso_id` contra Educación (`GET /api/cursos/{id}`).
 - **`contenido_docente.subido`** → avisarle a la administración que hay
-  un curso para revisar.
-- **`contenido_docente.moderado`** → avisarle al docente (`docente_id`
-  sale del curso) que su curso se aprobó.
+  un curso o un material para revisar.
+- **`contenido_docente.moderado`** → avisarle al docente el resultado.
+  Con `tipo: "material"` (ContenidoDocente, desde 2026-10-22) el evento
+  trae `docente_id`; si es un curso, `docente_id` sale del curso.
 - Los mensajes que se publiquen **antes** de que exista esa suscripción
   no le van a llegar: Pub/Sub solo entrega a suscripciones existentes.
   Hay que crearla antes de habilitar el envío de emails.
@@ -399,7 +400,8 @@ registro se escribe aunque Pub/Sub esté desactivado.
 
 Sin estas variables, los servicios funcionan exactamente como antes: no
 publican, no exponen `/eventos/*` y la auditoría de Promoción Humana se
-escribe igual. **El `docker-compose.yml` no se modificó.**
+escribe igual. El `docker-compose.yml` solo suma el emulador de Pub/Sub,
+en el perfil `eventos`: sin ese perfil levanta lo mismo que antes.
 
 ### Puesta en marcha en GCP
 
@@ -423,7 +425,8 @@ escribe igual. **El `docker-compose.yml` no se modificó.**
 curl -sSL -o fs.jar https://storage.googleapis.com/firebase-preview-drop/emulator/cloud-firestore-emulator-v1.19.8.jar
 java -jar fs.jar --host=127.0.0.1 --port=8390 &
 
-# Pub/Sub: el del docker-compose (buenvivir-pubsub-emulator) ya escucha en localhost:8086.
+# Pub/Sub: el del docker-compose, en el perfil "eventos" (localhost:8086).
+docker compose --profile eventos up -d pubsub-emulator
 # Sin Docker: gcloud beta emulators pubsub start --host-port=localhost:8086
 ```
 
@@ -520,9 +523,12 @@ PUBSUB_EMULATOR_HOST=localhost:8086 infra/pubsub/emulator.sh   # topics + suscri
    un consumidor que lo recalcule. El evento queda publicado para quien
    lo necesite.
 8. **Línea de tiempo**: las entradas que llegan por eventos se guardan en
-   `linea_tiempo`, pero **todavía no se muestran en ninguna pantalla**.
-   Hay que decidir si se mezclan con los hitos en la vista del
-   participante (HU-34) y en la profesional (HU-33).
+   `linea_tiempo` y se muestran **mezcladas por fecha con los hitos**, en
+   "Mi proceso" (HU-34, dentro de `GET /mi-linea-de-tiempo`, campo
+   `actividad`) y en la ficha (HU-33, `GET /fichas/{id}/actividad`). La
+   asistencia al centro se agrupa en una entrada por mes ("Asistió al
+   centro en septiembre de 2026"), sin contar días. El nombre del curso lo
+   pone el frontend con el catálogo de Educación (decisión del 21/10).
 
 ## 13. Limitaciones conocidas
 

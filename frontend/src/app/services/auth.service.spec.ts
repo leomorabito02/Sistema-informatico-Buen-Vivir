@@ -10,6 +10,13 @@ import { Auth } from "@angular/fire/auth";
 import { Router } from "@angular/router";
 
 describe("AuthService", () => {
+  // environment es un objeto compartido entre specs: se restaura para no
+  // cambiarle la URL a los specs que corren después (orden aleatorio).
+  const apiUrlOriginal = environment.apiUrl;
+  afterAll(() => {
+    environment.apiUrl = apiUrlOriginal;
+  });
+
   let service: AuthService;
   let httpMock: HttpTestingController;
   let mockRouter: jasmine.SpyObj<Router>;

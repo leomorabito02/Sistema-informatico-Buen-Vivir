@@ -1,11 +1,14 @@
-import { Injectable, signal } from "@angular/core";
+import { Injectable, inject, signal } from "@angular/core";
+import { HttpClient, HttpErrorResponse } from "@angular/common/http";
+import { firstValueFrom } from "rxjs";
+import { environment } from "../../environments/environment";
 import {
   FiltrosAplicados,
   FiltrosDashboard,
   Indicador,
   ReporteExportado,
 } from "../core/models/dashboard.model";
-import { formatoFecha } from "./dashboard.calculos";
+import { formatoFecha } from "./dashboard.fechas";
 
 /** Una gráfica tal como se ve en pantalla, lista para el PDF. */
 export interface GraficaParaPdf {
@@ -33,50 +36,96 @@ export const NOMBRE_MODULO: Record<string, string> = {
   insercion: "Inserción Laboral",
 };
 
+/** Resultado de exportar: el PDF siempre se descarga; guardarlo puede fallar. */
+export interface ResultadoExportar {
+  reporte: ReporteExportado | null;
+  guardado: boolean;
+  /** Por qué no se guardó en el historial (si no se guardó). */
+  error?: string;
+}
+
+const MENSAJE_HISTORIAL = "No se pudo guardar el reporte en el historial.";
+
 /**
- * Exportación del dashboard a PDF (HU-55) e historial de reportes.
+ * Exportación del dashboard a PDF e historial de reportes (HU-55).
  *
- * HOY el historial vive en memoria y `url_archivo` es una URL local del
- * navegador (válida mientras la pestaña esté abierta). Con backend, el
- * PDF se sube al bucket y `registrar()` pasa a ser un POST que devuelve
- * el ReporteExportado con la URL definitiva.
+ * El PDF se arma en el navegador y se descarga en el momento. Además se
+ * manda al microservicio de Dashboard, que guarda los datos en Firestore
+ * (tabla ReporteExportado del DER) y el PDF en Cloud Storage, para poder
+ * volver a descargarlo después.
  */
 @Injectable({ providedIn: "root" })
 export class ReportesService {
+  private http = inject(HttpClient);
+  private readonly base = `${environment.apiUrl ?? ""}/api/v1/dashboard/reportes`;
+
   readonly historial = signal<ReporteExportado[]>([]);
+  readonly cargandoHistorial = signal(false);
+  readonly errorHistorial = signal<string | null>(null);
 
-  async exportar(input: ExportarInput): Promise<ReporteExportado> {
+  /** Trae el historial guardado. */
+  cargarHistorial(): void {
+    this.cargandoHistorial.set(true);
+    this.errorHistorial.set(null);
+    this.http.get<ReporteExportado[]>(this.base, { withCredentials: true }).subscribe({
+      next: (h) => {
+        this.historial.set(h);
+        this.cargandoHistorial.set(false);
+      },
+      error: (e: HttpErrorResponse) => {
+        this.errorHistorial.set(mensajeDe(e, "No se pudo cargar el historial de reportes."));
+        this.cargandoHistorial.set(false);
+      },
+    });
+  }
+
+  async exportar(input: ExportarInput): Promise<ResultadoExportar> {
     const blob = await this.generarPdf(input);
-    const reporte = this.registrar(input, URL.createObjectURL(blob));
-    this.descargar(reporte);
-    return reporte;
+    descargarBlob(blob, `reporte-dashboard-${aFechaIso(new Date())}.pdf`);
+    try {
+      const reporte = await firstValueFrom(this.guardar(input, blob));
+      this.historial.update((h) => [reporte, ...h]);
+      return { reporte, guardado: true };
+    } catch (e) {
+      return {
+        reporte: null,
+        guardado: false,
+        error: e instanceof HttpErrorResponse ? mensajeDe(e, MENSAJE_HISTORIAL) : MENSAJE_HISTORIAL,
+      };
+    }
   }
 
-  descargar(reporte: ReporteExportado): void {
-    const a = document.createElement("a");
-    a.href = reporte.url_archivo;
-    a.download = `reporte-dashboard-${reporte.fecha_generacion.slice(0, 10)}.pdf`;
-    a.click();
+  /** Vuelve a descargar un PDF guardado. */
+  async descargar(reporte: ReporteExportado): Promise<void> {
+    const blob = await firstValueFrom(
+      this.http.get(`${this.base}/${encodeURIComponent(reporte.id)}/pdf`, {
+        responseType: "blob",
+        withCredentials: true,
+      }),
+    );
+    descargarBlob(blob, `reporte-dashboard-${reporte.fecha_generacion.slice(0, 10)}.pdf`);
   }
 
-  registrar(input: ExportarInput, url: string): ReporteExportado {
+  /** Datos del reporte para el backend (el autor sale del token). */
+  metadatos(input: ExportarInput) {
     const filtros: FiltrosAplicados = {
       modulo: input.filtros.modulo,
       areaId: input.filtros.areaId,
       areaNombre: input.areaNombre,
     };
-    const reporte: ReporteExportado = {
-      id: crypto.randomUUID(),
-      tipo_reporte: "dashboard",
+    return {
       periodo_desde: aFechaIso(input.filtros.desde),
       periodo_hasta: aFechaIso(input.filtros.hasta),
       filtros_aplicados: filtros,
-      generado_por: input.generadoPor,
-      fecha_generacion: new Date().toISOString(),
-      url_archivo: url,
+      generado_por_nombre: input.generadoPor,
     };
-    this.historial.update((h) => [reporte, ...h]);
-    return reporte;
+  }
+
+  private guardar(input: ExportarInput, pdf: Blob) {
+    const form = new FormData();
+    form.append("metadatos", JSON.stringify(this.metadatos(input)));
+    form.append("archivo", pdf, "reporte.pdf");
+    return this.http.post<ReporteExportado>(this.base, form, { withCredentials: true });
   }
 
   /** Arma el PDF: logo, fecha, filtros, indicadores y gráficas. */
@@ -115,13 +164,15 @@ export class ReportesService {
     }
     y += 4;
 
-    // Indicadores: una fila de tarjetas.
+    // Indicadores: tarjetas en filas de hasta cuatro.
     if (input.indicadores.length) {
       const gap = 4;
-      const n = input.indicadores.length;
+      const porFila = 4;
+      const n = Math.min(input.indicadores.length, porFila);
       const ancho = (anchoUtil - gap * (n - 1)) / n;
       input.indicadores.forEach((ind, i) => {
-        const x = margen + i * (ancho + gap);
+        if (i > 0 && i % porFila === 0) y += 30;
+        const x = margen + (i % porFila) * (ancho + gap);
         doc.setDrawColor("#d6d4c6");
         doc.roundedRect(x, y, ancho, 26, 2, 2);
         doc.setFont("helvetica", "bold");
@@ -168,6 +219,22 @@ export class ReportesService {
 
     return doc.output("blob");
   }
+}
+
+function descargarBlob(blob: Blob, nombre: string): void {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = nombre;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 10_000);
+}
+
+function mensajeDe(e: HttpErrorResponse, porDefecto: string): string {
+  const body = e.error as { error?: string } | null;
+  if (body && typeof body === "object" && body.error) return body.error;
+  if (e.status === 401) return "Tu sesión expiró. Volvé a iniciar sesión.";
+  return porDefecto;
 }
 
 function aFechaIso(d: Date): string {

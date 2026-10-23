@@ -32,9 +32,11 @@
     {{ cargando ? "Actualizando indicadores…" : "Indicadores actualizados." }}
   </p>
 
-  @if (moduloSinIndicadores) {
+  @if (error) {
+    <app-error-state [message]="error" (retry)="reintentar()"></app-error-state>
+  } @else if (moduloSinIndicadores) {
     <app-empty-state title="Este módulo todavía no tiene indicadores">
-      Por ahora el dashboard mide usuarios, educación e inserción laboral. Elegí
+      El dashboard mide usuarios, educación, promoción humana e inserción laboral. Elegí
       otro módulo o «Todos».
     </app-empty-state>
   } @else {
@@ -42,7 +44,7 @@
       <h2 id="kpi-titulo" class="sr-only">Indicadores</h2>
       <div class="kpis" [attr.aria-busy]="cargando">
         @if (cargando || !datos) {
-          @for (p of placeholders; track p.id) {
+          @for (p of placeholders; track p) {
             <app-kpi-card [loading]="true"></app-kpi-card>
           }
         } @else {

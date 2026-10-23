@@ -46,11 +46,39 @@
   padding: 0.85rem 1rem;
 }
 
+.timeline-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 0.35rem;
+}
+
 .timeline-date {
-  display: block;
   font-weight: 700;
   color: var(--primary);
-  margin-bottom: 0.35rem;
+}
+
+.timeline-origen {
+  font-size: var(--font-size-sm, 0.875rem);
+  color: var(--text-muted);
+}
+
+.timeline-curso {
+  margin: 0.25rem 0 0;
+  font-weight: 600;
+  color: var(--text-primary, #1d1d1b);
+}
+
+/* La actividad en el centro (no la carga el equipo) va más tenue. */
+.timeline-item--actividad .timeline-dot {
+  border-color: var(--text-muted);
+}
+
+.timeline-item--actividad .timeline-content {
+  background: transparent;
+  border: 1px dashed var(--border);
 }
 
 .texto-libre {

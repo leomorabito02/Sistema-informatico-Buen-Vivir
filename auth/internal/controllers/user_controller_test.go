@@ -279,3 +279,53 @@ func TestUserController_GetParticipantsHistory(t *testing.T) {
 		})
 	}
 }
+
+func TestUserController_GetAllUsers_BuscaYFiltraPorRol(t *testing.T) {
+	mockSvc := new(MockUserService)
+	ctrl := controllers.NewUserController(mockSvc)
+	mockSvc.On("GetAllUsers", mock.Anything).Return([]dto.UserResponse{
+		{UserID: "usr-1", FirstName: "Ana", LastName: "Gómez", RoleID: "role_teacher"},
+		{UserID: "usr-2", FirstName: "Ana", LastName: "Ruiz", RoleID: "role_participant"},
+	}, nil)
+
+	req := httptest.NewRequest("GET", "/users?q=ana&role=role_teacher", nil)
+	w := httptest.NewRecorder()
+	ctrl.GetAllUsers(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+	var body struct {
+		Data []dto.UserResponse `json:"data"`
+	}
+	assert.NoError(t, json.Unmarshal(w.Body.Bytes(), &body))
+	assert.Len(t, body.Data, 1)
+	assert.Equal(t, "usr-1", body.Data[0].UserID)
+}
+
+func TestUserController_GetAllUsers_BusquedaLarga(t *testing.T) {
+	ctrl := controllers.NewUserController(new(MockUserService))
+	q := ""
+	for i := 0; i < 101; i++ {
+		q += "a"
+	}
+	req := httptest.NewRequest("GET", "/users?q="+q, nil)
+	w := httptest.NewRecorder()
+	ctrl.GetAllUsers(w, req)
+
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+}
+
+func TestUserController_ErroresDePermisoResponden403(t *testing.T) {
+	mockSvc := new(MockUserService)
+	ctrl := controllers.NewUserController(mockSvc)
+	mockSvc.On("GetAllUsers", mock.Anything).Return(nil, errors.New("forbidden: insufficient permissions to list users"))
+	mockSvc.On("CreateUser", mock.Anything, mock.Anything).Return(nil, errors.New("forbidden: access denied to create accounts with this role"))
+
+	w := httptest.NewRecorder()
+	ctrl.GetAllUsers(w, httptest.NewRequest("GET", "/users", nil))
+	assert.Equal(t, http.StatusForbidden, w.Code)
+
+	body, _ := json.Marshal(dto.CreateUserRequest{FirstName: "Ana", RoleID: "role_admin"})
+	w = httptest.NewRecorder()
+	ctrl.CreateUser(w, httptest.NewRequest("POST", "/users", bytes.NewReader(body)))
+	assert.Equal(t, http.StatusForbidden, w.Code)
+}

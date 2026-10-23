@@ -8,10 +8,7 @@ import { provideNoopAnimations } from "@angular/platform-browser/animations";
 import { provideRouter } from "@angular/router";
 import { Subject, of, throwError } from "rxjs";
 import { DashboardPageComponent } from "./dashboard-page.component";
-import {
-  DashboardService,
-  calcularDashboard,
-} from "../../../services/dashboard.service";
+import { DashboardService } from "../../../services/dashboard.service";
 import { ReportesService } from "../../../services/reportes.service";
 import { AuthService } from "../../../services/auth.service";
 import {
@@ -29,15 +26,86 @@ import {
 import { HistorialReportesComponent } from "./historial-reportes.component";
 import { MeResponse } from "../../../core/models/auth.model";
 
-const vacio: DashboardData = calcularDashboard(
-  { participantes: [], cursos: [], habilidades: [], postulaciones: [] },
-  {
-    desde: new Date(2026, 0, 1),
-    hasta: new Date(2026, 1, 28),
-    modulo: "todos",
-    areaId: null,
-  },
-);
+// Lo que devuelve el backend (GET /api/v1/dashboard/resumen) para un
+// período de dos meses sin datos.
+const ceros = [
+  { mes: "2026-01", valor: 0 },
+  { mes: "2026-02", valor: 0 },
+];
+const indicador = (
+  id: Indicador["id"],
+  titulo: string,
+  modulo: Indicador["modulo"],
+  fuente: Indicador["fuente"],
+): Indicador => ({
+  id,
+  titulo,
+  descripcion: titulo,
+  modulo,
+  fuente,
+  valor: 0,
+  disponible: true,
+});
+const grafica = (
+  id: Grafica["id"],
+  modulo: Grafica["modulo"],
+  series: string[],
+): Grafica => ({
+  id,
+  titulo: id,
+  tipo: "line",
+  modulo,
+  indicadores: [],
+  series: series.map((nombre) => ({ nombre, puntos: ceros })),
+});
+const vacio: DashboardData = {
+  indicadores: [
+    indicador(
+      "participantesActivos",
+      "Participantes activos",
+      "usuarios",
+      "autenticacion",
+    ),
+    indicador(
+      "cursosEnDesarrollo",
+      "Cursos en desarrollo",
+      "educacion",
+      "educacion",
+    ),
+    indicador(
+      "cursosFinalizados",
+      "Cursos finalizados",
+      "educacion",
+      "educacion",
+    ),
+    indicador(
+      "habilidadesDesarrolladas",
+      "Habilidades desarrolladas",
+      "educacion",
+      "educacion",
+    ),
+    indicador(
+      "insercionesLaborales",
+      "Inserciones laborales",
+      "insercion",
+      "insercion",
+    ),
+    indicador("fichasActivas", "Fichas activas", "promocion", "promocion"),
+    indicador(
+      "participantesConSeguimiento",
+      "Participantes con seguimiento",
+      "promocion",
+      "promocion",
+    ),
+  ],
+  graficas: [
+    grafica("participantes", "usuarios", ["Participantes activos"]),
+    grafica("cursos", "educacion", ["En desarrollo", "Finalizados"]),
+    grafica("habilidades", "educacion", ["Habilidades desarrolladas"]),
+    grafica("inserciones", "insercion", ["Inserciones laborales"]),
+    grafica("promocion", "promocion", ["Fichas activas", "Con seguimiento"]),
+  ],
+};
 
 describe("DashboardPageComponent", () => {
   let fixture: ComponentFixture<DashboardPageComponent>;
@@ -53,12 +121,17 @@ describe("DashboardPageComponent", () => {
     dashboard.areas.and.returnValue(of([{ id: "a1", nombre: "Oficios" }]));
     reportes = jasmine.createSpyObj(
       "ReportesService",
-      ["exportar", "descargar"],
+      ["exportar", "descargar", "cargarHistorial"],
       {
         historial: () => [],
+        cargandoHistorial: () => false,
+        errorHistorial: () => null,
       },
     );
-    reportes.exportar.and.resolveTo({} as ReporteExportado);
+    reportes.exportar.and.resolveTo({
+      reporte: {} as ReporteExportado,
+      guardado: true,
+    });
     const auth = jasmine.createSpyObj("AuthService", ["isAuthenticated"]);
     auth.isAuthenticated.and.returnValue(
       of({ user: { first_name: "Sofía", last_name: "Cuozzo" } } as MeResponse),
@@ -80,17 +153,19 @@ describe("DashboardPageComponent", () => {
     fixture.detectChanges();
   });
 
-  it("muestra esqueletos mientras carga y después los cinco indicadores", () => {
+  it("muestra esqueletos mientras carga y después los siete indicadores", () => {
     const el: HTMLElement = fixture.nativeElement;
     expect(component.cargando).toBeTrue();
-    expect(el.querySelectorAll("app-kpi-card").length).toBe(5);
+    expect(reportes.cargarHistorial).toHaveBeenCalled();
+    expect(el.querySelectorAll("app-kpi-card").length).toBe(7);
     expect(el.querySelector("p-skeleton")).not.toBeNull();
 
     respuesta$.next(vacio);
     fixture.detectChanges();
     expect(component.cargando).toBeFalse();
     expect(el.textContent).toContain("Participantes activos");
-    expect(el.querySelectorAll("app-grafica-evolucion").length).toBe(4);
+    expect(el.querySelectorAll("app-grafica-evolucion").length).toBe(5);
+    expect(el.textContent).toContain("Fichas activas");
     expect(el.textContent).toContain(
       "No hay datos para el período seleccionado",
     );
@@ -126,10 +201,25 @@ describe("DashboardPageComponent", () => {
     tick();
     const arg = reportes.exportar.calls.mostRecent().args[0];
     expect(arg.filtros).toBe(component.filtros);
-    expect(arg.indicadores.length).toBe(5);
-    expect(arg.graficas.length).toBe(4);
+    expect(arg.indicadores.length).toBe(7);
+    expect(arg.graficas.length).toBe(5);
     expect(arg.generadoPor).toBe("Sofía Cuozzo");
     expect(component.exportando).toBeFalse();
+  }));
+
+  it("si el PDF se descargó pero no se guardó, avisa sin decir que falló todo", fakeAsync(() => {
+    reportes.exportar.and.resolveTo({
+      reporte: null,
+      guardado: false,
+      error: "El historial de reportes no está configurado en este entorno",
+    });
+    respuesta$.next(vacio);
+    fixture.detectChanges();
+    component.exportar();
+    tick();
+    fixture.detectChanges();
+    expect(document.body.textContent).toContain("no quedó en el historial");
+    expect(document.body.textContent).not.toContain("No se pudo exportar");
   }));
 
   it("avisa si la exportación falla", fakeAsync(() => {
@@ -142,6 +232,23 @@ describe("DashboardPageComponent", () => {
     expect(component.exportando).toBeFalse();
     expect(document.body.textContent).toContain("No se pudo exportar");
   }));
+
+  it("si el Dashboard no responde, muestra el error y permite reintentar", () => {
+    respuesta$.error(new Error("502"));
+    fixture.detectChanges();
+    const el: HTMLElement = fixture.nativeElement;
+    expect(component.error).toContain("No se pudieron cargar los indicadores");
+    expect(el.querySelector("app-error-state")).not.toBeNull();
+    expect(component.puedeExportar).toBeFalse();
+
+    respuesta$ = new Subject<DashboardData>();
+    component.reintentar();
+    expect(dashboard.cargar).toHaveBeenCalledTimes(2);
+    respuesta$.next(vacio);
+    fixture.detectChanges();
+    expect(component.error).toBe("");
+    expect(el.querySelectorAll("app-kpi-card").length).toBe(7);
+  });
 
   it("si las áreas no cargan, deshabilita ese filtro", () => {
     dashboard.areas.and.returnValue(throwError(() => new Error("x")));
@@ -273,13 +380,17 @@ describe("HistorialReportesComponent", () => {
         areaId: "a1",
         areaNombre: "Oficios",
       },
-      generado_por: "Sofía",
+      generado_por: "admin-1",
+      generado_por_nombre: "Sofía",
       fecha_generacion: "2026-10-08T15:00:00.000Z",
       url_archivo: "blob:x",
     };
     const reportes = jasmine.createSpyObj("ReportesService", ["descargar"], {
       historial: () => [reporte],
+      cargandoHistorial: () => false,
+      errorHistorial: () => null,
     });
+    reportes.descargar.and.resolveTo();
     await TestBed.configureTestingModule({
       imports: [HistorialReportesComponent],
       providers: [
@@ -292,6 +403,7 @@ describe("HistorialReportesComponent", () => {
     const el: HTMLElement = f.nativeElement;
     expect(el.textContent).toContain("01/01/2026 al 30/06/2026");
     expect(el.textContent).toContain("Módulo: Educación · Área: Oficios");
+    expect(el.textContent).toContain("Sofía");
     (el.querySelector("p-button button") as HTMLButtonElement).click();
     expect(reportes.descargar).toHaveBeenCalledWith(reporte);
   });

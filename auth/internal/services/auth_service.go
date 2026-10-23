@@ -58,6 +58,16 @@ func NewAuthService(
 	}
 }
 
+// rolesDeRegistro son los roles que se pueden elegir en el registro
+// público. role_admin y role_dev se crean solo desde Usuarios, con una
+// cuenta de administrador (HU-01).
+var rolesDeRegistro = map[string]bool{
+	"role_participant": true,
+	"role_volunteer":   true,
+	"role_teacher":     true,
+	"role_company":     true,
+}
+
 func (s *authService) Register(ctx context.Context, req *dto.RegisterRequest) (resp *dto.LoginResponse, err error) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -81,6 +91,10 @@ func (s *authService) Register(ctx context.Context, req *dto.RegisterRequest) (r
 	roleID := req.Role
 	if !strings.HasPrefix(roleID, "role_") {
 		roleID = "role_" + roleID
+	}
+	if !rolesDeRegistro[roleID] {
+		slog.Warn("security: register with a non public role", slog.String("event", "register_role_denied"), slog.String("role_id", roleID))
+		return nil, errors.New("el rol elegido no se puede usar para registrarse")
 	}
 
 	hashedPassword, err := utils.HashPassword(req.Password)
@@ -353,9 +367,12 @@ func (s *authService) createRoleProfileTx(tx repositories.Tx, userID, roleID str
 	status := "pending"
 	switch roleID {
 	case "role_company":
+		// cuit es único: vacío choca con la primera empresa que ya lo
+		// tenga vacío. Mismo valor provisorio que el alta desde Usuarios.
 		return tx.Create(&models.Company{
 			CompanyID:      "comp-" + utils.GenerateRandomString(10),
 			UserID:         userID,
+			Cuit:           "PENDING-" + utils.GenerateRandomString(8),
 			ApprovalStatus: status,
 		})
 	case "role_participant":

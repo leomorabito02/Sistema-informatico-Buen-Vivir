@@ -223,43 +223,64 @@
       ></app-loading-state>
 
       <app-empty-state
-        *ngIf="!cargandoHitos && !errorHitos && hitos.length === 0"
+        *ngIf="!cargandoHitos && !errorHitos && items.length === 0"
       >
-        Todavía no hay hitos registrados.
+        Todavía no hay hitos ni actividad registrados.
       </app-empty-state>
 
-      <ol *ngIf="!cargandoHitos && hitos.length > 0" class="timeline">
-        <li *ngFor="let h of hitos" class="timeline-item">
+      <ol *ngIf="!cargandoHitos && items.length > 0" class="timeline">
+        <li
+          *ngFor="let item of items; trackBy: trackByKey"
+          class="timeline-item"
+          [class.timeline-item--actividad]="item.tipo === 'actividad'"
+        >
           <span class="timeline-dot" aria-hidden="true"></span>
-          <div class="timeline-content">
+
+          <div *ngIf="item.tipo === 'hito'" class="timeline-content">
             <div class="timeline-head">
-              <time class="timeline-date" [attr.datetime]="h.fecha">{{
-                formatDMY(h.fecha)
+              <time class="timeline-date" [attr.datetime]="item.fecha">{{
+                formatDMY(item.fecha)
               }}</time>
               <p-tag
                 [value]="
-                  h.visible_participante
+                  item.hito.visible_participante
                     ? 'Visible para el participante'
                     : 'Confidencial'
                 "
-                [icon]="h.visible_participante ? 'pi pi-eye' : 'pi pi-lock'"
-                [severity]="h.visible_participante ? 'success' : 'secondary'"
+                [icon]="
+                  item.hito.visible_participante ? 'pi pi-eye' : 'pi pi-lock'
+                "
+                [severity]="
+                  item.hito.visible_participante ? 'success' : 'secondary'
+                "
               ></p-tag>
             </div>
-            <p class="texto-libre">{{ h.descripcion }}</p>
+            <p class="texto-libre">{{ item.hito.descripcion }}</p>
             <div class="timeline-foot">
               <span class="meta"
-                >Responsable: {{ h.responsable_nombre || "Sin dato" }}</span
+                >Responsable:
+                {{ item.hito.responsable_nombre || "Sin dato" }}</span
               >
               <p-button
                 label="Editar"
                 icon="pi pi-pencil"
                 size="small"
                 [text]="true"
-                [ariaLabel]="'Editar hito del ' + formatDMY(h.fecha)"
-                (onClick)="editarHito(h)"
+                [ariaLabel]="'Editar hito del ' + formatDMY(item.fecha)"
+                (onClick)="editarHito(item.hito)"
               ></p-button>
             </div>
+          </div>
+
+          <div *ngIf="item.tipo === 'actividad'" class="timeline-content">
+            <div class="timeline-head">
+              <time class="timeline-date" [attr.datetime]="item.fecha">{{
+                formatDMY(item.fecha)
+              }}</time>
+              <span class="meta">Actividad en el centro</span>
+            </div>
+            <p class="texto-libre">{{ item.actividad.descripcion }}</p>
+            <p *ngIf="item.curso" class="timeline-curso">{{ item.curso }}</p>
           </div>
         </li>
       </ol>

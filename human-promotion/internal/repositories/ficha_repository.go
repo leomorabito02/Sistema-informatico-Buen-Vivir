@@ -65,6 +65,10 @@ func firstProducer(ps []*producers.PromocionHumana) *producers.PromocionHumana {
 func (r *fichaRepository) Create(ctx context.Context, doc models.FichaDocument) (string, error) {
 	col := r.client.Collection(fichasCollection)
 	ref := col.NewDoc()
+	if doc.CreadaEn == nil {
+		ahora := time.Now().UTC()
+		doc.CreadaEn = &ahora
+	}
 
 	err := r.client.RunTransaction(ctx, func(ctx context.Context, tx *firestore.Transaction) error {
 		existing, err := tx.Documents(col.Where("participante_id", "==", doc.ParticipanteID).Limit(1)).GetAll()

@@ -58,6 +58,10 @@ func (c *SubmissionController) participantID(r *http.Request) (string, error) {
 
 // ListMyCourses responde GET /api/participante/cursos
 func (c *SubmissionController) ListMyCourses(w http.ResponseWriter, r *http.Request) {
+	q, ok := busquedaCursos(w, r)
+	if !ok {
+		return
+	}
 	participanteID, err := c.participantID(r)
 	if err != nil {
 		writeError(w, err)
@@ -68,7 +72,7 @@ func (c *SubmissionController) ListMyCourses(w http.ResponseWriter, r *http.Requ
 		writeError(w, err)
 		return
 	}
-	writeJSON(w, http.StatusOK, courses)
+	writeJSON(w, http.StatusOK, services.FiltrarCursosPorArea(services.FiltrarCursos(courses, q), r.URL.Query().Get("area")))
 }
 
 // GetMyCourse responde GET /api/participante/cursos/{id}

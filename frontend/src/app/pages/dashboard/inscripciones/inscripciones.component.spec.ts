@@ -17,11 +17,6 @@ describe("InscripcionesComponent", () => {
     { id: "c1", title: "Huerta" },
     { id: "c2", title: "" },
   ] as Course[];
-  const directory = [
-    { participanteId: "p2", nombre: "Zoe", apellido: "Ríos", presente: null },
-    { participanteId: "p1", nombre: "Ana", apellido: "Paz", presente: null },
-    { participanteId: "p3", presente: null },
-  ];
   const enrollments: Enrollment[] = [
     {
       id: "e1",
@@ -29,6 +24,8 @@ describe("InscripcionesComponent", () => {
       cursoId: "c1",
       fechaInscripcion: "2026-09-01",
       estado: "activa",
+      nombre: "Ana",
+      apellido: "Paz",
     },
     {
       id: "e2",
@@ -36,6 +33,8 @@ describe("InscripcionesComponent", () => {
       cursoId: "c1",
       fechaInscripcion: "2026-09-01",
       estado: "baja",
+      nombre: "Zoe",
+      apellido: "Ríos",
     },
     {
       id: "e3",
@@ -49,7 +48,7 @@ describe("InscripcionesComponent", () => {
   function create(opts: { failInit?: boolean } = {}) {
     education = jasmine.createSpyObj<EducationService>("EducationService", [
       "listCourses",
-      "getGeneralAttendance",
+      "searchParticipants",
       "listCourseEnrollments",
       "enrollParticipant",
     ]);
@@ -58,7 +57,7 @@ describe("InscripcionesComponent", () => {
         ? throwError(() => new Error("Contentful caído"))
         : of(courses),
     );
-    education.getGeneralAttendance.and.returnValue(of(directory));
+    education.searchParticipants.and.returnValue(of([]));
     education.listCourseEnrollments.and.returnValue(of(enrollments));
 
     TestBed.configureTestingModule({
@@ -72,7 +71,7 @@ describe("InscripcionesComponent", () => {
     fixture.detectChanges();
   }
 
-  it("loads courses and the participant directory sorted by name", () => {
+  it("loads only the courses: participants are searched in the backend", () => {
     create();
 
     expect(component.loading).toBeFalse();
@@ -80,11 +79,7 @@ describe("InscripcionesComponent", () => {
       { label: "Huerta", value: "c1" },
       { label: "c2", value: "c2" },
     ]);
-    expect(component.participantOptions.map((o) => o.label)).toEqual([
-      "Ana Paz",
-      "p3",
-      "Zoe Ríos",
-    ]);
+    expect(education.searchParticipants).not.toHaveBeenCalled();
   });
 
   it("shows the error when the initial load fails", () => {
@@ -96,22 +91,21 @@ describe("InscripcionesComponent", () => {
 
   it("loads enrollments of the selected course with resolved names", () => {
     create();
-    component.selectedParticipantId = "p3";
+    component.selectedParticipant = {
+      participanteId: "p3",
+      nombre: "Leo",
+      apellido: "Sosa",
+    };
     component.selectedCourseId = "c1";
     component.onCourseChange();
     fixture.detectChanges();
 
     expect(education.listCourseEnrollments).toHaveBeenCalledWith("c1");
-    expect(component.selectedParticipantId).toBeNull();
+    expect(component.selectedParticipant).toBeNull();
     expect(component.enrollments.map((e) => e.nombreCompleto)).toEqual([
-      "Ana Paz",
-      "Zoe Ríos",
+      "Paz, Ana",
+      "Ríos, Zoe",
       "px",
-    ]);
-    // solo la inscripción activa saca al participante de las opciones
-    expect(component.availableParticipantOptions.map((o) => o.value)).toEqual([
-      "p3",
-      "p2",
     ]);
   });
 
@@ -140,7 +134,11 @@ describe("InscripcionesComponent", () => {
     create();
     education.enrollParticipant.and.returnValue(of(enrollments[0]));
     component.selectedCourseId = "c1";
-    component.selectedParticipantId = "p1";
+    component.selectedParticipant = {
+      participanteId: "p1",
+      nombre: "Ana",
+      apellido: "Paz",
+    };
 
     component.inscribir();
 
@@ -148,9 +146,10 @@ describe("InscripcionesComponent", () => {
       participanteId: "p1",
     });
     expect(toast.add).toHaveBeenCalledWith(
-      jasmine.objectContaining({ severity: "success", detail: "Ana Paz" }),
+      jasmine.objectContaining({ severity: "success", detail: "Paz, Ana" }),
     );
     expect(component.inscribiendo).toBeFalse();
+    expect(component.selectedParticipant).toBeNull();
     expect(education.listCourseEnrollments).toHaveBeenCalledWith("c1");
   });
 
@@ -160,7 +159,11 @@ describe("InscripcionesComponent", () => {
       throwError(() => new Error("El curso no tiene cupo disponible")),
     );
     component.selectedCourseId = "c1";
-    component.selectedParticipantId = "p1";
+    component.selectedParticipant = {
+      participanteId: "p1",
+      nombre: "Ana",
+      apellido: "Paz",
+    };
 
     component.inscribir();
 

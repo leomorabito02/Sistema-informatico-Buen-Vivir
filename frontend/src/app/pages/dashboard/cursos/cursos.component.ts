@@ -1,4 +1,5 @@
-import { Component, OnInit, inject } from "@angular/core";
+import { Component, DestroyRef, OnInit, inject } from "@angular/core";
+import { takeUntilDestroyed } from "@angular/core/rxjs-interop";
 import { CommonModule } from "@angular/common";
 import { FormsModule } from "@angular/forms";
 import { Router } from "@angular/router";
@@ -11,10 +12,19 @@ import { DialogModule } from "primeng/dialog";
 import { SelectModule } from "primeng/select";
 import { ToastModule } from "primeng/toast";
 import { MessageService } from "primeng/api";
+import { Subject, of } from "rxjs";
+import {
+  catchError,
+  debounceTime,
+  distinctUntilChanged,
+  map,
+  switchMap,
+} from "rxjs/operators";
 import { AuthService } from "../../../services/auth.service";
 import { EducationService } from "../../../services/education.service";
 import {
   Course,
+  ParticipanteResumen,
   materialHref,
   richTextToPlain,
 } from "../../../core/models/education.model";
@@ -22,7 +32,10 @@ import { RichTextComponent } from "../../../shared/components/rich-text.componen
 import { LoadingStateComponent } from "../../../shared/components/loading-state.component";
 import { ErrorStateComponent } from "../../../shared/components/error-state.component";
 import { EmptyStateComponent } from "../../../shared/components/empty-state.component";
-import { todayYMD } from "../../../shared/utils/date-ymd";
+import {
+  ParticipantPickerComponent,
+  etiquetaParticipante,
+} from "../../../shared/components/participant-picker.component";
 
 interface Option {
   label: string;
@@ -59,6 +72,7 @@ interface CursoVM {
     SelectModule,
     ToastModule,
     RichTextComponent,
+    ParticipantPickerComponent,
   ],
   providers: [MessageService],
   templateUrl: "./cursos.component.html",
@@ -69,8 +83,14 @@ export class CursosComponent implements OnInit {
   private authService = inject(AuthService);
   private toast = inject(MessageService);
   private router = inject(Router);
+  private destroyRef = inject(DestroyRef);
+  /** Buscador y área elegida; los dos los aplica el backend (?q=&area=). */
+  private busqueda$ = new Subject<{ q: string; area: string }>();
 
   searchTerm = "";
+  /** Filtro por área formativa (HU-28), combinable con el buscador. */
+  areaOptions: Option[] = [];
+  selectedArea = "";
   loading = true;
   error = "";
   cursos: CursoVM[] = [];
@@ -86,14 +106,36 @@ export class CursosComponent implements OnInit {
   esParticipante = false;
   private roleId = "";
   private userId = "";
-  participantOptions: Option[] = [];
-
   enrollVisible = false;
   enrollCurso: CursoVM | null = null;
-  selectedParticipantId: string | null = null;
+  selectedParticipant: ParticipanteResumen | null = null;
   inscribiendo = false;
 
   ngOnInit() {
+    // Espera a que se deje de escribir y cancela la consulta anterior si
+    // llega una nueva (switchMap).
+    this.busqueda$
+      .pipe(
+        map((b) => ({ q: b.q.trim(), area: b.area })),
+        debounceTime(300),
+        distinctUntilChanged((a, b) => a.q === b.q && a.area === b.area),
+        switchMap(({ q, area }) =>
+          this.cursos$(q, area).pipe(
+            catchError((err: Error) => {
+              this.error = err.message;
+              return of(null);
+            }),
+          ),
+        ),
+        takeUntilDestroyed(this.destroyRef),
+      )
+      .subscribe((courses) => {
+        if (courses) {
+          this.error = "";
+          this.mostrar(courses);
+        }
+      });
+
     this.authService.isAuthenticated().subscribe({
       next: (res) => {
         this.roleId = res.role_id ?? res.user?.role_id ?? "";
@@ -101,23 +143,38 @@ export class CursosComponent implements OnInit {
         this.esParticipante = this.roleId === "role_participant";
         this.canEnrollParticipants =
           this.roleId === "role_admin" || this.roleId === "role_volunteer";
-        if (this.canEnrollParticipants) {
-          this.loadParticipantOptions();
-        }
+        this.loadAreas();
         this.loadCursos();
       },
       error: () => this.loadCursos(),
     });
   }
 
+  private cursos$(q = "", area = "") {
+    return this.esParticipante
+      ? this.education.listMyEnrolledCourses(q, area)
+      : this.education.listCourses(q, area);
+  }
+
+  /** Opciones del filtro por área; si fallan, el filtro no se muestra. */
+  private loadAreas() {
+    this.education.listTrainingAreas().subscribe({
+      next: (areas) => {
+        this.areaOptions = [
+          { label: "Todas las áreas", value: "" },
+          ...areas
+            .map((a) => ({ label: a.name, value: a.id }))
+            .sort((a, b) => a.label.localeCompare(b.label)),
+        ];
+      },
+      error: () => (this.areaOptions = []),
+    });
+  }
+
   private loadCursos() {
-    const cursos$ = this.esParticipante
-      ? this.education.listMyEnrolledCourses()
-      : this.education.listCourses();
-    cursos$.subscribe({
+    this.cursos$(this.searchTerm.trim(), this.selectedArea).subscribe({
       next: (courses) => {
-        this.cursos = courses.map((c) => this.toVM(c));
-        this.filteredCursos = this.cursos;
+        this.mostrar(courses);
         this.loading = false;
       },
       error: (err: Error) => {
@@ -127,40 +184,25 @@ export class CursosComponent implements OnInit {
     });
   }
 
-  private loadParticipantOptions() {
-    this.education.getGeneralAttendance(todayYMD()).subscribe({
-      next: (directory) => {
-        this.participantOptions = directory
-          .map((p) => ({
-            label:
-              `${p.nombre ?? ""} ${p.apellido ?? ""}`.trim() ||
-              p.participanteId,
-            value: p.participanteId,
-          }))
-          .sort((a, b) => a.label.localeCompare(b.label));
-      },
-      error: () => {
-        this.participantOptions = [];
-      },
-    });
+  private mostrar(courses: Course[]) {
+    this.cursos = courses.map((c) => this.toVM(c));
+    this.filteredCursos = this.cursos;
   }
 
   openEnrollDialog(curso: CursoVM) {
     this.enrollCurso = curso;
-    this.selectedParticipantId = null;
+    this.selectedParticipant = null;
     this.enrollVisible = true;
   }
 
   inscribir() {
-    if (!this.enrollCurso || !this.selectedParticipantId) return;
+    const participante = this.selectedParticipant;
+    if (!this.enrollCurso || !participante) return;
     this.inscribiendo = true;
-    const participantLabel =
-      this.participantOptions.find(
-        (o) => o.value === this.selectedParticipantId,
-      )?.label ?? this.selectedParticipantId;
+    const participantLabel = etiquetaParticipante(participante);
     this.education
       .enrollParticipant(this.enrollCurso.id, {
-        participanteId: this.selectedParticipantId,
+        participanteId: participante.participanteId,
       })
       .subscribe({
         next: () => {
@@ -197,14 +239,9 @@ export class CursosComponent implements OnInit {
     };
   }
 
+  /** Lo llaman el buscador (en cada tecla) y el filtro de área: filtra el backend. */
   filterCursos() {
-    const term = this.searchTerm.toLowerCase().trim();
-    this.filteredCursos = this.cursos.filter(
-      (c) =>
-        c.title.toLowerCase().includes(term) ||
-        c.area.toLowerCase().includes(term) ||
-        c.descripcion.toLowerCase().includes(term),
-    );
+    this.busqueda$.next({ q: this.searchTerm, area: this.selectedArea });
   }
 
   /**

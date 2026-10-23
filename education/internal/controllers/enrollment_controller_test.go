@@ -42,11 +42,28 @@ func TestEnrollmentController_Enroll(t *testing.T) {
 func TestEnrollmentController_List(t *testing.T) {
 	svc := new(MockEnrollmentService)
 	ctrl := controllers.NewEnrollmentController(svc)
-	svc.On("ListByCourse", mock.Anything, "c1").Return([]models.Enrollment{{ID: "e1"}}, nil)
+	svc.On("ListByCourseConNombres", mock.Anything, "c1", "").Return([]models.Enrollment{{ID: "e1", Nombre: "Ana"}}, nil)
 
 	w := httptest.NewRecorder()
 	ctrl.List(w, withChiURLParams(httptest.NewRequest("GET", "/api/cursos/c1/inscripciones", nil), "id", "c1"))
 	assert.Equal(t, http.StatusOK, w.Code)
+	assert.Contains(t, w.Body.String(), `"nombre":"Ana"`)
+}
+
+func TestEnrollmentController_CountActive(t *testing.T) {
+	svc := new(MockEnrollmentService)
+	ctrl := controllers.NewEnrollmentController(svc)
+	svc.On("CountActive", mock.Anything, "c1").Return(3, nil)
+	svc.On("CountActive", mock.Anything, "c2").Return(0, services.NewValidationError("mal"))
+
+	w := httptest.NewRecorder()
+	ctrl.CountActive(w, withChiURLParams(httptest.NewRequest("GET", "/api/cursos/c1/inscriptos-activos", nil), "id", "c1"))
+	assert.Equal(t, http.StatusOK, w.Code)
+	assert.JSONEq(t, `{"inscriptosActivos":3}`, w.Body.String())
+
+	w = httptest.NewRecorder()
+	ctrl.CountActive(w, withChiURLParams(httptest.NewRequest("GET", "/api/cursos/c2/inscriptos-activos", nil), "id", "c2"))
+	assert.Equal(t, http.StatusBadRequest, w.Code)
 }
 
 type MockGeneralAttendanceService struct {

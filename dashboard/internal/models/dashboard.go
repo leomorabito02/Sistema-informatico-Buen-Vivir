@@ -52,6 +52,48 @@ type Area struct {
 	Nombre string `json:"nombre"`
 }
 
+// ── Resumen ya calculado (GET /api/v1/dashboard/resumen) ───────────────
+
+// Indicador es un número del dashboard (HU-52). Valor es nil y Disponible
+// false cuando el servicio de origen no respondió.
+type Indicador struct {
+	ID          string `json:"id"`
+	Titulo      string `json:"titulo"`
+	Descripcion string `json:"descripcion"`
+	Modulo      string `json:"modulo"` // "usuarios" | "educacion" | "promocion" | "insercion"
+	Fuente      string `json:"fuente"` // "autenticacion" | "educacion" | "promocion" | "insercion"
+	Valor       *int   `json:"valor"`
+	Disponible  bool   `json:"disponible"`
+}
+
+// PuntoSerie es el valor de un mes ("AAAA-MM").
+type PuntoSerie struct {
+	Mes   string `json:"mes"`
+	Valor int    `json:"valor"`
+}
+
+type SerieGrafica struct {
+	Nombre string       `json:"nombre"`
+	Puntos []PuntoSerie `json:"puntos"`
+}
+
+// Grafica es la evolución mensual de uno o más indicadores (HU-53).
+// Series es nil (null en JSON) cuando el servicio de origen no respondió.
+type Grafica struct {
+	ID          string         `json:"id"`
+	Titulo      string         `json:"titulo"`
+	Tipo        string         `json:"tipo"` // "line" | "bar"
+	Modulo      string         `json:"modulo"`
+	Indicadores []string       `json:"indicadores"`
+	Series      []SerieGrafica `json:"series"`
+}
+
+// Resumen son los indicadores y gráficas para los filtros pedidos.
+type Resumen struct {
+	Indicadores []Indicador `json:"indicadores"`
+	Graficas    []Grafica   `json:"graficas"`
+}
+
 // ── Lo que devuelve cada servicio de origen ────────────────────────────
 
 // Autenticación: GET /api/v1/users/participants/history, dentro del
@@ -112,4 +154,42 @@ type JobApplication struct {
 	Status          string    `json:"estado"`
 	ApplicationDate time.Time `json:"fecha_postulacion"`
 	UpdatedAt       time.Time `json:"updated_at"`
+}
+
+// ── Promoción Humana (indicadores agregados por el equipo) ─────────────
+
+// Promocion: fichas e hitos para "Fichas activas" y "Participantes con
+// seguimiento". Solo ids, estados y fechas: Promoción Humana nunca manda
+// el contenido confidencial de fichas ni hitos.
+type Promocion struct {
+	Fichas []FichaPromocion `json:"fichas"`
+	Hitos  []HitoPromocion  `json:"hitos"`
+}
+
+type FichaPromocion struct {
+	ID             string     `json:"id"`
+	ParticipanteID string     `json:"participanteId"`
+	Estado         string     `json:"estado"` // "activa" | "baja"
+	FechaAlta      time.Time  `json:"fechaAlta"`
+	FechaBaja      *time.Time `json:"fechaBaja"`
+}
+
+type HitoPromocion struct {
+	ParticipanteID string `json:"participanteId"`
+	Fecha          string `json:"fecha"` // AAAA-MM-DD
+}
+
+// Promoción Humana: GET /api/v1/human-promotion/indicadores.
+type IndicadoresPH struct {
+	Fichas []struct {
+		ID             string     `json:"id"`
+		ParticipanteID string     `json:"participante_id"`
+		Estado         string     `json:"estado"`
+		CreadaEn       time.Time  `json:"creada_en"`
+		FechaBaja      *time.Time `json:"fecha_baja"`
+	} `json:"fichas"`
+	Hitos []struct {
+		ParticipanteID string `json:"participante_id"`
+		Fecha          string `json:"fecha"`
+	} `json:"hitos"`
 }

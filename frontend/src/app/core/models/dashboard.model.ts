@@ -1,10 +1,11 @@
 /**
  * Modelos del módulo "Dashboard y Reportes" (HU-52 a HU-55).
  *
- * El microservicio de Dashboard (dashboard/, Go) es un agregador: no tiene
- * datos propios y consulta en vivo a Autenticación, Educación e Inserción
- * Laboral. Las interfaces `*Origen` son lo que devuelve cada uno de sus
- * endpoints (GET /api/v1/dashboard/...), ya traducido a castellano.
+ * El microservicio de Dashboard (dashboard/, Go) consulta en vivo a
+ * Autenticación, Educación, Promoción Humana e Inserción Laboral, calcula
+ * los indicadores y las series por mes, y devuelve el resultado listo
+ * (GET /api/v1/dashboard/resumen). Solo guarda el historial de reportes
+ * exportados.
  */
 
 // ── Filtros ────────────────────────────────────────────────────────────
@@ -25,50 +26,6 @@ export interface AreaFormativa {
   nombre: string;
 }
 
-// ── Datos de origen (lo que devuelve cada servicio) ───────────────────
-
-/** Servicio de Autenticación: usuarios con rol participante. */
-export interface ParticipanteOrigen {
-  id: string;
-  rol: "participante";
-  estado: "activo" | "baja";
-  fechaAlta: string; // ISO
-  /** Fecha de la baja lógica, si la hubo. */
-  fechaBaja?: string | null;
-}
-
-/** Servicio de Educación: curso con sus actividades. */
-export interface CursoOrigen {
-  id: string;
-  titulo: string;
-  areaId: string;
-  /** "activo" = publicado; los borradores no cuentan como cursos. */
-  estado: "activo" | "borrador";
-  fechaCreacion: string; // ISO
-  actividades: { id: string; fecha: string }[];
-}
-
-/** Servicio de Educación: registro Participante_Habilidad. */
-export interface ParticipanteHabilidadOrigen {
-  id: string;
-  participanteId: string;
-  cursoId: string;
-  areaId: string;
-  /** "actividad": la ganó al entregar; "manual": la cargó alguien a mano. */
-  origen: "actividad" | "manual";
-  estado: "aceptada" | "pendiente" | "rechazada";
-  fecha: string; // ISO, cuando se registró
-}
-
-/** Servicio de Inserción Laboral: postulación a una oferta. */
-export interface PostulacionOrigen {
-  id: string;
-  participanteId: string;
-  estado: "postulado" | "en_revision" | "seleccionado" | "rechazado";
-  /** Fecha del último cambio de estado. */
-  fechaEstado: string; // ISO
-}
-
 // ── Indicadores y series ──────────────────────────────────────────────
 
 export type IndicadorId =
@@ -76,9 +33,12 @@ export type IndicadorId =
   | "cursosEnDesarrollo"
   | "cursosFinalizados"
   | "habilidadesDesarrolladas"
-  | "insercionesLaborales";
+  | "insercionesLaborales"
+  | "fichasActivas"
+  | "participantesConSeguimiento";
 
-export type FuenteDashboard = "autenticacion" | "educacion" | "insercion";
+export type FuenteDashboard =
+  "autenticacion" | "educacion" | "insercion" | "promocion";
 
 export interface Indicador {
   id: IndicadorId;
@@ -98,7 +58,7 @@ export interface PuntoSerie {
 }
 
 export type GraficaId =
-  "participantes" | "cursos" | "habilidades" | "inserciones";
+  "participantes" | "cursos" | "habilidades" | "inserciones" | "promocion";
 
 export interface SerieGrafica {
   nombre: string;
@@ -134,7 +94,11 @@ export interface ReporteExportado {
   periodo_desde: string; // ISO (fecha)
   periodo_hasta: string; // ISO (fecha)
   filtros_aplicados: FiltrosAplicados;
+  /** Id del usuario que lo exportó (FK lógica a Autenticación, DER). */
   generado_por: string;
+  /** Nombre para mostrar en el historial. */
+  generado_por_nombre: string;
   fecha_generacion: string; // ISO
+  /** Ubicación del PDF en Cloud Storage (gs://...). */
   url_archivo: string;
 }

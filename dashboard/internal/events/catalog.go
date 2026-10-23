@@ -173,12 +173,21 @@ type AsistenciaGeneralPayload struct {
 	Presente       bool   `json:"presente"`
 }
 
-// ContenidoDocenteSubidoPayload: un docente cargó un curso que queda en
-// borrador hasta que la administración lo revise (HU-23).
+// Tipos de contenido docente.
+const (
+	ContenidoTipoCurso    = "curso"    // curso en borrador de un docente interno
+	ContenidoTipoMaterial = "material" // ContenidoDocente de un docente externo (DER)
+)
+
+// ContenidoDocenteSubidoPayload: un docente cargó contenido que espera
+// la revisión de la administración (HU-23). Con tipo "curso" viene
+// curso_id; con tipo "material", contenido_id (agregado 2026-10-22, campo
+// opcional: compatible con la versión 1).
 type ContenidoDocenteSubidoPayload struct {
-	CursoID   string `json:"curso_id"`
-	DocenteID string `json:"docente_id"`
-	Tipo      string `json:"tipo"` // por ahora siempre "curso"
+	CursoID     string `json:"curso_id,omitempty"`
+	ContenidoID string `json:"contenido_id,omitempty"`
+	DocenteID   string `json:"docente_id"`
+	Tipo        string `json:"tipo"`
 }
 
 // Resultados de la moderación de contenido docente.
@@ -187,10 +196,15 @@ const (
 	ModeracionRechazado = "rechazado"
 )
 
-// ContenidoDocenteModeradoPayload: la administración revisó un curso.
+// ContenidoDocenteModeradoPayload: la administración revisó un curso o
+// un material. contenido_id, docente_id y tipo se agregaron el 2026-10-22
+// (opcionales: compatible con la versión 1).
 type ContenidoDocenteModeradoPayload struct {
-	CursoID   string `json:"curso_id"`
-	Resultado string `json:"resultado"`
+	CursoID     string `json:"curso_id,omitempty"`
+	ContenidoID string `json:"contenido_id,omitempty"`
+	DocenteID   string `json:"docente_id,omitempty"`
+	Tipo        string `json:"tipo,omitempty"`
+	Resultado   string `json:"resultado"`
 }
 
 // FichaPayload es el payload de promocion_humana.ficha.creada/actualizada.

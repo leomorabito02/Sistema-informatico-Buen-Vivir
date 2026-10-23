@@ -15,6 +15,7 @@ import { UsersService } from "../../../services/users.service";
 import { SkillsService } from "../../../services/skills.service";
 import { Skill } from "../../../core/models/skills.model";
 import { Activity, Course } from "../../../core/models/education.model";
+import { ComentariosService } from "../../../services/comentarios.service";
 
 describe("CursoDetalleComponent", () => {
   let fixture: ComponentFixture<CursoDetalleComponent>;
@@ -113,11 +114,22 @@ describe("CursoDetalleComponent", () => {
         { provide: UsersService, useValue: users },
         { provide: SkillsService, useValue: skills },
         {
+          provide: ComentariosService,
+          useValue: { listar: () => of([]) },
+        },
+        {
           provide: ActivatedRoute,
           useValue: { snapshot: { paramMap: convertToParamMap({ id: "c1" }) } },
         },
       ],
     }).compileComponents();
+  });
+
+  it("solo el administrador modera los comentarios del curso", () => {
+    setup("role_volunteer");
+    expect(component.esAdmin).toBeFalse();
+    setup("role_admin");
+    expect(component.esAdmin).toBeTrue();
   });
 
   it("gestión: carga el curso, sus actividades y el nombre del docente", () => {

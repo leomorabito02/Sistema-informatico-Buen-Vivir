@@ -7,6 +7,7 @@ import (
 
 	"github.com/golang-jwt/jwt/v5"
 
+	"buenvivir/education/internal/audit"
 	"buenvivir/education/internal/events"
 )
 
@@ -71,6 +72,8 @@ func AuthMiddleware(jwtService JWTService) func(http.Handler) http.Handler {
 			ctx = context.WithValue(ctx, TokenKey, tokenString)
 			// Actor de los eventos que se publiquen en este request.
 			ctx = events.WithActor(ctx, userID)
+			// IP del registro de auditoría (baja de cursos, asistencia general).
+			ctx = audit.WithClientIP(ctx, r.RemoteAddr)
 
 			next.ServeHTTP(w, r.WithContext(ctx))
 		})

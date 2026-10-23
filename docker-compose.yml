@@ -93,19 +93,50 @@ services:
     networks:
       - buenvivir-net
 
-  # Dashboard (HU-52 a HU-55): agregador sin base de datos. Consulta a
-  # auth, education y labor-integration con las credenciales del admin.
+  # Dashboard (HU-52 a HU-55): agregador. Consulta a auth, education,
+  # human-promotion y labor-integration con las credenciales del admin.
   # Sin puerto publicado: solo se llega por el API Gateway, que valida el
-  # token y le pasa el rol (X-User-Role).
+  # token y le pasa el rol (X-User-Role). Si dashboard/.env trae
+  # JWT_SECRET, valida el token por su cuenta; con REPORTES_BUCKET y
+  # credenciales de Google guarda el historial de reportes (HU-55).
   dashboard-service:
     build:
       context: ./dashboard
       dockerfile: Dockerfile
+    env_file:
+      - path: ./dashboard/.env
+        required: false
     environment:
       - PORT=8090
       - AUTH_SERVICE_URL=http://auth-service:8080
       - EDUCATION_SERVICE_URL=http://education-service:8210
       - LABOR_SERVICE_URL=http://labor-integration:8080
+      - HUMAN_PROMOTION_SERVICE_URL=http://human-promotion:8085
+    restart: on-failure
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    read_only: true
+    mem_limit: 256m
+    cpus: "0.5"
+    networks:
+      - buenvivir-net
+
+  # Campañas (HU-47 a HU-51): base propia en Firestore (colección
+  # "campanas"). Valida el JWT por su cuenta, como human-promotion. Sin
+  # puerto publicado: se llega por el API Gateway. Lee JWT_SECRET y las
+  # credenciales de Firestore de campaigns/.env (ver .env.example); si el
+  # archivo no existe, el resto del stack levanta igual.
+  campaigns-service:
+    build:
+      context: ./campaigns
+      dockerfile: Dockerfile
+    env_file:
+      - path: ./campaigns/.env
+        required: false
+    environment:
+      - PORT=8080
     restart: on-failure
     security_opt:
       - no-new-privileges:true
@@ -189,6 +220,25 @@ services:
       - /var/cache/nginx
       - /var/run
     mem_limit: 256m
+    cpus: "0.5"
+    networks:
+      - buenvivir-net
+
+  # Emulador de Pub/Sub para probar los eventos en local (docs/eventos).
+  # Va en el perfil "eventos": `docker compose up` no lo levanta. Uso:
+  #   docker compose --profile eventos up -d pubsub-emulator
+  #   PUBSUB_EMULATOR_HOST=localhost:8086 infra/pubsub/emulator.sh
+  pubsub-emulator:
+    image: gcr.io/google.com/cloudsdktool/google-cloud-cli:emulators
+    container_name: buenvivir-pubsub-emulator
+    profiles: ["eventos"]
+    command: gcloud beta emulators pubsub start --host-port=0.0.0.0:8086 --project=ceibuenvivir
+    ports:
+      - "127.0.0.1:8086:8086"
+    restart: on-failure
+    security_opt:
+      - no-new-privileges:true
+    mem_limit: 512m
     cpus: "0.5"
     networks:
       - buenvivir-net

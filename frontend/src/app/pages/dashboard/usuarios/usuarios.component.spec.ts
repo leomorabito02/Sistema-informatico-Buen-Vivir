@@ -1,4 +1,4 @@
-import { ComponentFixture, TestBed } from "@angular/core/testing";
+import { ComponentFixture, TestBed, fakeAsync, tick } from "@angular/core/testing";
 import { NoopAnimationsModule } from "@angular/platform-browser/animations";
 import { of, throwError } from "rxjs";
 import { ConfirmationService, MessageService } from "primeng/api";
@@ -258,19 +258,25 @@ describe("UsuariosComponent", () => {
     expect(component.users).toHaveSize(1);
   });
 
-  it("filters by name, email, phone, role and the selected role", () => {
+  it("asks the backend for the search text after typing stops", fakeAsync(() => {
+    setup(admin, []);
+    usersService.listUsers.calls.reset();
+
+    component.searchTerm = "ali";
+    component.buscar();
+    component.searchTerm = "alice";
+    component.buscar();
+    tick(299);
+    expect(usersService.listUsers).not.toHaveBeenCalled();
+
+    tick(1);
+    expect(usersService.listUsers).toHaveBeenCalledOnceWith({ q: "alice" });
+  }));
+
+  it("filters by the selected role", () => {
     setup(admin, []);
     component.users = mockUsers;
 
-    component.searchTerm = "alice";
-    component.filterUsers();
-    expect(component.filteredUsers.map((u) => u.name)).toEqual(["Alice"]);
-
-    component.searchTerm = "444";
-    component.filterUsers();
-    expect(component.filteredUsers.map((u) => u.name)).toEqual(["David"]);
-
-    component.searchTerm = "";
     component.selectedRole = "Docente";
     component.filterUsers();
     expect(component.filteredUsers.map((u) => u.name)).toEqual(["Bob"]);

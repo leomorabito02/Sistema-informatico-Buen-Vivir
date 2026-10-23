@@ -91,6 +91,19 @@ describe("App Routes", () => {
     }
   });
 
+  it("la página pública de campañas no pide sesión (HU-50)", async () => {
+    const route = routes.find((r) => r.path === "campanas-publico");
+    expect(route?.canActivate).toBeUndefined();
+    const component = await (route!.loadComponent as any)();
+    expect(component).toBeDefined();
+  });
+
+  it("la gestión de campañas es solo para administración y voluntariado", () => {
+    const dashboard = routes.find((r) => r.path === "dashboard");
+    const campanas = dashboard?.children?.find((r) => r.path === "campanas");
+    expect(campanas?.canActivate?.length).toBe(1);
+  });
+
   it("should redirect mi-cuenta to dashboard/mi-perfil", () => {
     const miCuenta = routes.find((r) => r.path === "mi-cuenta");
     expect(miCuenta?.redirectTo).toBe("dashboard/mi-perfil");
@@ -115,6 +128,7 @@ describe("App Routes", () => {
     "notificaciones",
     "ayuda",
     "indicadores",
+    "auditoria",
   ];
 
   childrenRoutes.forEach((childPath) => {

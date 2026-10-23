@@ -6,17 +6,22 @@ import { ButtonModule } from "primeng/button";
 import { TagModule } from "primeng/tag";
 import { CardModule } from "primeng/card";
 import { SelectModule } from "primeng/select";
-import { MessageModule } from "primeng/message";
 import { ToastModule } from "primeng/toast";
 import { MessageService } from "primeng/api";
-import { forkJoin } from "rxjs";
 
 import { EducationService } from "../../../services/education.service";
-import { Course, Enrollment } from "../../../core/models/education.model";
-import { todayYMD } from "../../../shared/utils/date-ymd";
+import {
+  Course,
+  Enrollment,
+  ParticipanteResumen,
+} from "../../../core/models/education.model";
 import { LoadingStateComponent } from "../../../shared/components/loading-state.component";
 import { ErrorStateComponent } from "../../../shared/components/error-state.component";
 import { EmptyStateComponent } from "../../../shared/components/empty-state.component";
+import {
+  ParticipantPickerComponent,
+  etiquetaParticipante,
+} from "../../../shared/components/participant-picker.component";
 
 interface Option {
   label: string;
@@ -29,13 +34,10 @@ type EnrollmentRow = Enrollment & { nombreCompleto: string };
  * role_volunteer. A diferencia de "Mis cursos" (docente), acá se puede
  * inscribir en cualquier curso publicado del catálogo.
  *
- * El selector de participantes reutiliza `GET /api/asistencia-general`
- * (fecha de hoy) porque es, hoy, el único endpoint del backend que
- * devuelve el directorio de participantes aprobados con nombre y
- * apellido ya resueltos contra auth-service — evita tener que pedir el
- * `participant_id` a mano (ver advertencia de
- * education/GUIA_PRUEBAS_INSCRIPCION_ASISTENCIA.md sobre confundirlo con
- * `user_id`).
+ * El selector de participantes busca en el backend
+ * (`GET /api/participantes?q=&cursoId=`, ver ParticipantPickerComponent):
+ * ya no se baja el directorio entero para filtrarlo en el navegador. Los
+ * nombres de los inscriptos también los resuelve el backend.
  */
 @Component({
   selector: "app-inscripciones",
@@ -51,8 +53,8 @@ type EnrollmentRow = Enrollment & { nombreCompleto: string };
     TagModule,
     CardModule,
     SelectModule,
-    MessageModule,
     ToastModule,
+    ParticipantPickerComponent,
   ],
   providers: [MessageService],
   templateUrl: "./inscripciones.component.html",
@@ -68,38 +70,19 @@ export class InscripcionesComponent implements OnInit {
   courseOptions: Option[] = [];
   selectedCourseId: string | null = null;
 
-  participantOptions: Option[] = [];
-  private participantNames = new Map<string, string>();
-  participantsError = "";
-
   loadingEnrollments = false;
   enrollments: EnrollmentRow[] = [];
 
-  selectedParticipantId: string | null = null;
+  selectedParticipant: ParticipanteResumen | null = null;
   inscribiendo = false;
 
   ngOnInit() {
-    forkJoin({
-      courses: this.education.listCourses(),
-      directory: this.education.getGeneralAttendance(todayYMD()),
-    }).subscribe({
-      next: ({ courses, directory }) => {
+    this.education.listCourses().subscribe({
+      next: (courses) => {
         this.courseOptions = courses.map((c: Course) => ({
           label: c.title || c.id,
           value: c.id,
         }));
-        this.participantNames = new Map(
-          directory.map((p) => [
-            p.participanteId,
-            `${p.nombre ?? ""} ${p.apellido ?? ""}`.trim() || p.participanteId,
-          ]),
-        );
-        this.participantOptions = directory
-          .map((p) => ({
-            label: this.participantNames.get(p.participanteId)!,
-            value: p.participanteId,
-          }))
-          .sort((a, b) => a.label.localeCompare(b.label));
         this.loading = false;
       },
       error: (err: Error) => {
@@ -110,8 +93,13 @@ export class InscripcionesComponent implements OnInit {
   }
 
   onCourseChange() {
-    this.selectedParticipantId = null;
+    this.selectedParticipant = null;
     this.enrollments = [];
+    if (!this.selectedCourseId) return;
+    this.loadEnrollments();
+  }
+
+  private loadEnrollments() {
     if (!this.selectedCourseId) return;
     this.loadingEnrollments = true;
     this.error = "";
@@ -119,8 +107,7 @@ export class InscripcionesComponent implements OnInit {
       next: (list) => {
         this.enrollments = list.map((e) => ({
           ...e,
-          nombreCompleto:
-            this.participantNames.get(e.participanteId) ?? e.participanteId,
+          nombreCompleto: etiquetaParticipante(e),
         }));
         this.loadingEnrollments = false;
       },
@@ -131,23 +118,14 @@ export class InscripcionesComponent implements OnInit {
     });
   }
 
-  /** Participantes que todavía no tienen una inscripción activa en el curso elegido. */
-  get availableParticipantOptions(): Option[] {
-    const enrolled = new Set(
-      this.enrollments
-        .filter((e) => e.estado === "activa")
-        .map((e) => e.participanteId),
-    );
-    return this.participantOptions.filter((o) => !enrolled.has(o.value));
-  }
-
-  inscribir() {
-    if (!this.selectedCourseId || !this.selectedParticipantId) return;
+  inscribir(picker?: ParticipantPickerComponent) {
+    const participante = this.selectedParticipant;
+    if (!this.selectedCourseId || !participante) return;
     this.inscribiendo = true;
     this.error = "";
     this.education
       .enrollParticipant(this.selectedCourseId, {
-        participanteId: this.selectedParticipantId,
+        participanteId: participante.participanteId,
       })
       .subscribe({
         next: () => {
@@ -155,12 +133,11 @@ export class InscripcionesComponent implements OnInit {
           this.toast.add({
             severity: "success",
             summary: "Inscripción registrada",
-            detail:
-              this.participantNames.get(this.selectedParticipantId!) ??
-              this.selectedParticipantId!,
+            detail: etiquetaParticipante(participante),
           });
-          this.selectedParticipantId = null;
-          this.onCourseChange();
+          picker?.limpiar();
+          this.selectedParticipant = null;
+          this.loadEnrollments();
         },
         error: (err: Error) => {
           this.inscribiendo = false;

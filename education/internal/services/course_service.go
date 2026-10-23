@@ -2,8 +2,10 @@ package services
 
 import (
 	"context"
+	"errors"
 	"log/slog"
 	"strings"
+	"time"
 
 	"buenvivir/education/internal/events"
 	"buenvivir/education/internal/events/producers"
@@ -13,13 +15,17 @@ import (
 
 // CourseService valida las reglas de negocio de "course" antes de
 // delegar en el repository. Se expone como interfaz (no struct
-// concreto) para poder testearla más adelante con un repository mock,
-// aunque por ahora no se generan tests.
+// concreto) para poder testearla con un repository mock (ver
+// course_service_test.go).
 type CourseService interface {
 	ListCourses(ctx context.Context) ([]models.Course, error)
 	GetCourse(ctx context.Context, id string) (*models.Course, error)
 	CreateCourse(ctx context.Context, input models.CourseInput) (*models.Course, error)
 	UpdateCourse(ctx context.Context, id string, input models.CourseInput) (*models.Course, error)
+	// DeleteCourse es la baja lógica del curso (HU-16): no lo borra de
+	// Contentful. Lo marca como dado de baja (sale del catálogo y no
+	// acepta inscripciones), con su registro de auditoría, y lo deja
+	// publicado para que quien lo cursó lo siga viendo en "Mis cursos".
 	DeleteCourse(ctx context.Context, id string) error
 	PublishCourse(ctx context.Context, id string) error
 	UnpublishCourse(ctx context.Context, id string) error
@@ -58,9 +64,11 @@ type CourseService interface {
 }
 
 type courseService struct {
-	repo   repositories.CourseRepository
-	kvSync KVSyncService
-	events *producers.Educacion
+	repo          repositories.CourseRepository
+	kvSync        KVSyncService
+	events        *producers.Educacion
+	bajas         repositories.CursoBajaRepository
+	inscripciones repositories.EnrollmentRepository
 }
 
 func NewCourseService(repo repositories.CourseRepository, kvSync ...KVSyncService) CourseService {
@@ -75,6 +83,37 @@ func NewCourseServiceWithEvents(repo repositories.CourseRepository, events *prod
 		sync = kvSync[0]
 	}
 	return &courseService{repo: repo, kvSync: sync, events: events}
+}
+
+// NewCourseServiceConBaja suma la baja lógica (HU-16): bajas guarda la
+// marca y inscripciones permite contar los inscriptos activos al darlo
+// de baja. Sin bajas, DeleteCourse falla y el catálogo no filtra nada.
+func NewCourseServiceConBaja(repo repositories.CourseRepository, events *producers.Educacion, bajas repositories.CursoBajaRepository, inscripciones repositories.EnrollmentRepository, kvSync ...KVSyncService) CourseService {
+	s := NewCourseServiceWithEvents(repo, events, kvSync...).(*courseService)
+	s.bajas = bajas
+	s.inscripciones = inscripciones
+	return s
+}
+
+// errBajaNoConfigurada: el servicio se armó sin el repositorio de bajas.
+var errBajaNoConfigurada = errors.New("la baja de cursos no está configurada")
+
+// sinBajas saca de la lista los cursos dados de baja (HU-16).
+func (s *courseService) sinBajas(ctx context.Context, courses []models.Course, err error) ([]models.Course, error) {
+	if err != nil || s.bajas == nil {
+		return courses, err
+	}
+	bajas, err := s.bajas.IDs(ctx)
+	if err != nil {
+		return nil, err
+	}
+	out := make([]models.Course, 0, len(courses))
+	for _, c := range courses {
+		if !bajas[c.ID] {
+			out = append(out, c)
+		}
+	}
+	return out, nil
 }
 
 // publish registra un evento de curso. Los cursos viven en Contentful,
@@ -100,7 +139,8 @@ func (s *courseService) syncKV() {
 }
 
 func (s *courseService) ListCourses(ctx context.Context) ([]models.Course, error) {
-	return s.repo.List(ctx)
+	courses, err := s.repo.List(ctx)
+	return s.sinBajas(ctx, courses, err)
 }
 
 const (
@@ -146,12 +186,54 @@ func (s *courseService) DeleteCourse(ctx context.Context, id string) error {
 	if strings.TrimSpace(id) == "" {
 		return NewValidationError(errCourseIDRequired)
 	}
-	err := s.repo.Delete(ctx, id)
-	if err == nil {
-		s.syncKV()
-		s.publish(ctx, events.CursoEliminado, id, func() error { return s.events.CursoEliminado(ctx, id) })
+	if s.bajas == nil || s.inscripciones == nil {
+		return errBajaNoConfigurada
 	}
-	return err
+	exists, err := s.repo.ExistsInManagement(ctx, id)
+	if err != nil {
+		return err
+	}
+	if !exists {
+		return repositories.ErrNotFound
+	}
+	inscripciones, err := s.inscripciones.ListByCourse(ctx, id)
+	if err != nil {
+		return err
+	}
+	// El título queda en la baja para leerla sin Contentful. Un borrador
+	// no está en la CDA: queda vacío.
+	titulo := ""
+	if c, err := s.repo.Get(ctx, id); err == nil {
+		titulo = c.Title
+	}
+	err = s.bajas.DarDeBaja(ctx, models.CursoBaja{
+		CursoID:           id,
+		Titulo:            titulo,
+		FechaBaja:         time.Now().UTC(),
+		UsuarioID:         events.ActorFrom(ctx),
+		InscriptosActivos: ContarInscripcionesActivas(inscripciones),
+	})
+	if errors.Is(err, repositories.ErrCursoYaDadoDeBaja) {
+		return NewValidationError("El curso ya fue dado de baja")
+	}
+	if err != nil {
+		return err
+	}
+	s.syncKV()
+	s.publish(ctx, events.CursoEliminado, id, func() error { return s.events.CursoEliminado(ctx, id) })
+	return nil
+}
+
+// ContarInscripcionesActivas cuenta las inscripciones en estado
+// "activa": es el aviso de HU-16 antes de dar de baja un curso.
+func ContarInscripcionesActivas(inscripciones []models.Enrollment) int {
+	n := 0
+	for _, e := range inscripciones {
+		if e.Estado == models.EnrollmentEstadoActiva {
+			n++
+		}
+	}
+	return n
 }
 
 func (s *courseService) PublishCourse(ctx context.Context, id string) error {
@@ -196,7 +278,8 @@ func (s *courseService) ListDraftCoursesByTeacher(ctx context.Context, teacherID
 }
 
 func (s *courseService) ListAllDraftCourses(ctx context.Context) ([]models.Course, error) {
-	return s.repo.ListAllDrafts(ctx)
+	courses, err := s.repo.ListAllDrafts(ctx)
+	return s.sinBajas(ctx, courses, err)
 }
 
 // VerifyOwnership usa Get (Content Delivery API, mismo método que el

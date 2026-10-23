@@ -73,6 +73,7 @@ export class UsuariosComponent implements OnInit {
   private readonly imageService = inject(ImageService);
 
   searchTerm: string = "";
+  private busquedaTimer?: ReturnType<typeof setTimeout>;
   selectedRole: string = "Todos los roles";
   currentUserRoleId: string = "";
   currentUserId: string = "";
@@ -149,7 +150,7 @@ export class UsuariosComponent implements OnInit {
   private loadUsers() {
     this.loading = true;
     this.loadError = "";
-    this.usersService.listUsers().subscribe({
+    this.usersService.listUsers({ q: this.searchTerm }).subscribe({
       next: (data: User[]) => {
         this.loading = false;
         if (data && data.length > 0) {
@@ -233,8 +234,18 @@ export class UsuariosComponent implements OnInit {
     return "Participante";
   }
 
+  /**
+   * El texto lo busca auth-service (`?q=`: nombre, apellido, email o
+   * teléfono). Acá solo se espera a que se deje de tipear para no pedir
+   * la lista en cada tecla.
+   */
+  buscar() {
+    clearTimeout(this.busquedaTimer);
+    this.busquedaTimer = setTimeout(() => this.loadUsers(), 300);
+  }
+
+  /** Filtros sobre la lista que ya mandó auth-service: rol elegido y restricción del voluntario. */
   filterUsers() {
-    const term = this.searchTerm.toLowerCase().trim();
     const roleFilter = this.selectedRole;
 
     this.filteredUsers = this.users.filter((u) => {
@@ -244,18 +255,7 @@ export class UsuariosComponent implements OnInit {
       }
 
       // 2. Dropdown role filter
-      if (roleFilter !== "Todos los roles" && u.role !== roleFilter) {
-        return false;
-      }
-
-      // 3. Search query matching
-      if (!term) return true;
-      return (
-        u.name.toLowerCase().includes(term) ||
-        u.email.toLowerCase().includes(term) ||
-        u.phone.toLowerCase().includes(term) ||
-        u.role.toLowerCase().includes(term)
-      );
+      return roleFilter === "Todos los roles" || u.role === roleFilter;
     });
   }
 

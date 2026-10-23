@@ -38,6 +38,9 @@ func (s *countingService) Postulaciones(context.Context, clients.Credentials) ([
 func (s *countingService) Areas(context.Context, clients.Credentials) ([]models.Area, error) {
 	return nil, s.hit(FuenteAreas)
 }
+func (s *countingService) Promocion(context.Context, clients.Credentials) (models.Promocion, error) {
+	return models.Promocion{}, s.hit(FuentePromocion)
+}
 
 func TestCacheReusaEInvalida(t *testing.T) {
 	inner := &countingService{}

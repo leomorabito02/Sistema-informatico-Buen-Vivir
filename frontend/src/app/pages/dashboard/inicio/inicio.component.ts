@@ -42,7 +42,10 @@ export class InicioComponent implements OnInit {
     this.authService.isAuthenticated().subscribe({
       next: (res: MeResponse) => {
         const roleId = res.role_id ?? res.user?.role_id ?? "";
-        const portal = InicioComponent.PORTAL_POR_ROL[roleId];
+        const portal =
+          roleId === "role_teacher" && res.is_external
+            ? "/dashboard/mis-contenidos"
+            : InicioComponent.PORTAL_POR_ROL[roleId];
         if (portal) {
           this.router.navigateByUrl(portal, { replaceUrl: true });
           return;

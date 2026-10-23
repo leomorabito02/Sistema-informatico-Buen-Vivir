@@ -8,6 +8,7 @@ import (
 	"cloud.google.com/go/firestore"
 	"google.golang.org/api/iterator"
 
+	"buenvivir/education/internal/audit"
 	"buenvivir/education/internal/events/producers"
 	"buenvivir/education/internal/models"
 )
@@ -79,28 +80,30 @@ func (r *generalAttendanceRepository) RegisterBatch(ctx context.Context, fecha s
 		}
 	}
 
-	// Transacción (antes era un WriteBatch: igual de atómico). Hace falta
-	// leer los registros previos para saber si cada uno es una carga
-	// nueva (registrada) o una edición (actualizada), y el evento se
-	// escribe junto con el registro (outbox).
+	// Transacción (antes era un WriteBatch: igual de atómico). Lee los
+	// registros previos para saber si cada uno es una carga nueva o una
+	// edición: con eso se escribe, junto con el registro, la auditoría
+	// (HU-19bis) y el evento (outbox). Volver a guardar lo mismo no es
+	// un cambio y no deja rastro.
 	err := r.client.RunTransaction(ctx, func(ctx context.Context, tx *firestore.Transaction) error {
-		var previous []*firestore.DocumentSnapshot
-		if r.events.Enabled() {
-			var err error
-			if previous, err = tx.GetAll(refs); err != nil {
-				return err
-			}
+		previous, err := tx.GetAll(refs)
+		if err != nil {
+			return err
 		}
 		for i, ref := range refs {
 			if err := tx.Set(ref, docs[i]); err != nil {
 				return err
 			}
-			if previous == nil {
-				continue
-			}
 			nueva := !previous[i].Exists()
 			if !nueva && !changed(previous[i], docs[i]) {
-				continue // se volvió a guardar lo mismo: no es un cambio
+				continue
+			}
+			accion := audit.AccionActualizar
+			if nueva {
+				accion = audit.AccionRegistrar
+			}
+			if err := audit.RecordTx(ctx, r.client, tx, accion, audit.RecursoAsistenciaGeneral, ref.ID); err != nil {
+				return err
 			}
 			if err := r.events.AsistenciaGeneral(ctx, tx, ref.ID, docs[i], nueva); err != nil {
 				return err

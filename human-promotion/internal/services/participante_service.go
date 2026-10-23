@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log/slog"
 	"sort"
 
 	"buenvivir/human-promotion/internal/crypto"
@@ -19,20 +20,21 @@ const maxResultadosBusqueda = 20
 type ParticipanteService interface {
 	Buscar(ctx context.Context, query string) ([]models.ResultadoBusqueda, error)
 	// LineaDeTiempoPropia devuelve solo los hitos marcados como visibles
-	// de la ficha del participante logueado. Si todavía no tiene ficha,
-	// devuelve una lista vacía.
-	LineaDeTiempoPropia(ctx context.Context, userID string) ([]models.HitoParticipante, error)
+	// de la ficha del participante logueado, más su actividad en el
+	// centro. Si todavía no tiene ficha, los hitos vienen vacíos.
+	LineaDeTiempoPropia(ctx context.Context, userID string) (*models.LineaDeTiempoPropia, error)
 }
 
 type participanteService struct {
-	auth   repositories.AuthDirectory
-	fichas repositories.FichaRepository
-	hitos  repositories.HitoRepository
-	cipher crypto.FieldCipher
+	auth      repositories.AuthDirectory
+	fichas    repositories.FichaRepository
+	hitos     repositories.HitoRepository
+	cipher    crypto.FieldCipher
+	actividad ActividadService
 }
 
-func NewParticipanteService(auth repositories.AuthDirectory, fichas repositories.FichaRepository, hitos repositories.HitoRepository, cipher crypto.FieldCipher) ParticipanteService {
-	return &participanteService{auth: auth, fichas: fichas, hitos: hitos, cipher: cipher}
+func NewParticipanteService(auth repositories.AuthDirectory, fichas repositories.FichaRepository, hitos repositories.HitoRepository, cipher crypto.FieldCipher, actividad ActividadService) ParticipanteService {
+	return &participanteService{auth: auth, fichas: fichas, hitos: hitos, cipher: cipher, actividad: actividad}
 }
 
 // Buscar consulta Auth por nombre y después trae las fichas asociadas.
@@ -76,18 +78,40 @@ func (s *participanteService) Buscar(ctx context.Context, query string) ([]model
 
 // LineaDeTiempoPropia filtra en el backend: el participante nunca recibe
 // situación actual, avances, responsables ni hitos no visibles (HU-34).
-func (s *participanteService) LineaDeTiempoPropia(ctx context.Context, userID string) ([]models.HitoParticipante, error) {
-	vacia := []models.HitoParticipante{}
+// La actividad en el centro es un dato secundario: si no se puede leer,
+// la línea de tiempo sale igual, solo con los hitos.
+func (s *participanteService) LineaDeTiempoPropia(ctx context.Context, userID string) (*models.LineaDeTiempoPropia, error) {
+	linea := &models.LineaDeTiempoPropia{Hitos: []models.HitoParticipante{}, Actividad: []models.EntradaActividad{}}
 
 	participante, err := s.auth.GetParticipanteByUserID(ctx, userID)
 	if errors.Is(err, repositories.ErrNotFound) {
-		return vacia, nil
+		return linea, nil
 	}
 	if err != nil {
 		return nil, err
 	}
 
-	fichaID, _, err := s.fichas.GetByParticipante(ctx, participante.ParticipanteID)
+	if s.actividad != nil {
+		actividad, err := s.actividad.DeParticipante(ctx, participante.ParticipanteID)
+		if err != nil {
+			slog.Warn("no se pudo leer la actividad del participante", slog.String("error", err.Error()))
+		} else {
+			linea.Actividad = actividad
+		}
+	}
+
+	hitos, err := s.hitosVisibles(ctx, participante.ParticipanteID)
+	if err != nil {
+		return nil, err
+	}
+	linea.Hitos = hitos
+	return linea, nil
+}
+
+func (s *participanteService) hitosVisibles(ctx context.Context, participanteID string) ([]models.HitoParticipante, error) {
+	vacia := []models.HitoParticipante{}
+
+	fichaID, _, err := s.fichas.GetByParticipante(ctx, participanteID)
 	if errors.Is(err, repositories.ErrNotFound) {
 		return vacia, nil
 	}

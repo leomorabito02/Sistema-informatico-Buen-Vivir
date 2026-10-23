@@ -46,16 +46,30 @@ func (c *EnrollmentController) Enroll(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusCreated, enrollment)
 }
 
-// List responde GET /api/cursos/{id}/inscripciones
+// List responde GET /api/cursos/{id}/inscripciones, con nombre y
+// apellido de cada participante (resueltos contra auth-service).
 func (c *EnrollmentController) List(w http.ResponseWriter, r *http.Request) {
 	cursoID := chi.URLParam(r, "id")
+	token, _ := r.Context().Value(middlewares.TokenKey).(string)
 
-	enrollments, err := c.enrollmentService.ListByCourse(r.Context(), cursoID)
+	enrollments, err := c.enrollmentService.ListByCourseConNombres(r.Context(), cursoID, token)
 	if err != nil {
 		writeError(w, err)
 		return
 	}
 	writeJSON(w, http.StatusOK, enrollments)
+}
+
+// CountActive responde GET /api/cursos/{id}/inscriptos-activos (solo
+// admin): {"inscriptosActivos": n}, el aviso antes de dar de baja un
+// curso (HU-16).
+func (c *EnrollmentController) CountActive(w http.ResponseWriter, r *http.Request) {
+	n, err := c.enrollmentService.CountActive(r.Context(), chi.URLParam(r, "id"))
+	if err != nil {
+		writeError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]int{"inscriptosActivos": n})
 }
 
 // ListByParticipant responde GET /api/participants/{id}/inscripciones

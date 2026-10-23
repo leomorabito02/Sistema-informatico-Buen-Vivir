@@ -19,6 +19,7 @@ const (
 	FuenteHabilidades   Fuente = "habilidades"
 	FuentePostulaciones Fuente = "postulaciones"
 	FuenteAreas         Fuente = "areas"
+	FuentePromocion     Fuente = "promocion"
 )
 
 // CachedDashboardService guarda en memoria lo que devuelve cada fuente,
@@ -65,13 +66,13 @@ func (c *CachedDashboardService) Invalidate(fuentes ...Fuente) {
 	}
 }
 
-func cached[T any](c *CachedDashboardService, f Fuente, ctx context.Context, cred clients.Credentials, load func(context.Context, clients.Credentials) ([]T, error)) ([]T, error) {
+func cached[T any](c *CachedDashboardService, f Fuente, ctx context.Context, cred clients.Credentials, load func(context.Context, clients.Credentials) (T, error)) (T, error) {
 	if c.ttl > 0 {
 		c.mu.Lock()
 		e, ok := c.entries[f]
 		c.mu.Unlock()
 		if ok && c.now().Before(e.expiresAt) {
-			return e.data.([]T), nil
+			return e.data.(T), nil
 		}
 	}
 	data, err := load(ctx, cred)
@@ -102,4 +103,8 @@ func (c *CachedDashboardService) Postulaciones(ctx context.Context, cred clients
 
 func (c *CachedDashboardService) Areas(ctx context.Context, cred clients.Credentials) ([]models.Area, error) {
 	return cached(c, FuenteAreas, ctx, cred, c.inner.Areas)
+}
+
+func (c *CachedDashboardService) Promocion(ctx context.Context, cred clients.Credentials) (models.Promocion, error) {
+	return cached(c, FuentePromocion, ctx, cred, c.inner.Promocion)
 }

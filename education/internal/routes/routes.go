@@ -34,6 +34,10 @@ type Controllers struct {
 	Activity          *controllers.ActivityController
 	Submission        *controllers.SubmissionController
 	Skill             *controllers.SkillController
+	Comment           *controllers.CommentController
+	TeacherContent    *controllers.TeacherContentController
+	Participante      *controllers.ParticipanteController
+	Auditoria         *controllers.AuditoriaController
 }
 
 func RegisterRoutes(
@@ -43,6 +47,24 @@ func RegisterRoutes(
 ) {
 	const apiCursosID = "/api/cursos/{id}"
 	r.Get("/api/salud", ctrls.Health.Health)
+
+	// -- comentarios (HU-24): públicos, como el contenido que comentan
+	//    (campañas y cursos se ven sin login). Comentar tiene el límite
+	//    estricto por IP (10 por minuto) para frenar el spam. Borrar es
+	//    del administrador, más abajo.
+	if ctrls.Comment != nil {
+		r.Get("/api/comentarios", ctrls.Comment.List)
+		r.With(middlewares.StrictRateLimiter()).Post("/api/comentarios", ctrls.Comment.Create)
+	}
+
+	// -- biblioteca pública (HU-25): el material aprobado de docentes
+	//    externos se ve y se descarga sin login, dejando nombre,
+	//    apellido, email y teléfono. Descargar tiene el límite estricto
+	//    por IP.
+	if ctrls.TeacherContent != nil {
+		r.Get("/api/biblioteca", ctrls.TeacherContent.ListPublic)
+		r.With(middlewares.StrictRateLimiter()).Post("/api/biblioteca/{id}/descargas", ctrls.TeacherContent.PublicDownload)
+	}
 
 	r.Group(func(r chi.Router) {
 		r.Use(middlewares.AuthMiddleware(jwtService))
@@ -94,7 +116,44 @@ func RegisterRoutes(
 			// borrar material: solo admin (no hay modelo de ownership de
 			// materiales, un material puede estar linkeado a varios cursos).
 			r.Delete("/api/materiales/{id}", ctrls.Material.Delete)
+
+			// cuántos inscriptos activos tiene un curso: el aviso antes
+			// de darlo de baja (HU-16; el DELETE de arriba es la baja lógica)
+			r.Get("/api/cursos/{id}/inscriptos-activos", ctrls.Enrollment.CountActive)
+
+			// registro de auditoría de Educación, solo lectura
+			if ctrls.Auditoria != nil {
+				r.Get("/api/auditoria", ctrls.Auditoria.List)
+			}
+
+			// moderación de comentarios (HU-24)
+			if ctrls.Comment != nil {
+				r.Delete("/api/comentarios/{id}", ctrls.Comment.Delete)
+			}
+
+			// moderación de contenido de docentes externos (HU-23) y
+			// quién descargó de la biblioteca (HU-25)
+			if ctrls.TeacherContent != nil {
+				r.Get("/api/contenidos-docentes", ctrls.TeacherContent.List)
+				r.Post("/api/contenidos-docentes/{id}/moderacion", ctrls.TeacherContent.Moderate)
+				r.Get("/api/biblioteca/descargas", ctrls.TeacherContent.ListDownloads)
+			}
 		})
+
+		// -- contenido docente (HU-23): lo sube cualquier docente,
+		//    interno o externo (es lo único que ve el externo). Editar
+		//    es del dueño mientras está pendiente; borrar y bajar el
+		//    archivo los decide el service por rol y dueño.
+		if ctrls.TeacherContent != nil {
+			r.Group(func(r chi.Router) {
+				r.Use(middlewares.RequireRole("role_teacher"))
+				r.Post("/api/contenidos-docentes", ctrls.TeacherContent.Upload)
+				r.Get("/api/contenidos-docentes/mios", ctrls.TeacherContent.ListMine)
+				r.Put("/api/contenidos-docentes/{id}", ctrls.TeacherContent.Update)
+			})
+			r.Delete("/api/contenidos-docentes/{id}", ctrls.TeacherContent.Delete)
+			r.Get("/api/contenidos-docentes/{id}/archivo", ctrls.TeacherContent.File)
+		}
 
 		// -- materiales: crear/subir/editar los puede hacer admin O
 		//    docente interno (para adjuntar/actualizar archivos de sus
@@ -137,6 +196,13 @@ func RegisterRoutes(
 			r.Get("/api/docentes/{id}/cursos", ctrls.Course.ListByTeacherAdmin)
 
 			r.Post("/api/bulk-cursos-usuarios", ctrls.Enrollment.GetBulkUserCourses)
+
+			// buscador de los selectores de participantes y su historial
+			// de asistencia por curso (HU-19)
+			if ctrls.Participante != nil {
+				r.Get("/api/participantes", ctrls.Participante.Buscar)
+				r.Get("/api/participants/{id}/asistencia", ctrls.Participante.HistorialAsistencia)
+			}
 		})
 
 		// -- habilidades de las actividades (HU-21 / HU-58): admin,

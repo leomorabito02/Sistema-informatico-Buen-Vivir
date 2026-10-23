@@ -300,16 +300,27 @@ components:
         presente: { type: boolean }
     ContenidoDocenteSubidoPayload:
       type: object
-      required: [curso_id, docente_id, tipo]
+      description: >-
+        tipo "curso": curso en borrador de un docente interno (trae
+        curso_id). tipo "material": ContenidoDocente de un docente externo
+        (trae contenido_id; agregado 2026-10-22, compatible con la versión 1).
+      required: [docente_id, tipo]
       properties:
         curso_id: { type: string }
+        contenido_id: { type: string }
         docente_id: { type: string }
-        tipo: { type: string, enum: [curso] }
+        tipo: { type: string, enum: [curso, material] }
     ContenidoDocenteModeradoPayload:
       type: object
-      required: [curso_id, resultado]
+      description: >-
+        Con tipo "material" trae contenido_id y docente_id (a quién avisar).
+        Sin tipo, es un curso (curso_id).
+      required: [resultado]
       properties:
         curso_id: { type: string }
+        contenido_id: { type: string }
+        docente_id: { type: string }
+        tipo: { type: string, enum: [curso, material] }
         resultado: { type: string, enum: [aprobado, rechazado] }
     FichaPayload:
       type: object

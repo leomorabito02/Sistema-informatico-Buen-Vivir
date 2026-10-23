@@ -43,7 +43,7 @@ func (s *volunteerService) CreateVolunteer(ctx context.Context, req *dto.CreateV
 	}
 
 	status := req.ApprovalStatus
-	if status == "" {
+	if status == "" || !canApprove(ctx, "role_volunteer") {
 		status = "pending"
 	}
 
@@ -101,7 +101,7 @@ func (s *volunteerService) UpdateVolunteer(ctx context.Context, id string, req *
 		}
 	}
 
-	if req.ApprovalStatus != "" {
+	if req.ApprovalStatus != "" && canApprove(ctx, "role_volunteer") {
 		if req.ApprovalStatus == "approved" {
 			volunteer.ApprovalStatus = approvalStatusApproved
 			now := time.Now()

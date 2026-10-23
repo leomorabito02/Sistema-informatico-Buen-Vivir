@@ -13,16 +13,28 @@
         }}
       </p>
     </div>
-    <div class="search-box p-input-icon-left">
-      <i class="pi pi-search"></i>
-      <input
-        pInputText
-        type="text"
-        [(ngModel)]="searchTerm"
-        (input)="filterCursos()"
-        placeholder="Buscar cursos..."
-        class="p-inputtext-sm"
-      />
+    <div class="filters">
+      <p-select
+        *ngIf="areaOptions.length > 1"
+        [options]="areaOptions"
+        optionLabel="label"
+        optionValue="value"
+        [(ngModel)]="selectedArea"
+        (onChange)="filterCursos()"
+        ariaLabel="Área formativa"
+        styleClass="area-select"
+      ></p-select>
+      <div class="search-box p-input-icon-left">
+        <i class="pi pi-search"></i>
+        <input
+          pInputText
+          type="text"
+          [(ngModel)]="searchTerm"
+          (input)="filterCursos()"
+          placeholder="Buscar cursos..."
+          class="p-inputtext-sm"
+        />
+      </div>
     </div>
   </div>
 
@@ -39,9 +51,13 @@
 
   <app-empty-state *ngIf="!loading && !error && filteredCursos.length === 0">
     {{
-      esParticipante
-        ? "Todavía no estás inscripto en ningún curso. Pedile a un voluntario o administrador que te inscriba."
-        : "No hay cursos publicados por ahora."
+      selectedArea
+        ? "No hay cursos de esa área con esa búsqueda."
+        : searchTerm.trim()
+        ? "No se encontraron cursos con «" + searchTerm.trim() + "»."
+        : esParticipante
+          ? "Todavía no estás inscripto en ningún curso. Pedile a un voluntario o administrador que te inscriba."
+          : "No hay cursos publicados por ahora."
     }}
   </app-empty-state>
 
@@ -171,32 +187,25 @@
   [header]="'Inscribir en: ' + (enrollCurso?.title ?? '')"
 >
   <div *ngIf="enrollCurso" class="detail">
-    <app-empty-state *ngIf="participantOptions.length === 0" [compact]="true">
-      No hay participantes aprobados en el centro todavía.
-    </app-empty-state>
-    <div *ngIf="participantOptions.length > 0">
-      <label>Participante</label>
-      <p-select
-        [options]="participantOptions"
-        optionLabel="label"
-        optionValue="value"
-        [(ngModel)]="selectedParticipantId"
-        placeholder="Elegí un participante"
-        [filter]="true"
-        filterPlaceholder="Buscar por nombre"
-        appendTo="body"
-        scrollHeight="280px"
-        [style]="{ width: '100%', marginTop: '0.5rem' }"
-      ></p-select>
-      <div style="margin-top: 1rem; text-align: right">
-        <p-button
-          label="Inscribir"
-          icon="pi pi-check"
-          [loading]="inscribiendo"
-          [disabled]="!selectedParticipantId"
-          (onClick)="inscribir()"
-        ></p-button>
-      </div>
+    <label for="enroll-participant">Participante</label>
+    <app-participant-picker
+      inputId="enroll-participant"
+      [cursoId]="enrollCurso.id"
+      (seleccionado)="selectedParticipant = $event"
+      style="margin-top: 0.5rem"
+    ></app-participant-picker>
+    <p class="muted">
+      Buscá por nombre, apellido o DNI. No aparecen quienes ya están
+      inscriptos en este curso.
+    </p>
+    <div style="margin-top: 1rem; text-align: right">
+      <p-button
+        label="Inscribir"
+        icon="pi pi-check"
+        [loading]="inscribiendo"
+        [disabled]="!selectedParticipant"
+        (onClick)="inscribir()"
+      ></p-button>
     </div>
   </div>
 </p-dialog>
