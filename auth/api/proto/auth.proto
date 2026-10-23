@@ -20,6 +20,9 @@ service AuthService {
   rpc GetUsersByIDs(GetUsersByIDsRequest) returns (GetUsersByIDsResponse);
 
   rpc GetCompany(GetCompanyRequest) returns (GetCompanyResponse);
+
+  rpc GetUserDeviceTokens(GetUserDeviceTokensRequest) returns (GetUserDeviceTokensResponse);
+  rpc RevokeDeviceTokens(RevokeDeviceTokensRequest) returns (RevokeDeviceTokensResponse);
 }
 
 message GetParticipantRequest {
@@ -87,4 +90,21 @@ message GetCompanyResponse {
   string user_email = 6;
   string user_phone = 7;
   string user_status = 8;
+}
+
+message GetUserDeviceTokensRequest {
+  string user_id = 1;
+}
+
+message GetUserDeviceTokensResponse {
+  repeated string tokens = 1;
+}
+
+message RevokeDeviceTokensRequest {
+  string user_id = 1;
+  repeated string tokens = 2;
+}
+
+message RevokeDeviceTokensResponse {
+  int32 revoked_count = 1;
 }

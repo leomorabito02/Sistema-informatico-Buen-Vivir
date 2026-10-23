@@ -5,6 +5,8 @@ services:
       dockerfile: Dockerfile
     env_file:
       - ./auth/.env
+    environment:
+      - NOTIFICATIONS_SERVICE_URL=http://notifications-service:8080
     ports:
       - "8082:8080"
       - "50051:50051"
@@ -137,6 +139,27 @@ services:
         required: false
     environment:
       - PORT=8080
+    restart: on-failure
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    read_only: true
+    mem_limit: 256m
+    cpus: "0.5"
+  notifications-service:
+    build:
+      context: ./notifications
+      dockerfile: Dockerfile
+    env_file:
+      - path: ./notifications/.env
+        required: false
+    environment:
+      - PORT=8080
+      - GRPC_PORT=50052
+    ports:
+      - "8088:8080"
+      - "50052:50052"
     restart: on-failure
     security_opt:
       - no-new-privileges:true

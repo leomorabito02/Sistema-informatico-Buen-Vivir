@@ -25,7 +25,12 @@
               "src/.well-known",
               "src/_headers",
               "src/assets",
-              "src/manifest.webmanifest"
+              "src/manifest.webmanifest",
+              {
+                "glob": "firebase-messaging-sw.js",
+                "input": "src",
+                "output": "/"
+              }
             ],
             "styles": ["src/styles.css"],
             "scripts": [],

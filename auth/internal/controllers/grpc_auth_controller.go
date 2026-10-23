@@ -28,14 +28,26 @@ type GrpcAuthController struct {
 	companyService     services.CompanyService
 	userService        services.UserService
 	directoryService   services.ParticipantDirectoryService
+	deviceRepo         repositories.DeviceRepository
 }
 
-func NewGrpcAuthController(participantService services.ParticipantService, companyService services.CompanyService, userService services.UserService, directoryService services.ParticipantDirectoryService) *GrpcAuthController {
+func NewGrpcAuthController(
+	participantService services.ParticipantService,
+	companyService services.CompanyService,
+	userService services.UserService,
+	directoryService services.ParticipantDirectoryService,
+	deviceRepo ...repositories.DeviceRepository,
+) *GrpcAuthController {
+	var repo repositories.DeviceRepository
+	if len(deviceRepo) > 0 {
+		repo = deviceRepo[0]
+	}
 	return &GrpcAuthController{
 		participantService: participantService,
 		companyService:     companyService,
 		userService:        userService,
 		directoryService:   directoryService,
+		deviceRepo:         repo,
 	}
 }
 
@@ -160,4 +172,33 @@ func directoryError(err error) error {
 	default:
 		return status.Error(codes.Internal, "internal error")
 	}
+}
+
+func (c *GrpcAuthController) GetUserDeviceTokens(ctx context.Context, req *authpb.GetUserDeviceTokensRequest) (*authpb.GetUserDeviceTokensResponse, error) {
+	if req.UserId == "" {
+		return nil, status.Error(codes.InvalidArgument, "user_id is required")
+	}
+	if c.deviceRepo == nil {
+		return &authpb.GetUserDeviceTokensResponse{Tokens: []string{}}, nil
+	}
+
+	tokens, err := c.deviceRepo.GetUserTokens(ctx, req.UserId)
+	if err != nil {
+		return nil, status.Error(codes.Internal, err.Error())
+	}
+	return &authpb.GetUserDeviceTokensResponse{Tokens: tokens}, nil
+}
+
+func (c *GrpcAuthController) RevokeDeviceTokens(ctx context.Context, req *authpb.RevokeDeviceTokensRequest) (*authpb.RevokeDeviceTokensResponse, error) {
+	if req.UserId == "" {
+		return nil, status.Error(codes.InvalidArgument, "user_id is required")
+	}
+	if len(req.Tokens) == 0 || c.deviceRepo == nil {
+		return &authpb.RevokeDeviceTokensResponse{RevokedCount: 0}, nil
+	}
+
+	if err := c.deviceRepo.DeleteDeviceTokens(ctx, req.UserId, req.Tokens); err != nil {
+		return nil, status.Error(codes.Internal, err.Error())
+	}
+	return &authpb.RevokeDeviceTokensResponse{RevokedCount: int32(len(req.Tokens))}, nil
 }

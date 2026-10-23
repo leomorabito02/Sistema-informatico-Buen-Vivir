@@ -682,6 +682,190 @@ func (x *GetCompanyResponse) GetUserStatus() string {
 	return ""
 }
 
+type GetUserDeviceTokensRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	UserId        string                 `protobuf:"bytes,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetUserDeviceTokensRequest) Reset() {
+	*x = GetUserDeviceTokensRequest{}
+	mi := &file_auth_proto_msgTypes[11]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetUserDeviceTokensRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetUserDeviceTokensRequest) ProtoMessage() {}
+
+func (x *GetUserDeviceTokensRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_auth_proto_msgTypes[11]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetUserDeviceTokensRequest.ProtoReflect.Descriptor instead.
+func (*GetUserDeviceTokensRequest) Descriptor() ([]byte, []int) {
+	return file_auth_proto_rawDescGZIP(), []int{11}
+}
+
+func (x *GetUserDeviceTokensRequest) GetUserId() string {
+	if x != nil {
+		return x.UserId
+	}
+	return ""
+}
+
+type GetUserDeviceTokensResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Tokens        []string               `protobuf:"bytes,1,rep,name=tokens,proto3" json:"tokens,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetUserDeviceTokensResponse) Reset() {
+	*x = GetUserDeviceTokensResponse{}
+	mi := &file_auth_proto_msgTypes[12]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetUserDeviceTokensResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetUserDeviceTokensResponse) ProtoMessage() {}
+
+func (x *GetUserDeviceTokensResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_auth_proto_msgTypes[12]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetUserDeviceTokensResponse.ProtoReflect.Descriptor instead.
+func (*GetUserDeviceTokensResponse) Descriptor() ([]byte, []int) {
+	return file_auth_proto_rawDescGZIP(), []int{12}
+}
+
+func (x *GetUserDeviceTokensResponse) GetTokens() []string {
+	if x != nil {
+		return x.Tokens
+	}
+	return nil
+}
+
+type RevokeDeviceTokensRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	UserId        string                 `protobuf:"bytes,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
+	Tokens        []string               `protobuf:"bytes,2,rep,name=tokens,proto3" json:"tokens,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RevokeDeviceTokensRequest) Reset() {
+	*x = RevokeDeviceTokensRequest{}
+	mi := &file_auth_proto_msgTypes[13]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RevokeDeviceTokensRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RevokeDeviceTokensRequest) ProtoMessage() {}
+
+func (x *RevokeDeviceTokensRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_auth_proto_msgTypes[13]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RevokeDeviceTokensRequest.ProtoReflect.Descriptor instead.
+func (*RevokeDeviceTokensRequest) Descriptor() ([]byte, []int) {
+	return file_auth_proto_rawDescGZIP(), []int{13}
+}
+
+func (x *RevokeDeviceTokensRequest) GetUserId() string {
+	if x != nil {
+		return x.UserId
+	}
+	return ""
+}
+
+func (x *RevokeDeviceTokensRequest) GetTokens() []string {
+	if x != nil {
+		return x.Tokens
+	}
+	return nil
+}
+
+type RevokeDeviceTokensResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	RevokedCount  int32                  `protobuf:"varint,1,opt,name=revoked_count,json=revokedCount,proto3" json:"revoked_count,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RevokeDeviceTokensResponse) Reset() {
+	*x = RevokeDeviceTokensResponse{}
+	mi := &file_auth_proto_msgTypes[14]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RevokeDeviceTokensResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RevokeDeviceTokensResponse) ProtoMessage() {}
+
+func (x *RevokeDeviceTokensResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_auth_proto_msgTypes[14]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RevokeDeviceTokensResponse.ProtoReflect.Descriptor instead.
+func (*RevokeDeviceTokensResponse) Descriptor() ([]byte, []int) {
+	return file_auth_proto_rawDescGZIP(), []int{14}
+}
+
+func (x *RevokeDeviceTokensResponse) GetRevokedCount() int32 {
+	if x != nil {
+		return x.RevokedCount
+	}
+	return 0
+}
+
 var File_auth_proto protoreflect.FileDescriptor
 
 const file_auth_proto_rawDesc = "" +
@@ -735,14 +919,25 @@ const file_auth_proto_rawDesc = "" +
 	"\n" +
 	"user_phone\x18\a \x01(\tR\tuserPhone\x12\x1f\n" +
 	"\vuser_status\x18\b \x01(\tR\n" +
-	"userStatus2\x95\x03\n" +
+	"userStatus\"5\n" +
+	"\x1aGetUserDeviceTokensRequest\x12\x17\n" +
+	"\auser_id\x18\x01 \x01(\tR\x06userId\"5\n" +
+	"\x1bGetUserDeviceTokensResponse\x12\x16\n" +
+	"\x06tokens\x18\x01 \x03(\tR\x06tokens\"L\n" +
+	"\x19RevokeDeviceTokensRequest\x12\x17\n" +
+	"\auser_id\x18\x01 \x01(\tR\x06userId\x12\x16\n" +
+	"\x06tokens\x18\x02 \x03(\tR\x06tokens\"A\n" +
+	"\x1aRevokeDeviceTokensResponse\x12#\n" +
+	"\rrevoked_count\x18\x01 \x01(\x05R\frevokedCount2\xca\x04\n" +
 	"\vAuthService\x12K\n" +
 	"\x0eGetParticipant\x12\x1b.auth.GetParticipantRequest\x1a\x1c.auth.GetParticipantResponse\x12U\n" +
 	"\x15GetParticipantProfile\x12\".auth.GetParticipantProfileRequest\x1a\x18.auth.ParticipantProfile\x12W\n" +
 	"\x12SearchParticipants\x12\x1f.auth.SearchParticipantsRequest\x1a .auth.SearchParticipantsResponse\x12H\n" +
 	"\rGetUsersByIDs\x12\x1a.auth.GetUsersByIDsRequest\x1a\x1b.auth.GetUsersByIDsResponse\x12?\n" +
 	"\n" +
-	"GetCompany\x12\x17.auth.GetCompanyRequest\x1a\x18.auth.GetCompanyResponseB.Z,buenvivir/labor-integration/api/proto/authpbb\x06proto3"
+	"GetCompany\x12\x17.auth.GetCompanyRequest\x1a\x18.auth.GetCompanyResponse\x12Z\n" +
+	"\x13GetUserDeviceTokens\x12 .auth.GetUserDeviceTokensRequest\x1a!.auth.GetUserDeviceTokensResponse\x12W\n" +
+	"\x12RevokeDeviceTokens\x12\x1f.auth.RevokeDeviceTokensRequest\x1a .auth.RevokeDeviceTokensResponseB.Z,buenvivir/labor-integration/api/proto/authpbb\x06proto3"
 
 var (
 	file_auth_proto_rawDescOnce sync.Once
@@ -756,7 +951,7 @@ func file_auth_proto_rawDescGZIP() []byte {
 	return file_auth_proto_rawDescData
 }
 
-var file_auth_proto_msgTypes = make([]protoimpl.MessageInfo, 11)
+var file_auth_proto_msgTypes = make([]protoimpl.MessageInfo, 15)
 var file_auth_proto_goTypes = []any{
 	(*GetParticipantRequest)(nil),        // 0: auth.GetParticipantRequest
 	(*GetParticipantResponse)(nil),       // 1: auth.GetParticipantResponse
@@ -769,6 +964,10 @@ var file_auth_proto_goTypes = []any{
 	(*GetUsersByIDsResponse)(nil),        // 8: auth.GetUsersByIDsResponse
 	(*GetCompanyRequest)(nil),            // 9: auth.GetCompanyRequest
 	(*GetCompanyResponse)(nil),           // 10: auth.GetCompanyResponse
+	(*GetUserDeviceTokensRequest)(nil),   // 11: auth.GetUserDeviceTokensRequest
+	(*GetUserDeviceTokensResponse)(nil),  // 12: auth.GetUserDeviceTokensResponse
+	(*RevokeDeviceTokensRequest)(nil),    // 13: auth.RevokeDeviceTokensRequest
+	(*RevokeDeviceTokensResponse)(nil),   // 14: auth.RevokeDeviceTokensResponse
 }
 var file_auth_proto_depIdxs = []int32{
 	3,  // 0: auth.SearchParticipantsResponse.participants:type_name -> auth.ParticipantProfile
@@ -778,13 +977,17 @@ var file_auth_proto_depIdxs = []int32{
 	4,  // 4: auth.AuthService.SearchParticipants:input_type -> auth.SearchParticipantsRequest
 	6,  // 5: auth.AuthService.GetUsersByIDs:input_type -> auth.GetUsersByIDsRequest
 	9,  // 6: auth.AuthService.GetCompany:input_type -> auth.GetCompanyRequest
-	1,  // 7: auth.AuthService.GetParticipant:output_type -> auth.GetParticipantResponse
-	3,  // 8: auth.AuthService.GetParticipantProfile:output_type -> auth.ParticipantProfile
-	5,  // 9: auth.AuthService.SearchParticipants:output_type -> auth.SearchParticipantsResponse
-	8,  // 10: auth.AuthService.GetUsersByIDs:output_type -> auth.GetUsersByIDsResponse
-	10, // 11: auth.AuthService.GetCompany:output_type -> auth.GetCompanyResponse
-	7,  // [7:12] is the sub-list for method output_type
-	2,  // [2:7] is the sub-list for method input_type
+	11, // 7: auth.AuthService.GetUserDeviceTokens:input_type -> auth.GetUserDeviceTokensRequest
+	13, // 8: auth.AuthService.RevokeDeviceTokens:input_type -> auth.RevokeDeviceTokensRequest
+	1,  // 9: auth.AuthService.GetParticipant:output_type -> auth.GetParticipantResponse
+	3,  // 10: auth.AuthService.GetParticipantProfile:output_type -> auth.ParticipantProfile
+	5,  // 11: auth.AuthService.SearchParticipants:output_type -> auth.SearchParticipantsResponse
+	8,  // 12: auth.AuthService.GetUsersByIDs:output_type -> auth.GetUsersByIDsResponse
+	10, // 13: auth.AuthService.GetCompany:output_type -> auth.GetCompanyResponse
+	12, // 14: auth.AuthService.GetUserDeviceTokens:output_type -> auth.GetUserDeviceTokensResponse
+	14, // 15: auth.AuthService.RevokeDeviceTokens:output_type -> auth.RevokeDeviceTokensResponse
+	9,  // [9:16] is the sub-list for method output_type
+	2,  // [2:9] is the sub-list for method input_type
 	2,  // [2:2] is the sub-list for extension type_name
 	2,  // [2:2] is the sub-list for extension extendee
 	0,  // [0:2] is the sub-list for field type_name
@@ -805,7 +1008,7 @@ func file_auth_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_auth_proto_rawDesc), len(file_auth_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   11,
+			NumMessages:   15,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

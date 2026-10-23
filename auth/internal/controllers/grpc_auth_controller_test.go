@@ -57,3 +57,42 @@ func TestGrpcGetCompany_Errores(t *testing.T) {
 	_, err = ctrl.GetCompany(context.Background(), &authpb.GetCompanyRequest{CompanyId: "y"})
 	assert.Equal(t, codes.Internal, status.Code(err))
 }
+
+func TestGrpcGetUserDeviceTokens_Success(t *testing.T) {
+	mockRepo := new(MockDeviceRepository)
+	mockRepo.On("GetUserTokens", mock.Anything, "user-123").Return([]string{"tok-a", "tok-b"}, nil)
+
+	ctrl := controllers.NewGrpcAuthController(nil, nil, nil, nil, mockRepo)
+
+	res, err := ctrl.GetUserDeviceTokens(context.Background(), &authpb.GetUserDeviceTokensRequest{UserId: "user-123"})
+	assert.NoError(t, err)
+	assert.Equal(t, []string{"tok-a", "tok-b"}, res.Tokens)
+	mockRepo.AssertExpectations(t)
+}
+
+func TestGrpcGetUserDeviceTokens_MissingUserID(t *testing.T) {
+	ctrl := controllers.NewGrpcAuthController(nil, nil, nil, nil)
+	_, err := ctrl.GetUserDeviceTokens(context.Background(), &authpb.GetUserDeviceTokensRequest{})
+	assert.Equal(t, codes.InvalidArgument, status.Code(err))
+}
+
+func TestGrpcRevokeDeviceTokens_Success(t *testing.T) {
+	mockRepo := new(MockDeviceRepository)
+	mockRepo.On("DeleteDeviceTokens", mock.Anything, "user-123", []string{"tok-a"}).Return(nil)
+
+	ctrl := controllers.NewGrpcAuthController(nil, nil, nil, nil, mockRepo)
+
+	res, err := ctrl.RevokeDeviceTokens(context.Background(), &authpb.RevokeDeviceTokensRequest{
+		UserId: "user-123",
+		Tokens: []string{"tok-a"},
+	})
+	assert.NoError(t, err)
+	assert.Equal(t, int32(1), res.RevokedCount)
+	mockRepo.AssertExpectations(t)
+}
+
+func TestGrpcRevokeDeviceTokens_MissingUserID(t *testing.T) {
+	ctrl := controllers.NewGrpcAuthController(nil, nil, nil, nil)
+	_, err := ctrl.RevokeDeviceTokens(context.Background(), &authpb.RevokeDeviceTokensRequest{})
+	assert.Equal(t, codes.InvalidArgument, status.Code(err))
+}

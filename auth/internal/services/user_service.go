@@ -71,8 +71,9 @@ func (s *userService) CreateUser(ctx context.Context, req *dto.CreateUserRequest
 		return nil, err
 	}
 
-	// Sincronizar stats de impacto
+	// Sincronizar stats de impacto y preferencias de notificaciones
 	NewKVSyncService(s.userRepo).SyncImpactStatsAsync()
+	NewNotificationSyncService().InitUserPreferencesAsync(user.UserID)
 
 	return dto.ToUserResponse(user), nil
 }

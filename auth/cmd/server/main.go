@@ -100,6 +100,13 @@ func main() {
 	services.NewKVSyncService(userRepo).SyncImpactStatsAsync()
 
 	// 5. Setup Controllers
+	firestoreClient, err := storage.NewFirestoreClient(context.Background(), "")
+	if err != nil {
+		slog.Warn("Firestore initialization failed, push notification tokens will not be persisted", "error", err)
+	}
+	deviceRepo := repositories.NewFirestoreDeviceRepository(firestoreClient)
+	deviceController := controllers.NewDeviceController(deviceRepo)
+
 	authController := controllers.NewAuthController(authService)
 	userController := controllers.NewUserController(userService)
 	roleController := controllers.NewRoleController(roleService)
@@ -110,7 +117,7 @@ func main() {
 	volunteerController := controllers.NewVolunteerController(volunteerService)
 	tokenValidatorController := controllers.NewTokenValidatorController(jwtService)
 	participantDirectoryService := services.NewParticipantDirectoryService(participantDirectoryRepo)
-	grpcAuthController := controllers.NewGrpcAuthController(participantService, companyService, userService, participantDirectoryService)
+	grpcAuthController := controllers.NewGrpcAuthController(participantService, companyService, userService, participantDirectoryService, deviceRepo)
 	go func() {
 		lis, err := net.Listen("tcp", ":50051")
 		if err != nil {
@@ -193,6 +200,7 @@ func main() {
 				// chi la resuelve antes que /{id}.
 				r.With(middlewares.RequireRole("role_admin", "role_dev")).
 					Get("/participants/history", userController.GetParticipantsHistory)
+				r.Post("/me/devices", deviceController.RegisterDevice)
 				r.Get("/{id}", userController.GetUser)
 				r.Get("/{id}/profile", authController.GetUserProfile)
 				r.Put("/{id}", userController.UpdateUser)
