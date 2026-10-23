@@ -17,8 +17,10 @@ func NewCourseController(service services.CourseService) *CourseController {
 	return &CourseController{service: service}
 }
 
-// List responde GET /api/cursos?q=texto. q es opcional: busca en título,
-// área formativa y descripción (ver services.FiltrarCursos).
+// List responde GET /api/cursos?q=texto&area=id. Los dos son opcionales
+// y se combinan: q busca en título, área formativa y descripción (ver
+// services.FiltrarCursos) y area deja solo los cursos de esa área
+// formativa (HU-28). No incluye los cursos dados de baja (HU-16).
 func (c *CourseController) List(w http.ResponseWriter, r *http.Request) {
 	q, ok := busquedaCursos(w, r)
 	if !ok {
@@ -29,7 +31,7 @@ func (c *CourseController) List(w http.ResponseWriter, r *http.Request) {
 		writeError(w, err)
 		return
 	}
-	writeJSON(w, http.StatusOK, services.FiltrarCursos(courses, q))
+	writeJSON(w, http.StatusOK, services.FiltrarCursosPorArea(services.FiltrarCursos(courses, q), r.URL.Query().Get("area")))
 }
 
 // busquedaCursos lee el parámetro q del catálogo; si es demasiado largo

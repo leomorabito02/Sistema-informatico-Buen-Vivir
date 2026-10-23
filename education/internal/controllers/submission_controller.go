@@ -72,7 +72,7 @@ func (c *SubmissionController) ListMyCourses(w http.ResponseWriter, r *http.Requ
 		writeError(w, err)
 		return
 	}
-	writeJSON(w, http.StatusOK, services.FiltrarCursos(courses, q))
+	writeJSON(w, http.StatusOK, services.FiltrarCursosPorArea(services.FiltrarCursos(courses, q), r.URL.Query().Get("area")))
 }
 
 // GetMyCourse responde GET /api/participante/cursos/{id}

@@ -12,6 +12,13 @@ import (
 // (HU-18/RF-18) antes de delegar en el repository de Firestore.
 type EnrollmentService interface {
 	ListByCourse(ctx context.Context, cursoID string) ([]models.Enrollment, error)
+	// ListByCourseConNombres es ListByCourse con nombre y apellido de
+	// cada participante, resueltos contra auth-service con bearerToken.
+	// Si auth-service falla, las inscripciones salen igual, sin nombre.
+	ListByCourseConNombres(ctx context.Context, cursoID, bearerToken string) ([]models.Enrollment, error)
+	// CountActive cuenta las inscripciones activas del curso: es el
+	// aviso que se muestra antes de darlo de baja (HU-16).
+	CountActive(ctx context.Context, cursoID string) (int, error)
 	ListByParticipant(ctx context.Context, participantID string) ([]models.Enrollment, error)
 	GetBulkUserCourses(ctx context.Context, userIDs []string) ([]models.UserCourseSummary, error)
 	// Enroll inscribe a un participante en un curso publicado.
@@ -28,6 +35,8 @@ type EnrollmentService interface {
 	//     ese curso.
 	//  4. Si el curso tiene Capacity fijado, el cupo no puede estar
 	//     completo (inscripciones activas >= capacity).
+	// Un curso dado de baja (HU-16) sigue publicado pero no acepta
+	// inscripciones nuevas.
 	Enroll(ctx context.Context, participanteID, cursoID, bearerToken string) (*models.Enrollment, error)
 }
 
@@ -35,14 +44,50 @@ type enrollmentService struct {
 	repo       repositories.EnrollmentRepository
 	courseRepo repositories.CourseRepository
 	authClient *repositories.AuthServiceClient
+	bajas      repositories.CursoBajaRepository
 }
 
-func NewEnrollmentService(repo repositories.EnrollmentRepository, courseRepo repositories.CourseRepository, authClient *repositories.AuthServiceClient) EnrollmentService {
-	return &enrollmentService{repo: repo, courseRepo: courseRepo, authClient: authClient}
+// NewEnrollmentService recibe opcionalmente el repositorio de bajas de
+// cursos (HU-16): con él, no se inscribe en un curso dado de baja.
+func NewEnrollmentService(repo repositories.EnrollmentRepository, courseRepo repositories.CourseRepository, authClient *repositories.AuthServiceClient, bajas ...repositories.CursoBajaRepository) EnrollmentService {
+	s := &enrollmentService{repo: repo, courseRepo: courseRepo, authClient: authClient}
+	if len(bajas) > 0 {
+		s.bajas = bajas[0]
+	}
+	return s
 }
 
 func (s *enrollmentService) ListByCourse(ctx context.Context, cursoID string) ([]models.Enrollment, error) {
 	return s.repo.ListByCourse(ctx, cursoID)
+}
+
+func (s *enrollmentService) ListByCourseConNombres(ctx context.Context, cursoID, bearerToken string) ([]models.Enrollment, error) {
+	enrollments, err := s.repo.ListByCourse(ctx, cursoID)
+	if err != nil || len(enrollments) == 0 {
+		return enrollments, err
+	}
+	directorio, err := directorioParticipantes(ctx, s.authClient, bearerToken)
+	if err != nil {
+		return enrollments, nil // los nombres son un dato secundario
+	}
+	for i := range enrollments {
+		if p, ok := directorio[enrollments[i].ParticipanteID]; ok {
+			enrollments[i].Nombre = p.Nombre
+			enrollments[i].Apellido = p.Apellido
+		}
+	}
+	return enrollments, nil
+}
+
+func (s *enrollmentService) CountActive(ctx context.Context, cursoID string) (int, error) {
+	if strings.TrimSpace(cursoID) == "" {
+		return 0, NewValidationError("cursoId es obligatorio")
+	}
+	enrollments, err := s.repo.ListByCourse(ctx, cursoID)
+	if err != nil {
+		return 0, err
+	}
+	return ContarInscripcionesActivas(enrollments), nil
 }
 
 func (s *enrollmentService) ListByParticipant(ctx context.Context, participantID string) ([]models.Enrollment, error) {
@@ -126,6 +171,15 @@ func (s *enrollmentService) Enroll(ctx context.Context, participanteID, cursoID,
 			return nil, NewValidationError("El curso no está disponible (inactivo o no publicado)")
 		}
 		return nil, NewValidationError("El curso no existe")
+	}
+	if s.bajas != nil {
+		dadoDeBaja, err := s.bajas.EstaDadoDeBaja(ctx, cursoID)
+		if err != nil {
+			return nil, err
+		}
+		if dadoDeBaja {
+			return nil, NewValidationError("El curso fue dado de baja y no acepta inscripciones")
+		}
 	}
 
 	// 2. Participante: tiene que existir en auth-service y estar

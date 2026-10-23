@@ -66,6 +66,69 @@ describe("EducationService", () => {
     req2.flush(mockCourses[0]);
   });
 
+  it("sends search and area filters to the backend (HU-28)", () => {
+    service.listCourses(" huerta ", "a1").subscribe();
+    const req = httpMock.expectOne(
+      (r) => r.url === `${getBaseUrl()}/api/cursos`,
+    );
+    expect(req.request.params.get("q")).toBe("huerta");
+    expect(req.request.params.get("area")).toBe("a1");
+    req.flush([]);
+
+    service.listMyEnrolledCourses("", "a2").subscribe();
+    const req2 = httpMock.expectOne(
+      (r) => r.url === `${getBaseUrl()}/api/participante/cursos`,
+    );
+    expect(req2.request.params.has("q")).toBeFalse();
+    expect(req2.request.params.get("area")).toBe("a2");
+    req2.flush([]);
+  });
+
+  it("searches participants in the backend", () => {
+    const found = [{ participanteId: "p1", nombre: "Ana", apellido: "Paz" }];
+    service.searchParticipants(" ana ", "c1").subscribe((res) => {
+      expect(res).toEqual(found);
+    });
+    const req = httpMock.expectOne(
+      (r) => r.url === `${getBaseUrl()}/api/participantes`,
+    );
+    expect(req.request.params.get("q")).toBe("ana");
+    expect(req.request.params.get("cursoId")).toBe("c1");
+    req.flush(found);
+
+    service.searchParticipants("ana").subscribe();
+    const req2 = httpMock.expectOne(
+      (r) => r.url === `${getBaseUrl()}/api/participantes`,
+    );
+    expect(req2.request.params.has("cursoId")).toBeFalse();
+    req2.flush([]);
+  });
+
+  it("gets the attendance history, the active enrollments and the audit log", () => {
+    service.getParticipantAttendanceHistory("p1").subscribe((h) => {
+      expect(h.length).toBe(1);
+    });
+    httpMock
+      .expectOne(`${getBaseUrl()}/api/participants/p1/asistencia`)
+      .flush([{ cursoId: "c1" }]);
+
+    service.countActiveEnrollments("c1").subscribe((n) => expect(n).toBe(3));
+    httpMock
+      .expectOne(`${getBaseUrl()}/api/cursos/c1/inscriptos-activos`)
+      .flush({ inscriptosActivos: 3 });
+
+    service
+      .listAuditoria({ desde: "2026-10-01", hasta: "", recurso: "curso" })
+      .subscribe((rows) => expect(rows.length).toBe(0));
+    const req = httpMock.expectOne(
+      (r) => r.url === `${getBaseUrl()}/api/auditoria`,
+    );
+    expect(req.request.params.get("desde")).toBe("2026-10-01");
+    expect(req.request.params.has("hasta")).toBeFalse();
+    expect(req.request.params.get("recurso")).toBe("curso");
+    req.flush([]);
+  });
+
   it("should list draft courses", () => {
     const mockDrafts: any[] = [{ id: "2", title: "Draft 1" }];
     service.listDraftCourses().subscribe((res) => {

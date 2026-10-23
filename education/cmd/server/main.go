@@ -80,16 +80,18 @@ func main() {
 	commentRepo := repositories.NewCommentRepository(firestoreClient)
 	teacherContentRepo := repositories.NewTeacherContentRepository(firestoreClient, eventProducer)
 	authServiceClient := repositories.NewAuthServiceClient(cfg.AuthServiceURL)
+	cursoBajaRepo := repositories.NewCursoBajaRepository(firestoreClient)
+	auditRepo := repositories.NewAuditRepository(firestoreClient)
 
 	jwtService := services.NewJWTService()
 	kvSyncService := services.NewKVSyncService(courseRepo)
 	kvSyncService.SyncCourseStatsAsync()
 
-	courseService := services.NewCourseServiceWithEvents(courseRepo, eventProducer, kvSyncService)
+	courseService := services.NewCourseServiceConBaja(courseRepo, eventProducer, cursoBajaRepo, enrollmentRepo, kvSyncService)
 	trainingAreaService := services.NewTrainingAreaService(trainingAreaRepo)
 	materialService := services.NewMaterialService(materialRepo)
 	activityService := services.NewActivityService(activityRepo, fileStorage)
-	enrollmentService := services.NewEnrollmentService(enrollmentRepo, courseRepo, authServiceClient)
+	enrollmentService := services.NewEnrollmentService(enrollmentRepo, courseRepo, authServiceClient, cursoBajaRepo)
 	attendanceService := services.NewAttendanceService(attendanceRepo)
 	progressService := services.NewProgressService(activityRepo, enrollmentRepo, attendanceRepo)
 	generalAttendanceService := services.NewGeneralAttendanceService(generalAttendanceRepo, authServiceClient)
@@ -116,6 +118,8 @@ func main() {
 	submissionController := controllers.NewSubmissionController(courseService, activityService, submissionService)
 	commentController := controllers.NewCommentController(services.NewCommentService(commentRepo))
 	teacherContentController := controllers.NewTeacherContentController(services.NewTeacherContentService(teacherContentRepo, fileStorage))
+	participanteController := controllers.NewParticipanteController(services.NewParticipanteService(authServiceClient, enrollmentRepo, activityRepo, attendanceRepo, courseRepo))
+	auditoriaController := controllers.NewAuditoriaController(services.NewAuditoriaService(auditRepo, authServiceClient))
 	skillController := controllers.NewSkillController(courseService, activityService, skillService, skillSuggestionService, submissionService)
 
 	r := chi.NewRouter()
@@ -138,6 +142,8 @@ func main() {
 			Skill:             skillController,
 			Comment:           commentController,
 			TeacherContent:    teacherContentController,
+			Participante:      participanteController,
+			Auditoria:         auditoriaController,
 		},
 	)
 

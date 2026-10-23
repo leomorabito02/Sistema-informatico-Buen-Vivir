@@ -20,6 +20,23 @@ import {
   UpdateFichaInput,
   UpdateFichaResponse,
 } from "../core/models/human-promotion.model";
+import {
+  FiltroAuditoria,
+  RegistroAuditoria,
+} from "../core/models/education.model";
+import { filtrosAuditoria } from "./education.service";
+
+/** Fila del log tal como la devuelve el backend (snake_case). */
+interface RegistroAuditoriaApi {
+  id: string;
+  usuario_id: string;
+  usuario_nombre?: string;
+  accion: string;
+  recurso: string;
+  recurso_id: string;
+  fecha: string;
+  ip?: string;
+}
 
 /** Error del servicio con el status HTTP, para distinguir "sin ficha" (404). */
 export class HumanPromotionError extends Error {
@@ -153,6 +170,31 @@ export class HumanPromotionService {
           hitos: res.hitos ?? [],
           actividad: res.actividad ?? [],
         })),
+        catchError(this.handleError),
+      );
+  }
+
+  // ---- Auditoría (HU-30, HU-35: solo administración) ---------------------
+  /** Log de altas, ediciones y bajas de fichas e hitos. Solo lectura. */
+  listarAuditoria(filtro: FiltroAuditoria = {}): Observable<RegistroAuditoria[]> {
+    return this.http
+      .get<RegistroAuditoriaApi[]>(`${this.base}/auditoria`, {
+        params: filtrosAuditoria(filtro),
+        withCredentials: true,
+      })
+      .pipe(
+        map((rows) =>
+          rows.map((r) => ({
+            id: r.id,
+            usuarioId: r.usuario_id,
+            usuarioNombre: r.usuario_nombre,
+            accion: r.accion,
+            recurso: r.recurso,
+            recursoId: r.recurso_id,
+            fecha: r.fecha,
+            ip: r.ip,
+          })),
+        ),
         catchError(this.handleError),
       );
   }

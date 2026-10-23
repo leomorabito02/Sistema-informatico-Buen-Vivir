@@ -35,6 +35,7 @@ import {
   Megaphone,
   Menu,
   MessageCircle,
+  ShieldCheck,
   Sprout,
   TrendingUp,
   Users,
@@ -97,6 +98,8 @@ export const NAV_BY_ROLE: Record<string, MenuItem[]> = {
     },
     { label: "Campañas", routerLink: "/dashboard/campanas" },
     { label: "Inserción laboral", routerLink: "/dashboard/ofertas" },
+    // HU-35: el log de auditoría lo consulta solo administración.
+    { label: "Auditoría", routerLink: "/dashboard/auditoria" },
   ],
   role_volunteer: [
     {
@@ -164,6 +167,7 @@ const NAV_ICONS: Record<string, LucideIconData> = {
   "Mis contenidos": FileText,
   Progreso: TrendingUp,
   Seguimiento: ClipboardList,
+  Auditoría: ShieldCheck,
   "Contacto con el centro": MessageCircle,
 };
 

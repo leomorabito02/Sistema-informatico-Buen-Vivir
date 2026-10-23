@@ -1,3 +1,14 @@
+.filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: center;
+}
+
+:host ::ng-deep .area-select {
+  min-width: 200px;
+}
+
 .search-box input {
   width: 100%;
   max-width: 300px;
@@ -91,6 +102,11 @@
 }
 
 @media (max-width: 640px) {
+  .filters,
+  .search-box,
+  :host ::ng-deep .area-select {
+    width: 100%;
+  }
   .search-box input {
     max-width: 100%;
   }
