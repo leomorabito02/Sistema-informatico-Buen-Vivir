@@ -144,3 +144,52 @@ func TestTrainingAreaController_Delete_Success(t *testing.T) {
 
 	assert.Equal(t, http.StatusNoContent, w.Code)
 }
+
+func TestTrainingAreaController_Update_BadJSON(t *testing.T) {
+	// Arrange
+	mockSvc := new(MockTrainingAreaService)
+	ctrl := controllers.NewTrainingAreaController(mockSvc)
+
+	req := withChiURLParam(httptest.NewRequest("PUT", "/api/areas-formativas/ta1", bytes.NewBufferString("{bad-json")), "id", "ta1")
+	w := httptest.NewRecorder()
+
+	// Act
+	ctrl.Update(w, req)
+
+	// Assert
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+}
+
+func TestTrainingAreaController_Update_ServiceError(t *testing.T) {
+	// Arrange
+	mockSvc := new(MockTrainingAreaService)
+	ctrl := controllers.NewTrainingAreaController(mockSvc)
+	mockSvc.On("UpdateTrainingArea", mock.Anything, "ta1", mock.Anything).Return(nil, errors.New("update err"))
+
+	body, _ := json.Marshal(models.TrainingAreaInput{Name: "Area"})
+	req := withChiURLParam(httptest.NewRequest("PUT", "/api/areas-formativas/ta1", bytes.NewBuffer(body)), "id", "ta1")
+	w := httptest.NewRecorder()
+
+	// Act
+	ctrl.Update(w, req)
+
+	// Assert
+	assert.Equal(t, http.StatusBadGateway, w.Code)
+}
+
+func TestTrainingAreaController_Delete_ServiceError(t *testing.T) {
+	// Arrange
+	mockSvc := new(MockTrainingAreaService)
+	ctrl := controllers.NewTrainingAreaController(mockSvc)
+	mockSvc.On("DeleteTrainingArea", mock.Anything, "ta1").Return(errors.New("delete err"))
+
+	req := withChiURLParam(httptest.NewRequest("DELETE", "/api/areas-formativas/ta1", nil), "id", "ta1")
+	w := httptest.NewRecorder()
+
+	// Act
+	ctrl.Delete(w, req)
+
+	// Assert
+	assert.Equal(t, http.StatusBadGateway, w.Code)
+}
+

@@ -241,4 +241,21 @@ func TestOpenAIClient_Errors(t *testing.T) {
 		_, err := c.Sugerir(context.Background(), testPrompt)
 		assert.Error(t, err)
 	})
+	t.Run("empty choices", func(t *testing.T) {
+		c := newTestOpenAI(t, func(w http.ResponseWriter, r *http.Request) {
+			_, _ = w.Write([]byte(`{"choices":[]}`))
+		})
+		_, err := c.Sugerir(context.Background(), testPrompt)
+		assert.ErrorIs(t, err, ErrAIInvalidResponse)
+	})
+}
+
+func TestVertexEndpoint_EquivalenceClasses(t *testing.T) {
+	// Arrange & Act
+	regional := vertexEndpoint("my-proj", "us-central1", "gemini-1.5")
+	global := vertexEndpoint("my-proj", "global", "gemini-1.5")
+
+	// Assert
+	assert.Contains(t, regional, "https://us-central1-aiplatform.googleapis.com")
+	assert.Contains(t, global, "https://aiplatform.googleapis.com")
 }

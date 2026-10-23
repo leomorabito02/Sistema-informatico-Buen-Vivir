@@ -19,6 +19,7 @@ import (
 	"buenvivir/education/internal/controllers"
 	"buenvivir/education/internal/middlewares"
 	"buenvivir/education/internal/models"
+	"buenvivir/education/internal/repositories"
 	"buenvivir/education/internal/services"
 )
 
@@ -216,6 +217,22 @@ func TestSubmissionController_Submit_AlreadySubmitted(t *testing.T) {
 	assert.Equal(t, "Ya entregaste esta actividad", resp["error"])
 }
 
+// CP-14: entrega de una actividad inexistente -> 404.
+func TestSubmissionController_Submit_ActivityNotFound(t *testing.T) {
+	ctrl, _, _, svc := newSubmissionController()
+	svc.On("ResolveParticipantID", mock.Anything, "tok").Return("p1", nil)
+	svc.On("Submit", mock.Anything, "no-existe", "p1", "x", mock.Anything).Return(nil, repositories.ErrNotFound)
+
+	body, contentType := multipartSubmission(t, "x", nil)
+	req := httptest.NewRequest("POST", "/api/participante/actividades/no-existe/entrega", body)
+	req.Header.Set("Content-Type", contentType)
+	req = withChiURLParams(withAuth(req, "u1", "role_participant", false), "actividadId", "no-existe")
+	w := httptest.NewRecorder()
+	ctrl.Submit(w, req)
+
+	assert.Equal(t, http.StatusNotFound, w.Code)
+}
+
 var entregaConArchivo = &models.Submission{
 	ID: "a1_p1", ParticipanteID: "p1", ActividadID: "a1",
 	Archivos: []models.SubmissionFile{{Nombre: "tp final.pdf", Tipo: "application/pdf", Ruta: "entregas/a1/p1/x"}},
@@ -399,4 +416,184 @@ func TestActivityController_ListSubmissions(t *testing.T) {
 	ctrl.ListSubmissions(w, withChiURLParams(withAuth(httptest.NewRequest("GET", "/", nil), "u", "role_volunteer", false), "actividadId", "a1"))
 
 	assert.Equal(t, http.StatusOK, w.Code)
+}
+
+func TestSubmissionController_ErrorBranches(t *testing.T) {
+	t.Run("ListMyCourses returns 502 on service error", func(t *testing.T) {
+		// Arrange
+		submissionSvc := new(MockSubmissionService)
+		submissionSvc.On("ResolveParticipantID", mock.Anything, "tok").Return("p1", nil)
+		submissionSvc.On("ListParticipantCourses", mock.Anything, "p1").Return(nil, assert.AnError)
+		ctrl := controllers.NewSubmissionController(nil, nil, submissionSvc)
+		req := withAuth(httptest.NewRequest("GET", "/api/participante/cursos", nil), "u", "role_beneficiary", false)
+		w := httptest.NewRecorder()
+
+		// Act
+		ctrl.ListMyCourses(w, req)
+
+		// Assert
+		assert.Equal(t, http.StatusBadGateway, w.Code)
+	})
+
+	t.Run("GetMyCourse returns error when participant resolution fails", func(t *testing.T) {
+		// Arrange
+		submissionSvc := new(MockSubmissionService)
+		submissionSvc.On("ResolveParticipantID", mock.Anything, "tok").Return("", services.NewForbiddenError("no participant"))
+		ctrl := controllers.NewSubmissionController(nil, nil, submissionSvc)
+		req := withChiURLParams(withAuth(httptest.NewRequest("GET", "/api/participante/cursos/c1", nil), "u", "role_beneficiary", false), "id", "c1")
+		w := httptest.NewRecorder()
+
+		// Act
+		ctrl.GetMyCourse(w, req)
+
+		// Assert
+		assert.Equal(t, http.StatusForbidden, w.Code)
+	})
+
+	t.Run("Submit returns error when participant resolution fails", func(t *testing.T) {
+		// Arrange
+		submissionSvc := new(MockSubmissionService)
+		submissionSvc.On("ResolveParticipantID", mock.Anything, "tok").Return("", services.NewForbiddenError("no participant"))
+		ctrl := controllers.NewSubmissionController(nil, nil, submissionSvc)
+		req := withChiURLParams(withAuth(httptest.NewRequest("POST", "/api/participante/actividades/a1/entrega", nil), "u", "role_beneficiary", false), "actividadId", "a1")
+		w := httptest.NewRecorder()
+
+		// Act
+		ctrl.Submit(w, req)
+
+		// Assert
+		assert.Equal(t, http.StatusForbidden, w.Code)
+	})
+
+	t.Run("Submit returns 502 on service submission failure", func(t *testing.T) {
+		// Arrange
+		submissionSvc := new(MockSubmissionService)
+		submissionSvc.On("ResolveParticipantID", mock.Anything, "tok").Return("p1", nil)
+		submissionSvc.On("Submit", mock.Anything, "a1", "p1", "some text", mock.Anything).Return(nil, assert.AnError)
+		ctrl := controllers.NewSubmissionController(nil, nil, submissionSvc)
+
+		var buf bytes.Buffer
+		mw := multipart.NewWriter(&buf)
+		_ = mw.WriteField("texto", "some text")
+		_ = mw.Close()
+
+		req := withChiURLParams(withAuth(httptest.NewRequest("POST", "/api/participante/actividades/a1/entrega", &buf), "u", "role_beneficiary", false), "actividadId", "a1")
+		req.Header.Set("Content-Type", mw.FormDataContentType())
+		w := httptest.NewRecorder()
+
+		// Act
+		ctrl.Submit(w, req)
+
+		// Assert
+		assert.Equal(t, http.StatusBadGateway, w.Code)
+	})
+
+	t.Run("DownloadFile OpenFile returns 502 on service error", func(t *testing.T) {
+		// Arrange
+		ctrl, _, _, svc := newSubmissionController()
+		svc.On("GetSubmission", mock.Anything, "a1_p1").Return(entregaConArchivo, nil)
+		svc.On("OpenFile", mock.Anything, entregaConArchivo, 0).Return(models.SubmissionFile{}, nil, assert.AnError)
+
+		req := withChiURLParams(withAuth(httptest.NewRequest("GET", "/", nil), "u", "role_admin", false), "entregaId", "a1_p1", "indice", "0")
+		w := httptest.NewRecorder()
+
+		// Act
+		ctrl.DownloadFile(w, req)
+
+		// Assert
+		assert.Equal(t, http.StatusBadGateway, w.Code)
+	})
+
+	t.Run("DownloadFile teacher returns 502 when GetActivity fails", func(t *testing.T) {
+		// Arrange
+		ctrl, _, actSvc, svc := newSubmissionController()
+		svc.On("GetSubmission", mock.Anything, "a1_p1").Return(entregaConArchivo, nil)
+		actSvc.On("GetActivity", mock.Anything, entregaConArchivo.ActividadID).Return(nil, assert.AnError)
+
+		req := withChiURLParams(withAuth(httptest.NewRequest("GET", "/", nil), "t1", "role_teacher", false), "entregaId", "a1_p1", "indice", "0")
+		w := httptest.NewRecorder()
+
+		// Act
+		ctrl.DownloadFile(w, req)
+
+		// Assert
+		assert.Equal(t, http.StatusBadGateway, w.Code)
+	})
+
+	t.Run("DownloadFile participant returns error when participantID fails", func(t *testing.T) {
+		// Arrange
+		ctrl, _, _, svc := newSubmissionController()
+		svc.On("GetSubmission", mock.Anything, "a1_p1").Return(entregaConArchivo, nil)
+		svc.On("ResolveParticipantID", mock.Anything, mock.Anything).Return("", assert.AnError)
+
+		req := withChiURLParams(withAuth(httptest.NewRequest("GET", "/", nil), "u", "role_participant", false), "entregaId", "a1_p1", "indice", "0")
+		w := httptest.NewRecorder()
+
+		// Act
+		ctrl.DownloadFile(w, req)
+
+		// Assert
+		assert.Equal(t, http.StatusBadGateway, w.Code)
+	})
+}
+
+func TestActivityController_AdditionalErrors(t *testing.T) {
+	t.Run("Update returns 502 on service error", func(t *testing.T) {
+		// Arrange
+		ctrl, _, activitySvc, _ := newActivityController()
+		activitySvc.On("UpdateActivity", mock.Anything, "a1", mock.AnythingOfType("models.ActivityInput")).Return(nil, assert.AnError)
+		req := withChiURLParams(httptest.NewRequest("PUT", "/", strings.NewReader(`{"titulo":"t"}`)), "actividadId", "a1")
+		w := httptest.NewRecorder()
+
+		// Act
+		ctrl.Update(w, req)
+
+		// Assert
+		assert.Equal(t, http.StatusBadGateway, w.Code)
+	})
+
+	t.Run("Delete returns 502 on service error", func(t *testing.T) {
+		// Arrange
+		ctrl, _, activitySvc, _ := newActivityController()
+		activitySvc.On("DeleteActivity", mock.Anything, "a1").Return(assert.AnError)
+		req := withChiURLParams(httptest.NewRequest("DELETE", "/", nil), "actividadId", "a1")
+		w := httptest.NewRecorder()
+
+		// Act
+		ctrl.Delete(w, req)
+
+		// Assert
+		assert.Equal(t, http.StatusBadGateway, w.Code)
+	})
+
+	t.Run("ListSubmissions returns 502 when GetActivity fails", func(t *testing.T) {
+		// Arrange
+		ctrl, _, activitySvc, _ := newActivityController()
+		activitySvc.On("GetActivity", mock.Anything, "a1").Return(nil, assert.AnError)
+		req := withChiURLParams(withAuth(httptest.NewRequest("GET", "/", nil), "u", "role_volunteer", false), "actividadId", "a1")
+		w := httptest.NewRecorder()
+
+		// Act
+		ctrl.ListSubmissions(w, req)
+
+		// Assert
+		assert.Equal(t, http.StatusBadGateway, w.Code)
+	})
+
+	t.Run("Submit returns 400 when multipart form is invalid", func(t *testing.T) {
+		// Arrange
+		submissionSvc := new(MockSubmissionService)
+		submissionSvc.On("ResolveParticipantID", mock.Anything, "tok").Return("p1", nil)
+		ctrl := controllers.NewSubmissionController(nil, nil, submissionSvc)
+
+		req := withChiURLParams(withAuth(httptest.NewRequest("POST", "/api/participante/actividades/a1/entrega", bytes.NewBufferString("not-multipart")), "u", "role_beneficiary", false), "actividadId", "a1")
+		req.Header.Set("Content-Type", "multipart/form-data; boundary=xyz")
+		w := httptest.NewRecorder()
+
+		// Act
+		ctrl.Submit(w, req)
+
+		// Assert
+		assert.Equal(t, http.StatusBadRequest, w.Code)
+	})
 }

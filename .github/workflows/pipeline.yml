@@ -2,9 +2,11 @@ name: Unified CI/CD & Mutation Pipeline
 
 on:
   push:
-    branches: ['**']
+    branches-ignore:
+      - 'Calidad'
   pull_request:
-    branches: ['**']
+    branches-ignore:
+      - 'Calidad'
   workflow_dispatch:
 
 permissions:

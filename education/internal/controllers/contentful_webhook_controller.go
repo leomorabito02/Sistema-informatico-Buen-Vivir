@@ -14,6 +14,7 @@ import (
 
 // HeaderWebhookSecret es el header que se configura en el webhook de
 // Contentful (Settings → Webhooks → Headers, marcado como "secret").
+// #nosec G101 -- header name constant, not a credential
 const HeaderWebhookSecret = "X-Webhook-Secret"
 
 // maxWebhookBody: el cuerpo de un webhook de entry es de unos pocos KB.

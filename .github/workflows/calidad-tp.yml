@@ -1,0 +1,240 @@
+name: TP Calidad — Análisis estático (Educación)
+
+
+# En cada corrida levanta un SonarQube temporal dentro del job, lo configura
+# con el quality gate del Nivel 3, analiza Educación y guarda los reportes.
+# Al terminar el job, ese SonarQube se borra: la evidencia queda en el
+# resumen de la corrida y en el artefacto "calidad-education-<commit>".
+
+on:
+  push:
+    branches:
+      - 'Calidad'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: calidad-tp-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  GO_VERSION: '1.26'
+  SCANNER_VERSION: 8.1.0.6389
+  INICIO_CODIGO_NUEVO: '2026-08-01'
+  # Herramientas de seguridad: versiones fijas para que dos corridas del
+  # mismo commit den lo mismo.
+  GOSEC_VERSION: v2.29.0
+  GOVULNCHECK_VERSION: v1.1.4
+  GITLEAKS_VERSION: v8.21.2
+  SEMGREP_VERSION: 1.95.0
+  TRIVY_VERSION: 0.75.0
+
+jobs:
+  sonarqube-education:
+    name: SonarQube + quality gate — Educación
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    services:
+      # Misma versión que la instalación local (D-04).
+      sonarqube:
+        image: sonarqube:26.8.0.126808-community
+        ports:
+          - 9000:9000
+        env:
+          SONAR_ES_BOOTSTRAP_CHECKS_DISABLE: 'true'
+      # Mismo emulador que usa ci-education en pipeline.yml: sin él, los
+      # tests de Firestore se saltean y la cobertura baja.
+      firestore:
+        image: mtlynch/firestore-emulator:latest
+        ports:
+          - 8390:8080
+
+    env:
+      FIRESTORE_EMULATOR_HOST: localhost:8390
+      SONAR_HOST_URL: http://localhost:9000
+      SONAR_SCANNER: sonar-scanner
+
+    steps:
+      # Historia completa: SonarQube usa las fechas de Git para saber qué
+      # líneas son código nuevo, y linea_base.sh necesita el commit del 1/8.
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+          cache-dependency-path: education/go.sum
+
+      - name: Instalar SonarScanner CLI (con verificación SHA-256)
+        run: |
+          BASE=https://binaries.sonarsource.com/Distribution/sonar-scanner-cli
+          ZIP=sonar-scanner-cli-${SCANNER_VERSION}-linux-x64.zip
+          curl -sSfLO "$BASE/$ZIP"
+          echo "$(curl -sSfL "$BASE/$ZIP.sha256")  $ZIP" | sha256sum -c -
+          unzip -q "$ZIP" -d "$RUNNER_TEMP"
+          echo "$RUNNER_TEMP/sonar-scanner-${SCANNER_VERSION}-linux-x64/bin" >> "$GITHUB_PATH"
+
+      - name: Esperar a SonarQube
+        run: |
+          for i in $(seq 1 60); do
+            if curl -s "$SONAR_HOST_URL/api/system/status" | grep -q '"status":"UP"'; then
+              echo "SonarQube listo"; exit 0
+            fi
+            echo "esperando a SonarQube ($i/60)..."; sleep 5
+          done
+          echo "::error::SonarQube no arrancó"; exit 1
+
+      - name: Crear token de análisis
+        run: |
+          CLAVE="Tp-$(openssl rand -hex 16)-A1!"
+          echo "::add-mask::$CLAVE"
+          curl -sf -u admin:admin -X POST "$SONAR_HOST_URL/api/users/change_password" \
+            -d login=admin -d previousPassword=admin --data-urlencode "password=$CLAVE"
+          TOKEN=$(curl -sf -u "admin:$CLAVE" -X POST "$SONAR_HOST_URL/api/user_tokens/generate" \
+            -d name=calidad-tp -d type=USER_TOKEN | python3 -c "import json,sys;print(json.load(sys.stdin)['token'])")
+          echo "::add-mask::$TOKEN"
+          echo "SONAR_TOKEN=$TOKEN" >> "$GITHUB_ENV"
+
+      - name: Configurar proyecto y quality gate TP-Calidad-N3
+        run: bash scripts/calidad/configurar_sonar.sh
+
+      - name: Registrar la línea base del 1/8
+        run: bash scripts/calidad/linea_base.sh
+
+      - name: Esperar al emulador de Firestore
+        run: |
+          for i in $(seq 1 30); do
+            if curl -s "http://localhost:8390/" >/dev/null 2>&1; then
+              echo "Emulador listo"; exit 0
+            fi
+            echo "esperando al emulador ($i/30)..."; sleep 2
+          done
+          echo "::error::El emulador de Firestore no arrancó"; exit 1
+
+      # Corre las pruebas existentes, analiza y espera el
+      # quality gate. Si el gate da rojo, este paso falla.
+      - name: Pruebas, cobertura y análisis SonarQube
+        id: analisis
+        run: bash scripts/calidad/analizar.sh education
+
+      - name: Resumen de la corrida
+        if: always()
+        run: |
+          python3 - <<'EOF' >> "$GITHUB_STEP_SUMMARY"
+          import csv
+          filas = list(csv.DictReader(open("docs/calidad/reportes/historial.csv", encoding="utf-8")))
+          f = filas[-1]
+          print(f"### Educación — quality gate: **{f['quality_gate']}**\n")
+          print(f"Versión analizada: `{f['commit']}` · pruebas en verde: **{f['tests_en_verde']}**\n")
+          print("| Métrica | Valor |\n|---|---|")
+          for clave, nombre in [
+              ("coverage", "Cobertura total (%)"), ("new_coverage", "Cobertura código nuevo (%)"),
+              ("duplicated_lines_density", "Duplicación (%)"),
+              ("new_duplicated_lines_density", "Duplicación código nuevo (%)"),
+              ("software_quality_reliability_issues", "Problemas de confiabilidad (bugs)"),
+              ("software_quality_security_issues", "Problemas de seguridad"),
+              ("software_quality_maintainability_issues", "Problemas de mantenibilidad"),
+              ("complexity", "Complejidad ciclomática"), ("ncloc", "Líneas de código"),
+              ("tests", "Pruebas"), ("test_failures", "Pruebas fallidas")]:
+              print(f"| {nombre} | {f.get(clave) or 'sin dato'} |")
+          EOF
+
+      - name: Subir reportes
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: calidad-education-${{ github.sha }}
+          path: |
+            docs/calidad/reportes/
+            education/coverage.out
+            education/test-report.json
+            education/.scannerwork/report-task.txt
+          retention-days: 30
+          if-no-files-found: warn
+
+      # Exige que las pruebas hayan pasado y que el Quality Gate de SonarQube esté en verde.
+      - name: Exigir pruebas en verde y quality gate
+        run: |
+          tail -1 docs/calidad/reportes/historial.csv | grep -q ',si,' \
+            || { echo "::error::Hay pruebas fallidas en education"; exit 1; }
+          tail -1 docs/calidad/reportes/historial.csv | grep -q ',OK,' \
+            || { echo "::error::El Quality Gate de SonarQube no fue superado"; exit 1; }
+
+  # Análisis de seguridad de Educación, en paralelo con SonarQube. Todo es
+  # análisis estático: lee el código, las librerías y la imagen, sin
+  # ejecutar el servicio. Todas las herramientas frenan ante hallazgos
+  # de seguridad bloqueantes (ver scripts/calidad/resumen_seguridad.py).
+  seguridad-education:
+    name: Seguridad — Educación
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      REPORTES: ${{ github.workspace }}/reportes-seguridad
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+          cache-dependency-path: education/go.sum
+
+      - name: Instalar herramientas
+        run: |
+          mkdir -p "$REPORTES"
+          go install github.com/securego/gosec/v2/cmd/gosec@${GOSEC_VERSION}
+          go install golang.org/x/vuln/cmd/govulncheck@${GOVULNCHECK_VERSION}
+          go install github.com/zricethezav/gitleaks/v8@${GITLEAKS_VERSION}
+          pip install --quiet "semgrep==${SEMGREP_VERSION}"
+          BASE=https://github.com/aquasecurity/trivy/releases/download/v${TRIVY_VERSION}
+          TGZ=trivy_${TRIVY_VERSION}_Linux-64bit.tar.gz
+          curl -sSfLO "$BASE/$TGZ"
+          curl -sSfL "$BASE/trivy_${TRIVY_VERSION}_checksums.txt" | grep " $TGZ\$" | sha256sum -c -
+          tar -xzf "$TGZ" -C "$RUNNER_TEMP" trivy
+          echo "$RUNNER_TEMP" >> "$GITHUB_PATH"
+
+      - name: gosec — errores de seguridad en el código Go
+        working-directory: education
+        run: $(go env GOPATH)/bin/gosec -quiet -fmt=json -out="$REPORTES/gosec.json" ./... || true
+
+      - name: govulncheck — vulnerabilidades conocidas en librerías
+        working-directory: education
+        run: |
+          set +e
+          $(go env GOPATH)/bin/govulncheck ./... > "$REPORTES/govulncheck.txt" 2>&1
+          echo $? > "$REPORTES/govulncheck.exit"
+          cat "$REPORTES/govulncheck.txt"
+
+      - name: Gitleaks — claves escritas en archivos
+        run: $(go env GOPATH)/bin/gitleaks dir education --redact --no-banner -f json -r "$REPORTES/gitleaks.json" || true
+
+      - name: Semgrep — patrones de código inseguro
+        run: semgrep scan --config p/golang --metrics=off --json --output "$REPORTES/semgrep.json" education || true
+
+      - name: Trivy — vulnerabilidades en la imagen Docker
+        run: |
+          docker build -q -t education-calidad:${{ github.sha }} ./education
+          trivy image --quiet --format json --output "$REPORTES/trivy.json" \
+            --ignore-unfixed --pkg-types os,library education-calidad:${{ github.sha }}
+
+      - name: Resumen y veredicto
+        run: python3 scripts/calidad/resumen_seguridad.py "$REPORTES" | tee -a "$GITHUB_STEP_SUMMARY"
+
+      - name: Subir reportes de seguridad
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: seguridad-education-${{ github.sha }}
+          path: reportes-seguridad/
+          retention-days: 30
+          if-no-files-found: warn

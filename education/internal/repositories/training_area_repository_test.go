@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"buenvivir/education/internal/models"
@@ -93,4 +94,93 @@ func TestTrainingAreaRepository_Delete_UnpublishesBeforeDeleting(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, methodsCalled, 2)
 	assert.Contains(t, methodsCalled[0], "/published")
+}
+
+func TestTrainingAreaRepository_ErrorHandling(t *testing.T) {
+	t.Run("List error propagates", func(t *testing.T) {
+		cda := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.WriteHeader(http.StatusInternalServerError)
+		}))
+		defer cda.Close()
+
+		repo := NewTrainingAreaRepository(newTestClient(cda.URL, ""))
+		areas, err := repo.List(t.Context())
+		assert.Error(t, err)
+		assert.Nil(t, areas)
+	})
+
+	t.Run("Create error propagates when CreateEntry fails", func(t *testing.T) {
+		cma := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.WriteHeader(http.StatusInternalServerError)
+		}))
+		defer cma.Close()
+
+		repo := NewTrainingAreaRepository(newTestClient("", cma.URL))
+		area, err := repo.Create(t.Context(), models.TrainingAreaInput{Name: "Area"})
+		assert.Error(t, err)
+		assert.Nil(t, area)
+	})
+
+	t.Run("Create error propagates when PublishEntry fails", func(t *testing.T) {
+		cma := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if r.Method == http.MethodPost {
+				_ = json.NewEncoder(w).Encode(map[string]any{"sys": map[string]any{"id": "ta1", "version": 1}})
+				return
+			}
+			w.WriteHeader(http.StatusInternalServerError)
+		}))
+		defer cma.Close()
+
+		repo := NewTrainingAreaRepository(newTestClient("", cma.URL))
+		area, err := repo.Create(t.Context(), models.TrainingAreaInput{Name: "Area"})
+		assert.Error(t, err)
+		assert.Nil(t, area)
+	})
+
+	t.Run("Update error propagates when GetManagementEntry fails", func(t *testing.T) {
+		cma := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.WriteHeader(http.StatusInternalServerError)
+		}))
+		defer cma.Close()
+
+		repo := NewTrainingAreaRepository(newTestClient("", cma.URL))
+		area, err := repo.Update(t.Context(), "ta1", models.TrainingAreaInput{Name: "Area"})
+		assert.Error(t, err)
+		assert.Nil(t, area)
+	})
+
+	t.Run("Update error propagates when UpdateEntry fails", func(t *testing.T) {
+		cma := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if r.Method == http.MethodGet {
+				_ = json.NewEncoder(w).Encode(map[string]any{"sys": map[string]any{"id": "ta1", "version": 1}})
+				return
+			}
+			w.WriteHeader(http.StatusInternalServerError)
+		}))
+		defer cma.Close()
+
+		repo := NewTrainingAreaRepository(newTestClient("", cma.URL))
+		area, err := repo.Update(t.Context(), "ta1", models.TrainingAreaInput{Name: "Area"})
+		assert.Error(t, err)
+		assert.Nil(t, area)
+	})
+
+	t.Run("Update error propagates when PublishEntry fails", func(t *testing.T) {
+		cma := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			switch {
+			case r.Method == http.MethodGet:
+				_ = json.NewEncoder(w).Encode(map[string]any{"sys": map[string]any{"id": "ta1", "version": 1}})
+			case r.Method == http.MethodPut && !strings.Contains(r.URL.Path, "/published"):
+				_ = json.NewEncoder(w).Encode(map[string]any{"sys": map[string]any{"id": "ta1", "version": 2}})
+			default:
+				w.WriteHeader(http.StatusInternalServerError)
+			}
+		}))
+		defer cma.Close()
+
+		repo := NewTrainingAreaRepository(newTestClient("", cma.URL))
+		area, err := repo.Update(t.Context(), "ta1", models.TrainingAreaInput{Name: "Area"})
+		assert.Error(t, err)
+		assert.Nil(t, area)
+	})
 }
