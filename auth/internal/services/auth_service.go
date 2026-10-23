@@ -135,8 +135,9 @@ func (s *authService) Register(ctx context.Context, req *dto.RegisterRequest) (r
 		return nil, errors.New("error al guardar el estado de la sesión")
 	}
 
-	// Sincronizar contadores de impacto en Cloudflare Workers KV en segundo plano
+	// Sincronizar contadores de impacto en Cloudflare Workers KV y preferencias de notificaciones
 	NewKVSyncService(s.userRepo).SyncImpactStatsAsync()
+	NewNotificationSyncService().InitUserPreferencesAsync(user.UserID)
 
 	return &dto.LoginResponse{
 		Token:        accessToken,

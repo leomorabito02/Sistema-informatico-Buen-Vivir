@@ -24,6 +24,8 @@ const (
 	AuthService_SearchParticipants_FullMethodName    = "/auth.AuthService/SearchParticipants"
 	AuthService_GetUsersByIDs_FullMethodName         = "/auth.AuthService/GetUsersByIDs"
 	AuthService_GetCompany_FullMethodName            = "/auth.AuthService/GetCompany"
+	AuthService_GetUserDeviceTokens_FullMethodName   = "/auth.AuthService/GetUserDeviceTokens"
+	AuthService_RevokeDeviceTokens_FullMethodName    = "/auth.AuthService/RevokeDeviceTokens"
 )
 
 // AuthServiceClient is the client API for AuthService service.
@@ -41,6 +43,8 @@ type AuthServiceClient interface {
 	// responsables de hitos y creadores de fichas.
 	GetUsersByIDs(ctx context.Context, in *GetUsersByIDsRequest, opts ...grpc.CallOption) (*GetUsersByIDsResponse, error)
 	GetCompany(ctx context.Context, in *GetCompanyRequest, opts ...grpc.CallOption) (*GetCompanyResponse, error)
+	GetUserDeviceTokens(ctx context.Context, in *GetUserDeviceTokensRequest, opts ...grpc.CallOption) (*GetUserDeviceTokensResponse, error)
+	RevokeDeviceTokens(ctx context.Context, in *RevokeDeviceTokensRequest, opts ...grpc.CallOption) (*RevokeDeviceTokensResponse, error)
 }
 
 type authServiceClient struct {
@@ -101,6 +105,26 @@ func (c *authServiceClient) GetCompany(ctx context.Context, in *GetCompanyReques
 	return out, nil
 }
 
+func (c *authServiceClient) GetUserDeviceTokens(ctx context.Context, in *GetUserDeviceTokensRequest, opts ...grpc.CallOption) (*GetUserDeviceTokensResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetUserDeviceTokensResponse)
+	err := c.cc.Invoke(ctx, AuthService_GetUserDeviceTokens_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *authServiceClient) RevokeDeviceTokens(ctx context.Context, in *RevokeDeviceTokensRequest, opts ...grpc.CallOption) (*RevokeDeviceTokensResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(RevokeDeviceTokensResponse)
+	err := c.cc.Invoke(ctx, AuthService_RevokeDeviceTokens_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // AuthServiceServer is the server API for AuthService service.
 // All implementations must embed UnimplementedAuthServiceServer
 // for forward compatibility.
@@ -116,6 +140,8 @@ type AuthServiceServer interface {
 	// responsables de hitos y creadores de fichas.
 	GetUsersByIDs(context.Context, *GetUsersByIDsRequest) (*GetUsersByIDsResponse, error)
 	GetCompany(context.Context, *GetCompanyRequest) (*GetCompanyResponse, error)
+	GetUserDeviceTokens(context.Context, *GetUserDeviceTokensRequest) (*GetUserDeviceTokensResponse, error)
+	RevokeDeviceTokens(context.Context, *RevokeDeviceTokensRequest) (*RevokeDeviceTokensResponse, error)
 	mustEmbedUnimplementedAuthServiceServer()
 }
 
@@ -140,6 +166,12 @@ func (UnimplementedAuthServiceServer) GetUsersByIDs(context.Context, *GetUsersBy
 }
 func (UnimplementedAuthServiceServer) GetCompany(context.Context, *GetCompanyRequest) (*GetCompanyResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method GetCompany not implemented")
+}
+func (UnimplementedAuthServiceServer) GetUserDeviceTokens(context.Context, *GetUserDeviceTokensRequest) (*GetUserDeviceTokensResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetUserDeviceTokens not implemented")
+}
+func (UnimplementedAuthServiceServer) RevokeDeviceTokens(context.Context, *RevokeDeviceTokensRequest) (*RevokeDeviceTokensResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method RevokeDeviceTokens not implemented")
 }
 func (UnimplementedAuthServiceServer) mustEmbedUnimplementedAuthServiceServer() {}
 func (UnimplementedAuthServiceServer) testEmbeddedByValue()                     {}
@@ -252,6 +284,42 @@ func _AuthService_GetCompany_Handler(srv interface{}, ctx context.Context, dec f
 	return interceptor(ctx, in, info, handler)
 }
 
+func _AuthService_GetUserDeviceTokens_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetUserDeviceTokensRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AuthServiceServer).GetUserDeviceTokens(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AuthService_GetUserDeviceTokens_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AuthServiceServer).GetUserDeviceTokens(ctx, req.(*GetUserDeviceTokensRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AuthService_RevokeDeviceTokens_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RevokeDeviceTokensRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AuthServiceServer).RevokeDeviceTokens(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AuthService_RevokeDeviceTokens_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AuthServiceServer).RevokeDeviceTokens(ctx, req.(*RevokeDeviceTokensRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // AuthService_ServiceDesc is the grpc.ServiceDesc for AuthService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -278,6 +346,14 @@ var AuthService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetCompany",
 			Handler:    _AuthService_GetCompany_Handler,
+		},
+		{
+			MethodName: "GetUserDeviceTokens",
+			Handler:    _AuthService_GetUserDeviceTokens_Handler,
+		},
+		{
+			MethodName: "RevokeDeviceTokens",
+			Handler:    _AuthService_RevokeDeviceTokens_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

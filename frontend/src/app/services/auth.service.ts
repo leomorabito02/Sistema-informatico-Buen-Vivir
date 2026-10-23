@@ -16,6 +16,8 @@ import {
   User,
 } from "../core/models/auth.model";
 
+import { PushNotificationService } from "./push-notification.service";
+
 @Injectable({
   providedIn: "root",
 })
@@ -23,10 +25,23 @@ export class AuthService {
   private readonly http = inject(HttpClient);
   private readonly auth = inject(Auth);
   private readonly router = inject(Router);
+  private readonly pushService = inject(PushNotificationService);
 
   private readonly apiUrl = environment.apiUrl;
 
   constructor() {}
+
+  async syncPushNotifications(): Promise<void> {
+    try {
+      const token = await this.pushService.requestPermissionAndGetToken();
+      if (token) {
+        this.pushService.registerDeviceToken(token).subscribe();
+        this.pushService.listenForegroundMessages();
+      }
+    } catch {
+      // Non-blocking: push token retrieval does not interrupt auth flow
+    }
+  }
 
   isLocallyAuthenticated(): boolean {
     return localStorage.getItem("isAuthenticated") === "true";
@@ -101,7 +116,10 @@ export class AuthService {
         { withCredentials: true },
       )
       .pipe(
-        tap(() => this.setLocallyAuthenticated()),
+        tap(() => {
+          this.setLocallyAuthenticated();
+          void this.syncPushNotifications();
+        }),
         catchError(this.handleError),
       );
   }
@@ -128,7 +146,10 @@ export class AuthService {
         withCredentials: true,
       })
       .pipe(
-        tap(() => this.setLocallyAuthenticated()),
+        tap(() => {
+          this.setLocallyAuthenticated();
+          void this.syncPushNotifications();
+        }),
         catchError(this.handleError),
       );
   }
@@ -142,7 +163,12 @@ export class AuthService {
       .get<MeResponse>(`${this.apiUrl}/api/v1/auth/me`, {
         withCredentials: true,
       })
-      .pipe(catchError(this.handleError));
+      .pipe(
+        tap(() => {
+          void this.syncPushNotifications();
+        }),
+        catchError(this.handleError),
+      );
   }
 
   updateProfile(
