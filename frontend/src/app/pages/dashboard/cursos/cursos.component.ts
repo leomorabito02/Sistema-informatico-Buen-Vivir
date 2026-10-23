@@ -24,6 +24,7 @@ import { AuthService } from "../../../services/auth.service";
 import { EducationService } from "../../../services/education.service";
 import {
   Course,
+  ParticipanteResumen,
   materialHref,
   richTextToPlain,
 } from "../../../core/models/education.model";
@@ -31,7 +32,10 @@ import { RichTextComponent } from "../../../shared/components/rich-text.componen
 import { LoadingStateComponent } from "../../../shared/components/loading-state.component";
 import { ErrorStateComponent } from "../../../shared/components/error-state.component";
 import { EmptyStateComponent } from "../../../shared/components/empty-state.component";
-import { todayYMD } from "../../../shared/utils/date-ymd";
+import {
+  ParticipantPickerComponent,
+  etiquetaParticipante,
+} from "../../../shared/components/participant-picker.component";
 
 interface Option {
   label: string;
@@ -68,6 +72,7 @@ interface CursoVM {
     SelectModule,
     ToastModule,
     RichTextComponent,
+    ParticipantPickerComponent,
   ],
   providers: [MessageService],
   templateUrl: "./cursos.component.html",
@@ -79,10 +84,13 @@ export class CursosComponent implements OnInit {
   private toast = inject(MessageService);
   private router = inject(Router);
   private destroyRef = inject(DestroyRef);
-  /** Texto del buscador; la búsqueda la hace el backend (?q=). */
-  private busqueda$ = new Subject<string>();
+  /** Buscador y área elegida; los dos los aplica el backend (?q=&area=). */
+  private busqueda$ = new Subject<{ q: string; area: string }>();
 
   searchTerm = "";
+  /** Filtro por área formativa (HU-28), combinable con el buscador. */
+  areaOptions: Option[] = [];
+  selectedArea = "";
   loading = true;
   error = "";
   cursos: CursoVM[] = [];
@@ -98,11 +106,9 @@ export class CursosComponent implements OnInit {
   esParticipante = false;
   private roleId = "";
   private userId = "";
-  participantOptions: Option[] = [];
-
   enrollVisible = false;
   enrollCurso: CursoVM | null = null;
-  selectedParticipantId: string | null = null;
+  selectedParticipant: ParticipanteResumen | null = null;
   inscribiendo = false;
 
   ngOnInit() {
@@ -110,11 +116,11 @@ export class CursosComponent implements OnInit {
     // llega una nueva (switchMap).
     this.busqueda$
       .pipe(
-        map((t) => t.trim()),
+        map((b) => ({ q: b.q.trim(), area: b.area })),
         debounceTime(300),
-        distinctUntilChanged(),
-        switchMap((q) =>
-          this.cursos$(q).pipe(
+        distinctUntilChanged((a, b) => a.q === b.q && a.area === b.area),
+        switchMap(({ q, area }) =>
+          this.cursos$(q, area).pipe(
             catchError((err: Error) => {
               this.error = err.message;
               return of(null);
@@ -137,23 +143,36 @@ export class CursosComponent implements OnInit {
         this.esParticipante = this.roleId === "role_participant";
         this.canEnrollParticipants =
           this.roleId === "role_admin" || this.roleId === "role_volunteer";
-        if (this.canEnrollParticipants) {
-          this.loadParticipantOptions();
-        }
+        this.loadAreas();
         this.loadCursos();
       },
       error: () => this.loadCursos(),
     });
   }
 
-  private cursos$(q = "") {
+  private cursos$(q = "", area = "") {
     return this.esParticipante
-      ? this.education.listMyEnrolledCourses(q)
-      : this.education.listCourses(q);
+      ? this.education.listMyEnrolledCourses(q, area)
+      : this.education.listCourses(q, area);
+  }
+
+  /** Opciones del filtro por área; si fallan, el filtro no se muestra. */
+  private loadAreas() {
+    this.education.listTrainingAreas().subscribe({
+      next: (areas) => {
+        this.areaOptions = [
+          { label: "Todas las áreas", value: "" },
+          ...areas
+            .map((a) => ({ label: a.name, value: a.id }))
+            .sort((a, b) => a.label.localeCompare(b.label)),
+        ];
+      },
+      error: () => (this.areaOptions = []),
+    });
   }
 
   private loadCursos() {
-    this.cursos$(this.searchTerm.trim()).subscribe({
+    this.cursos$(this.searchTerm.trim(), this.selectedArea).subscribe({
       next: (courses) => {
         this.mostrar(courses);
         this.loading = false;
@@ -170,40 +189,20 @@ export class CursosComponent implements OnInit {
     this.filteredCursos = this.cursos;
   }
 
-  private loadParticipantOptions() {
-    this.education.getGeneralAttendance(todayYMD()).subscribe({
-      next: (directory) => {
-        this.participantOptions = directory
-          .map((p) => ({
-            label:
-              `${p.nombre ?? ""} ${p.apellido ?? ""}`.trim() ||
-              p.participanteId,
-            value: p.participanteId,
-          }))
-          .sort((a, b) => a.label.localeCompare(b.label));
-      },
-      error: () => {
-        this.participantOptions = [];
-      },
-    });
-  }
-
   openEnrollDialog(curso: CursoVM) {
     this.enrollCurso = curso;
-    this.selectedParticipantId = null;
+    this.selectedParticipant = null;
     this.enrollVisible = true;
   }
 
   inscribir() {
-    if (!this.enrollCurso || !this.selectedParticipantId) return;
+    const participante = this.selectedParticipant;
+    if (!this.enrollCurso || !participante) return;
     this.inscribiendo = true;
-    const participantLabel =
-      this.participantOptions.find(
-        (o) => o.value === this.selectedParticipantId,
-      )?.label ?? this.selectedParticipantId;
+    const participantLabel = etiquetaParticipante(participante);
     this.education
       .enrollParticipant(this.enrollCurso.id, {
-        participanteId: this.selectedParticipantId,
+        participanteId: participante.participanteId,
       })
       .subscribe({
         next: () => {
@@ -240,9 +239,9 @@ export class CursosComponent implements OnInit {
     };
   }
 
-  /** Lo llama el buscador en cada tecla: el backend filtra (?q=). */
+  /** Lo llaman el buscador (en cada tecla) y el filtro de área: filtra el backend. */
   filterCursos() {
-    this.busqueda$.next(this.searchTerm);
+    this.busqueda$.next({ q: this.searchTerm, area: this.selectedArea });
   }
 
   /**

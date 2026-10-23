@@ -301,6 +301,15 @@ export const routes: Routes = [
           ),
       },
       {
+        // Registro de auditoría (HU-30, HU-35): solo administración.
+        path: "auditoria",
+        canActivate: [adminGuard],
+        loadComponent: () =>
+          import("./pages/dashboard/auditoria/auditoria.component").then(
+            (m) => m.AuditoriaComponent,
+          ),
+      },
+      {
         path: "ayuda",
         loadComponent: () =>
           import("./pages/dashboard/ayuda/ayuda.component").then(

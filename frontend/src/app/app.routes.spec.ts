@@ -128,6 +128,7 @@ describe("App Routes", () => {
     "notificaciones",
     "ayuda",
     "indicadores",
+    "auditoria",
   ];
 
   childrenRoutes.forEach((childPath) => {

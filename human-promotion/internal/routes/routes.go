@@ -15,6 +15,7 @@ type Controllers struct {
 	Participante *controllers.ParticipanteController
 	Indicadores  *controllers.IndicadoresController
 	Actividad    *controllers.ActividadController
+	Auditoria    *controllers.AuditoriaController
 }
 
 // RegisterRoutes registra los endpoints de Promoción Humana.
@@ -55,6 +56,15 @@ func RegisterRoutes(r chi.Router, jwtService services.JWTService, ctrls Controll
 			r.Group(func(r chi.Router) {
 				r.Use(middlewares.RequireRole("role_admin"))
 				r.Get("/indicadores", ctrls.Indicadores.Get)
+			})
+		}
+
+		// Log de auditoría de fichas e hitos (HU-35): solo lectura y solo
+		// administración. No hay rutas para editarlo ni borrarlo.
+		if ctrls.Auditoria != nil {
+			r.Group(func(r chi.Router) {
+				r.Use(middlewares.RequireRole("role_admin"))
+				r.Get("/auditoria", ctrls.Auditoria.List)
 			})
 		}
 

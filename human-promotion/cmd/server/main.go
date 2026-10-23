@@ -88,6 +88,7 @@ func main() {
 		Participante: controllers.NewParticipanteController(participanteService),
 		Indicadores:  controllers.NewIndicadoresController(repositories.NewIndicadoresRepository(firestoreClient)),
 		Actividad:    controllers.NewActividadController(actividadService),
+		Auditoria:    controllers.NewAuditoriaController(services.NewAuditoriaService(repositories.NewAuditoriaRepository(firestoreClient), authDirectory)),
 	})
 
 	server := &http.Server{

@@ -40,6 +40,23 @@ func FiltrarCursos(cursos []models.Course, q string) []models.Course {
 	return out
 }
 
+// FiltrarCursosPorArea deja los cursos del área formativa areaID
+// (HU-28). areaID vacío devuelve todos. Se combina con FiltrarCursos
+// para buscar por nombre dentro de un área.
+func FiltrarCursosPorArea(cursos []models.Course, areaID string) []models.Course {
+	areaID = strings.TrimSpace(areaID)
+	if areaID == "" {
+		return cursos
+	}
+	out := []models.Course{}
+	for _, c := range cursos {
+		if c.TrainingArea != nil && c.TrainingArea.ID == areaID {
+			out = append(out, c)
+		}
+	}
+	return out
+}
+
 // TextoPlano junta el texto de un documento Rich Text de Contentful (los
 // campos "value" de los nodos de texto), separado por espacios. Un JSON
 // inválido o vacío devuelve "".

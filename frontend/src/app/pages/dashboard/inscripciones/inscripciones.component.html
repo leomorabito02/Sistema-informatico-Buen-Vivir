@@ -11,17 +11,11 @@
   </div>
 
   <app-error-state *ngIf="error" [message]="error"></app-error-state>
-  <p-message
-    *ngIf="participantsError"
-    severity="warn"
-    [text]="participantsError"
-    styleClass="w-full"
-  ></p-message>
 
   <app-loading-state
     *ngIf="loading"
     variant="list"
-    label="Cargando cursos y participantes…"
+    label="Cargando cursos…"
   ></app-loading-state>
 
   <ng-container *ngIf="!loading">
@@ -48,34 +42,24 @@
     <div *ngIf="selectedCourseId" class="two-col">
       <!-- Inscribir -->
       <p-card header="Inscribir participante" styleClass="p-card-shadow">
-        <app-empty-state
-          *ngIf="participantOptions.length === 0"
-          [compact]="true"
-        >
-          No hay participantes aprobados en el centro todavía.
-        </app-empty-state>
-        <div *ngIf="participantOptions.length > 0" class="new-enrollment">
-          <p-select
-            [options]="availableParticipantOptions"
-            optionLabel="label"
-            optionValue="value"
-            [(ngModel)]="selectedParticipantId"
-            placeholder="Elegí un participante"
-            [filter]="true"
-            filterPlaceholder="Buscar por nombre"
-            styleClass="participant-select"
-            [style]="{ width: '100%', minWidth: '320px' }"
-          ></p-select>
+        <div class="new-enrollment">
+          <label for="participant-picker">Participante</label>
+          <app-participant-picker
+            #picker
+            [cursoId]="selectedCourseId"
+            (seleccionado)="selectedParticipant = $event"
+          ></app-participant-picker>
+          <p class="hint">
+            Buscá por nombre, apellido o DNI. No aparecen quienes ya están
+            inscriptos en este curso.
+          </p>
           <p-button
             label="Inscribir"
             icon="pi pi-check"
             [loading]="inscribiendo"
-            [disabled]="!selectedParticipantId"
-            (onClick)="inscribir()"
+            [disabled]="!selectedParticipant"
+            (onClick)="inscribir(picker)"
           ></p-button>
-          <p *ngIf="availableParticipantOptions.length === 0" class="hint">
-            Todos los participantes aprobados ya están inscriptos en este curso.
-          </p>
         </div>
       </p-card>
 

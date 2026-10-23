@@ -331,10 +331,28 @@ export class AdminCursosComponent implements OnInit {
     });
   }
 
+  /**
+   * Baja lógica (HU-16): antes de confirmar, el backend dice cuántos
+   * inscriptos activos tiene el curso para avisarlo. Si ese conteo falla,
+   * se pregunta igual, sin el número.
+   */
   deleteCourse(c: Course) {
+    this.education.countActiveEnrollments(c.id).subscribe({
+      next: (n) => this.confirmarBaja(c, n),
+      error: () => this.confirmarBaja(c, null),
+    });
+  }
+
+  private confirmarBaja(c: Course, inscriptos: number | null) {
+    const aviso =
+      inscriptos === null
+        ? "No pudimos contar los inscriptos."
+        : inscriptos === 0
+          ? "No tiene participantes inscriptos."
+          : `Tiene ${inscriptos} ${inscriptos === 1 ? "participante inscripto" : "participantes inscriptos"}: lo van a seguir viendo en sus cursos.`;
     this.confirm.confirm({
       header: "Eliminar curso",
-      message: `¿Eliminar "${c.title}"? Se hace baja lógica (se despublica y deja de verse en el catálogo). Si hay participantes inscriptos, seguirán viéndolo en su historial.`,
+      message: `¿Eliminar "${c.title}"? ${aviso} El curso deja de verse en el catálogo y no acepta inscripciones nuevas, pero no se borra: queda guardado y la baja se registra en la auditoría.`,
       acceptLabel: "Eliminar",
       rejectLabel: "Cancelar",
       acceptButtonStyleClass: "p-button-danger",

@@ -57,14 +57,16 @@ func outboxTypes(t *testing.T, client *firestore.Client) []string {
 func TestCourseService_PublicaEventosDeCursos(t *testing.T) {
 	client, producer := outboxProducer(t)
 	repo := new(MockCourseRepository)
-	svc := services.NewCourseServiceWithEvents(repo, producer)
+	enrollments := new(MockEnrollmentRepository)
+	svc := services.NewCourseServiceConBaja(repo, producer, &fakeBajas{}, enrollments)
 	ctx := context.Background()
 	input := validCourseInput()
+	repo.On("ExistsInManagement", mock.Anything, "c1").Return(true, nil)
+	enrollments.On("ListByCourse", mock.Anything, "c1").Return([]models.Enrollment{}, nil)
 	course := &models.Course{ID: "c1", ResponsibleTeacher: "doc-1", Mode: "Virtual", TrainingArea: &models.TrainingArea{ID: "a1"}}
 
 	repo.On("Create", mock.Anything, mock.Anything).Return(course, nil)
 	repo.On("Update", mock.Anything, "c1", mock.Anything).Return(course, nil)
-	repo.On("Delete", mock.Anything, "c1").Return(nil)
 	repo.On("Publish", mock.Anything, "c1").Return(nil)
 	repo.On("Get", mock.Anything, "c1").Return(course, nil)
 

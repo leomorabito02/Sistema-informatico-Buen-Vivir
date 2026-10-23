@@ -170,11 +170,61 @@ export interface Enrollment {
   cursoId: string;
   fechaInscripcion: string;
   estado: EnrollmentEstado;
+  /** Los completa `GET /api/cursos/{id}/inscripciones` contra auth-service. */
+  nombre?: string;
+  apellido?: string;
 }
 
 /** Payload de `POST /api/cursos/{id}/inscripciones` (role_admin/role_volunteer). */
 export interface EnrollmentInput {
   participanteId: string;
+}
+
+/** Resultado de `GET /api/participantes?q=` (buscador de los selectores). */
+export interface ParticipanteResumen {
+  participanteId: string;
+  nombre: string;
+  apellido: string;
+}
+
+/** `GET /api/participants/{id}/asistencia`: historial por curso (HU-19). */
+export interface HistorialCurso {
+  cursoId: string;
+  cursoTitulo: string;
+  estadoInscripcion: EnrollmentEstado;
+  fechaInscripcion: string;
+  actividadesTotal: number;
+  actividadesAsistidas: number;
+  porcentajeAsistencia: number;
+  actividades: {
+    actividadId: string;
+    titulo: string;
+    fecha: string;
+    presente: boolean;
+  }[];
+}
+
+/**
+ * Fila del registro de auditoría (Educación y Promoción Humana, ya
+ * llevadas a la misma forma por cada service del frontend).
+ */
+export interface RegistroAuditoria {
+  id: string;
+  usuarioId: string;
+  usuarioNombre?: string;
+  accion: string;
+  recurso: string;
+  recursoId: string;
+  fecha: string;
+  ip?: string;
+}
+
+/** Filtros del registro de auditoría; fechas en `YYYY-MM-DD`. */
+export interface FiltroAuditoria {
+  desde?: string;
+  hasta?: string;
+  accion?: string;
+  recurso?: string;
 }
 
 /**

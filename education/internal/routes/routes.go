@@ -36,6 +36,8 @@ type Controllers struct {
 	Skill             *controllers.SkillController
 	Comment           *controllers.CommentController
 	TeacherContent    *controllers.TeacherContentController
+	Participante      *controllers.ParticipanteController
+	Auditoria         *controllers.AuditoriaController
 }
 
 func RegisterRoutes(
@@ -115,6 +117,15 @@ func RegisterRoutes(
 			// materiales, un material puede estar linkeado a varios cursos).
 			r.Delete("/api/materiales/{id}", ctrls.Material.Delete)
 
+			// cuántos inscriptos activos tiene un curso: el aviso antes
+			// de darlo de baja (HU-16; el DELETE de arriba es la baja lógica)
+			r.Get("/api/cursos/{id}/inscriptos-activos", ctrls.Enrollment.CountActive)
+
+			// registro de auditoría de Educación, solo lectura
+			if ctrls.Auditoria != nil {
+				r.Get("/api/auditoria", ctrls.Auditoria.List)
+			}
+
 			// moderación de comentarios (HU-24)
 			if ctrls.Comment != nil {
 				r.Delete("/api/comentarios/{id}", ctrls.Comment.Delete)
@@ -185,6 +196,13 @@ func RegisterRoutes(
 			r.Get("/api/docentes/{id}/cursos", ctrls.Course.ListByTeacherAdmin)
 
 			r.Post("/api/bulk-cursos-usuarios", ctrls.Enrollment.GetBulkUserCourses)
+
+			// buscador de los selectores de participantes y su historial
+			// de asistencia por curso (HU-19)
+			if ctrls.Participante != nil {
+				r.Get("/api/participantes", ctrls.Participante.Buscar)
+				r.Get("/api/participants/{id}/asistencia", ctrls.Participante.HistorialAsistencia)
+			}
 		})
 
 		// -- habilidades de las actividades (HU-21 / HU-58): admin,

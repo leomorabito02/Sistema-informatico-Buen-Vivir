@@ -45,6 +45,40 @@ describe("HumanPromotionService", () => {
     req.flush([]);
   });
 
+  it("lee el log de auditoría y lo pasa a la forma común (HU-35)", () => {
+    service
+      .listarAuditoria({ desde: "2026-10-01", accion: "" })
+      .subscribe((rows) => {
+        expect(rows).toEqual([
+          {
+            id: "1",
+            usuarioId: "u1",
+            usuarioNombre: "Ana Paz",
+            accion: "actualizar",
+            recurso: "ficha",
+            recursoId: "f1",
+            fecha: "2026-10-20T15:00:00Z",
+            ip: undefined,
+          },
+        ]);
+      });
+    const req = http.expectOne((r) => r.url.endsWith(`${base}/auditoria`));
+    expect(req.request.params.get("desde")).toBe("2026-10-01");
+    expect(req.request.params.has("accion")).toBeFalse();
+    expect(req.request.withCredentials).toBeTrue();
+    req.flush([
+      {
+        id: "1",
+        usuario_id: "u1",
+        usuario_nombre: "Ana Paz",
+        accion: "actualizar",
+        recurso: "ficha",
+        recurso_id: "f1",
+        fecha: "2026-10-20T15:00:00Z",
+      },
+    ]);
+  });
+
   it("pide la ficha por participante y distingue el 404 (sin ficha)", () => {
     let error: HumanPromotionError | undefined;
     service.getFichaPorParticipante("p1").subscribe({

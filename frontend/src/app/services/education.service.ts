@@ -5,7 +5,7 @@ import {
   HttpParams,
 } from "@angular/common/http";
 import { Observable, throwError } from "rxjs";
-import { catchError } from "rxjs/operators";
+import { catchError, map } from "rxjs/operators";
 import { environment } from "../../environments/environment";
 import {
   Activity,
@@ -15,12 +15,16 @@ import {
   CourseInput,
   Enrollment,
   EnrollmentInput,
+  FiltroAuditoria,
   GeneralAttendance,
   GeneralAttendanceInput,
+  HistorialCurso,
   Material,
   MaterialInput,
   ParticipantCourseDetail,
   ParticipantProgress,
+  ParticipanteResumen,
+  RegistroAuditoria,
   Submission,
   SubmissionStatusRow,
   TrainingArea,
@@ -62,12 +66,16 @@ export class EducationService {
   }
 
   // ---- Catálogo (cualquier rol autenticado) -----------------------------
-  /** q (opcional) busca en título, área y descripción, en el backend. */
-  listCourses(q = ""): Observable<Course[]> {
+  /**
+   * q (opcional) busca en título, área y descripción y area (id, opcional)
+   * deja solo los cursos de esa área formativa (HU-28). Los dos los
+   * aplica el backend. No trae los cursos dados de baja.
+   */
+  listCourses(q = "", area = ""): Observable<Course[]> {
     return this.http
       .get<Course[]>(`${this.base}/api/cursos`, {
         withCredentials: true,
-        params: busqueda(q),
+        params: busqueda(q, area),
       })
       .pipe(catchError(this.handleError));
   }
@@ -116,9 +124,33 @@ export class EducationService {
       .pipe(catchError(this.handleError));
   }
 
+  /** Baja lógica del curso (HU-16): sale del catálogo y queda en el historial. */
   deleteCourse(id: string): Observable<void> {
     return this.http
       .delete<void>(`${this.base}/api/cursos/${id}`, { withCredentials: true })
+      .pipe(catchError(this.handleError));
+  }
+
+  /** Cuántos inscriptos activos tiene el curso: el aviso antes de la baja. */
+  countActiveEnrollments(cursoId: string): Observable<number> {
+    return this.http
+      .get<{ inscriptosActivos: number }>(
+        `${this.base}/api/cursos/${cursoId}/inscriptos-activos`,
+        { withCredentials: true },
+      )
+      .pipe(
+        map((r) => r.inscriptosActivos),
+        catchError(this.handleError),
+      );
+  }
+
+  /** Registro de auditoría de Educación (solo administración). */
+  listAuditoria(filtro: FiltroAuditoria = {}): Observable<RegistroAuditoria[]> {
+    return this.http
+      .get<RegistroAuditoria[]>(`${this.base}/api/auditoria`, {
+        withCredentials: true,
+        params: filtrosAuditoria(filtro),
+      })
       .pipe(catchError(this.handleError));
   }
 
@@ -369,7 +401,35 @@ export class EducationService {
       .pipe(catchError(this.handleError));
   }
 
-  /** Lista los inscriptos de un curso (sin chequeo de ownership). */
+  /**
+   * Buscador de participantes de los selectores (admin y voluntario): el
+   * backend busca por nombre, apellido o DNI y devuelve hasta 20. Con
+   * cursoId deja afuera a los ya inscriptos en ese curso.
+   */
+  searchParticipants(q: string, cursoId = ""): Observable<ParticipanteResumen[]> {
+    let params = new HttpParams().set("q", q.trim());
+    if (cursoId) params = params.set("cursoId", cursoId);
+    return this.http
+      .get<ParticipanteResumen[]>(`${this.base}/api/participantes`, {
+        withCredentials: true,
+        params,
+      })
+      .pipe(catchError(this.handleError));
+  }
+
+  /** Historial de asistencia de un participante, por curso (HU-19). */
+  getParticipantAttendanceHistory(
+    participanteId: string,
+  ): Observable<HistorialCurso[]> {
+    return this.http
+      .get<HistorialCurso[]>(
+        `${this.base}/api/participants/${participanteId}/asistencia`,
+        { withCredentials: true },
+      )
+      .pipe(catchError(this.handleError));
+  }
+
+  /** Inscriptos de un curso con nombre y apellido (sin chequeo de ownership). */
   listCourseEnrollments(cursoId: string): Observable<Enrollment[]> {
     return this.http
       .get<Enrollment[]>(`${this.base}/api/cursos/${cursoId}/inscripciones`, {
@@ -451,11 +511,11 @@ export class EducationService {
   // ---- Participante (role_participant) ----------------------------------
 
   /** Cursos en los que el participante autenticado está inscripto. */
-  listMyEnrolledCourses(q = ""): Observable<Course[]> {
+  listMyEnrolledCourses(q = "", area = ""): Observable<Course[]> {
     return this.http
       .get<Course[]>(`${this.base}/api/participante/cursos`, {
         withCredentials: true,
-        params: busqueda(q),
+        params: busqueda(q, area),
       })
       .pipe(catchError(this.handleError));
   }
@@ -575,8 +635,20 @@ export class EducationService {
   };
 }
 
-/** Parámetro ?q= de los buscadores; vacío = sin parámetro. */
-function busqueda(q: string): HttpParams {
+/** Parámetros ?q= y ?area= de los buscadores; vacíos = sin parámetro. */
+function busqueda(q: string, area = ""): HttpParams {
+  let params = new HttpParams();
   const t = q.trim();
-  return t ? new HttpParams().set("q", t) : new HttpParams();
+  if (t) params = params.set("q", t);
+  if (area) params = params.set("area", area);
+  return params;
+}
+
+/** Filtros de auditoría como query params, sin los vacíos. */
+export function filtrosAuditoria(f: FiltroAuditoria): HttpParams {
+  let params = new HttpParams();
+  for (const [k, v] of Object.entries(f)) {
+    if (v) params = params.set(k, v);
+  }
+  return params;
 }

@@ -29,11 +29,11 @@ describe("CursosComponent", () => {
     educationServiceSpy = jasmine.createSpyObj("EducationService", [
       "listCourses",
       "listMyEnrolledCourses",
-      "getGeneralAttendance",
+      "listTrainingAreas",
     ]);
     educationServiceSpy.listCourses.and.returnValue(of([]));
     educationServiceSpy.listMyEnrolledCourses.and.returnValue(of([]));
-    educationServiceSpy.getGeneralAttendance.and.returnValue(of([]));
+    educationServiceSpy.listTrainingAreas.and.returnValue(of([]));
     authServiceSpy = jasmine.createSpyObj("AuthService", ["isAuthenticated"]);
     authServiceSpy.isAuthenticated.and.returnValue(of(me("role_company")));
 
@@ -103,10 +103,36 @@ describe("CursosComponent", () => {
     }
     tick(300);
 
-    expect(educationServiceSpy.listCourses).toHaveBeenCalledOnceWith("angular");
+    expect(educationServiceSpy.listCourses).toHaveBeenCalledOnceWith(
+      "angular",
+      "",
+    );
     expect(component.filteredCursos).toHaveSize(1);
     expect(component.filteredCursos[0].title).toBe("Angular Basics");
   }));
+
+  it("combina el buscador con el área formativa (HU-28)", fakeAsync(() => {
+    educationServiceSpy.listCourses.calls.reset();
+    component.searchTerm = "huerta";
+    component.selectedArea = "a1";
+    component.filterCursos();
+    tick(300);
+    expect(educationServiceSpy.listCourses).toHaveBeenCalledOnceWith(
+      "huerta",
+      "a1",
+    );
+  }));
+
+  it("arma las opciones de área con 'Todas' primero", () => {
+    educationServiceSpy.listTrainingAreas.and.returnValue(
+      of([
+        { id: "a2", name: "Oficios" },
+        { id: "a1", name: "Huerta" },
+      ] as any),
+    );
+    component.ngOnInit();
+    expect(component.areaOptions.map((o) => o.value)).toEqual(["", "a1", "a2"]);
+  });
 
   it("el participante busca entre sus cursos", fakeAsync(() => {
     component.esParticipante = true;
@@ -115,6 +141,7 @@ describe("CursosComponent", () => {
     tick(300);
     expect(educationServiceSpy.listMyEnrolledCourses).toHaveBeenCalledWith(
       "huerta",
+      "",
     );
   }));
 
