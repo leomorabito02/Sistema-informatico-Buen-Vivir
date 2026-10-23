@@ -1,0 +1,1044 @@
+Starting...
+Gathering coverage... done in 13.091831888s
+ NOT COVERED CONDITIONALS_NEGATION at cmd/server/main.go:182:23
+ NOT COVERED CONDITIONALS_NEGATION at cmd/server/main.go:66:11
+ NOT COVERED CONDITIONALS_NEGATION at cmd/server/main.go:53:9
+ NOT COVERED CONDITIONALS_NEGATION at cmd/server/main.go:42:9
+ NOT COVERED CONDITIONALS_NEGATION at cmd/server/main.go:141:60
+ NOT COVERED CONDITIONALS_NEGATION at cmd/server/main.go:47:9
+ NOT COVERED CONDITIONALS_NEGATION at cmd/server/main.go:186:9
+ NOT COVERED CONDITIONALS_NEGATION at cmd/server/main.go:56:19
+ NOT COVERED ARITHMETIC_BASE at cmd/server/main.go:141:35
+ NOT COVERED CONDITIONALS_NEGATION at cmd/server/main.go:31:9
+      KILLED CONDITIONALS_NEGATION at cmd/server/main.go:205:131
+      KILLED CONDITIONALS_NEGATION at cmd/server/main.go:206:9
+      KILLED CONDITIONALS_NEGATION at cmd/server/main.go:212:11
+ NOT COVERED CONDITIONALS_NEGATION at internal/config/config.go:143:16
+ NOT COVERED CONDITIONALS_NEGATION at internal/config/config.go:143:63
+ NOT COVERED CONDITIONALS_NEGATION at internal/config/config.go:148:16
+ NOT COVERED CONDITIONALS_NEGATION at internal/config/config.go:148:60
+      KILLED CONDITIONALS_NEGATION at cmd/server/main.go:156:10
+      KILLED CONDITIONALS_NEGATION at cmd/server/main.go:199:40
+      KILLED CONDITIONALS_NEGATION at internal/config/config.go:78:15
+      KILLED CONDITIONALS_NEGATION at internal/config/config.go:125:91
+      KILLED CONDITIONALS_NEGATION at internal/config/config.go:93:38
+      KILLED CONDITIONALS_NEGATION at internal/config/config.go:121:49
+      KILLED CONDITIONALS_NEGATION at internal/config/config.go:138:29
+      KILLED CONDITIONALS_NEGATION at internal/config/env_file.go:36:11
+      KILLED CONDITIONALS_NEGATION at internal/config/config.go:125:59
+      KILLED CONDITIONALS_NEGATION at internal/config/config.go:125:27
+      KILLED CONDITIONALS_NEGATION at internal/config/config.go:98:10
+      KILLED CONDITIONALS_NEGATION at internal/config/env_file.go:49:10
+      KILLED CONDITIONALS_NEGATION at internal/config/env_file.go:25:9
+      KILLED CONDITIONALS_NEGATION at internal/config/config.go:117:26
+       LIVED CONDITIONALS_BOUNDARY at internal/config/env_file.go:62:16
+      KILLED CONDITIONALS_NEGATION at internal/config/env_file.go:62:16
+      KILLED INVERT_NEGATIVES at internal/config/env_file.go:63:44
+      KILLED ARITHMETIC_BASE at internal/config/env_file.go:63:44
+      KILLED CONDITIONALS_NEGATION at internal/config/env_file.go:64:28
+      KILLED CONDITIONALS_NEGATION at internal/config/env_file.go:64:46
+      KILLED ARITHMETIC_BASE at internal/config/env_file.go:65:31
+      KILLED CONDITIONALS_NEGATION at internal/config/env_file.go:64:13
+      KILLED INVERT_NEGATIVES at internal/config/env_file.go:65:31
+      KILLED CONDITIONALS_NEGATION at internal/config/events.go:43:66
+ NOT COVERED ARITHMETIC_BASE at internal/config/skills_ai.go:16:31
+ NOT COVERED ARITHMETIC_BASE at internal/config/skills_ai.go:19:31
+      KILLED CONDITIONALS_NEGATION at internal/config/events.go:47:20
+      KILLED CONDITIONALS_NEGATION at internal/config/env_file.go:64:62
+      KILLED CONDITIONALS_NEGATION at internal/config/events.go:47:53
+       LIVED CONDITIONALS_BOUNDARY at internal/config/events.go:47:89
+      KILLED CONDITIONALS_NEGATION at internal/config/events.go:47:89
+      KILLED ARITHMETIC_BASE at internal/config/events.go:51:11
+      KILLED CONDITIONALS_NEGATION at internal/config/events.go:53:45
+      KILLED CONDITIONALS_NEGATION at internal/config/events.go:72:34
+      KILLED CONDITIONALS_NEGATION at internal/config/skills_ai.go:47:73
+       LIVED CONDITIONALS_BOUNDARY at internal/config/events.go:53:57
+      KILLED CONDITIONALS_NEGATION at internal/config/events.go:52:67
+      KILLED CONDITIONALS_NEGATION at internal/config/events.go:53:57
+      KILLED CONDITIONALS_NEGATION at internal/config/skills_ai.go:62:95
+      KILLED CONDITIONALS_NEGATION at internal/config/skills_ai.go:50:70
+       LIVED CONDITIONALS_BOUNDARY at internal/config/skills_ai.go:62:110
+      KILLED CONDITIONALS_NEGATION at internal/config/skills_ai.go:62:110
+      KILLED CONDITIONALS_NEGATION at internal/config/skills_ai.go:65:88
+       LIVED CONDITIONALS_BOUNDARY at internal/config/skills_ai.go:65:100
+      KILLED ARITHMETIC_BASE at internal/config/skills_ai.go:63:38
+      KILLED CONDITIONALS_NEGATION at internal/config/skills_ai.go:72:47
+      KILLED CONDITIONALS_NEGATION at internal/config/skills_ai.go:65:100
+      KILLED ARITHMETIC_BASE at internal/controllers/activity_controller.go:54:62
+      KILLED ARITHMETIC_BASE at internal/controllers/activity_controller.go:70:62
+      KILLED CONDITIONALS_NEGATION at internal/controllers/activity_controller.go:33:9
+      KILLED CONDITIONALS_NEGATION at internal/controllers/activity_controller.go:53:43
+      KILLED CONDITIONALS_NEGATION at internal/controllers/activity_controller.go:47:68
+      KILLED CONDITIONALS_NEGATION at internal/controllers/activity_controller.go:59:9
+      KILLED CONDITIONALS_NEGATION at internal/controllers/activity_controller.go:95:9
+      KILLED CONDITIONALS_NEGATION at internal/controllers/activity_controller.go:69:43
+      KILLED CONDITIONALS_NEGATION at internal/controllers/activity_controller.go:102:9
+      KILLED CONDITIONALS_NEGATION at internal/controllers/contentful_webhook_controller.go:41:14
+      KILLED CONDITIONALS_NEGATION at internal/controllers/activity_controller.go:85:95
+      KILLED CONDITIONALS_NEGATION at internal/controllers/activity_controller.go:75:9
+      KILLED CONDITIONALS_NEGATION at internal/controllers/attendance_controller.go:40:9
+      KILLED CONDITIONALS_NEGATION at internal/controllers/attendance_controller.go:34:76
+      KILLED ARITHMETIC_BASE at internal/controllers/course_controller.go:67:62
+      KILLED CONDITIONALS_NEGATION at internal/controllers/contentful_webhook_controller.go:46:19
+      KILLED CONDITIONALS_NEGATION at internal/controllers/contentful_webhook_controller.go:46:69
+      KILLED ARITHMETIC_BASE at internal/controllers/course_controller.go:83:62
+      KILLED CONDITIONALS_NEGATION at internal/controllers/contentful_webhook_controller.go:53:9
+      KILLED CONDITIONALS_NEGATION at internal/controllers/contentful_webhook_controller.go:68:96
+      KILLED CONDITIONALS_NEGATION at internal/controllers/course_controller.go:23:9
+      KILLED CONDITIONALS_NEGATION at internal/controllers/course_controller.go:66:43
+      KILLED CONDITIONALS_NEGATION at internal/controllers/course_controller.go:46:9
+      KILLED CONDITIONALS_NEGATION at internal/controllers/course_controller.go:35:9
+      KILLED CONDITIONALS_NEGATION at internal/controllers/course_controller.go:56:9
+      KILLED CONDITIONALS_NEGATION at internal/controllers/course_controller.go:72:9
+      KILLED CONDITIONALS_NEGATION at internal/controllers/course_controller.go:82:43
+      KILLED ARITHMETIC_BASE at internal/controllers/docente_controller.go:81:62
+      KILLED CONDITIONALS_NEGATION at internal/controllers/course_controller.go:88:9
+      KILLED ARITHMETIC_BASE at internal/controllers/docente_controller.go:97:62
+      KILLED CONDITIONALS_NEGATION at internal/controllers/course_controller.go:97:76
+      KILLED CONDITIONALS_NEGATION at internal/controllers/course_controller.go:106:77
+      KILLED CONDITIONALS_NEGATION at internal/controllers/course_controller.go:115:79
+      KILLED ARITHMETIC_BASE at internal/controllers/docente_controller.go:135:62
+      KILLED CONDITIONALS_NEGATION at internal/controllers/docente_controller.go:56:9
+      KILLED CONDITIONALS_NEGATION at internal/controllers/docente_controller.go:68:9
+      KILLED CONDITIONALS_NEGATION at internal/controllers/docente_controller.go:96:43
+      KILLED CONDITIONALS_NEGATION at internal/controllers/docente_controller.go:80:43
+      KILLED CONDITIONALS_NEGATION at internal/controllers/docente_controller.go:86:9
+      KILLED CONDITIONALS_NEGATION at internal/controllers/docente_controller.go:102:9
+      KILLED CONDITIONALS_NEGATION at internal/controllers/docente_controller.go:128:96
+      KILLED ARITHMETIC_BASE at internal/controllers/docente_controller.go:175:62
+      KILLED CONDITIONALS_NEGATION at internal/controllers/docente_controller.go:118:9
+      KILLED CONDITIONALS_NEGATION at internal/controllers/docente_controller.go:112:96
+      KILLED CONDITIONALS_NEGATION at internal/controllers/docente_controller.go:140:9
+      KILLED CONDITIONALS_NEGATION at internal/controllers/docente_controller.go:134:43
+      KILLED CONDITIONALS_NEGATION at internal/controllers/docente_controller.go:156:9
+      KILLED CONDITIONALS_NEGATION at internal/controllers/docente_controller.go:159:105
+      KILLED CONDITIONALS_NEGATION at internal/controllers/docente_controller.go:168:62
+      KILLED CONDITIONALS_NEGATION at internal/controllers/docente_controller.go:180:9
+      KILLED CONDITIONALS_NEGATION at internal/controllers/docente_controller.go:174:43
+      KILLED ARITHMETIC_BASE at internal/controllers/enrollment_controller.go:37:62
+      KILLED CONDITIONALS_NEGATION at internal/controllers/docente_controller.go:195:76
+      KILLED CONDITIONALS_NEGATION at internal/controllers/docente_controller.go:222:62
+      KILLED CONDITIONALS_NEGATION at internal/controllers/docente_controller.go:212:9
+      KILLED CONDITIONALS_NEGATION at internal/controllers/docente_controller.go:190:62
+      KILLED CONDITIONALS_NEGATION at internal/controllers/docente_controller.go:205:9
+      KILLED CONDITIONALS_NEGATION at internal/controllers/docente_controller.go:228:9
+      KILLED ARITHMETIC_BASE at internal/controllers/enrollment_controller.go:81:62
+      KILLED CONDITIONALS_NEGATION at internal/controllers/docente_controller.go:238:96
+      KILLED CONDITIONALS_NEGATION at internal/controllers/docente_controller.go:244:9
+      KILLED ARITHMETIC_BASE at internal/controllers/general_attendance_controller.go:49:62
+      KILLED CONDITIONALS_NEGATION at internal/controllers/docente_controller.go:254:96
+      KILLED CONDITIONALS_NEGATION at internal/controllers/enrollment_controller.go:36:42
+      KILLED CONDITIONALS_NEGATION at internal/controllers/docente_controller.go:260:9
+      KILLED ARITHMETIC_BASE at internal/controllers/http_helpers.go:54:72
+      KILLED CONDITIONALS_NEGATION at internal/controllers/enrollment_controller.go:42:9
+      KILLED CONDITIONALS_NEGATION at internal/controllers/enrollment_controller.go:54:9
+      KILLED CONDITIONALS_NEGATION at internal/controllers/enrollment_controller.go:66:9
+      KILLED CONDITIONALS_NEGATION at internal/controllers/enrollment_controller.go:86:9
+      KILLED ARITHMETIC_BASE at internal/controllers/material_controller.go:39:62
+      KILLED CONDITIONALS_NEGATION at internal/controllers/general_attendance_controller.go:48:44
+      KILLED CONDITIONALS_NEGATION at internal/controllers/enrollment_controller.go:80:42
+      KILLED CONDITIONALS_NEGATION at internal/controllers/general_attendance_controller.go:32:9
+      KILLED CONDITIONALS_NEGATION at internal/controllers/general_attendance_controller.go:53:76
+      KILLED ARITHMETIC_BASE at internal/controllers/material_controller.go:93:62
+      KILLED CONDITIONALS_NEGATION at internal/controllers/http_helpers.go:14:13
+      KILLED CONDITIONALS_NEGATION at internal/controllers/material_controller.go:28:9
+      KILLED CONDITIONALS_NEGATION at internal/controllers/material_controller.go:38:43
+      KILLED CONDITIONALS_NEGATION at internal/controllers/material_controller.go:56:54
+      KILLED CONDITIONALS_NEGATION at internal/controllers/material_controller.go:44:9
+      KILLED CONDITIONALS_NEGATION at internal/controllers/material_controller.go:62:9
+      KILLED CONDITIONALS_NEGATION at internal/controllers/material_controller.go:69:9
+      KILLED CONDITIONALS_NEGATION at internal/controllers/material_controller.go:82:9
+      KILLED ARITHMETIC_BASE at internal/controllers/skill_controller.go:99:62
+      KILLED ARITHMETIC_BASE at internal/controllers/skill_controller.go:118:62
+      KILLED CONDITIONALS_NEGATION at internal/controllers/material_controller.go:92:43
+      KILLED CONDITIONALS_NEGATION at internal/controllers/material_controller.go:98:9
+      KILLED CONDITIONALS_NEGATION at internal/controllers/material_controller.go:107:78
+      KILLED CONDITIONALS_NEGATION at internal/controllers/skill_controller.go:58:9
+      KILLED CONDITIONALS_NEGATION at internal/controllers/skill_controller.go:76:9
+      KILLED CONDITIONALS_NEGATION at internal/controllers/skill_controller.go:88:9
+      KILLED CONDITIONALS_NEGATION at internal/controllers/skill_controller.go:98:43
+      KILLED CONDITIONALS_NEGATION at internal/controllers/skill_controller.go:104:9
+      KILLED CONDITIONALS_NEGATION at internal/controllers/skill_controller.go:92:56
+      KILLED CONDITIONALS_NEGATION at internal/controllers/skill_controller.go:117:41
+      KILLED CONDITIONALS_NEGATION at internal/controllers/skill_controller.go:121:51
+      KILLED CONDITIONALS_NEGATION at internal/controllers/skill_controller.go:125:21
+      KILLED CONDITIONALS_NEGATION at internal/controllers/skill_controller.go:133:23
+      KILLED CONDITIONALS_NEGATION at internal/controllers/skill_controller.go:127:10
+      KILLED CONDITIONALS_NEGATION at internal/controllers/skill_controller.go:143:9
+      KILLED CONDITIONALS_NEGATION at internal/controllers/skill_controller.go:148:9
+ NOT COVERED ARITHMETIC_BASE at internal/controllers/submission_controller.go:110:74
+      KILLED CONDITIONALS_NEGATION at internal/controllers/skill_controller.go:181:9
+ NOT COVERED ARITHMETIC_BASE at internal/controllers/submission_controller.go:116:74
+      KILLED CONDITIONALS_NEGATION at internal/controllers/skill_controller.go:169:9
+      KILLED CONDITIONALS_NEGATION at internal/controllers/submission_controller.go:67:9
+      KILLED CONDITIONALS_NEGATION at internal/controllers/skill_controller.go:206:10
+      KILLED CONDITIONALS_NEGATION at internal/controllers/skill_controller.go:190:9
+      KILLED CONDITIONALS_NEGATION at internal/controllers/submission_controller.go:62:9
+      KILLED CONDITIONALS_NEGATION at internal/controllers/submission_controller.go:82:9
+      KILLED CONDITIONALS_NEGATION at internal/controllers/submission_controller.go:77:9
+      KILLED CONDITIONALS_NEGATION at internal/controllers/submission_controller.go:94:9
+      KILLED CONDITIONALS_NEGATION at internal/controllers/submission_controller.go:100:47
+      KILLED CONDITIONALS_NEGATION at internal/controllers/submission_controller.go:115:10
+      KILLED CONDITIONALS_NEGATION at internal/controllers/submission_controller.go:140:9
+      KILLED CONDITIONALS_NEGATION at internal/controllers/submission_controller.go:127:9
+      KILLED CONDITIONALS_NEGATION at internal/controllers/submission_controller.go:109:10
+      KILLED CONDITIONALS_NEGATION at internal/controllers/submission_controller.go:145:9
+      KILLED ARITHMETIC_BASE at internal/controllers/training_area_controller.go:34:62
+      KILLED CONDITIONALS_NEGATION at internal/controllers/submission_controller.go:149:53
+      KILLED CONDITIONALS_NEGATION at internal/controllers/submission_controller.go:155:9
+      KILLED CONDITIONALS_NEGATION at internal/controllers/submission_controller.go:185:10
+      KILLED CONDITIONALS_NEGATION at internal/controllers/submission_controller.go:188:21
+      KILLED CONDITIONALS_NEGATION at internal/controllers/submission_controller.go:179:10
+      KILLED ARITHMETIC_BASE at internal/controllers/training_area_controller.go:50:62
+      KILLED CONDITIONALS_NEGATION at internal/events/consumers/educacion.go:39:21
+      KILLED CONDITIONALS_NEGATION at internal/events/consumers/educacion.go:53:10
+      KILLED CONDITIONALS_NEGATION at internal/controllers/submission_controller.go:199:14
+      KILLED CONDITIONALS_NEGATION at internal/controllers/training_area_controller.go:23:9
+      KILLED CONDITIONALS_NEGATION at internal/events/consumers/educacion.go:43:10
+      KILLED CONDITIONALS_NEGATION at internal/events/consumers/educacion.go:66:10
+      KILLED CONDITIONALS_NEGATION at internal/controllers/submission_controller.go:199:32
+      KILLED CONDITIONALS_NEGATION at internal/controllers/training_area_controller.go:33:43
+      KILLED CONDITIONALS_NEGATION at internal/events/consumers/educacion.go:69:23
+      KILLED CONDITIONALS_NEGATION at internal/events/consumers/educacion.go:69:41
+      KILLED CONDITIONALS_NEGATION at internal/events/consumers/educacion.go:69:59
+      KILLED CONDITIONALS_NEGATION at internal/controllers/training_area_controller.go:39:9
+      KILLED CONDITIONALS_NEGATION at internal/events/envelope.go:67:9
+      KILLED CONDITIONALS_NEGATION at internal/events/envelope.go:71:19
+      KILLED CONDITIONALS_NEGATION at internal/events/envelope.go:84:32
+      KILLED CONDITIONALS_NEGATION at internal/controllers/training_area_controller.go:55:9
+      KILLED CONDITIONALS_NEGATION at internal/controllers/training_area_controller.go:49:43
+      KILLED CONDITIONALS_NEGATION at internal/events/envelope.go:101:15
+      KILLED CONDITIONALS_BOUNDARY at internal/events/envelope.go:101:15
+      KILLED CONDITIONALS_NEGATION at internal/events/envelope.go:98:36
+      KILLED CONDITIONALS_NEGATION at internal/controllers/training_area_controller.go:64:82
+      KILLED CONDITIONALS_NEGATION at internal/events/envelope.go:110:40
+      KILLED CONDITIONALS_NEGATION at internal/events/envelope.go:107:35
+      KILLED CONDITIONALS_NEGATION at internal/events/envelope.go:113:46
+      KILLED CONDITIONALS_NEGATION at internal/events/envelope.go:113:20
+      KILLED CONDITIONALS_NEGATION at internal/events/envelope.go:140:44
+      KILLED CONDITIONALS_BOUNDARY at internal/events/envelope.go:116:18
+      KILLED CONDITIONALS_NEGATION at internal/events/envelope.go:116:18
+      KILLED CONDITIONALS_NEGATION at internal/events/envelope.go:143:32
+      KILLED CONDITIONALS_NEGATION at internal/events/envelope.go:152:51
+       LIVED INVERT_NEGATIVES at internal/events/infra_filters.go:28:67
+      KILLED CONDITIONALS_NEGATION at internal/events/infra_filters.go:24:9
+       LIVED ARITHMETIC_BASE at internal/events/infra_filters.go:28:67
+      KILLED CONDITIONALS_NEGATION at internal/events/infra_filters.go:41:12
+      KILLED CONDITIONALS_NEGATION at internal/events/infra_filters.go:33:14
+      KILLED ARITHMETIC_BASE at internal/events/producers/contentful.go:84:76
+      KILLED ARITHMETIC_BASE at internal/events/producers/contentful.go:84:70
+      KILLED ARITHMETIC_BASE at internal/events/producers/contentful.go:84:61
+      KILLED ARITHMETIC_BASE at internal/events/producers/contentful.go:84:55
+      KILLED ARITHMETIC_BASE at internal/events/producers/contentful.go:84:44
+      KILLED CONDITIONALS_NEGATION at internal/events/producers/contentful.go:69:42
+      KILLED CONDITIONALS_NEGATION at internal/events/producers/contentful.go:59:16
+      KILLED CONDITIONALS_NEGATION at internal/events/infra_filters.go:49:11
+      KILLED CONDITIONALS_NEGATION at internal/events/producers/contentful.go:59:68
+      KILLED CONDITIONALS_NEGATION at internal/events/producers/contentful.go:78:14
+      KILLED CONDITIONALS_NEGATION at internal/events/producers/contentful.go:59:33
+      KILLED CONDITIONALS_NEGATION at internal/events/producers/contentful.go:72:33
+      KILLED CONDITIONALS_NEGATION at internal/events/producers/educacion.go:34:47
+      KILLED CONDITIONALS_NEGATION at internal/events/push.go:105:14
+      KILLED CONDITIONALS_NEGATION at internal/events/push.go:74:12
+      KILLED CONDITIONALS_NEGATION at internal/events/push.go:88:27
+      KILLED CONDITIONALS_NEGATION at internal/events/push.go:109:38
+      KILLED CONDITIONALS_NEGATION at internal/events/producers/educacion.go:34:66
+      KILLED CONDITIONALS_NEGATION at internal/events/push.go:116:9
+      KILLED CONDITIONALS_NEGATION at internal/events/producers/educacion.go:55:7
+       LIVED CONDITIONALS_NEGATION at internal/events/producers/educacion.go:48:8
+      KILLED CONDITIONALS_NEGATION at internal/events/producers/educacion.go:66:20
+      KILLED CONDITIONALS_NEGATION at internal/events/push.go:121:45
+      KILLED ARITHMETIC_BASE at internal/events/store.go:40:30
+      KILLED CONDITIONALS_NEGATION at internal/events/push.go:126:9
+      KILLED ARITHMETIC_BASE at internal/events/store.go:40:26
+      KILLED ARITHMETIC_BASE at internal/events/store.go:47:24
+      KILLED ARITHMETIC_BASE at internal/events/store.go:47:18
+      KILLED CONDITIONALS_NEGATION at internal/events/push.go:142:10
+      KILLED CONDITIONALS_NEGATION at internal/events/push.go:163:9
+      KILLED CONDITIONALS_NEGATION at internal/events/push.go:170:49
+      KILLED CONDITIONALS_BOUNDARY at internal/events/store.go:31:14
+      KILLED CONDITIONALS_NEGATION at internal/events/push.go:173:80
+      KILLED CONDITIONALS_NEGATION at internal/events/store.go:31:14
+      KILLED CONDITIONALS_NEGATION at internal/events/uuid.go:15:36
+      KILLED CONDITIONALS_NEGATION at internal/events/uuid.go:52:9
+      KILLED CONDITIONALS_NEGATION at internal/events/store.go:51:18
+      KILLED CONDITIONALS_BOUNDARY at internal/events/store.go:51:18
+      KILLED CONDITIONALS_NEGATION at internal/events/uuid.go:46:12
+      KILLED CONDITIONALS_BOUNDARY at internal/events/uuid.go:65:12
+      KILLED CONDITIONALS_BOUNDARY at internal/events/uuid.go:65:24
+      KILLED CONDITIONALS_NEGATION at internal/events/uuid.go:65:12
+      KILLED CONDITIONALS_NEGATION at internal/events/uuid.go:65:24
+      KILLED CONDITIONALS_BOUNDARY at internal/events/uuid.go:65:38
+      KILLED CONDITIONALS_NEGATION at internal/events/uuid.go:65:38
+      KILLED CONDITIONALS_NEGATION at internal/events/uuid.go:65:50
+      KILLED CONDITIONALS_BOUNDARY at internal/events/uuid.go:65:50
+      KILLED CONDITIONALS_NEGATION at internal/events/uuid.go:65:64
+      KILLED CONDITIONALS_BOUNDARY at internal/events/uuid.go:65:64
+      KILLED CONDITIONALS_NEGATION at internal/events/uuid.go:65:76
+       LIVED CONDITIONALS_BOUNDARY at internal/events/uuid.go:65:76
+      KILLED ARITHMETIC_BASE at internal/events/verifier.go:141:48
+      KILLED CONDITIONALS_NEGATION at internal/events/verifier.go:44:14
+      KILLED CONDITIONALS_NEGATION at internal/events/verifier.go:56:54
+      KILLED CONDITIONALS_NEGATION at internal/events/verifier.go:118:18
+ NOT COVERED CONDITIONALS_NEGATION at internal/events/verifier.go:158:18
+ NOT COVERED CONDITIONALS_NEGATION at internal/events/verifier.go:158:33
+      KILLED CONDITIONALS_NEGATION at internal/events/verifier.go:52:34
+      KILLED ARITHMETIC_BASE at internal/events/verifier.go:141:42
+      KILLED CONDITIONALS_NEGATION at internal/events/verifier.go:122:16
+      KILLED CONDITIONALS_NEGATION at internal/events/verifier.go:127:50
+       LIVED ARITHMETIC_BASE at internal/events/verifier.go:93:42
+      KILLED CONDITIONALS_NEGATION at internal/events/verifier.go:56:33
+      KILLED CONDITIONALS_NEGATION at internal/events/verifier.go:134:9
+      KILLED CONDITIONALS_NEGATION at internal/events/verifier.go:138:9
+      KILLED CONDITIONALS_NEGATION at internal/events/verifier.go:130:16
+      KILLED CONDITIONALS_NEGATION at internal/events/verifier.go:142:72
+      KILLED CONDITIONALS_NEGATION at internal/events/verifier.go:147:50
+       LIVED CONDITIONALS_BOUNDARY at internal/events/verifier.go:195:26
+      KILLED CONDITIONALS_NEGATION at internal/events/verifier.go:219:9
+       LIVED CONDITIONALS_NEGATION at internal/events/verifier.go:192:37
+       LIVED CONDITIONALS_NEGATION at internal/events/verifier.go:195:12
+      KILLED CONDITIONALS_NEGATION at internal/events/verifier.go:197:10
+       LIVED CONDITIONALS_BOUNDARY at internal/events/verifier.go:192:37
+       LIVED CONDITIONALS_NEGATION at internal/events/verifier.go:195:26
+      KILLED CONDITIONALS_NEGATION at internal/events/verifier.go:223:9
+      KILLED CONDITIONALS_NEGATION at internal/events/verifier.go:227:21
+      KILLED CONDITIONALS_NEGATION at internal/events/verifier.go:231:57
+      KILLED CONDITIONALS_NEGATION at internal/events/verifier.go:236:12
+      KILLED CONDITIONALS_NEGATION at internal/events/verifier.go:241:11
+      KILLED CONDITIONALS_NEGATION at internal/middlewares/auth_middleware.go:41:11
+      KILLED CONDITIONALS_NEGATION at internal/middlewares/auth_middleware.go:46:19
+      KILLED CONDITIONALS_NEGATION at internal/middlewares/auth_middleware.go:41:34
+      KILLED CONDITIONALS_NEGATION at internal/events/verifier.go:241:26
+      KILLED CONDITIONALS_NEGATION at internal/events/verifier.go:251:9
+      KILLED CONDITIONALS_NEGATION at internal/middlewares/auth_middleware.go:59:11
+      KILLED CONDITIONALS_NEGATION at internal/middlewares/auth_middleware.go:51:19
+      KILLED CONDITIONALS_NEGATION at internal/middlewares/auth_middleware.go:94:17
+      KILLED CONDITIONALS_NEGATION at internal/middlewares/auth_middleware.go:51:36
+      KILLED CONDITIONALS_NEGATION at internal/middlewares/auth_middleware.go:89:17
+      KILLED CONDITIONALS_NEGATION at internal/middlewares/auth_middleware.go:103:11
+      KILLED INVERT_NEGATIVES at internal/middlewares/middlewares.go:13:20
+      KILLED ARITHMETIC_BASE at internal/middlewares/middlewares.go:13:20
+      KILLED CONDITIONALS_BOUNDARY at internal/middlewares/middlewares.go:13:27
+      KILLED CONDITIONALS_NEGATION at internal/middlewares/middlewares.go:30:13
+      KILLED CONDITIONALS_NEGATION at internal/middlewares/middlewares.go:13:27
+      KILLED CONDITIONALS_NEGATION at internal/middlewares/middlewares.go:33:13
+       LIVED ARITHMETIC_BASE at internal/middlewares/rate_limiter.go:15:4
+      KILLED INCREMENT_DECREMENT at internal/middlewares/middlewares.go:13:34
+      KILLED CONDITIONALS_NEGATION at internal/middlewares/recoverer.go:13:29
+      KILLED ARITHMETIC_BASE at internal/middlewares/rate_limiter.go:23:4
+      KILLED ARITHMETIC_BASE at internal/middlewares/setup.go:65:27
+      KILLED ARITHMETIC_BASE at internal/middlewares/setup.go:66:114
+      KILLED CONDITIONALS_NEGATION at internal/middlewares/role_middleware.go:12:25
+      KILLED CONDITIONALS_NEGATION at internal/middlewares/role_middleware.go:27:17
+      KILLED CONDITIONALS_NEGATION at internal/middlewares/role_middleware.go:18:17
+      KILLED CONDITIONALS_NEGATION at internal/middlewares/role_middleware.go:34:16
+ NOT COVERED CONDITIONALS_NEGATION at internal/outbox/outbox.go:86:83
+      KILLED ARITHMETIC_BASE at internal/models/contentful.go:138:19
+      KILLED CONDITIONALS_NEGATION at internal/middlewares/setup.go:21:48
+ NOT COVERED CONDITIONALS_NEGATION at internal/outbox/outbox.go:107:23
+ NOT COVERED CONDITIONALS_NEGATION at internal/outbox/outbox.go:110:10
+       LIVED CONDITIONALS_BOUNDARY at internal/models/contentful.go:137:14
+      KILLED CONDITIONALS_NEGATION at internal/models/contentful.go:137:14
+      KILLED CONDITIONALS_NEGATION at internal/middlewares/role_middleware.go:34:44
+      KILLED CONDITIONALS_NEGATION at internal/models/contentful.go:137:30
+      KILLED CONDITIONALS_NEGATION at internal/middlewares/setup.go:19:23
+      KILLED CONDITIONALS_NEGATION at internal/models/skill_key.go:53:12
+ NOT COVERED ARITHMETIC_BASE at internal/outbox/processed.go:23:30
+ NOT COVERED ARITHMETIC_BASE at internal/outbox/processed.go:23:25
+      KILLED CONDITIONALS_NEGATION at internal/models/skill.go:30:8
+      KILLED ARITHMETIC_BASE at internal/outbox/processed.go:43:75
+ NOT COVERED CONDITIONALS_NEGATION at internal/outbox/processed.go:47:22
+ NOT COVERED CONDITIONALS_NEGATION at internal/outbox/processed.go:50:9
+ NOT COVERED CONDITIONALS_NEGATION at internal/outbox/processed.go:65:9
+ NOT COVERED CONDITIONALS_NEGATION at internal/outbox/pubsub.go:25:9
+ NOT COVERED CONDITIONALS_NEGATION at internal/outbox/pubsub.go:48:33
+ NOT COVERED CONDITIONALS_NEGATION at internal/outbox/pubsub.go:49:22
+      KILLED ARITHMETIC_BASE at internal/outbox/processed.go:43:69
+      KILLED CONDITIONALS_NEGATION at internal/outbox/outbox.go:103:10
+      KILLED CONDITIONALS_NEGATION at internal/outbox/outbox.go:78:7
+ NOT COVERED CONDITIONALS_NEGATION at internal/outbox/relay.go:78:34
+ NOT COVERED CONDITIONALS_NEGATION at internal/outbox/relay.go:78:54
+ NOT COVERED CONDITIONALS_NEGATION at internal/outbox/relay.go:96:10
+ NOT COVERED CONDITIONALS_NEGATION at internal/outbox/relay.go:99:16
+ NOT COVERED CONDITIONALS_NEGATION at internal/outbox/relay.go:104:11
+ NOT COVERED CONDITIONALS_BOUNDARY at internal/outbox/relay.go:104:29
+ NOT COVERED CONDITIONALS_NEGATION at internal/outbox/relay.go:104:29
+ NOT COVERED CONDITIONALS_NEGATION at internal/outbox/relay.go:124:10
+ NOT COVERED CONDITIONALS_NEGATION at internal/outbox/relay.go:129:34
+ NOT COVERED CONDITIONALS_NEGATION at internal/outbox/relay.go:135:108
+ NOT COVERED CONDITIONALS_NEGATION at internal/outbox/relay.go:141:9
+ NOT COVERED CONDITIONALS_NEGATION at internal/outbox/relay.go:155:69
+ NOT COVERED CONDITIONALS_NEGATION at internal/outbox/relay.go:160:10
+ NOT COVERED ARITHMETIC_BASE at internal/outbox/relay.go:161:56
+ NOT COVERED CONDITIONALS_NEGATION at internal/outbox/relay.go:162:23
+ NOT COVERED CONDITIONALS_NEGATION at internal/outbox/relay.go:169:37
+ NOT COVERED INCREMENT_DECREMENT at internal/outbox/relay.go:176:7
+ NOT COVERED ARITHMETIC_BASE at internal/outbox/relay.go:183:42
+ NOT COVERED CONDITIONALS_NEGATION at internal/outbox/relay.go:187:9
+      KILLED CONDITIONALS_NEGATION at internal/outbox/outbox.go:98:7
+      KILLED CONDITIONALS_NEGATION at internal/outbox/outbox.go:83:10
+      KILLED CONDITIONALS_NEGATION at internal/outbox/outbox.go:120:26
+      KILLED CONDITIONALS_NEGATION at internal/outbox/outbox.go:134:9
+      KILLED CONDITIONALS_NEGATION at internal/outbox/outbox.go:120:7
+      KILLED CONDITIONALS_NEGATION at internal/outbox/outbox.go:130:8
+      KILLED CONDITIONALS_NEGATION at internal/outbox/outbox.go:126:14
+      KILLED CONDITIONALS_NEGATION at internal/outbox/outbox.go:138:9
+       LIVED CONDITIONALS_NEGATION at internal/outbox/relay.go:48:12
+       LIVED ARITHMETIC_BASE at internal/outbox/relay.go:57:18
+ NOT COVERED CONDITIONALS_NEGATION at internal/outbox/relay.go:229:10
+ NOT COVERED CONDITIONALS_NEGATION at internal/repositories/activity_repository.go:53:10
+ NOT COVERED CONDITIONALS_NEGATION at internal/repositories/activity_repository.go:56:10
+ NOT COVERED CONDITIONALS_NEGATION at internal/repositories/activity_repository.go:60:33
+ NOT COVERED CONDITIONALS_NEGATION at internal/repositories/activity_repository.go:71:9
+ NOT COVERED CONDITIONALS_NEGATION at internal/repositories/activity_repository.go:72:23
+ NOT COVERED CONDITIONALS_NEGATION at internal/repositories/activity_repository.go:78:32
+ NOT COVERED CONDITIONALS_NEGATION at internal/repositories/activity_repository.go:95:9
+ NOT COVERED CONDITIONALS_NEGATION at internal/repositories/activity_repository.go:108:10
+ NOT COVERED CONDITIONALS_NEGATION at internal/repositories/activity_repository.go:109:24
+ NOT COVERED CONDITIONALS_NEGATION at internal/repositories/activity_repository.go:114:39
+ NOT COVERED CONDITIONALS_NEGATION at internal/repositories/activity_repository.go:118:10
+ NOT COVERED CONDITIONALS_NEGATION at internal/repositories/activity_repository.go:125:39
+ NOT COVERED CONDITIONALS_NEGATION at internal/repositories/activity_repository.go:129:93
+ NOT COVERED CONDITIONALS_NEGATION at internal/repositories/activity_repository.go:135:9
+ NOT COVERED CONDITIONALS_NEGATION at internal/repositories/activity_repository.go:136:10
+ NOT COVERED CONDITIONALS_NEGATION at internal/repositories/activity_repository.go:149:33
+ NOT COVERED CONDITIONALS_NEGATION at internal/repositories/activity_repository.go:150:24
+ NOT COVERED CONDITIONALS_NEGATION at internal/repositories/activity_repository.go:162:11
+ NOT COVERED CONDITIONALS_NEGATION at internal/repositories/activity_repository.go:169:36
+ NOT COVERED CONDITIONALS_NEGATION at internal/repositories/activity_repository.go:175:9
+ NOT COVERED CONDITIONALS_NEGATION at internal/repositories/activity_repository.go:176:10
+ NOT COVERED CONDITIONALS_NEGATION at internal/repositories/attendance_repository.go:47:10
+ NOT COVERED CONDITIONALS_NEGATION at internal/repositories/attendance_repository.go:50:10
+ NOT COVERED CONDITIONALS_NEGATION at internal/repositories/attendance_repository.go:54:33
+      KILLED ARITHMETIC_BASE at internal/outbox/relay.go:59:18
+      KILLED CONDITIONALS_NEGATION at internal/outbox/relay.go:195:16
+       LIVED CONDITIONALS_BOUNDARY at internal/outbox/relay.go:195:31
+      KILLED ARITHMETIC_BASE at internal/outbox/relay.go:194:9
+      KILLED CONDITIONALS_NEGATION at internal/outbox/relay.go:195:31
+      KILLED CONDITIONALS_BOUNDARY at internal/outbox/relay.go:195:16
+       LIVED ARITHMETIC_BASE at internal/outbox/relay.go:207:36
+      KILLED CONDITIONALS_NEGATION at internal/outbox/relay.go:210:9
+      KILLED INCREMENT_DECREMENT at internal/outbox/relay.go:195:48
+      KILLED CONDITIONALS_NEGATION at internal/outbox/relay.go:220:17
+      KILLED ARITHMETIC_BASE at internal/repositories/auth_service_client.go:84:95
+      KILLED CONDITIONALS_NEGATION at internal/outbox/relay.go:224:39
+      KILLED ARITHMETIC_BASE at internal/repositories/auth_service_client.go:84:71
+      KILLED ARITHMETIC_BASE at internal/repositories/auth_service_client.go:88:43
+      KILLED CONDITIONALS_NEGATION at internal/repositories/auth_service_client.go:67:76
+      KILLED CONDITIONALS_NEGATION at internal/repositories/auth_service_client.go:80:7
+      KILLED CONDITIONALS_NEGATION at internal/repositories/auth_service_client.go:91:9
+      KILLED CONDITIONALS_NEGATION at internal/repositories/auth_service_client.go:80:27
+      KILLED CONDITIONALS_NEGATION at internal/repositories/auth_service_client.go:99:21
+      KILLED ARITHMETIC_BASE at internal/repositories/auth_service_client.go:146:71
+       LIVED ARITHMETIC_BASE at internal/repositories/auth_service_client.go:41:40
+      KILLED ARITHMETIC_BASE at internal/repositories/auth_service_client.go:150:43
+      KILLED CONDITIONALS_NEGATION at internal/repositories/auth_service_client.go:85:9
+      KILLED CONDITIONALS_NEGATION at internal/repositories/auth_service_client.go:96:21
+      KILLED CONDITIONALS_NEGATION at internal/repositories/auth_service_client.go:104:60
+      KILLED CONDITIONALS_NEGATION at internal/repositories/auth_service_client.go:118:69
+      KILLED CONDITIONALS_NEGATION at internal/repositories/auth_service_client.go:135:74
+       LIVED CONDITIONALS_BOUNDARY at internal/repositories/auth_service_client.go:99:21
+      KILLED CONDITIONALS_NEGATION at internal/repositories/auth_service_client.go:147:9
+      KILLED CONDITIONALS_NEGATION at internal/repositories/auth_service_client.go:142:27
+      KILLED CONDITIONALS_NEGATION at internal/repositories/auth_service_client.go:142:7
+      KILLED CONDITIONALS_NEGATION at internal/repositories/auth_service_client.go:153:9
+      KILLED CONDITIONALS_NEGATION at internal/repositories/auth_service_client.go:162:56
+      KILLED CONDITIONALS_NEGATION at internal/repositories/auth_service_client.go:158:21
+      KILLED CONDITIONALS_NEGATION at internal/repositories/content_cache.go:59:7
+      KILLED CONDITIONALS_BOUNDARY at internal/repositories/content_cache.go:38:9
+      KILLED CONDITIONALS_NEGATION at internal/repositories/content_cache.go:38:9
+      KILLED CONDITIONALS_BOUNDARY at internal/repositories/content_cache.go:64:60
+       LIVED CONDITIONALS_BOUNDARY at internal/repositories/auth_service_client.go:158:21
+      KILLED CONDITIONALS_NEGATION at internal/repositories/content_cache.go:46:7
+      KILLED CONDITIONALS_NEGATION at internal/repositories/content_cache.go:64:60
+      KILLED CONDITIONALS_NEGATION at internal/repositories/content_cache.go:69:14
+      KILLED CONDITIONALS_NEGATION at internal/repositories/content_cache.go:82:7
+      KILLED ARITHMETIC_BASE at internal/repositories/content_cache.go:87:22
+      KILLED CONDITIONALS_NEGATION at internal/repositories/content_cache.go:97:16
+      KILLED INVERT_NEGATIVES at internal/repositories/content_cache.go:87:22
+      KILLED CONDITIONALS_NEGATION at internal/repositories/content_cache.go:97:31
+      KILLED ARITHMETIC_BASE at internal/repositories/contentful_assets.go:73:55
+      KILLED CONDITIONALS_NEGATION at internal/repositories/contentful_assets.go:57:73
+      KILLED CONDITIONALS_NEGATION at internal/repositories/contentful_assets.go:30:9
+      KILLED CONDITIONALS_NEGATION at internal/repositories/contentful_assets.go:57:48
+      KILLED CONDITIONALS_NEGATION at internal/repositories/contentful_assets.go:48:9
+       LIVED CONDITIONALS_BOUNDARY at internal/repositories/content_cache.go:97:31
+      KILLED ARITHMETIC_BASE at internal/repositories/contentful_assets.go:101:57
+      KILLED CONDITIONALS_NEGATION at internal/repositories/contentful_assets.go:64:91
+      KILLED ARITHMETIC_BASE at internal/repositories/contentful_assets.go:101:72
+      KILLED ARITHMETIC_BASE at internal/repositories/contentful_assets.go:115:43
+       LIVED ARITHMETIC_BASE at internal/repositories/contentful_assets.go:69:33
+      KILLED CONDITIONALS_NEGATION at internal/repositories/contentful_assets.go:71:16
+       LIVED ARITHMETIC_BASE at internal/repositories/contentful_assets.go:72:18
+       LIVED CONDITIONALS_BOUNDARY at internal/repositories/contentful_assets.go:71:16
+      KILLED CONDITIONALS_NEGATION at internal/repositories/contentful_assets.go:74:10
+      KILLED CONDITIONALS_NEGATION at internal/repositories/contentful_assets.go:87:40
+       LIVED INCREMENT_DECREMENT at internal/repositories/contentful_assets.go:71:23
+      KILLED ARITHMETIC_BASE at internal/repositories/contentful_client.go:144:58
+      KILLED CONDITIONALS_NEGATION at internal/repositories/contentful_assets.go:119:9
+      KILLED CONDITIONALS_NEGATION at internal/repositories/contentful_assets.go:102:79
+      KILLED CONDITIONALS_NEGATION at internal/repositories/contentful_client.go:39:33
+      KILLED CONDITIONALS_NEGATION at internal/repositories/contentful_assets.go:127:43
+      KILLED ARITHMETIC_BASE at internal/repositories/contentful_client.go:162:40
+      KILLED CONDITIONALS_NEGATION at internal/repositories/contentful_assets.go:112:9
+      KILLED ARITHMETIC_BASE at internal/repositories/contentful_client.go:162:34
+      KILLED ARITHMETIC_BASE at internal/repositories/contentful_client.go:162:21
+      KILLED ARITHMETIC_BASE at internal/repositories/contentful_client.go:162:27
+      KILLED CONDITIONALS_NEGATION at internal/repositories/contentful_assets.go:127:63
+      KILLED CONDITIONALS_NEGATION at internal/repositories/contentful_client.go:118:9
+      KILLED CONDITIONALS_NEGATION at internal/repositories/contentful_client.go:123:51
+      KILLED ARITHMETIC_BASE at internal/repositories/contentful_client.go:199:58
+      KILLED CONDITIONALS_NEGATION at internal/repositories/contentful_client.go:145:9
+      KILLED CONDITIONALS_NEGATION at internal/repositories/contentful_client.go:150:51
+       LIVED ARITHMETIC_BASE at internal/repositories/contentful_client.go:76:43
+      KILLED CONDITIONALS_NEGATION at internal/repositories/contentful_client.go:157:11
+      KILLED ARITHMETIC_BASE at internal/repositories/contentful_client.go:241:58
+      KILLED CONDITIONALS_NEGATION at internal/repositories/contentful_client.go:163:51
+      KILLED CONDITIONALS_NEGATION at internal/repositories/contentful_client.go:163:22
+      KILLED CONDITIONALS_NEGATION at internal/repositories/contentful_assets.go:90:52
+      KILLED ARITHMETIC_BASE at internal/repositories/contentful_client.go:256:58
+      KILLED CONDITIONALS_NEGATION at internal/repositories/contentful_client.go:173:9
+      KILLED CONDITIONALS_NEGATION at internal/repositories/contentful_client.go:205:46
+      KILLED CONDITIONALS_NEGATION at internal/repositories/contentful_client.go:200:9
+      KILLED ARITHMETIC_BASE at internal/repositories/contentful_client.go:256:61
+      KILLED CONDITIONALS_NEGATION at internal/repositories/contentful_client.go:181:9
+      KILLED CONDITIONALS_NEGATION at internal/repositories/contentful_client.go:214:9
+      KILLED CONDITIONALS_NEGATION at internal/repositories/contentful_client.go:220:9
+      KILLED ARITHMETIC_BASE at internal/repositories/contentful_client.go:271:63
+      KILLED ARITHMETIC_BASE at internal/repositories/contentful_client.go:271:66
+      KILLED CONDITIONALS_NEGATION at internal/repositories/contentful_client.go:236:9
+      KILLED ARITHMETIC_BASE at internal/repositories/contentful_client.go:282:58
+      KILLED CONDITIONALS_NEGATION at internal/repositories/contentful_client.go:225:46
+      KILLED CONDITIONALS_NEGATION at internal/repositories/contentful_client.go:247:46
+      KILLED CONDITIONALS_NEGATION at internal/repositories/contentful_client.go:242:9
+      KILLED CONDITIONALS_NEGATION at internal/repositories/contentful_client.go:257:9
+      KILLED ARITHMETIC_BASE at internal/repositories/contentful_client.go:324:43
+      KILLED CONDITIONALS_NEGATION at internal/repositories/contentful_client.go:272:26
+      KILLED CONDITIONALS_NEGATION at internal/repositories/contentful_client.go:262:46
+      KILLED CONDITIONALS_NEGATION at internal/repositories/contentful_client.go:272:9
+      KILLED CONDITIONALS_NEGATION at internal/repositories/contentful_client.go:301:13
+      KILLED CONDITIONALS_NEGATION at internal/repositories/contentful_client.go:295:43
+      KILLED CONDITIONALS_NEGATION at internal/repositories/contentful_client.go:297:31
+      KILLED CONDITIONALS_NEGATION at internal/repositories/contentful_client.go:304:33
+      KILLED CONDITIONALS_NEGATION at internal/repositories/contentful_client.go:315:10
+      KILLED CONDITIONALS_NEGATION at internal/repositories/contentful_client.go:320:9
+      KILLED CONDITIONALS_NEGATION at internal/repositories/contentful_client.go:342:9
+      KILLED CONDITIONALS_NEGATION at internal/repositories/contentful_client.go:331:9
+      KILLED CONDITIONALS_NEGATION at internal/repositories/contentful_client.go:331:26
+      KILLED CONDITIONALS_NEGATION at internal/repositories/contentful_client.go:348:9
+      KILLED CONDITIONALS_BOUNDARY at internal/repositories/contentful_client.go:352:21
+      KILLED CONDITIONALS_NEGATION at internal/repositories/contentful_client.go:352:21
+      KILLED CONDITIONALS_NEGATION at internal/repositories/contentful_fields.go:15:16
+      KILLED CONDITIONALS_NEGATION at internal/repositories/contentful_fields.go:46:44
+      KILLED CONDITIONALS_NEGATION at internal/repositories/contentful_fields.go:33:41
+      KILLED CONDITIONALS_NEGATION at internal/repositories/contentful_fields.go:29:16
+      KILLED CONDITIONALS_NEGATION at internal/repositories/contentful_fields.go:42:16
+      KILLED CONDITIONALS_NEGATION at internal/repositories/contentful_fields.go:46:66
+      KILLED CONDITIONALS_NEGATION at internal/repositories/contentful_fields.go:57:14
+      KILLED CONDITIONALS_NEGATION at internal/repositories/contentful_fields.go:79:38
+      KILLED CONDITIONALS_NEGATION at internal/repositories/contentful_fields.go:61:48
+      KILLED CONDITIONALS_NEGATION at internal/repositories/contentful_fields.go:93:45
+      KILLED CONDITIONALS_NEGATION at internal/repositories/contentful_fields.go:89:16
+      KILLED CONDITIONALS_NEGATION at internal/repositories/course_repository.go:65:9
+      KILLED CONDITIONALS_NEGATION at internal/repositories/contentful_fields.go:98:15
+      KILLED CONDITIONALS_NEGATION at internal/repositories/course_repository.go:86:9
+      KILLED CONDITIONALS_NEGATION at internal/repositories/course_repository.go:89:27
+      KILLED CONDITIONALS_NEGATION at internal/repositories/course_repository.go:115:9
+      KILLED CONDITIONALS_NEGATION at internal/repositories/course_repository.go:120:9
+      KILLED CONDITIONALS_NEGATION at internal/repositories/course_repository.go:100:9
+      KILLED CONDITIONALS_NEGATION at internal/repositories/course_repository.go:134:9
+      KILLED CONDITIONALS_NEGATION at internal/repositories/course_repository.go:145:9
+      KILLED CONDITIONALS_NEGATION at internal/repositories/course_repository.go:160:9
+      KILLED CONDITIONALS_NEGATION at internal/repositories/course_repository.go:173:21
+      KILLED ARITHMETIC_BASE at internal/repositories/course_repository.go:178:12
+ NOT COVERED CONDITIONALS_BOUNDARY at internal/repositories/enrollment_repository.go:54:13
+ NOT COVERED CONDITIONALS_NEGATION at internal/repositories/enrollment_repository.go:54:13
+ NOT COVERED CONDITIONALS_NEGATION at internal/repositories/enrollment_repository.go:75:10
+ NOT COVERED CONDITIONALS_NEGATION at internal/repositories/enrollment_repository.go:78:10
+ NOT COVERED CONDITIONALS_NEGATION at internal/repositories/enrollment_repository.go:82:33
+ NOT COVERED CONDITIONALS_NEGATION at internal/repositories/enrollment_repository.go:92:25
+ NOT COVERED CONDITIONALS_BOUNDARY at internal/repositories/enrollment_repository.go:96:16
+ NOT COVERED CONDITIONALS_NEGATION at internal/repositories/enrollment_repository.go:96:16
+ NOT COVERED ARITHMETIC_BASE at internal/repositories/enrollment_repository.go:97:12
+ NOT COVERED CONDITIONALS_BOUNDARY at internal/repositories/enrollment_repository.go:98:10
+ NOT COVERED CONDITIONALS_NEGATION at internal/repositories/enrollment_repository.go:98:10
+ NOT COVERED CONDITIONALS_NEGATION at internal/repositories/enrollment_repository.go:105:11
+ NOT COVERED CONDITIONALS_NEGATION at internal/repositories/enrollment_repository.go:108:11
+ NOT COVERED CONDITIONALS_NEGATION at internal/repositories/enrollment_repository.go:113:34
+ NOT COVERED CONDITIONALS_NEGATION at internal/repositories/enrollment_repository.go:127:14
+ NOT COVERED CONDITIONALS_NEGATION at internal/repositories/enrollment_repository.go:136:36
+ NOT COVERED CONDITIONALS_NEGATION at internal/repositories/enrollment_repository.go:141:9
+ NOT COVERED CONDITIONALS_NEGATION at internal/repositories/enrollment_repository.go:153:9
+ NOT COVERED CONDITIONALS_NEGATION at internal/repositories/enrollment_repository.go:156:15
+ NOT COVERED CONDITIONALS_NEGATION at internal/repositories/enrollment_repository.go:168:38
+      KILLED CONDITIONALS_NEGATION at internal/repositories/course_repository.go:177:16
+       LIVED CONDITIONALS_BOUNDARY at internal/repositories/course_repository.go:177:16
+      KILLED CONDITIONALS_NEGATION at internal/repositories/course_repository.go:179:10
+      KILLED CONDITIONALS_NEGATION at internal/repositories/course_repository.go:207:9
+      KILLED CONDITIONALS_NEGATION at internal/repositories/course_repository.go:187:10
+      KILLED CONDITIONALS_NEGATION at internal/repositories/course_repository.go:225:9
+       LIVED CONDITIONALS_BOUNDARY at internal/repositories/course_repository.go:179:10
+      KILLED ARITHMETIC_BASE at internal/repositories/errors.go:79:55
+      KILLED CONDITIONALS_NEGATION at internal/repositories/course_repository.go:258:20
+      KILLED CONDITIONALS_NEGATION at internal/repositories/course_repository.go:251:29
+      KILLED CONDITIONALS_NEGATION at internal/repositories/course_repository.go:354:29
+      KILLED ARITHMETIC_BASE at internal/repositories/errors.go:82:71
+      KILLED CONDITIONALS_NEGATION at internal/repositories/course_repository.go:357:26
+      KILLED ARITHMETIC_BASE at internal/repositories/errors.go:85:75
+      KILLED CONDITIONALS_NEGATION at internal/repositories/errors.go:40:30
+      KILLED ARITHMETIC_BASE at internal/repositories/errors.go:88:54
+      KILLED CONDITIONALS_BOUNDARY at internal/repositories/errors.go:57:18
+      KILLED CONDITIONALS_NEGATION at internal/repositories/errors.go:57:18
+      KILLED CONDITIONALS_BOUNDARY at internal/repositories/errors.go:78:18
+      KILLED CONDITIONALS_NEGATION at internal/repositories/errors.go:78:18
+      KILLED ARITHMETIC_BASE at internal/repositories/errors.go:93:34
+ NOT COVERED CONDITIONALS_NEGATION at internal/repositories/file_storage.go:46:21
+ NOT COVERED CONDITIONALS_NEGATION at internal/repositories/file_storage.go:50:9
+ NOT COVERED CONDITIONALS_NEGATION at internal/repositories/file_storage.go:59:34
+ NOT COVERED CONDITIONALS_NEGATION at internal/repositories/file_storage.go:63:27
+ NOT COVERED CONDITIONALS_NEGATION at internal/repositories/file_storage.go:71:9
+ NOT COVERED CONDITIONALS_NEGATION at internal/repositories/file_storage.go:84:10
+ NOT COVERED CONDITIONALS_NEGATION at internal/repositories/file_storage.go:87:10
+ NOT COVERED CONDITIONALS_NEGATION at internal/repositories/file_storage.go:90:58
+      KILLED ARITHMETIC_BASE at internal/repositories/errors.go:93:62
+ NOT COVERED CONDITIONALS_NEGATION at internal/repositories/firestore_client.go:45:21
+      KILLED CONDITIONALS_BOUNDARY at internal/repositories/errors.go:81:21
+      KILLED CONDITIONALS_NEGATION at internal/repositories/errors.go:81:21
+      KILLED CONDITIONALS_BOUNDARY at internal/repositories/errors.go:84:21
+      KILLED CONDITIONALS_NEGATION at internal/repositories/errors.go:84:21
+ NOT COVERED CONDITIONALS_NEGATION at internal/repositories/gemini_client.go:58:11
+      KILLED CONDITIONALS_NEGATION at internal/repositories/errors.go:87:16
+      KILLED CONDITIONALS_BOUNDARY at internal/repositories/errors.go:87:16
+      KILLED ARITHMETIC_BASE at internal/repositories/gemini_client.go:69:19
+      KILLED CONDITIONALS_NEGATION at internal/repositories/errors.go:90:16
+      KILLED CONDITIONALS_NEGATION at internal/repositories/errors.go:110:33
+      KILLED CONDITIONALS_NEGATION at internal/repositories/errors.go:98:8
+      KILLED ARITHMETIC_BASE at internal/repositories/gemini_client.go:117:43
+      KILLED CONDITIONALS_NEGATION at internal/repositories/file_storage.go:42:16
+       LIVED CONDITIONALS_BOUNDARY at internal/repositories/gemini_client.go:44:26
+      KILLED CONDITIONALS_NEGATION at internal/repositories/firestore_client.go:60:87
+       LIVED CONDITIONALS_NEGATION at internal/repositories/gemini_client.go:44:26
+       LIVED CONDITIONALS_NEGATION at internal/repositories/firestore_client.go:42:9
+ NOT COVERED CONDITIONALS_NEGATION at internal/repositories/general_attendance_repository.go:47:10
+ NOT COVERED CONDITIONALS_NEGATION at internal/repositories/general_attendance_repository.go:50:10
+ NOT COVERED CONDITIONALS_NEGATION at internal/repositories/general_attendance_repository.go:54:33
+ NOT COVERED CONDITIONALS_NEGATION at internal/repositories/general_attendance_repository.go:64:17
+ NOT COVERED ARITHMETIC_BASE at internal/repositories/general_attendance_repository.go:72:78
+ NOT COVERED ARITHMETIC_BASE at internal/repositories/general_attendance_repository.go:72:72
+ NOT COVERED CONDITIONALS_NEGATION at internal/repositories/general_attendance_repository.go:90:44
+ NOT COVERED CONDITIONALS_NEGATION at internal/repositories/general_attendance_repository.go:95:40
+ NOT COVERED CONDITIONALS_NEGATION at internal/repositories/general_attendance_repository.go:98:16
+ NOT COVERED CONDITIONALS_NEGATION at internal/repositories/general_attendance_repository.go:105:79
+ NOT COVERED CONDITIONALS_NEGATION at internal/repositories/general_attendance_repository.go:111:9
+ NOT COVERED CONDITIONALS_NEGATION at internal/repositories/general_attendance_repository.go:120:35
+ NOT COVERED CONDITIONALS_NEGATION at internal/repositories/general_attendance_repository.go:123:22
+ NOT COVERED CONDITIONALS_NEGATION at internal/repositories/general_attendance_repository.go:123:58
+      KILLED CONDITIONALS_NEGATION at internal/repositories/gemini_client.go:49:9
+      KILLED CONDITIONALS_NEGATION at internal/repositories/gemini_client.go:70:14
+      KILLED CONDITIONALS_NEGATION at internal/repositories/gemini_client.go:82:9
+      KILLED CONDITIONALS_NEGATION at internal/repositories/gemini_client.go:109:9
+      KILLED CONDITIONALS_NEGATION at internal/repositories/gemini_client.go:114:9
+      KILLED CONDITIONALS_NEGATION at internal/repositories/gemini_client.go:121:9
+      KILLED CONDITIONALS_NEGATION at internal/repositories/gemini_client.go:129:21
+      KILLED CONDITIONALS_NEGATION at internal/repositories/gemini_client.go:126:9
+      KILLED CONDITIONALS_NEGATION at internal/repositories/material_repository.go:35:9
+      KILLED CONDITIONALS_NEGATION at internal/repositories/gemini_client.go:143:43
+      KILLED CONDITIONALS_NEGATION at internal/repositories/gemini_client.go:146:25
+      KILLED CONDITIONALS_NEGATION at internal/repositories/gemini_client.go:146:70
+       LIVED CONDITIONALS_NEGATION at internal/repositories/material_repository.go:55:23
+       LIVED CONDITIONALS_NEGATION at internal/repositories/material_repository.go:52:16
+      KILLED CONDITIONALS_NEGATION at internal/repositories/material_repository.go:63:9
+       LIVED CONDITIONALS_NEGATION at internal/repositories/material_repository.go:58:15
+      KILLED CONDITIONALS_NEGATION at internal/repositories/material_repository.go:67:84
+      KILLED CONDITIONALS_NEGATION at internal/repositories/material_repository.go:77:9
+      KILLED ARITHMETIC_BASE at internal/repositories/openai_client.go:62:72
+      KILLED CONDITIONALS_NEGATION at internal/repositories/material_repository.go:94:9
+      KILLED CONDITIONALS_NEGATION at internal/repositories/material_repository.go:98:72
+       LIVED CONDITIONALS_NEGATION at internal/repositories/material_repository.go:86:23
+      KILLED ARITHMETIC_BASE at internal/repositories/openai_client.go:66:43
+      KILLED CONDITIONALS_NEGATION at internal/repositories/material_repository.go:112:9
+       LIVED CONDITIONALS_NEGATION at internal/repositories/material_repository.go:89:15
+       LIVED CONDITIONALS_NEGATION at internal/repositories/material_repository.go:121:18
+      KILLED CONDITIONALS_NEGATION at internal/repositories/material_repository.go:126:9
+      KILLED CONDITIONALS_NEGATION at internal/repositories/material_repository.go:164:23
+      KILLED CONDITIONALS_NEGATION at internal/repositories/material_repository.go:129:84
+      KILLED ARITHMETIC_BASE at internal/repositories/skill_ai_prompt.go:68:89
+      KILLED CONDITIONALS_NEGATION at internal/repositories/openai_client.go:58:9
+      KILLED CONDITIONALS_NEGATION at internal/repositories/openai_client.go:63:9
+      KILLED ARITHMETIC_BASE at internal/repositories/skill_ai_prompt.go:74:74
+      KILLED ARITHMETIC_BASE at internal/repositories/skill_ai_prompt.go:68:62
+      KILLED ARITHMETIC_BASE at internal/repositories/skill_ai_prompt.go:74:58
+      KILLED ARITHMETIC_BASE at internal/repositories/skill_ai_prompt.go:74:50
+      KILLED ARITHMETIC_BASE at internal/repositories/skill_ai_prompt.go:74:32
+      KILLED ARITHMETIC_BASE at internal/repositories/skill_ai_prompt.go:86:32
+      KILLED ARITHMETIC_BASE at internal/repositories/skill_ai_prompt.go:95:30
+      KILLED CONDITIONALS_NEGATION at internal/repositories/openai_client.go:78:21
+      KILLED CONDITIONALS_NEGATION at internal/repositories/openai_client.go:91:43
+      KILLED CONDITIONALS_NEGATION at internal/repositories/openai_client.go:75:9
+      KILLED CONDITIONALS_NEGATION at internal/repositories/openai_client.go:94:22
+      KILLED CONDITIONALS_NEGATION at internal/repositories/openai_client.go:70:9
+      KILLED CONDITIONALS_NEGATION at internal/repositories/openai_client.go:94:61
+      KILLED ARITHMETIC_BASE at internal/repositories/skill_ai_prompt.go:123:47
+      KILLED ARITHMETIC_BASE at internal/repositories/skill_repository.go:28:27
+      KILLED ARITHMETIC_BASE at internal/repositories/skill_repository.go:28:21
+      KILLED ARITHMETIC_BASE at internal/repositories/skill_repository.go:35:30
+ NOT COVERED CONDITIONALS_NEGATION at internal/repositories/skill_repository.go:82:9
+ NOT COVERED CONDITIONALS_NEGATION at internal/repositories/skill_repository.go:88:10
+ NOT COVERED CONDITIONALS_NEGATION at internal/repositories/skill_repository.go:98:14
+ NOT COVERED CONDITIONALS_NEGATION at internal/repositories/skill_repository.go:106:9
+ NOT COVERED CONDITIONALS_NEGATION at internal/repositories/skill_repository.go:114:10
+ NOT COVERED CONDITIONALS_NEGATION at internal/repositories/skill_repository.go:136:9
+ NOT COVERED CONDITIONALS_NEGATION at internal/repositories/skill_repository.go:142:31
+ NOT COVERED CONDITIONALS_NEGATION at internal/repositories/skill_repository.go:161:10
+ NOT COVERED CONDITIONALS_NEGATION at internal/repositories/skill_repository.go:165:10
+ NOT COVERED CONDITIONALS_NEGATION at internal/repositories/skill_repository.go:170:9
+ NOT COVERED CONDITIONALS_BOUNDARY at internal/repositories/skill_repository.go:180:22
+ NOT COVERED CONDITIONALS_NEGATION at internal/repositories/skill_repository.go:180:22
+ NOT COVERED CONDITIONALS_NEGATION at internal/repositories/skill_repository.go:183:10
+ NOT COVERED CONDITIONALS_NEGATION at internal/repositories/skill_repository.go:188:9
+ NOT COVERED CONDITIONALS_NEGATION at internal/repositories/skill_repository.go:201:10
+ NOT COVERED CONDITIONALS_NEGATION at internal/repositories/skill_repository.go:206:121
+ NOT COVERED CONDITIONALS_NEGATION at internal/repositories/skill_repository.go:219:35
+ NOT COVERED CONDITIONALS_NEGATION at internal/repositories/skill_repository.go:234:31
+ NOT COVERED CONDITIONALS_NEGATION at internal/repositories/skill_repository.go:240:35
+ NOT COVERED CONDITIONALS_NEGATION at internal/repositories/skill_repository.go:264:77
+ NOT COVERED CONDITIONALS_NEGATION at internal/repositories/skill_repository.go:265:25
+ NOT COVERED CONDITIONALS_NEGATION at internal/repositories/skill_repository.go:285:37
+ NOT COVERED CONDITIONALS_NEGATION at internal/repositories/skill_repository.go:294:9
+ NOT COVERED CONDITIONALS_NEGATION at internal/repositories/skill_repository.go:302:9
+ NOT COVERED CONDITIONALS_NEGATION at internal/repositories/skill_repository.go:312:32
+ NOT COVERED CONDITIONALS_NEGATION at internal/repositories/skill_repository.go:322:32
+      KILLED CONDITIONALS_NEGATION at internal/repositories/skill_ai_prompt.go:51:68
+      KILLED CONDITIONALS_BOUNDARY at internal/repositories/skill_ai_prompt.go:51:68
+ NOT COVERED CONDITIONALS_NEGATION at internal/repositories/submission_repository.go:61:18
+ NOT COVERED CONDITIONALS_NEGATION at internal/repositories/submission_repository.go:78:10
+ NOT COVERED CONDITIONALS_NEGATION at internal/repositories/submission_repository.go:82:10
+ NOT COVERED CONDITIONALS_NEGATION at internal/repositories/submission_repository.go:86:88
+ NOT COVERED CONDITIONALS_NEGATION at internal/repositories/submission_repository.go:89:92
+ NOT COVERED CONDITIONALS_NEGATION at internal/repositories/submission_repository.go:102:38
+ NOT COVERED CONDITIONALS_NEGATION at internal/repositories/submission_repository.go:105:59
+ NOT COVERED CONDITIONALS_NEGATION at internal/repositories/submission_repository.go:110:94
+ NOT COVERED CONDITIONALS_NEGATION at internal/repositories/submission_repository.go:118:9
+ NOT COVERED CONDITIONALS_NEGATION at internal/repositories/submission_repository.go:119:23
+ NOT COVERED CONDITIONALS_NEGATION at internal/repositories/submission_repository.go:134:45
+ NOT COVERED CONDITIONALS_NEGATION at internal/repositories/submission_repository.go:138:9
+ NOT COVERED CONDITIONALS_NEGATION at internal/repositories/submission_repository.go:143:15
+ NOT COVERED CONDITIONALS_NEGATION at internal/repositories/submission_repository.go:147:17
+ NOT COVERED CONDITIONALS_NEGATION at internal/repositories/submission_repository.go:151:9
+ NOT COVERED CONDITIONALS_NEGATION at internal/repositories/submission_repository.go:167:9
+ NOT COVERED CONDITIONALS_NEGATION at internal/repositories/submission_repository.go:170:16
+ NOT COVERED CONDITIONALS_NEGATION at internal/repositories/submission_repository.go:177:34
+ NOT COVERED CONDITIONALS_NEGATION at internal/repositories/submission_repository.go:184:9
+ NOT COVERED CONDITIONALS_NEGATION at internal/repositories/submission_repository.go:198:9
+ NOT COVERED CONDITIONALS_NEGATION at internal/repositories/submission_repository.go:199:23
+ NOT COVERED CONDITIONALS_NEGATION at internal/repositories/submission_repository.go:214:10
+ NOT COVERED CONDITIONALS_NEGATION at internal/repositories/submission_repository.go:217:10
+ NOT COVERED CONDITIONALS_NEGATION at internal/repositories/submission_repository.go:221:10
+ NOT COVERED CONDITIONALS_NEGATION at internal/repositories/submission_repository.go:231:23
+ NOT COVERED CONDITIONALS_NEGATION at internal/repositories/submission_repository.go:240:9
+ NOT COVERED CONDITIONALS_NEGATION at internal/repositories/submission_repository.go:248:10
+ NOT COVERED CONDITIONALS_NEGATION at internal/repositories/submission_repository.go:258:32
+ NOT COVERED CONDITIONALS_NEGATION at internal/repositories/submission_repository.go:262:16
+      KILLED CONDITIONALS_NEGATION at internal/repositories/skill_ai_prompt.go:51:22
+      KILLED ARITHMETIC_BASE at internal/repositories/submission_repository.go:26:27
+      KILLED ARITHMETIC_BASE at internal/repositories/skill_repository.go:35:24
+      KILLED ARITHMETIC_BASE at internal/repositories/submission_repository.go:26:21
+      KILLED CONDITIONALS_NEGATION at internal/repositories/skill_ai_prompt.go:100:16
+      KILLED CONDITIONALS_NEGATION at internal/repositories/skill_ai_prompt.go:119:7
+      KILLED CONDITIONALS_NEGATION at internal/repositories/skill_ai_prompt.go:105:8
+      KILLED CONDITIONALS_NEGATION at internal/repositories/skill_ai_prompt.go:122:31
+       LIVED CONDITIONALS_BOUNDARY at internal/repositories/skill_ai_prompt.go:122:31
+      KILLED CONDITIONALS_NEGATION at internal/repositories/skill_ai_prompt.go:180:22
+      KILLED CONDITIONALS_NEGATION at internal/repositories/skill_ai_prompt.go:177:52
+       LIVED CONDITIONALS_NEGATION at internal/repositories/training_area_repository.go:48:23
+      KILLED CONDITIONALS_NEGATION at internal/repositories/training_area_repository.go:32:9
+      KILLED CONDITIONALS_NEGATION at internal/routes/async.go:34:8
+      KILLED CONDITIONALS_NEGATION at internal/repositories/training_area_repository.go:57:84
+      KILLED CONDITIONALS_NEGATION at internal/repositories/training_area_repository.go:67:9
+      KILLED CONDITIONALS_NEGATION at internal/services/activity_service.go:45:9
+      KILLED CONDITIONALS_NEGATION at internal/repositories/training_area_repository.go:53:9
+      KILLED CONDITIONALS_NEGATION at internal/services/activity_service.go:53:27
+      KILLED CONDITIONALS_NEGATION at internal/repositories/training_area_repository.go:78:9
+      KILLED CONDITIONALS_NEGATION at internal/services/activity_service.go:61:9
+      KILLED CONDITIONALS_NEGATION at internal/services/activity_service.go:68:27
+      KILLED CONDITIONALS_NEGATION at internal/repositories/training_area_repository.go:82:72
+      KILLED CONDITIONALS_NEGATION at internal/services/activity_service.go:72:9
+      KILLED CONDITIONALS_NEGATION at internal/services/activity_service.go:79:27
+      KILLED CONDITIONALS_NEGATION at internal/services/activity_service.go:82:40
+      KILLED CONDITIONALS_NEGATION at internal/services/activity_service.go:103:18
+      KILLED CONDITIONALS_NEGATION at internal/services/activity_service.go:88:15
+      KILLED CONDITIONALS_NEGATION at internal/services/activity_service.go:106:20
+      KILLED CONDITIONALS_NEGATION at internal/services/attendance_service.go:27:36
+      KILLED CONDITIONALS_BOUNDARY at internal/services/course_service.go:74:17
+      KILLED CONDITIONALS_NEGATION at internal/services/course_service.go:74:17
+       LIVED CONDITIONALS_NEGATION at internal/services/activity_service.go:89:76
+      KILLED CONDITIONALS_NEGATION at internal/services/course_service.go:97:14
+      KILLED CONDITIONALS_NEGATION at internal/services/course_service.go:86:24
+      KILLED CONDITIONALS_NEGATION at internal/services/course_service.go:119:44
+      KILLED CONDITIONALS_NEGATION at internal/services/course_service.go:112:27
+      KILLED CONDITIONALS_NEGATION at internal/services/course_service.go:123:9
+      KILLED CONDITIONALS_NEGATION at internal/services/course_service.go:134:44
+      KILLED CONDITIONALS_NEGATION at internal/services/course_service.go:131:27
+      KILLED CONDITIONALS_NEGATION at internal/services/course_service.go:146:27
+      KILLED CONDITIONALS_NEGATION at internal/services/course_service.go:138:9
+      KILLED CONDITIONALS_NEGATION at internal/services/course_service.go:150:9
+      KILLED CONDITIONALS_NEGATION at internal/services/course_service.go:158:27
+      KILLED CONDITIONALS_NEGATION at internal/services/course_service.go:174:27
+      KILLED CONDITIONALS_NEGATION at internal/services/course_service.go:162:9
+      KILLED CONDITIONALS_NEGATION at internal/services/course_service.go:185:34
+      KILLED CONDITIONALS_NEGATION at internal/services/course_service.go:192:34
+      KILLED CONDITIONALS_NEGATION at internal/services/course_service.go:210:32
+       LIVED CONDITIONALS_NEGATION at internal/services/course_service.go:178:9
+      KILLED CONDITIONALS_NEGATION at internal/services/course_service.go:214:9
+      KILLED CONDITIONALS_NEGATION at internal/services/course_service.go:217:31
+      KILLED CONDITIONALS_NEGATION at internal/services/course_service.go:224:32
+      KILLED CONDITIONALS_NEGATION at internal/services/course_service.go:238:34
+      KILLED CONDITIONALS_NEGATION at internal/services/course_service.go:244:44
+      KILLED CONDITIONALS_NEGATION at internal/services/course_service.go:228:9
+      KILLED CONDITIONALS_NEGATION at internal/services/course_service.go:250:9
+      KILLED CONDITIONALS_NEGATION at internal/services/course_service.go:265:44
+      KILLED CONDITIONALS_NEGATION at internal/services/course_service.go:269:9
+      KILLED CONDITIONALS_NEGATION at internal/services/course_service.go:259:55
+      KILLED CONDITIONALS_NEGATION at internal/services/course_service.go:281:36
+      KILLED CONDITIONALS_NEGATION at internal/services/course_service.go:284:28
+      KILLED CONDITIONALS_NEGATION at internal/services/course_service.go:290:39
+      KILLED CONDITIONALS_NEGATION at internal/services/course_service.go:287:49
+      KILLED CONDITIONALS_NEGATION at internal/services/course_service.go:293:45
+      KILLED ARITHMETIC_BASE at internal/services/enrollment_service.go:79:23
+      KILLED CONDITIONALS_NEGATION at internal/services/course_service.go:284:62
+      KILLED CONDITIONALS_NEGATION at internal/services/course_service.go:300:16
+      KILLED CONDITIONALS_NEGATION at internal/services/course_service.go:296:28
+      KILLED CONDITIONALS_NEGATION at internal/services/enrollment_service.go:53:18
+      KILLED CONDITIONALS_NEGATION at internal/services/enrollment_service.go:64:9
+      KILLED CONDITIONALS_NEGATION at internal/services/enrollment_service.go:75:13
+      KILLED CONDITIONALS_NEGATION at internal/services/enrollment_service.go:69:16
+      KILLED CONDITIONALS_NEGATION at internal/services/enrollment_service.go:75:30
+      KILLED CONDITIONALS_NEGATION at internal/services/enrollment_service.go:107:20
+      KILLED CONDITIONALS_NEGATION at internal/services/enrollment_service.go:88:9
+      KILLED CONDITIONALS_NEGATION at internal/services/enrollment_service.go:122:16
+      KILLED CONDITIONALS_NEGATION at internal/services/enrollment_service.go:134:9
+      KILLED CONDITIONALS_NEGATION at internal/services/enrollment_service.go:137:17
+      KILLED CONDITIONALS_NEGATION at internal/services/enrollment_service.go:110:32
+      KILLED CONDITIONALS_NEGATION at internal/services/enrollment_service.go:117:9
+      KILLED CONDITIONALS_NEGATION at internal/services/enrollment_service.go:146:9
+      KILLED CONDITIONALS_NEGATION at internal/services/enrollment_service.go:152:15
+      KILLED INCREMENT_DECREMENT at internal/services/enrollment_service.go:155:14
+      KILLED CONDITIONALS_NEGATION at internal/services/enrollment_service.go:156:23
+      KILLED CONDITIONALS_NEGATION at internal/services/enrollment_service.go:161:21
+      KILLED CONDITIONALS_BOUNDARY at internal/services/enrollment_service.go:161:43
+      KILLED CONDITIONALS_NEGATION at internal/services/enrollment_service.go:161:43
+      KILLED CONDITIONALS_NEGATION at internal/services/errors.go:12:56
+      KILLED CONDITIONALS_NEGATION at internal/services/general_attendance_service.go:47:9
+      KILLED CONDITIONALS_NEGATION at internal/services/errors.go:12:16
+      KILLED CONDITIONALS_NEGATION at internal/services/general_attendance_service.go:42:51
+      KILLED CONDITIONALS_NEGATION at internal/services/general_attendance_service.go:64:9
+      KILLED CONDITIONALS_NEGATION at internal/services/errors.go:12:32
+      KILLED ARITHMETIC_BASE at internal/services/general_attendance_service.go:117:69
+      KILLED ARITHMETIC_BASE at internal/services/general_attendance_service.go:117:49
+      KILLED ARITHMETIC_BASE at internal/services/general_attendance_service.go:120:69
+      KILLED ARITHMETIC_BASE at internal/services/general_attendance_service.go:120:49
+      KILLED CONDITIONALS_NEGATION at internal/services/general_attendance_service.go:57:65
+      KILLED CONDITIONALS_NEGATION at internal/services/general_attendance_service.go:102:17
+      KILLED CONDITIONALS_NEGATION at internal/services/general_attendance_service.go:99:51
+      KILLED CONDITIONALS_NEGATION at internal/services/general_attendance_service.go:106:43
+      KILLED CONDITIONALS_NEGATION at internal/services/general_attendance_service.go:113:10
+      KILLED CONDITIONALS_NEGATION at internal/services/general_attendance_service.go:116:18
+      KILLED ARITHMETIC_BASE at internal/services/kv_sync_service.go:72:44
+      KILLED CONDITIONALS_NEGATION at internal/services/jwt_service.go:57:9
+      KILLED CONDITIONALS_NEGATION at internal/services/kv_sync_service.go:32:7
+      KILLED CONDITIONALS_NEGATION at internal/services/kv_sync_service.go:36:15
+      KILLED ARITHMETIC_BASE at internal/services/kv_sync_service.go:45:61
+      KILLED CONDITIONALS_NEGATION at internal/services/jwt_service.go:66:20
+ NOT COVERED ARITHMETIC_BASE at internal/services/material_service.go:35:27
+ NOT COVERED ARITHMETIC_BASE at internal/services/material_service.go:35:20
+ NOT COVERED ARITHMETIC_BASE at internal/services/material_service.go:36:28
+ NOT COVERED ARITHMETIC_BASE at internal/services/material_service.go:36:21
+      KILLED CONDITIONALS_NEGATION at internal/services/kv_sync_service.go:32:30
+      KILLED CONDITIONALS_NEGATION at internal/services/kv_sync_service.go:59:9
+      KILLED CONDITIONALS_NEGATION at internal/services/kv_sync_service.go:49:9
+      KILLED CONDITIONALS_NEGATION at internal/services/kv_sync_service.go:71:15
+      KILLED CONDITIONALS_NEGATION at internal/services/kv_sync_service.go:65:9
+      KILLED CONDITIONALS_NEGATION at internal/services/kv_sync_service.go:77:9
+       LIVED ARITHMETIC_BASE at internal/services/kv_sync_service.go:75:36
+      KILLED CONDITIONALS_NEGATION at internal/services/material_service.go:61:46
+      KILLED CONDITIONALS_NEGATION at internal/services/material_service.go:68:27
+      KILLED CONDITIONALS_NEGATION at internal/services/material_service.go:71:46
+      KILLED ARITHMETIC_BASE at internal/services/material_service.go:103:84
+       LIVED CONDITIONALS_BOUNDARY at internal/services/kv_sync_service.go:85:21
+      KILLED CONDITIONALS_NEGATION at internal/services/material_service.go:78:27
+      KILLED CONDITIONALS_NEGATION at internal/services/material_service.go:88:13
+      KILLED CONDITIONALS_NEGATION at internal/services/material_service.go:85:33
+       LIVED CONDITIONALS_NEGATION at internal/services/kv_sync_service.go:85:21
+       LIVED CONDITIONALS_BOUNDARY at internal/services/kv_sync_service.go:85:46
+      KILLED ARITHMETIC_BASE at internal/services/material_service.go:103:67
+       LIVED CONDITIONALS_NEGATION at internal/services/kv_sync_service.go:85:46
+      KILLED CONDITIONALS_NEGATION at internal/services/material_service.go:94:13
+      KILLED CONDITIONALS_NEGATION at internal/services/material_service.go:97:18
+      KILLED CONDITIONALS_NEGATION at internal/services/material_service.go:106:18
+      KILLED CONDITIONALS_BOUNDARY at internal/services/material_service.go:106:18
+      KILLED CONDITIONALS_NEGATION at internal/services/material_service.go:123:42
+      KILLED CONDITIONALS_NEGATION at internal/services/material_service.go:116:36
+      KILLED CONDITIONALS_NEGATION at internal/services/progress_service.go:49:9
+       LIVED ARITHMETIC_BASE at internal/services/material_service.go:109:25
+       LIVED ARITHMETIC_BASE at internal/services/material_service.go:109:31
+       LIVED ARITHMETIC_BASE at internal/services/material_service.go:109:47
+      KILLED CONDITIONALS_NEGATION at internal/services/progress_service.go:40:9
+       LIVED ARITHMETIC_BASE at internal/services/material_service.go:109:53
+      KILLED CONDITIONALS_NEGATION at internal/services/progress_service.go:56:10
+      KILLED INCREMENT_DECREMENT at internal/services/progress_service.go:63:13
+      KILLED CONDITIONALS_BOUNDARY at internal/services/progress_service.go:68:22
+      KILLED CONDITIONALS_NEGATION at internal/services/progress_service.go:68:22
+      KILLED ARITHMETIC_BASE at internal/services/progress_service.go:69:55
+      KILLED ARITHMETIC_BASE at internal/services/progress_service.go:69:28
+      KILLED CONDITIONALS_NEGATION at internal/services/skill_service.go:68:9
+      KILLED CONDITIONALS_NEGATION at internal/services/skill_service.go:90:32
+      KILLED CONDITIONALS_NEGATION at internal/services/skill_service.go:79:10
+      KILLED CONDITIONALS_NEGATION at internal/services/skill_service.go:94:9
+      KILLED CONDITIONALS_NEGATION at internal/services/skill_service.go:81:19
+      KILLED CONDITIONALS_NEGATION at internal/services/skill_service.go:139:9
+      KILLED CONDITIONALS_NEGATION at internal/services/skill_service.go:107:9
+      KILLED CONDITIONALS_NEGATION at internal/services/skill_service.go:134:9
+      KILLED CONDITIONALS_NEGATION at internal/services/skill_service.go:150:67
+      KILLED CONDITIONALS_NEGATION at internal/services/skill_service.go:147:16
+      KILLED CONDITIONALS_NEGATION at internal/services/skill_service.go:164:22
+      KILLED CONDITIONALS_NEGATION at internal/services/skill_service.go:161:9
+      KILLED CONDITIONALS_NEGATION at internal/services/skill_service.go:185:9
+      KILLED CONDITIONALS_NEGATION at internal/services/skill_service.go:230:63
+      KILLED CONDITIONALS_NEGATION at internal/services/skill_service.go:225:12
+      KILLED CONDITIONALS_NEGATION at internal/services/skill_service.go:197:9
+      KILLED CONDITIONALS_NEGATION at internal/services/skill_service.go:221:16
+      KILLED CONDITIONALS_NEGATION at internal/services/skill_service.go:256:14
+      KILLED CONDITIONALS_NEGATION at internal/services/skill_service.go:251:9
+      KILLED CONDITIONALS_NEGATION at internal/services/skill_service.go:241:16
+      KILLED CONDITIONALS_NEGATION at internal/services/skill_service.go:260:13
+      KILLED CONDITIONALS_NEGATION at internal/services/skill_service.go:268:39
+ NOT COVERED ARITHMETIC_BASE at internal/services/skill_suggestion_service.go:27:21
+      KILLED CONDITIONALS_NEGATION at internal/services/skill_service.go:272:9
+      KILLED CONDITIONALS_NEGATION at internal/services/skill_service.go:280:9
+      KILLED CONDITIONALS_NEGATION at internal/services/skill_service.go:310:37
+      KILLED CONDITIONALS_NEGATION at internal/services/skill_service.go:294:69
+       LIVED CONDITIONALS_BOUNDARY at internal/services/skill_service.go:310:37
+      KILLED CONDITIONALS_NEGATION at internal/services/skill_service.go:307:10
+       LIVED CONDITIONALS_BOUNDARY at internal/services/skill_service.go:294:69
+       LIVED CONDITIONALS_BOUNDARY at internal/services/skill_service.go:322:17
+      KILLED CONDITIONALS_NEGATION at internal/services/skill_service.go:322:17
+       LIVED CONDITIONALS_BOUNDARY at internal/services/skill_service.go:337:69
+      KILLED CONDITIONALS_NEGATION at internal/services/skill_service.go:337:69
+      KILLED CONDITIONALS_NEGATION at internal/services/skill_suggestion_service.go:76:16
+      KILLED CONDITIONALS_NEGATION at internal/services/skill_suggestion_service.go:81:9
+      KILLED CONDITIONALS_NEGATION at internal/services/skill_suggestion_service.go:76:38
+      KILLED CONDITIONALS_NEGATION at internal/services/skill_suggestion_service.go:104:12
+      KILLED CONDITIONALS_NEGATION at internal/services/skill_suggestion_service.go:106:26
+      KILLED CONDITIONALS_NEGATION at internal/services/skill_suggestion_service.go:114:17
+      KILLED CONDITIONALS_NEGATION at internal/services/skill_suggestion_service.go:113:10
+      KILLED CONDITIONALS_NEGATION at internal/services/skill_suggestion_service.go:93:9
+       LIVED CONDITIONALS_NEGATION at internal/services/skill_suggestion_service.go:137:22
+      KILLED CONDITIONALS_NEGATION at internal/services/skill_suggestion_service.go:152:10
+      KILLED CONDITIONALS_NEGATION at internal/services/skill_suggestion_service.go:159:40
+      KILLED CONDITIONALS_BOUNDARY at internal/services/skill_suggestion_service.go:182:28
+      KILLED CONDITIONALS_NEGATION at internal/services/skill_suggestion_service.go:161:10
+      KILLED CONDITIONALS_NEGATION at internal/services/skill_suggestion_service.go:182:28
+       LIVED CONDITIONALS_NEGATION at internal/services/skill_suggestion_service.go:183:14
+       LIVED ARITHMETIC_BASE at internal/services/skill_suggestion_service.go:184:49
+      KILLED CONDITIONALS_NEGATION at internal/services/skill_suggestion_service.go:184:69
+      KILLED ARITHMETIC_BASE at internal/services/skill_suggestion_service.go:235:57
+       LIVED CONDITIONALS_BOUNDARY at internal/services/skill_suggestion_service.go:183:14
+      KILLED CONDITIONALS_NEGATION at internal/services/skill_suggestion_service.go:191:10
+      KILLED CONDITIONALS_NEGATION at internal/services/skill_suggestion_service.go:230:30
+      KILLED CONDITIONALS_NEGATION at internal/services/skill_suggestion_service.go:195:16
+      KILLED CONDITIONALS_NEGATION at internal/services/skill_suggestion_service.go:230:70
+       LIVED CONDITIONALS_BOUNDARY at internal/services/skill_suggestion_service.go:230:70
+      KILLED CONDITIONALS_NEGATION at internal/services/skill_suggestion_service.go:234:35
+       LIVED CONDITIONALS_BOUNDARY at internal/services/skill_suggestion_service.go:234:35
+      KILLED CONDITIONALS_BOUNDARY at internal/services/skill_suggestion_service.go:239:14
+      KILLED CONDITIONALS_NEGATION at internal/services/skill_suggestion_service.go:268:18
+      KILLED CONDITIONALS_NEGATION at internal/services/skill_suggestion_service.go:239:32
+      KILLED CONDITIONALS_NEGATION at internal/services/skill_suggestion_service.go:239:14
+      KILLED CONDITIONALS_NEGATION at internal/services/submission_service.go:117:9
+       LIVED CONDITIONALS_BOUNDARY at internal/services/submission_service.go:128:24
+      KILLED CONDITIONALS_NEGATION at internal/services/submission_service.go:128:24
+      KILLED CONDITIONALS_NEGATION at internal/services/submission_service.go:120:8
+      KILLED CONDITIONALS_NEGATION at internal/services/submission_service.go:131:44
+      KILLED CONDITIONALS_NEGATION at internal/services/submission_service.go:136:9
+      KILLED CONDITIONALS_NEGATION at internal/services/submission_service.go:140:9
+   TIMED OUT INCREMENT_DECREMENT at internal/services/skill_suggestion_service.go:182:52
+      KILLED CONDITIONALS_NEGATION at internal/services/submission_service.go:151:9
+      KILLED CONDITIONALS_NEGATION at internal/services/submission_service.go:154:27
+      KILLED CONDITIONALS_NEGATION at internal/services/submission_service.go:163:70
+      KILLED CONDITIONALS_NEGATION at internal/services/submission_service.go:143:12
+       LIVED CONDITIONALS_BOUNDARY at internal/services/submission_service.go:164:51
+      KILLED CONDITIONALS_NEGATION at internal/services/submission_service.go:164:51
+      KILLED CONDITIONALS_NEGATION at internal/services/submission_service.go:181:9
+       LIVED CONDITIONALS_BOUNDARY at internal/services/submission_service.go:182:50
+      KILLED CONDITIONALS_NEGATION at internal/services/submission_service.go:182:50
+      KILLED CONDITIONALS_NEGATION at internal/services/submission_service.go:183:10
+      KILLED CONDITIONALS_NEGATION at internal/services/submission_service.go:192:18
+       LIVED CONDITIONALS_BOUNDARY at internal/services/submission_service.go:198:18
+      KILLED CONDITIONALS_NEGATION at internal/services/submission_service.go:195:15
+      KILLED CONDITIONALS_NEGATION at internal/services/submission_service.go:198:18
+      KILLED CONDITIONALS_NEGATION at internal/services/submission_service.go:208:19
+       LIVED CONDITIONALS_BOUNDARY at internal/services/submission_service.go:211:19
+      KILLED CONDITIONALS_NEGATION at internal/services/submission_service.go:202:35
+      KILLED CONDITIONALS_NEGATION at internal/services/submission_service.go:211:19
+       LIVED CONDITIONALS_NEGATION at internal/services/submission_service.go:222:53
+      KILLED ARITHMETIC_BASE at internal/services/submission_service.go:306:48
+      KILLED CONDITIONALS_NEGATION at internal/services/submission_service.go:229:9
+      KILLED ARITHMETIC_BASE at internal/services/submission_service.go:306:42
+      KILLED CONDITIONALS_NEGATION at internal/services/submission_service.go:233:9
+      KILLED CONDITIONALS_NEGATION at internal/services/submission_service.go:257:15
+      KILLED CONDITIONALS_NEGATION at internal/services/submission_service.go:250:48
+      KILLED CONDITIONALS_NEGATION at internal/services/submission_service.go:267:47
+       LIVED CONDITIONALS_BOUNDARY at internal/services/submission_service.go:267:47
+      KILLED CONDITIONALS_NEGATION at internal/services/submission_service.go:276:15
+      KILLED CONDITIONALS_NEGATION at internal/services/submission_service.go:276:35
+      KILLED CONDITIONALS_NEGATION at internal/services/submission_service.go:280:9
+      KILLED CONDITIONALS_NEGATION at internal/services/submission_service.go:284:9
+      KILLED CONDITIONALS_NEGATION at internal/services/submission_service.go:306:66
+      KILLED CONDITIONALS_BOUNDARY at internal/services/submission_service.go:320:11
+      KILLED CONDITIONALS_NEGATION at internal/services/submission_service.go:313:27
+      KILLED CONDITIONALS_NEGATION at internal/services/submission_service.go:320:11
+      KILLED CONDITIONALS_NEGATION at internal/services/submission_service.go:323:15
+      KILLED CONDITIONALS_BOUNDARY at internal/services/submission_service.go:320:24
+      KILLED CONDITIONALS_NEGATION at internal/services/submission_service.go:320:24
+      KILLED CONDITIONALS_NEGATION at internal/services/submission_service.go:328:9
+      KILLED CONDITIONALS_NEGATION at internal/services/submission_service.go:336:9
+      KILLED CONDITIONALS_NEGATION at internal/services/submission_service.go:342:15
+       LIVED CONDITIONALS_BOUNDARY at internal/services/submission_service.go:358:44
+      KILLED CONDITIONALS_NEGATION at internal/services/submission_service.go:347:10
+      KILLED CONDITIONALS_NEGATION at internal/services/submission_service.go:358:44
+      KILLED CONDITIONALS_NEGATION at internal/services/submission_service.go:364:75
+      KILLED CONDITIONALS_NEGATION at internal/services/submission_service.go:372:9
+      KILLED CONDITIONALS_NEGATION at internal/services/submission_service.go:368:9
+      KILLED CONDITIONALS_NEGATION at internal/services/submission_service.go:382:9
+      KILLED CONDITIONALS_NEGATION at internal/services/submission_service.go:403:12
+      KILLED CONDITIONALS_NEGATION at internal/services/submission_service.go:400:9
+      KILLED CONDITIONALS_NEGATION at internal/services/submission_service.go:403:28
+      KILLED ARITHMETIC_BASE at internal/services/submission_service.go:450:21
+      KILLED ARITHMETIC_BASE at internal/services/submission_service.go:450:35
+      KILLED CONDITIONALS_NEGATION at internal/services/submission_service.go:414:9
+      KILLED CONDITIONALS_NEGATION at internal/services/submission_service.go:419:16
+      KILLED CONDITIONALS_NEGATION at internal/services/submission_service.go:422:15
+      KILLED CONDITIONALS_BOUNDARY at internal/services/submission_service.go:436:11
+      KILLED CONDITIONALS_NEGATION at internal/services/submission_service.go:425:13
+      KILLED ARITHMETIC_BASE at internal/services/submission_service.go:437:46
+      KILLED CONDITIONALS_NEGATION at internal/services/submission_service.go:436:11
+      KILLED ARITHMETIC_BASE at internal/services/submission_service.go:437:29
+       LIVED CONDITIONALS_NEGATION at internal/services/submission_service.go:425:29
+      KILLED CONDITIONALS_NEGATION at internal/services/submission_service.go:456:15
+      KILLED INVERT_NEGATIVES at internal/services/submission_service.go:457:24
+      KILLED CONDITIONALS_NEGATION at internal/services/submission_service.go:459:24
+      KILLED CONDITIONALS_NEGATION at internal/services/submission_service.go:459:10
+      KILLED ARITHMETIC_BASE at internal/services/submission_service.go:457:24
+       LIVED CONDITIONALS_BOUNDARY at internal/services/submission_service.go:456:15
+      KILLED CONDITIONALS_NEGATION at internal/services/submission_service.go:459:39
+      KILLED CONDITIONALS_NEGATION at internal/services/training_area_service.go:32:50
+      KILLED CONDITIONALS_NEGATION at internal/services/training_area_service.go:39:27
+      KILLED CONDITIONALS_NEGATION at internal/services/training_area_service.go:42:50
+      KILLED CONDITIONALS_NEGATION at internal/services/training_area_service.go:49:27
+      KILLED CONDITIONALS_NEGATION at internal/services/training_area_service.go:56:35
+
+Mutation testing completed in 11 minutes 5 seconds
+Killed: 782, Lived: 74, Not covered: 179
+Timed out: 1, Not viable: 0, Skipped: 0
+Test efficacy: 91.36%
+Mutator coverage: 82.71%

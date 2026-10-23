@@ -127,3 +127,196 @@ func TestMaterialRepository_UploadAndCreate_UploadFailurePropagates(t *testing.T
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "no se pudo subir el archivo")
 }
+
+func TestMaterialRepository_UploadAsset_ErrorBranches(t *testing.T) {
+	t.Run("Upload binary returns invalid JSON without ID", func(t *testing.T) {
+		upload := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			_ = json.NewEncoder(w).Encode(map[string]any{"sys": map[string]any{}})
+		}))
+		defer upload.Close()
+
+		client := newTestClient("", "")
+		client.uploadBaseURL = upload.URL
+		repo := NewMaterialRepository(client)
+
+		material, err := repo.UploadAndCreate(t.Context(), "G", "PDF", "f.pdf", "application/pdf", []byte("x"))
+		assert.Error(t, err)
+		assert.Nil(t, material)
+		assert.Contains(t, err.Error(), "no devolvió un upload id")
+	})
+
+	t.Run("Asset creation error propagates", func(t *testing.T) {
+		upload := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			_ = json.NewEncoder(w).Encode(map[string]any{"sys": map[string]any{"id": "up-1"}})
+		}))
+		defer upload.Close()
+
+		cma := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.WriteHeader(http.StatusInternalServerError)
+		}))
+		defer cma.Close()
+
+		client := newTestClient("", cma.URL)
+		client.uploadBaseURL = upload.URL
+		repo := NewMaterialRepository(client)
+
+		material, err := repo.UploadAndCreate(t.Context(), "G", "PDF", "f.pdf", "application/pdf", []byte("x"))
+		assert.Error(t, err)
+		assert.Nil(t, material)
+	})
+
+	t.Run("Asset process error propagates", func(t *testing.T) {
+		upload := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			_ = json.NewEncoder(w).Encode(map[string]any{"sys": map[string]any{"id": "up-1"}})
+		}))
+		defer upload.Close()
+
+		cma := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if r.Method == http.MethodPost {
+				_ = json.NewEncoder(w).Encode(map[string]any{"sys": map[string]any{"id": "a-1", "version": 1}})
+				return
+			}
+			w.WriteHeader(http.StatusInternalServerError)
+		}))
+		defer cma.Close()
+
+		client := newTestClient("", cma.URL)
+		client.uploadBaseURL = upload.URL
+		repo := NewMaterialRepository(client)
+
+		material, err := repo.UploadAndCreate(t.Context(), "G", "PDF", "f.pdf", "application/pdf", []byte("x"))
+		assert.Error(t, err)
+		assert.Nil(t, material)
+		assert.Contains(t, err.Error(), "no se pudo iniciar el procesamiento")
+	})
+
+	t.Run("Asset publish error propagates", func(t *testing.T) {
+		upload := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			_ = json.NewEncoder(w).Encode(map[string]any{"sys": map[string]any{"id": "up-1"}})
+		}))
+		defer upload.Close()
+
+		cma := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			p := r.URL.Path
+			switch {
+			case r.Method == http.MethodPost && strings.HasSuffix(p, "/assets"):
+				_ = json.NewEncoder(w).Encode(map[string]any{"sys": map[string]any{"id": "asset-1", "version": 1}})
+			case r.Method == http.MethodPut && strings.Contains(p, "/assets/asset-1/files/"):
+				_ = json.NewEncoder(w).Encode(map[string]any{"sys": map[string]any{"id": "asset-1", "version": 2}})
+			case r.Method == http.MethodGet && strings.HasSuffix(p, "/assets/asset-1"):
+				_ = json.NewEncoder(w).Encode(map[string]any{
+					"sys":    map[string]any{"version": 2},
+					"fields": map[string]any{"file": map[string]any{"en-US": map[string]any{"url": "//images.ctfassets.net/guia.pdf"}}},
+				})
+			case r.Method == http.MethodPut && strings.HasSuffix(p, "/assets/asset-1/published"):
+				w.WriteHeader(http.StatusInternalServerError)
+			default:
+				w.WriteHeader(http.StatusBadRequest)
+			}
+		}))
+		defer cma.Close()
+
+		client := newTestClient("", cma.URL)
+		client.uploadBaseURL = upload.URL
+		repo := NewMaterialRepository(client)
+
+		material, err := repo.UploadAndCreate(t.Context(), "G", "PDF", "f.pdf", "application/pdf", []byte("x"))
+		assert.Error(t, err)
+		assert.Nil(t, material)
+		assert.Contains(t, err.Error(), "no se pudo publicar")
+	})
+
+	t.Run("Asset creation returns empty ID in JSON", func(t *testing.T) {
+		// Arrange
+		upload := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			_ = json.NewEncoder(w).Encode(map[string]any{"sys": map[string]any{"id": "up-1"}})
+		}))
+		defer upload.Close()
+
+		cma := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			_ = json.NewEncoder(w).Encode(map[string]any{"sys": map[string]any{"id": ""}})
+		}))
+		defer cma.Close()
+
+		client := newTestClient("", cma.URL)
+		client.uploadBaseURL = upload.URL
+		repo := NewMaterialRepository(client)
+
+		// Act
+		material, err := repo.UploadAndCreate(t.Context(), "G", "PDF", "f.pdf", "application/pdf", []byte("x"))
+
+		// Assert
+		assert.Error(t, err)
+		assert.Nil(t, material)
+		assert.Contains(t, err.Error(), "respuesta inesperada al crear el asset")
+	})
+
+	t.Run("Asset poll error propagates", func(t *testing.T) {
+		// Arrange
+		upload := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			_ = json.NewEncoder(w).Encode(map[string]any{"sys": map[string]any{"id": "up-1"}})
+		}))
+		defer upload.Close()
+
+		cma := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			p := r.URL.Path
+			switch {
+			case r.Method == http.MethodPost && strings.HasSuffix(p, "/assets"):
+				_ = json.NewEncoder(w).Encode(map[string]any{"sys": map[string]any{"id": "asset-1", "version": 1}})
+			case r.Method == http.MethodPut && strings.Contains(p, "/assets/asset-1/files/"):
+				_ = json.NewEncoder(w).Encode(map[string]any{"sys": map[string]any{"id": "asset-1", "version": 2}})
+			case r.Method == http.MethodGet && strings.HasSuffix(p, "/assets/asset-1"):
+				w.WriteHeader(http.StatusInternalServerError)
+			default:
+				w.WriteHeader(http.StatusBadRequest)
+			}
+		}))
+		defer cma.Close()
+
+		client := newTestClient("", cma.URL)
+		client.uploadBaseURL = upload.URL
+		repo := NewMaterialRepository(client)
+
+		// Act
+		material, err := repo.UploadAndCreate(t.Context(), "G", "PDF", "f.pdf", "application/pdf", []byte("x"))
+
+		// Assert
+		assert.Error(t, err)
+		assert.Nil(t, material)
+	})
+
+	t.Run("Asset poll malformed JSON propagates", func(t *testing.T) {
+		// Arrange
+		upload := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			_ = json.NewEncoder(w).Encode(map[string]any{"sys": map[string]any{"id": "up-1"}})
+		}))
+		defer upload.Close()
+
+		cma := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			p := r.URL.Path
+			switch {
+			case r.Method == http.MethodPost && strings.HasSuffix(p, "/assets"):
+				_ = json.NewEncoder(w).Encode(map[string]any{"sys": map[string]any{"id": "asset-1", "version": 1}})
+			case r.Method == http.MethodPut && strings.Contains(p, "/assets/asset-1/files/"):
+				_ = json.NewEncoder(w).Encode(map[string]any{"sys": map[string]any{"id": "asset-1", "version": 2}})
+			case r.Method == http.MethodGet && strings.HasSuffix(p, "/assets/asset-1"):
+				w.Header().Set("Content-Type", "application/json")
+				_, _ = w.Write([]byte(`{malformed-json`))
+			default:
+				w.WriteHeader(http.StatusBadRequest)
+			}
+		}))
+		defer cma.Close()
+
+		client := newTestClient("", cma.URL)
+		client.uploadBaseURL = upload.URL
+		repo := NewMaterialRepository(client)
+
+		// Act
+		material, err := repo.UploadAndCreate(t.Context(), "G", "PDF", "f.pdf", "application/pdf", []byte("x"))
+
+		// Assert
+		assert.Error(t, err)
+		assert.Nil(t, material)
+	})
+}

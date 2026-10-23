@@ -236,3 +236,33 @@ func TestSuggest_CallerGoneStopsWithoutFallback(t *testing.T) {
 	assert.ErrorIs(t, err, context.Canceled)
 	assert.Equal(t, 0, openai.calls)
 }
+
+type cancelProvider struct {
+	cancel func()
+	err    error
+}
+
+func (c *cancelProvider) Nombre() string { return "canceler" }
+func (c *cancelProvider) Sugerir(_ context.Context, _ models.SkillPrompt) ([]models.SkillSuggestion, error) {
+	c.cancel()
+	return nil, c.err
+}
+
+func TestSuggest_SleepInterruptedByContextCancel(t *testing.T) {
+	// Arrange
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	p := &cancelProvider{
+		cancel: cancel,
+		err:    errServer,
+	}
+	svc := newSuggestionService(baseRepo(), p)
+
+	// Act
+	resp, err := svc.Suggest(ctx, validReq, nil)
+
+	// Assert
+	assert.Nil(t, resp)
+	assert.ErrorIs(t, err, context.Canceled)
+}
