@@ -2,3 +2,9 @@
 398de1b46e331c63e20cf1ecb8901a45e96850f5:education/PRUEBAS.md:curl-auth-header:70
 3906d094de6a97b58eb0cc940dbca961ef5804d0:frontend/src/environments/environment.ts:gcp-api-key:8
 b5f49e1f80e0eb2f8b722a49b9b37fec78d76b48:docs/postman_examples.md:generic-api-key:26
+
+# Escaneo "gitleaks dir education" (pipeline calidad-tp.yml): valores de prueba, no claves reales.
+# PRUEBAS.md: ejemplo de curl con un token de texto inventado, para mostrar el 401.
+education/PRUEBAS.md:curl-auth-header:70
+# run_security_tests.sh: JWT_SECRET solo para levantar el servicio local en el escaneo; no coincide con ninguna configuración real.
+education/run_security_tests.sh:generic-api-key:67

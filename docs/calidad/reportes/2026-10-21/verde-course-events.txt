@@ -1,0 +1,4 @@
+=== RUN   TestCourseService_PublicaEventosDeCursos
+--- PASS: TestCourseService_PublicaEventosDeCursos (0.56s)
+PASS
+ok  	buenvivir/education/internal/services	7.562s

@@ -1,0 +1,35 @@
+=== RUN   TestCourseService_PublicaEventosDeCursos
+--- FAIL: TestCourseService_PublicaEventosDeCursos (0.04s)
+panic: runtime error: invalid memory address or nil pointer dereference [recovered, repanicked]
+[signal 0xc0000005 code=0x0 addr=0x68 pc=0x7ff689f5b594]
+
+goroutine 142 [running]:
+testing.tRunner.func1.2({0x7ff68a7bfe80, 0x7ff68ba8c9e0})
+	C:/Users/sofic/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.26.0.windows-amd64/src/testing/testing.go:1974 +0x239
+testing.tRunner.func1()
+	C:/Users/sofic/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.26.0.windows-amd64/src/testing/testing.go:1977 +0x349
+panic({0x7ff68a7bfe80?, 0x7ff68ba8c9e0?})
+	C:/Users/sofic/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.26.0.windows-amd64/src/runtime/panic.go:860 +0x13a
+cloud.google.com/go/firestore.(*Transaction).addWrites(...)
+	C:/Users/sofic/go/pkg/mod/cloud.google.com/go/firestore@v1.25.0/transaction.go:386
+cloud.google.com/go/firestore.(*Transaction).Create(0x0, 0x2ad6027b6b8?, {0x7ff68aa6b140?, 0x2ad60713a40?})
+	C:/Users/sofic/go/pkg/mod/cloud.google.com/go/firestore@v1.25.0/transaction.go:364 +0x34
+buenvivir/education/internal/outbox.(*Writer).AddTx(0x2ad607ca540, {0x7ff68abec168, 0x7ff68bb33de0}, 0x0, {0x2ad6027b9e0?, 0x7ff68a5664e0?, 0x0?})
+	C:/Users/sofic/Documents/FACULTAD 2026/TRABAJO_FINAL/Sistema-informatico-Buen-Vivir/education/internal/outbox/outbox.go:86 +0x3b2
+buenvivir/education/internal/events/producers.(*Educacion).emit(...)
+	C:/Users/sofic/Documents/FACULTAD 2026/TRABAJO_FINAL/Sistema-informatico-Buen-Vivir/education/internal/events/producers/educacion.go:48
+buenvivir/education/internal/events/producers.(*Educacion).CursoCreado(0x2ad60885860, {0x7ff68abec168, 0x7ff68bb33de0}, 0x2?)
+	C:/Users/sofic/Documents/FACULTAD 2026/TRABAJO_FINAL/Sistema-informatico-Buen-Vivir/education/internal/events/producers/educacion.go:70 +0x1e7
+buenvivir/education/internal/services.(*courseService).CreateCourse.func1()
+	C:/Users/sofic/Documents/FACULTAD 2026/TRABAJO_FINAL/Sistema-informatico-Buen-Vivir/education/internal/services/course_service.go:125 +0x31
+buenvivir/education/internal/services.(*courseService).publish(0x7ff68aad90a5?, {0x7ff68abec168, 0x7ff68bb33de0}, {0x7ff68aae35da, 0x16}, {0x7ff68aacbe25, 0x2}, 0x0?)
+	C:/Users/sofic/Documents/FACULTAD 2026/TRABAJO_FINAL/Sistema-informatico-Buen-Vivir/education/internal/services/course_service.go:86 +0x7c
+buenvivir/education/internal/services.(*courseService).CreateCourse(0x2ad6027bf38, {0x7ff68abec168, 0x7ff68bb33de0}, {{0x7ff68aad90a5, 0xf}, {0x2ad6032c258, 0x17, 0x17}, {0x7ff68aad1ade, 0x9}, ...})
+	C:/Users/sofic/Documents/FACULTAD 2026/TRABAJO_FINAL/Sistema-informatico-Buen-Vivir/education/internal/services/course_service.go:125 +0x27d
+buenvivir/education/internal/services_test.TestCourseService_PublicaEventosDeCursos(0x2ad60418200)
+	C:/Users/sofic/Documents/FACULTAD 2026/TRABAJO_FINAL/Sistema-informatico-Buen-Vivir/education/internal/services/course_events_test.go:71 +0x6a7
+testing.tRunner(0x2ad60418200, 0x7ff68abafbb8)
+	C:/Users/sofic/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.26.0.windows-amd64/src/testing/testing.go:2036 +0xc3
+created by testing.(*T).Run in goroutine 1
+	C:/Users/sofic/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.26.0.windows-amd64/src/testing/testing.go:2101 +0x4a9
+FAIL	buenvivir/education/internal/services	6.043s

@@ -389,31 +389,43 @@ func TestCourseService_UpdateCourse_RepoError(t *testing.T) {
 	repo.AssertExpectations(t)
 }
 
+// Desde HU-16 eliminar un curso es una baja lógica: se registra en el
+// repositorio de bajas y la entry de Contentful no se borra.
 func TestCourseService_DeleteCourse_Success(t *testing.T) {
 	// Arrange
 	repo := new(MockCourseRepository)
-	svc := services.NewCourseService(repo)
-	repo.On("Delete", mock.Anything, "c1").Return(nil)
+	enrollments := new(MockEnrollmentRepository)
+	bajas := &fakeBajas{}
+	svc := services.NewCourseServiceConBaja(repo, nil, bajas, enrollments)
+	repo.On("ExistsInManagement", mock.Anything, "c1").Return(true, nil)
+	repo.On("Get", mock.Anything, "c1").Return(&models.Course{ID: "c1", Title: "Huerta"}, nil)
+	enrollments.On("ListByCourse", mock.Anything, "c1").Return([]models.Enrollment{}, nil)
 
 	// Act
 	err := svc.DeleteCourse(context.Background(), "c1")
 
 	// Assert
 	assert.NoError(t, err)
+	assert.True(t, bajas.ids["c1"])
+	repo.AssertNotCalled(t, "Delete", mock.Anything, mock.Anything)
 	repo.AssertExpectations(t)
 }
 
 func TestCourseService_DeleteCourse_RepoError(t *testing.T) {
 	// Arrange
 	repo := new(MockCourseRepository)
-	svc := services.NewCourseService(repo)
-	repo.On("Delete", mock.Anything, "c1").Return(errors.New("delete error"))
+	enrollments := new(MockEnrollmentRepository)
+	svc := services.NewCourseServiceConBaja(repo, nil, &fakeBajas{err: errors.New("delete error")}, enrollments)
+	repo.On("ExistsInManagement", mock.Anything, "c1").Return(true, nil)
+	repo.On("Get", mock.Anything, "c1").Return(&models.Course{ID: "c1"}, nil)
+	enrollments.On("ListByCourse", mock.Anything, "c1").Return([]models.Enrollment{}, nil)
 
 	// Act
 	err := svc.DeleteCourse(context.Background(), "c1")
 
 	// Assert
 	assert.Error(t, err)
+	repo.AssertNotCalled(t, "Delete", mock.Anything, mock.Anything)
 	repo.AssertExpectations(t)
 }
 
@@ -518,8 +530,9 @@ func (m *MockKVSyncService) SyncCourseStatsAsync() {
 func TestCourseService_KVSync_CalledOnMutations(t *testing.T) {
 	// Arrange
 	repo := new(MockCourseRepository)
+	enrollments := new(MockEnrollmentRepository)
 	kvSync := new(MockKVSyncService)
-	svc := services.NewCourseServiceWithEvents(repo, nil, kvSync)
+	svc := services.NewCourseServiceConBaja(repo, nil, &fakeBajas{}, enrollments, kvSync)
 	ctx := context.Background()
 
 	input := validCourseInput()
@@ -527,7 +540,8 @@ func TestCourseService_KVSync_CalledOnMutations(t *testing.T) {
 
 	repo.On("Create", mock.Anything, input).Return(course, nil)
 	repo.On("Update", mock.Anything, "c1", input).Return(course, nil)
-	repo.On("Delete", mock.Anything, "c1").Return(nil)
+	repo.On("ExistsInManagement", mock.Anything, "c1").Return(true, nil)
+	enrollments.On("ListByCourse", mock.Anything, "c1").Return([]models.Enrollment{}, nil)
 	repo.On("Publish", mock.Anything, "c1").Return(nil)
 	repo.On("Unpublish", mock.Anything, "c1").Return(nil)
 	repo.On("Get", mock.Anything, "c1").Return(course, nil)
