@@ -1,0 +1,131 @@
+<div class="auth-container">
+  <div class="auth-content">
+    <div class="auth-wrapper">
+      <!-- Logo Header -->
+      <div class="auth-header">
+        <div class="auth-logo-container">
+          <img src="assets/logo.png" alt="Logo Buen Vivir" class="auth-logo" />
+        </div>
+        <h1 class="auth-title">Buen Vivir</h1>
+        <p class="auth-subtitle">Centro de Ecología Integral</p>
+      </div>
+
+      <!-- Card -->
+      <div class="auth-card">
+        <!-- Estado 1: Verificando token automático -->
+        <ng-container *ngIf="verifying">
+          <div class="icon-wrapper icon-loading">
+            <lucide-angular
+              [img]="RefreshCwIcon"
+              class="notice-icon spin"
+            ></lucide-angular>
+          </div>
+          <h2 class="auth-card-title text-center">Verificando tu correo...</h2>
+          <p class="notice-message">
+            Estamos validando tu enlace de confirmación. Por favor, aguardá unos segundos.
+          </p>
+        </ng-container>
+
+        <!-- Estado 2: Token verificado con éxito -->
+        <ng-container *ngIf="!verifying && verified">
+          <div class="icon-wrapper icon-success">
+            <lucide-angular
+              [img]="CheckCircleIcon"
+              class="notice-icon text-success"
+            ></lucide-angular>
+          </div>
+          <h2 class="auth-card-title text-center">¡Email verificado!</h2>
+          <p class="notice-message">
+            Tu dirección de correo electrónico ha sido confirmada con éxito. Ya podés ingresar a la plataforma.
+          </p>
+          <button (click)="goToLogin()" class="btn-submit">
+            Iniciar sesión
+          </button>
+        </ng-container>
+
+        <!-- Estado 3: Error validando token -->
+        <ng-container *ngIf="!verifying && !verified && token && verifyError">
+          <div class="icon-wrapper icon-error">
+            <lucide-angular
+              [img]="AlertCircleIcon"
+              class="notice-icon text-error"
+            ></lucide-angular>
+          </div>
+          <h2 class="auth-card-title text-center">Enlace inválido o expirado</h2>
+          <p class="notice-message">
+            {{ verifyError }}
+          </p>
+          <button (click)="goToLogin()" class="btn-secondary mb-3">
+            <lucide-angular [img]="ArrowLeftIcon" class="btn-icon"></lucide-angular>
+            Volver al inicio de sesión
+          </button>
+        </ng-container>
+
+        <!-- Estado 4: Pantalla bloqueante de email no verificado (desde Login) -->
+        <ng-container *ngIf="!verifying && !verified && !token">
+          <div class="icon-wrapper icon-warning">
+            <lucide-angular
+              [img]="MailIcon"
+              class="notice-icon text-warning"
+            ></lucide-angular>
+          </div>
+
+          <h2 class="auth-card-title text-center">Debes verificar tu email</h2>
+
+          <p class="notice-message">
+            Para proteger tu cuenta y poder ingresar al sistema, es necesario que verifiques tu dirección de correo electrónico.
+          </p>
+
+          <div *ngIf="email" class="email-badge">
+            <span>{{ email }}</span>
+          </div>
+
+          <div *ngIf="!email" class="email-input-wrapper">
+            <label for="manual-email" class="input-label">Ingresá tu correo electrónico:</label>
+            <input
+              id="manual-email"
+              type="email"
+              [(ngModel)]="email"
+              placeholder="tu@email.com"
+              class="form-input"
+            />
+          </div>
+
+          <div *ngIf="resendSuccess" class="alert alert-success">
+            <lucide-angular [img]="CheckCircleIcon" class="alert-icon"></lucide-angular>
+            <span>{{ resendSuccess }}</span>
+          </div>
+
+          <div *ngIf="resendError" class="alert alert-error">
+            <lucide-angular [img]="AlertCircleIcon" class="alert-icon"></lucide-angular>
+            <span>{{ resendError }}</span>
+          </div>
+
+          <button
+            (click)="handleResendEmail()"
+            [disabled]="resending || !email"
+            class="btn-submit"
+          >
+            <lucide-angular
+              [img]="resending ? RefreshCwIcon : SendIcon"
+              class="btn-icon"
+              [class.spin]="resending"
+            ></lucide-angular>
+            <span>{{ resending ? "Enviando correo..." : "Enviar correo" }}</span>
+          </button>
+
+          <div class="divider"></div>
+
+          <button (click)="goToLogin()" class="btn-secondary">
+            <lucide-angular [img]="ArrowLeftIcon" class="btn-icon"></lucide-angular>
+            Volver a inicio de sesión
+          </button>
+        </ng-container>
+      </div>
+
+      <div class="auth-footer">
+        <a routerLink="/" class="auth-link">Volver a la pantalla principal</a>
+      </div>
+    </div>
+  </div>
+</div>

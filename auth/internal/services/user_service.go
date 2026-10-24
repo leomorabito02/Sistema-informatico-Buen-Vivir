@@ -4,6 +4,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"os"
+	"strings"
+	"time"
 
 	"auth/internal/dto"
 	"auth/internal/middlewares"
@@ -21,14 +24,26 @@ type UserService interface {
 	UpdateUser(ctx context.Context, id string, req *dto.UpdateUserRequest) (*dto.UserResponse, error)
 	DeleteUser(ctx context.Context, id string) error
 	GetParticipantsHistory(ctx context.Context) ([]dto.ParticipantHistoryResponse, error)
+	ApproveUser(ctx context.Context, id string) (*dto.UserResponse, error)
 }
 
 type userService struct {
-	userRepo repositories.UserRepository
+	userRepo         repositories.UserRepository
+	querier          repositories.RoleProfileQuerier
+	notificationSync NotificationSyncService
 }
 
-func NewUserService(userRepo repositories.UserRepository) UserService {
-	return &userService{userRepo: userRepo}
+func NewUserService(userRepo repositories.UserRepository, opts ...any) UserService {
+	svc := &userService{userRepo: userRepo}
+	for _, opt := range opts {
+		switch v := opt.(type) {
+		case repositories.RoleProfileQuerier:
+			svc.querier = v
+		case NotificationSyncService:
+			svc.notificationSync = v
+		}
+	}
+	return svc
 }
 
 func (s *userService) CreateUser(ctx context.Context, req *dto.CreateUserRequest) (*dto.UserResponse, error) {
@@ -231,4 +246,70 @@ func (s *userService) GetParticipantsHistory(ctx context.Context) ([]dto.Partici
 		}
 	}
 	return result, nil
+}
+
+func (s *userService) ApproveUser(ctx context.Context, id string) (*dto.UserResponse, error) {
+	user, err := s.userRepo.FindByID(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+
+	if !canApprove(ctx, user.RoleID) {
+		return nil, errors.New("forbidden: access denied to approve accounts with this role")
+	}
+
+	table := roleTableFromID(user.RoleID)
+	if table == "" {
+		return nil, errors.New("rol no compatible para aprobación")
+	}
+
+	approverID, _ := ctx.Value(middlewares.UserIDKey).(string)
+	now := time.Now()
+	updateData := map[string]any{
+		"approval_status": "approved",
+		"approval_date":   &now,
+	}
+	if approverID != "" {
+		updateData["approved_by"] = approverID
+	}
+
+	if s.querier != nil {
+		if err := s.querier.UpdateRoleData(ctx, table, user.UserID, updateData); err != nil {
+			return nil, fmt.Errorf("error al actualizar el estado de aprobación: %w", err)
+		}
+	}
+
+	user.RoleApprovalStatus = "approved"
+
+	if s.notificationSync != nil {
+		frontendURL := strings.TrimSpace(os.Getenv("FRONTEND_URL"))
+		if frontendURL == "" {
+			frontendURL = "https://tu-pwa.com"
+		}
+		fullName := strings.TrimSpace(user.FirstName + " " + user.LastName)
+		if fullName == "" {
+			fullName = user.Email
+		}
+		actionURL := fmt.Sprintf("%s/login", strings.TrimRight(frontendURL, "/"))
+		go func() {
+			_ = s.notificationSync.SendAccountApprovedEmail(context.Background(), user.UserID, user.Email, fullName, actionURL)
+		}()
+	}
+
+	return dto.ToUserResponse(user), nil
+}
+
+func roleTableFromID(roleID string) string {
+	switch roleID {
+	case "role_teacher":
+		return "teachers"
+	case "role_volunteer":
+		return "volunteers"
+	case "role_participant":
+		return "participants"
+	case "role_company":
+		return "companies"
+	default:
+		return ""
+	}
 }

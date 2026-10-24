@@ -6,6 +6,10 @@
   <title>Verifica tu correo electrónico - Buen Vivir</title>
 </head>
 <body style="margin: 0; padding: 0; background-color: #f6f8f5; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #232b1e;">
+  <!-- Anti-Spam Hidden Preheader -->
+  <div style="display: none; max-height: 0px; overflow: hidden; font-size: 1px; line-height: 1px; color: #ffffff; opacity: 0;">
+    Confirma tu correo para activar tu cuenta en la Asociación Civil Buen Vivir.
+  </div>
   <div style="background-color: #f6f8f5; padding: 40px 16px;">
     <div style="max-width: 580px; margin: 0 auto; background-color: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 16px rgba(0,0,0,0.06); border: 1px solid #e3e8df;">
       <!-- Header -->
@@ -23,7 +27,7 @@
           Gracias por registrarte en la plataforma de la Asociación Civil Buen Vivir. Para activar tu cuenta y asegurar la validez de tu dirección de correo, por favor confirma tu email haciendo clic en el siguiente botón:
         </p>
         <div style="text-align: center; margin: 0 auto 28px auto;">
-          <a href="{{.ActionURL}}" target="_blank" style="display: inline-block; padding: 14px 28px; font-size: 15px; font-weight: 600; color: #ffffff; text-decoration: none; border-radius: 8px; background-color: #485839;">Verificar mi correo</a>
+          <a href="{{.ActionURL}}" target="_blank" style="display: inline-block; padding: 16px 32px; font-size: 15px; font-weight: 700; color: #ffffff; text-decoration: none; border-radius: 8px; background-color: #485839; text-transform: uppercase; letter-spacing: 0.5px;">HOLA {{if .RecipientName}}{{.RecipientName}}{{else}}USUARIO/A{{end}}, SELECCIONE PARA VALIDAR EL EMAIL</a>
         </div>
         <p style="margin: 0 0 8px 0; font-size: 13px; line-height: 1.5; color: #6f7c67;">
           Este enlace de verificación es válido por {{if .ExpiryMinutes}}{{.ExpiryMinutes}}{{else}}24{{end}} horas.

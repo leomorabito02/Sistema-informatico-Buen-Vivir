@@ -232,6 +232,22 @@ describe("SelectRoleComponent", () => {
       expect(mockRouter.navigate).toHaveBeenCalledWith(["/account-notice"]);
     });
 
+    it("should navigate to verify-email on error containing EMAIL_NOT_VERIFIED", () => {
+      const account = {
+        user_id: "1",
+        role_id: "r1",
+        role_name: "Role 1",
+        status: "active",
+      };
+      mockAuthService.loginWithAccount.and.returnValue(
+        throwError(() => ({ error: { error: "EMAIL_NOT_VERIFIED" } })),
+      );
+
+      component.selectAccount(account);
+
+      expect(mockRouter.navigate).toHaveBeenCalledWith(["/verify-email"]);
+    });
+
     it("should show generic error message on other errors", () => {
       const account = {
         user_id: "1",

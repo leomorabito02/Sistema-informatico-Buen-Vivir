@@ -15,6 +15,8 @@ import { providePrimeNG } from "primeng/config";
 import { BuenVivirPreset } from "./theme/buen-vivir.preset";
 import { routes } from "./app.routes";
 import { authInterceptor } from "./core/interceptors/auth.interceptor";
+import { errorInterceptor } from "./core/interceptors/error.interceptor";
+import { MessageService } from "primeng/api";
 
 import { provideFirebaseApp, initializeApp } from "@angular/fire/app";
 import { provideAuth, getAuth } from "@angular/fire/auth";
@@ -24,6 +26,7 @@ import { environment } from "../environments/environment";
 export const appConfig: ApplicationConfig = {
   providers: [
     provideZoneChangeDetection({ eventCoalescing: true }),
+    MessageService,
     provideRouter(
       routes,
       withInMemoryScrolling({
@@ -34,7 +37,7 @@ export const appConfig: ApplicationConfig = {
       // styles.css). Sin soporte del navegador, navega igual que antes.
       withViewTransitions(),
     ),
-    provideHttpClient(withInterceptors([authInterceptor])),
+    provideHttpClient(withInterceptors([authInterceptor, errorInterceptor])),
     // Sin esto, las animaciones de PrimeNG (p-dialog, p-toast, p-select…)
     // no disparan el callback de fin de transición, que es lo que sacan
     // el overlay/mask del DOM al cerrar: sin provider de animaciones el

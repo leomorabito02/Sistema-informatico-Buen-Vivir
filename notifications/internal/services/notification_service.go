@@ -234,11 +234,12 @@ func (s *notificationService) persistAndDispatchRecipients(
 		return 0, nil
 	}
 
-	for _, uid := range req.RecipientUserIDs {
-		_ = s.InitDefaultPreferences(ctx, uid)
-	}
 	if err := s.repo.CreateRecipients(ctx, recipients); err != nil {
 		return 0, fmt.Errorf("failed to persist recipients: %w", err)
+	}
+
+	for _, uid := range req.RecipientUserIDs {
+		_ = s.InitDefaultPreferences(context.Background(), uid)
 	}
 
 	if notif.SendEmail || notif.SendPush {

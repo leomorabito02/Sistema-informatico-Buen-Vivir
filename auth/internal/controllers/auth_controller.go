@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"encoding/json"
+	"errors"
 	"net/http"
 	"strings"
 
@@ -35,15 +36,22 @@ func writeJSONError(w http.ResponseWriter, status int, message string) {
 
 // AuthController representa el Controlador (C de MVC)
 type AuthController struct {
-	authService services.AuthService
-	validate    *validator.Validate
+	authService         services.AuthService
+	verificationService services.VerificationService
+	validate            *validator.Validate
 }
 
-func NewAuthController(authService services.AuthService) *AuthController {
-	return &AuthController{
+func NewAuthController(authService services.AuthService, opts ...any) *AuthController {
+	ctrl := &AuthController{
 		authService: authService,
 		validate:    utils.GetValidator(),
 	}
+	for _, opt := range opts {
+		if vs, ok := opt.(services.VerificationService); ok {
+			ctrl.verificationService = vs
+		}
+	}
+	return ctrl
 }
 
 func (c *AuthController) setAuthCookies(w http.ResponseWriter, token, refreshToken string) {
@@ -116,8 +124,26 @@ func (c *AuthController) Register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	c.setAuthCookies(w, resp.Token, resp.RefreshToken)
-	writeJSONResponse(w, http.StatusCreated, resp)
+	var userID, email string
+	var isEmailVerified bool
+	if resp != nil && resp.User != nil {
+		userID = resp.User.UserID
+		email = resp.User.Email
+		isEmailVerified = resp.User.IsEmailVerified
+	}
+
+	approvalStatus := ""
+	if resp != nil {
+		approvalStatus = resp.ApprovalStatus
+	}
+
+	writeJSONResponse(w, http.StatusCreated, dto.RegisterResponse{
+		Message:         "Registro exitoso. Se ha enviado un correo electrónico de verificación.",
+		UserID:          userID,
+		Email:           email,
+		IsEmailVerified: isEmailVerified,
+		ApprovalStatus:  approvalStatus,
+	})
 }
 
 // CheckCredentials handles step 1 of login: validates email + password and returns available accounts/roles.
@@ -179,6 +205,27 @@ func (c *AuthController) Login(w http.ResponseWriter, r *http.Request) {
 
 	resp, err := c.authService.Login(r.Context(), &req)
 	if err != nil {
+		if errors.Is(err, services.ErrEmailNotVerified) || err.Error() == "EMAIL_NOT_VERIFIED" {
+			writeJSONResponse(w, http.StatusForbidden, map[string]interface{}{
+				"error":   "EMAIL_NOT_VERIFIED",
+				"message": "Debes verificar tu correo electrónico antes de iniciar sesión.",
+			})
+			return
+		}
+		if errors.Is(err, services.ErrAccountPendingApproval) || err.Error() == "ACCOUNT_PENDING_APPROVAL" {
+			writeJSONResponse(w, http.StatusForbidden, map[string]interface{}{
+				"error":   "ACCOUNT_PENDING_APPROVAL",
+				"message": "Tu cuenta está pendiente de aprobación por parte de un administrador.",
+			})
+			return
+		}
+		if errors.Is(err, services.ErrAccountBlocked) || err.Error() == "ACCOUNT_BLOCKED" {
+			writeJSONResponse(w, http.StatusForbidden, map[string]interface{}{
+				"error":   "ACCOUNT_BLOCKED",
+				"message": "Tu cuenta se encuentra bloqueada.",
+			})
+			return
+		}
 		writeJSONError(w, http.StatusUnauthorized, err.Error())
 		return
 	}
@@ -356,4 +403,61 @@ func (c *AuthController) UnlinkGoogleAccount(w http.ResponseWriter, r *http.Requ
 	}
 
 	writeJSONResponse(w, http.StatusOK, map[string]string{"message": "Cuenta de Google desvinculada correctamente"})
+}
+
+func (c *AuthController) VerifyEmail(w http.ResponseWriter, r *http.Request) {
+	r.Body = http.MaxBytesReader(w, r.Body, 1<<20)
+	var req dto.VerifyEmailRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		writeJSONError(w, http.StatusBadRequest, "El formato de la solicitud es inválido.")
+		return
+	}
+
+	if err := c.validate.Struct(req); err != nil {
+		writeJSONError(w, http.StatusBadRequest, "El token de verificación es obligatorio.")
+		return
+	}
+
+	if c.verificationService == nil {
+		writeJSONError(w, http.StatusInternalServerError, "Servicio de verificación no disponible.")
+		return
+	}
+
+	if err := c.verificationService.VerifyEmail(r.Context(), req.Token); err != nil {
+		writeJSONError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	writeJSONResponse(w, http.StatusOK, map[string]interface{}{
+		"message":           "Correo electrónico verificado exitosamente.",
+		"is_email_verified": true,
+	})
+}
+
+func (c *AuthController) ResendVerification(w http.ResponseWriter, r *http.Request) {
+	r.Body = http.MaxBytesReader(w, r.Body, 1<<20)
+	var req dto.ResendVerificationRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		writeJSONError(w, http.StatusBadRequest, "El formato de la solicitud es inválido.")
+		return
+	}
+
+	if err := c.validate.Struct(req); err != nil {
+		writeJSONError(w, http.StatusBadRequest, "Debe ingresar una dirección de correo electrónico válida.")
+		return
+	}
+
+	if c.verificationService == nil {
+		writeJSONError(w, http.StatusInternalServerError, "Servicio de verificación no disponible.")
+		return
+	}
+
+	if err := c.verificationService.ResendVerification(r.Context(), req.Email); err != nil {
+		writeJSONError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	writeJSONResponse(w, http.StatusOK, map[string]interface{}{
+		"message": "Se ha reenviado el correo electrónico de verificación.",
+	})
 }

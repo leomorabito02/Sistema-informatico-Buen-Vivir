@@ -111,6 +111,12 @@ export class LoginComponent implements OnInit {
       next: (res) => {
         this.loading = false;
         this.loginError = "";
+        if (res.is_email_verified === false) {
+          void this.router.navigate(["/verify-email"], {
+            queryParams: { email: res.email || email },
+          });
+          return;
+        }
         this.handleAccountsResponse(res.accounts, res.login_nonce);
       },
       error: (err) => {
@@ -122,7 +128,7 @@ export class LoginComponent implements OnInit {
           errorMsg.includes("bloque")
         ) {
           this.loginError = "";
-          this.router.navigate(["/account-notice"]);
+          void this.router.navigate(["/account-notice"]);
         } else {
           this.handleFailedAttempt(errorMsg);
         }
@@ -139,6 +145,12 @@ export class LoginComponent implements OnInit {
       next: (res) => {
         this.googleLoading = false;
         this.loginError = "";
+        if (res.is_email_verified === false) {
+          void this.router.navigate(["/verify-email"], {
+            queryParams: { email: res.email },
+          });
+          return;
+        }
         this.handleAccountsResponse(res.accounts, res.login_nonce);
       },
       error: (err) => {
@@ -172,7 +184,7 @@ export class LoginComponent implements OnInit {
       this.loginWithAccount(accounts[0], loginNonce);
     } else {
       // Multiple accounts — navigate to role selection, carry nonce in router state
-      this.router.navigate(["/select-role"], {
+      void this.router.navigate(["/select-role"], {
         state: { accounts, loginNonce },
       });
     }
@@ -183,7 +195,7 @@ export class LoginComponent implements OnInit {
    */
   private loginWithAccount(account: AvailableAccount, loginNonce: string) {
     if (account.status !== "active") {
-      this.router.navigate(["/account-notice"]);
+      void this.router.navigate(["/account-notice"]);
       return;
     }
 
@@ -195,18 +207,25 @@ export class LoginComponent implements OnInit {
           this.loading = false;
           this.loginError = "";
           if (res.user_status === "blocked") {
-            this.router.navigate(["/account-notice"]);
+            void this.router.navigate(["/account-notice"]);
           } else if (res.approval_status === "pending") {
-            this.router.navigate(["/pending-approval"]);
+            void this.router.navigate(["/pending-approval"]);
           } else {
-            this.router.navigate(["/dashboard"]);
+            void this.router.navigate(["/dashboard"]);
           }
         },
         error: (err) => {
           this.loading = false;
-          const errorMsg = err.error?.error || "";
+          const errorMsg = err.error?.error || err.message || "";
+          if (errorMsg === "EMAIL_NOT_VERIFIED" || errorMsg.includes("verificar tu correo")) {
+            const email = this.loginForm.get("email")?.value;
+            void this.router.navigate(["/verify-email"], {
+              queryParams: email ? { email } : undefined,
+            });
+            return;
+          }
           if (errorMsg.includes("activa") || errorMsg.includes("bloque")) {
-            this.router.navigate(["/account-notice"]);
+            void this.router.navigate(["/account-notice"]);
           } else {
             this.handleFailedAttempt(errorMsg);
           }

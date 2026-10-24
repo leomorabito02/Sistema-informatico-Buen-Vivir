@@ -17,6 +17,7 @@ export interface User {
   role_id: string;
   role?: Role;
   twofa_enabled: boolean;
+  is_email_verified?: boolean;
   created_at: string;
   updated_at: string;
   role_data?: RoleData;
@@ -46,11 +47,15 @@ export interface AvailableAccount {
   role_id: string;
   role_name: string;
   status: string;
+  approval_status?: string;
+  is_email_verified?: boolean;
 }
 
 export interface CheckCredentialsResponse {
   accounts: AvailableAccount[];
   login_nonce: string;
+  is_email_verified?: boolean;
+  email?: string;
 }
 
 export interface MeResponse {

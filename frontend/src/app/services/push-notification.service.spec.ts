@@ -37,6 +37,7 @@ describe("PushNotificationService", () => {
 
     const req = httpMock.expectOne((r) => r.url.endsWith("/api/v1/users/me/devices"));
     expect(req.request.method).toBe("POST");
+    expect(req.request.headers.get("X-Skip-Global-Error")).toBe("true");
     expect(req.request.body.token).toBe(dummyToken);
     req.flush(expectedResponse);
   });

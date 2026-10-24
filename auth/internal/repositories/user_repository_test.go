@@ -229,7 +229,7 @@ func TestUserRepository_Create(t *testing.T) {
 				sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg(),
 				sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg(),
 				sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg(),
-				sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg(),
+				sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg(),
 			).WillReturnResult(sqlmock.NewResult(1, 1))
 		mock.ExpectCommit()
 
@@ -249,13 +249,29 @@ func TestUserRepository_Create(t *testing.T) {
 				sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg(),
 				sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg(),
 				sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg(),
-				sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg(),
+				sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg(),
 			).WillReturnError(errors.New("db error"))
 		mock.ExpectRollback()
 
 		err := repo.Create(context.Background(), user)
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "db error")
+	})
+}
+
+func TestUserRepository_UpdateEmailVerified(t *testing.T) {
+	db, mock := setupTestDB(t)
+	repo := repositories.NewUserRepository(db)
+
+	t.Run("Success", func(t *testing.T) {
+		mock.ExpectBegin()
+		mock.ExpectExec(regexp.QuoteMeta(`UPDATE "users" SET "is_email_verified"=$1,"updated_at"=$2 WHERE user_id = $3 AND "users"."deleted_at" IS NULL`)).
+			WithArgs(true, sqlmock.AnyArg(), "usr-1").
+			WillReturnResult(sqlmock.NewResult(1, 1))
+		mock.ExpectCommit()
+
+		err := repo.UpdateEmailVerified(context.Background(), "usr-1", true)
+		assert.NoError(t, err)
 	})
 }
 

@@ -22,6 +22,7 @@ type User struct {
 	TwofaEnabled       bool      `json:"twofa_enabled" gorm:"not null"`
 	TwofaSecret    string    `json:"-" gorm:"not null"`
 	TwofaSeed      string    `json:"-" gorm:"not null"`
+	IsEmailVerified bool      `json:"is_email_verified" gorm:"default:false;not null"`
 	CreatedAt      time.Time      `json:"created_at" gorm:"autoCreateTime"`
 	UpdatedAt      time.Time      `json:"updated_at" gorm:"autoUpdateTime"`
 	DeletedAt      gorm.DeletedAt `json:"-" gorm:"index"`
