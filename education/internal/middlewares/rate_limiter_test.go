@@ -48,3 +48,21 @@ func TestStrictRateLimiter(t *testing.T) {
 
 	assert.Equal(t, http.StatusTooManyRequests, lastCode)
 }
+
+func TestRateLimiter_DisabledViaEnvVar(t *testing.T) {
+	t.Setenv("RATE_LIMIT_DISABLED", "true")
+	middleware := middlewares.RateLimiter()
+
+	handler := middleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	}))
+
+	for i := 0; i < 110; i++ {
+		req := httptest.NewRequest("GET", "/api/salud", nil)
+		req.RemoteAddr = "127.0.0.1:9999"
+		w := httptest.NewRecorder()
+
+		handler.ServeHTTP(w, req)
+		assert.Equal(t, http.StatusOK, w.Code)
+	}
+}
