@@ -69,8 +69,8 @@ func TestFirestoreIntegrityConstraints(t *testing.T) {
 	// Assert
 	assert.True(t, report.Passed)
 
-	// Export Report to reports/database/education-firestore-integrity.json
-	reportsDir := filepath.Join("..", "..", "..", "reports", "database")
+	// Export Report to reportes-servicio/database/education-firestore-integrity.json
+	reportsDir := filepath.Join("..", "..", "..", "reportes-servicio", "database")
 	_ = os.MkdirAll(reportsDir, 0755)
 	reportPath := filepath.Join(reportsDir, "education-firestore-integrity.json")
 

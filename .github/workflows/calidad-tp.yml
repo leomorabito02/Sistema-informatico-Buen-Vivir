@@ -6,7 +6,8 @@ name: TP Calidad — CI (Educación)
 #      cobertura y quality gate del Nivel 3, con un SonarQube temporal.
 #   2. seguridad-education: análisis estático de seguridad (en paralelo).
 #   3. servicio-education: levanta Educación dentro del runner con
-#      docker-compose.calidad.yml y corre smoke, E2E y stress contra él.
+#      docker-compose.calidad.yml y corre smoke, E2E, carga (ST-0), DAST y
+#      stress (ST-1) contra él.
 #   4. mutacion-education y el esfuerzo sostenido: solo a pedido (Run
 #      workflow), porque tardan mucho para cada push.
 # La evidencia queda en el resumen de cada corrida y en sus artefactos.
@@ -18,7 +19,7 @@ on:
   workflow_dispatch:
     inputs:
       esfuerzo_sostenido:
-        description: 'Correr el esfuerzo sostenido (ST-2, 60 minutos)'
+        description: 'Correr el esfuerzo sostenido (ST-2, 30 minutos)'
         type: boolean
         default: false
       mutacion:
@@ -117,10 +118,10 @@ jobs:
           echo "SONAR_TOKEN=$TOKEN" >> "$GITHUB_ENV"
 
       - name: Configurar proyecto y quality gate TP-Calidad-N3
-        run: bash scripts/calidad/configurar_sonar.sh
+        run: bash scripts/calidad/sonar/configurar_sonar.sh
 
       - name: Registrar la línea base del 1/8
-        run: bash scripts/calidad/linea_base.sh
+        run: bash scripts/calidad/sonar/linea_base.sh
 
       - name: Esperar al emulador de Firestore
         run: |
@@ -136,7 +137,7 @@ jobs:
       # quality gate. Si el gate da rojo, este paso falla.
       - name: Pruebas, cobertura y análisis SonarQube
         id: analisis
-        run: bash scripts/calidad/analizar.sh education
+        run: bash scripts/calidad/sonar/analizar.sh education
 
       - name: Resumen de la corrida
         if: always()
@@ -184,7 +185,7 @@ jobs:
   # Análisis de seguridad de Educación, en paralelo con SonarQube. Todo es
   # análisis estático: lee el código, las librerías y la imagen, sin
   # ejecutar el servicio. Todas las herramientas frenan ante hallazgos
-  # de seguridad bloqueantes (ver scripts/calidad/resumen_seguridad.py).
+  # de seguridad bloqueantes (ver scripts/calidad/seguridad/resumen_seguridad.py).
   seguridad-education:
     name: Seguridad — Educación
     runs-on: ubuntu-latest
@@ -242,7 +243,7 @@ jobs:
             --ignore-unfixed --pkg-types os,library education-calidad:${{ github.sha }}
 
       - name: Resumen y veredicto
-        run: python3 scripts/calidad/resumen_seguridad.py "$REPORTES" | tee -a "$GITHUB_STEP_SUMMARY"
+        run: python3 scripts/calidad/seguridad/resumen_seguridad.py "$REPORTES" | tee -a "$GITHUB_STEP_SUMMARY"
 
       - name: Subir reportes de seguridad
         if: always()
@@ -256,12 +257,12 @@ jobs:
   # Pruebas sobre el servicio funcionando, sin desplegar: levanta el entorno
   # de calidad (Educación + emulador de Firestore + auth-service de prueba,
   # con Contentful "testing") dentro del runner, carga los datos de prueba
-  # por la API y corre las pruebas contra http://127.0.0.1:18210.
-  # Los scripts de smoke, E2E y stress están a cargo de Leonardo y van en
-  # scripts/calidad/pruebas/. Mientras uno no exista, su paso avisa y queda
-  # como "pendiente" en el resumen: no se da por aprobado.
+  # por la API y corre las pruebas contra http://127.0.0.1:18210:
+  # smoke, E2E y stress (scripts/calidad/pruebas/), la prueba de carga de
+  # Leonardo (scripts/calidad/pruebas/carga.js) y el baseline de ZAP de
+  # scripts/calidad/seguridad/seguridad.sh. Ver scripts/calidad/README.md.
   servicio-education:
-    name: Smoke, E2E y stress — Educación
+    name: Pruebas sobre el servicio — Educación
     runs-on: ubuntu-latest
     needs: [sonarqube-education]
     timeout-minutes: 90
@@ -276,7 +277,8 @@ jobs:
 
       # Mismo contenido que arma preparar_env.sh, pero desde los secrets.
       # docker-compose.calidad.yml fuerza Contentful "testing" y el servicio
-      # no arranca con "master".
+      # no arranca con "master". El JWT_SECRET es nuevo en cada corrida; los
+      # scripts de k6 lo usan para firmar sus tokens.
       - name: Armar .env.calidad
         env:
           CONTENTFUL_SPACE_ID: ${{ secrets.CONTENTFUL_SPACE_ID }}
@@ -285,12 +287,15 @@ jobs:
           CONTENTFUL_LOCALE: ${{ secrets.CONTENTFUL_LOCALE }}
         run: |
           umask 077
+          JWT_SECRET=$(openssl rand -hex 32)
+          echo "::add-mask::$JWT_SECRET"
+          echo "JWT_SECRET=$JWT_SECRET" >> "$GITHUB_ENV"
           {
             echo "CONTENTFUL_SPACE_ID=$CONTENTFUL_SPACE_ID"
             echo "CONTENTFUL_CDA_TOKEN=$CONTENTFUL_CDA_TOKEN"
             echo "CONTENTFUL_CMA_TOKEN=$CONTENTFUL_CMA_TOKEN"
             echo "CONTENTFUL_LOCALE=$CONTENTFUL_LOCALE"
-            echo "JWT_SECRET=$(openssl rand -hex 32)"
+            echo "JWT_SECRET=$JWT_SECRET"
           } > scripts/calidad/entorno/.env.calidad
           mkdir -p "$REPORTES"
 
@@ -310,56 +315,71 @@ jobs:
       - name: Cargar datos de prueba por la API
         run: python3 scripts/calidad/entorno/cargar_por_api.py --api "$BASE_URL"
 
-      # Cada script recibe BASE_URL y REPORTES, deja su reporte en REPORTES
-      # y termina con error si la prueba no pasa. Los tokens de prueba se
-      # piden con scripts/calidad/entorno/token_prueba.py <rol>.
+      # Cada prueba deja su reporte en REPORTES y termina con error si no
+      # pasa. "estado" queda en el resumen de la corrida.
       - name: Smoke test
         id: smoke
         run: |
-          if [ ! -f "$PRUEBAS/smoke.sh" ]; then
-            echo "::warning::Falta $PRUEBAS/smoke.sh: smoke pendiente"
-            echo "estado=pendiente" >> "$GITHUB_OUTPUT"; exit 0
-          fi
           bash "$PRUEBAS/smoke.sh"
           echo "estado=aprobado" >> "$GITHUB_OUTPUT"
 
+      # Recorrido completo de un curso: lo crea en Contentful testing, lo
+      # publica, actividad, inscripción, entrega, asistencia, habilidad,
+      # progreso y baja. Borra su curso de Contentful al terminar.
       - name: E2E
         id: e2e
         run: |
-          if [ ! -f "$PRUEBAS/e2e.sh" ]; then
-            echo "::warning::Falta $PRUEBAS/e2e.sh: E2E pendiente"
-            echo "estado=pendiente" >> "$GITHUB_OUTPUT"; exit 0
-          fi
           bash "$PRUEBAS/e2e.sh"
           echo "estado=aprobado" >> "$GITHUB_OUTPUT"
 
-      # ST-1: 20 → 50 → 100 → 200 usuarios, 2 min cada escalón. Los umbrales
-      # del plan (p95 > 2 s o errores > 5 %) van como thresholds del script.
+      # ST-0, prueba de carga de Leonardo (scripts/calidad/pruebas/carga.js): 5 → 10
+      # usuarios en 25 s leyendo el catálogo; un solo usuario crea unos
+      # 4 cursos [LOAD-TEST], que el script borra al final. Falla si el p95
+      # supera 800 ms o menos del 95 % de los checks pasan.
+      - name: Carga (ST-0, carga.js)
+        id: carga
+        env:
+          CONTENTFUL_SPACE_ID: ${{ secrets.CONTENTFUL_SPACE_ID }}
+          CONTENTFUL_CMA_TOKEN: ${{ secrets.CONTENTFUL_CMA_TOKEN }}
+          CONTENTFUL_ENVIRONMENT: testing
+        run: |
+          docker run --rm --network host -u "$(id -u)" -v "$PWD:/repo" -w /repo             -e BASE_URL -e JWT_SECRET -e CONTENTFUL_SPACE_ID -e CONTENTFUL_CMA_TOKEN             -e CONTENTFUL_ENVIRONMENT grafana/k6:0.54.0             run --summary-export reportes-servicio/carga-resumen.json scripts/calidad/pruebas/carga.js
+          echo "estado=aprobado" >> "$GITHUB_OUTPUT"
+
+      # DAST: el mismo baseline de ZAP que corre scripts/calidad/seguridad/seguridad.sh,
+      # pero contra el servicio levantado con datos y Contentful testing.
+      # Como en el script, las advertencias se informan sin frenar (-I).
+      - name: DAST (OWASP ZAP baseline)
+        id: dast
+        uses: zaproxy/action-baseline@v0.14.0
+        with:
+          target: ${{ env.BASE_URL }}
+          cmd_options: '-I'
+          fail_action: true
+          allow_issue_writing: false
+          artifact_name: zap-education-${{ github.sha }}
+
+      # ST-1: 10 → 20 → 30 → 40 usuarios, 1 min cada escalón, solo lecturas.
+      # Falla en el primer escalón con p95 > 2 s o errores > 5 % (el punto
+      # de quiebre); el resumen JSON trae el p95 y los errores de cada uno.
       - name: Stress (ST-1, k6)
         id: stress
         run: |
-          if [ ! -f "$PRUEBAS/stress.js" ]; then
-            echo "::warning::Falta $PRUEBAS/stress.js: stress pendiente"
-            echo "estado=pendiente" >> "$GITHUB_OUTPUT"; exit 0
-          fi
-          docker run --rm --network host -u "$(id -u)" -v "$PWD:/repo" -w /repo \
-            -e BASE_URL -e REPORTES=/repo/reportes-servicio grafana/k6:0.54.0 \
-            run --summary-export reportes-servicio/stress-resumen.json "$PRUEBAS/stress.js"
+          docker run --rm --network host -u "$(id -u)" -v "$PWD:/repo" -w /repo             -e BASE_URL -e JWT_SECRET grafana/k6:0.54.0             run --summary-export reportes-servicio/stress-resumen.json "$PRUEBAS/stress.js"
           echo "estado=aprobado" >> "$GITHUB_OUTPUT"
 
-      # ST-2: 20 usuarios durante 60 minutos. Solo a pedido (Run workflow).
+      # ST-2: 10 usuarios durante 30 minutos. Solo a pedido (Run workflow).
+      # Pasa si el p95 de los últimos 5 min no es más de 20 % peor que el de
+      # los primeros 5 y los errores quedan bajo el 5 %. La memoria del
+      # contenedor se guarda al empezar y al terminar.
       - name: Esfuerzo sostenido (ST-2, k6)
         id: sostenido
         if: github.event_name == 'workflow_dispatch' && inputs.esfuerzo_sostenido
         run: |
-          if [ ! -f "$PRUEBAS/esfuerzo_sostenido.js" ]; then
-            echo "::warning::Falta $PRUEBAS/esfuerzo_sostenido.js: esfuerzo sostenido pendiente"
-            echo "estado=pendiente" >> "$GITHUB_OUTPUT"; exit 0
-          fi
-          docker run --rm --network host -u "$(id -u)" -v "$PWD:/repo" -w /repo \
-            -e BASE_URL -e REPORTES=/repo/reportes-servicio grafana/k6:0.54.0 \
-            run --summary-export reportes-servicio/sostenido-resumen.json "$PRUEBAS/esfuerzo_sostenido.js"
+          docker stats --no-stream > "$REPORTES/memoria-al-empezar.txt"
+          docker run --rm --network host -u "$(id -u)" -v "$PWD:/repo" -w /repo             -e BASE_URL -e JWT_SECRET -e REPORTES=/repo/reportes-servicio grafana/k6:0.54.0             run --summary-export reportes-servicio/sostenido-resumen.json "$PRUEBAS/esfuerzo_sostenido.js"
           docker stats --no-stream > "$REPORTES/memoria-al-terminar.txt"
+          python3 -c "import json,sys; r=json.load(open(sys.argv[1])); print(r); sys.exit(0 if r['aprobado'] else 1)"             "$REPORTES/sostenido-degradacion.json"
           echo "estado=aprobado" >> "$GITHUB_OUTPUT"
 
       - name: Resumen
@@ -367,6 +387,8 @@ jobs:
         env:
           SMOKE: ${{ steps.smoke.outputs.estado || steps.smoke.outcome }}
           E2E: ${{ steps.e2e.outputs.estado || steps.e2e.outcome }}
+          CARGA: ${{ steps.carga.outputs.estado || steps.carga.outcome }}
+          DAST: ${{ steps.dast.outcome }}
           STRESS: ${{ steps.stress.outputs.estado || steps.stress.outcome }}
           SOSTENIDO: ${{ steps.sostenido.outputs.estado || steps.sostenido.outcome }}
         run: |
@@ -377,6 +399,8 @@ jobs:
             echo "|---|---|"
             echo "| Smoke | $SMOKE |"
             echo "| E2E | $E2E |"
+            echo "| Carga (ST-0, carga.js) | $CARGA |"
+            echo "| DAST (ZAP baseline) | $DAST |"
             echo "| Stress (ST-1) | $STRESS |"
             echo "| Esfuerzo sostenido (ST-2) | ${SOSTENIDO:-skipped} |"
           } >> "$GITHUB_STEP_SUMMARY"
@@ -430,19 +454,26 @@ jobs:
           cache: true
           cache-dependency-path: education/go.sum
 
-      - name: Instalar gremlins
-        run: go install github.com/go-gremlins/gremlins/cmd/gremlins@v0.5.0
+      # El script de Leonardo instala gremlins v0.5.0 y usa el emulador del
+      # job porque FIRESTORE_EMULATOR_HOST ya responde.
+      - name: Correr gremlins (mutacion.sh)
+        run: bash scripts/calidad/pruebas/mutacion.sh ./internal
 
-      - name: Correr gremlins
+      # Eficacia = eliminados / (eliminados + sobrevivientes), como la
+      # calcula gremlins; los TIMED OUT y NOT COVERED se informan aparte.
+      - name: Resumen de mutación
+        if: always()
         working-directory: education
         run: |
-          set -o pipefail
-          $(go env GOPATH)/bin/gremlins unleash ./internal/... | tee mutation_report.txt
+          [ -f mutation_report.txt ] || exit 0
+          contar() { grep -c "^ *$1 " mutation_report.txt || true; }
+          K=$(contar KILLED); L=$(contar LIVED); T=$(contar "TIMED OUT"); N=$(contar "NOT COVERED")
           {
             echo "### Educación — mutación"
-            echo '```'
-            tail -n 20 mutation_report.txt
-            echo '```'
+            echo ""
+            echo "| Eliminados | Sobrevivientes | Timed out | Sin cubrir | Eficacia |"
+            echo "|---|---|---|---|---|"
+            echo "| $K | $L | $T | $N | $(awk -v k="$K" -v l="$L" 'BEGIN { if (k + l) printf "%.2f %%", 100 * k / (k + l); else print "-" }') |"
           } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Subir reporte

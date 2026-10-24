@@ -259,8 +259,9 @@ de esfuerzo sostenido.
 
 **Qué hay hoy:**
 - Hay un script de carga de Educación (k6) muy liviano.
-- El reporte de k6 que está en `reports/performance/` **es inventado por un
-  script**, así que no sirve como evidencia.
+- El reporte de k6 que estaba en `reports/performance/` **era inventado por un
+  script**, así que no servía como evidencia (el 24/10 se borraron `tests/` y
+  `reports/` de la raíz).
 - Jira existe (proyecto SCRUM "Testing"), pero solo tiene ejercicios de
   clase. **Actualización 23/10:** se creó el proyecto BVE con historias,
   casos, defectos y tareas (ver `04-herramientas-del-ecosistema.md`).
@@ -372,7 +373,7 @@ formato estándar, y el pipeline del TP los toma sin reescribir nada:
 | `guia-de-calidad.md` | Guía general y matriz de cumplimiento | Pendiente |
 | `guia-conceptual-ejes-del-companero.md` | Ejes 2, 5, 6 y 7 explicados | Pendiente |
 | `guia-scripts-y-resumen-para-leonardo.md` | Qué hace cada script, dónde quedan los resultados y qué contarle a Leonardo | Hecho (18/10) |
-| `reportes/` | Historial de métricas por commit | Se genera con `scripts/calidad/analizar.sh` |
+| `reportes/` | Historial de métricas por commit | Se genera con `scripts/calidad/sonar/analizar.sh` |
 | `informe/` | Informe fuente y PDF | Pendiente |
 
 ## 9. Fuentes

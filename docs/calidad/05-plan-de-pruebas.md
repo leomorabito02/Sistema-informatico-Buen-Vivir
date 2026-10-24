@@ -33,9 +33,9 @@ del avance, y que siga respondiendo cuando falla una dependencia externa.
 - El esquema de la base de datos de auth-service.
 - Los mails de inscripción y recordatorio (HU-18 y HU-26 en su parte de
   notificaciones), que dependen de un servicio que todavía no existe.
-- En esta etapa del TP: la automatización del despliegue, las pruebas E2E y
-  la ejecución del stress (están planificadas en el eje 8 y en las tareas de
-  Jira, pero no se presentan como resueltas).
+- En esta etapa del TP: la automatización del despliegue. El smoke, el E2E,
+  la carga y el stress corren en el CI del TP contra Educación levantada en
+  el runner, sin desplegar.
 
 ## 3. Estrategia y niveles de prueba
 
@@ -43,7 +43,7 @@ del avance, y que siga respondiendo cuando falla una dependencia externa.
 |---|---|---|
 | Unitaria | Una función sola, con lo demás simulado | `go test` con testify/mock y `httptest` |
 | Integración | Dos piezas juntas | Repositorios contra el emulador de Firestore; outbox contra el emulador de Pub/Sub; contratos con el frontend |
-| Sistema | El servicio entero funcionando | Smoke de `/api/salud` después de desplegar (fuera del alcance de esta etapa) |
+| Sistema | El servicio entero funcionando | Smoke, E2E, carga, ZAP y stress contra el entorno de calidad, en el job `servicio-education` de `calidad-tp.yml` |
 | Aceptación | Que haga lo que pidió el usuario | Casos CP-xx contra los criterios de cada historia |
 
 Contrato, carga, seguridad y mutación no son niveles: son **tipos de
@@ -136,10 +136,10 @@ para ordenar riesgos concretos.
 
 | ID | Riesgo | P | I | P × I | Nivel | Mitigación |
 |---|---|---|---|---|---|---|
-| RP-01 | No llegar a ejecutar stress, esfuerzo sostenido y E2E antes de la entrega | 4 | 4 | 16 | Crítico | Plan escrito con umbrales (eje 8); tareas en Jira con responsable. Si no se ejecutan, el informe final lo declara como meta no cumplida |
+| RP-01 | No llegar a ejecutar stress, esfuerzo sostenido y E2E antes de la entrega | 4 | 4 | 16 | Crítico | Los scripts ya están en el CI del TP (job `servicio-education`); tareas en Jira con responsable. Si no hay corrida con resultados, el informe final lo declara como meta no cumplida |
 | RP-02 | Los números del informe quedan viejos cuando cambia el código | 4 | 3 | 12 | Alto | Ya pasó al incorporarse a la rama trabajo nuevo. Cada medición queda en `historial.csv` con su commit, y se vuelve a medir antes de entregar |
 | RP-03 | La automatización depende de un solo integrante | 3 | 4 | 12 | Alto | División de tareas escrita y tareas en Jira; los dos integrantes tienen que poder explicar todo el TP |
-| RP-04 | Las pruebas contra Contentful real superan el límite de pedidos del plan gratuito | 2 | 3 | 6 | Medio | Las pruebas automáticas usan un servidor que imita a Contentful; el entorno de calidad calienta la caché antes de cargar |
+| RP-04 | Las pruebas contra Contentful real superan el límite de pedidos del plan gratuito | 2 | 3 | 6 | Medio | Las pruebas de código usan un servidor que imita a Contentful. En el CI, el E2E escribe un curso y la carga unos 4 por corrida, y los borran; stress y esfuerzo sostenido solo leen, desde la caché de 5 min |
 | RP-05 | El análisis de SonarQube depende de una PC | 2 | 2 | 4 | Bajo | El pipeline del TP levanta su propio SonarQube en cada corrida |
 
 ## 7. Entregables de prueba
@@ -148,11 +148,11 @@ para ordenar riesgos concretos.
 |---|---|---|
 | Perfil de cobertura | `coverage.out`, generado por `analizar.sh` y por el pipeline del TP | Se genera en cada corrida |
 | Historial de métricas | `docs/calidad/reportes/historial.csv` | Una fila por medición |
-| Reporte de contratos (al estilo Pact) | `reports/pact/education-pact-report.json` | Las pruebas reescriben su fecha en cada corrida |
-| Reporte de integridad de Firestore | `reports/database/education-firestore-integrity.json` | Igual que el anterior |
-| Reporte de mutación | `education/mutation_report.txt` | De una corrida local: el job de mutación de Educación está apagado en `pipeline.yml` (`if: false`) |
+| Reporte de contratos (al estilo Pact) | `reportes-servicio/pact/education-pact-report.json` | Se genera en cada corrida (no se versiona) |
+| Reporte de integridad de Firestore | `reportes-servicio/database/education-firestore-integrity.json` | Igual que el anterior |
+| Reporte de mutación | `education/mutation_report.txt` (lo escribe `scripts/calidad/pruebas/mutacion.sh`; no se versiona) | De corridas locales: la corrida local del 24/10 (commit `0aa6b29`) dio 97,28 % (500 mutantes eliminados y 14 sobrevivientes; los 56 que excedieron el tiempo no cuentan). El CI del TP la corre a pedido (job `mutacion-education`) |
 | Seguridad estática | Artefactos del job `seguridad-education` | Se generan en cada corrida |
-| Seguridad dinámica (ZAP) | `education/zap_report.html` | Escaneo sin iniciar sesión: solo vio respuestas de rechazo |
+| Seguridad dinámica (ZAP) | `education/zap_report.html` (lo escribe `scripts/calidad/seguridad/seguridad.sh`; no se versiona) y artefacto `zap-education-<commit>` | Escaneo sin iniciar sesión: solo vio respuestas de rechazo |
 | Casos y defectos | Jira, proyecto BVE | Ver sección 5 |
 
 ## 8. Registro de defectos
@@ -177,6 +177,6 @@ corregido no es lo mismo que verificado.
 |---|---|---|
 | Matriz de riesgos, R-05 | "aborta si la clave no cumple con entropía mínima" | Solo rechaza la clave vacía y cuatro valores por defecto conocidos |
 | Estrategia y entregables | "Pact" | Pruebas de contrato escritas a mano al estilo Pact; no se usa la librería |
-| Entregables y resultados | La mutación como parte del pipeline | El job de mutación de Educación está apagado; el 91,36 % sale de una corrida local |
+| Entregables y resultados | La mutación como parte del pipeline | En `pipeline.yml` el job está apagado; el 91,36 % salió de una corrida local. El CI del TP ya la corre a pedido |
 | Valores límite de HU-20 | "0 de N → 0 %" y "N de N → 100 %" como probados | No tenían prueba; se agregó (sección 5) |
 | Casos documentados | Numeración CP-01 a CP-27 sin explicar | Se explican los huecos (sección 5) |

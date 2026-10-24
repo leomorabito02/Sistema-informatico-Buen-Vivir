@@ -11,7 +11,8 @@ Mocks/
 CLAUDE.md
 POSTMAN_EXAMPLES.md
 postman
-reports/coverage/auth.out
+# auth/tests escribe ahí sus reportes (las salidas de education van a reportes-servicio/)
+reports/
 .angular/cache/
 .angular/cache/
 education/.env
@@ -23,3 +24,15 @@ education/coverage.out
 education/test-report.json
 scripts/calidad/entorno/.env.calidad
 __pycache__/
+
+# Usuarios de prueba con contraseñas reales: nunca se versiona
+docs/tesis/usuarios-de-prueba.docx
+# Reportes de las pruebas sobre el servicio (se suben como artefacto del pipeline)
+reportes-servicio/
+# Salidas de los scripts de scripts/calidad/ que corren dentro de education/
+education/*.out
+education/mutation_report.txt
+education/sast_report.json
+education/sca_report.txt
+education/zap_report.html
+education/zap.yaml

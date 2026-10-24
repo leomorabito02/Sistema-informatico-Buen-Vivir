@@ -23,7 +23,7 @@ está verificado en el repo: `pipeline.yml`, `go.mod` y los scripts.
 | Ejecución / registro | Automatizar y correr pruebas | `go test` + testify | `education/**/*_test.go` | En uso |
 | | | Emulador de Firestore | `pipeline.yml`, `docker-compose.calidad.yml` | En uso |
 | | | gremlins y go-mutesting (pruebas de mutación: ¿las pruebas detectan un cambio en el código?) | `pipeline.yml` | En uso |
-| Rendimiento | Medir carga, stress y escala | k6 | `education/load_test.js` (Educación); en `pipeline.yml` k6 corre contra auth-service, no contra Educación | Script liviano, sin resultados reales para Educación |
+| Rendimiento | Medir carga, stress y escala | k6 | `scripts/calidad/pruebas/carga.js` y `scripts/calidad/pruebas/` (Educación, en `calidad-tp.yml`); en `pipeline.yml` k6 corre contra auth-service | En el pipeline; sin corrida guardada para Educación |
 | Seguridad (extra) | Vulnerabilidades y secretos | govulncheck (librerías con fallas conocidas), Gitleaks (claves en el código), Trivy (imagen Docker) | `calidad-tp.yml` y `pipeline.yml` | En uso |
 | | | OWASP ZAP (ataques sobre la app desplegada) | `pipeline.yml` | Solo contra auth-service, no contra Educación |
 | CI/CD (extra) | Que todo corra solo en cada cambio | GitHub Actions | `.github/workflows/` | En uso |
@@ -173,11 +173,12 @@ prueba de regresión está en verde.
 
 ## 4. Pruebas de stress y de esfuerzo sostenido: plan
 
-> **Estado: plan escrito, sin ejecutar.** No hay resultados todavía. La
-> ejecución corresponde al eje de automatización (tarea BVE-31 en Jira). El
-> reporte de k6 que está en `reports/performance/` no es una ejecución real:
-> lo genera un script con valores fijos. Hasta que haya una corrida, el
-> aspecto "Stress y esfuerzo sostenido" del Nivel 3 no se cumple.
+> **Estado: implementado en el CI del TP, sin corrida con resultados.** Los
+> tres escenarios están en el job `servicio-education` de `calidad-tp.yml`
+> (ST-2 solo a pedido); la tarea es BVE-31 en Jira. El reporte de k6 que
+> estaba en `reports/performance/` no era una ejecución real: lo generaba un
+> script con valores fijos, y se borró del repo. Hasta que haya una corrida, el aspecto "Stress y
+> esfuerzo sostenido" del Nivel 3 no se cumple.
 
 La clase distingue tres pruebas:
 - **Carga:** cómo se comporta con el tráfico esperado.
@@ -210,9 +211,15 @@ tiempo, para ver si el servicio se degrada.
 
 | ID | Tipo | Qué pide cada usuario virtual | Carga | Duración | Umbral de aprobación | Cuándo cortar |
 |---|---|---|---|---|---|---|
-| ST-0 | Carga (referencia) | `GET /api/cursos`, `GET /api/cursos/{id}/actividades`, `GET /api/cursos/{id}/inscripciones` | 20 usuarios | 5 min | p95 < 800 ms y errores < 1 % | — |
-| ST-1 | Stress | Lo mismo | Escalera: 20 → 50 → 100 → 200 usuarios, 2 min cada escalón | ~8 min | Se registra el escalón donde p95 > 2 s o errores > 5 %: ese es el **punto de quiebre** | Errores > 20 %, el contenedor se reinicia, o la PC se queda sin memoria |
-| ST-2 | Esfuerzo sostenido | Lo mismo | 20 usuarios constantes | 60 min | El p95 de los últimos 10 min no supera en más de 20 % al de los primeros 10 min. La memoria del contenedor no crece sin parar | Errores > 5 % sostenidos durante 2 min |
+| ST-0 | Carga (referencia) | `GET /api/cursos`; un solo usuario crea unos 4 cursos `[LOAD-TEST]` en Contentful testing, que se borran al final (`scripts/calidad/pruebas/carga.js`, de Leonardo) | 5 → 10 usuarios | 25 s | p95 < 800 ms y más del 95 % de checks aprobados | — |
+| ST-1 | Stress | `GET /api/cursos`, `GET /api/cursos/{id}/actividades`, `GET /api/cursos/{id}/inscripciones` (`stress.js`) | Escalera: 10 → 20 → 30 → 40 usuarios, 1 min cada escalón | ~5 min | Se registra el escalón donde p95 > 2 s o errores > 5 %: ese es el **punto de quiebre**. Si ningún escalón los pasa, el quiebre está por encima de 40 usuarios | Errores > 20 % |
+| ST-2 | Esfuerzo sostenido | Lo mismo que ST-1 (`esfuerzo_sostenido.js`) | 10 usuarios constantes | 30 min | El p95 de los últimos 5 min no supera en más de 20 % al de los primeros 5 min; errores < 5 %. Se guarda la memoria del contenedor al empezar y al terminar | Errores > 5 % sostenidos durante 2 min |
+
+**Por qué estas cargas:** parten del pico de la prueba de carga de
+Leonardo (10 usuarios), que es chica para no pasarse del límite de pedidos
+de Contentful. El stress llega a 4 veces ese valor y el esfuerzo sostenido
+lo mantiene media hora. Solo la carga escribe en Contentful; stress y
+esfuerzo sostenido solo leen.
 
 **Qué se guarda de cada corrida:** el resumen JSON de k6
 (`--summary-export`), la memoria y CPU del contenedor (`docker stats`), y el
@@ -236,6 +243,6 @@ el del entorno, no el de producción.**
 - Consigna del TP: aspectos "Herramienta nueva" y "Stress y esfuerzo
   sostenido" del Nivel 3.
 - Repo: `.github/workflows/pipeline.yml`, `education/go.mod`,
-  `education/load_test.js`.
+  `scripts/calidad/pruebas/carga.js`.
 - **Aportes externos:** precios de SonarQube Cloud, límite de pedidos de
   Contentful y la elección de k6. Están marcados en el texto donde aparecen.

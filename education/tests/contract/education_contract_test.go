@@ -54,7 +54,7 @@ func TestEducationServiceProviderContract(t *testing.T) {
 	assert.Equal(t, "VERIFIED", report.Status)
 
 	// Save Report
-	reportsDir := filepath.Join("..", "..", "..", "reports", "pact")
+	reportsDir := filepath.Join("..", "..", "..", "reportes-servicio", "pact")
 	_ = os.MkdirAll(reportsDir, 0755)
 	reportPath := filepath.Join(reportsDir, "education-pact-report.json")
 

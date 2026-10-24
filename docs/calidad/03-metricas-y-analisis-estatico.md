@@ -13,9 +13,9 @@ Se analiza todo el codigo Go de education/
 | Pieza | Dónde | Qué hace |
 |---|---|---|
 | Ficha del proyecto | `education/sonar-project.properties` | Le dice a SonarQube qué es código, qué son pruebas y dónde está la cobertura |
-| Configuración | `scripts/calidad/configurar_sonar.sh` | Crea el proyecto y el quality gate |
-| Punto de partida | `scripts/calidad/linea_base.sh` | Registra cómo estaba el código antes de agosto, como referencia para el "código nuevo" |
-| Análisis | `scripts/calidad/analizar.sh` | Pruebas → cobertura → SonarQube → veredicto → historial |
+| Configuración | `scripts/calidad/sonar/configurar_sonar.sh` | Crea el proyecto y el quality gate |
+| Punto de partida | `scripts/calidad/sonar/linea_base.sh` | Registra cómo estaba el código antes de agosto, como referencia para el "código nuevo" |
+| Análisis | `scripts/calidad/sonar/analizar.sh` | Pruebas → cobertura → SonarQube → veredicto → historial |
 | Automatización | `.github/workflows/calidad-tp.yml` | Lo mismo en cada cambio de `education/`, más el análisis de seguridad |
 
 **"Código nuevo"** = lo cambiado desde el inicio de agosto de 2026.
@@ -126,7 +126,7 @@ Antes era una sola receta larga, con condiciones dentro de condiciones. Ahora `S
 
 - **El margen del gate depende de las pruebas**
 - **SonarQube encuentra lo que sus reglas conocen.** "0 bugs" no quiere decir "sin defectos".
-- **La cobertura cuenta líneas ejecutadas, no verificadas.** Una prueba puede pasar por una línea sin comprobar su resultado. El pipeline de la tesis tiene pruebas de mutación (gremlins) que miden eso, y corresponden al eje de pruebas.
+- **La cobertura cuenta líneas ejecutadas, no verificadas.** Una prueba puede pasar por una línea sin comprobar su resultado. El pipeline de la tesis tiene pruebas de mutación (gremlins) que miden eso, y corresponden al eje de pruebas. El 91,36 % de mutación salió de una corrida local; la corrida local del 24/10 (commit `0aa6b29`) dio 97,28 % (500 mutantes eliminados y 14 sobrevivientes; los 56 que excedieron el tiempo no cuentan). El CI del TP ya corre la mutación a pedido (job `mutacion-education`).
 - **Un test falla en Windows**.
 - **Las métricas de cobertura de Go y de SonarQube difieren:** Go mide la cobertura por sentencias y SonarQube por líneas, así que dan números apenas distintos (por ejemplo, 92,2 % y 92,6 % sobre el mismo código). Las dos son correctas: cuentan cosas distintas. En el TP se usa la de SonarQube, porque es la que evalúa el gate.
 

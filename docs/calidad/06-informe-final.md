@@ -25,15 +25,15 @@ TP es solo el microservicio de Educación.
 | Aspecto (consigna) | Meta del Nivel 3 | Resultado | Evidencia | Estado |
 |---|---|---|---|---|
 | Pipeline | Compilación, pruebas, análisis estático, cobertura, quality gate y reporte automático | Todo eso corre en `calidad-tp.yml` en cada cambio de `education/` | `.github/workflows/calidad-tp.yml` | Cumple |
-| Quality gate | Bloquea ante bugs críticos, duplicación > 5 % y cobertura del código nuevo < 80 % | Gate TP-Calidad-N3 con esas condiciones, en todo el código y en el nuevo | `scripts/calidad/configurar_sonar.sh` | Cumple |
+| Quality gate | Bloquea ante bugs críticos, duplicación > 5 % y cobertura del código nuevo < 80 % | Gate TP-Calidad-N3 con esas condiciones, en todo el código y en el nuevo | `scripts/calidad/sonar/configurar_sonar.sh` | Cumple |
 | Cobertura del código nuevo | ≥ 80 % | 92,4 % | SonarQube, commit `e3357a6` | Cumple (a confirmar con la nueva medición) |
 | Cobertura del código existente | ≥ 80 % | 92,4 % | SonarQube, commit `e3357a6` | Cumple (a confirmar con la nueva medición) |
 | Plan de pruebas y riesgos | Plan versionado con criterios de entrada y salida, riesgos por probabilidad × impacto y trazabilidad requisito → caso → defecto | `05-plan-de-pruebas.md`: los cuatro criterios, 5 riesgos de producto y 5 de proyecto, matriz de trazabilidad | `docs/calidad/05-plan-de-pruebas.md` y Jira | Cumple cuando el archivo se suba al repositorio. Faltan 3 casos por cargar en Jira |
 | Defectos | Registrados con pasos, esperado y obtenido, vinculados a su caso en Jira | DEF-01 y DEF-06, con todos los datos y su prueba de regresión | Jira BVE-28 y BVE-29 | Cumple |
 | Herramienta nueva | Cinco pasos: requisitos, mercado, prueba de concepto, matriz de decisión, despliegue incremental | SonarQube Community Build, elegida con matriz ponderada (8,15 contra 7,35 y 7,25) | `04-herramientas-del-ecosistema.md` | Cumple |
-| Smoke test | Ejecutado por el pipeline después del despliegue | Existe en `pipeline.yml` (`cd-smoke`, consulta `/api/salud` de Educación) | `pipeline.yml` | Implementado; la evidencia de una corrida queda fuera del alcance de esta etapa |
-| Integración externa | Flujo E2E automatizado en cada despliegue | No existe | — | No cumple (fuera del alcance de esta etapa) |
-| Stress y esfuerzo sostenido | Stress ejecutado, con resultados y umbrales | Plan con escenarios y umbrales (ST-0 a ST-2), sin ejecutar | `04-herramientas-del-ecosistema.md`, Jira BVE-31 | No cumple |
+| Smoke test | Ejecutado por el pipeline después del despliegue | `cd-smoke` en `pipeline.yml` y `smoke.sh` en el CI del TP, contra Educación levantada en el runner (sin despliegue) | `pipeline.yml`, `calidad-tp.yml`, `scripts/calidad/pruebas/smoke.sh` | Implementado; falta la evidencia de una corrida en GitHub |
+| Integración externa | Flujo E2E automatizado en cada despliegue | `e2e.sh`: un curso de punta a punta contra Contentful testing real, en cada push a `Calidad` (no hay despliegue en el TP) | `calidad-tp.yml`, `scripts/calidad/pruebas/e2e.py` | Implementado; falta la evidencia de una corrida en GitHub |
+| Stress y esfuerzo sostenido | Stress ejecutado, con resultados y umbrales | ST-0 (carga de Leonardo), ST-1 y ST-2 implementados con k6 en el CI del TP, con sus umbrales | `calidad-tp.yml`, `scripts/calidad/pruebas/`, Jira BVE-31 | No cumple hasta que haya una corrida con resultados |
 
 **Entregables que no se cumplen en esta etapa:** la ejecución fallida del
 pipeline que detecte un problema real (DEF-06 tiene su rojo y verde, pero
@@ -79,8 +79,9 @@ línea de un archivo (eje 1, OBJ-E5).
 
 **Lo que no se logró y por qué:**
 
-- **Stress, esfuerzo sostenido y E2E:** quedaron planificados pero no
-  ejecutados. Sin ellos no se cumplen dos aspectos del Nivel 3.
+- **Stress, esfuerzo sostenido y E2E:** están implementados en el CI del
+  TP, pero todavía no hay una corrida con resultados. Hasta tenerla no se
+  cumplen dos aspectos del Nivel 3.
 - **OBJ-E3 (complejidad):** quedan 14 funciones por encima del límite
   contra una meta de 6. Se priorizó no tocar código que funciona cerca de la
   entrega; hay un plan escrito (eje 1).
@@ -88,8 +89,9 @@ línea de un archivo (eje 1, OBJ-E5).
 **Límites de la evidencia:**
 
 - **Cobertura no es verificación:** cuenta líneas ejecutadas, no
-  comprobadas. La mutación (91,36 %) sale de una corrida local, no del
-  pipeline.
+  comprobadas. La mutación sale de corridas locales: el 91,36 % de una
+  anterior y la corrida local del 24/10 (commit `0aa6b29`) dio 97,28 % (500 mutantes eliminados y 14 sobrevivientes; los 56 que excedieron el tiempo no cuentan). El CI del TP ya la corre a pedido
+  (job `mutacion-education`).
 - **ZAP sin sesión:** el escaneo dinámico solo vio respuestas de rechazo.
   "0 alertas" no prueba que las rutas protegidas sean seguras.
 - **Emuladores:** las pruebas de integración corren contra emuladores de
@@ -107,13 +109,15 @@ Educación tiene una base de calidad sólida para su tamaño: cobertura de
 pipeline que analiza cada cambio con un gate que frena. En el Nivel 3 se
 cumplen el pipeline, el quality gate, la cobertura, el plan con riesgos y
 trazabilidad, el registro de defectos y la herramienta nueva. No se cumplen
-todavía el stress con resultados y el flujo E2E en cada despliegue.
+todavía el stress con resultados y el flujo E2E con una corrida que lo
+respalde: los dos ya están en el pipeline.
 
 **Recomendaciones para el resto de la tesis:**
 
-1. Ejecutar los escenarios de stress y esfuerzo sostenido y sumarlos al
-   pipeline.
-2. Agregar el flujo E2E contra Contentful después del smoke.
+1. Pedir una corrida completa del pipeline (con esfuerzo sostenido y
+   mutación) y sumar sus resultados al informe.
+2. Repetir el E2E y el stress en cada despliegue de la tesis, después del
+   smoke.
 3. Extender SonarQube y el gate a los demás microservicios (paso 3 del
    despliegue incremental).
 4. Seguir el plan de complejidad del eje 1, función por función.

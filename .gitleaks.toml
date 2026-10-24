@@ -5,6 +5,6 @@ description = "Allow frontend environments and documentation examples"
 paths = [
     '''frontend/src/environments/environment\.ts''',
     '''frontend/src/environments/environment\.local\.ts''',
-    '''education/PRUEBAS\.md''',
+    '''docs/education/PRUEBAS.md''',
     '''docs/postman_examples\.md'''
 ]
