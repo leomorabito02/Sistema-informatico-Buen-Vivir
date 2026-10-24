@@ -1,16 +1,30 @@
-name: TP Calidad — Análisis estático (Educación)
+name: TP Calidad — CI (Educación)
 
 
-# En cada corrida levanta un SonarQube temporal dentro del job, lo configura
-# con el quality gate del Nivel 3, analiza Educación y guarda los reportes.
-# Al terminar el job, ese SonarQube se borra: la evidencia queda en el
-# resumen de la corrida y en el artefacto "calidad-education-<commit>".
+# Pipeline de CI del TP: no despliega nada. En cada corrida:
+#   1. sonarqube-education: pruebas (unitarias, integración y contrato),
+#      cobertura y quality gate del Nivel 3, con un SonarQube temporal.
+#   2. seguridad-education: análisis estático de seguridad (en paralelo).
+#   3. servicio-education: levanta Educación dentro del runner con
+#      docker-compose.calidad.yml y corre smoke, E2E y stress contra él.
+#   4. mutacion-education y el esfuerzo sostenido: solo a pedido (Run
+#      workflow), porque tardan mucho para cada push.
+# La evidencia queda en el resumen de cada corrida y en sus artefactos.
 
 on:
   push:
     branches:
       - 'Calidad'
   workflow_dispatch:
+    inputs:
+      esfuerzo_sostenido:
+        description: 'Correr el esfuerzo sostenido (ST-2, 60 minutos)'
+        type: boolean
+        default: false
+      mutacion:
+        description: 'Correr las pruebas de mutación (gremlins)'
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -236,5 +250,206 @@ jobs:
         with:
           name: seguridad-education-${{ github.sha }}
           path: reportes-seguridad/
+          retention-days: 30
+          if-no-files-found: warn
+
+  # Pruebas sobre el servicio funcionando, sin desplegar: levanta el entorno
+  # de calidad (Educación + emulador de Firestore + auth-service de prueba,
+  # con Contentful "testing") dentro del runner, carga los datos de prueba
+  # por la API y corre las pruebas contra http://127.0.0.1:18210.
+  # Los scripts de smoke, E2E y stress están a cargo de Leonardo y van en
+  # scripts/calidad/pruebas/. Mientras uno no exista, su paso avisa y queda
+  # como "pendiente" en el resumen: no se da por aprobado.
+  servicio-education:
+    name: Smoke, E2E y stress — Educación
+    runs-on: ubuntu-latest
+    needs: [sonarqube-education]
+    timeout-minutes: 90
+    env:
+      BASE_URL: http://127.0.0.1:18210
+      PRUEBAS: scripts/calidad/pruebas
+      REPORTES: ${{ github.workspace }}/reportes-servicio
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # Mismo contenido que arma preparar_env.sh, pero desde los secrets.
+      # docker-compose.calidad.yml fuerza Contentful "testing" y el servicio
+      # no arranca con "master".
+      - name: Armar .env.calidad
+        env:
+          CONTENTFUL_SPACE_ID: ${{ secrets.CONTENTFUL_SPACE_ID }}
+          CONTENTFUL_CDA_TOKEN: ${{ secrets.CONTENTFUL_CDA_TOKEN }}
+          CONTENTFUL_CMA_TOKEN: ${{ secrets.CONTENTFUL_CMA_TOKEN }}
+          CONTENTFUL_LOCALE: ${{ secrets.CONTENTFUL_LOCALE }}
+        run: |
+          umask 077
+          {
+            echo "CONTENTFUL_SPACE_ID=$CONTENTFUL_SPACE_ID"
+            echo "CONTENTFUL_CDA_TOKEN=$CONTENTFUL_CDA_TOKEN"
+            echo "CONTENTFUL_CMA_TOKEN=$CONTENTFUL_CMA_TOKEN"
+            echo "CONTENTFUL_LOCALE=$CONTENTFUL_LOCALE"
+            echo "JWT_SECRET=$(openssl rand -hex 32)"
+          } > scripts/calidad/entorno/.env.calidad
+          mkdir -p "$REPORTES"
+
+      - name: Levantar el entorno de calidad
+        run: docker compose -f docker-compose.calidad.yml up -d --build
+
+      - name: Esperar a Educación
+        run: |
+          for i in $(seq 1 60); do
+            if curl -sf "$BASE_URL/api/salud" > /dev/null; then
+              curl -s "$BASE_URL/api/salud"; echo; exit 0
+            fi
+            echo "esperando a Educación ($i/60)..."; sleep 3
+          done
+          echo "::error::Educación no arrancó"; exit 1
+
+      - name: Cargar datos de prueba por la API
+        run: python3 scripts/calidad/entorno/cargar_por_api.py --api "$BASE_URL"
+
+      # Cada script recibe BASE_URL y REPORTES, deja su reporte en REPORTES
+      # y termina con error si la prueba no pasa. Los tokens de prueba se
+      # piden con scripts/calidad/entorno/token_prueba.py <rol>.
+      - name: Smoke test
+        id: smoke
+        run: |
+          if [ ! -f "$PRUEBAS/smoke.sh" ]; then
+            echo "::warning::Falta $PRUEBAS/smoke.sh: smoke pendiente"
+            echo "estado=pendiente" >> "$GITHUB_OUTPUT"; exit 0
+          fi
+          bash "$PRUEBAS/smoke.sh"
+          echo "estado=aprobado" >> "$GITHUB_OUTPUT"
+
+      - name: E2E
+        id: e2e
+        run: |
+          if [ ! -f "$PRUEBAS/e2e.sh" ]; then
+            echo "::warning::Falta $PRUEBAS/e2e.sh: E2E pendiente"
+            echo "estado=pendiente" >> "$GITHUB_OUTPUT"; exit 0
+          fi
+          bash "$PRUEBAS/e2e.sh"
+          echo "estado=aprobado" >> "$GITHUB_OUTPUT"
+
+      # ST-1: 20 → 50 → 100 → 200 usuarios, 2 min cada escalón. Los umbrales
+      # del plan (p95 > 2 s o errores > 5 %) van como thresholds del script.
+      - name: Stress (ST-1, k6)
+        id: stress
+        run: |
+          if [ ! -f "$PRUEBAS/stress.js" ]; then
+            echo "::warning::Falta $PRUEBAS/stress.js: stress pendiente"
+            echo "estado=pendiente" >> "$GITHUB_OUTPUT"; exit 0
+          fi
+          docker run --rm --network host -u "$(id -u)" -v "$PWD:/repo" -w /repo \
+            -e BASE_URL -e REPORTES=/repo/reportes-servicio grafana/k6:0.54.0 \
+            run --summary-export reportes-servicio/stress-resumen.json "$PRUEBAS/stress.js"
+          echo "estado=aprobado" >> "$GITHUB_OUTPUT"
+
+      # ST-2: 20 usuarios durante 60 minutos. Solo a pedido (Run workflow).
+      - name: Esfuerzo sostenido (ST-2, k6)
+        id: sostenido
+        if: github.event_name == 'workflow_dispatch' && inputs.esfuerzo_sostenido
+        run: |
+          if [ ! -f "$PRUEBAS/esfuerzo_sostenido.js" ]; then
+            echo "::warning::Falta $PRUEBAS/esfuerzo_sostenido.js: esfuerzo sostenido pendiente"
+            echo "estado=pendiente" >> "$GITHUB_OUTPUT"; exit 0
+          fi
+          docker run --rm --network host -u "$(id -u)" -v "$PWD:/repo" -w /repo \
+            -e BASE_URL -e REPORTES=/repo/reportes-servicio grafana/k6:0.54.0 \
+            run --summary-export reportes-servicio/sostenido-resumen.json "$PRUEBAS/esfuerzo_sostenido.js"
+          docker stats --no-stream > "$REPORTES/memoria-al-terminar.txt"
+          echo "estado=aprobado" >> "$GITHUB_OUTPUT"
+
+      - name: Resumen
+        if: always()
+        env:
+          SMOKE: ${{ steps.smoke.outputs.estado || steps.smoke.outcome }}
+          E2E: ${{ steps.e2e.outputs.estado || steps.e2e.outcome }}
+          STRESS: ${{ steps.stress.outputs.estado || steps.stress.outcome }}
+          SOSTENIDO: ${{ steps.sostenido.outputs.estado || steps.sostenido.outcome }}
+        run: |
+          {
+            echo "### Educación — pruebas sobre el servicio"
+            echo ""
+            echo "| Prueba | Resultado |"
+            echo "|---|---|"
+            echo "| Smoke | $SMOKE |"
+            echo "| E2E | $E2E |"
+            echo "| Stress (ST-1) | $STRESS |"
+            echo "| Esfuerzo sostenido (ST-2) | ${SOSTENIDO:-skipped} |"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Logs del servicio
+        if: failure()
+        run: docker compose -f docker-compose.calidad.yml logs --tail 200 education-calidad
+
+      - name: Subir reportes
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: servicio-education-${{ github.sha }}
+          path: reportes-servicio/
+          retention-days: 30
+          if-no-files-found: warn
+
+      - name: Apagar el entorno
+        if: always()
+        run: |
+          docker compose -f docker-compose.calidad.yml down
+          rm -f scripts/calidad/entorno/.env.calidad
+
+  # Mutación con gremlins: mide si las pruebas detectan cambios en el código.
+  # Tarda mucho, así que corre solo a pedido. Es el job que está apagado en
+  # pipeline.yml, ahora dentro del CI del TP.
+  mutacion-education:
+    name: Mutación — Educación (gremlins)
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch' && inputs.mutacion
+    needs: [sonarqube-education]
+    timeout-minutes: 60
+
+    services:
+      firestore:
+        image: mtlynch/firestore-emulator:latest
+        ports:
+          - 8390:8080
+
+    env:
+      FIRESTORE_EMULATOR_HOST: localhost:8390
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+          cache-dependency-path: education/go.sum
+
+      - name: Instalar gremlins
+        run: go install github.com/go-gremlins/gremlins/cmd/gremlins@v0.5.0
+
+      - name: Correr gremlins
+        working-directory: education
+        run: |
+          set -o pipefail
+          $(go env GOPATH)/bin/gremlins unleash ./internal/... | tee mutation_report.txt
+          {
+            echo "### Educación — mutación"
+            echo '```'
+            tail -n 20 mutation_report.txt
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Subir reporte
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: mutacion-education-${{ github.sha }}
+          path: education/mutation_report.txt
           retention-days: 30
           if-no-files-found: warn
