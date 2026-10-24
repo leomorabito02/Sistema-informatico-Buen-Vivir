@@ -73,6 +73,7 @@ describe("AuthService", () => {
       password: "password123",
     });
     expect(req.request.withCredentials).toBe(true);
+    expect(req.request.headers.get("X-Skip-Global-Error")).toBe("true");
     req.flush({ accounts: [], login_nonce: "nonce" });
   });
 

@@ -48,6 +48,7 @@ func main() {
 	refreshTokenRepo := repositories.NewRefreshTokenRepository(db)
 	participantDirectoryRepo := repositories.NewParticipantDirectoryRepository(db)
 	storageCleanupRepo := repositories.NewStorageCleanupRepository(db)
+	emailVerificationRepo := repositories.NewEmailVerificationRepository(db)
 
 	// Setup Storage
 	storageSvc, err := storage.NewObjectStorageService(
@@ -76,6 +77,9 @@ func main() {
 	transactor := repositories.NewGormTransactor(db)
 	querier := repositories.NewGormRoleProfileQuerier(db)
 
+	notificationSyncSvc := services.NewNotificationSyncService()
+	verificationService := services.NewVerificationService(emailVerificationRepo, userRepo, notificationSyncSvc)
+
 	authService := services.NewAuthService(
 		transactor,
 		querier,
@@ -83,8 +87,9 @@ func main() {
 		refreshTokenRepo,
 		jwtService,
 		firebaseService,
+		verificationService,
 	)
-	userService := services.NewUserService(userRepo)
+	userService := services.NewUserService(userRepo, querier, notificationSyncSvc)
 	roleService := services.NewRoleService(roleRepo)
 	companyService := services.NewCompanyService(companyRepo)
 	teacherService := services.NewTeacherService(teacherRepo)
@@ -107,7 +112,7 @@ func main() {
 	deviceRepo := repositories.NewFirestoreDeviceRepository(firestoreClient)
 	deviceController := controllers.NewDeviceController(deviceRepo)
 
-	authController := controllers.NewAuthController(authService)
+	authController := controllers.NewAuthController(authService, verificationService)
 	userController := controllers.NewUserController(userService)
 	roleController := controllers.NewRoleController(roleService)
 	companyController := controllers.NewCompanyController(companyService)
@@ -180,6 +185,9 @@ func main() {
 			r.With(middlewares.StrictRateLimiter()).Post("/login", authController.Login)
 			r.With(middlewares.StrictRateLimiter()).Post("/logout", authController.Logout)
 			r.With(middlewares.StrictRateLimiter()).Post("/refresh", authController.Refresh)
+			r.With(middlewares.StrictRateLimiter()).Post("/verify-email", authController.VerifyEmail)
+			r.With(middlewares.StrictRateLimiter()).Patch("/verify-email", authController.VerifyEmail)
+			r.With(middlewares.StrictRateLimiter()).Post("/resend-verification", authController.ResendVerification)
 		})
 		
 		// Protected Routes
@@ -201,6 +209,10 @@ func main() {
 				r.With(middlewares.RequireRole("role_admin", "role_dev")).
 					Get("/participants/history", userController.GetParticipantsHistory)
 				r.Post("/me/devices", deviceController.RegisterDevice)
+				r.With(middlewares.RequireRole("role_admin", "role_dev", "role_volunteer")).
+					Post("/{id}/approve", userController.ApproveUser)
+				r.With(middlewares.RequireRole("role_admin", "role_dev", "role_volunteer")).
+					Patch("/{id}/approval", userController.ApproveUser)
 				r.Get("/{id}", userController.GetUser)
 				r.Get("/{id}/profile", authController.GetUserProfile)
 				r.Put("/{id}", userController.UpdateUser)

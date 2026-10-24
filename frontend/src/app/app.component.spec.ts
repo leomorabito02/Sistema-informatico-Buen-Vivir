@@ -1,6 +1,8 @@
 import { TestBed } from "@angular/core/testing";
 import { AppComponent } from "./app.component";
 import { ActivatedRoute, provideRouter } from "@angular/router";
+import { MessageService } from "primeng/api";
+import { provideAnimations } from "@angular/platform-browser/animations";
 
 describe("AppComponent", () => {
   beforeEach(async () => {
@@ -8,6 +10,8 @@ describe("AppComponent", () => {
       imports: [AppComponent],
       providers: [
         provideRouter([]),
+        MessageService,
+        provideAnimations(),
         {
           provide: ActivatedRoute,
           useValue: {},

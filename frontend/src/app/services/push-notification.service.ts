@@ -4,6 +4,7 @@ import { Messaging, getToken, onMessage } from "@angular/fire/messaging";
 import { environment } from "../../environments/environment";
 import { Observable, of } from "rxjs";
 import { catchError } from "rxjs/operators";
+import { SKIP_GLOBAL_ERROR_HEADER } from "../core/interceptors/error.interceptor";
 
 export interface DeviceRegistrationResponse {
   message?: string;
@@ -90,7 +91,10 @@ export class PushNotificationService {
           token,
           userAgent: typeof navigator !== "undefined" ? navigator.userAgent : "",
         },
-        { withCredentials: true },
+        {
+          withCredentials: true,
+          headers: { [SKIP_GLOBAL_ERROR_HEADER]: "true" },
+        },
       )
       .pipe(catchError(() => of(null)));
   }

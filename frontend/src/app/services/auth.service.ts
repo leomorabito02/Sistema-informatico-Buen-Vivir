@@ -15,6 +15,7 @@ import {
   UpdateTeacherProfile,
   User,
 } from "../core/models/auth.model";
+import { SKIP_GLOBAL_ERROR_HEADER } from "../core/interceptors/error.interceptor";
 
 import { PushNotificationService } from "./push-notification.service";
 
@@ -67,7 +68,10 @@ export class AuthService {
       .post<CheckCredentialsResponse>(
         `${this.apiUrl}/api/v1/auth/check-credentials`,
         { email, password },
-        { withCredentials: true },
+        {
+          withCredentials: true,
+          headers: { [SKIP_GLOBAL_ERROR_HEADER]: "true" },
+        },
       )
       .pipe(catchError(this.handleError));
   }
@@ -92,7 +96,10 @@ export class AuthService {
           .post<CheckCredentialsResponse>(
             `${this.apiUrl}/api/v1/auth/google-check-credentials`,
             { id_token: idToken, google_id: googleId },
-            { withCredentials: true },
+            {
+              withCredentials: true,
+              headers: { [SKIP_GLOBAL_ERROR_HEADER]: "true" },
+            },
           )
           .pipe(catchError(this.handleError)),
       ),
@@ -129,7 +136,10 @@ export class AuthService {
       .post<LoginResponse>(
         `${this.apiUrl}/api/v1/auth/refresh`,
         {},
-        { withCredentials: true },
+        {
+          withCredentials: true,
+          headers: { [SKIP_GLOBAL_ERROR_HEADER]: "true" },
+        },
       )
       .pipe(
         tap(() => this.setLocallyAuthenticated()),
@@ -189,7 +199,14 @@ export class AuthService {
   logout(): void {
     this.clearLocallyAuthenticated();
     this.http
-      .post(`${this.apiUrl}/api/v1/auth/logout`, {}, { withCredentials: true })
+      .post(
+        `${this.apiUrl}/api/v1/auth/logout`,
+        {},
+        {
+          withCredentials: true,
+          headers: { [SKIP_GLOBAL_ERROR_HEADER]: "true" },
+        },
+      )
       .subscribe({
         next: () => {
           void this.auth.signOut();
@@ -201,6 +218,38 @@ export class AuthService {
           void this.router.navigate(["/login"]);
         },
       });
+  }
+
+  /**
+   * Dispara el reenvío del correo de confirmación con enlace temporal.
+   */
+  resendVerificationEmail(email: string): Observable<{ message: string }> {
+    return this.http
+      .post<{ message: string }>(
+        `${this.apiUrl}/api/v1/auth/resend-verification`,
+        { email },
+        {
+          withCredentials: true,
+          headers: { [SKIP_GLOBAL_ERROR_HEADER]: "true" },
+        },
+      )
+      .pipe(catchError(this.handleError));
+  }
+
+  /**
+   * Ejecuta el PATCH para validar el token y pasar is_email_verified = true.
+   */
+  verifyEmail(token: string): Observable<{ is_email_verified: boolean; message: string }> {
+    return this.http
+      .patch<{ is_email_verified: boolean; message: string }>(
+        `${this.apiUrl}/api/v1/auth/verify-email`,
+        { token },
+        {
+          withCredentials: true,
+          headers: { [SKIP_GLOBAL_ERROR_HEADER]: "true" },
+        },
+      )
+      .pipe(catchError(this.handleError));
   }
 
   private readonly handleError = (error: HttpErrorResponse) => {

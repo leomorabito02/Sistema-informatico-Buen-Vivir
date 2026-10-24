@@ -27,11 +27,14 @@ type UserRepository interface {
 	// los dados de baja (soft delete), con sus fechas de alta,
 	// aprobación y baja. Para el Dashboard.
 	FindParticipantsHistory(ctx context.Context) ([]models.ParticipantHistory, error)
+	UpdateEmailVerified(ctx context.Context, userID string, verified bool) error
 }
 
 type userRepository struct {
 	db *gorm.DB
 }
+
+const queryUserID = "user_id = ?"
 
 func NewUserRepository(db *gorm.DB) UserRepository {
 	return &userRepository{db: db}
@@ -73,7 +76,7 @@ func (r *userRepository) FindAllByGoogleID(ctx context.Context, googleID string)
 
 func (r *userRepository) FindByID(ctx context.Context, id string) (*models.User, error) {
 	var user models.User
-	if err := r.db.WithContext(ctx).First(&user, "user_id = ?", id).Error; err != nil {
+	if err := r.db.WithContext(ctx).First(&user, queryUserID, id).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, errors.New("usuario no encontrado")
 		}
@@ -183,6 +186,12 @@ func (r *userRepository) Update(ctx context.Context, user *models.User) error {
 	})
 }
 
+func (r *userRepository) UpdateEmailVerified(ctx context.Context, userID string, verified bool) error {
+	return r.db.WithContext(ctx).Model(&models.User{}).
+		Where(queryUserID, userID).
+		Update("is_email_verified", verified).Error
+}
+
 func (r *userRepository) Delete(ctx context.Context, id string) error {
 	return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		defer func() {
@@ -191,7 +200,7 @@ func (r *userRepository) Delete(ctx context.Context, id string) error {
 			}
 		}()
 		// Realiza soft-delete automáticamente debido a DeletedAt en el modelo
-		return tx.Where("user_id = ?", id).Delete(&models.User{}).Error
+		return tx.Where(queryUserID, id).Delete(&models.User{}).Error
 	})
 }
 

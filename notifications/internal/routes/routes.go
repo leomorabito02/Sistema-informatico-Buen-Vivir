@@ -25,4 +25,7 @@ func RegisterRoutes(mux *http.ServeMux, ctrl *controllers.NotificationController
 	mux.Handle("POST /api/v1/notifications/preferences", middlewares.AuthHeaders(http.HandlerFunc(ctrl.SavePreferences)))
 	mux.Handle("POST /api/v1/notifications/preferences/init", middlewares.AuthHeaders(http.HandlerFunc(ctrl.InitDefaultPreferences)))
 	mux.Handle("PATCH /api/v1/notifications/preferences", middlewares.AuthHeaders(http.HandlerFunc(ctrl.PatchPreference)))
+
+	// Internal notification ingestion endpoint
+	mux.HandleFunc("POST /api/v1/notifications/send", ctrl.IngestNotification)
 }

@@ -33,7 +33,19 @@ func TestNotificationEndpoints_Flow(t *testing.T) {
 	mux, grpcCtrl, svc := setupTestApp()
 	ctx := context.Background()
 
-	// Ingest via gRPC
+	rcpID := seedFlowNotification(t, grpcCtrl, svc, ctx)
+
+	t.Run("HealthCheck", func(t *testing.T) { testHealthCheck(t, mux) })
+	t.Run("GetNotifications_Authorized", func(t *testing.T) { testGetNotifications(t, mux) })
+	t.Run("GetNotificationDetail_Authorized", func(t *testing.T) { testGetNotificationDetail(t, mux, rcpID) })
+	t.Run("MarkAsRead_Authorized", func(t *testing.T) { testMarkAsRead(t, mux, rcpID) })
+	t.Run("GetUnreadCount_Authorized", func(t *testing.T) { testGetUnreadCount(t, mux) })
+	t.Run("MarkAllAsRead_Authorized", func(t *testing.T) { testMarkAllAsRead(t, mux) })
+	t.Run("DeleteNotification_Authorized", func(t *testing.T) { testDeleteNotification(t, mux, rcpID) })
+}
+
+func seedFlowNotification(t *testing.T, grpcCtrl *controllers.GrpcNotificationController, svc services.NotificationService, ctx context.Context) string {
+	t.Helper()
 	grpcRes, err := grpcCtrl.SendNotification(ctx, &notificationpb.SendNotificationRequest{
 		SourceService:    "education",
 		EventType:        "educacion.inscripcion.creada",
@@ -51,121 +63,126 @@ func TestNotificationEndpoints_Flow(t *testing.T) {
 		t.Fatalf("failed to send gRPC notification: %v", err)
 	}
 
-	// Fetch recipient ID
 	list, err := svc.GetNotifications(ctx, "usr-test1", 10, 0)
 	if err != nil || len(list) != 1 {
 		t.Fatalf("expected 1 notification in service, got %d", len(list))
 	}
-	rcpID := list[0].RecipientID
+	return list[0].RecipientID
+}
 
-	t.Run("HealthCheck", func(t *testing.T) {
-		req := httptest.NewRequest("GET", "/health", nil)
-		rec := httptest.NewRecorder()
-		mux.ServeHTTP(rec, req)
-		if rec.Code != http.StatusOK {
-			t.Fatalf("expected status 200, got %d", rec.Code)
-		}
-	})
+func testHealthCheck(t *testing.T, mux http.Handler) {
+	t.Helper()
+	req := httptest.NewRequest("GET", "/health", nil)
+	rec := httptest.NewRecorder()
+	mux.ServeHTTP(rec, req)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected status 200, got %d", rec.Code)
+	}
+}
 
-	t.Run("GetNotifications_Authorized", func(t *testing.T) {
-		req := httptest.NewRequest("GET", "/api/v1/notifications?limit=10", nil)
-		req.Header.Set("X-User-ID", "usr-test1")
-		rec := httptest.NewRecorder()
-		mux.ServeHTTP(rec, req)
+func testGetNotifications(t *testing.T, mux http.Handler) {
+	t.Helper()
+	req := httptest.NewRequest("GET", "/api/v1/notifications?limit=10", nil)
+	req.Header.Set("X-User-ID", "usr-test1")
+	rec := httptest.NewRecorder()
+	mux.ServeHTTP(rec, req)
 
-		if rec.Code != http.StatusOK {
-			t.Fatalf("expected status 200, got %d", rec.Code)
-		}
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected status 200, got %d", rec.Code)
+	}
 
-		var items []dto.NotificationResponseDTO
-		if err := json.Unmarshal(rec.Body.Bytes(), &items); err != nil {
-			t.Fatalf("failed to parse JSON response: %v", err)
-		}
-		if len(items) != 1 || items[0].Title != "Curso Nuevo" {
-			t.Fatalf("unexpected items returned: %v", items)
-		}
-	})
+	var items []dto.NotificationResponseDTO
+	if err := json.Unmarshal(rec.Body.Bytes(), &items); err != nil {
+		t.Fatalf("failed to parse JSON response: %v", err)
+	}
+	if len(items) != 1 || items[0].Title != "Curso Nuevo" {
+		t.Fatalf("unexpected items returned: %v", items)
+	}
+}
 
-	t.Run("GetNotificationDetail_Authorized", func(t *testing.T) {
-		req := httptest.NewRequest("GET", "/api/v1/notifications/"+rcpID, nil)
-		req.Header.Set("X-User-ID", "usr-test1")
-		rec := httptest.NewRecorder()
-		mux.ServeHTTP(rec, req)
+func testGetNotificationDetail(t *testing.T, mux http.Handler, rcpID string) {
+	t.Helper()
+	req := httptest.NewRequest("GET", "/api/v1/notifications/"+rcpID, nil)
+	req.Header.Set("X-User-ID", "usr-test1")
+	rec := httptest.NewRecorder()
+	mux.ServeHTTP(rec, req)
 
-		if rec.Code != http.StatusOK {
-			t.Fatalf("expected status 200, got %d", rec.Code)
-		}
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected status 200, got %d", rec.Code)
+	}
 
-		var detail dto.NotificationDetailDTO
-		if err := json.Unmarshal(rec.Body.Bytes(), &detail); err != nil {
-			t.Fatalf("failed to parse detail JSON: %v", err)
-		}
-		if detail.Title != "Curso Nuevo" || detail.Data["id"] != "1" {
-			t.Fatalf("unexpected detail: %v", detail)
-		}
-	})
+	var detail dto.NotificationDetailDTO
+	if err := json.Unmarshal(rec.Body.Bytes(), &detail); err != nil {
+		t.Fatalf("failed to parse detail JSON: %v", err)
+	}
+	if detail.Title != "Curso Nuevo" || detail.Data["id"] != "1" {
+		t.Fatalf("unexpected detail: %v", detail)
+	}
+}
 
-	t.Run("MarkAsRead_Authorized", func(t *testing.T) {
-		req := httptest.NewRequest("PATCH", "/api/v1/notifications/"+rcpID+"/read", nil)
-		req.Header.Set("X-User-ID", "usr-test1")
-		rec := httptest.NewRecorder()
-		mux.ServeHTTP(rec, req)
+func testMarkAsRead(t *testing.T, mux http.Handler, rcpID string) {
+	t.Helper()
+	req := httptest.NewRequest("PATCH", "/api/v1/notifications/"+rcpID+"/read", nil)
+	req.Header.Set("X-User-ID", "usr-test1")
+	rec := httptest.NewRecorder()
+	mux.ServeHTTP(rec, req)
 
-		if rec.Code != http.StatusOK {
-			t.Fatalf("expected status 200, got %d", rec.Code)
-		}
-	})
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected status 200, got %d", rec.Code)
+	}
+}
 
-	t.Run("GetUnreadCount_Authorized", func(t *testing.T) {
-		req := httptest.NewRequest("GET", "/api/v1/notifications/unread-count", nil)
-		req.Header.Set("X-User-ID", "usr-test1")
-		rec := httptest.NewRecorder()
-		mux.ServeHTTP(rec, req)
+func testGetUnreadCount(t *testing.T, mux http.Handler) {
+	t.Helper()
+	req := httptest.NewRequest("GET", "/api/v1/notifications/unread-count", nil)
+	req.Header.Set("X-User-ID", "usr-test1")
+	rec := httptest.NewRecorder()
+	mux.ServeHTTP(rec, req)
 
-		if rec.Code != http.StatusOK {
-			t.Fatalf("expected status 200, got %d", rec.Code)
-		}
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected status 200, got %d", rec.Code)
+	}
 
-		var res dto.UnreadCountResponseDTO
-		if err := json.Unmarshal(rec.Body.Bytes(), &res); err != nil {
-			t.Fatalf("failed to parse unread count: %v", err)
-		}
-		if res.UnreadCount != 0 {
-			t.Fatalf("expected unread count 0, got %d", res.UnreadCount)
-		}
-	})
+	var res dto.UnreadCountResponseDTO
+	if err := json.Unmarshal(rec.Body.Bytes(), &res); err != nil {
+		t.Fatalf("failed to parse unread count: %v", err)
+	}
+	if res.UnreadCount != 0 {
+		t.Fatalf("expected unread count 0, got %d", res.UnreadCount)
+	}
+}
 
-	t.Run("MarkAllAsRead_Authorized", func(t *testing.T) {
-		req := httptest.NewRequest("PATCH", "/api/v1/notifications/read-all", nil)
-		req.Header.Set("X-User-ID", "usr-test1")
-		rec := httptest.NewRecorder()
-		mux.ServeHTTP(rec, req)
+func testMarkAllAsRead(t *testing.T, mux http.Handler) {
+	t.Helper()
+	req := httptest.NewRequest("PATCH", "/api/v1/notifications/read-all", nil)
+	req.Header.Set("X-User-ID", "usr-test1")
+	rec := httptest.NewRecorder()
+	mux.ServeHTTP(rec, req)
 
-		if rec.Code != http.StatusOK {
-			t.Fatalf("expected status 200, got %d", rec.Code)
-		}
-	})
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected status 200, got %d", rec.Code)
+	}
+}
 
-	t.Run("DeleteNotification_Authorized", func(t *testing.T) {
-		req := httptest.NewRequest("DELETE", "/api/v1/notifications/"+rcpID, nil)
-		req.Header.Set("X-User-ID", "usr-test1")
-		rec := httptest.NewRecorder()
-		mux.ServeHTTP(rec, req)
+func testDeleteNotification(t *testing.T, mux http.Handler, rcpID string) {
+	t.Helper()
+	req := httptest.NewRequest("DELETE", "/api/v1/notifications/"+rcpID, nil)
+	req.Header.Set("X-User-ID", "usr-test1")
+	rec := httptest.NewRecorder()
+	mux.ServeHTTP(rec, req)
 
-		if rec.Code != http.StatusNoContent {
-			t.Fatalf("expected status 204 No Content, got %d", rec.Code)
-		}
+	if rec.Code != http.StatusNoContent {
+		t.Fatalf("expected status 204 No Content, got %d", rec.Code)
+	}
 
-		// Verify deletion
-		reqAfter := httptest.NewRequest("GET", "/api/v1/notifications/"+rcpID, nil)
-		reqAfter.Header.Set("X-User-ID", "usr-test1")
-		recAfter := httptest.NewRecorder()
-		mux.ServeHTTP(recAfter, reqAfter)
+	reqAfter := httptest.NewRequest("GET", "/api/v1/notifications/"+rcpID, nil)
+	reqAfter.Header.Set("X-User-ID", "usr-test1")
+	recAfter := httptest.NewRecorder()
+	mux.ServeHTTP(recAfter, reqAfter)
 
-		if recAfter.Code != http.StatusNotFound {
-			t.Fatalf("expected status 404 after deletion, got %d", recAfter.Code)
-		}
-	})
+	if recAfter.Code != http.StatusNotFound {
+		t.Fatalf("expected status 404 after deletion, got %d", recAfter.Code)
+	}
 }
 
 func TestGrpcNotificationController_Batch(t *testing.T) {
@@ -202,128 +219,145 @@ func TestGrpcNotificationController_Batch(t *testing.T) {
 func TestNotificationEndpoints_PreferencesFlow(t *testing.T) {
 	mux, _, _ := setupTestApp()
 
-	t.Run("GetPreferences_Unauthorized", func(t *testing.T) {
-		req := httptest.NewRequest("GET", "/api/v1/notifications/preferences", nil)
-		rec := httptest.NewRecorder()
-		mux.ServeHTTP(rec, req)
-		if rec.Code != http.StatusUnauthorized {
-			t.Fatalf("expected status 401, got %d", rec.Code)
-		}
-	})
+	t.Run("GetPreferences_Unauthorized", func(t *testing.T) { testGetPreferencesUnauthorized(t, mux) })
+	t.Run("GetPreferences_Defaults", func(t *testing.T) { testGetPreferencesDefaults(t, mux) })
+	t.Run("SavePreferences_Single_POST", func(t *testing.T) { testSavePreferencesSingle(t, mux) })
+	t.Run("SavePreferences_Batch_POST", func(t *testing.T) { testSavePreferencesBatch(t, mux) })
+	t.Run("PatchPreference_QueryCategory", func(t *testing.T) { testPatchPreferenceQueryCategory(t, mux) })
+	t.Run("GetPreferenceByCategory", func(t *testing.T) { testGetPreferenceByCategory(t, mux) })
+	t.Run("SavePreferences_InvalidCategory", func(t *testing.T) { testSavePreferencesInvalidCategory(t, mux) })
+	t.Run("InitDefaultPreferences_POST", func(t *testing.T) { testInitDefaultPreferencesPOST(t, mux) })
+}
 
-	t.Run("GetPreferences_Defaults", func(t *testing.T) {
-		req := httptest.NewRequest("GET", "/api/v1/notifications/preferences", nil)
-		req.Header.Set("X-User-ID", "usr-pref-test")
-		rec := httptest.NewRecorder()
-		mux.ServeHTTP(rec, req)
+func testGetPreferencesUnauthorized(t *testing.T, mux http.Handler) {
+	t.Helper()
+	req := httptest.NewRequest("GET", "/api/v1/notifications/preferences", nil)
+	rec := httptest.NewRecorder()
+	mux.ServeHTTP(rec, req)
+	if rec.Code != http.StatusUnauthorized {
+		t.Fatalf("expected status 401, got %d", rec.Code)
+	}
+}
 
-		if rec.Code != http.StatusOK {
-			t.Fatalf("expected status 200, got %d", rec.Code)
-		}
-		var prefs []dto.NotificationPreferenceDTO
-		if err := json.Unmarshal(rec.Body.Bytes(), &prefs); err != nil {
-			t.Fatalf("failed to decode response: %v", err)
-		}
-		if len(prefs) != 5 {
-			t.Fatalf("expected 5 default preferences, got %d", len(prefs))
-		}
-	})
+func testGetPreferencesDefaults(t *testing.T, mux http.Handler) {
+	t.Helper()
+	req := httptest.NewRequest("GET", "/api/v1/notifications/preferences", nil)
+	req.Header.Set("X-User-ID", "usr-pref-test")
+	rec := httptest.NewRecorder()
+	mux.ServeHTTP(rec, req)
 
-	t.Run("SavePreferences_Single_POST", func(t *testing.T) {
-		body := `{"category":"education","email_enabled":false,"push_enabled":true,"in_app_enabled":true}`
-		req := httptest.NewRequest("POST", "/api/v1/notifications/preferences", strings.NewReader(body))
-		req.Header.Set("X-User-ID", "usr-pref-test")
-		rec := httptest.NewRecorder()
-		mux.ServeHTTP(rec, req)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected status 200, got %d", rec.Code)
+	}
+	var prefs []dto.NotificationPreferenceDTO
+	if err := json.Unmarshal(rec.Body.Bytes(), &prefs); err != nil {
+		t.Fatalf("failed to decode response: %v", err)
+	}
+	if len(prefs) != 5 {
+		t.Fatalf("expected 5 default preferences, got %d", len(prefs))
+	}
+}
 
-		if rec.Code != http.StatusOK {
-			t.Fatalf("expected status 200, got %d", rec.Code)
-		}
-		var res dto.NotificationPreferenceDTO
-		_ = json.Unmarshal(rec.Body.Bytes(), &res)
-		if res.Category != "education" || res.EmailEnabled {
-			t.Fatalf("expected education preference with email disabled")
-		}
-	})
+func testSavePreferencesSingle(t *testing.T, mux http.Handler) {
+	t.Helper()
+	body := `{"category":"education","email_enabled":false,"push_enabled":true,"in_app_enabled":true}`
+	req := httptest.NewRequest("POST", "/api/v1/notifications/preferences", strings.NewReader(body))
+	req.Header.Set("X-User-ID", "usr-pref-test")
+	rec := httptest.NewRecorder()
+	mux.ServeHTTP(rec, req)
 
-	t.Run("SavePreferences_Batch_POST", func(t *testing.T) {
-		body := `[{"category":"labor","email_enabled":false},{"category":"campaigns","push_enabled":false}]`
-		req := httptest.NewRequest("POST", "/api/v1/notifications/preferences", strings.NewReader(body))
-		req.Header.Set("X-User-ID", "usr-pref-test")
-		rec := httptest.NewRecorder()
-		mux.ServeHTTP(rec, req)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected status 200, got %d", rec.Code)
+	}
+	var res dto.NotificationPreferenceDTO
+	_ = json.Unmarshal(rec.Body.Bytes(), &res)
+	if res.Category != "education" || res.EmailEnabled {
+		t.Fatalf("expected education preference with email disabled")
+	}
+}
 
-		if rec.Code != http.StatusOK {
-			t.Fatalf("expected status 200, got %d", rec.Code)
-		}
-		var list []dto.NotificationPreferenceDTO
-		_ = json.Unmarshal(rec.Body.Bytes(), &list)
-		if len(list) != 2 {
-			t.Fatalf("expected 2 saved preferences, got %d", len(list))
-		}
-	})
+func testSavePreferencesBatch(t *testing.T, mux http.Handler) {
+	t.Helper()
+	body := `[{"category":"labor","email_enabled":false},{"category":"campaigns","push_enabled":false}]`
+	req := httptest.NewRequest("POST", "/api/v1/notifications/preferences", strings.NewReader(body))
+	req.Header.Set("X-User-ID", "usr-pref-test")
+	rec := httptest.NewRecorder()
+	mux.ServeHTTP(rec, req)
 
-	t.Run("PatchPreference_QueryCategory", func(t *testing.T) {
-		body := `{"push_enabled":false}`
-		req := httptest.NewRequest("PATCH", "/api/v1/notifications/preferences?category=education", bytes.NewBufferString(body))
-		req.Header.Set("X-User-ID", "usr-pref-test")
-		rec := httptest.NewRecorder()
-		mux.ServeHTTP(rec, req)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected status 200, got %d", rec.Code)
+	}
+	var list []dto.NotificationPreferenceDTO
+	_ = json.Unmarshal(rec.Body.Bytes(), &list)
+	if len(list) != 2 {
+		t.Fatalf("expected 2 saved preferences, got %d", len(list))
+	}
+}
 
-		if rec.Code != http.StatusOK {
-			t.Fatalf("expected status 200, got %d", rec.Code)
-		}
-		var res dto.NotificationPreferenceDTO
-		_ = json.Unmarshal(rec.Body.Bytes(), &res)
-		if res.PushEnabled || res.EmailEnabled {
-			t.Fatalf("expected PushEnabled=false and preserved EmailEnabled=false")
-		}
-	})
+func testPatchPreferenceQueryCategory(t *testing.T, mux http.Handler) {
+	t.Helper()
+	body := `{"push_enabled":false}`
+	req := httptest.NewRequest("PATCH", "/api/v1/notifications/preferences?category=education", bytes.NewBufferString(body))
+	req.Header.Set("X-User-ID", "usr-pref-test")
+	rec := httptest.NewRecorder()
+	mux.ServeHTTP(rec, req)
 
-	t.Run("GetPreferenceByCategory", func(t *testing.T) {
-		req := httptest.NewRequest("GET", "/api/v1/notifications/preferences/education", nil)
-		req.Header.Set("X-User-ID", "usr-pref-test")
-		rec := httptest.NewRecorder()
-		mux.ServeHTTP(rec, req)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected status 200, got %d", rec.Code)
+	}
+	var res dto.NotificationPreferenceDTO
+	_ = json.Unmarshal(rec.Body.Bytes(), &res)
+	if res.PushEnabled || res.EmailEnabled {
+		t.Fatalf("expected PushEnabled=false and preserved EmailEnabled=false")
+	}
+}
 
-		if rec.Code != http.StatusOK {
-			t.Fatalf("expected status 200, got %d", rec.Code)
-		}
-		var res dto.NotificationPreferenceDTO
-		_ = json.Unmarshal(rec.Body.Bytes(), &res)
-		if res.Category != "education" {
-			t.Fatalf("expected education category, got %s", res.Category)
-		}
-	})
+func testGetPreferenceByCategory(t *testing.T, mux http.Handler) {
+	t.Helper()
+	req := httptest.NewRequest("GET", "/api/v1/notifications/preferences/education", nil)
+	req.Header.Set("X-User-ID", "usr-pref-test")
+	rec := httptest.NewRecorder()
+	mux.ServeHTTP(rec, req)
 
-	t.Run("SavePreferences_InvalidCategory", func(t *testing.T) {
-		body := `{"category":"unknown_service"}`
-		req := httptest.NewRequest("POST", "/api/v1/notifications/preferences", strings.NewReader(body))
-		req.Header.Set("X-User-ID", "usr-pref-test")
-		rec := httptest.NewRecorder()
-		mux.ServeHTTP(rec, req)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected status 200, got %d", rec.Code)
+	}
+	var res dto.NotificationPreferenceDTO
+	_ = json.Unmarshal(rec.Body.Bytes(), &res)
+	if res.Category != "education" {
+		t.Fatalf("expected education category, got %s", res.Category)
+	}
+}
 
-		if rec.Code != http.StatusBadRequest {
-			t.Fatalf("expected status 400 for invalid category, got %d", rec.Code)
-		}
-	})
+func testSavePreferencesInvalidCategory(t *testing.T, mux http.Handler) {
+	t.Helper()
+	body := `{"category":"unknown_service"}`
+	req := httptest.NewRequest("POST", "/api/v1/notifications/preferences", strings.NewReader(body))
+	req.Header.Set("X-User-ID", "usr-pref-test")
+	rec := httptest.NewRecorder()
+	mux.ServeHTTP(rec, req)
 
-	t.Run("InitDefaultPreferences_POST", func(t *testing.T) {
-		body := `{"user_id":"usr-init-test"}`
-		req := httptest.NewRequest("POST", "/api/v1/notifications/preferences/init", strings.NewReader(body))
-		req.Header.Set("X-User-ID", "usr-init-test")
-		rec := httptest.NewRecorder()
-		mux.ServeHTTP(rec, req)
+	if rec.Code != http.StatusBadRequest {
+		t.Fatalf("expected status 400 for invalid category, got %d", rec.Code)
+	}
+}
 
-		if rec.Code != http.StatusCreated {
-			t.Fatalf("expected status 201 Created, got %d", rec.Code)
-		}
-		var list []dto.NotificationPreferenceDTO
-		_ = json.Unmarshal(rec.Body.Bytes(), &list)
-		if len(list) != 5 {
-			t.Fatalf("expected 5 initialized preferences, got %d", len(list))
-		}
-	})
+func testInitDefaultPreferencesPOST(t *testing.T, mux http.Handler) {
+	t.Helper()
+	body := `{"user_id":"usr-init-test"}`
+	req := httptest.NewRequest("POST", "/api/v1/notifications/preferences/init", strings.NewReader(body))
+	req.Header.Set("X-User-ID", "usr-init-test")
+	rec := httptest.NewRecorder()
+	mux.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusCreated {
+		t.Fatalf("expected status 201 Created, got %d", rec.Code)
+	}
+	var list []dto.NotificationPreferenceDTO
+	_ = json.Unmarshal(rec.Body.Bytes(), &list)
+	if len(list) != 5 {
+		t.Fatalf("expected 5 initialized preferences, got %d", len(list))
+	}
 }
 
 // TestGrpcNotificationController_InitPreferences tests default preferences initialization via gRPC.
@@ -342,4 +376,54 @@ func TestGrpcNotificationController_InitPreferences(t *testing.T) {
 	if err != nil || len(prefs) != 5 {
 		t.Fatalf("expected 5 preferences in service, got %d", len(prefs))
 	}
+}
+
+func TestNotificationController_IngestNotification(t *testing.T) {
+	mux, _, svc := setupTestApp()
+
+	t.Run("ValidPayload", func(t *testing.T) {
+		body := `{
+			"source_service": "auth",
+			"event_type": "auth.email_verification",
+			"category": "security",
+			"priority": "high",
+			"sender_type": "system",
+			"sender_id": "auth-service",
+			"recipient_user_ids": ["usr-ingest-test"],
+			"title": "Verifica tu correo electrónico",
+			"message": "Por favor verifica tu correo",
+			"data": "{\"template_id\":\"email_verification\",\"recipient_name\":\"Juan\",\"action_url\":\"https://example.com/verify\"}",
+			"send_email": true
+		}`
+		req := httptest.NewRequest("POST", "/api/v1/notifications/send", strings.NewReader(body))
+		rec := httptest.NewRecorder()
+		mux.ServeHTTP(rec, req)
+
+		if rec.Code != http.StatusCreated {
+			t.Fatalf("expected status 201 Created, got %d with body: %s", rec.Code, rec.Body.String())
+		}
+
+		var res map[string]interface{}
+		if err := json.Unmarshal(rec.Body.Bytes(), &res); err != nil {
+			t.Fatalf("failed to decode response: %v", err)
+		}
+		if res["status"] != "created" {
+			t.Errorf("expected status 'created', got %v", res["status"])
+		}
+
+		list, err := svc.GetNotifications(context.Background(), "usr-ingest-test", 10, 0)
+		if err != nil || len(list) != 1 {
+			t.Fatalf("expected notification to be stored, got error %v", err)
+		}
+	})
+
+	t.Run("InvalidJSON", func(t *testing.T) {
+		req := httptest.NewRequest("POST", "/api/v1/notifications/send", strings.NewReader("{invalid-json"))
+		rec := httptest.NewRecorder()
+		mux.ServeHTTP(rec, req)
+
+		if rec.Code != http.StatusBadRequest {
+			t.Fatalf("expected status 400 Bad Request, got %d", rec.Code)
+		}
+	})
 }

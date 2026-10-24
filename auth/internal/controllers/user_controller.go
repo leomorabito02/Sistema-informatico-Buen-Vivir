@@ -127,6 +127,22 @@ func (c *UserController) GetParticipantsHistory(w http.ResponseWriter, r *http.R
 	utils.JSONResponse(w, http.StatusOK, true, rows, nil)
 }
 
+func (c *UserController) ApproveUser(w http.ResponseWriter, r *http.Request) {
+	id := chi.URLParam(r, "id")
+	if id == "" {
+		utils.JSONResponse(w, http.StatusBadRequest, false, nil, "ID es requerido")
+		return
+	}
+
+	user, err := c.userService.ApproveUser(r.Context(), id)
+	if err != nil {
+		utils.JSONResponse(w, errorStatus(err, http.StatusInternalServerError), false, nil, err.Error())
+		return
+	}
+
+	utils.JSONResponse(w, http.StatusOK, true, user, nil)
+}
+
 // errorStatus devuelve 403 para los errores de permisos del servicio
 // (empiezan con "forbidden") y fallback para el resto.
 func errorStatus(err error, fallback int) int {

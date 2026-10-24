@@ -81,7 +81,7 @@ func TestAuthService_Login_Unapproved(t *testing.T) {
 	nonce, _ := utils.GetNonceStore().Generate(userIDs, time.Minute)
 
 	req := &dto.LoginRequest{UserID: "usr-1", RoleID: "role_participant", LoginNonce: nonce}
-	user := &models.User{UserID: "usr-1", RoleID: "role_participant", Status: "active"}
+	user := &models.User{UserID: "usr-1", RoleID: "role_participant", Status: "active", IsEmailVerified: true}
 
 	mockUserRepo.On("FindByID", mock.Anything, "usr-1").Return(user, nil)
 	mockQuerier.On("GetApprovalStatus", mock.Anything, "participants", "usr-1").Return("rejected", nil)
@@ -90,7 +90,45 @@ func TestAuthService_Login_Unapproved(t *testing.T) {
 
 	assert.Error(t, err)
 	assert.Nil(t, res)
-	assert.Contains(t, err.Error(), "aún no está aprobado")
+	assert.Equal(t, services.ErrAccountPendingApproval, err)
+}
+
+func TestAuthService_Login_EmailNotVerified(t *testing.T) {
+	mockUserRepo := new(MockUserRepository)
+	svc := services.NewAuthService(nil, nil, mockUserRepo, nil, nil, nil)
+
+	userIDs := []string{"usr-1"}
+	nonce, _ := utils.GetNonceStore().Generate(userIDs, time.Minute)
+
+	req := &dto.LoginRequest{UserID: "usr-1", RoleID: "role_participant", LoginNonce: nonce}
+	user := &models.User{UserID: "usr-1", RoleID: "role_participant", Status: "active", IsEmailVerified: false}
+
+	mockUserRepo.On("FindByID", mock.Anything, "usr-1").Return(user, nil)
+
+	res, err := svc.Login(context.Background(), req)
+
+	assert.Error(t, err)
+	assert.Nil(t, res)
+	assert.Equal(t, services.ErrEmailNotVerified, err)
+}
+
+func TestAuthService_Login_EmailNotVerified_Admin(t *testing.T) {
+	mockUserRepo := new(MockUserRepository)
+	svc := services.NewAuthService(nil, nil, mockUserRepo, nil, nil, nil)
+
+	userIDs := []string{"usr-admin-1"}
+	nonce, _ := utils.GetNonceStore().Generate(userIDs, time.Minute)
+
+	req := &dto.LoginRequest{UserID: "usr-admin-1", RoleID: "role_admin", LoginNonce: nonce}
+	user := &models.User{UserID: "usr-admin-1", RoleID: "role_admin", Status: "active", IsEmailVerified: false}
+
+	mockUserRepo.On("FindByID", mock.Anything, "usr-admin-1").Return(user, nil)
+
+	res, err := svc.Login(context.Background(), req)
+
+	assert.Error(t, err)
+	assert.Nil(t, res)
+	assert.Equal(t, services.ErrEmailNotVerified, err)
 }
 
 func TestAuthService_Login_Success(t *testing.T) {
@@ -104,7 +142,7 @@ func TestAuthService_Login_Success(t *testing.T) {
 	nonce, _ := utils.GetNonceStore().Generate(userIDs, time.Minute)
 
 	req := &dto.LoginRequest{UserID: "usr-1", RoleID: "role_participant", LoginNonce: nonce}
-	user := &models.User{UserID: "usr-1", RoleID: "role_participant", Status: "active"}
+	user := &models.User{UserID: "usr-1", RoleID: "role_participant", Status: "active", IsEmailVerified: true}
 
 	mockUserRepo.On("FindByID", mock.Anything, "usr-1").Return(user, nil)
 	mockQuerier.On("GetApprovalStatus", mock.Anything, "participants", "usr-1").Return("approved", nil)
@@ -134,7 +172,7 @@ func TestAuthService_Login_LegacyAcceptedStatus(t *testing.T) {
 	nonce, _ := utils.GetNonceStore().Generate(userIDs, time.Minute)
 
 	req := &dto.LoginRequest{UserID: "usr-1", RoleID: "role_participant", LoginNonce: nonce}
-	user := &models.User{UserID: "usr-1", RoleID: "role_participant", Status: "active"}
+	user := &models.User{UserID: "usr-1", RoleID: "role_participant", Status: "active", IsEmailVerified: true}
 
 	mockUserRepo.On("FindByID", mock.Anything, "usr-1").Return(user, nil)
 	mockQuerier.On("GetApprovalStatus", mock.Anything, "participants", "usr-1").Return("accepted", nil)
@@ -161,7 +199,7 @@ func TestAuthService_Login_JWTError(t *testing.T) {
 	nonce, _ := utils.GetNonceStore().Generate(userIDs, time.Minute)
 
 	req := &dto.LoginRequest{UserID: "usr-1", RoleID: "role_participant", LoginNonce: nonce}
-	user := &models.User{UserID: "usr-1", RoleID: "role_participant", Status: "active"}
+	user := &models.User{UserID: "usr-1", RoleID: "role_participant", Status: "active", IsEmailVerified: true}
 
 	mockUserRepo.On("FindByID", mock.Anything, "usr-1").Return(user, nil)
 	mockQuerier.On("GetApprovalStatus", mock.Anything, "participants", "usr-1").Return("approved", nil)
@@ -258,12 +296,14 @@ func TestAuthService_CheckCredentials_Success(t *testing.T) {
 	req := &dto.CheckCredentialsRequest{Email: "test@example.com", Password: "RightPassword123!"}
 	pwdHash, _ := utils.HashPassword("RightPassword123!")
 
-	users := []models.User{{UserID: "1", Email: "test@example.com", PasswordHash: pwdHash, Status: "Active"}}
+	users := []models.User{{UserID: "1", Email: "test@example.com", PasswordHash: pwdHash, Status: "Active", IsEmailVerified: true}}
 	mockUserRepo.On("FindAllByEmail", mock.Anything, "test@example.com").Return(users, nil)
 
 	res, err := svc.CheckCredentials(context.Background(), req)
 	assert.NoError(t, err)
 	assert.NotNil(t, res)
+	assert.True(t, res.IsEmailVerified)
+	assert.Equal(t, "test@example.com", res.Email)
 }
 
 func TestAuthService_UpdateMyPassword_Success(t *testing.T) {

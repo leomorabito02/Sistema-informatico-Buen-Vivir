@@ -87,9 +87,13 @@ export class SelectRoleComponent implements OnInit {
         },
         error: (err) => {
           this.loadingAccountId = "";
-          const errorMsg = err.error?.error || "";
+          const errorMsg = err.error?.error || err.message || "";
+          if (errorMsg === "EMAIL_NOT_VERIFIED" || errorMsg.includes("verificar tu correo")) {
+            void this.router.navigate(["/verify-email"]);
+            return;
+          }
           if (errorMsg.includes("activa") || errorMsg.includes("bloque")) {
-            this.router.navigate(["/account-notice"]);
+            void this.router.navigate(["/account-notice"]);
           } else {
             this.loginError =
               "Ocurrió un error al iniciar sesión. Intentá nuevamente.";

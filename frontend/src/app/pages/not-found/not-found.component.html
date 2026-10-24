@@ -1,0 +1,50 @@
+<div class="auth-container">
+  <div class="auth-content">
+    <div class="auth-wrapper">
+      <!-- Header -->
+      <div class="auth-header">
+        <div class="auth-logo-container">
+          <img src="assets/logo.png" alt="Logo Buen Vivir" class="auth-logo" />
+        </div>
+        <h1 class="auth-title">Buen Vivir</h1>
+        <p class="auth-subtitle">Centro de Ecología Integral</p>
+      </div>
+
+      <!-- Card -->
+      <div class="auth-card">
+        <div class="status-code">404</div>
+
+        <div class="icon-wrapper">
+          <lucide-angular
+            [img]="SearchIcon"
+            class="notice-icon"
+          ></lucide-angular>
+        </div>
+
+        <h2 class="auth-card-title text-center">Página no encontrada</h2>
+
+        <p class="notice-message">
+          La página que estás buscando no existe, ha sido movida o la dirección ingresada no es correcta.
+        </p>
+
+        <div class="actions-wrapper">
+          <button (click)="goToHome()" class="btn-submit">
+            <lucide-angular [img]="HomeIcon" class="btn-icon"></lucide-angular>
+            Ir a la página principal
+          </button>
+
+          <button (click)="goBack()" class="btn-secondary">
+            <lucide-angular [img]="ArrowLeftIcon" class="btn-icon"></lucide-angular>
+            Volver atrás
+          </button>
+        </div>
+      </div>
+
+      <div class="auth-footer">
+        <a routerLink="/login" class="auth-link">Iniciar sesión</a>
+        <span class="mx-2">•</span>
+        <a routerLink="/contacto" class="auth-link">Contacto</a>
+      </div>
+    </div>
+  </div>
+</div>

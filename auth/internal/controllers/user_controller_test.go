@@ -65,6 +65,14 @@ func (m *MockUserService) DeleteUser(ctx context.Context, id string) error {
 	return args.Error(0)
 }
 
+func (m *MockUserService) ApproveUser(ctx context.Context, id string) (*dto.UserResponse, error) {
+	args := m.Called(ctx, id)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*dto.UserResponse), args.Error(1)
+}
+
 func TestUserController_GetUser_Success(t *testing.T) {
 	mockSvc := new(MockUserService)
 	ctrl := controllers.NewUserController(mockSvc)
@@ -328,4 +336,22 @@ func TestUserController_ErroresDePermisoResponden403(t *testing.T) {
 	w = httptest.NewRecorder()
 	ctrl.CreateUser(w, httptest.NewRequest("POST", "/users", bytes.NewReader(body)))
 	assert.Equal(t, http.StatusForbidden, w.Code)
+}
+
+func TestUserController_ApproveUser_Success(t *testing.T) {
+	mockSvc := new(MockUserService)
+	ctrl := controllers.NewUserController(mockSvc)
+	mockSvc.On("ApproveUser", mock.Anything, "usr-1").Return(&dto.UserResponse{
+		UserID:             "usr-1",
+		RoleApprovalStatus: "approved",
+	}, nil)
+
+	r := chi.NewRouter()
+	r.Post("/users/{id}/approve", ctrl.ApproveUser)
+
+	req := httptest.NewRequest("POST", "/users/usr-1/approve", nil)
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
 }

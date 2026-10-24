@@ -2,6 +2,7 @@ package services
 
 import (
 	"context"
+	"strings"
 	"testing"
 )
 
@@ -99,6 +100,24 @@ func TestResolveFromEmail_DualRouting(t *testing.T) {
 	}
 	if from := svc.resolveFrom(msgSecCat); from != "Buen Vivir Seguridad <seguridad@ceibuenvivir.org>" {
 		t.Errorf("expected alert sender for security category, got %s", from)
+	}
+}
+
+func TestHtmlToPlainText(t *testing.T) {
+	htmlInput := `<html><head><style>body { color: red; }</style></head><body><h1>Hola Juan</h1><p>Por favor confirma tu email &amp; activa tu cuenta.<br>Haz clic en el enlace.</p><div>&copy; 2026 Buen Vivir</div></body></html>`
+	plain := htmlToPlainText(htmlInput)
+
+	if !strings.Contains(plain, "Hola Juan") {
+		t.Errorf("expected plain text to contain 'Hola Juan', got: %q", plain)
+	}
+	if !strings.Contains(plain, "confirma tu email & activa tu cuenta.") {
+		t.Errorf("expected decoded &amp;, got: %q", plain)
+	}
+	if !strings.Contains(plain, "© 2026 Buen Vivir") {
+		t.Errorf("expected decoded &copy;, got: %q", plain)
+	}
+	if strings.Contains(plain, "<h1") || strings.Contains(plain, "<style") {
+		t.Errorf("expected tags to be stripped, got: %q", plain)
 	}
 }
 

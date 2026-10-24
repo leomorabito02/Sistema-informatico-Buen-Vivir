@@ -17,10 +17,32 @@ type NotificationController struct {
 	service services.NotificationService
 }
 
-const errMissingNotificationID = "missing notification id"
+const (
+	errMissingNotificationID = "missing notification id"
+	errInvalidRequestBody    = "invalid request body"
+)
 
 func NewNotificationController(service services.NotificationService) *NotificationController {
 	return &NotificationController{service: service}
+}
+
+// IngestNotification handles internal HTTP ingestion of notifications.
+func (c *NotificationController) IngestNotification(w http.ResponseWriter, r *http.Request) {
+	var req dto.SendNotificationRequestDTO
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		c.respondError(w, http.StatusBadRequest, errInvalidRequestBody)
+		return
+	}
+	id, count, err := c.service.IngestNotification(r.Context(), req)
+	if err != nil {
+		c.respondError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	c.respondJSON(w, http.StatusCreated, map[string]interface{}{
+		"notification_id":  id,
+		"recipients_count": count,
+		"status":           "created",
+	})
 }
 
 // GetNotifications returns the paginated list of notifications for the authenticated user.
@@ -224,7 +246,7 @@ func (c *NotificationController) SavePreferences(w http.ResponseWriter, r *http.
 
 	var req dto.UpdatePreferenceRequestDTO
 	if err := json.Unmarshal(trimmed, &req); err != nil {
-		c.respondError(w, http.StatusBadRequest, "invalid request body")
+		c.respondError(w, http.StatusBadRequest, errInvalidRequestBody)
 		return
 	}
 
@@ -265,7 +287,7 @@ func (c *NotificationController) PatchPreference(w http.ResponseWriter, r *http.
 
 	var req dto.PatchPreferenceRequestDTO
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		c.respondError(w, http.StatusBadRequest, "invalid request body")
+		c.respondError(w, http.StatusBadRequest, errInvalidRequestBody)
 		return
 	}
 

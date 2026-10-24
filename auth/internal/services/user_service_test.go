@@ -104,6 +104,11 @@ func (m *MockUserRepository) CountVolunteers(ctx context.Context) (int64, error)
 	return countResult, args.Error(1)
 }
 
+func (m *MockUserRepository) UpdateEmailVerified(ctx context.Context, userID string, verified bool) error {
+	args := m.Called(ctx, userID, verified)
+	return args.Error(0)
+}
+
 func TestUserService_GetUserByID_AdminSuccess(t *testing.T) {
 	// Arrange
 	mockRepo := new(MockUserRepository)

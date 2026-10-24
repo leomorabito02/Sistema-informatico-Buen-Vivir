@@ -50,6 +50,18 @@ export const routes: Routes = [
       ),
   },
   {
+    path: "verify-email",
+    loadComponent: () =>
+      import("./pages/verify-email/verify-email.component").then(
+        (m) => m.VerifyEmailComponent,
+      ),
+  },
+  {
+    path: "verificar-email",
+    redirectTo: "verify-email",
+    pathMatch: "full",
+  },
+  {
     path: "select-role",
     loadComponent: () =>
       import("./pages/select-role/select-role.component").then(
@@ -317,5 +329,41 @@ export const routes: Routes = [
           ),
       },
     ],
+  },
+  {
+    path: "404",
+    loadComponent: () =>
+      import("./pages/not-found/not-found.component").then(
+        (m) => m.NotFoundComponent,
+      ),
+  },
+  {
+    path: "not-found",
+    redirectTo: "404",
+    pathMatch: "full",
+  },
+  {
+    path: "500",
+    loadComponent: () =>
+      import("./pages/server-error/server-error.component").then(
+        (m) => m.ServerErrorComponent,
+      ),
+  },
+  {
+    path: "server-error",
+    redirectTo: "500",
+    pathMatch: "full",
+  },
+  {
+    path: "error",
+    redirectTo: "500",
+    pathMatch: "full",
+  },
+  {
+    path: "**",
+    loadComponent: () =>
+      import("./pages/not-found/not-found.component").then(
+        (m) => m.NotFoundComponent,
+      ),
   },
 ];

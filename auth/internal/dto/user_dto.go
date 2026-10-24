@@ -45,6 +45,7 @@ type UserResponse struct {
 	RoleID    string    `json:"role_id"`
 	RoleApprovalStatus string `json:"role_approval_status,omitempty"`
 	ImageURL           string `json:"image_url,omitempty"`
+	IsEmailVerified    bool   `json:"is_email_verified"`
 	CreatedAt time.Time `json:"created_at"`
 	UpdatedAt time.Time `json:"updated_at"`
 }
@@ -60,6 +61,7 @@ func ToUserResponse(u *models.User) *UserResponse {
 		RoleID:    u.RoleID,
 		RoleApprovalStatus: u.RoleApprovalStatus,
 		ImageURL:  u.ImageURL,
+		IsEmailVerified:    u.IsEmailVerified,
 		CreatedAt: u.CreatedAt,
 		UpdatedAt: u.UpdatedAt,
 	}

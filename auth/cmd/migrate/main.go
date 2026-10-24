@@ -30,6 +30,7 @@ func main() {
 		&models.Teacher{},
 		&models.Volunteer{},
 		&models.PasswordRecovery{},
+		&models.EmailVerification{},
 		&models.RefreshToken{},
 		&models.StorageCleanupTask{},
 	)

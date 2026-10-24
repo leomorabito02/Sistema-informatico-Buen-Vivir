@@ -16,6 +16,12 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
+var (
+	ErrEmailNotVerified       = errors.New("EMAIL_NOT_VERIFIED")
+	ErrAccountPendingApproval = errors.New("ACCOUNT_PENDING_APPROVAL")
+	ErrAccountBlocked         = errors.New("ACCOUNT_BLOCKED")
+)
+
 type AuthService interface {
 	Register(ctx context.Context, req *dto.RegisterRequest) (*dto.LoginResponse, error)
 	CheckCredentials(ctx context.Context, req *dto.CheckCredentialsRequest) (*dto.CheckCredentialsResponse, error)
@@ -32,12 +38,13 @@ type AuthService interface {
 }
 
 type authService struct {
-	transactor       repositories.Transactor
-	querier          repositories.RoleProfileQuerier
-	userRepo         repositories.UserRepository
-	refreshTokenRepo repositories.RefreshTokenRepository
-	jwtService       JWTService
-	firebaseService  FirebaseService
+	transactor          repositories.Transactor
+	querier             repositories.RoleProfileQuerier
+	userRepo            repositories.UserRepository
+	refreshTokenRepo    repositories.RefreshTokenRepository
+	jwtService          JWTService
+	firebaseService     FirebaseService
+	verificationService VerificationService
 }
 
 func NewAuthService(
@@ -47,8 +54,9 @@ func NewAuthService(
 	rtRepo repositories.RefreshTokenRepository,
 	jwtService JWTService,
 	fbService FirebaseService,
+	opts ...any,
 ) AuthService {
-	return &authService{
+	svc := &authService{
 		transactor:       transactor,
 		querier:          querier,
 		userRepo:         userRepo,
@@ -56,6 +64,12 @@ func NewAuthService(
 		jwtService:       jwtService,
 		firebaseService:  fbService,
 	}
+	for _, opt := range opts {
+		if vs, ok := opt.(VerificationService); ok {
+			svc.verificationService = vs
+		}
+	}
+	return svc
 }
 
 // rolesDeRegistro son los roles que se pueden elegir en el registro
@@ -103,14 +117,15 @@ func (s *authService) Register(ctx context.Context, req *dto.RegisterRequest) (r
 	}
 
 	user = &models.User{
-		UserID:       "usr-" + utils.GenerateRandomString(10),
-		FirstName:    req.FirstName,
-		LastName:     req.LastName,
-		Email:        req.Email,
-		Phone:        req.Phone,
-		PasswordHash: hashedPassword,
-		RoleID:       roleID,
-		Status:       "active",
+		UserID:          "usr-" + utils.GenerateRandomString(10),
+		FirstName:       req.FirstName,
+		LastName:        req.LastName,
+		Email:           req.Email,
+		Phone:           req.Phone,
+		PasswordHash:    hashedPassword,
+		RoleID:          roleID,
+		Status:          "active",
+		IsEmailVerified: false,
 	}
 
 	err = s.transactor.RunInTx(ctx, func(tx repositories.Tx) error {
@@ -126,13 +141,8 @@ func (s *authService) Register(ctx context.Context, req *dto.RegisterRequest) (r
 		return nil, err
 	}
 
-	accessToken, refreshToken, err := s.jwtService.GenerateTokenPair(user.UserID, user.RoleID, false)
-	if err != nil {
-		return nil, errors.New("error al generar la sesión de autenticación")
-	}
-
-	if err := s.saveRefreshToken(ctx, user.UserID, refreshToken); err != nil {
-		return nil, errors.New("error al guardar el estado de la sesión")
+	if s.verificationService != nil {
+		_ = s.verificationService.GenerateAndSendVerification(ctx, user)
 	}
 
 	// Sincronizar contadores de impacto en Cloudflare Workers KV y preferencias de notificaciones
@@ -140,9 +150,11 @@ func (s *authService) Register(ctx context.Context, req *dto.RegisterRequest) (r
 	NewNotificationSyncService().InitUserPreferencesAsync(user.UserID)
 
 	return &dto.LoginResponse{
-		Token:        accessToken,
-		RefreshToken: refreshToken,
-		User:         user,
+		Token:          "",
+		RefreshToken:   "",
+		User:           user,
+		ApprovalStatus: "pending",
+		UserStatus:     user.Status,
 	}, nil
 }
 
@@ -170,28 +182,7 @@ func (s *authService) CheckCredentials(ctx context.Context, req *dto.CheckCreden
 		return nil, errors.New("la contraseña ingresada es incorrecta")
 	}
 
-	roleNames := map[string]string{
-		"role_admin":       "Responsable",
-		"role_dev":         "Desarrollador",
-		"role_participant": "Participante",
-		"role_company":     "Empresa",
-		"role_teacher":     "Docente",
-		"role_volunteer":   "Voluntario",
-	}
-
-	accounts := make([]dto.AvailableAccount, 0, len(users))
-	for _, u := range users {
-		roleName := roleNames[u.RoleID]
-		if roleName == "" {
-			roleName = u.RoleID
-		}
-		accounts = append(accounts, dto.AvailableAccount{
-			UserID:   u.UserID,
-			RoleID:   u.RoleID,
-			RoleName: roleName,
-			Status:   u.Status,
-		})
-	}
+	accounts := s.buildAvailableAccounts(ctx, users)
 
 	userIDs := make([]string, 0, len(accounts))
 	for _, a := range accounts {
@@ -202,7 +193,17 @@ func (s *authService) CheckCredentials(ctx context.Context, req *dto.CheckCreden
 		return nil, errors.New("error generando sesión temporal, intente nuevamente")
 	}
 
-	return &dto.CheckCredentialsResponse{Accounts: accounts, LoginNonce: loginNonce}, nil
+	isEmailVerified := false
+	if len(accounts) > 0 {
+		isEmailVerified = accounts[0].IsEmailVerified
+	}
+
+	return &dto.CheckCredentialsResponse{
+		Accounts:        accounts,
+		LoginNonce:      loginNonce,
+		IsEmailVerified: isEmailVerified,
+		Email:           req.Email,
+	}, nil
 }
 
 // CheckGoogleCredentials validates a Firebase ID token and returns available accounts linked to the Google account.
@@ -229,11 +230,7 @@ func (s *authService) CheckGoogleCredentials(ctx context.Context, req *dto.Googl
 		googleAuthID = fbToken.UID
 	}
 
-	// 1. Buscar usuarios por google_auth_id directamente en la base de datos
-	matchingUsers, err := s.userRepo.FindAllByGoogleID(ctx, googleAuthID)
-	if err != nil || len(matchingUsers) == 0 {
-		matchingUsers, _ = s.userRepo.FindAllByGoogleID(ctx, fbToken.UID)
-	}
+	matchingUsers := s.findUsersForGoogleAuth(ctx, googleAuthID, fbToken.UID)
 
 	// 2. Si no se encuentra por google_auth_id, comprobar por correo electrónico para reportar error preciso
 	if len(matchingUsers) == 0 {
@@ -245,28 +242,7 @@ func (s *authService) CheckGoogleCredentials(ctx context.Context, req *dto.Googl
 		return nil, errors.New("la cuenta de Google no está vinculada a este usuario. Debe vincularla desde la configuración de su cuenta")
 	}
 
-	roleNames := map[string]string{
-		"role_admin":       "Responsable",
-		"role_dev":         "Desarrollador",
-		"role_participant": "Participante",
-		"role_company":     "Empresa",
-		"role_teacher":     "Docente",
-		"role_volunteer":   "Voluntario",
-	}
-
-	accounts := make([]dto.AvailableAccount, 0, len(matchingUsers))
-	for _, u := range matchingUsers {
-		roleName := roleNames[u.RoleID]
-		if roleName == "" {
-			roleName = u.RoleID
-		}
-		accounts = append(accounts, dto.AvailableAccount{
-			UserID:   u.UserID,
-			RoleID:   u.RoleID,
-			RoleName: roleName,
-			Status:   u.Status,
-		})
-	}
+	accounts := s.buildAvailableAccounts(ctx, matchingUsers)
 
 	googleUserIDs := make([]string, 0, len(matchingUsers))
 	for _, u := range matchingUsers {
@@ -277,7 +253,69 @@ func (s *authService) CheckGoogleCredentials(ctx context.Context, req *dto.Googl
 		return nil, errors.New("error generando sesión temporal, intente nuevamente")
 	}
 
-	return &dto.CheckCredentialsResponse{Accounts: accounts, LoginNonce: googleNonce}, nil
+	isEmailVerified := false
+	if len(accounts) > 0 {
+		isEmailVerified = accounts[0].IsEmailVerified
+	}
+
+	return &dto.CheckCredentialsResponse{
+		Accounts:        accounts,
+		LoginNonce:      googleNonce,
+		IsEmailVerified: isEmailVerified,
+		Email:           email,
+	}, nil
+}
+
+func (s *authService) findUsersForGoogleAuth(ctx context.Context, googleAuthID, fallbackUID string) []models.User {
+	matchingUsers, err := s.userRepo.FindAllByGoogleID(ctx, googleAuthID)
+	if err != nil || len(matchingUsers) == 0 {
+		matchingUsers, _ = s.userRepo.FindAllByGoogleID(ctx, fallbackUID)
+	}
+	return matchingUsers
+}
+
+func (s *authService) buildAvailableAccounts(ctx context.Context, users []models.User) []dto.AvailableAccount {
+	roleNames := map[string]string{
+		"role_admin":       "Responsable",
+		"role_dev":         "Desarrollador",
+		"role_participant": "Participante",
+		"role_company":     "Empresa",
+		"role_teacher":     "Docente",
+		"role_volunteer":   "Voluntario",
+	}
+
+	accounts := make([]dto.AvailableAccount, 0, len(users))
+	for _, u := range users {
+		roleName := roleNames[u.RoleID]
+		if roleName == "" {
+			roleName = u.RoleID
+		}
+		accounts = append(accounts, dto.AvailableAccount{
+			UserID:          u.UserID,
+			RoleID:          u.RoleID,
+			RoleName:        roleName,
+			Status:          u.Status,
+			ApprovalStatus:  s.GetApprovalStatus(ctx, u.RoleID, u.UserID),
+			IsEmailVerified: u.IsEmailVerified,
+		})
+	}
+	return accounts
+}
+
+func (s *authService) validateUserAccess(ctx context.Context, user *models.User) (string, error) {
+	if !user.IsEmailVerified {
+		slog.Warn("security: login attempt with unverified email", slog.String("event", "email_not_verified"), slog.String("user_id", user.UserID))
+		return "", ErrEmailNotVerified
+	}
+
+	approvalStatus := s.GetApprovalStatus(ctx, user.RoleID, user.UserID)
+	if user.RoleID != "role_admin" && user.RoleID != "role_dev" {
+		if !isApprovedStatus(approvalStatus) {
+			slog.Warn("security: login attempt on unapproved account", slog.String("event", "account_pending_approval"), slog.String("user_id", user.UserID), slog.String("status", approvalStatus))
+			return "", ErrAccountPendingApproval
+		}
+	}
+	return approvalStatus, nil
 }
 
 // Login is step 2: given a user_id, role_id and a valid login nonce, issue the JWT token.
@@ -314,11 +352,9 @@ func (s *authService) Login(ctx context.Context, req *dto.LoginRequest) (*dto.Lo
 		}, nil
 	}
 
-	approvalStatus := s.GetApprovalStatus(ctx, user.RoleID, user.UserID)
-	if user.RoleID != "role_admin" && user.RoleID != "role_dev" {
-		if approvalStatus != "active" && !isApprovedStatus(approvalStatus) && approvalStatus != "pending" {
-			return nil, errors.New("el perfil aún no está aprobado")
-		}
+	approvalStatus, err := s.validateUserAccess(ctx, user)
+	if err != nil {
+		return nil, err
 	}
 
 	isExternal := false
@@ -400,6 +436,10 @@ func (s *authService) createRoleProfileTx(tx repositories.Tx, userID, roleID str
 }
 
 func (s *authService) GetApprovalStatus(ctx context.Context, roleID, userID string) string {
+	if s.querier == nil {
+		return "approved"
+	}
+
 	var status string
 	var tableName string
 
