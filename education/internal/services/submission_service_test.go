@@ -967,3 +967,23 @@ func TestSubmissionService_EnrollmentStatus_NonBajaPreservedOverBaja(t *testing.
 	assert.NoError(t, err)
 }
 
+func TestSubmissionService_Submit_CreateFailsWithNoUploads_DoesNotCallDeletePrefix(t *testing.T) {
+	// Arrange: when there are no file uploads, cleanupUploads must not attempt DeletePrefix on failure
+	f := newSubmissionFixture(true)
+	f.activities.On("Get", mock.Anything, "a1").Return(&models.Activity{ID: "a1", CursoID: "c1"}, nil)
+	f.enrollment.On("ListByParticipant", mock.Anything, "p1").Return([]models.Enrollment{
+		{CursoID: "c1", Estado: models.EnrollmentEstadoActiva},
+	}, nil)
+	f.repo.On("GetForParticipant", mock.Anything, "p1", []string{"a1"}).Return(map[string]*models.Submission{}, nil)
+	f.repo.On("CreateWithAttendance", mock.Anything, mock.Anything, mock.Anything).Return(nil, assert.AnError)
+
+	// Act
+	sub, err := f.svc.Submit(context.Background(), "a1", "p1", "solo texto", nil)
+
+	// Assert
+	assert.Error(t, err)
+	assert.Nil(t, sub)
+	f.storage.AssertNotCalled(t, "DeletePrefix", mock.Anything, mock.Anything)
+}
+
+

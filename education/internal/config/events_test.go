@@ -39,3 +39,19 @@ func TestLoadEventsConfig_PorDefecto(t *testing.T) {
 	e.PushAuth = "disabled"
 	assert.True(t, e.ConsumeEnabled(), "local con el emulador")
 }
+
+func TestConsumeEnabled_AudienceWithoutServiceAccounts(t *testing.T) {
+	e := EventsConfig{
+		PushAuth:            "",
+		PushAudience:        "https://education.run.app",
+		PushServiceAccounts: []string{},
+	}
+	assert.False(t, e.ConsumeEnabled(), "audience without service accounts must not enable consume")
+}
+
+func TestLoadEventsConfig_ContentCacheTTL_ZeroBoundary(t *testing.T) {
+	t.Setenv("CONTENT_CACHE_TTL", "0s")
+	e := loadEventsConfig()
+	assert.Equal(t, 0*time.Second, e.ContentCacheTTL)
+}
+

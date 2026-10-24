@@ -243,3 +243,12 @@ INVALID_LINE_WITHOUT_EQUALS
 		assert.Equal(t, "original_env_val", os.Getenv("PRE_EXISTING_KEY"))
 	})
 }
+
+func TestUnquote_Boundaries(t *testing.T) {
+	assert.Equal(t, "", unquote(`""`))
+	assert.Equal(t, "", unquote(`''`))
+	assert.Equal(t, `"`, unquote(`"`))
+	assert.Equal(t, `'`, unquote(`'`))
+	assert.Equal(t, "", unquote(""))
+}
+

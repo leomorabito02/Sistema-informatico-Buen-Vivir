@@ -33,3 +33,12 @@ func TestLoadSkillsAIConfig_FromEnvWithLimits(t *testing.T) {
 	assert.Equal(t, 60*time.Second, c.Timeout, "el timeout tiene un tope")
 	assert.Equal(t, 3, c.MaxRetries, "los reintentos tienen un tope")
 }
+
+func TestLoadSkillsAIConfig_ZeroBoundaries(t *testing.T) {
+	t.Setenv("SKILLS_AI_TIMEOUT_SECONDS", "0")
+	t.Setenv("SKILLS_AI_MAX_RETRIES", "0")
+	c := loadSkillsAIConfig()
+	assert.Equal(t, 20*time.Second, c.Timeout, "timeout of 0 must be ignored and fallback to default")
+	assert.Equal(t, 0, c.MaxRetries, "retries of 0 is valid and must override default")
+}
+

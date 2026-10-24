@@ -19,9 +19,9 @@ gosec -fmt=json -out=sast_report.json ./...
 SAST_EXIT=$?
 set -e
 if [ $SAST_EXIT -eq 0 ]; then
-  echo "✅ SAST passed."
+  echo "SAST passed."
 else
-  echo "❌ SAST found vulnerabilities. Check sast_report.json"
+  echo "SAST found vulnerabilities. Check sast_report.json"
 fi
 
 echo ""
@@ -36,9 +36,9 @@ govulncheck ./... > sca_report.txt
 SCA_EXIT=$?
 set -e
 if [ $SCA_EXIT -eq 0 ]; then
-  echo "✅ SCA passed."
+  echo "SCA passed."
 else
-  echo "❌ SCA found vulnerabilities. Check sca_report.txt"
+  echo "SCA found vulnerabilities. Check sca_report.txt"
 fi
 
 echo ""
@@ -92,9 +92,9 @@ kill $API_PID || true
 docker rm -f education_test_firestore || true
 
 if [ $DAST_EXIT -eq 0 ]; then
-  echo "✅ DAST passed."
+  echo "DAST passed."
 else
-  echo "❌ DAST found vulnerabilities. Check zap_report.html"
+  echo "DAST found vulnerabilities. Check zap_report.html"
 fi
 
 echo ""
@@ -107,9 +107,9 @@ if [ $SCA_EXIT -ne 0 ]; then FINAL_EXIT=$SCA_EXIT; fi
 if [ $DAST_EXIT -ne 0 ]; then FINAL_EXIT=$DAST_EXIT; fi
 
 if [ $FINAL_EXIT -eq 0 ]; then
-  echo "✅ All security tests passed!"
+  echo "All security tests passed!"
 else
-  echo "❌ Some security tests failed."
+  echo "Some security tests failed."
 fi
 
 exit $FINAL_EXIT

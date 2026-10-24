@@ -359,7 +359,9 @@ func TestCourseService_VerifyExists(t *testing.T) {
 func TestCourseService_UpdateCourse_Success(t *testing.T) {
 	// Arrange
 	repo := new(MockCourseRepository)
-	svc := services.NewCourseService(repo)
+	kvSync := new(MockKVSyncService)
+	kvSync.On("SyncCourseStatsAsync").Once()
+	svc := services.NewCourseService(repo, kvSync)
 	input := validCourseInput()
 	expectedCourse := &models.Course{ID: "c1", Title: input.Title}
 	repo.On("Update", mock.Anything, "c1", input).Return(expectedCourse, nil)
@@ -371,12 +373,14 @@ func TestCourseService_UpdateCourse_Success(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, "c1", course.ID)
 	repo.AssertExpectations(t)
+	kvSync.AssertExpectations(t)
 }
 
 func TestCourseService_UpdateCourse_RepoError(t *testing.T) {
 	// Arrange
 	repo := new(MockCourseRepository)
-	svc := services.NewCourseService(repo)
+	kvSync := new(MockKVSyncService)
+	svc := services.NewCourseService(repo, kvSync)
 	input := validCourseInput()
 	repo.On("Update", mock.Anything, "c1", input).Return(nil, errors.New("update error"))
 
@@ -387,6 +391,7 @@ func TestCourseService_UpdateCourse_RepoError(t *testing.T) {
 	assert.Error(t, err)
 	assert.Nil(t, course)
 	repo.AssertExpectations(t)
+	kvSync.AssertNotCalled(t, "SyncCourseStatsAsync")
 }
 
 // Desde HU-16 eliminar un curso es una baja lógica: se registra en el

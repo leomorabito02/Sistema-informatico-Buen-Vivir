@@ -158,4 +158,26 @@ func TestEducacion_EnabledProducer_EmitsEvents(t *testing.T) {
 	assert.Error(t, p.Contenido(ctx, "ev1", events.ContenidoPublicado, events.ContenidoPayload{EntryID: "c1"}))
 }
 
+func TestEducacion_Emit_TxBranching(t *testing.T) {
+	// Arrange
+	notifyCalls := 0
+	writer := outbox.NewWriter(nil, events.ProducerEducacion, func() {
+		notifyCalls++
+	})
+	p := NewEducacion(writer, "topic-edu", "topic-content")
+	ctx := context.Background()
+
+	// Act & Assert 1: When tx is nil, Add is called, which triggers Notify()
+	errNilTx := p.emit(ctx, nil)
+	assert.NoError(t, errNilTx)
+	assert.Equal(t, 1, notifyCalls, "emit without transaction must trigger notify")
+
+	// Act & Assert 2: When tx is non-nil, AddTx is called, which must NOT trigger Notify()
+	dummyTx := &firestore.Transaction{}
+	errWithTx := p.emit(ctx, dummyTx)
+	assert.NoError(t, errWithTx)
+	assert.Equal(t, 1, notifyCalls, "emit with transaction must NOT trigger notify")
+}
+
+
 
