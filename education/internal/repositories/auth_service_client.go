@@ -77,7 +77,7 @@ func (c *AuthServiceClient) ListParticipants(ctx context.Context, bearerToken st
 // caller (EnrollmentService/AttendanceService/GeneralAttendanceService)
 // de una falla real de red o del propio auth-service.
 func (c *AuthServiceClient) GetParticipant(ctx context.Context, participantID, bearerToken string) (*models.AuthParticipant, error) {
-	if c == nil || c.baseURL == "" {
+	if c.baseURL == "" {
 		return nil, ErrAuthServiceNotConfigured
 	}
 
