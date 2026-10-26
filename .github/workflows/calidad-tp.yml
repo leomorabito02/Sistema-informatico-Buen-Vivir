@@ -35,7 +35,7 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  GO_VERSION: '1.26'
+  GO_VERSION: '1.26.10'
   SCANNER_VERSION: 8.1.0.6389
   INICIO_CODIGO_NUEVO: '2026-08-01'
   # Herramientas de seguridad: versiones fijas para que dos corridas del
