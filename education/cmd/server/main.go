@@ -10,7 +10,10 @@ import (
 
 	"cloud.google.com/go/firestore"
 	"github.com/go-chi/chi/v5"
+	"golang.org/x/oauth2"
+	"google.golang.org/api/idtoken"
 	"google.golang.org/api/option"
+	"sync"
 
 	"buenvivir/education/internal/config"
 	"buenvivir/education/internal/controllers"
@@ -80,7 +83,11 @@ func main() {
 	skillRepo := repositories.NewSkillRepository(firestoreClient, eventProducer)
 	commentRepo := repositories.NewCommentRepository(firestoreClient)
 	teacherContentRepo := repositories.NewTeacherContentRepository(firestoreClient, eventProducer)
-	authServiceClient := repositories.NewAuthServiceClient(cfg.AuthServiceURL)
+	var authIDToken func(context.Context) (string, error)
+	if cfg.UpstreamIDToken && cfg.AuthServiceURL != "" {
+		authIDToken = idTokenPara(ctx, cfg.AuthServiceURL)
+	}
+	authServiceClient := repositories.NewAuthServiceClient(cfg.AuthServiceURL, authIDToken)
 	cursoBajaRepo := repositories.NewCursoBajaRepository(firestoreClient)
 	auditRepo := repositories.NewAuditRepository(firestoreClient)
 
@@ -235,3 +242,29 @@ func asyncEndpoints(cfg *config.Config, client *firestore.Client, enrollments re
 	}
 	return a
 }
+
+// idTokenPara devuelve una función que da un token de identidad de
+// Google para el servicio de esa URL (X-Serverless-Authorization).
+func idTokenPara(ctx context.Context, audiencia string) func(context.Context) (string, error) {
+	var (
+		mu sync.Mutex
+		ts oauth2.TokenSource
+	)
+	return func(context.Context) (string, error) {
+		mu.Lock()
+		defer mu.Unlock()
+		if ts == nil {
+			s, err := idtoken.NewTokenSource(ctx, audiencia)
+			if err != nil {
+				return "", err
+			}
+			ts = s
+		}
+		tok, err := ts.Token()
+		if err != nil {
+			return "", err
+		}
+		return tok.AccessToken, nil
+	}
+}
+

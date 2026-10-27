@@ -122,6 +122,7 @@ func main() {
 	volunteerController := controllers.NewVolunteerController(volunteerService)
 	tokenValidatorController := controllers.NewTokenValidatorController(jwtService)
 	participantDirectoryService := services.NewParticipantDirectoryService(participantDirectoryRepo)
+	directoryController := controllers.NewDirectoryController(participantDirectoryService)
 	grpcAuthController := controllers.NewGrpcAuthController(participantService, companyService, userService, participantDirectoryService, deviceRepo)
 	go func() {
 		lis, err := net.Listen("tcp", ":50051")
@@ -282,6 +283,14 @@ func main() {
 				r.Get("/{id}", volunteerController.GetVolunteer)
 				r.Put("/{id}", volunteerController.UpdateVolunteer)
 				r.Delete("/{id}", volunteerController.DeleteVolunteer)
+			})
+
+			// Participant Directory (read-only for inter-service communication)
+			r.With(middlewares.RequireRole("role_admin", "role_dev", "role_volunteer")).Route("/directory", func(r chi.Router) {
+				r.Get("/participants/{id}", directoryController.GetParticipantProfile)
+				r.Get("/participants/by-user/{userId}", directoryController.GetProfileByUserID)
+				r.Get("/participants/search", directoryController.SearchParticipants)
+				r.Post("/users/summaries", directoryController.GetUserSummaries)
 			})
 		})
 	})

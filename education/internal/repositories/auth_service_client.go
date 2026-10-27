@@ -27,6 +27,7 @@ import (
 type AuthServiceClient struct {
 	baseURL    string
 	httpClient *http.Client
+	idToken    func(ctx context.Context) (string, error)
 }
 
 // ErrAuthServiceNotConfigured se devuelve cuando AUTH_SERVICE_URL está
@@ -35,10 +36,15 @@ type AuthServiceClient struct {
 // registrar asistencia, o pedir el listado de participantes.
 var ErrAuthServiceNotConfigured = errors.New("AUTH_SERVICE_URL no está configurado")
 
-func NewAuthServiceClient(baseURL string) *AuthServiceClient {
+func NewAuthServiceClient(baseURL string, idTokenFn ...func(ctx context.Context) (string, error)) *AuthServiceClient {
+	var idToken func(ctx context.Context) (string, error)
+	if len(idTokenFn) > 0 {
+		idToken = idTokenFn[0]
+	}
 	return &AuthServiceClient{
 		baseURL:    baseURL,
 		httpClient: &http.Client{Timeout: 10 * time.Second},
+		idToken:    idToken,
 	}
 }
 
@@ -86,6 +92,11 @@ func (c *AuthServiceClient) GetParticipant(ctx context.Context, participantID, b
 		return nil, err
 	}
 	req.Header.Set("Authorization", "Bearer "+bearerToken)
+	if c.idToken != nil {
+		if tok, err := c.idToken(ctx); err == nil && tok != "" {
+			req.Header.Set("X-Serverless-Authorization", "Bearer "+tok)
+		}
+	}
 
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
@@ -148,6 +159,11 @@ func (c *AuthServiceClient) doGet(ctx context.Context, path, bearerToken string,
 		return err
 	}
 	req.Header.Set("Authorization", "Bearer "+bearerToken)
+	if c.idToken != nil {
+		if tok, err := c.idToken(ctx); err == nil && tok != "" {
+			req.Header.Set("X-Serverless-Authorization", "Bearer "+tok)
+		}
+	}
 
 	resp, err := c.httpClient.Do(req)
 	if err != nil {

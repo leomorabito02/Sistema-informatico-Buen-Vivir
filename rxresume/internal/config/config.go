@@ -19,7 +19,7 @@ func LoadConfig() *Config {
 		port = "8080"
 	}
 
-	dbURL := os.Getenv("DATABASE_URL")
+	dbURL := os.Getenv("DATABASE_URL_RXRESUME")
 	if dbURL == "" {
 		dbURL = "postgres://postgres:postgres@localhost:5432/buenvivir_rxresume?sslmode=disable"
 	}

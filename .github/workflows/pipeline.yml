@@ -588,6 +588,54 @@ jobs:
           docker tag campaigns:${{ github.sha }} "$IMAGE_URI"
           docker push "$IMAGE_URI"
 
+  ci-notifications:
+    name: CI — Notifications Service (Go)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+          cache-dependency-path: notifications/go.sum
+
+      - name: Download Go dependencies
+        working-directory: notifications
+        run: go mod download
+
+      - name: Run Unit Tests (notifications)
+        working-directory: notifications
+        run: go test -v -race -cover ./...
+
+      - name: Docker build (notifications)
+        run: docker build -t notifications:${{ github.sha }} -f notifications/Dockerfile ./notifications
+
+      - name: Authenticate to Google Cloud
+        if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/testing')
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: '${{ secrets.GCP_CREDENTIALS }}'
+
+      - name: Setup Google Cloud SDK
+        if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/testing')
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Configure Docker for Artifact Registry
+        if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/testing')
+        run: gcloud auth configure-docker ${{ secrets.ARTIFACT_REGISTRY_HOST }} --quiet
+
+      - name: Push notifications image to Artifact Registry
+        if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/testing')
+        run: |
+          IMAGE_URI="${{ secrets.ARTIFACT_REGISTRY_HOST }}/${{ secrets.GCP_PROJECT_ID }}/${{ secrets.ARTIFACT_REGISTRY_REPO }}/notifications:${{ github.sha }}"
+          docker tag notifications:${{ github.sha }} "$IMAGE_URI"
+          docker push "$IMAGE_URI"
+
   ci-dashboard:
     name: CI — Dashboard Service (Go)
     runs-on: ubuntu-latest
@@ -783,7 +831,7 @@ jobs:
   ci-gate:
     name: CI — Gate (Verificación general)
     runs-on: ubuntu-latest
-    needs: [ci-secrets, ci-frontend, ci-auth, ci-education, ci-rxresume, ci-human-promotion, ci-campaigns, ci-dashboard, ci-cv-renderer, ci-api-gateway]
+    needs: [ci-secrets, ci-frontend, ci-auth, ci-education, ci-rxresume, ci-human-promotion, ci-campaigns, ci-notifications, ci-dashboard, ci-cv-renderer, ci-api-gateway]
     if: always()
 
     steps:
@@ -819,6 +867,10 @@ jobs:
           fi
           if [ "${{ needs.ci-campaigns.result }}" != "success" ]; then
             echo "::error::ci-campaigns failed."
+            exit 1
+          fi
+          if [ "${{ needs.ci-notifications.result }}" != "success" ]; then
+            echo "::error::ci-notifications failed."
             exit 1
           fi
           if [ "${{ needs.ci-dashboard.result }}" != "success" ]; then
@@ -1080,10 +1132,68 @@ jobs:
           fi
           echo "Image verified."
 
+      - name: Verify notifications image in Artifact Registry
+        run: |
+          IMAGE_URI="${{ secrets.ARTIFACT_REGISTRY_HOST }}/${{ secrets.GCP_PROJECT_ID }}/${{ secrets.ARTIFACT_REGISTRY_REPO }}/notifications:${{ github.sha }}"
+          echo "Verifying image: $IMAGE_URI"
+          if ! gcloud artifacts docker images describe "$IMAGE_URI" > /dev/null 2>&1; then
+            echo "::error::Image $IMAGE_URI not found in Artifact Registry. CD requires image built by CI."
+            exit 1
+          fi
+          echo "Image verified."
+
+  cd-notifications:
+    name: CD — Notifications Service (Cloud Run)
+    runs-on: ubuntu-latest
+    needs: [cd-setup]
+    environment: ${{ needs.cd-setup.outputs.env_name }}
+    timeout-minutes: 15
+    outputs:
+      service_url: ${{ steps.deploy.outputs.url }}
+      prev_revision: ${{ steps.pre-deploy.outputs.prev_revision }}
+
+    steps:
+      - name: Authenticate GCP (Workload Identity)
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+
+      - name: Capture previous Cloud Run revision (for rollback)
+        id: pre-deploy
+        run: |
+          SERVICE="notifications-${{ needs.cd-setup.outputs.service_suffix }}"
+          REGION="${{ secrets.GCP_REGION }}"
+          PREV=$(gcloud run services describe "$SERVICE" --region="$REGION" \
+            --format='value(status.latestReadyRevisionName)' 2>/dev/null || echo "")
+          echo "prev_revision=$PREV" >> $GITHUB_OUTPUT
+          echo "Previous revision: ${PREV:-none}"
+
+      - name: Deploy Notifications to Cloud Run
+        id: deploy
+        uses: google-github-actions/deploy-cloudrun@v2
+        with:
+          service: 'notifications-${{ needs.cd-setup.outputs.service_suffix }}'
+          region: '${{ secrets.GCP_REGION }}'
+          image: '${{ secrets.ARTIFACT_REGISTRY_HOST }}/${{ secrets.GCP_PROJECT_ID }}/${{ secrets.ARTIFACT_REGISTRY_REPO }}/notifications:${{ github.sha }}'
+          flags: '--no-allow-unauthenticated --min-instances=0 --max-instances=1 --cpu=1 --memory=256Mi --service-account=${{ secrets.GCP_SERVICE_ACCOUNT }}'
+          env_vars: |-
+            PORT=8080
+            RESEND_API_KEY=${{ secrets.RESEND_API_KEY }}
+            RESEND_FROM_EMAIL_NOTIFICATIONS=${{ secrets.RESEND_FROM_EMAIL_NOTIFICATIONS }}
+            RESEND_FROM_EMAIL_ALERTS=${{ secrets.RESEND_FROM_EMAIL_ALERTS }}
+            DATABASE_URL_NOTIFICATIONS=${{ secrets.DATABASE_URL_NOTIFICATIONS }}
+
+      - name: Ensure 100% traffic routed to latest Cloud Run revision
+        run: |
+          SERVICE="notifications-${{ needs.cd-setup.outputs.service_suffix }}"
+          REGION="${{ secrets.GCP_REGION }}"
+          gcloud run services update-traffic "$SERVICE" --region="$REGION" --to-latest --project="${{ secrets.GCP_PROJECT_ID }}"
+
   cd-auth:
     name: CD — Auth Service (Cloud Run)
     runs-on: ubuntu-latest
-    needs: [cd-setup]
+    needs: [cd-setup, cd-notifications]
     environment: ${{ needs.cd-setup.outputs.env_name }}
     timeout-minutes: 15
     env:
@@ -1132,6 +1242,7 @@ jobs:
             CORS_ALLOWED_ORIGINS=${{ secrets.CORS_ALLOWED_ORIGINS }}
             WORKER_IMPACT_URL=${{ secrets.WORKER_IMPACT_URL }}
             WORKER_SYNC_TOKEN=${{ secrets.WORKER_SYNC_TOKEN }}
+            NOTIFICATIONS_SERVICE_URL=${{ needs.cd-notifications.outputs.service_url }}
 
       - name: Ensure 100% traffic routed to latest Cloud Run revision
         run: |
@@ -1142,7 +1253,7 @@ jobs:
   cd-education:
     name: CD — Education Service (Cloud Run)
     runs-on: ubuntu-latest
-    needs: [cd-setup]
+    needs: [cd-setup, cd-auth]
     environment: ${{ needs.cd-setup.outputs.env_name }}
     timeout-minutes: 15
     env:
@@ -1194,6 +1305,8 @@ jobs:
             CORS_ALLOWED_ORIGINS=${{ secrets.CORS_ALLOWED_ORIGINS }}
             WORKER_IMPACT_URL=${{ secrets.WORKER_IMPACT_URL }}
             WORKER_SYNC_TOKEN=${{ secrets.WORKER_SYNC_TOKEN }}
+            AUTH_SERVICE_URL=${{ needs.cd-auth.outputs.service_url }}
+            UPSTREAM_ID_TOKEN=true
 
       - name: Ensure 100% traffic routed to latest Cloud Run revision
         run: |
@@ -1205,7 +1318,7 @@ jobs:
   cd-human-promotion:
     name: CD — Human Promotion Service (Cloud Run)
     runs-on: ubuntu-latest
-    needs: [cd-setup]
+    needs: [cd-setup, cd-auth, cd-education]
     environment: ${{ needs.cd-setup.outputs.env_name }}
     timeout-minutes: 15
     env:
@@ -1248,7 +1361,9 @@ jobs:
             GOOGLE_APPLICATION_CREDENTIALS_BASE64=${{ env.GOOGLE_APPLICATION_CREDENTIALS_BASE64 }}
             CORS_ALLOWED_ORIGINS=${{ secrets.CORS_ALLOWED_ORIGINS }}
             ENCRYPTION_KEY_SECRET=${{ vars.HUMAN_PROMOTION_ENCRYPTION_KEY_SECRET }}
-            AUTH_SERVICE_GRPC_TARGET=${{ vars.AUTH_SERVICE_GRPC_TARGET }}
+            AUTH_SERVICE_URL=${{ needs.cd-auth.outputs.service_url }}
+            EDUCATION_SERVICE_URL=${{ needs.cd-education.outputs.service_url }}
+            UPSTREAM_ID_TOKEN=true
 
       - name: Ensure 100% traffic routed to latest Cloud Run revision
         run: |

@@ -1,6 +1,7 @@
 package repositories
 
 import (
+	"context"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -146,6 +147,31 @@ func TestAuthServiceClient_NetworkError(t *testing.T) {
 
 	_, err = c.ListParticipants(t.Context(), "tok")
 	assert.Error(t, err)
+}
+
+func TestAuthServiceClient_ServerlessAuthHeader(t *testing.T) {
+	// Arrange
+	var receivedServerlessAuth, receivedAuth string
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		receivedServerlessAuth = r.Header.Get("X-Serverless-Authorization")
+		receivedAuth = r.Header.Get("Authorization")
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"success":true,"data":{"participant_id":"p1","user_id":"u1","approval_status":"accepted"}}`))
+	}))
+	defer srv.Close()
+
+	idTokenFn := func(ctx context.Context) (string, error) {
+		return "google-id-token-123", nil
+	}
+	c := NewAuthServiceClient(srv.URL, idTokenFn)
+
+	// Act
+	_, err := c.GetParticipant(t.Context(), "p1", "user-jwt-456")
+
+	// Assert
+	require.NoError(t, err)
+	assert.Equal(t, "Bearer google-id-token-123", receivedServerlessAuth)
+	assert.Equal(t, "Bearer user-jwt-456", receivedAuth)
 }
 
 func TestGeneralAttendanceRepository_RegisterAndList(t *testing.T) {
