@@ -37,19 +37,28 @@ func tokenFromContext(ctx context.Context) string {
 type educationClient struct {
 	baseURL    string
 	httpClient *http.Client
+	idToken    func(ctx context.Context) (string, error)
 }
 
 // NewEducationClient devuelve el cliente de education-service, o nil si
 // EDUCATION_SERVICE_URL no está configurada: en ese caso la ficha se
 // muestra sin habilidades, como antes de esta funcionalidad.
-func NewEducationClient(baseURL string) SkillDirectory {
+func NewEducationClient(baseURL string, idTokenFn ...func(ctx context.Context) (string, error)) SkillDirectory {
 	baseURL = strings.TrimRight(strings.TrimSpace(baseURL), "/")
 	if baseURL == "" {
 		return nil
 	}
+	var idToken func(ctx context.Context) (string, error)
+	if len(idTokenFn) > 0 {
+		idToken = idTokenFn[0]
+	}
 	// Timeout corto: las habilidades son un dato secundario de la ficha y
 	// no pueden demorar la apertura del contenido confidencial.
-	return &educationClient{baseURL: baseURL, httpClient: &http.Client{Timeout: 5 * time.Second}}
+	return &educationClient{
+		baseURL:    baseURL,
+		httpClient: &http.Client{Timeout: 5 * time.Second},
+		idToken:    idToken,
+	}
 }
 
 func (c *educationClient) HabilidadesDe(ctx context.Context, participanteID string) ([]string, error) {
@@ -57,6 +66,11 @@ func (c *educationClient) HabilidadesDe(ctx context.Context, participanteID stri
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint, nil)
 	if err != nil {
 		return nil, err
+	}
+	if c.idToken != nil {
+		if tok, err := c.idToken(ctx); err == nil && tok != "" {
+			req.Header.Set("X-Serverless-Authorization", "Bearer "+tok)
+		}
 	}
 	if token := tokenFromContext(ctx); token != "" {
 		req.Header.Set("Authorization", "Bearer "+token)

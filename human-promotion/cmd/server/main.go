@@ -10,7 +10,10 @@ import (
 
 	"cloud.google.com/go/firestore"
 	"github.com/go-chi/chi/v5"
+	"golang.org/x/oauth2"
+	"google.golang.org/api/idtoken"
 	"google.golang.org/api/option"
+	"sync"
 
 	"buenvivir/human-promotion/internal/config"
 	"buenvivir/human-promotion/internal/controllers"
@@ -53,10 +56,18 @@ func main() {
 	}
 	defer func() { _ = firestoreClient.Close() }()
 
-	if cfg.AuthServiceGRPCTarget == "" {
-		fatal("configuración inválida", errors.New("falta AUTH_SERVICE_GRPC_TARGET"))
+	authTarget := cfg.AuthServiceURL
+	if authTarget == "" {
+		authTarget = cfg.AuthServiceGRPCTarget
 	}
-	authDirectory, err := repositories.NewAuthDirectory(cfg.AuthServiceGRPCTarget)
+	if authTarget == "" {
+		fatal("configuración inválida", errors.New("falta AUTH_SERVICE_URL o AUTH_SERVICE_GRPC_TARGET"))
+	}
+	var authIDToken func(context.Context) (string, error)
+	if cfg.UpstreamIDToken && cfg.AuthServiceURL != "" {
+		authIDToken = idTokenPara(ctx, cfg.AuthServiceURL)
+	}
+	authDirectory, err := repositories.NewAuthDirectory(authTarget, authIDToken)
 	if err != nil {
 		fatal("no se pudo crear el cliente de auth-service", err)
 	}
@@ -74,7 +85,11 @@ func main() {
 	hitoRepo := repositories.NewHitoRepository(firestoreClient, eventProducer)
 
 	jwtService := services.NewJWTService()
-	fichaService := services.NewFichaService(fichaRepo, fieldCipher, authDirectory, repositories.NewEducationClient(cfg.EducationServiceURL))
+	var eduIDToken func(context.Context) (string, error)
+	if cfg.UpstreamIDToken && cfg.EducationServiceURL != "" {
+		eduIDToken = idTokenPara(ctx, cfg.EducationServiceURL)
+	}
+	fichaService := services.NewFichaService(fichaRepo, fieldCipher, authDirectory, repositories.NewEducationClient(cfg.EducationServiceURL, eduIDToken))
 	hitoService := services.NewHitoService(hitoRepo, fichaRepo, fieldCipher, authDirectory)
 	actividadService := services.NewActividadService(repositories.NewLineaTiempoRepository(firestoreClient), fichaRepo)
 	participanteService := services.NewParticipanteService(authDirectory, fichaRepo, hitoRepo, fieldCipher, actividadService)
@@ -146,4 +161,29 @@ func asyncEndpoints(cfg *config.Config, client *firestore.Client, fichas reposit
 		a.OutboxFlush = relay.FlushHandler(verifier)
 	}
 	return a
+}
+
+// idTokenPara devuelve una función que da un token de identidad de
+// Google para el servicio de esa URL (X-Serverless-Authorization).
+func idTokenPara(ctx context.Context, audiencia string) func(context.Context) (string, error) {
+	var (
+		mu sync.Mutex
+		ts oauth2.TokenSource
+	)
+	return func(context.Context) (string, error) {
+		mu.Lock()
+		defer mu.Unlock()
+		if ts == nil {
+			s, err := idtoken.NewTokenSource(ctx, audiencia)
+			if err != nil {
+				return "", err
+			}
+			ts = s
+		}
+		tok, err := ts.Token()
+		if err != nil {
+			return "", err
+		}
+		return tok.AccessToken, nil
+	}
 }

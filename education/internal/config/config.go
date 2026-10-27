@@ -47,6 +47,9 @@ type Config struct {
 	// request (no se aborta el arranque del servicio: el resto de
 	// education no depende de auth-service).
 	AuthServiceURL string
+	// UpstreamIDToken activa la generación de un token de identidad de Google
+	// en X-Serverless-Authorization para llamadas a servicios Cloud Run privados.
+	UpstreamIDToken bool
 
 	// EntregasBucket es el bucket de Cloud Storage (mismo proyecto de
 	// GCP que Firestore) donde se guardan los adjuntos de las entregas
@@ -109,6 +112,7 @@ func LoadConfig() (*Config, error) {
 		ContentfulLocale:      os.Getenv("CONTENTFUL_LOCALE"),
 		CORSAllowedOrigins:    os.Getenv("CORS_ALLOWED_ORIGINS"),
 		AuthServiceURL:        strings.TrimRight(os.Getenv("AUTH_SERVICE_URL"), "/"),
+		UpstreamIDToken:       strings.EqualFold(strings.TrimSpace(os.Getenv("UPSTREAM_ID_TOKEN")), "true"),
 		EntregasBucket:        strings.TrimSpace(os.Getenv("ENTREGAS_BUCKET")),
 	}
 	cfg.SkillsAI = loadSkillsAIConfig()

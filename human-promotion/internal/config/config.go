@@ -24,6 +24,14 @@ type Config struct {
 	// EncryptionKeySecret está seteada, tiene prioridad sobre esta.
 	EncryptionKeyBase64 string
 
+	// AuthServiceURL es la base HTTP de auth-service (ej. "https://auth-prod-xxx.run.app").
+	// Si está configurada, tiene prioridad sobre AuthServiceGRPCTarget.
+	AuthServiceURL string
+
+	// UpstreamIDToken activa la generación de un token de identidad de Google
+	// en X-Serverless-Authorization para llamadas entre servicios Cloud Run.
+	UpstreamIDToken bool
+
 	// AuthServiceGRPCTarget es la dirección gRPC de auth-service, ej.
 	// "auth-service:50051" en Docker (mismo nombre de variable que
 	// labor-integration). De ahí salen nombre, apellido y fecha de
@@ -97,8 +105,10 @@ func LoadConfig() *Config {
 		EncryptionKeySecret: strings.TrimSpace(os.Getenv("ENCRYPTION_KEY_SECRET")),
 		EncryptionKeyBase64: strings.TrimSpace(os.Getenv("ENCRYPTION_KEY")),
 
+		AuthServiceURL:        strings.TrimRight(strings.TrimSpace(os.Getenv("AUTH_SERVICE_URL")), "/"),
 		AuthServiceGRPCTarget: strings.TrimSpace(os.Getenv("AUTH_SERVICE_GRPC_TARGET")),
 		EducationServiceURL:   strings.TrimSpace(os.Getenv("EDUCATION_SERVICE_URL")),
+		UpstreamIDToken:       strings.EqualFold(strings.TrimSpace(os.Getenv("UPSTREAM_ID_TOKEN")), "true"),
 		Events:                loadEventsConfig(),
 	}
 }
