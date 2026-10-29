@@ -29,8 +29,12 @@ services:
       dockerfile: Dockerfile
     env_file:
       - ./education/.env
+    environment:
+      - AUTH_SERVICE_URL=http://auth-service:8080
     ports:
       - "8210:8210"
+    depends_on:
+      - auth-service
     restart: on-failure
     security_opt:
       - no-new-privileges:true
@@ -157,6 +161,7 @@ services:
     environment:
       - PORT=8080
       - GRPC_PORT=50052
+      - AUTH_GRPC_URL=auth-service:50051
     ports:
       - "8088:8080"
       - "50052:50052"
