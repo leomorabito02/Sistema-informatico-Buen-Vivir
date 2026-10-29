@@ -84,7 +84,9 @@ func main() {
 	commentRepo := repositories.NewCommentRepository(firestoreClient)
 	teacherContentRepo := repositories.NewTeacherContentRepository(firestoreClient, eventProducer)
 	var authIDToken func(context.Context) (string, error)
-	if cfg.UpstreamIDToken && cfg.AuthServiceURL != "" {
+	if cfg.AuthServiceURL == "" {
+		slog.Warn("AUTH_SERVICE_URL no está configurado: endpoints de participantes/asistencia responderán 502")
+	} else if cfg.UpstreamIDToken {
 		authIDToken = idTokenPara(ctx, cfg.AuthServiceURL)
 	}
 	authServiceClient := repositories.NewAuthServiceClient(cfg.AuthServiceURL, authIDToken)

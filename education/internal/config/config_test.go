@@ -143,13 +143,14 @@ func TestLoadConfig_EquivalenceClassesAndBoundaries(t *testing.T) {
 		assert.Equal(t, "http://auth:8080", cfg.AuthServiceURL, "Trailing slash is trimmed")
 	})
 
-	t.Run("Production APP_ENV loads .env.production", func(t *testing.T) {
+	t.Run("Production APP_ENV loads .env.production with AUTH_SERVICE_URL", func(t *testing.T) {
 		// Arrange
 		t.Setenv("APP_ENV", "production")
 		t.Setenv("CONTENTFUL_ENVIRONMENT", "master")
 		t.Setenv("CONTENTFUL_SPACE_ID", "space-id")
 		t.Setenv("CONTENTFUL_CDA_TOKEN", "cda-token")
 		t.Setenv("CONTENTFUL_CMA_TOKEN", "cma-token")
+		t.Setenv("AUTH_SERVICE_URL", "https://auth.example.com")
 
 		// Act
 		cfg, err := LoadConfig()
@@ -157,6 +158,43 @@ func TestLoadConfig_EquivalenceClassesAndBoundaries(t *testing.T) {
 		// Assert
 		require.NoError(t, err)
 		assert.Equal(t, AppEnvProduction, cfg.AppEnv)
+		assert.Equal(t, "https://auth.example.com", cfg.AuthServiceURL)
+	})
+
+	t.Run("Production APP_ENV rejects empty AUTH_SERVICE_URL", func(t *testing.T) {
+		// Arrange
+		t.Setenv("APP_ENV", "production")
+		t.Setenv("CONTENTFUL_ENVIRONMENT", "master")
+		t.Setenv("CONTENTFUL_SPACE_ID", "space-id")
+		t.Setenv("CONTENTFUL_CDA_TOKEN", "cda-token")
+		t.Setenv("CONTENTFUL_CMA_TOKEN", "cma-token")
+		t.Setenv("AUTH_SERVICE_URL", "")
+
+		// Act
+		cfg, err := LoadConfig()
+
+		// Assert
+		assert.Error(t, err)
+		assert.Nil(t, cfg)
+		assert.Contains(t, err.Error(), "falta la variable AUTH_SERVICE_URL: obligatoria en producción")
+	})
+
+	t.Run("Testing APP_ENV allows empty AUTH_SERVICE_URL", func(t *testing.T) {
+		// Arrange
+		t.Setenv("APP_ENV", "testing")
+		t.Setenv("CONTENTFUL_ENVIRONMENT", "testing")
+		t.Setenv("CONTENTFUL_SPACE_ID", "space-id")
+		t.Setenv("CONTENTFUL_CDA_TOKEN", "cda-token")
+		t.Setenv("CONTENTFUL_CMA_TOKEN", "cma-token")
+		t.Setenv("AUTH_SERVICE_URL", "")
+
+		// Act
+		cfg, err := LoadConfig()
+
+		// Assert
+		require.NoError(t, err)
+		assert.Equal(t, AppEnvTesting, cfg.AppEnv)
+		assert.Empty(t, cfg.AuthServiceURL)
 	})
 
 	t.Run("Empty APP_ENV defaults to testing, custom PORT and LOCALE preserved", func(t *testing.T) {
