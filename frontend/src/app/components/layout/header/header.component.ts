@@ -264,8 +264,9 @@ export class HeaderComponent implements OnInit {
         );
         const userPic =
           response.user?.image_url ||
-          (response.user?.role_data?.['image_url'] as string | undefined) ||
-          (response.user?.role_data?.['profile_picture_url'] as string | undefined);
+          (response.user?.role_data?.["image_url"] as string | undefined) ||
+          (response.user?.role_data?.["profile_picture_url"] as
+            string | undefined);
         if (userPic) {
           this.avatarUrl = this.resolveImageUrl(userPic);
         }
@@ -388,8 +389,8 @@ export class HeaderComponent implements OnInit {
         next: (profile) => {
           const pic =
             profile.user?.image_url ||
-            (profile.role_data?.['image_url'] as string | undefined) ||
-            (profile.role_data?.['profile_picture_url'] as string | undefined);
+            (profile.role_data?.["image_url"] as string | undefined) ||
+            (profile.role_data?.["profile_picture_url"] as string | undefined);
           if (pic) {
             this.avatarUrl = this.resolveImageUrl(pic);
           }

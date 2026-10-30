@@ -101,7 +101,12 @@ export class CampanasComponent implements OnInit {
   /** Los cuatro datos que pide HU-47; el backend vuelve a validar todo. */
   get formCompleto(): boolean {
     const f = this.form;
-    return !!(f.titulo.trim() && f.texto.trim() && f.imagen_url.trim() && f.fecha);
+    return !!(
+      f.titulo.trim() &&
+      f.texto.trim() &&
+      f.imagen_url.trim() &&
+      f.fecha
+    );
   }
 
   guardar(): void {
@@ -114,12 +119,20 @@ export class CampanasComponent implements OnInit {
       next: (r) => {
         this.guardando = false;
         this.dialogo = false;
-        this.toast.add({ severity: "success", summary: "Listo", detail: r.mensaje });
+        this.toast.add({
+          severity: "success",
+          summary: "Listo",
+          detail: r.mensaje,
+        });
         this.cargar();
       },
       error: (e: Error) => {
         this.guardando = false;
-        this.toast.add({ severity: "error", summary: "No se pudo guardar", detail: e.message });
+        this.toast.add({
+          severity: "error",
+          summary: "No se pudo guardar",
+          detail: e.message,
+        });
       },
     });
   }
@@ -127,11 +140,19 @@ export class CampanasComponent implements OnInit {
   publicar(c: Campana): void {
     this.service.publicar(c.id).subscribe({
       next: (r) => {
-        this.toast.add({ severity: "success", summary: "Publicada", detail: r.mensaje });
+        this.toast.add({
+          severity: "success",
+          summary: "Publicada",
+          detail: r.mensaje,
+        });
         this.cargar();
       },
       error: (e: Error) =>
-        this.toast.add({ severity: "error", summary: "No se pudo publicar", detail: e.message }),
+        this.toast.add({
+          severity: "error",
+          summary: "No se pudo publicar",
+          detail: e.message,
+        }),
     });
   }
 

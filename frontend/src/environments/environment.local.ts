@@ -29,6 +29,7 @@ export const environment = {
     authDomain: "ceibuenvivir.firebaseapp.com",
     messagingSenderId: "429506836254",
     measurementId: "G-4C2KCQ3MNT",
-    firebaseVapidKey: "BIDsxZWpgrdpe84FWgzqLxknJcUaEAoWo47uaH7FjufV-IfWDobgglQDA1w6_2o6gHeddZ8dg5bLH5coAHLZLhs"
+    firebaseVapidKey:
+      "BIDsxZWpgrdpe84FWgzqLxknJcUaEAoWo47uaH7FjufV-IfWDobgglQDA1w6_2o6gHeddZ8dg5bLH5coAHLZLhs",
   },
 };

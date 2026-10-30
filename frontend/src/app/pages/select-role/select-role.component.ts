@@ -88,7 +88,10 @@ export class SelectRoleComponent implements OnInit {
         error: (err) => {
           this.loadingAccountId = "";
           const errorMsg = err.error?.error || err.message || "";
-          if (errorMsg === "EMAIL_NOT_VERIFIED" || errorMsg.includes("verificar tu correo")) {
+          if (
+            errorMsg === "EMAIL_NOT_VERIFIED" ||
+            errorMsg.includes("verificar tu correo")
+          ) {
             void this.router.navigate(["/verify-email"]);
             return;
           }

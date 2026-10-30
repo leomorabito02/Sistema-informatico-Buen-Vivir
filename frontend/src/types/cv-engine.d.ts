@@ -7,7 +7,7 @@ declare module "@buenvivir/cv-engine/browser" {
 
   export function generateCvPdfBlob(
     cv: unknown,
-    opts?: GenerateCvPdfBlobOptions
+    opts?: GenerateCvPdfBlobOptions,
   ): Promise<Blob>;
 }
 
@@ -20,6 +20,6 @@ declare module "@buenvivir/cv-engine" {
 
   export function generateCvPdfBuffer(
     cv: unknown,
-    opts?: GenerateCvPdfBufferOptions
+    opts?: GenerateCvPdfBufferOptions,
   ): Promise<Buffer>;
 }

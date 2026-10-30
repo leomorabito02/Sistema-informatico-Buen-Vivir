@@ -22,7 +22,8 @@
           </div>
           <h2 class="auth-card-title text-center">Verificando tu correo...</h2>
           <p class="notice-message">
-            Estamos validando tu enlace de confirmación. Por favor, aguardá unos segundos.
+            Estamos validando tu enlace de confirmación. Por favor, aguardá unos
+            segundos.
           </p>
         </ng-container>
 
@@ -36,7 +37,8 @@
           </div>
           <h2 class="auth-card-title text-center">¡Email verificado!</h2>
           <p class="notice-message">
-            Tu dirección de correo electrónico ha sido confirmada con éxito. Ya podés ingresar a la plataforma.
+            Tu dirección de correo electrónico ha sido confirmada con éxito. Ya
+            podés ingresar a la plataforma.
           </p>
           <button (click)="goToLogin()" class="btn-submit">
             Iniciar sesión
@@ -51,12 +53,17 @@
               class="notice-icon text-error"
             ></lucide-angular>
           </div>
-          <h2 class="auth-card-title text-center">Enlace inválido o expirado</h2>
+          <h2 class="auth-card-title text-center">
+            Enlace inválido o expirado
+          </h2>
           <p class="notice-message">
             {{ verifyError }}
           </p>
           <button (click)="goToLogin()" class="btn-secondary mb-3">
-            <lucide-angular [img]="ArrowLeftIcon" class="btn-icon"></lucide-angular>
+            <lucide-angular
+              [img]="ArrowLeftIcon"
+              class="btn-icon"
+            ></lucide-angular>
             Volver al inicio de sesión
           </button>
         </ng-container>
@@ -73,7 +80,8 @@
           <h2 class="auth-card-title text-center">Debes verificar tu email</h2>
 
           <p class="notice-message">
-            Para proteger tu cuenta y poder ingresar al sistema, es necesario que verifiques tu dirección de correo electrónico.
+            Para proteger tu cuenta y poder ingresar al sistema, es necesario
+            que verifiques tu dirección de correo electrónico.
           </p>
 
           <div *ngIf="email" class="email-badge">
@@ -81,7 +89,9 @@
           </div>
 
           <div *ngIf="!email" class="email-input-wrapper">
-            <label for="manual-email" class="input-label">Ingresá tu correo electrónico:</label>
+            <label for="manual-email" class="input-label"
+              >Ingresá tu correo electrónico:</label
+            >
             <input
               id="manual-email"
               type="email"
@@ -92,12 +102,18 @@
           </div>
 
           <div *ngIf="resendSuccess" class="alert alert-success">
-            <lucide-angular [img]="CheckCircleIcon" class="alert-icon"></lucide-angular>
+            <lucide-angular
+              [img]="CheckCircleIcon"
+              class="alert-icon"
+            ></lucide-angular>
             <span>{{ resendSuccess }}</span>
           </div>
 
           <div *ngIf="resendError" class="alert alert-error">
-            <lucide-angular [img]="AlertCircleIcon" class="alert-icon"></lucide-angular>
+            <lucide-angular
+              [img]="AlertCircleIcon"
+              class="alert-icon"
+            ></lucide-angular>
             <span>{{ resendError }}</span>
           </div>
 
@@ -111,13 +127,18 @@
               class="btn-icon"
               [class.spin]="resending"
             ></lucide-angular>
-            <span>{{ resending ? "Enviando correo..." : "Enviar correo" }}</span>
+            <span>{{
+              resending ? "Enviando correo..." : "Enviar correo"
+            }}</span>
           </button>
 
           <div class="divider"></div>
 
           <button (click)="goToLogin()" class="btn-secondary">
-            <lucide-angular [img]="ArrowLeftIcon" class="btn-icon"></lucide-angular>
+            <lucide-angular
+              [img]="ArrowLeftIcon"
+              class="btn-icon"
+            ></lucide-angular>
             Volver a inicio de sesión
           </button>
         </ng-container>

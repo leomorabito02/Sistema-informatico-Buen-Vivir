@@ -27,14 +27,17 @@ describe("CvPdfService", () => {
   });
 
   it("should preserve already valid data URLs", async () => {
-    const dataUrl = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==";
+    const dataUrl =
+      "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==";
     expect(await service.resolvePictureAsDataUrl(dataUrl)).toBe(dataUrl);
   });
 
   it("should generate PDF blob using mock engine", async () => {
     const mockBlob = new Blob(["%PDF-mock"], { type: "application/pdf" });
     const mockEngine = {
-      generateCvPdfBlob: jasmine.createSpy("generateCvPdfBlob").and.resolveTo(mockBlob),
+      generateCvPdfBlob: jasmine
+        .createSpy("generateCvPdfBlob")
+        .and.resolveTo(mockBlob),
     };
     (service as any).enginePromise = Promise.resolve(mockEngine);
 

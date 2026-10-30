@@ -26,7 +26,9 @@ const DEFAULT_DIALOG_CONFIG: GlobalDialogConfig = {
 export class AlertService {
   private readonly messageService = inject(MessageService);
 
-  readonly dialogConfig = signal<GlobalDialogConfig>({ ...DEFAULT_DIALOG_CONFIG });
+  readonly dialogConfig = signal<GlobalDialogConfig>({
+    ...DEFAULT_DIALOG_CONFIG,
+  });
 
   showSuccess(summary: string, detail?: string): void {
     this.messageService.add({

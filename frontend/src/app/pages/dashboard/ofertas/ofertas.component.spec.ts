@@ -1,4 +1,9 @@
-import { ComponentFixture, TestBed, fakeAsync, tick } from "@angular/core/testing";
+import {
+  ComponentFixture,
+  TestBed,
+  fakeAsync,
+  tick,
+} from "@angular/core/testing";
 import { of } from "rxjs";
 import { JobOfferService } from "../../../services/job-offer.service";
 import { OfertasComponent } from "./ofertas.component";
@@ -57,7 +62,9 @@ describe("OfertasComponent", () => {
     fixture.detectChanges();
     const labels = () =>
       Array.from(
-        fixture.nativeElement.querySelectorAll("p-button") as NodeListOf<HTMLElement>,
+        fixture.nativeElement.querySelectorAll(
+          "p-button",
+        ) as NodeListOf<HTMLElement>,
       ).map((b) => b.getAttribute("label") ?? b.textContent?.trim());
     expect(labels()).not.toContain("Aprobar");
 

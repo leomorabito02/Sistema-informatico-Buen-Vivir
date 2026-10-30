@@ -67,7 +67,9 @@ describe("CampaignsService", () => {
   it("crea, edita y publica con los métodos y rutas correctos", () => {
     const respuesta = { mensaje: "ok", campana };
     service.crear(input).subscribe((r) => expect(r.campana.id).toBe("c1"));
-    const crear = http.expectOne((r) => r.url.endsWith(base) && r.method === "POST");
+    const crear = http.expectOne(
+      (r) => r.url.endsWith(base) && r.method === "POST",
+    );
     expect(crear.request.body).toEqual(input);
     crear.flush(respuesta);
 
@@ -77,7 +79,9 @@ describe("CampaignsService", () => {
     editar.flush(respuesta);
 
     service.publicar("c1").subscribe();
-    const publicar = http.expectOne((r) => r.url.endsWith(`${base}/c1/publicar`));
+    const publicar = http.expectOne((r) =>
+      r.url.endsWith(`${base}/c1/publicar`),
+    );
     expect(publicar.request.method).toBe("POST");
     expect(publicar.request.withCredentials).toBeTrue();
     publicar.flush(respuesta);
@@ -92,15 +96,26 @@ describe("CampaignsService", () => {
     });
     http
       .expectOne((r) => r.url.endsWith(base))
-      .flush({ error: "Completar los campos obligatorios: imagen" }, { status: 400, statusText: "Bad Request" });
+      .flush(
+        { error: "Completar los campos obligatorios: imagen" },
+        { status: 400, statusText: "Bad Request" },
+      );
   });
 
   it("traduce 401 y 403 sin cuerpo", () => {
     const mensajes: string[] = [];
-    service.listar().subscribe({ error: (e: Error) => mensajes.push(e.message) });
-    http.expectOne((r) => r.url.endsWith(base)).flush("", { status: 401, statusText: "Unauthorized" });
-    service.listar().subscribe({ error: (e: Error) => mensajes.push(e.message) });
-    http.expectOne((r) => r.url.endsWith(base)).flush("", { status: 403, statusText: "Forbidden" });
+    service
+      .listar()
+      .subscribe({ error: (e: Error) => mensajes.push(e.message) });
+    http
+      .expectOne((r) => r.url.endsWith(base))
+      .flush("", { status: 401, statusText: "Unauthorized" });
+    service
+      .listar()
+      .subscribe({ error: (e: Error) => mensajes.push(e.message) });
+    http
+      .expectOne((r) => r.url.endsWith(base))
+      .flush("", { status: 403, statusText: "Forbidden" });
     expect(mensajes[0]).toContain("sesión");
     expect(mensajes[1]).toContain("permisos");
   });

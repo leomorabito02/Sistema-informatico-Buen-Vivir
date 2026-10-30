@@ -45,6 +45,7 @@ type ParticipantDirectory interface {
 	GetMyParticipantID(ctx context.Context, bearerToken string) (string, error)
 	ListParticipants(ctx context.Context, bearerToken string) ([]models.AuthParticipant, error)
 	ListUsers(ctx context.Context, bearerToken string) ([]models.AuthUser, error)
+	GetParticipantName(ctx context.Context, participantID, bearerToken string) (models.AuthUser, error)
 }
 
 // SubmissionService implementa las entregas de actividades y la vista
@@ -270,14 +271,16 @@ func (s *submissionService) ListByActivity(ctx context.Context, activity *models
 }
 
 // fillNames resuelve nombre/apellido contra auth-service. No es fatal:
-// si falla (o el rol que llama no puede listar participantes en auth),
-// las filas quedan con el participanteId y el frontend lo muestra así.
+// si falla, las filas quedan con el participanteId y el frontend lo
+// muestra así. Un docente no puede listar participantes en auth: para
+// él se piden los nombres de a uno, solo los de sus alumnos.
 func (s *submissionService) fillNames(ctx context.Context, rows []models.SubmissionStatusRow, bearerToken string) {
 	if len(rows) == 0 || s.directory == nil {
 		return
 	}
 	participants, err := s.directory.ListParticipants(ctx, bearerToken)
 	if err != nil {
+		s.fillNamesOneByOne(ctx, rows, bearerToken)
 		return
 	}
 	users, err := s.directory.ListUsers(ctx, bearerToken)
@@ -299,6 +302,17 @@ func (s *submissionService) fillNames(ctx context.Context, rows []models.Submiss
 			rows[i].Nombre = u.FirstName
 			rows[i].Apellido = u.LastName
 		}
+	}
+}
+
+func (s *submissionService) fillNamesOneByOne(ctx context.Context, rows []models.SubmissionStatusRow, bearerToken string) {
+	for i := range rows {
+		u, err := s.directory.GetParticipantName(ctx, rows[i].ParticipanteID, bearerToken)
+		if err != nil {
+			continue
+		}
+		rows[i].Nombre = u.FirstName
+		rows[i].Apellido = u.LastName
 	}
 }
 

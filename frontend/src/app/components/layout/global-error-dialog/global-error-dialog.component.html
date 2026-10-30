@@ -7,14 +7,26 @@
   [breakpoints]="{ '640px': '92vw' }"
 >
   <ng-template #header>
-    <div class="dialog-header-custom" [attr.data-severity]="alertService.dialogConfig().severity">
+    <div
+      class="dialog-header-custom"
+      [attr.data-severity]="alertService.dialogConfig().severity"
+    >
       <div class="header-icon-wrapper">
-        @if (alertService.dialogConfig().severity === 'warn') {
-          <lucide-angular [img]="TriangleAlertIcon" class="icon warn-icon"></lucide-angular>
-        } @else if (alertService.dialogConfig().severity === 'error') {
-          <lucide-angular [img]="ShieldAlertIcon" class="icon error-icon"></lucide-angular>
+        @if (alertService.dialogConfig().severity === "warn") {
+          <lucide-angular
+            [img]="TriangleAlertIcon"
+            class="icon warn-icon"
+          ></lucide-angular>
+        } @else if (alertService.dialogConfig().severity === "error") {
+          <lucide-angular
+            [img]="ShieldAlertIcon"
+            class="icon error-icon"
+          ></lucide-angular>
         } @else {
-          <lucide-angular [img]="CircleAlertIcon" class="icon info-icon"></lucide-angular>
+          <lucide-angular
+            [img]="CircleAlertIcon"
+            class="icon info-icon"
+          ></lucide-angular>
         }
       </div>
       <span class="header-title">{{ alertService.dialogConfig().title }}</span>
@@ -37,7 +49,11 @@
       }
       <p-button
         [label]="alertService.dialogConfig().confirmLabel"
-        [severity]="alertService.dialogConfig().severity === 'error' ? 'danger' : 'primary'"
+        [severity]="
+          alertService.dialogConfig().severity === 'error'
+            ? 'danger'
+            : 'primary'
+        "
         (onClick)="onConfirm()"
       ></p-button>
     </div>

@@ -76,12 +76,17 @@ export class NotificationsService {
       });
 
       if (!res.ok) {
-        throw new Error(`Failed to fetch notification detail: HTTP ${res.status}`);
+        throw new Error(
+          `Failed to fetch notification detail: HTTP ${res.status}`,
+        );
       }
 
       return (await res.json()) as NotificationDetail;
     } catch (err) {
-      console.error(`[NotificationsService] Error fetching detail for ${id}:`, err);
+      console.error(
+        `[NotificationsService] Error fetching detail for ${id}:`,
+        err,
+      );
       throw err;
     }
   }
@@ -98,7 +103,9 @@ export class NotificationsService {
       });
 
       if (!res.ok) {
-        throw new Error(`Failed to mark notification as read: HTTP ${res.status}`);
+        throw new Error(
+          `Failed to mark notification as read: HTTP ${res.status}`,
+        );
       }
     } catch (err) {
       console.error(`[NotificationsService] Error marking as read ${id}:`, err);
@@ -138,7 +145,10 @@ export class NotificationsService {
         throw new Error(`Failed to delete notification: HTTP ${res.status}`);
       }
     } catch (err) {
-      console.error(`[NotificationsService] Error deleting notification ${id}:`, err);
+      console.error(
+        `[NotificationsService] Error deleting notification ${id}:`,
+        err,
+      );
       throw err;
     }
   }
@@ -201,20 +211,29 @@ export class NotificationsService {
       });
 
       if (!res.ok) {
-        throw new Error(`Failed to initialize default preferences: HTTP ${res.status}`);
+        throw new Error(
+          `Failed to initialize default preferences: HTTP ${res.status}`,
+        );
       }
 
       const data = (await res.json()) as NotificationPreference[];
       return Array.isArray(data) ? data : [];
     } catch (err) {
-      console.error("[NotificationsService] Error initializing preferences:", err);
+      console.error(
+        "[NotificationsService] Error initializing preferences:",
+        err,
+      );
       throw err;
     }
   }
 
   async patchPreference(
     category: string,
-    patch: { email_enabled?: boolean; push_enabled?: boolean; in_app_enabled?: boolean },
+    patch: {
+      email_enabled?: boolean;
+      push_enabled?: boolean;
+      in_app_enabled?: boolean;
+    },
   ): Promise<NotificationPreference> {
     try {
       const url = `${this.baseUrl}/preferences?category=${encodeURIComponent(category)}`;
@@ -234,12 +253,17 @@ export class NotificationsService {
 
       return (await res.json()) as NotificationPreference;
     } catch (err) {
-      console.error(`[NotificationsService] Error updating preference for ${category}:`, err);
+      console.error(
+        `[NotificationsService] Error updating preference for ${category}:`,
+        err,
+      );
       throw err;
     }
   }
 
-  async savePreferences(prefs: NotificationPreference[]): Promise<NotificationPreference[]> {
+  async savePreferences(
+    prefs: NotificationPreference[],
+  ): Promise<NotificationPreference[]> {
     try {
       const url = `${this.baseUrl}/preferences`;
       const res = await fetch(url, {
@@ -263,4 +287,3 @@ export class NotificationsService {
     }
   }
 }
-

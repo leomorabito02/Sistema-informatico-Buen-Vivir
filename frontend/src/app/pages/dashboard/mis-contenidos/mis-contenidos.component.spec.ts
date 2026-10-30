@@ -49,12 +49,20 @@ describe("MisContenidosComponent", () => {
   it("shows the state and allows editing only while pending", () => {
     setup([
       base,
-      { ...base, id: "c2", titulo: "Rechazado", estadoModeracion: "rechazado", motivoRechazo: "Falta la fuente" },
+      {
+        ...base,
+        id: "c2",
+        titulo: "Rechazado",
+        estadoModeracion: "rechazado",
+        motivoRechazo: "Falta la fuente",
+      },
       { ...base, id: "c3", titulo: "Aprobado", estadoModeracion: "aprobado" },
     ]);
     expect(texto()).toContain("Pendiente de moderación");
     expect(texto()).toContain("Motivo del rechazo: Falta la fuente");
-    const editar = fixture.nativeElement.querySelectorAll("p-button[label='Editar']");
+    const editar = fixture.nativeElement.querySelectorAll(
+      "p-button[label='Editar']",
+    );
     expect(editar.length).toBe(1);
   });
 
@@ -71,7 +79,10 @@ describe("MisContenidosComponent", () => {
   it("rejects files over 10 MB before sending", () => {
     setup([]);
     const grande = new File([new Uint8Array(10 * 1024 * 1024 + 1)], "g.pdf");
-    const input = { files: [grande], value: "x" } as unknown as HTMLInputElement;
+    const input = {
+      files: [grande],
+      value: "x",
+    } as unknown as HTMLInputElement;
     component.elegirArchivo({ target: input } as unknown as Event);
     expect(component.archivo).toBeNull();
     expect(component.errorForm).toContain("10 MB");
@@ -97,12 +108,17 @@ describe("MisContenidosComponent", () => {
     component.editar(base);
     component.titulo = "Guía nueva";
     component.guardar();
-    expect(service.editar).toHaveBeenCalledWith("c1", jasmine.objectContaining({ titulo: "Guía nueva", archivo: null }));
+    expect(service.editar).toHaveBeenCalledWith(
+      "c1",
+      jasmine.objectContaining({ titulo: "Guía nueva", archivo: null }),
+    );
   });
 
   it("shows the backend error in the form", () => {
     setup([]);
-    service.subir.and.returnValue(throwError(() => new Error("El archivo tiene que ser PDF")));
+    service.subir.and.returnValue(
+      throwError(() => new Error("El archivo tiene que ser PDF")),
+    );
     component.nuevo();
     component.titulo = "Guía";
     component.archivo = new File(["x"], "x.exe");

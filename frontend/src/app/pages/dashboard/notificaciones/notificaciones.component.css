@@ -83,7 +83,9 @@
 /* Card item */
 .notification-card {
   cursor: pointer;
-  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  transition:
+    transform 0.15s ease,
+    box-shadow 0.15s ease;
   border-radius: 0.75rem;
   border: 1px solid var(--surface-border, #e5e7eb);
 }
@@ -353,7 +355,9 @@
   background: var(--neutral-50, #faf9f5);
   border: 1px solid var(--neutral-200, #e7e5e0);
   border-radius: 8px;
-  transition: background-color 0.2s ease, border-color 0.2s ease;
+  transition:
+    background-color 0.2s ease,
+    border-color 0.2s ease;
 }
 
 .toggle-group:hover {
@@ -407,4 +411,3 @@
   border: 1px solid #fecaca;
   color: #991b1b;
 }
-

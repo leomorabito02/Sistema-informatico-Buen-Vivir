@@ -123,7 +123,9 @@ describe("CvComponent", () => {
 
       component.setPrimaryColor("#9a5b43");
       expect(component.getPrimaryColor()).toBe("#9a5b43");
-      expect(component.resume?.data?.metadata?.design?.colors?.primary).toBe("#9a5b43");
+      expect(component.resume?.data?.metadata?.design?.colors?.primary).toBe(
+        "#9a5b43",
+      );
     });
 
     it("should open template modal", () => {
@@ -187,7 +189,7 @@ describe("CvComponent", () => {
     it("should set picture from userProfilePicture on generateResume if basics.picture is empty", () => {
       const rxResumeService = fixture.debugElement.injector.get(
         // @ts-ignore
-        component["rxResumeService"].constructor
+        component["rxResumeService"].constructor,
       );
       spyOn(rxResumeService, "updateMyResume").and.callFake((data: any) => {
         return { subscribe: () => {} } as any;
@@ -231,14 +233,14 @@ describe("CvComponent", () => {
       component.generateResume();
 
       expect(component.resume.data.basics.picture).toBe(
-        "https://example.com/avatar.png"
+        "https://example.com/avatar.png",
       );
       expect(rxResumeService.updateMyResume).toHaveBeenCalledWith(
         jasmine.objectContaining({
           basics: jasmine.objectContaining({
             picture: "https://example.com/avatar.png",
           }),
-        })
+        }),
       );
     });
   });

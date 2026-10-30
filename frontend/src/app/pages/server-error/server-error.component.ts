@@ -1,7 +1,12 @@
 import { Component, inject } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { Router, RouterLink } from "@angular/router";
-import { LucideAngularModule, TriangleAlert, RotateCw, House } from "lucide-angular";
+import {
+  LucideAngularModule,
+  TriangleAlert,
+  RotateCw,
+  House,
+} from "lucide-angular";
 
 @Component({
   selector: "app-server-error",

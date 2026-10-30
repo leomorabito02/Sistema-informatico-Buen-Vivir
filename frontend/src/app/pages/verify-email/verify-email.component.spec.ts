@@ -26,7 +26,8 @@ describe("VerifyEmailComponent", () => {
           useValue: {
             snapshot: {
               queryParamMap: {
-                get: (key: string) => (key === "email" ? "test@example.com" : null),
+                get: (key: string) =>
+                  key === "email" ? "test@example.com" : null,
               },
             },
           },
@@ -63,7 +64,9 @@ describe("VerifyEmailComponent", () => {
     expect(authServiceSpy.resendVerificationEmail).toHaveBeenCalledWith(
       "test@example.com",
     );
-    expect(component.resendSuccess).toContain("¡Correo de verificación enviado!");
+    expect(component.resendSuccess).toContain(
+      "¡Correo de verificación enviado!",
+    );
   });
 
   it("should set resendError on handleResendEmail failure", () => {

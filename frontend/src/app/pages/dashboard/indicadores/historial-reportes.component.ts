@@ -99,7 +99,8 @@ export class HistorialReportesComponent {
     try {
       await this.reportes.descargar(r);
     } catch {
-      this.errorDescarga = "No se pudo descargar el reporte. Probá de nuevo en unos minutos.";
+      this.errorDescarga =
+        "No se pudo descargar el reporte. Probá de nuevo en unos minutos.";
     }
   }
 

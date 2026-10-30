@@ -36,11 +36,23 @@
     </div>
     <div class="campo">
       <label for="aud-desde">Desde</label>
-      <input pInputText id="aud-desde" name="desde" type="date" [(ngModel)]="desde" />
+      <input
+        pInputText
+        id="aud-desde"
+        name="desde"
+        type="date"
+        [(ngModel)]="desde"
+      />
     </div>
     <div class="campo">
       <label for="aud-hasta">Hasta</label>
-      <input pInputText id="aud-hasta" name="hasta" type="date" [(ngModel)]="hasta" />
+      <input
+        pInputText
+        id="aud-hasta"
+        name="hasta"
+        type="date"
+        [(ngModel)]="hasta"
+      />
     </div>
     <p-button type="submit" label="Buscar" icon="pi pi-search"></p-button>
   </form>
@@ -80,7 +92,9 @@
           ></p-tag>
         </td>
         <td>{{ recursoLabel(r.recurso) }}</td>
-        <td><code>{{ r.recursoId }}</code></td>
+        <td>
+          <code>{{ r.recursoId }}</code>
+        </td>
       </tr>
     </ng-template>
     <ng-template pTemplate="emptymessage">
@@ -92,7 +106,7 @@
     </ng-template>
   </p-table>
   <p *ngIf="!loading && registros.length === 500" class="hint">
-    Se muestran los 500 registros más recientes: acotá las fechas para ver
-    los anteriores.
+    Se muestran los 500 registros más recientes: acotá las fechas para ver los
+    anteriores.
   </p>
 </div>

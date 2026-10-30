@@ -12,18 +12,24 @@ describe("App Routes", () => {
     expect(routes.length).toBeGreaterThan(0);
 
     const landingRoute = routes.find((r) => r.path === "");
-    expect(landingRoute?.loadComponent || landingRoute?.component).toBeDefined();
+    expect(
+      landingRoute?.loadComponent || landingRoute?.component,
+    ).toBeDefined();
 
     const loginRoute = routes.find((r) => r.path === "login");
     expect(loginRoute?.loadComponent || loginRoute?.component).toBeDefined();
     expect(loginRoute?.canActivate).toEqual([guestGuard]);
 
     const registerRoute = routes.find((r) => r.path === "register");
-    expect(registerRoute?.loadComponent || registerRoute?.component).toBeDefined();
+    expect(
+      registerRoute?.loadComponent || registerRoute?.component,
+    ).toBeDefined();
     expect(registerRoute?.canActivate).toEqual([guestGuard]);
 
     const dashboardRoute = routes.find((r) => r.path === "dashboard");
-    expect(dashboardRoute?.loadComponent || dashboardRoute?.component).toBeDefined();
+    expect(
+      dashboardRoute?.loadComponent || dashboardRoute?.component,
+    ).toBeDefined();
     expect(dashboardRoute?.canActivate).toEqual([authGuard]);
     expect(dashboardRoute?.children).toHaveSize(25);
   });

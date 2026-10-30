@@ -11,12 +11,21 @@
         de la página principal.
       </p>
     </div>
-    <p-button label="Subir material" icon="pi pi-upload" (onClick)="nuevo()"></p-button>
+    <p-button
+      label="Subir material"
+      icon="pi pi-upload"
+      (onClick)="nuevo()"
+    ></p-button>
   </div>
 
-  <p *ngIf="cargando" class="estado-carga" role="status">Cargando tus contenidos…</p>
+  <p *ngIf="cargando" class="estado-carga" role="status">
+    Cargando tus contenidos…
+  </p>
 
-  <app-empty-state *ngIf="!cargando && error" title="No se pudieron cargar tus contenidos">
+  <app-empty-state
+    *ngIf="!cargando && error"
+    title="No se pudieron cargar tus contenidos"
+  >
     {{ error }}
   </app-empty-state>
 
@@ -31,13 +40,20 @@
     <li *ngFor="let c of contenidos" class="item">
       <div class="item-cabecera">
         <h2 class="item-titulo">{{ c.titulo }}</h2>
-        <p-tag [value]="etiqueta(c.estadoModeracion)" [severity]="severidad(c.estadoModeracion)"></p-tag>
+        <p-tag
+          [value]="etiqueta(c.estadoModeracion)"
+          [severity]="severidad(c.estadoModeracion)"
+        ></p-tag>
       </div>
       <p class="item-meta">
-        {{ c.archivoNombre }} · {{ tamano(c.archivoTamano) }} · subido el {{ fecha(c.fechaSubida) }}
+        {{ c.archivoNombre }} · {{ tamano(c.archivoTamano) }} · subido el
+        {{ fecha(c.fechaSubida) }}
       </p>
       <p *ngIf="c.descripcion" class="item-texto">{{ c.descripcion }}</p>
-      <p *ngIf="c.estadoModeracion === 'rechazado' && c.motivoRechazo" class="item-motivo">
+      <p
+        *ngIf="c.estadoModeracion === 'rechazado' && c.motivoRechazo"
+        class="item-motivo"
+      >
         Motivo del rechazo: {{ c.motivoRechazo }}
       </p>
       <div class="item-acciones">
@@ -82,7 +98,9 @@
     <ul class="lista" *ngIf="biblioteca.length">
       <li *ngFor="let b of biblioteca" class="item">
         <h3 class="item-titulo">{{ b.titulo }}</h3>
-        <p class="item-meta">{{ b.archivoNombre }} · {{ tamano(b.archivoTamano) }}</p>
+        <p class="item-meta">
+          {{ b.archivoNombre }} · {{ tamano(b.archivoTamano) }}
+        </p>
         <p *ngIf="b.descripcion" class="item-texto">{{ b.descripcion }}</p>
         <div class="item-acciones">
           <p-button
@@ -109,27 +127,59 @@
   <form class="form-grid" (ngSubmit)="guardar()" novalidate>
     <label>
       <span>Título <span class="req" aria-hidden="true">*</span></span>
-      <input pInputText name="titulo" [(ngModel)]="titulo" maxlength="120" required />
+      <input
+        pInputText
+        name="titulo"
+        [(ngModel)]="titulo"
+        maxlength="120"
+        required
+      />
     </label>
     <label>
       Descripción
-      <textarea pTextarea name="descripcion" [(ngModel)]="descripcion" rows="3" maxlength="1000"></textarea>
+      <textarea
+        pTextarea
+        name="descripcion"
+        [(ngModel)]="descripcion"
+        rows="3"
+        maxlength="1000"
+      ></textarea>
     </label>
     <label>
       <span>
         Archivo
         <span *ngIf="!editandoId" class="req" aria-hidden="true">*</span>
-        <span *ngIf="editandoId" class="ayuda">(opcional: reemplaza el actual)</span>
+        <span *ngIf="editandoId" class="ayuda"
+          >(opcional: reemplaza el actual)</span
+        >
       </span>
-      <input type="file" name="archivo" [accept]="acepta" (change)="elegirArchivo($event)" />
-      <span class="ayuda">PDF, Word, Excel, PowerPoint, texto o imagen. Hasta 10 MB.</span>
+      <input
+        type="file"
+        name="archivo"
+        [accept]="acepta"
+        (change)="elegirArchivo($event)"
+      />
+      <span class="ayuda"
+        >PDF, Word, Excel, PowerPoint, texto o imagen. Hasta 10 MB.</span
+      >
     </label>
     <p *ngIf="errorForm" class="form-error" role="alert">{{ errorForm }}</p>
     <div class="form-acciones">
-      <p-button type="button" label="Cancelar" [text]="true" (onClick)="dialogo = false"></p-button>
+      <p-button
+        type="button"
+        label="Cancelar"
+        [text]="true"
+        (onClick)="dialogo = false"
+      ></p-button>
       <p-button
         type="submit"
-        [label]="guardando ? 'Guardando…' : editandoId ? 'Guardar cambios' : 'Enviar a moderación'"
+        [label]="
+          guardando
+            ? 'Guardando…'
+            : editandoId
+              ? 'Guardar cambios'
+              : 'Enviar a moderación'
+        "
         [disabled]="guardando"
       ></p-button>
     </div>

@@ -49,7 +49,12 @@ describe("ParticipantPickerComponent", () => {
   it("emits the chosen participant and null when cleared", () => {
     const emitidos: (ParticipanteResumen | null)[] = [];
     component.seleccionado.subscribe((p) => emitidos.push(p));
-    const ana = { participanteId: "p1", nombre: "Ana", apellido: "Paz", etiqueta: "Paz, Ana" };
+    const ana = {
+      participanteId: "p1",
+      nombre: "Ana",
+      apellido: "Paz",
+      etiqueta: "Paz, Ana",
+    };
     component.elegir(ana);
     component.limpiar();
     expect(emitidos).toEqual([ana, null]);
@@ -57,8 +62,20 @@ describe("ParticipantPickerComponent", () => {
   });
 
   it("builds the label with what is available", () => {
-    expect(etiquetaParticipante({ participanteId: "p1", nombre: "Ana", apellido: "Paz" })).toBe("Paz, Ana");
-    expect(etiquetaParticipante({ participanteId: "p1", nombre: "Ana", apellido: "" })).toBe("Ana");
+    expect(
+      etiquetaParticipante({
+        participanteId: "p1",
+        nombre: "Ana",
+        apellido: "Paz",
+      }),
+    ).toBe("Paz, Ana");
+    expect(
+      etiquetaParticipante({
+        participanteId: "p1",
+        nombre: "Ana",
+        apellido: "",
+      }),
+    ).toBe("Ana");
     expect(etiquetaParticipante({ participanteId: "p9" })).toBe("p9");
   });
 });

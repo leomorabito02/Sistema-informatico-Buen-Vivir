@@ -40,7 +40,10 @@ import {
   ],
   providers: [MessageService],
   templateUrl: "./contenido-docente.component.html",
-  styleUrls: ["../mis-contenidos/mis-contenidos.component.css", "./contenido-docente.component.css"],
+  styleUrls: [
+    "../mis-contenidos/mis-contenidos.component.css",
+    "./contenido-docente.component.css",
+  ],
 })
 export class ContenidoDocenteComponent implements OnInit {
   private readonly service = inject(ContenidosService);
@@ -77,7 +80,8 @@ export class ContenidoDocenteComponent implements OnInit {
       .listByRole("role_teacher")
       .pipe(catchError(() => of([])))
       .subscribe((lista) => {
-        for (const u of lista) this.docentes.set(u.user_id, `${u.first_name} ${u.last_name}`.trim());
+        for (const u of lista)
+          this.docentes.set(u.user_id, `${u.first_name} ${u.last_name}`.trim());
       });
     this.cargar();
     this.cargarDescargas();
@@ -104,7 +108,9 @@ export class ContenidoDocenteComponent implements OnInit {
     this.service
       .listar("")
       .pipe(catchError(() => of([] as ContenidoDocente[])))
-      .subscribe((todos) => todos.forEach((c) => this.titulos.set(c.id, c.titulo)));
+      .subscribe((todos) =>
+        todos.forEach((c) => this.titulos.set(c.id, c.titulo)),
+      );
     this.service.descargas().subscribe({
       next: (lista) => (this.descargas = lista ?? []),
       error: (e: Error) => (this.errorDescargas = e.message),
@@ -116,32 +122,58 @@ export class ContenidoDocenteComponent implements OnInit {
   }
 
   etiqueta(e: EstadoModeracion): string {
-    return { pendiente: "Pendiente", aprobado: "Aprobado", rechazado: "Rechazado" }[e];
+    return {
+      pendiente: "Pendiente",
+      aprobado: "Aprobado",
+      rechazado: "Rechazado",
+    }[e];
   }
 
   severidad(e: EstadoModeracion): "warn" | "success" | "danger" {
-    return ({ pendiente: "warn", aprobado: "success", rechazado: "danger" } as const)[e];
+    return (
+      { pendiente: "warn", aprobado: "success", rechazado: "danger" } as const
+    )[e];
   }
 
   fecha(iso: string): string {
     const d = new Date(iso);
-    return isNaN(d.getTime()) ? "" : d.toLocaleDateString("es-AR", { day: "2-digit", month: "2-digit", year: "numeric" });
+    return isNaN(d.getTime())
+      ? ""
+      : d.toLocaleDateString("es-AR", {
+          day: "2-digit",
+          month: "2-digit",
+          year: "numeric",
+        });
   }
 
   descargar(c: ContenidoDocente): void {
     this.service.archivo(c.id).subscribe({
       next: (blob) => guardarArchivo(blob, c.archivoNombre),
-      error: (e: Error) => this.toast.add({ severity: "error", summary: "No se pudo descargar", detail: e.message }),
+      error: (e: Error) =>
+        this.toast.add({
+          severity: "error",
+          summary: "No se pudo descargar",
+          detail: e.message,
+        }),
     });
   }
 
   aprobar(c: ContenidoDocente): void {
     this.service.moderar(c.id, "aprobado").subscribe({
       next: () => {
-        this.toast.add({ severity: "success", summary: "Material aprobado", detail: "Ya se ve en la biblioteca pública." });
+        this.toast.add({
+          severity: "success",
+          summary: "Material aprobado",
+          detail: "Ya se ve en la biblioteca pública.",
+        });
         this.cargar();
       },
-      error: (e: Error) => this.toast.add({ severity: "error", summary: "No se pudo aprobar", detail: e.message }),
+      error: (e: Error) =>
+        this.toast.add({
+          severity: "error",
+          summary: "No se pudo aprobar",
+          detail: e.message,
+        }),
     });
   }
 
@@ -158,12 +190,20 @@ export class ContenidoDocenteComponent implements OnInit {
       next: () => {
         this.enviando = false;
         this.rechazando = null;
-        this.toast.add({ severity: "success", summary: "Material rechazado", detail: "El docente ve el motivo en «Mis contenidos»." });
+        this.toast.add({
+          severity: "success",
+          summary: "Material rechazado",
+          detail: "El docente ve el motivo en «Mis contenidos».",
+        });
         this.cargar();
       },
       error: (e: Error) => {
         this.enviando = false;
-        this.toast.add({ severity: "error", summary: "No se pudo rechazar", detail: e.message });
+        this.toast.add({
+          severity: "error",
+          summary: "No se pudo rechazar",
+          detail: e.message,
+        });
       },
     });
   }

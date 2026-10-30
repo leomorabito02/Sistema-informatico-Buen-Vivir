@@ -157,7 +157,9 @@ describe("HeaderComponent", () => {
     });
 
     it("el administrador modera el contenido docente", () => {
-      expect(routesOf(NAV_BY_ROLE["role_admin"])).toContain("/dashboard/contenido-docente");
+      expect(routesOf(NAV_BY_ROLE["role_admin"])).toContain(
+        "/dashboard/contenido-docente",
+      );
     });
 
     it("el participante no recibe rutas exclusivas del docente", () => {
@@ -218,7 +220,9 @@ describe("HeaderComponent", () => {
       fixture.detectChanges();
       expect(component.isExpanded(cursos)).toBeTrue();
       // Catálogo, gestión, inscripciones y contenido docente (HU-23).
-      expect(fixture.nativeElement.querySelectorAll(".nav-subitem")).toHaveSize(4);
+      expect(fixture.nativeElement.querySelectorAll(".nav-subitem")).toHaveSize(
+        4,
+      );
 
       component.toggleGroup(cursos);
       expect(component.isExpanded(cursos)).toBeFalse();
@@ -331,7 +335,8 @@ describe("HeaderComponent", () => {
       expect(component.avatarUrl).toBeNull();
       const img = fixture.nativeElement.querySelector(".avatar-img");
       expect(img).toBeNull();
-      const avatarText = fixture.nativeElement.querySelector(".avatar")?.textContent;
+      const avatarText =
+        fixture.nativeElement.querySelector(".avatar")?.textContent;
       expect(avatarText).toContain("AG");
     });
 
@@ -352,18 +357,21 @@ describe("HeaderComponent", () => {
       expect(component.avatarUrl).toBeNull();
       const img = fixture.nativeElement.querySelector(".avatar-img");
       expect(img).toBeNull();
-      const avatarText = fixture.nativeElement.querySelector(".avatar")?.textContent;
+      const avatarText =
+        fixture.nativeElement.querySelector(".avatar")?.textContent;
       expect(avatarText).toContain("AG");
     });
 
     it("resolves relative and localhost api urls correctly", () => {
       expect(component.resolveImageUrl(null)).toBe("");
       expect(component.resolveImageUrl("")).toBe("");
-      expect(component.resolveImageUrl("https://cdn.example.com/photo.png")).toBe(
-        "https://cdn.example.com/photo.png",
-      );
       expect(
-        component.resolveImageUrl("http://localhost:8080/api/v1/uploads/pic.png"),
+        component.resolveImageUrl("https://cdn.example.com/photo.png"),
+      ).toBe("https://cdn.example.com/photo.png");
+      expect(
+        component.resolveImageUrl(
+          "http://localhost:8080/api/v1/uploads/pic.png",
+        ),
       ).toContain("/api/v1/uploads/pic.png");
       expect(component.resolveImageUrl("/uploads/pic.png")).toContain(
         "/uploads/pic.png",

@@ -93,7 +93,11 @@ describe("authGuard", () => {
     mockAuthService.isAuthenticated.and.returnValue(
       of({
         user_status: "active",
-        user: { status: "active", is_email_verified: false, email: "user@test.com" },
+        user: {
+          status: "active",
+          is_email_verified: false,
+          email: "user@test.com",
+        },
       } as any),
     );
 

@@ -67,7 +67,9 @@ describe("adminOrVolunteerGuard / teacherGuard", () => {
   it("sends the external teacher to Mis contenidos instead of the course pages (HU-23)", async () => {
     withRole({ role_id: "role_teacher", is_external: true });
     await run(teacherGuard);
-    expect(router.createUrlTree).toHaveBeenCalledWith(["/dashboard/mis-contenidos"]);
+    expect(router.createUrlTree).toHaveBeenCalledWith([
+      "/dashboard/mis-contenidos",
+    ]);
   });
 
   it("lets the external teacher into Mis contenidos", async () => {

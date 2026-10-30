@@ -24,12 +24,16 @@
         <h2 class="auth-card-title text-center">Error del servidor</h2>
 
         <p class="notice-message">
-          Ocurrió un problema inesperado al procesar la solicitud en el servidor. Por favor, intentá nuevamente en unos instantes.
+          Ocurrió un problema inesperado al procesar la solicitud en el
+          servidor. Por favor, intentá nuevamente en unos instantes.
         </p>
 
         <div class="actions-wrapper">
           <button (click)="reloadPage()" class="btn-submit">
-            <lucide-angular [img]="RotateCwIcon" class="btn-icon"></lucide-angular>
+            <lucide-angular
+              [img]="RotateCwIcon"
+              class="btn-icon"
+            ></lucide-angular>
             Reintentar
           </button>
 

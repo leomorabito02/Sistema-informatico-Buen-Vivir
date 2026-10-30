@@ -176,7 +176,9 @@ export class HumanPromotionService {
 
   // ---- Auditoría (HU-30, HU-35: solo administración) ---------------------
   /** Log de altas, ediciones y bajas de fichas e hitos. Solo lectura. */
-  listarAuditoria(filtro: FiltroAuditoria = {}): Observable<RegistroAuditoria[]> {
+  listarAuditoria(
+    filtro: FiltroAuditoria = {},
+  ): Observable<RegistroAuditoria[]> {
     return this.http
       .get<RegistroAuditoriaApi[]>(`${this.base}/auditoria`, {
         params: filtrosAuditoria(filtro),

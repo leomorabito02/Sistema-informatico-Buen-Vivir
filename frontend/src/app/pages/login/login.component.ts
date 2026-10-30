@@ -217,7 +217,10 @@ export class LoginComponent implements OnInit {
         error: (err) => {
           this.loading = false;
           const errorMsg = err.error?.error || err.message || "";
-          if (errorMsg === "EMAIL_NOT_VERIFIED" || errorMsg.includes("verificar tu correo")) {
+          if (
+            errorMsg === "EMAIL_NOT_VERIFIED" ||
+            errorMsg.includes("verificar tu correo")
+          ) {
             const email = this.loginForm.get("email")?.value;
             void this.router.navigate(["/verify-email"], {
               queryParams: email ? { email } : undefined,

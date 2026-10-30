@@ -44,7 +44,7 @@ func TestNotificationSyncService_InitUserPreferencesAsync_Success(t *testing.T) 
 	defer server.Close()
 
 	_ = os.Setenv("NOTIFICATIONS_SERVICE_URL", server.URL)
-	defer os.Unsetenv("NOTIFICATIONS_SERVICE_URL")
+	defer func() { _ = os.Unsetenv("NOTIFICATIONS_SERVICE_URL") }()
 
 	svc := NewNotificationSyncService()
 

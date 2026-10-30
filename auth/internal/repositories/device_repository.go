@@ -59,13 +59,15 @@ func (r *firestoreDeviceRepository) DeleteDeviceTokens(ctx context.Context, user
 	if r.client == nil || userID == "" || len(tokens) == 0 {
 		return nil
 	}
-	batch := r.client.Batch()
-	for _, t := range tokens {
-		if t != "" {
-			docRef := r.client.Collection("users").Doc(userID).Collection("devices").Doc(t)
-			batch.Delete(docRef)
+	return r.client.RunTransaction(ctx, func(ctx context.Context, tx *firestore.Transaction) error {
+		for _, t := range tokens {
+			if t != "" {
+				docRef := r.client.Collection("users").Doc(userID).Collection("devices").Doc(t)
+				if err := tx.Delete(docRef); err != nil {
+					return err
+				}
+			}
 		}
-	}
-	_, err := batch.Commit(ctx)
-	return err
+		return nil
+	})
 }

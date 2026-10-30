@@ -16,7 +16,9 @@ export interface GenerateCvPdfOptions {
 export class CvPdfService {
   private readonly http = inject(HttpClient);
   private readonly imageService = inject(ImageService);
-  private enginePromise: Promise<typeof import("@buenvivir/cv-engine/browser")> | null = null;
+  private enginePromise: Promise<
+    typeof import("@buenvivir/cv-engine/browser")
+  > | null = null;
 
   private loadEngine(): Promise<typeof import("@buenvivir/cv-engine/browser")> {
     this.enginePromise ??= import("@buenvivir/cv-engine/browser");
@@ -44,7 +46,10 @@ export class CvPdfService {
       const sep = resolvedUrl.includes("?") ? "&" : "?";
       const fetchUrl = `${resolvedUrl}${sep}_t=${Date.now()}`;
       const blob = await firstValueFrom(
-        this.http.get(fetchUrl, { responseType: "blob", withCredentials: true })
+        this.http.get(fetchUrl, {
+          responseType: "blob",
+          withCredentials: true,
+        }),
       );
       if (blob && blob.size > 0) {
         return await this.blobToDataUrl(blob);
@@ -154,7 +159,7 @@ export class CvPdfService {
 
   async generatePdfBlob(
     resume: Resume | ResumeData,
-    opts: GenerateCvPdfOptions = {}
+    opts: GenerateCvPdfOptions = {},
   ): Promise<Blob> {
     const engine = await this.loadEngine();
     const resumeData =
@@ -177,7 +182,7 @@ export class CvPdfService {
   async downloadPdf(
     resume: Resume | ResumeData,
     filename = "curriculum-vitae.pdf",
-    opts: GenerateCvPdfOptions = {}
+    opts: GenerateCvPdfOptions = {},
   ): Promise<void> {
     const blob = await this.generatePdfBlob(resume, opts);
     const url = URL.createObjectURL(blob);

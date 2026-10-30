@@ -151,7 +151,9 @@ describe("MiPerfilComponent", () => {
 
     const img = fixture.nativeElement.querySelector(".role-profile-picture");
     expect(img).not.toBeNull();
-    expect(img?.getAttribute("src")).toBe("https://example.com/role-avatar.jpg");
+    expect(img?.getAttribute("src")).toBe(
+      "https://example.com/role-avatar.jpg",
+    );
   });
 
   describe("Password Change", () => {

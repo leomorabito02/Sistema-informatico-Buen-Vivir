@@ -6,8 +6,8 @@
       <h1 class="page-title">Contenido docente</h1>
       <p class="page-subtitle">
         Material que suben los docentes. Revisalo antes de aprobarlo: lo
-        aprobado se publica en la biblioteca de la página principal, sin
-        iniciar sesión.
+        aprobado se publica en la biblioteca de la página principal, sin iniciar
+        sesión.
       </p>
     </div>
   </div>
@@ -28,26 +28,42 @@
 
   <p *ngIf="cargando" class="estado-carga" role="status">Cargando material…</p>
 
-  <app-empty-state *ngIf="!cargando && error" title="No se pudo cargar el material">
+  <app-empty-state
+    *ngIf="!cargando && error"
+    title="No se pudo cargar el material"
+  >
     {{ error }}
   </app-empty-state>
 
-  <app-empty-state *ngIf="!cargando && !error && contenidos.length === 0" title="No hay material">
-    {{ estado === "pendiente" ? "No hay material esperando revisión." : "No hay material en este estado." }}
+  <app-empty-state
+    *ngIf="!cargando && !error && contenidos.length === 0"
+    title="No hay material"
+  >
+    {{
+      estado === "pendiente"
+        ? "No hay material esperando revisión."
+        : "No hay material en este estado."
+    }}
   </app-empty-state>
 
   <ul class="lista" *ngIf="!cargando && !error && contenidos.length">
     <li *ngFor="let c of contenidos" class="item">
       <div class="item-cabecera">
         <h2 class="item-titulo">{{ c.titulo }}</h2>
-        <p-tag [value]="etiqueta(c.estadoModeracion)" [severity]="severidad(c.estadoModeracion)"></p-tag>
+        <p-tag
+          [value]="etiqueta(c.estadoModeracion)"
+          [severity]="severidad(c.estadoModeracion)"
+        ></p-tag>
       </div>
       <p class="item-meta">
-        {{ docente(c.docenteId) }} · {{ c.archivoNombre }} · {{ tamano(c.archivoTamano) }} ·
-        subido el {{ fecha(c.fechaSubida) }}
+        {{ docente(c.docenteId) }} · {{ c.archivoNombre }} ·
+        {{ tamano(c.archivoTamano) }} · subido el {{ fecha(c.fechaSubida) }}
       </p>
       <p *ngIf="c.descripcion" class="item-texto">{{ c.descripcion }}</p>
-      <p *ngIf="c.estadoModeracion === 'rechazado' && c.motivoRechazo" class="item-motivo">
+      <p
+        *ngIf="c.estadoModeracion === 'rechazado' && c.motivoRechazo"
+        class="item-motivo"
+      >
         Motivo del rechazo: {{ c.motivoRechazo }}
       </p>
       <div class="item-acciones">
@@ -70,7 +86,9 @@
         ></p-button>
         <p-button
           *ngIf="c.estadoModeracion !== 'rechazado'"
-          [label]="c.estadoModeracion === 'aprobado' ? 'Despublicar' : 'Rechazar'"
+          [label]="
+            c.estadoModeracion === 'aprobado' ? 'Despublicar' : 'Rechazar'
+          "
           icon="pi pi-times"
           size="small"
           severity="danger"
@@ -83,10 +101,12 @@
   </ul>
 
   <section class="biblioteca" aria-labelledby="descargas-titulo">
-    <h2 id="descargas-titulo" class="seccion-titulo">Descargas de la biblioteca</h2>
+    <h2 id="descargas-titulo" class="seccion-titulo">
+      Descargas de la biblioteca
+    </h2>
     <p class="page-subtitle">
-      Quién descargó material de la biblioteca pública, para el seguimiento
-      del centro. Son datos personales: no los compartas fuera del equipo.
+      Quién descargó material de la biblioteca pública, para el seguimiento del
+      centro. Son datos personales: no los compartas fuera del equipo.
     </p>
     <p *ngIf="errorDescargas" class="estado-carga">{{ errorDescargas }}</p>
     <p *ngIf="!errorDescargas && descargas.length === 0" class="estado-carga">
@@ -123,17 +143,40 @@
   [modal]="true"
   [style]="{ width: '520px' }"
   [breakpoints]="{ '640px': '95vw' }"
-  [header]="rechazando?.estadoModeracion === 'aprobado' ? 'Despublicar material' : 'Rechazar material'"
+  [header]="
+    rechazando?.estadoModeracion === 'aprobado'
+      ? 'Despublicar material'
+      : 'Rechazar material'
+  "
 >
   <form class="form-grid" (ngSubmit)="rechazar()" novalidate>
-    <p class="item-meta">«{{ rechazando?.titulo }}» deja de verse en la biblioteca. El docente ve el motivo.</p>
+    <p class="item-meta">
+      «{{ rechazando?.titulo }}» deja de verse en la biblioteca. El docente ve
+      el motivo.
+    </p>
     <label>
       Motivo (opcional)
-      <textarea pTextarea name="motivo" [(ngModel)]="motivo" rows="3" maxlength="500"></textarea>
+      <textarea
+        pTextarea
+        name="motivo"
+        [(ngModel)]="motivo"
+        rows="3"
+        maxlength="500"
+      ></textarea>
     </label>
     <div class="form-acciones">
-      <p-button type="button" label="Cancelar" [text]="true" (onClick)="rechazando = null"></p-button>
-      <p-button type="submit" severity="danger" [label]="enviando ? 'Guardando…' : 'Confirmar'" [disabled]="enviando"></p-button>
+      <p-button
+        type="button"
+        label="Cancelar"
+        [text]="true"
+        (onClick)="rechazando = null"
+      ></p-button>
+      <p-button
+        type="submit"
+        severity="danger"
+        [label]="enviando ? 'Guardando…' : 'Confirmar'"
+        [disabled]="enviando"
+      ></p-button>
     </div>
   </form>
 </p-dialog>

@@ -126,7 +126,7 @@ func TestEnrollmentController_DecisionTable(t *testing.T) {
 		// Arrange
 		svc := new(MockEnrollmentService)
 		ctrl := controllers.NewEnrollmentController(svc)
-		svc.On("ListByCourse", mock.Anything, "c1").Return(nil, assert.AnError)
+		svc.On("ListByCourseConNombres", mock.Anything, "c1", "").Return(nil, assert.AnError)
 		req := withChiURLParams(httptest.NewRequest("GET", "/api/cursos/c1/inscripciones", nil), "id", "c1")
 		w := httptest.NewRecorder()
 

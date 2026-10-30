@@ -30,12 +30,16 @@ describe("ImageService", () => {
   it("should replace localhost:8080 API prefix with environment.apiUrl", () => {
     const localUrl = "http://localhost:8080/api/v1/auth/uploads/user.png";
     const resolved = service.resolveImageUrl(localUrl);
-    expect(resolved).toBe(`${environment.apiUrl || window.location.origin}/api/v1/auth/uploads/user.png`);
+    expect(resolved).toBe(
+      `${environment.apiUrl || window.location.origin}/api/v1/auth/uploads/user.png`,
+    );
   });
 
   it("should prepend environment.apiUrl to relative paths", () => {
     const relativeUrl = "/uploads/photo.jpg";
     const resolved = service.resolveImageUrl(relativeUrl);
-    expect(resolved).toBe(`${environment.apiUrl || window.location.origin}/uploads/photo.jpg`);
+    expect(resolved).toBe(
+      `${environment.apiUrl || window.location.origin}/uploads/photo.jpg`,
+    );
   });
 });

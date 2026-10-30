@@ -2770,6 +2770,11 @@ paths:
       responses:
         '200':
           description: OK
+    parameters:
+    - name: id
+      in: path
+      required: true
+      type: string
     options:
       summary: CORS preflight for /api/biblioteca/{id}/descargas
       operationId: options__api_biblioteca_id_descargas
@@ -2872,6 +2877,11 @@ paths:
             Access-Control-Max-Age:
               type: integer
   /api/contenidos-docentes/{id}:
+    parameters:
+    - name: id
+      in: path
+      required: true
+      type: string
     put:
       summary: PUT /api/contenidos-docentes/{id}
       operationId: put__api_contenidos_docentes_id
@@ -2916,6 +2926,11 @@ paths:
             Access-Control-Max-Age:
               type: integer
   /api/contenidos-docentes/{id}/moderacion:
+    parameters:
+    - name: id
+      in: path
+      required: true
+      type: string
     post:
       summary: POST /api/contenidos-docentes/{id}/moderacion
       operationId: post__api_contenidos_docentes_id_moderacion
@@ -2950,6 +2965,11 @@ paths:
             Access-Control-Max-Age:
               type: integer
   /api/contenidos-docentes/{id}/archivo:
+    parameters:
+    - name: id
+      in: path
+      required: true
+      type: string
     get:
       summary: GET /api/contenidos-docentes/{id}/archivo
       operationId: get__api_contenidos_docentes_id_archivo
@@ -3028,6 +3048,11 @@ paths:
             Access-Control-Max-Age:
               type: integer
   /api/comentarios/{id}:
+    parameters:
+    - name: id
+      in: path
+      required: true
+      type: string
     delete:
       summary: DELETE /api/comentarios/{id}
       operationId: delete__api_comentarios_id

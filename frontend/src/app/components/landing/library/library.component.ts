@@ -69,7 +69,8 @@ export class LibraryComponent implements OnInit {
     if (t.startsWith("image/")) return "Imagen";
     if (t.includes("word")) return "Word";
     if (t.includes("sheet") || t.includes("excel")) return "Excel";
-    if (t.includes("presentation") || t.includes("powerpoint")) return "Presentación";
+    if (t.includes("presentation") || t.includes("powerpoint"))
+      return "Presentación";
     return "Documento";
   }
 
@@ -96,7 +97,8 @@ export class LibraryComponent implements OnInit {
     }
     const digitos = d.telefono.replace(/[\s.()-]/g, "");
     if (!/^\+?[0-9]{8,15}$/.test(digitos)) {
-      this.errorForm = "El teléfono tiene que tener entre 8 y 15 números, por ejemplo 3547 123456";
+      this.errorForm =
+        "El teléfono tiene que tener entre 8 y 15 números, por ejemplo 3547 123456";
       return;
     }
     this.errorForm = "";

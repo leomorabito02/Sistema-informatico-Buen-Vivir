@@ -13,7 +13,12 @@ const borrador: Campana = {
   fecha: "2026-11-05",
   estado: "borrador",
 };
-const publicada: Campana = { ...borrador, id: "c2", titulo: "Campaña del árbol", estado: "publicada" };
+const publicada: Campana = {
+  ...borrador,
+  id: "c2",
+  titulo: "Campaña del árbol",
+  estado: "publicada",
+};
 
 describe("CampanasComponent", () => {
   let fixture: ComponentFixture<CampanasComponent>;
@@ -28,7 +33,12 @@ describe("CampanasComponent", () => {
   }
 
   beforeEach(async () => {
-    service = jasmine.createSpyObj<CampaignsService>("CampaignsService", ["listar", "crear", "editar", "publicar"]);
+    service = jasmine.createSpyObj<CampaignsService>("CampaignsService", [
+      "listar",
+      "crear",
+      "editar",
+      "publicar",
+    ]);
     await TestBed.configureTestingModule({
       imports: [CampanasComponent, BrowserAnimationsModule],
       providers: [{ provide: CampaignsService, useValue: service }],
@@ -49,9 +59,13 @@ describe("CampanasComponent", () => {
 
   it("muestra el estado vacío y el error del servicio", () => {
     crear([]);
-    expect(fixture.nativeElement.textContent).toContain("Todavía no se cargó ninguna campaña");
+    expect(fixture.nativeElement.textContent).toContain(
+      "Todavía no se cargó ninguna campaña",
+    );
 
-    service.listar.and.returnValue(throwError(() => new Error("Firestore caído")));
+    service.listar.and.returnValue(
+      throwError(() => new Error("Firestore caído")),
+    );
     component.cargar();
     fixture.detectChanges();
     expect(fixture.nativeElement.textContent).toContain("Firestore caído");
@@ -71,46 +85,90 @@ describe("CampanasComponent", () => {
     expect(component.formCompleto).toBeFalse();
     component.guardar();
     expect(service.crear).not.toHaveBeenCalled();
-    component.form = { titulo: "Nueva", texto: "Texto", imagen_url: "https://example.org/x.jpg", fecha: "2026-12-01" };
+    component.form = {
+      titulo: "Nueva",
+      texto: "Texto",
+      imagen_url: "https://example.org/x.jpg",
+      fecha: "2026-12-01",
+    };
     expect(component.formCompleto).toBeTrue();
   });
 
   it("crea, cierra el diálogo, avisa con el mensaje del backend y recarga", () => {
     crear();
-    service.crear.and.returnValue(of({ mensaje: "Campaña creada correctamente", campana: borrador }));
-    const toast = spyOn((component as unknown as { toast: { add: (m: unknown) => void } }).toast, "add");
+    service.crear.and.returnValue(
+      of({ mensaje: "Campaña creada correctamente", campana: borrador }),
+    );
+    const toast = spyOn(
+      (component as unknown as { toast: { add: (m: unknown) => void } }).toast,
+      "add",
+    );
     component.nueva();
-    component.form = { titulo: "Nueva", texto: "Texto", imagen_url: "https://example.org/x.jpg", fecha: "2026-12-01" };
+    component.form = {
+      titulo: "Nueva",
+      texto: "Texto",
+      imagen_url: "https://example.org/x.jpg",
+      fecha: "2026-12-01",
+    };
     component.guardar();
     expect(service.crear).toHaveBeenCalledWith(component.form);
     expect(component.dialogo).toBeFalse();
-    expect(toast).toHaveBeenCalledWith(jasmine.objectContaining({ detail: "Campaña creada correctamente" }));
+    expect(toast).toHaveBeenCalledWith(
+      jasmine.objectContaining({ detail: "Campaña creada correctamente" }),
+    );
     expect(service.listar).toHaveBeenCalledTimes(2);
   });
 
   it("edita con los datos de la campaña elegida", () => {
     crear();
-    service.editar.and.returnValue(of({ mensaje: "Campaña editada correctamente", campana: borrador }));
+    service.editar.and.returnValue(
+      of({ mensaje: "Campaña editada correctamente", campana: borrador }),
+    );
     component.editar(borrador);
     expect(component.form.titulo).toBe(borrador.titulo);
     component.guardar();
-    expect(service.editar).toHaveBeenCalledWith("c1", jasmine.objectContaining({ titulo: borrador.titulo }));
+    expect(service.editar).toHaveBeenCalledWith(
+      "c1",
+      jasmine.objectContaining({ titulo: borrador.titulo }),
+    );
   });
 
   it("si el backend rechaza, deja el diálogo abierto y muestra el error", () => {
     crear();
-    service.crear.and.returnValue(throwError(() => new Error("La imagen debe ser una dirección web válida (http o https)")));
-    const toast = spyOn((component as unknown as { toast: { add: (m: unknown) => void } }).toast, "add");
+    service.crear.and.returnValue(
+      throwError(
+        () =>
+          new Error(
+            "La imagen debe ser una dirección web válida (http o https)",
+          ),
+      ),
+    );
+    const toast = spyOn(
+      (component as unknown as { toast: { add: (m: unknown) => void } }).toast,
+      "add",
+    );
     component.nueva();
-    component.form = { titulo: "N", texto: "T", imagen_url: "ftp://x", fecha: "2026-12-01" };
+    component.form = {
+      titulo: "N",
+      texto: "T",
+      imagen_url: "ftp://x",
+      fecha: "2026-12-01",
+    };
     component.guardar();
     expect(component.dialogo).toBeTrue();
-    expect(toast).toHaveBeenCalledWith(jasmine.objectContaining({ severity: "error" }));
+    expect(toast).toHaveBeenCalledWith(
+      jasmine.objectContaining({ severity: "error" }),
+    );
   });
 
   it("publica y recarga", () => {
     crear();
-    service.publicar.and.returnValue(of({ mensaje: "Campaña publicada correctamente", campana: { ...borrador, estado: "publicada" } }));
+    service.publicar.and.returnValue(
+      of({
+        mensaje: "Campaña publicada correctamente",
+        campana: { ...borrador, estado: "publicada" },
+      }),
+    );
     component.publicar(borrador);
     expect(service.publicar).toHaveBeenCalledWith("c1");
     expect(service.listar).toHaveBeenCalledTimes(2);

@@ -30,7 +30,10 @@ export class CampaignsService {
   }
 
   /** Todas las campañas, para la gestión (admin y voluntariado). */
-  listar(busqueda = "", estado: EstadoCampana | "" = ""): Observable<Campana[]> {
+  listar(
+    busqueda = "",
+    estado: EstadoCampana | "" = "",
+  ): Observable<Campana[]> {
     const params: Record<string, string> = {};
     if (busqueda.trim()) params["q"] = busqueda.trim();
     if (estado) params["estado"] = estado;
@@ -47,7 +50,11 @@ export class CampaignsService {
 
   editar(id: string, input: CampanaInput): Observable<CampanaEscritura> {
     return this.http
-      .put<CampanaEscritura>(`${this.base}/${encodeURIComponent(id)}`, input, this.opts)
+      .put<CampanaEscritura>(
+        `${this.base}/${encodeURIComponent(id)}`,
+        input,
+        this.opts,
+      )
       .pipe(catchError(this.handleError));
   }
 
@@ -63,7 +70,8 @@ export class CampaignsService {
 
   private readonly handleError = (error: HttpErrorResponse) => {
     const body = error.error as { error?: string } | string | null;
-    let message = "No se pudieron cargar las campañas. Probá de nuevo en unos minutos.";
+    let message =
+      "No se pudieron cargar las campañas. Probá de nuevo en unos minutos.";
     if (body && typeof body === "object" && body.error) {
       message = body.error;
     } else if (error.status === 401) {

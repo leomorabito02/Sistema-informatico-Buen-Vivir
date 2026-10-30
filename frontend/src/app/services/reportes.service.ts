@@ -67,16 +67,20 @@ export class ReportesService {
   cargarHistorial(): void {
     this.cargandoHistorial.set(true);
     this.errorHistorial.set(null);
-    this.http.get<ReporteExportado[]>(this.base, { withCredentials: true }).subscribe({
-      next: (h) => {
-        this.historial.set(h);
-        this.cargandoHistorial.set(false);
-      },
-      error: (e: HttpErrorResponse) => {
-        this.errorHistorial.set(mensajeDe(e, "No se pudo cargar el historial de reportes."));
-        this.cargandoHistorial.set(false);
-      },
-    });
+    this.http
+      .get<ReporteExportado[]>(this.base, { withCredentials: true })
+      .subscribe({
+        next: (h) => {
+          this.historial.set(h);
+          this.cargandoHistorial.set(false);
+        },
+        error: (e: HttpErrorResponse) => {
+          this.errorHistorial.set(
+            mensajeDe(e, "No se pudo cargar el historial de reportes."),
+          );
+          this.cargandoHistorial.set(false);
+        },
+      });
   }
 
   async exportar(input: ExportarInput): Promise<ResultadoExportar> {
@@ -90,7 +94,10 @@ export class ReportesService {
       return {
         reporte: null,
         guardado: false,
-        error: e instanceof HttpErrorResponse ? mensajeDe(e, MENSAJE_HISTORIAL) : MENSAJE_HISTORIAL,
+        error:
+          e instanceof HttpErrorResponse
+            ? mensajeDe(e, MENSAJE_HISTORIAL)
+            : MENSAJE_HISTORIAL,
       };
     }
   }
@@ -103,7 +110,10 @@ export class ReportesService {
         withCredentials: true,
       }),
     );
-    descargarBlob(blob, `reporte-dashboard-${reporte.fecha_generacion.slice(0, 10)}.pdf`);
+    descargarBlob(
+      blob,
+      `reporte-dashboard-${reporte.fecha_generacion.slice(0, 10)}.pdf`,
+    );
   }
 
   /** Datos del reporte para el backend (el autor sale del token). */
@@ -125,7 +135,9 @@ export class ReportesService {
     const form = new FormData();
     form.append("metadatos", JSON.stringify(this.metadatos(input)));
     form.append("archivo", pdf, "reporte.pdf");
-    return this.http.post<ReporteExportado>(this.base, form, { withCredentials: true });
+    return this.http.post<ReporteExportado>(this.base, form, {
+      withCredentials: true,
+    });
   }
 
   /** Arma el PDF: logo, fecha, filtros, indicadores y gráficas. */
