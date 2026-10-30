@@ -513,14 +513,12 @@ export class OfertasComponent implements OnInit {
           };
           this.currentCandidates.push(candidateData);
 
-          this.rxResumeService.getPublicResume(app.participante_id).subscribe({
+          this.rxResumeService.getPublicResume(this.cvId(app)).subscribe({
             next: (resume) => {
               candidateData.resume = resume;
             },
             error: () =>
-              console.warn(
-                `No se pudo cargar el CV para ${app.participante_id}`,
-              ),
+              console.warn(`No se pudo cargar el CV para ${this.cvId(app)}`),
           });
         });
       },
@@ -535,6 +533,11 @@ export class OfertasComponent implements OnInit {
 
   showAcceptanceModal = false;
   acceptanceMessage = "";
+
+  /** El CV está guardado con el id de usuario del postulante. */
+  cvId(app: JobApplication): string {
+    return app.usuario_id || app.participante_id;
+  }
 
   updateApplicationStatus(
     candidate: { app: JobApplication; resume?: Resume },

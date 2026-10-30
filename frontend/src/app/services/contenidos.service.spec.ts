@@ -44,16 +44,26 @@ describe("ContenidosService", () => {
 
   it("lists by state and moderates", () => {
     service.listar("pendiente").subscribe();
-    http.expectOne(`${base}/api/contenidos-docentes?estado=pendiente`).flush([]);
+    http
+      .expectOne(`${base}/api/contenidos-docentes?estado=pendiente`)
+      .flush([]);
 
     service.moderar("c1", "rechazado", "Falta la fuente").subscribe();
     const req = http.expectOne(`${base}/api/contenidos-docentes/c1/moderacion`);
-    expect(req.request.body).toEqual({ estado: "rechazado", motivo: "Falta la fuente" });
+    expect(req.request.body).toEqual({
+      estado: "rechazado",
+      motivo: "Falta la fuente",
+    });
     req.flush({});
   });
 
   it("public download sends the visitor data without credentials", () => {
-    const datos = { nombre: "Ana", apellido: "Gómez", email: "ana@gmail.com", telefono: "3547123456" };
+    const datos = {
+      nombre: "Ana",
+      apellido: "Gómez",
+      email: "ana@gmail.com",
+      telefono: "3547123456",
+    };
     service.descargarPublico("c1", datos).subscribe();
     const req = http.expectOne(`${base}/api/biblioteca/c1/descargas`);
     expect(req.request.body).toEqual(datos);
@@ -63,12 +73,19 @@ describe("ContenidosService", () => {
   });
 
   it("reads the error message even when the response is a blob", (done) => {
-    service.descargarPublico("c1", { nombre: "", apellido: "", email: "", telefono: "" }).subscribe({
-      error: (e: Error) => {
-        expect(e.message).toBe("El email no es válido");
-        done();
-      },
-    });
+    service
+      .descargarPublico("c1", {
+        nombre: "",
+        apellido: "",
+        email: "",
+        telefono: "",
+      })
+      .subscribe({
+        error: (e: Error) => {
+          expect(e.message).toBe("El email no es válido");
+          done();
+        },
+      });
     http
       .expectOne(`${base}/api/biblioteca/c1/descargas`)
       .flush(new Blob([JSON.stringify({ error: "El email no es válido" })]), {
@@ -84,7 +101,9 @@ describe("ContenidosService", () => {
         done();
       },
     });
-    http.expectOne(`${base}/api/biblioteca`).flush(null, { status: 429, statusText: "Too Many" });
+    http
+      .expectOne(`${base}/api/biblioteca`)
+      .flush(null, { status: 429, statusText: "Too Many" });
   });
 
   it("formats sizes", () => {

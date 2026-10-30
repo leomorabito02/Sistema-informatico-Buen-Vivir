@@ -468,6 +468,13 @@ PUBSUB_EMULATOR_HOST=localhost:8086 infra/pubsub/emulator.sh   # topics + suscri
 # servicios con: PUBSUB_PROJECT_ID=ceibuenvivir PUBSUB_EMULATOR_HOST=localhost:8086 PUBSUB_PUSH_AUTH=disabled
 ```
 
+Con el stack de Docker no hay que hacer nada: `docker compose up -d`
+levanta `pubsub-emulator`, y `pubsub-init` corre `emulator.sh` con las
+suscripciones apuntando a los contenedores. Education, human-promotion y
+dashboard ya tienen esas variables y arrancan después de `pubsub-init`.
+El emulador no guarda nada: si se recrea, `docker compose up -d` vuelve
+a correr `pubsub-init`. Los eventos anteriores a prenderlo no se reenvían.
+
 ## 11. Cómo agregar un evento nuevo
 
 1. **Definirlo** en `pkg/events/catalog.go`: la constante

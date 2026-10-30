@@ -406,7 +406,10 @@ export class EducationService {
    * backend busca por nombre, apellido o DNI y devuelve hasta 20. Con
    * cursoId deja afuera a los ya inscriptos en ese curso.
    */
-  searchParticipants(q: string, cursoId = ""): Observable<ParticipanteResumen[]> {
+  searchParticipants(
+    q: string,
+    cursoId = "",
+  ): Observable<ParticipanteResumen[]> {
     let params = new HttpParams().set("q", q.trim());
     if (cursoId) params = params.set("cursoId", cursoId);
     return this.http

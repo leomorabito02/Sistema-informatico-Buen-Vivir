@@ -103,6 +103,11 @@ func (m *MockParticipantDirectory) ListUsers(ctx context.Context, bearerToken st
 	return args.Get(0).([]models.AuthUser), args.Error(1)
 }
 
+func (m *MockParticipantDirectory) GetParticipantName(ctx context.Context, participantID, bearerToken string) (models.AuthUser, error) {
+	args := m.Called(ctx, participantID, bearerToken)
+	return args.Get(0).(models.AuthUser), args.Error(1)
+}
+
 type submissionFixture struct {
 	repo       *MockSubmissionRepository
 	activities *MockActivityRepository
@@ -356,11 +361,28 @@ func TestSubmissionService_ListByActivity_NamesAreBestEffort(t *testing.T) {
 	f.enrollment.On("ListByCourse", mock.Anything, "c1").Return([]models.Enrollment{{ParticipanteID: "p1", Estado: models.EnrollmentEstadoActiva}}, nil)
 	f.repo.On("ListByActivity", mock.Anything, "a1").Return([]models.Submission{}, nil)
 	f.directory.On("ListParticipants", mock.Anything, "tok").Return(nil, errors.New("403"))
+	f.directory.On("GetParticipantName", mock.Anything, "p1", "tok").Return(models.AuthUser{}, errors.New("403"))
 
 	rows, err := f.svc.ListByActivity(context.Background(), &models.Activity{ID: "a1", CursoID: "c1"}, "tok")
 	require.NoError(t, err)
 	require.Len(t, rows, 1)
 	assert.Empty(t, rows[0].Nombre)
+}
+
+// Un docente no puede listar participantes en auth: los nombres de sus
+// alumnos se piden de a uno al directorio.
+func TestSubmissionService_ListByActivity_NamesOneByOneForTeacher(t *testing.T) {
+	f := newSubmissionFixture(false)
+	f.enrollment.On("ListByCourse", mock.Anything, "c1").Return([]models.Enrollment{{ParticipanteID: "p1", Estado: models.EnrollmentEstadoActiva}}, nil)
+	f.repo.On("ListByActivity", mock.Anything, "a1").Return([]models.Submission{}, nil)
+	f.directory.On("ListParticipants", mock.Anything, "tok").Return(nil, errors.New("403"))
+	f.directory.On("GetParticipantName", mock.Anything, "p1", "tok").Return(models.AuthUser{FirstName: "Paula", LastName: "Paz"}, nil)
+
+	rows, err := f.svc.ListByActivity(context.Background(), &models.Activity{ID: "a1", CursoID: "c1"}, "tok")
+	require.NoError(t, err)
+	require.Len(t, rows, 1)
+	assert.Equal(t, "Paula", rows[0].Nombre)
+	assert.Equal(t, "Paz", rows[0].Apellido)
 }
 
 func TestSubmissionService_ListByActivity_RepoError(t *testing.T) {

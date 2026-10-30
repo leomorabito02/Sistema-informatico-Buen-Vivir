@@ -14,8 +14,10 @@ type JobApplicationRepository interface {
 	Create(ctx context.Context, application *models.JobApplication) error
 	ListByOffer(ctx context.Context, offerID string) ([]*models.JobApplication, error)
 	HasApplicationsForOffer(ctx context.Context, offerID string) (bool, error)
-	HasApplied(ctx context.Context, offerID, participantID string) (bool, error)
-	ListByParticipant(ctx context.Context, participantID string) ([]*models.JobApplication, error)
+	// HasApplied y ListByParticipant reciben los ids posibles del mismo
+	// participante (id de participante y de usuario, ver JobApplication).
+	HasApplied(ctx context.Context, offerID string, participantIDs []string) (bool, error)
+	ListByParticipant(ctx context.Context, participantIDs []string) ([]*models.JobApplication, error)
 	UpdateStatus(ctx context.Context, applicationID string, status string) error
 	GetByID(ctx context.Context, applicationID string) (*models.JobApplication, error)
 	Delete(ctx context.Context, applicationID string) error
@@ -49,10 +51,10 @@ func (r *jobApplicationRepository) HasApplicationsForOffer(ctx context.Context, 
 	return true, nil
 }
 
-func (r *jobApplicationRepository) HasApplied(ctx context.Context, offerID, participantID string) (bool, error) {
+func (r *jobApplicationRepository) HasApplied(ctx context.Context, offerID string, participantIDs []string) (bool, error) {
 	iter := r.client.Collection("job_applications").
 		Where("oferta_id", "==", offerID).
-		Where("participante_id", "==", participantID).
+		Where("participante_id", "in", participantIDs).
 		Limit(1).Documents(ctx)
 	defer iter.Stop()
 	_, err := iter.Next()
@@ -85,8 +87,8 @@ func (r *jobApplicationRepository) ListByOffer(ctx context.Context, offerID stri
 	return applications, nil
 }
 
-func (r *jobApplicationRepository) ListByParticipant(ctx context.Context, participantID string) ([]*models.JobApplication, error) {
-	iter := r.client.Collection("job_applications").Where("participante_id", "==", participantID).Documents(ctx)
+func (r *jobApplicationRepository) ListByParticipant(ctx context.Context, participantIDs []string) ([]*models.JobApplication, error) {
+	iter := r.client.Collection("job_applications").Where("participante_id", "in", participantIDs).Documents(ctx)
 	var applications []*models.JobApplication
 	for {
 		doc, err := iter.Next()

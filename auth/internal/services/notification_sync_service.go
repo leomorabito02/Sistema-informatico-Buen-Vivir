@@ -70,7 +70,7 @@ func (s *notificationSyncService) performInit(targetURL, userID string) {
 		slog.Warn("notification_sync: request failed", "error", err, "user_id", userID)
 		return
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		slog.Warn("notification_sync: unexpected status response", "status", resp.StatusCode, "user_id", userID)
@@ -163,7 +163,7 @@ func (s *notificationSyncService) postNotification(ctx context.Context, targetUR
 		slog.Warn("notification_sync: request to notifications service failed", "error", err, "url", targetURL)
 		return err
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		slog.Warn("notification_sync: notifications service returned non-2xx status", "status", resp.StatusCode)

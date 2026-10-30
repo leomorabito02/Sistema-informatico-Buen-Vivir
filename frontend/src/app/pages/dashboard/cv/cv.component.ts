@@ -81,21 +81,73 @@ export class CvComponent implements OnInit {
   }
 
   readonly templates = [
-    { label: "Azurill", value: "azurill", image: "assets/cv-templates/azurill.png" },
-    { label: "Bronzor", value: "bronzor", image: "assets/cv-templates/bronzor.png" },
-    { label: "Chikorita", value: "chikorita", image: "assets/cv-templates/chikorita.png" },
-    { label: "Ditgar", value: "ditgar", image: "assets/cv-templates/ditgar.png" },
+    {
+      label: "Azurill",
+      value: "azurill",
+      image: "assets/cv-templates/azurill.png",
+    },
+    {
+      label: "Bronzor",
+      value: "bronzor",
+      image: "assets/cv-templates/bronzor.png",
+    },
+    {
+      label: "Chikorita",
+      value: "chikorita",
+      image: "assets/cv-templates/chikorita.png",
+    },
+    {
+      label: "Ditgar",
+      value: "ditgar",
+      image: "assets/cv-templates/ditgar.png",
+    },
     { label: "Ditto", value: "ditto", image: "assets/cv-templates/ditto.png" },
-    { label: "Gengar", value: "gengar", image: "assets/cv-templates/gengar.png" },
-    { label: "Glalie", value: "glalie", image: "assets/cv-templates/glalie.png" },
-    { label: "Kakuna", value: "kakuna", image: "assets/cv-templates/kakuna.png" },
-    { label: "Lapras", value: "lapras", image: "assets/cv-templates/lapras.png" },
-    { label: "Leafish", value: "leafish", image: "assets/cv-templates/leafish.png" },
-    { label: "Meowth", value: "meowth", image: "assets/cv-templates/meowth.png" },
+    {
+      label: "Gengar",
+      value: "gengar",
+      image: "assets/cv-templates/gengar.png",
+    },
+    {
+      label: "Glalie",
+      value: "glalie",
+      image: "assets/cv-templates/glalie.png",
+    },
+    {
+      label: "Kakuna",
+      value: "kakuna",
+      image: "assets/cv-templates/kakuna.png",
+    },
+    {
+      label: "Lapras",
+      value: "lapras",
+      image: "assets/cv-templates/lapras.png",
+    },
+    {
+      label: "Leafish",
+      value: "leafish",
+      image: "assets/cv-templates/leafish.png",
+    },
+    {
+      label: "Meowth",
+      value: "meowth",
+      image: "assets/cv-templates/meowth.png",
+    },
     { label: "Onyx", value: "onyx", image: "assets/cv-templates/onyx.png" },
-    { label: "Pikachu", value: "pikachu", image: "assets/cv-templates/pikachu.png" },
-    { label: "Rhyhorn", value: "rhyhorn", image: "assets/cv-templates/rhyhorn.png" },
-    { label: "Scizor", value: "scizor", image: "assets/cv-templates/scizor.png" },
+    {
+      label: "Pikachu",
+      value: "pikachu",
+      image: "assets/cv-templates/pikachu.png",
+    },
+    {
+      label: "Rhyhorn",
+      value: "rhyhorn",
+      image: "assets/cv-templates/rhyhorn.png",
+    },
+    {
+      label: "Scizor",
+      value: "scizor",
+      image: "assets/cv-templates/scizor.png",
+    },
   ];
 
   responsiveOptions = [
@@ -145,9 +197,7 @@ export class CvComponent implements OnInit {
       ? this.usersService
           .getUserProfile(this.userId)
           .pipe(catchError(() => of(null)))
-      : this.profileService
-          .getMyProfile()
-          .pipe(catchError(() => of(null)));
+      : this.profileService.getMyProfile().pipe(catchError(() => of(null)));
 
     forkJoin({
       resume: resume$,
@@ -270,8 +320,6 @@ export class CvComponent implements OnInit {
       },
     });
   }
-
-
 
   async downloadPdf() {
     if (!this.resume?.data) {

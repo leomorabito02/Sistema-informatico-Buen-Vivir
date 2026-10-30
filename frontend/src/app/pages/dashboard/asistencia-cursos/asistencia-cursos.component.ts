@@ -177,7 +177,11 @@ export class AsistenciaCursosComponent implements OnInit {
           const nombres = new Map(
             enrollments.map((e) => [e.participanteId, etiquetaParticipante(e)]),
           );
-          this.rows = buildAttendanceMatrixRows(enrollments, attendance, nombres);
+          this.rows = buildAttendanceMatrixRows(
+            enrollments,
+            attendance,
+            nombres,
+          );
           this.loadingMatrix = false;
         },
         error: (err: Error) => {

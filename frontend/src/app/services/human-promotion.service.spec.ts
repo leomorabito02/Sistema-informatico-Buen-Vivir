@@ -123,12 +123,10 @@ describe("HumanPromotionService", () => {
       expect(linea.hitos.length).toBe(1);
       expect(linea.actividad).toEqual([actividad]);
     });
-    http
-      .expectOne(`${base}/mi-linea-de-tiempo`)
-      .flush({
-        hitos: [{ id: "h1", fecha: "2026-09-01", descripcion: "x" }],
-        actividad: [actividad],
-      });
+    http.expectOne(`${base}/mi-linea-de-tiempo`).flush({
+      hitos: [{ id: "h1", fecha: "2026-09-01", descripcion: "x" }],
+      actividad: [actividad],
+    });
   });
 
   it("mi línea de tiempo tolera una respuesta sin actividad (backend anterior)", () => {

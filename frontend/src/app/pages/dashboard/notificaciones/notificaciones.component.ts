@@ -75,8 +75,12 @@ export class NotificacionesComponent implements OnInit {
     try {
       this.notifications = await this.notificationsService.getNotifications();
     } catch (err) {
-      console.error("[NotificacionesComponent] Error loading notifications:", err);
-      this.error = "No se pudieron cargar las notificaciones. Intenta nuevamente.";
+      console.error(
+        "[NotificacionesComponent] Error loading notifications:",
+        err,
+      );
+      this.error =
+        "No se pudieron cargar las notificaciones. Intenta nuevamente.";
     } finally {
       this.loading = false;
     }
@@ -99,7 +103,10 @@ export class NotificacionesComponent implements OnInit {
     try {
       await this.notificationsService.markAsRead(item.recipient_id);
     } catch (err) {
-      console.error("[NotificacionesComponent] Error marking notification as read:", err);
+      console.error(
+        "[NotificacionesComponent] Error marking notification as read:",
+        err,
+      );
       // Rollback on failure
       item.is_read = false;
       item.read_at = undefined;
@@ -116,12 +123,18 @@ export class NotificacionesComponent implements OnInit {
     try {
       await this.notificationsService.markAllAsRead();
     } catch (err) {
-      console.error("[NotificacionesComponent] Error marking all as read:", err);
+      console.error(
+        "[NotificacionesComponent] Error marking all as read:",
+        err,
+      );
       this.notifications = previousState;
     }
   }
 
-  async deleteNotification(item: NotificationItem, event?: Event): Promise<void> {
+  async deleteNotification(
+    item: NotificationItem,
+    event?: Event,
+  ): Promise<void> {
     if (event) {
       event.stopPropagation();
     }
@@ -138,7 +151,10 @@ export class NotificacionesComponent implements OnInit {
         this.selectedDetail = null;
       }
     } catch (err) {
-      console.error("[NotificacionesComponent] Error deleting notification:", err);
+      console.error(
+        "[NotificacionesComponent] Error deleting notification:",
+        err,
+      );
       this.notifications = previousList;
       alert("No se pudo eliminar la notificación. Por favor, reintenta.");
     }
@@ -175,7 +191,9 @@ export class NotificacionesComponent implements OnInit {
     this.selectedDetail = null;
   }
 
-  getCategorySeverity(category?: string): "success" | "info" | "warn" | "danger" | "secondary" {
+  getCategorySeverity(
+    category?: string,
+  ): "success" | "info" | "warn" | "danger" | "secondary" {
     switch (category) {
       case "security":
         return "danger";
@@ -237,10 +255,14 @@ export class NotificacionesComponent implements OnInit {
       this.initialPreferences = loaded.map((p) => ({ ...p }));
       this.hasUnsavedChanges = false;
     } catch (err) {
-      console.error("[NotificacionesComponent] Error loading preferences:", err);
+      console.error(
+        "[NotificacionesComponent] Error loading preferences:",
+        err,
+      );
       this.preferences = [];
       this.initialPreferences = [];
-      this.preferencesErrorMessage = "No se pudieron cargar las preferencias de notificaciones.";
+      this.preferencesErrorMessage =
+        "No se pudieron cargar las preferencias de notificaciones.";
     } finally {
       this.preferencesLoading = false;
     }
@@ -251,7 +273,9 @@ export class NotificacionesComponent implements OnInit {
   }
 
   isCategoryChanged(pref: NotificationPreference): boolean {
-    const init = this.initialPreferences.find((item) => item.category === pref.category);
+    const init = this.initialPreferences.find(
+      (item) => item.category === pref.category,
+    );
     if (!init) return false;
     return (
       init.push_enabled !== pref.push_enabled ||
@@ -277,17 +301,21 @@ export class NotificacionesComponent implements OnInit {
     this.preferencesErrorMessage = null;
 
     try {
-      const saved = await this.notificationsService.savePreferences(this.preferences);
+      const saved = await this.notificationsService.savePreferences(
+        this.preferences,
+      );
       this.preferences = saved.map((p) => ({ ...p }));
       this.initialPreferences = saved.map((p) => ({ ...p }));
       this.hasUnsavedChanges = false;
-      this.preferencesSuccessMessage = "Configuración de notificaciones guardada con éxito.";
+      this.preferencesSuccessMessage =
+        "Configuración de notificaciones guardada con éxito.";
       setTimeout(() => {
         this.preferencesSuccessMessage = null;
       }, 3500);
     } catch (err) {
       console.error("[NotificacionesComponent] Error saving preferences:", err);
-      this.preferencesErrorMessage = "No se pudieron guardar los cambios en las preferencias. Intenta nuevamente.";
+      this.preferencesErrorMessage =
+        "No se pudieron guardar los cambios en las preferencias. Intenta nuevamente.";
     } finally {
       this.preferencesSaving = false;
     }
@@ -314,13 +342,18 @@ export class NotificacionesComponent implements OnInit {
       this.preferences = defaults.map((p) => ({ ...p }));
       this.initialPreferences = defaults.map((p) => ({ ...p }));
       this.hasUnsavedChanges = false;
-      this.preferencesSuccessMessage = "Todas las preferencias se restablecieron a su configuración predeterminada en el servidor.";
+      this.preferencesSuccessMessage =
+        "Todas las preferencias se restablecieron a su configuración predeterminada en el servidor.";
       setTimeout(() => {
         this.preferencesSuccessMessage = null;
       }, 3500);
     } catch (err) {
-      console.error("[NotificacionesComponent] Error resetting preferences:", err);
-      this.preferencesErrorMessage = "No se pudieron restablecer las preferencias por defecto.";
+      console.error(
+        "[NotificacionesComponent] Error resetting preferences:",
+        err,
+      );
+      this.preferencesErrorMessage =
+        "No se pudieron restablecer las preferencias por defecto.";
     } finally {
       this.preferencesSaving = false;
     }
@@ -356,4 +389,3 @@ export class NotificacionesComponent implements OnInit {
     }
   }
 }
-

@@ -9,6 +9,8 @@ import { ReporteExportado } from "../core/models/dashboard.model";
 
 const base = "/api/v1/dashboard/reportes";
 
+const pdfSimulado = () => new Blob(["%PDF-1.4"], { type: "application/pdf" });
+
 describe("ReportesService", () => {
   let service: ReportesService;
   let http: HttpTestingController;
@@ -58,7 +60,11 @@ describe("ReportesService", () => {
     tipo_reporte: "dashboard",
     periodo_desde: "2026-01-01",
     periodo_hasta: "2026-06-30",
-    filtros_aplicados: { modulo: "educacion", areaId: "a1", areaNombre: "Oficios" },
+    filtros_aplicados: {
+      modulo: "educacion",
+      areaId: "a1",
+      areaNombre: "Oficios",
+    },
     generado_por: "admin-1",
     generado_por_nombre: "Sofía Cuozzo",
     fecha_generacion: "2026-10-20T15:00:00Z",
@@ -79,7 +85,11 @@ describe("ReportesService", () => {
     expect(service.metadatos(input)).toEqual({
       periodo_desde: "2026-01-01",
       periodo_hasta: "2026-06-30",
-      filtros_aplicados: { modulo: "educacion", areaId: "a1", areaNombre: "Oficios" },
+      filtros_aplicados: {
+        modulo: "educacion",
+        areaId: "a1",
+        areaNombre: "Oficios",
+      },
       generado_por_nombre: "Sofía Cuozzo",
     });
   });
@@ -96,14 +106,23 @@ describe("ReportesService", () => {
     service.cargarHistorial();
     http
       .expectOne((r) => r.url.endsWith(base))
-      .flush({ error: "El historial de reportes no está configurado en este entorno" }, { status: 503, statusText: "Unavailable" });
-    expect(service.errorHistorial()).toBe("El historial de reportes no está configurado en este entorno");
+      .flush(
+        {
+          error: "El historial de reportes no está configurado en este entorno",
+        },
+        { status: 503, statusText: "Unavailable" },
+      );
+    expect(service.errorHistorial()).toBe(
+      "El historial de reportes no está configurado en este entorno",
+    );
   });
 
   it("al exportar descarga el PDF y lo manda al backend como multipart", async () => {
     const click = spyOn(HTMLAnchorElement.prototype, "click");
+    // jsPDF ya se prueba en "genera un PDF real"; acá un PDF simulado
+    // evita que el test dependa de cuánto tarda en armarse.
+    spyOn(service, "generarPdf").and.resolveTo(pdfSimulado());
     const promesa = service.exportar(input);
-    // El PDF se arma con jsPDF (carga diferida): esperar a que salga el pedido.
     let req;
     for (let i = 0; i < 50 && !req; i++) {
       await new Promise((r) => setTimeout(r, 20));
@@ -112,7 +131,9 @@ describe("ReportesService", () => {
     expect(click).toHaveBeenCalled();
     expect(req).toBeDefined();
     const form = req!.request.body as FormData;
-    expect(JSON.parse(form.get("metadatos") as string).periodo_desde).toBe("2026-01-01");
+    expect(JSON.parse(form.get("metadatos") as string).periodo_desde).toBe(
+      "2026-01-01",
+    );
     const archivo = form.get("archivo") as Blob;
     expect(archivo.type).toBe("application/pdf");
     req!.flush(guardado);
@@ -124,13 +145,17 @@ describe("ReportesService", () => {
 
   it("si no se puede guardar, el PDF igual se descargó y se informa por qué", async () => {
     const click = spyOn(HTMLAnchorElement.prototype, "click");
+    spyOn(service, "generarPdf").and.resolveTo(pdfSimulado());
     const promesa = service.exportar(input);
     let req;
     for (let i = 0; i < 50 && !req; i++) {
       await new Promise((r) => setTimeout(r, 20));
       req = http.match((r) => r.url.endsWith(base) && r.method === "POST")[0];
     }
-    req!.flush({ error: "El PDF no puede superar los 10 MB" }, { status: 400, statusText: "Bad Request" });
+    req!.flush(
+      { error: "El PDF no puede superar los 10 MB" },
+      { status: 400, statusText: "Bad Request" },
+    );
     const r = await promesa;
     expect(click).toHaveBeenCalled();
     expect(r.guardado).toBeFalse();

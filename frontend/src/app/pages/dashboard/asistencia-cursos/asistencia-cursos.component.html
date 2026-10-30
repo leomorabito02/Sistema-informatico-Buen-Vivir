@@ -96,7 +96,10 @@
     ></app-loading-state>
 
     <ng-container *ngIf="participante && !loadingHistorial">
-      <app-empty-state *ngIf="historial.length === 0 && !error" [compact]="true">
+      <app-empty-state
+        *ngIf="historial.length === 0 && !error"
+        [compact]="true"
+      >
         {{ nombreParticipante }} no está inscripto en ningún curso.
       </app-empty-state>
 
@@ -123,7 +126,9 @@
         </p>
         <ul *ngIf="h.actividades.length > 0" class="actividades">
           <li *ngFor="let a of h.actividades">
-            <span class="fecha">{{ a.fecha | date: "dd/MM/yyyy" : "UTC" }}</span>
+            <span class="fecha">{{
+              a.fecha | date: "dd/MM/yyyy" : "UTC"
+            }}</span>
             <span class="titulo">{{ a.titulo }}</span>
             <p-tag
               [value]="a.presente ? 'Presente' : 'Sin entregar'"

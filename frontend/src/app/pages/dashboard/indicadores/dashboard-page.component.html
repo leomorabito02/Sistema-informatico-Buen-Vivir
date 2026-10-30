@@ -36,8 +36,8 @@
     <app-error-state [message]="error" (retry)="reintentar()"></app-error-state>
   } @else if (moduloSinIndicadores) {
     <app-empty-state title="Este módulo todavía no tiene indicadores">
-      El dashboard mide usuarios, educación, promoción humana e inserción laboral. Elegí
-      otro módulo o «Todos».
+      El dashboard mide usuarios, educación, promoción humana e inserción
+      laboral. Elegí otro módulo o «Todos».
     </app-empty-state>
   } @else {
     <section aria-labelledby="kpi-titulo">

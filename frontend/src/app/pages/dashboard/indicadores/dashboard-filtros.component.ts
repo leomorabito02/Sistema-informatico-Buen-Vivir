@@ -15,10 +15,7 @@ import {
   FiltrosDashboard,
   ModuloDashboard,
 } from "../../../core/models/dashboard.model";
-import {
-  formatoFecha,
-  inicioDelDia,
-} from "../../../services/dashboard.fechas";
+import { formatoFecha, inicioDelDia } from "../../../services/dashboard.fechas";
 import { NOMBRE_MODULO } from "../../../services/reportes.service";
 
 export type RangoRapido = "mes" | "trimestre" | "anio";

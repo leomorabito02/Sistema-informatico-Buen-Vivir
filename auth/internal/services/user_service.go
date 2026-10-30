@@ -78,7 +78,7 @@ func (s *userService) CreateUser(ctx context.Context, req *dto.CreateUserRequest
 	// Admin y dev crean cualquier rol; el voluntario, solo participantes
 	// (HU-07). El resto no crea cuentas: antes cualquier usuario con
 	// sesión podía crear un administrador.
-	if !isAdminRequest(ctx) && !(reqRole == "role_volunteer" && user.RoleID == "role_participant") {
+	if !isAdminRequest(ctx) && (reqRole != "role_volunteer" || user.RoleID != "role_participant") {
 		return nil, errors.New("forbidden: access denied to create accounts with this role")
 	}
 

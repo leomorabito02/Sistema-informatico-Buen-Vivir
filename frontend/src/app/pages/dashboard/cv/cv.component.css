@@ -83,7 +83,9 @@
 
 .template-card.selected {
   border-color: var(--color-primary, #485839);
-  box-shadow: 0 0 0 2px rgba(72, 88, 57, 0.2), 0 4px 12px rgba(0, 0, 0, 0.08);
+  box-shadow:
+    0 0 0 2px rgba(72, 88, 57, 0.2),
+    0 4px 12px rgba(0, 0, 0, 0.08);
 }
 
 .template-image-container {
@@ -148,7 +150,9 @@
   border: 2px solid #ffffff;
   box-shadow: 0 0 0 1px #d1d5db;
   cursor: pointer;
-  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  transition:
+    transform 0.15s ease,
+    box-shadow 0.15s ease;
   padding: 0;
 }
 
@@ -157,7 +161,9 @@
 }
 
 .color-preset-btn.active {
-  box-shadow: 0 0 0 2px #ffffff, 0 0 0 4px var(--color-primary, #485839);
+  box-shadow:
+    0 0 0 2px #ffffff,
+    0 0 0 4px var(--color-primary, #485839);
   transform: scale(1.12);
 }
 
@@ -167,7 +173,8 @@
 }
 
 .preview-theme-indicator {
-  border-left: 3px solid var(--resume-primary-color, var(--color-primary, #485839));
+  border-left: 3px solid
+    var(--resume-primary-color, var(--color-primary, #485839));
 }
 
 .preview-color-dot {
@@ -193,4 +200,3 @@
   letter-spacing: 0.05em;
   text-transform: uppercase;
 }
-

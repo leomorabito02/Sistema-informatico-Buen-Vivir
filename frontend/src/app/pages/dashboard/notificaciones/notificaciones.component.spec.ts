@@ -71,20 +71,49 @@ describe("NotificacionesComponent", () => {
     mockNotificationsService.markAllAsRead.and.resolveTo();
     mockNotificationsService.deleteNotification.and.resolveTo();
     mockNotificationsService.getPreferences.and.resolveTo([
-      { category: "security", email_enabled: true, push_enabled: true, in_app_enabled: true },
-      { category: "education", email_enabled: true, push_enabled: true, in_app_enabled: true },
+      {
+        category: "security",
+        email_enabled: true,
+        push_enabled: true,
+        in_app_enabled: true,
+      },
+      {
+        category: "education",
+        email_enabled: true,
+        push_enabled: true,
+        in_app_enabled: true,
+      },
     ]);
-    mockNotificationsService.patchPreference.and.callFake(async (cat, patch) => ({
-      category: cat,
-      email_enabled: patch.email_enabled ?? true,
-      push_enabled: patch.push_enabled ?? true,
-      in_app_enabled: patch.in_app_enabled ?? true,
-    }));
-    mockNotificationsService.savePreferences.and.callFake(async (prefs) => prefs);
+    mockNotificationsService.patchPreference.and.callFake(
+      async (cat, patch) => ({
+        category: cat,
+        email_enabled: patch.email_enabled ?? true,
+        push_enabled: patch.push_enabled ?? true,
+        in_app_enabled: patch.in_app_enabled ?? true,
+      }),
+    );
+    mockNotificationsService.savePreferences.and.callFake(
+      async (prefs) => prefs,
+    );
     mockNotificationsService.initPreferences.and.resolveTo([
-      { category: "security", email_enabled: true, push_enabled: true, in_app_enabled: true },
-      { category: "education", email_enabled: true, push_enabled: true, in_app_enabled: true },
-      { category: "labor", email_enabled: true, push_enabled: true, in_app_enabled: true },
+      {
+        category: "security",
+        email_enabled: true,
+        push_enabled: true,
+        in_app_enabled: true,
+      },
+      {
+        category: "education",
+        email_enabled: true,
+        push_enabled: true,
+        in_app_enabled: true,
+      },
+      {
+        category: "labor",
+        email_enabled: true,
+        push_enabled: true,
+        in_app_enabled: true,
+      },
     ]);
 
     await TestBed.configureTestingModule({
@@ -141,8 +170,12 @@ describe("NotificacionesComponent", () => {
     await component.deleteNotification(itemToDelete);
 
     expect(component.notifications).toHaveSize(1);
-    expect(component.notifications.find((n) => n.recipient_id === "rcp-1")).toBeUndefined();
-    expect(mockNotificationsService.deleteNotification).toHaveBeenCalledWith("rcp-1");
+    expect(
+      component.notifications.find((n) => n.recipient_id === "rcp-1"),
+    ).toBeUndefined();
+    expect(mockNotificationsService.deleteNotification).toHaveBeenCalledWith(
+      "rcp-1",
+    );
   });
 
   it("should open detail modal and fetch full detail", async () => {
@@ -159,7 +192,9 @@ describe("NotificacionesComponent", () => {
     await component.viewDetails(item);
 
     expect(component.displayDetailModal).toBeTrue();
-    expect(mockNotificationsService.getNotificationDetail).toHaveBeenCalledWith("rcp-1");
+    expect(mockNotificationsService.getNotificationDetail).toHaveBeenCalledWith(
+      "rcp-1",
+    );
     expect(component.selectedDetail?.data).toEqual({ test: true });
   });
 
@@ -195,7 +230,9 @@ describe("NotificacionesComponent", () => {
 
     await component.saveAllPreferences();
 
-    expect(mockNotificationsService.savePreferences).toHaveBeenCalledWith(component.preferences);
+    expect(mockNotificationsService.savePreferences).toHaveBeenCalledWith(
+      component.preferences,
+    );
     expect(component.hasUnsavedChanges).toBeFalse();
     expect(component.preferencesSuccessMessage).toBeTruthy();
   });
@@ -217,8 +254,11 @@ describe("NotificacionesComponent", () => {
     await component.resetPreferences();
 
     expect(mockNotificationsService.initPreferences).toHaveBeenCalled();
-    expect(component.preferences.every((p) => p.email_enabled && p.push_enabled)).toBeTrue();
-    expect(component.preferencesSuccessMessage).toContain("restablecieron a su configuración predeterminada");
+    expect(
+      component.preferences.every((p) => p.email_enabled && p.push_enabled),
+    ).toBeTrue();
+    expect(component.preferencesSuccessMessage).toContain(
+      "restablecieron a su configuración predeterminada",
+    );
   });
 });
-

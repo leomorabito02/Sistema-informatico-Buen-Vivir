@@ -1,4 +1,8 @@
-import { HttpInterceptorFn, HttpErrorResponse, HttpHeaders } from "@angular/common/http";
+import {
+  HttpInterceptorFn,
+  HttpErrorResponse,
+  HttpHeaders,
+} from "@angular/common/http";
 import { inject } from "@angular/core";
 import { Router } from "@angular/router";
 import { catchError, throwError } from "rxjs";
@@ -25,7 +29,10 @@ function handleForbidden(
   const errorCode = error.error?.error || error.error?.code || "";
   const message = error.error?.message || "";
 
-  if (errorCode === "EMAIL_NOT_VERIFIED" || message.includes("verificar tu correo")) {
+  if (
+    errorCode === "EMAIL_NOT_VERIFIED" ||
+    message.includes("verificar tu correo")
+  ) {
     const email = error.error?.email || "";
     if (email) {
       void router.navigate(["/verify-email"], { queryParams: { email } });
@@ -35,7 +42,10 @@ function handleForbidden(
     return;
   }
 
-  if (errorCode === "ACCOUNT_PENDING_APPROVAL" || message.includes("pendiente de aprobación")) {
+  if (
+    errorCode === "ACCOUNT_PENDING_APPROVAL" ||
+    message.includes("pendiente de aprobación")
+  ) {
     void router.navigate(["/pending-approval"]);
     return;
   }
@@ -45,17 +55,23 @@ function handleForbidden(
     return;
   }
 
-  alertService.showForbiddenDialog(message || "No tienes permisos para realizar esta acción.");
+  alertService.showForbiddenDialog(
+    message || "No tienes permisos para realizar esta acción.",
+  );
 }
 
 function navigateToNotFound(router: Router): void {
   void router.navigate(["/404"]);
 }
 
-function notifyNotFound(error: HttpErrorResponse, alertService: AlertService): void {
+function notifyNotFound(
+  error: HttpErrorResponse,
+  alertService: AlertService,
+): void {
   alertService.showError(
     "Recurso no encontrado",
-    error.error?.message || "El recurso solicitado no fue encontrado en el servidor.",
+    error.error?.message ||
+      "El recurso solicitado no fue encontrado en el servidor.",
   );
 }
 
@@ -63,9 +79,13 @@ function navigateToServerError(router: Router): void {
   void router.navigate(["/500"]);
 }
 
-function notifyServerError(error: HttpErrorResponse, alertService: AlertService): void {
+function notifyServerError(
+  error: HttpErrorResponse,
+  alertService: AlertService,
+): void {
   alertService.showServerErrorDialog(
-    error.error?.message || "Ocurrió un error inesperado al procesar la solicitud en el servidor.",
+    error.error?.message ||
+      "Ocurrió un error inesperado al procesar la solicitud en el servidor.",
   );
 }
 

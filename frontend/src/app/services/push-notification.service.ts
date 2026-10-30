@@ -25,14 +25,19 @@ export class PushNotificationService {
       !("serviceWorker" in navigator) ||
       !this.messaging
     ) {
-      console.warn("[PushNotificationService] Push notifications or service workers not supported in this environment.");
+      console.warn(
+        "[PushNotificationService] Push notifications or service workers not supported in this environment.",
+      );
       return null;
     }
 
     try {
       const permission = await Notification.requestPermission();
       if (permission !== "granted") {
-        console.warn("[PushNotificationService] Notification permission was not granted:", permission);
+        console.warn(
+          "[PushNotificationService] Notification permission was not granted:",
+          permission,
+        );
         return null;
       }
 
@@ -41,11 +46,15 @@ export class PushNotificationService {
         (environment as { firebaseVapidKey?: string }).firebaseVapidKey;
 
       if (!vapidKey) {
-        console.error("[PushNotificationService] firebaseVapidKey is not defined in environment.");
+        console.error(
+          "[PushNotificationService] firebaseVapidKey is not defined in environment.",
+        );
         return null;
       }
 
-      await navigator.serviceWorker.register("/firebase-messaging-sw.js", { scope: "/" });
+      await navigator.serviceWorker.register("/firebase-messaging-sw.js", {
+        scope: "/",
+      });
       const swRegistration = await navigator.serviceWorker.ready;
 
       const token = await getToken(this.messaging, {
@@ -56,7 +65,10 @@ export class PushNotificationService {
       console.info("[PushNotificationService] FCM token obtained:", token);
       return token;
     } catch (error) {
-      console.error("[PushNotificationService] Error obtaining FCM token:", error);
+      console.error(
+        "[PushNotificationService] Error obtaining FCM token:",
+        error,
+      );
       return null;
     }
   }
@@ -67,14 +79,25 @@ export class PushNotificationService {
     }
 
     onMessage(this.messaging, (payload) => {
-      console.info("[PushNotificationService] Foreground notification received:", payload);
+      console.info(
+        "[PushNotificationService] Foreground notification received:",
+        payload,
+      );
       if (callback) {
         callback(payload);
       }
 
       // Automatically display native browser notification if in foreground
-      const notif = (payload as { notification?: { title?: string; body?: string; icon?: string } })?.notification;
-      if (notif && typeof Notification !== "undefined" && Notification.permission === "granted") {
+      const notif = (
+        payload as {
+          notification?: { title?: string; body?: string; icon?: string };
+        }
+      )?.notification;
+      if (
+        notif &&
+        typeof Notification !== "undefined" &&
+        Notification.permission === "granted"
+      ) {
         new Notification(notif.title || "Buen Vivir", {
           body: notif.body || "",
           icon: notif.icon || "/favicon.ico",
@@ -83,13 +106,16 @@ export class PushNotificationService {
     });
   }
 
-  registerDeviceToken(token: string): Observable<DeviceRegistrationResponse | null> {
+  registerDeviceToken(
+    token: string,
+  ): Observable<DeviceRegistrationResponse | null> {
     return this.http
       .post<DeviceRegistrationResponse>(
         `${this.apiUrl}/api/v1/users/me/devices`,
         {
           token,
-          userAgent: typeof navigator !== "undefined" ? navigator.userAgent : "",
+          userAgent:
+            typeof navigator !== "undefined" ? navigator.userAgent : "",
         },
         {
           withCredentials: true,

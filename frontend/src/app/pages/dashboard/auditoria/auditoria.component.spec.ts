@@ -50,7 +50,10 @@ describe("AuditoriaComponent", () => {
 
   it("starts with the Promoción Humana log of the last 30 days", () => {
     expect(promocion.listarAuditoria).toHaveBeenCalledWith(
-      jasmine.objectContaining({ desde: component.desde, hasta: component.hasta }),
+      jasmine.objectContaining({
+        desde: component.desde,
+        hasta: component.hasta,
+      }),
     );
     expect(component.registros).toEqual([fila]);
     const text = fixture.nativeElement.textContent;

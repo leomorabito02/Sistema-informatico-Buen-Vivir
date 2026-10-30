@@ -26,7 +26,12 @@ describe("ContenidoDocenteComponent", () => {
   };
 
   beforeEach(() => {
-    service = jasmine.createSpyObj("ContenidosService", ["listar", "moderar", "descargas", "archivo"]);
+    service = jasmine.createSpyObj("ContenidosService", [
+      "listar",
+      "moderar",
+      "descargas",
+      "archivo",
+    ]);
     service.listar.and.returnValue(of([pendiente]));
     service.descargas.and.returnValue(
       of([
@@ -43,7 +48,9 @@ describe("ContenidoDocenteComponent", () => {
     );
     service.moderar.and.returnValue(of(pendiente));
     const users = jasmine.createSpyObj("UsersService", ["listByRole"]);
-    users.listByRole.and.returnValue(of([{ user_id: "usr-doc", first_name: "Luis", last_name: "Paz" }]));
+    users.listByRole.and.returnValue(
+      of([{ user_id: "usr-doc", first_name: "Luis", last_name: "Paz" }]),
+    );
 
     TestBed.configureTestingModule({
       imports: [ContenidoDocenteComponent, NoopAnimationsModule],
@@ -80,7 +87,11 @@ describe("ContenidoDocenteComponent", () => {
     component.abrirRechazo(pendiente);
     component.motivo = "Falta la fuente";
     component.rechazar();
-    expect(service.moderar).toHaveBeenCalledWith("c1", "rechazado", "Falta la fuente");
+    expect(service.moderar).toHaveBeenCalledWith(
+      "c1",
+      "rechazado",
+      "Falta la fuente",
+    );
     expect(component.rechazando).toBeNull();
   });
 });

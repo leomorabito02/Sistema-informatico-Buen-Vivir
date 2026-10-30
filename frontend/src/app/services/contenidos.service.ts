@@ -73,13 +73,20 @@ export class ContenidosService {
   // ── Docente ──
   misContenidos(): Observable<ContenidoDocente[]> {
     return this.http
-      .get<ContenidoDocente[]>(`${this.base}/api/contenidos-docentes/mios`, this.opts)
+      .get<ContenidoDocente[]>(
+        `${this.base}/api/contenidos-docentes/mios`,
+        this.opts,
+      )
       .pipe(catchError(this.error));
   }
 
   subir(m: MaterialForm): Observable<ContenidoDocente> {
     return this.http
-      .post<ContenidoDocente>(`${this.base}/api/contenidos-docentes`, this.form(m), this.opts)
+      .post<ContenidoDocente>(
+        `${this.base}/api/contenidos-docentes`,
+        this.form(m),
+        this.opts,
+      )
       .pipe(catchError(this.error));
   }
 
@@ -95,17 +102,23 @@ export class ContenidosService {
 
   eliminar(id: string): Observable<void> {
     return this.http
-      .delete<void>(`${this.base}/api/contenidos-docentes/${encodeURIComponent(id)}`, this.opts)
+      .delete<void>(
+        `${this.base}/api/contenidos-docentes/${encodeURIComponent(id)}`,
+        this.opts,
+      )
       .pipe(catchError(this.error));
   }
 
   /** Archivo de un contenido, para usuarios con sesión. */
   archivo(id: string): Observable<Blob> {
     return this.http
-      .get(`${this.base}/api/contenidos-docentes/${encodeURIComponent(id)}/archivo`, {
-        ...this.opts,
-        responseType: "blob",
-      })
+      .get(
+        `${this.base}/api/contenidos-docentes/${encodeURIComponent(id)}/archivo`,
+        {
+          ...this.opts,
+          responseType: "blob",
+        },
+      )
       .pipe(catchError(this.errorBlob));
   }
 
@@ -113,11 +126,18 @@ export class ContenidosService {
   listar(estado: EstadoModeracion | "" = ""): Observable<ContenidoDocente[]> {
     const params = estado ? new HttpParams().set("estado", estado) : undefined;
     return this.http
-      .get<ContenidoDocente[]>(`${this.base}/api/contenidos-docentes`, { ...this.opts, params })
+      .get<ContenidoDocente[]>(`${this.base}/api/contenidos-docentes`, {
+        ...this.opts,
+        params,
+      })
       .pipe(catchError(this.error));
   }
 
-  moderar(id: string, estado: "aprobado" | "rechazado", motivo = ""): Observable<ContenidoDocente> {
+  moderar(
+    id: string,
+    estado: "aprobado" | "rechazado",
+    motivo = "",
+  ): Observable<ContenidoDocente> {
     return this.http
       .post<ContenidoDocente>(
         `${this.base}/api/contenidos-docentes/${encodeURIComponent(id)}/moderacion`,
@@ -129,7 +149,10 @@ export class ContenidosService {
 
   descargas(): Observable<DescargaBiblioteca[]> {
     return this.http
-      .get<DescargaBiblioteca[]>(`${this.base}/api/biblioteca/descargas`, this.opts)
+      .get<DescargaBiblioteca[]>(
+        `${this.base}/api/biblioteca/descargas`,
+        this.opts,
+      )
       .pipe(catchError(this.error));
   }
 
@@ -143,9 +166,13 @@ export class ContenidosService {
   /** Registra los datos de quien descarga (HU-25) y devuelve el archivo. */
   descargarPublico(id: string, datos: DatosDescarga): Observable<Blob> {
     return this.http
-      .post(`${this.base}/api/biblioteca/${encodeURIComponent(id)}/descargas`, datos, {
-        responseType: "blob",
-      })
+      .post(
+        `${this.base}/api/biblioteca/${encodeURIComponent(id)}/descargas`,
+        datos,
+        {
+          responseType: "blob",
+        },
+      )
       .pipe(catchError(this.errorBlob));
   }
 
@@ -158,7 +185,8 @@ export class ContenidosService {
   }
 
   private mensaje(status: number, texto?: string): string {
-    if (status === 429) return "Hiciste muchos pedidos seguidos. Probá de nuevo en un minuto.";
+    if (status === 429)
+      return "Hiciste muchos pedidos seguidos. Probá de nuevo en un minuto.";
     if (status === 404) return "Ese material ya no está disponible.";
     return texto || "No se pudo completar la acción. Probá de nuevo.";
   }
@@ -197,6 +225,7 @@ export function guardarArchivo(blob: Blob, nombre: string): void {
 
 /** Tamaño legible: 2,3 MB, 850 KB. */
 export function tamanoLegible(bytes: number): string {
-  if (bytes >= 1 << 20) return `${(bytes / (1 << 20)).toLocaleString("es-AR", { maximumFractionDigits: 1 })} MB`;
+  if (bytes >= 1 << 20)
+    return `${(bytes / (1 << 20)).toLocaleString("es-AR", { maximumFractionDigits: 1 })} MB`;
   return `${Math.max(1, Math.round(bytes / 1024))} KB`;
 }

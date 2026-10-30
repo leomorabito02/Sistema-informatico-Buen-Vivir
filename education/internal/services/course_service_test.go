@@ -389,11 +389,15 @@ func TestCourseService_UpdateCourse_RepoError(t *testing.T) {
 	repo.AssertExpectations(t)
 }
 
+// DeleteCourse es una baja lógica (HU-16): no borra en Contentful.
 func TestCourseService_DeleteCourse_Success(t *testing.T) {
 	// Arrange
 	repo := new(MockCourseRepository)
-	svc := services.NewCourseService(repo)
-	repo.On("Delete", mock.Anything, "c1").Return(nil)
+	enrollments := new(MockEnrollmentRepository)
+	svc := services.NewCourseServiceConBaja(repo, nil, &fakeBajas{}, enrollments)
+	repo.On("ExistsInManagement", mock.Anything, "c1").Return(true, nil)
+	repo.On("Get", mock.Anything, "c1").Return(&models.Course{ID: "c1"}, nil)
+	enrollments.On("ListByCourse", mock.Anything, "c1").Return([]models.Enrollment{}, nil)
 
 	// Act
 	err := svc.DeleteCourse(context.Background(), "c1")
@@ -401,13 +405,14 @@ func TestCourseService_DeleteCourse_Success(t *testing.T) {
 	// Assert
 	assert.NoError(t, err)
 	repo.AssertExpectations(t)
+	repo.AssertNotCalled(t, "Delete", mock.Anything, mock.Anything)
 }
 
 func TestCourseService_DeleteCourse_RepoError(t *testing.T) {
 	// Arrange
 	repo := new(MockCourseRepository)
-	svc := services.NewCourseService(repo)
-	repo.On("Delete", mock.Anything, "c1").Return(errors.New("delete error"))
+	svc := services.NewCourseServiceConBaja(repo, nil, &fakeBajas{}, new(MockEnrollmentRepository))
+	repo.On("ExistsInManagement", mock.Anything, "c1").Return(false, errors.New("contentful error"))
 
 	// Act
 	err := svc.DeleteCourse(context.Background(), "c1")
@@ -519,7 +524,8 @@ func TestCourseService_KVSync_CalledOnMutations(t *testing.T) {
 	// Arrange
 	repo := new(MockCourseRepository)
 	kvSync := new(MockKVSyncService)
-	svc := services.NewCourseServiceWithEvents(repo, nil, kvSync)
+	enrollments := new(MockEnrollmentRepository)
+	svc := services.NewCourseServiceConBaja(repo, nil, &fakeBajas{}, enrollments, kvSync)
 	ctx := context.Background()
 
 	input := validCourseInput()
@@ -527,7 +533,8 @@ func TestCourseService_KVSync_CalledOnMutations(t *testing.T) {
 
 	repo.On("Create", mock.Anything, input).Return(course, nil)
 	repo.On("Update", mock.Anything, "c1", input).Return(course, nil)
-	repo.On("Delete", mock.Anything, "c1").Return(nil)
+	repo.On("ExistsInManagement", mock.Anything, "c1").Return(true, nil)
+	enrollments.On("ListByCourse", mock.Anything, "c1").Return([]models.Enrollment{}, nil)
 	repo.On("Publish", mock.Anything, "c1").Return(nil)
 	repo.On("Unpublish", mock.Anything, "c1").Return(nil)
 	repo.On("Get", mock.Anything, "c1").Return(course, nil)

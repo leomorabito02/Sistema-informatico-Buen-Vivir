@@ -1,4 +1,9 @@
-import { ComponentFixture, TestBed, fakeAsync, tick } from "@angular/core/testing";
+import {
+  ComponentFixture,
+  TestBed,
+  fakeAsync,
+  tick,
+} from "@angular/core/testing";
 import { provideRouter } from "@angular/router";
 import { of, throwError } from "rxjs";
 import { CampanasPublicoComponent } from "./campanas-publico.component";
@@ -20,7 +25,9 @@ describe("CampanasPublicoComponent", () => {
   let service: jasmine.SpyObj<CampaignsService>;
 
   beforeEach(async () => {
-    service = jasmine.createSpyObj<CampaignsService>("CampaignsService", ["publicas"]);
+    service = jasmine.createSpyObj<CampaignsService>("CampaignsService", [
+      "publicas",
+    ]);
     await TestBed.configureTestingModule({
       imports: [CampanasPublicoComponent],
       providers: [
@@ -81,14 +88,20 @@ describe("CampanasPublicoComponent", () => {
     tick(300);
     fixture.componentInstance.busqueda = "zzz";
     fixture.detectChanges();
-    expect(fixture.nativeElement.textContent).toContain("No hay campañas que coincidan con «zzz»");
+    expect(fixture.nativeElement.textContent).toContain(
+      "No hay campañas que coincidan con «zzz»",
+    );
   }));
 
   it("muestra el error sin romper la página", fakeAsync(() => {
-    service.publicas.and.returnValue(throwError(() => new Error("No se pudieron cargar las campañas.")));
+    service.publicas.and.returnValue(
+      throwError(() => new Error("No se pudieron cargar las campañas.")),
+    );
     crear();
     tick(300);
     fixture.detectChanges();
-    expect(fixture.nativeElement.querySelector("[role=alert]")?.textContent).toContain("No se pudieron cargar las campañas.");
+    expect(
+      fixture.nativeElement.querySelector("[role=alert]")?.textContent,
+    ).toContain("No se pudieron cargar las campañas.");
   }));
 });

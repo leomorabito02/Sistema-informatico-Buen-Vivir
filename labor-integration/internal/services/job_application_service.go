@@ -32,9 +32,13 @@ func (s *JobApplicationService) ApplyToJob(ctx context.Context, application *mod
 	if participant == nil || participant.ApprovalStatus != "approved" {
 		return errors.New("participant not approved or does not exist")
 	}
+	// Auth acepta el id de participante o el de usuario: se guardan los
+	// dos ya resueltos, así el resto de los módulos cruza por participante.
+	application.ParticipantID = participant.Id
+	application.UserID = participant.UserId
 
-	// Prevent duplicate applications
-	applied, err := s.repo.HasApplied(ctx, application.OfferID, application.ParticipantID)
+	// Prevent duplicate applications (las viejas tienen el id de usuario)
+	applied, err := s.repo.HasApplied(ctx, application.OfferID, []string{participant.Id, participant.UserId})
 	if err != nil {
 		return err
 	}
@@ -56,8 +60,14 @@ func (s *JobApplicationService) ApplyToJob(ctx context.Context, application *mod
 	return s.repo.Create(ctx, application)
 }
 
-func (s *JobApplicationService) ListByParticipant(ctx context.Context, participantID string) ([]*models.JobApplication, error) {
-	return s.repo.ListByParticipant(ctx, participantID)
+// ListByParticipant recibe el id de usuario del token. Busca por ese id
+// (postulaciones viejas) y por el id de participante que le corresponde.
+func (s *JobApplicationService) ListByParticipant(ctx context.Context, userID string) ([]*models.JobApplication, error) {
+	ids := []string{userID}
+	if participant, err := s.authClient.GetParticipant(ctx, userID); err == nil && participant != nil && participant.Id != "" {
+		ids = append(ids, participant.Id)
+	}
+	return s.repo.ListByParticipant(ctx, ids)
 }
 
 func (s *JobApplicationService) UpdateStatus(ctx context.Context, applicationID string, companyID string, status string) error {
@@ -101,7 +111,7 @@ func (s *JobApplicationService) DeleteApplication(ctx context.Context, appID str
 	}
 
 	if role != "role_admin" && role != "role_volunteer" {
-		if app.ParticipantID != userID {
+		if app.UserID != userID && app.ParticipantID != userID {
 			return errors.New("unauthorized: you do not have permission to delete this application")
 		}
 	}

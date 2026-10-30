@@ -112,7 +112,10 @@
                     class="color-preset-btn"
                     [style.background-color]="preset.value"
                     [title]="preset.name"
-                    [class.active]="getPrimaryColor().toLowerCase() === preset.value.toLowerCase()"
+                    [class.active]="
+                      getPrimaryColor().toLowerCase() ===
+                      preset.value.toLowerCase()
+                    "
                     (click)="setPrimaryColor(preset.value)"
                   ></button>
                 </div>
@@ -146,7 +149,7 @@
                 <div
                   *ngIf="!cv.basics.picture"
                   class="w-16 h-16 rounded-full bg-gray-100 border border-gray-300 flex items-center justify-center text-gray-400 shrink-0"
-                  style="width: 64px; height: 64px;"
+                  style="width: 64px; height: 64px"
                 >
                   <i class="pi pi-user text-2xl"></i>
                 </div>

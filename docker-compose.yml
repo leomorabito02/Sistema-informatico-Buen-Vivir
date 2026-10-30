@@ -29,6 +29,14 @@ services:
       dockerfile: Dockerfile
     env_file:
       - ./education/.env
+    # Eventos con el emulador de Pub/Sub (ver pubsub-emulator más abajo).
+    environment:
+      - PUBSUB_PROJECT_ID=ceibuenvivir
+      - PUBSUB_EMULATOR_HOST=pubsub-emulator:8086
+      - PUBSUB_PUSH_AUTH=disabled
+    depends_on:
+      pubsub-init:
+        condition: service_completed_successfully
     ports:
       - "8210:8210"
     restart: on-failure
@@ -78,10 +86,16 @@ services:
     environment:
       - AUTH_SERVICE_GRPC_TARGET=auth-service:50051
       - EDUCATION_SERVICE_URL=http://education-service:8210
+      - PUBSUB_PROJECT_ID=ceibuenvivir
+      - PUBSUB_EMULATOR_HOST=pubsub-emulator:8086
+      - PUBSUB_PUSH_AUTH=disabled
     ports:
       - "8085:8085"
     depends_on:
-      - auth-service
+      auth-service:
+        condition: service_started
+      pubsub-init:
+        condition: service_completed_successfully
     restart: on-failure
     security_opt:
       - no-new-privileges:true
@@ -114,6 +128,12 @@ services:
       - EDUCATION_SERVICE_URL=http://education-service:8210
       - LABOR_SERVICE_URL=http://labor-integration:8080
       - HUMAN_PROMOTION_SERVICE_URL=http://human-promotion:8085
+      - PUBSUB_PROJECT_ID=ceibuenvivir
+      - PUBSUB_EMULATOR_HOST=pubsub-emulator:8086
+      - PUBSUB_PUSH_AUTH=disabled
+    depends_on:
+      pubsub-init:
+        condition: service_completed_successfully
     restart: on-failure
     security_opt:
       - no-new-privileges:true
@@ -147,6 +167,8 @@ services:
     read_only: true
     mem_limit: 256m
     cpus: "0.5"
+    networks:
+      - buenvivir-net
   notifications-service:
     build:
       context: ./notifications
@@ -247,22 +269,49 @@ services:
     networks:
       - buenvivir-net
 
-  # Emulador de Pub/Sub para probar los eventos en local (docs/eventos).
-  # Va en el perfil "eventos": `docker compose up` no lo levanta. Uso:
-  #   docker compose --profile eventos up -d pubsub-emulator
-  #   PUBSUB_EMULATOR_HOST=localhost:8086 infra/pubsub/emulator.sh
+  # Emulador de Pub/Sub: los eventos entre servicios en local
+  # (docs/eventos). Se levanta con el resto del stack. No guarda nada:
+  # pubsub-init vuelve a crear los topics y las suscripciones cada vez que
+  # arranca, antes que education, human-promotion y dashboard. El
+  # emulador no firma los push con OIDC: por eso PUBSUB_PUSH_AUTH=disabled,
+  # que solo vale en local.
   pubsub-emulator:
     image: gcr.io/google.com/cloudsdktool/google-cloud-cli:emulators
     container_name: buenvivir-pubsub-emulator
-    profiles: ["eventos"]
     command: gcloud beta emulators pubsub start --host-port=0.0.0.0:8086 --project=ceibuenvivir
     ports:
       - "127.0.0.1:8086:8086"
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:8086/"]
+      interval: 3s
+      timeout: 3s
+      retries: 40
     restart: on-failure
     security_opt:
       - no-new-privileges:true
     mem_limit: 512m
     cpus: "0.5"
+    networks:
+      - buenvivir-net
+
+  # Crea en el emulador los topics y las suscripciones push (las mismas que
+  # infra/pubsub/setup.sh en GCP), apuntando a los contenedores. tr saca
+  # los CRLF que deja git en Windows.
+  pubsub-init:
+    image: gcr.io/google.com/cloudsdktool/google-cloud-cli:emulators
+    container_name: buenvivir-pubsub-init
+    entrypoint: ["bash", "-c", "tr -d '\r' < /pubsub/emulator.sh | bash"]
+    environment:
+      - PUBSUB_EMULATOR_HOST=pubsub-emulator:8086
+      - EDUCATION_URL=http://education-service:8210
+      - HUMAN_PROMOTION_URL=http://human-promotion:8085
+      - DASHBOARD_URL=http://dashboard-service:8090
+    volumes:
+      - ./infra/pubsub:/pubsub:ro
+    depends_on:
+      pubsub-emulator:
+        condition: service_healthy
+    restart: "no"
     networks:
       - buenvivir-net
 

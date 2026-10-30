@@ -69,7 +69,7 @@ export class UsuariosComponent implements OnInit {
   /** Carga inicial de la lista (para skeleton y estado de error). */
   loading = true;
   loadError = "";
-	private readonly rxResumeService = inject(RxResumeService);
+  private readonly rxResumeService = inject(RxResumeService);
   private readonly imageService = inject(ImageService);
 
   searchTerm: string = "";

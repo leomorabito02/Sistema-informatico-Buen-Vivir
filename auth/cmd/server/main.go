@@ -286,11 +286,17 @@ func main() {
 			})
 
 			// Participant Directory (read-only for inter-service communication)
-			r.With(middlewares.RequireRole("role_admin", "role_dev", "role_volunteer")).Route("/directory", func(r chi.Router) {
-				r.Get("/participants/{id}", directoryController.GetParticipantProfile)
-				r.Get("/participants/by-user/{userId}", directoryController.GetProfileByUserID)
-				r.Get("/participants/search", directoryController.SearchParticipants)
-				r.Post("/users/summaries", directoryController.GetUserSummaries)
+			r.Route("/directory", func(r chi.Router) {
+				// El docente solo puede pedir un participante por id (nombre,
+				// sin DNI ni contacto): Educación lo usa para mostrarle los
+				// nombres de sus alumnos en las entregas.
+				r.With(middlewares.RequireRole("role_admin", "role_dev", "role_volunteer", "role_teacher")).Get("/participants/{id}", directoryController.GetParticipantProfile)
+				r.Group(func(r chi.Router) {
+					r.Use(middlewares.RequireRole("role_admin", "role_dev", "role_volunteer"))
+					r.Get("/participants/by-user/{userId}", directoryController.GetProfileByUserID)
+					r.Get("/participants/search", directoryController.SearchParticipants)
+					r.Post("/users/summaries", directoryController.GetUserSummaries)
+				})
 			})
 		})
 	})

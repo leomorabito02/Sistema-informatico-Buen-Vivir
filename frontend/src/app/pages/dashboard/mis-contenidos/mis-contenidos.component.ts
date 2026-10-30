@@ -99,16 +99,28 @@ export class MisContenidosComponent implements OnInit {
   }
 
   etiqueta(estado: EstadoModeracion): string {
-    return { pendiente: "Pendiente de moderación", aprobado: "Aprobado", rechazado: "Rechazado" }[estado];
+    return {
+      pendiente: "Pendiente de moderación",
+      aprobado: "Aprobado",
+      rechazado: "Rechazado",
+    }[estado];
   }
 
   severidad(estado: EstadoModeracion): "warn" | "success" | "danger" {
-    return ({ pendiente: "warn", aprobado: "success", rechazado: "danger" } as const)[estado];
+    return (
+      { pendiente: "warn", aprobado: "success", rechazado: "danger" } as const
+    )[estado];
   }
 
   fecha(iso: string): string {
     const d = new Date(iso);
-    return isNaN(d.getTime()) ? "" : d.toLocaleDateString("es-AR", { day: "2-digit", month: "2-digit", year: "numeric" });
+    return isNaN(d.getTime())
+      ? ""
+      : d.toLocaleDateString("es-AR", {
+          day: "2-digit",
+          month: "2-digit",
+          year: "numeric",
+        });
   }
 
   nuevo(): void {
@@ -153,16 +165,26 @@ export class MisContenidosComponent implements OnInit {
     }
     this.errorForm = "";
     this.guardando = true;
-    const datos = { titulo: this.titulo, descripcion: this.descripcion, archivo: this.archivo };
-    const pedido = this.editandoId ? this.service.editar(this.editandoId, datos) : this.service.subir(datos);
+    const datos = {
+      titulo: this.titulo,
+      descripcion: this.descripcion,
+      archivo: this.archivo,
+    };
+    const pedido = this.editandoId
+      ? this.service.editar(this.editandoId, datos)
+      : this.service.subir(datos);
     pedido.subscribe({
       next: () => {
         this.guardando = false;
         this.dialogo = false;
         this.toast.add({
           severity: "success",
-          summary: this.editandoId ? "Material actualizado" : "Material enviado",
-          detail: this.editandoId ? "Los cambios se guardaron." : "Queda pendiente hasta que la administración lo revise.",
+          summary: this.editandoId
+            ? "Material actualizado"
+            : "Material enviado",
+          detail: this.editandoId
+            ? "Los cambios se guardaron."
+            : "Queda pendiente hasta que la administración lo revise.",
         });
         this.cargar();
       },
@@ -183,9 +205,17 @@ export class MisContenidosComponent implements OnInit {
         this.service.eliminar(c.id).subscribe({
           next: () => {
             this.contenidos = this.contenidos.filter((x) => x.id !== c.id);
-            this.toast.add({ severity: "success", summary: "Material eliminado" });
+            this.toast.add({
+              severity: "success",
+              summary: "Material eliminado",
+            });
           },
-          error: (e: Error) => this.toast.add({ severity: "error", summary: "No se pudo eliminar", detail: e.message }),
+          error: (e: Error) =>
+            this.toast.add({
+              severity: "error",
+              summary: "No se pudo eliminar",
+              detail: e.message,
+            }),
         }),
     });
   }
@@ -193,7 +223,12 @@ export class MisContenidosComponent implements OnInit {
   descargar(c: { id: string; archivoNombre: string }): void {
     this.service.archivo(c.id).subscribe({
       next: (blob) => guardarArchivo(blob, c.archivoNombre),
-      error: (e: Error) => this.toast.add({ severity: "error", summary: "No se pudo descargar", detail: e.message }),
+      error: (e: Error) =>
+        this.toast.add({
+          severity: "error",
+          summary: "No se pudo descargar",
+          detail: e.message,
+        }),
     });
   }
 }

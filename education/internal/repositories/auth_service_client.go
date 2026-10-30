@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"net/url"
 	"time"
 
 	"buenvivir/education/internal/models"
@@ -130,6 +131,22 @@ func (c *AuthServiceClient) ListUsers(ctx context.Context, bearerToken string) (
 		return nil, err
 	}
 	return parsed.Data, nil
+}
+
+// GetParticipantName pide GET /api/v1/directory/participants/{id}: el
+// nombre y apellido de UN participante, sin DNI ni datos de contacto.
+// Es lo único del directorio de auth-service que puede consultar un
+// docente (no puede listar /participants), y lo usa para ver los
+// nombres de sus alumnos en las entregas.
+func (c *AuthServiceClient) GetParticipantName(ctx context.Context, participantID, bearerToken string) (models.AuthUser, error) {
+	var parsed authItemResponse[struct {
+		Nombre   string `json:"nombre"`
+		Apellido string `json:"apellido"`
+	}]
+	if err := c.doGet(ctx, "/api/v1/directory/participants/"+url.PathEscape(participantID), bearerToken, &parsed); err != nil {
+		return models.AuthUser{}, err
+	}
+	return models.AuthUser{FirstName: parsed.Data.Nombre, LastName: parsed.Data.Apellido}, nil
 }
 
 // GetMyParticipantID pide GET /api/v1/profile/me a auth-service con el

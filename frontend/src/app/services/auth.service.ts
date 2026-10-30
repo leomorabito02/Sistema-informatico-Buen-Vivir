@@ -239,7 +239,9 @@ export class AuthService {
   /**
    * Ejecuta el PATCH para validar el token y pasar is_email_verified = true.
    */
-  verifyEmail(token: string): Observable<{ is_email_verified: boolean; message: string }> {
+  verifyEmail(
+    token: string,
+  ): Observable<{ is_email_verified: boolean; message: string }> {
     return this.http
       .patch<{ is_email_verified: boolean; message: string }>(
         `${this.apiUrl}/api/v1/auth/verify-email`,

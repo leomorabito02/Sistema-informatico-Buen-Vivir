@@ -5,8 +5,8 @@
     <div>
       <h1 class="page-title">Gestión de campañas</h1>
       <p class="page-subtitle">
-        Campañas de concientización del centro. Se crean como borrador y se
-        ven en la página pública recién cuando se publican.
+        Campañas de concientización del centro. Se crean como borrador y se ven
+        en la página pública recién cuando se publican.
       </p>
     </div>
     <p-button
@@ -37,12 +37,20 @@
         (onChange)="cargar()"
       ></p-select>
     </label>
-    <p-button type="submit" label="Buscar" icon="pi pi-search" [outlined]="true"></p-button>
+    <p-button
+      type="submit"
+      label="Buscar"
+      icon="pi pi-search"
+      [outlined]="true"
+    ></p-button>
   </form>
 
   <p *ngIf="cargando" class="estado-carga" role="status">Cargando campañas…</p>
 
-  <app-empty-state *ngIf="!cargando && error" title="No se pudieron cargar las campañas">
+  <app-empty-state
+    *ngIf="!cargando && error"
+    title="No se pudieron cargar las campañas"
+  >
     {{ error }}
   </app-empty-state>
 
@@ -50,12 +58,21 @@
     *ngIf="!cargando && !error && campaigns.length === 0"
     title="No hay campañas"
   >
-    {{ busqueda || estado ? "Ninguna campaña coincide con la búsqueda." : "Todavía no se cargó ninguna campaña. Usá «Crear campaña» para empezar." }}
+    {{
+      busqueda || estado
+        ? "Ninguna campaña coincide con la búsqueda."
+        : "Todavía no se cargó ninguna campaña. Usá «Crear campaña» para empezar."
+    }}
   </app-empty-state>
 
   <div class="grid-container" *ngIf="!cargando && !error && campaigns.length">
     <article *ngFor="let c of campaigns" class="campana-card">
-      <img [src]="c.imagen_url" [alt]="'Imagen de la campaña ' + c.titulo" class="campana-img" loading="lazy" />
+      <img
+        [src]="c.imagen_url"
+        [alt]="'Imagen de la campaña ' + c.titulo"
+        class="campana-img"
+        loading="lazy"
+      />
       <div class="campana-body">
         <div class="campana-cabecera">
           <h2 class="campana-titulo">{{ c.titulo }}</h2>
@@ -64,7 +81,10 @@
             [severity]="c.estado === 'publicada' ? 'success' : 'secondary'"
           ></p-tag>
         </div>
-        <p class="campana-fecha"><i class="pi pi-calendar" aria-hidden="true"></i> {{ fechaDMY(c.fecha) }}</p>
+        <p class="campana-fecha">
+          <i class="pi pi-calendar" aria-hidden="true"></i>
+          {{ fechaDMY(c.fecha) }}
+        </p>
         <p class="campana-texto">{{ c.texto }}</p>
       </div>
       <div class="card-footer-buttons">
@@ -98,15 +118,31 @@
   <div class="form-grid">
     <label>
       Título <span class="req">*</span>
-      <input pInputText [(ngModel)]="form.titulo" maxlength="150" placeholder="Nombre de la campaña" />
+      <input
+        pInputText
+        [(ngModel)]="form.titulo"
+        maxlength="150"
+        placeholder="Nombre de la campaña"
+      />
     </label>
     <label>
       Texto <span class="req">*</span>
-      <textarea pTextarea [(ngModel)]="form.texto" rows="5" maxlength="5000" placeholder="Contenido de la campaña"></textarea>
+      <textarea
+        pTextarea
+        [(ngModel)]="form.texto"
+        rows="5"
+        maxlength="5000"
+        placeholder="Contenido de la campaña"
+      ></textarea>
     </label>
     <label>
       Imagen (dirección web) <span class="req">*</span>
-      <input pInputText [(ngModel)]="form.imagen_url" type="url" placeholder="https://…" />
+      <input
+        pInputText
+        [(ngModel)]="form.imagen_url"
+        type="url"
+        placeholder="https://…"
+      />
     </label>
     <label>
       Fecha <span class="req">*</span>
@@ -114,7 +150,11 @@
     </label>
   </div>
   <ng-template pTemplate="footer">
-    <p-button label="Cancelar" [text]="true" (onClick)="dialogo = false"></p-button>
+    <p-button
+      label="Cancelar"
+      [text]="true"
+      (onClick)="dialogo = false"
+    ></p-button>
     <p-button
       [label]="editandoId ? 'Guardar cambios' : 'Crear campaña'"
       [disabled]="!formCompleto || guardando"

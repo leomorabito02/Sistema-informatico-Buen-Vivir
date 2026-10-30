@@ -1,6 +1,13 @@
 import { TestBed } from "@angular/core/testing";
-import { HttpClient, provideHttpClient, withInterceptors } from "@angular/common/http";
-import { HttpTestingController, provideHttpClientTesting } from "@angular/common/http/testing";
+import {
+  HttpClient,
+  provideHttpClient,
+  withInterceptors,
+} from "@angular/common/http";
+import {
+  HttpTestingController,
+  provideHttpClientTesting,
+} from "@angular/common/http/testing";
 import { Router } from "@angular/router";
 import {
   errorInterceptor,
@@ -66,7 +73,10 @@ describe("errorInterceptor", () => {
     });
 
     const req = httpMock.expectOne("/test");
-    req.flush({ message: "Unauthorized" }, { status: 401, statusText: "Unauthorized" });
+    req.flush(
+      { message: "Unauthorized" },
+      { status: 401, statusText: "Unauthorized" },
+    );
   });
 
   it("should redirect to /verify-email on 403 EMAIL_NOT_VERIFIED", () => {
@@ -121,24 +131,34 @@ describe("errorInterceptor", () => {
     httpClient.get("/test").subscribe({
       next: () => fail("should have failed"),
       error: () => {
-        expect(alertServiceSpy.showForbiddenDialog).toHaveBeenCalledWith("Permiso denegado");
+        expect(alertServiceSpy.showForbiddenDialog).toHaveBeenCalledWith(
+          "Permiso denegado",
+        );
       },
     });
 
     const req = httpMock.expectOne("/test");
-    req.flush({ message: "Permiso denegado" }, { status: 403, statusText: "Forbidden" });
+    req.flush(
+      { message: "Permiso denegado" },
+      { status: 403, statusText: "Forbidden" },
+    );
   });
 
   it("should redirect to /404 when X-Redirect-On-404 header is present", () => {
-    httpClient.get("/test", { headers: { "X-Redirect-On-404": "true" } }).subscribe({
-      next: () => fail("should have failed"),
-      error: () => {
-        expect(routerSpy.navigate).toHaveBeenCalledWith(["/404"]);
-      },
-    });
+    httpClient
+      .get("/test", { headers: { "X-Redirect-On-404": "true" } })
+      .subscribe({
+        next: () => fail("should have failed"),
+        error: () => {
+          expect(routerSpy.navigate).toHaveBeenCalledWith(["/404"]);
+        },
+      });
 
     const req = httpMock.expectOne("/test");
-    req.flush({ message: "Not Found" }, { status: 404, statusText: "Not Found" });
+    req.flush(
+      { message: "Not Found" },
+      { status: 404, statusText: "Not Found" },
+    );
   });
 
   it("should show error toast on standard 404 without redirect", () => {
@@ -151,7 +171,10 @@ describe("errorInterceptor", () => {
     });
 
     const req = httpMock.expectOne("/test");
-    req.flush({ message: "Item no encontrado" }, { status: 404, statusText: "Not Found" });
+    req.flush(
+      { message: "Item no encontrado" },
+      { status: 404, statusText: "Not Found" },
+    );
   });
 
   it("should show rate limit dialog on 429", () => {
@@ -163,7 +186,10 @@ describe("errorInterceptor", () => {
     });
 
     const req = httpMock.expectOne("/test");
-    req.flush({ message: "Too many requests" }, { status: 429, statusText: "Too Many Requests" });
+    req.flush(
+      { message: "Too many requests" },
+      { status: 429, statusText: "Too Many Requests" },
+    );
   });
 
   it("should navigate to /500 on GET request returning 500", () => {
@@ -175,33 +201,46 @@ describe("errorInterceptor", () => {
     });
 
     const req = httpMock.expectOne("/test");
-    req.flush({ message: "Internal error" }, { status: 500, statusText: "Server Error" });
+    req.flush(
+      { message: "Internal error" },
+      { status: 500, statusText: "Server Error" },
+    );
   });
 
   it("should show server error dialog on POST request returning 500", () => {
     httpClient.post("/test", { data: 123 }).subscribe({
       next: () => fail("should have failed"),
       error: () => {
-        expect(alertServiceSpy.showServerErrorDialog).toHaveBeenCalledWith("Fallo en base de datos");
+        expect(alertServiceSpy.showServerErrorDialog).toHaveBeenCalledWith(
+          "Fallo en base de datos",
+        );
         expect(routerSpy.navigate).not.toHaveBeenCalled();
       },
     });
 
     const req = httpMock.expectOne("/test");
-    req.flush({ message: "Fallo en base de datos" }, { status: 500, statusText: "Server Error" });
+    req.flush(
+      { message: "Fallo en base de datos" },
+      { status: 500, statusText: "Server Error" },
+    );
   });
 
   it("should skip handling if X-Skip-Global-Error header is present", () => {
-    httpClient.get("/test", { headers: { "X-Skip-Global-Error": "true" } }).subscribe({
-      next: () => fail("should have failed"),
-      error: () => {
-        expect(alertServiceSpy.showServerErrorDialog).not.toHaveBeenCalled();
-        expect(routerSpy.navigate).not.toHaveBeenCalled();
-      },
-    });
+    httpClient
+      .get("/test", { headers: { "X-Skip-Global-Error": "true" } })
+      .subscribe({
+        next: () => fail("should have failed"),
+        error: () => {
+          expect(alertServiceSpy.showServerErrorDialog).not.toHaveBeenCalled();
+          expect(routerSpy.navigate).not.toHaveBeenCalled();
+        },
+      });
 
     const req = httpMock.expectOne("/test");
-    req.flush({ message: "Server error" }, { status: 500, statusText: "Server Error" });
+    req.flush(
+      { message: "Server error" },
+      { status: 500, statusText: "Server Error" },
+    );
   });
 
   it("should create skip-global-error headers using withSkipGlobalError helper", () => {

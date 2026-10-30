@@ -85,7 +85,12 @@ describe("NotificationsService", () => {
 
   it("should get preferences using fetch GET", async () => {
     const mockPrefs = [
-      { category: "education", email_enabled: true, push_enabled: false, in_app_enabled: true },
+      {
+        category: "education",
+        email_enabled: true,
+        push_enabled: false,
+        in_app_enabled: true,
+      },
     ];
     spyOn(window, "fetch").and.resolveTo(
       new Response(JSON.stringify(mockPrefs), {
@@ -107,7 +112,12 @@ describe("NotificationsService", () => {
 
   it("should init preferences using fetch POST", async () => {
     const mockDefaults = [
-      { category: "security", email_enabled: true, push_enabled: true, in_app_enabled: true },
+      {
+        category: "security",
+        email_enabled: true,
+        push_enabled: true,
+        in_app_enabled: true,
+      },
     ];
     spyOn(window, "fetch").and.resolveTo(
       new Response(JSON.stringify(mockDefaults), {
@@ -128,7 +138,12 @@ describe("NotificationsService", () => {
   });
 
   it("should patch preference using fetch PATCH", async () => {
-    const updated = { category: "education", email_enabled: false, push_enabled: false, in_app_enabled: true };
+    const updated = {
+      category: "education",
+      email_enabled: false,
+      push_enabled: false,
+      in_app_enabled: true,
+    };
     spyOn(window, "fetch").and.resolveTo(
       new Response(JSON.stringify(updated), {
         status: 200,
@@ -136,10 +151,14 @@ describe("NotificationsService", () => {
       }),
     );
 
-    const result = await service.patchPreference("education", { email_enabled: false });
+    const result = await service.patchPreference("education", {
+      email_enabled: false,
+    });
     expect(result).toEqual(updated);
     expect(window.fetch).toHaveBeenCalledWith(
-      jasmine.stringMatching(/\/api\/v1\/notifications\/preferences\?category=education/),
+      jasmine.stringMatching(
+        /\/api\/v1\/notifications\/preferences\?category=education/,
+      ),
       jasmine.objectContaining({
         method: "PATCH",
         credentials: "include",
@@ -149,7 +168,12 @@ describe("NotificationsService", () => {
 
   it("should save all preferences using fetch POST", async () => {
     const mockList = [
-      { category: "education", email_enabled: true, push_enabled: true, in_app_enabled: true },
+      {
+        category: "education",
+        email_enabled: true,
+        push_enabled: true,
+        in_app_enabled: true,
+      },
     ];
     spyOn(window, "fetch").and.resolveTo(
       new Response(JSON.stringify(mockList), {

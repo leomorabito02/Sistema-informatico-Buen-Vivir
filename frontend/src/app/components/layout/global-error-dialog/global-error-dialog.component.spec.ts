@@ -12,11 +12,7 @@ describe("GlobalErrorDialogComponent", () => {
   beforeEach(async () => {
     await TestBed.configureTestingModule({
       imports: [GlobalErrorDialogComponent],
-      providers: [
-        AlertService,
-        MessageService,
-        provideAnimations(),
-      ],
+      providers: [AlertService, MessageService, provideAnimations()],
     }).compileComponents();
 
     fixture = TestBed.createComponent(GlobalErrorDialogComponent);

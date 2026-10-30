@@ -1,5 +1,9 @@
 import { Injectable, inject } from "@angular/core";
-import { HttpClient, HttpErrorResponse, HttpParams } from "@angular/common/http";
+import {
+  HttpClient,
+  HttpErrorResponse,
+  HttpParams,
+} from "@angular/common/http";
 import { Observable, catchError, throwError } from "rxjs";
 import { environment } from "../../environments/environment";
 
@@ -33,7 +37,10 @@ export class ComentariosService {
   private readonly http = inject(HttpClient);
   private readonly base = `${environment.educationApiUrl || environment.apiUrl || ""}/api/comentarios`;
 
-  listar(entidadTipo: EntidadComentable, entidadId: string): Observable<Comentario[]> {
+  listar(
+    entidadTipo: EntidadComentable,
+    entidadId: string,
+  ): Observable<Comentario[]> {
     const params = new HttpParams()
       .set("entidadTipo", entidadTipo)
       .set("entidadId", entidadId);
@@ -60,7 +67,8 @@ export class ComentariosService {
     const mensaje =
       e.status === 429
         ? "Mandaste muchos comentarios seguidos. Probá de nuevo en un minuto."
-        : e.error?.error || "No se pudo completar la acción con los comentarios.";
+        : e.error?.error ||
+          "No se pudo completar la acción con los comentarios.";
     return throwError(() => new Error(mensaje));
   };
 }

@@ -1,5 +1,8 @@
 import { TestBed } from "@angular/core/testing";
-import { HttpClientTestingModule, HttpTestingController } from "@angular/common/http/testing";
+import {
+  HttpClientTestingModule,
+  HttpTestingController,
+} from "@angular/common/http/testing";
 import { PushNotificationService } from "./push-notification.service";
 
 describe("PushNotificationService", () => {
@@ -35,7 +38,9 @@ describe("PushNotificationService", () => {
       expect(response).toEqual(expectedResponse);
     });
 
-    const req = httpMock.expectOne((r) => r.url.endsWith("/api/v1/users/me/devices"));
+    const req = httpMock.expectOne((r) =>
+      r.url.endsWith("/api/v1/users/me/devices"),
+    );
     expect(req.request.method).toBe("POST");
     expect(req.request.headers.get("X-Skip-Global-Error")).toBe("true");
     expect(req.request.body.token).toBe(dummyToken);

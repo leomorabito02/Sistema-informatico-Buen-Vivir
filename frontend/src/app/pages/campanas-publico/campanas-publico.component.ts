@@ -3,8 +3,22 @@ import { CommonModule } from "@angular/common";
 import { FormsModule } from "@angular/forms";
 import { RouterLink } from "@angular/router";
 import { takeUntilDestroyed } from "@angular/core/rxjs-interop";
-import { Subject, debounceTime, distinctUntilChanged, switchMap, catchError, of, tap } from "rxjs";
-import { LucideAngularModule, ArrowLeft, Megaphone, Search, Calendar } from "lucide-angular";
+import {
+  Subject,
+  debounceTime,
+  distinctUntilChanged,
+  switchMap,
+  catchError,
+  of,
+  tap,
+} from "rxjs";
+import {
+  LucideAngularModule,
+  ArrowLeft,
+  Megaphone,
+  Search,
+  Calendar,
+} from "lucide-angular";
 import { FooterComponent } from "../../components/layout/footer/footer.component";
 import { CampaignsService } from "../../services/campaigns.service";
 import { Campana } from "../../core/models/campaign.model";
@@ -18,7 +32,14 @@ import { ComentariosComponent } from "../../shared/components/comentarios.compon
 @Component({
   selector: "app-campanas-publico",
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink, LucideAngularModule, FooterComponent, ComentariosComponent],
+  imports: [
+    CommonModule,
+    FormsModule,
+    RouterLink,
+    LucideAngularModule,
+    FooterComponent,
+    ComentariosComponent,
+  ],
   templateUrl: "./campanas-publico.component.html",
   styleUrl: "./campanas-publico.component.css",
 })

@@ -46,7 +46,9 @@ describe("ComentariosComponent", () => {
     setup();
     expect(service.listar).toHaveBeenCalledWith("campana", "camp-1");
     expect(texto()).toContain("Ana Gómez");
-    expect(fixture.nativeElement.querySelector(".comentario-texto b")).toBeNull();
+    expect(
+      fixture.nativeElement.querySelector(".comentario-texto b"),
+    ).toBeNull();
     expect(texto()).toContain("<b>Muy buena</b>");
   });
 
@@ -99,11 +101,15 @@ describe("ComentariosComponent", () => {
 
   it("only the moderator sees Eliminar, and it removes the comment", () => {
     setup([existente], false);
-    expect(fixture.nativeElement.querySelector(".comentario-eliminar")).toBeNull();
+    expect(
+      fixture.nativeElement.querySelector(".comentario-eliminar"),
+    ).toBeNull();
 
     fixture.componentRef.setInput("puedeModerar", true);
     fixture.detectChanges();
-    expect(fixture.nativeElement.querySelector(".comentario-eliminar")).not.toBeNull();
+    expect(
+      fixture.nativeElement.querySelector(".comentario-eliminar"),
+    ).not.toBeNull();
 
     spyOn(window, "confirm").and.returnValue(true);
     service.eliminar.and.returnValue(of(undefined));

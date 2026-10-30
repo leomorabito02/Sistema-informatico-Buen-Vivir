@@ -161,8 +161,18 @@ describe("AsistenciaCursosComponent", () => {
         actividadesAsistidas: 1,
         porcentajeAsistencia: 50,
         actividades: [
-          { actividadId: "a1", titulo: "TP 1", fecha: "2026-10-01T00:00:00Z", presente: true },
-          { actividadId: "a2", titulo: "TP 2", fecha: "2026-10-08T00:00:00Z", presente: false },
+          {
+            actividadId: "a1",
+            titulo: "TP 1",
+            fecha: "2026-10-01T00:00:00Z",
+            presente: true,
+          },
+          {
+            actividadId: "a2",
+            titulo: "TP 2",
+            fecha: "2026-10-08T00:00:00Z",
+            presente: false,
+          },
         ],
       },
     ] as any;
@@ -171,10 +181,16 @@ describe("AsistenciaCursosComponent", () => {
       create();
       education.getParticipantAttendanceHistory.and.returnValue(of(historial));
       component.vista = "participante";
-      component.onParticipanteChange({ participanteId: "p1", nombre: "Ana", apellido: "Paz" });
+      component.onParticipanteChange({
+        participanteId: "p1",
+        nombre: "Ana",
+        apellido: "Paz",
+      });
       fixture.detectChanges();
 
-      expect(education.getParticipantAttendanceHistory).toHaveBeenCalledWith("p1");
+      expect(education.getParticipantAttendanceHistory).toHaveBeenCalledWith(
+        "p1",
+      );
       expect(component.loadingHistorial).toBeFalse();
       expect(component.nombreParticipante).toBe("Paz, Ana");
       const text = fixture.nativeElement.textContent;
@@ -196,7 +212,11 @@ describe("AsistenciaCursosComponent", () => {
       education.getParticipantAttendanceHistory.and.returnValue(
         throwError(() => new Error("firestore caído")),
       );
-      component.onParticipanteChange({ participanteId: "p1", nombre: "", apellido: "" });
+      component.onParticipanteChange({
+        participanteId: "p1",
+        nombre: "",
+        apellido: "",
+      });
       expect(component.loadingHistorial).toBeFalse();
       expect(component.error).toBe("firestore caído");
     });

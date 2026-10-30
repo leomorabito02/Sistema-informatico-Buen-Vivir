@@ -54,10 +54,10 @@
       selectedArea
         ? "No hay cursos de esa área con esa búsqueda."
         : searchTerm.trim()
-        ? "No se encontraron cursos con «" + searchTerm.trim() + "»."
-        : esParticipante
-          ? "Todavía no estás inscripto en ningún curso. Pedile a un voluntario o administrador que te inscriba."
-          : "No hay cursos publicados por ahora."
+          ? "No se encontraron cursos con «" + searchTerm.trim() + "»."
+          : esParticipante
+            ? "Todavía no estás inscripto en ningún curso. Pedile a un voluntario o administrador que te inscriba."
+            : "No hay cursos publicados por ahora."
     }}
   </app-empty-state>
 
@@ -195,8 +195,8 @@
       style="margin-top: 0.5rem"
     ></app-participant-picker>
     <p class="muted">
-      Buscá por nombre, apellido o DNI. No aparecen quienes ya están
-      inscriptos en este curso.
+      Buscá por nombre, apellido o DNI. No aparecen quienes ya están inscriptos
+      en este curso.
     </p>
     <div style="margin-top: 1rem; text-align: right">
       <p-button

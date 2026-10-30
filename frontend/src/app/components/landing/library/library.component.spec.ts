@@ -32,7 +32,9 @@ describe("LibraryComponent", () => {
 
   it("validates the visitor data before downloading (HU-25)", () => {
     const service = TestBed.inject(ContenidosService);
-    const spy = spyOn(service, "descargarPublico").and.returnValue(of(new Blob(["x"])));
+    const spy = spyOn(service, "descargarPublico").and.returnValue(
+      of(new Blob(["x"])),
+    );
     const recurso = {
       id: "c1",
       titulo: "Guía",
@@ -44,7 +46,12 @@ describe("LibraryComponent", () => {
     };
     component.abrir(recurso);
 
-    component.datos = { nombre: "Ana", apellido: "Gómez", email: "ana", telefono: "3547123456" };
+    component.datos = {
+      nombre: "Ana",
+      apellido: "Gómez",
+      email: "ana",
+      telefono: "3547123456",
+    };
     component.descargar();
     expect(component.errorForm).toContain("email");
 
@@ -66,6 +73,8 @@ describe("LibraryComponent", () => {
   it("shows the file kind", () => {
     const r = { archivoTipo: "image/png" } as any;
     expect(component.formato(r)).toBe("Imagen");
-    expect(component.formato({ archivoTipo: "application/pdf" } as any)).toBe("PDF");
+    expect(component.formato({ archivoTipo: "application/pdf" } as any)).toBe(
+      "PDF",
+    );
   });
 });
