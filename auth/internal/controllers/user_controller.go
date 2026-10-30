@@ -3,6 +3,7 @@ package controllers
 import (
 	"encoding/json"
 	"net/http"
+	"strings"
 
 	"auth/internal/dto"
 	"auth/internal/services"
@@ -32,7 +33,7 @@ func (c *UserController) CreateUser(w http.ResponseWriter, r *http.Request) {
 			utils.JSONResponse(w, http.StatusBadRequest, false, nil, validationErrors)
 			return
 		}
-		utils.JSONResponse(w, http.StatusInternalServerError, false, nil, err.Error())
+		utils.JSONResponse(w, errorStatus(err, http.StatusInternalServerError), false, nil, err.Error())
 		return
 	}
 
@@ -48,7 +49,7 @@ func (c *UserController) GetUser(w http.ResponseWriter, r *http.Request) {
 
 	user, err := c.userService.GetUserByID(r.Context(), id)
 	if err != nil {
-		utils.JSONResponse(w, http.StatusNotFound, false, nil, err.Error())
+		utils.JSONResponse(w, errorStatus(err, http.StatusNotFound), false, nil, err.Error())
 		return
 	}
 
@@ -56,13 +57,21 @@ func (c *UserController) GetUser(w http.ResponseWriter, r *http.Request) {
 }
 
 func (c *UserController) GetAllUsers(w http.ResponseWriter, r *http.Request) {
-	users, err := c.userService.GetAllUsers(r.Context())
-	if err != nil {
-		utils.JSONResponse(w, http.StatusInternalServerError, false, nil, err.Error())
+	// ?q= busca por nombre, apellido, email o teléfono y ?role= filtra por rol
+	// (por ejemplo role=role_teacher para el selector de docentes).
+	q := r.URL.Query().Get("q")
+	if len([]rune(q)) > services.MaxBusquedaUsuarios {
+		utils.JSONResponse(w, http.StatusBadRequest, false, nil, "La búsqueda es demasiado larga")
 		return
 	}
 
-	utils.JSONResponse(w, http.StatusOK, true, users, nil)
+	users, err := c.userService.GetAllUsers(r.Context())
+	if err != nil {
+		utils.JSONResponse(w, errorStatus(err, http.StatusInternalServerError), false, nil, err.Error())
+		return
+	}
+
+	utils.JSONResponse(w, http.StatusOK, true, services.FiltrarUsuarios(users, q, r.URL.Query().Get("role")), nil)
 }
 
 func (c *UserController) UpdateUser(w http.ResponseWriter, r *http.Request) {
@@ -84,7 +93,7 @@ func (c *UserController) UpdateUser(w http.ResponseWriter, r *http.Request) {
 			utils.JSONResponse(w, http.StatusBadRequest, false, nil, validationErrors)
 			return
 		}
-		utils.JSONResponse(w, http.StatusInternalServerError, false, nil, err.Error())
+		utils.JSONResponse(w, errorStatus(err, http.StatusInternalServerError), false, nil, err.Error())
 		return
 	}
 
@@ -99,9 +108,46 @@ func (c *UserController) DeleteUser(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := c.userService.DeleteUser(r.Context(), id); err != nil {
-		utils.JSONResponse(w, http.StatusInternalServerError, false, nil, err.Error())
+		utils.JSONResponse(w, errorStatus(err, http.StatusInternalServerError), false, nil, err.Error())
 		return
 	}
 
 	utils.JSONResponse(w, http.StatusOK, true, map[string]string{"message": "Usuario eliminado correctamente"}, nil)
+}
+
+// GetParticipantsHistory responde GET /api/v1/users/participants/history
+// (solo admin): todos los participantes, también los dados de baja, con
+// sus fechas. Lo consume el servicio de Dashboard.
+func (c *UserController) GetParticipantsHistory(w http.ResponseWriter, r *http.Request) {
+	rows, err := c.userService.GetParticipantsHistory(r.Context())
+	if err != nil {
+		utils.JSONResponse(w, errorStatus(err, http.StatusInternalServerError), false, nil, err.Error())
+		return
+	}
+	utils.JSONResponse(w, http.StatusOK, true, rows, nil)
+}
+
+func (c *UserController) ApproveUser(w http.ResponseWriter, r *http.Request) {
+	id := chi.URLParam(r, "id")
+	if id == "" {
+		utils.JSONResponse(w, http.StatusBadRequest, false, nil, "ID es requerido")
+		return
+	}
+
+	user, err := c.userService.ApproveUser(r.Context(), id)
+	if err != nil {
+		utils.JSONResponse(w, errorStatus(err, http.StatusInternalServerError), false, nil, err.Error())
+		return
+	}
+
+	utils.JSONResponse(w, http.StatusOK, true, user, nil)
+}
+
+// errorStatus devuelve 403 para los errores de permisos del servicio
+// (empiezan con "forbidden") y fallback para el resto.
+func errorStatus(err error, fallback int) int {
+	if strings.HasPrefix(err.Error(), "forbidden") {
+		return http.StatusForbidden
+	}
+	return fallback
 }

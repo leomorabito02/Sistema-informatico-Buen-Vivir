@@ -1,6 +1,21 @@
 {
+  "/api/v1/dashboard": {
+    "target": "http://localhost:8080",
+    "secure": false,
+    "changeOrigin": true
+  },
+  "/api/v1/human-promotion": {
+    "target": "http://localhost:8085",
+    "secure": false,
+    "changeOrigin": true
+  },
+  "/api/v1/rxresume": {
+    "target": "http://localhost:8080",
+    "secure": false,
+    "changeOrigin": true
+  },
   "/api/v1": {
-    "target": "http://localhost:8081",
+    "target": "http://localhost:8082",
     "secure": false,
     "changeOrigin": true,
     "cookiePathRewrite": "/"
@@ -25,7 +40,27 @@
     "secure": false,
     "changeOrigin": true
   },
+  "/api/actividades": {
+    "target": "http://localhost:8210",
+    "secure": false,
+    "changeOrigin": true
+  },
+  "/api/asistencia-general": {
+    "target": "http://localhost:8210",
+    "secure": false,
+    "changeOrigin": true
+  },
   "/api/salud": {
+    "target": "http://localhost:8210",
+    "secure": false,
+    "changeOrigin": true
+  },
+  "/api/participante": {
+    "target": "http://localhost:8210",
+    "secure": false,
+    "changeOrigin": true
+  },
+  "/api/entregas": {
     "target": "http://localhost:8210",
     "secure": false,
     "changeOrigin": true

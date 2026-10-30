@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"time"
@@ -59,6 +60,10 @@ type ContentfulClient struct {
 	cdaBaseURL    string
 	cmaBaseURL    string
 	uploadBaseURL string
+
+	// cache de las lecturas de la CDA (nil = sin caché). Ver
+	// content_cache.go.
+	cache *contentCache
 }
 
 func NewContentfulClient(cfg *config.Config) *ContentfulClient {
@@ -72,7 +77,15 @@ func NewContentfulClient(cfg *config.Config) *ContentfulClient {
 		cdaBaseURL:    defaultCDABaseURL,
 		cmaBaseURL:    defaultCMABaseURL,
 		uploadBaseURL: defaultUploadBaseURL,
+		cache:         newContentCache(cfg.Events.ContentCacheTTL),
 	}
+}
+
+// InvalidateCache vence las lecturas cacheadas de la CDA (las conserva
+// como respaldo ante una caída de Contentful). La llama el consumidor de
+// contenido-eventos.
+func (c *ContentfulClient) InvalidateCache() {
+	c.cache.invalidate()
 }
 
 func (c *ContentfulClient) Locale() string {
@@ -140,37 +153,41 @@ func (c *ContentfulClient) ListManagementEntriesWhere(ctx context.Context, conte
 	return &collection, nil
 }
 
-// GetPublishedEntry devuelve una entry publicada por id, con sus
-// referencias resueltas.
-func (c *ContentfulClient) GetPublishedEntry(ctx context.Context, id string, include int) (*models.ContentfulSingleEntry, error) {
-	query := url.Values{}
-	query.Set("include", fmt.Sprintf("%d", include))
-
-	body, _, err := c.doCDA(ctx, http.MethodGet, "/entries/"+id, query)
-	if err != nil {
-		return nil, err
-	}
-
-	var entry models.ContentfulSingleEntry
-	if err := json.Unmarshal(body, &entry); err != nil {
-		return nil, fmt.Errorf("no se pudo parsear la respuesta de Contentful: %w", err)
-	}
-	return &entry, nil
-}
-
 func (c *ContentfulClient) doCDA(ctx context.Context, method, path string, query url.Values) ([]byte, int, error) {
 	if query == nil {
 		query = url.Values{}
 	}
-	query.Set("access_token", c.cdaToken)
+	// La clave de la caché no incluye el token (Encode ordena las claves,
+	// así que la misma consulta da siempre la misma clave).
+	cacheKey := method + " " + path + "?" + query.Encode()
+	cacheable := method == http.MethodGet && c.cache != nil
+	if cacheable {
+		if body, fresh, ok := c.cache.get(cacheKey); ok && fresh {
+			return body, http.StatusOK, nil
+		}
+	}
 
+	query.Set("access_token", c.cdaToken)
 	reqURL := fmt.Sprintf("%s/spaces/%s/environments/%s%s?%s", c.cdaBaseURL, c.spaceID, c.environment, path, query.Encode())
 	req, err := http.NewRequestWithContext(ctx, method, reqURL, nil)
 	if err != nil {
 		return nil, 0, err
 	}
 
-	return c.do(req)
+	body, status, err := c.do(req)
+	if !cacheable {
+		return body, status, err
+	}
+	if err == nil {
+		c.cache.put(cacheKey, body)
+		return body, status, nil
+	}
+	if stale, _, ok := c.cache.get(cacheKey); ok && isTransient(status) {
+		slog.WarnContext(ctx, "Contentful no disponible: se sirve contenido cacheado (stale)",
+			slog.String("path", path), slog.Int("status", status), slog.String("error", err.Error()))
+		return stale, http.StatusOK, nil
+	}
+	return body, status, err
 }
 
 // -- Content Management API (escritura) --
@@ -269,9 +286,24 @@ func (c *ContentfulClient) DeleteEntry(ctx context.Context, id string) error {
 // DeleteEntryCascade despublica y luego borra una entry. Es el flujo
 // que exige la CMA: una entry publicada no se puede borrar
 // directamente.
+//
+// Si la entry nunca se publicó (un borrador), la CMA responde 400 ("Not
+// published") al despublicar, no 404. En ese caso confirmamos contra la
+// CMA que de verdad no tiene versión publicada y seguimos con el borrado;
+// sin esto no se podía borrar ningún curso/área/material en borrador.
 func (c *ContentfulClient) DeleteEntryCascade(ctx context.Context, id string) error {
 	if err := c.UnpublishEntry(ctx, id); err != nil {
-		return err
+		apiErr, ok := err.(*ContentfulAPIError)
+		if !ok || apiErr.StatusCode != http.StatusBadRequest {
+			return err
+		}
+		entry, getErr := c.GetManagementEntry(ctx, id)
+		if getErr != nil {
+			return getErr
+		}
+		if entry.Sys.PublishedVersion != 0 {
+			return err
+		}
 	}
 	return c.DeleteEntry(ctx, id)
 }
@@ -295,7 +327,14 @@ func (c *ContentfulClient) doCMA(ctx context.Context, method, path string, extra
 		req.Header.Set(k, v)
 	}
 
-	return c.do(req)
+	respBody, status, err := c.do(req)
+	if err == nil && method != http.MethodGet {
+		// Una escritura propia cambia lo que devuelve la CDA: se vence la
+		// caché para que este mismo usuario vea su cambio enseguida (el
+		// webhook de Contentful avisa a las demás instancias).
+		c.cache.invalidate()
+	}
+	return respBody, status, err
 }
 
 func (c *ContentfulClient) do(req *http.Request) ([]byte, int, error) {

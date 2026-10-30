@@ -1,0 +1,253 @@
+package events
+
+import (
+	"context"
+	"crypto"
+	"crypto/rsa"
+	"crypto/sha256"
+	"encoding/base64"
+	"encoding/json"
+	"errors"
+	"fmt"
+	"math/big"
+	"net/http"
+	"strings"
+	"sync"
+	"time"
+)
+
+// Verifier autentica el request de una suscripción push.
+type Verifier interface {
+	Verify(r *http.Request) error
+}
+
+// ErrUnauthorized señala un push sin token válido.
+var ErrUnauthorized = errors.New("push no autorizado")
+
+// NoVerifier acepta cualquier request. SOLO para desarrollo local con el
+// emulador de Pub/Sub, que no firma los push. Cada servicio lo habilita
+// únicamente con PUBSUB_PUSH_AUTH=disabled y fuera de producción.
+type NoVerifier struct{}
+
+func (NoVerifier) Verify(*http.Request) error { return nil }
+
+// PushAuthDisabled es el valor de PUBSUB_PUSH_AUTH que desactiva la
+// verificación OIDC (solo local, con el emulador).
+const PushAuthDisabled = "disabled"
+
+// NewPushVerifier arma el verificador según la configuración del
+// servicio. En producción nunca se puede desactivar la verificación, y
+// si falta audience o service account el servicio no debe arrancar.
+func NewPushVerifier(authMode, audience string, allowedEmails []string, production bool) (Verifier, error) {
+	if authMode == PushAuthDisabled {
+		if production {
+			return nil, errors.New("PUBSUB_PUSH_AUTH=disabled no está permitido en producción")
+		}
+		return NoVerifier{}, nil
+	}
+	var emails []string
+	for _, e := range allowedEmails {
+		if e = strings.TrimSpace(e); e != "" {
+			emails = append(emails, e)
+		}
+	}
+	if strings.TrimSpace(audience) == "" || len(emails) == 0 {
+		return nil, errors.New("faltan PUBSUB_PUSH_AUDIENCE y/o PUBSUB_PUSH_SERVICE_ACCOUNTS para verificar los push de Pub/Sub")
+	}
+	return NewOIDCVerifier(audience, emails...), nil
+}
+
+// GoogleCertsURL publica las claves con que Google firma los ID tokens
+// (incluidos los que Pub/Sub manda en las suscripciones push con OIDC).
+const GoogleCertsURL = "https://www.googleapis.com/oauth2/v3/certs"
+
+var googleIssuers = map[string]bool{"https://accounts.google.com": true, "accounts.google.com": true}
+
+// OIDCVerifier valida el token OIDC que Pub/Sub agrega a cada push
+// ("Authorization: Bearer <jwt>"): firma RS256 de Google, issuer,
+// audience, vencimiento y que lo emita la service account dedicada del
+// consumidor (ver infra/pubsub/setup.sh). Se implementa con la librería
+// estándar para no sumarle dependencias a ningún servicio.
+type OIDCVerifier struct {
+	Audience      string
+	AllowedEmails []string
+	CertsURL      string
+	HTTPClient    *http.Client
+	Now           func() time.Time
+
+	mu        sync.Mutex
+	keys      map[string]*rsa.PublicKey
+	fetchedAt time.Time
+}
+
+// NewOIDCVerifier crea el verificador. audience es el valor configurado
+// en la suscripción push (por defecto, la URL del endpoint) y
+// allowedEmails las service accounts autorizadas a llamar.
+func NewOIDCVerifier(audience string, allowedEmails ...string) *OIDCVerifier {
+	return &OIDCVerifier{
+		Audience:      audience,
+		AllowedEmails: allowedEmails,
+		CertsURL:      GoogleCertsURL,
+		HTTPClient:    &http.Client{Timeout: 5 * time.Second},
+		Now:           time.Now,
+	}
+}
+
+type jwtHeader struct {
+	Alg string `json:"alg"`
+	Kid string `json:"kid"`
+}
+
+type googleClaims struct {
+	Iss           string `json:"iss"`
+	Aud           string `json:"aud"`
+	Exp           int64  `json:"exp"`
+	Iat           int64  `json:"iat"`
+	Email         string `json:"email"`
+	EmailVerified bool   `json:"email_verified"`
+}
+
+// clockSkew tolera pequeñas diferencias de reloj entre Google y Cloud Run.
+const clockSkew = time.Minute
+
+func (v *OIDCVerifier) Verify(r *http.Request) error {
+	auth := r.Header.Get("Authorization")
+	token, ok := strings.CutPrefix(auth, "Bearer ")
+	if !ok || token == "" {
+		return fmt.Errorf("%w: falta el token bearer", ErrUnauthorized)
+	}
+	parts := strings.Split(token, ".")
+	if len(parts) != 3 {
+		return fmt.Errorf("%w: token malformado", ErrUnauthorized)
+	}
+
+	var header jwtHeader
+	if err := decodeSegment(parts[0], &header); err != nil {
+		return fmt.Errorf("%w: header inválido", ErrUnauthorized)
+	}
+	if header.Alg != "RS256" {
+		return fmt.Errorf("%w: algoritmo %q no permitido", ErrUnauthorized, header.Alg)
+	}
+	key, err := v.key(r.Context(), header.Kid)
+	if err != nil {
+		return fmt.Errorf("%w: %v", ErrUnauthorized, err)
+	}
+	sig, err := base64.RawURLEncoding.DecodeString(parts[2])
+	if err != nil {
+		return fmt.Errorf("%w: firma malformada", ErrUnauthorized)
+	}
+	digest := sha256.Sum256([]byte(parts[0] + "." + parts[1]))
+	if err := rsa.VerifyPKCS1v15(key, crypto.SHA256, digest[:], sig); err != nil {
+		return fmt.Errorf("%w: firma inválida", ErrUnauthorized)
+	}
+
+	var claims googleClaims
+	if err := decodeSegment(parts[1], &claims); err != nil {
+		return fmt.Errorf("%w: claims inválidos", ErrUnauthorized)
+	}
+	return v.checkClaims(claims)
+}
+
+func (v *OIDCVerifier) checkClaims(c googleClaims) error {
+	now := v.Now()
+	switch {
+	case !googleIssuers[c.Iss]:
+		return fmt.Errorf("%w: issuer %q", ErrUnauthorized, c.Iss)
+	case v.Audience == "" || c.Aud != v.Audience:
+		return fmt.Errorf("%w: audience %q", ErrUnauthorized, c.Aud)
+	case now.After(time.Unix(c.Exp, 0).Add(clockSkew)):
+		return fmt.Errorf("%w: token vencido", ErrUnauthorized)
+	case time.Unix(c.Iat, 0).After(now.Add(clockSkew)):
+		return fmt.Errorf("%w: token emitido en el futuro", ErrUnauthorized)
+	case !c.EmailVerified || !v.emailAllowed(c.Email):
+		return fmt.Errorf("%w: service account %q no autorizada", ErrUnauthorized, c.Email)
+	}
+	return nil
+}
+
+func (v *OIDCVerifier) emailAllowed(email string) bool {
+	for _, allowed := range v.AllowedEmails {
+		if strings.EqualFold(strings.TrimSpace(allowed), email) {
+			return true
+		}
+	}
+	return false
+}
+
+// keyRefresh es cada cuánto se vuelven a pedir las claves de Google
+// (las rota cada pocos días; se pide antes si llega un kid desconocido).
+const keyRefresh = time.Hour
+
+// minRefetch evita pedir las claves en cada request si alguien manda
+// tokens con kid inventados.
+const minRefetch = time.Minute
+
+func (v *OIDCVerifier) key(ctx context.Context, kid string) (*rsa.PublicKey, error) {
+	v.mu.Lock()
+	defer v.mu.Unlock()
+
+	age := v.Now().Sub(v.fetchedAt)
+	if k, ok := v.keys[kid]; ok && age < keyRefresh {
+		return k, nil
+	}
+	if v.keys == nil || age >= minRefetch {
+		keys, err := v.fetchKeys(ctx)
+		if err != nil {
+			return nil, err
+		}
+		v.keys, v.fetchedAt = keys, v.Now()
+	}
+	if k, ok := v.keys[kid]; ok {
+		return k, nil
+	}
+	return nil, fmt.Errorf("clave %q desconocida", kid)
+}
+
+type jwks struct {
+	Keys []struct {
+		Kid string `json:"kid"`
+		Kty string `json:"kty"`
+		N   string `json:"n"`
+		E   string `json:"e"`
+	} `json:"keys"`
+}
+
+func (v *OIDCVerifier) fetchKeys(ctx context.Context) (map[string]*rsa.PublicKey, error) {
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, v.CertsURL, nil)
+	if err != nil {
+		return nil, err
+	}
+	resp, err := v.HTTPClient.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("no se pudieron obtener las claves de Google: %w", err)
+	}
+	defer func() { _ = resp.Body.Close() }()
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("claves de Google: status %d", resp.StatusCode)
+	}
+	var set jwks
+	if err := json.NewDecoder(resp.Body).Decode(&set); err != nil {
+		return nil, fmt.Errorf("claves de Google ilegibles: %w", err)
+	}
+	keys := make(map[string]*rsa.PublicKey, len(set.Keys))
+	for _, k := range set.Keys {
+		if k.Kty != "RSA" {
+			continue
+		}
+		n, errN := base64.RawURLEncoding.DecodeString(k.N)
+		e, errE := base64.RawURLEncoding.DecodeString(k.E)
+		if errN != nil || errE != nil {
+			continue
+		}
+		keys[k.Kid] = &rsa.PublicKey{N: new(big.Int).SetBytes(n), E: int(new(big.Int).SetBytes(e).Int64())}
+	}
+	return keys, nil
+}
+
+func decodeSegment(seg string, out any) error {
+	raw, err := base64.RawURLEncoding.DecodeString(seg)
+	if err != nil {
+		return err
+	}
+	return json.Unmarshal(raw, out)
+}

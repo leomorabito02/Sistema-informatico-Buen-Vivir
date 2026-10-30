@@ -53,6 +53,7 @@ func (c *MaterialController) Create(w http.ResponseWriter, r *http.Request) {
 // archivo subido a Contentful como Asset.
 func (c *MaterialController) Upload(w http.ResponseWriter, r *http.Request) {
 	r.Body = http.MaxBytesReader(w, r.Body, maxUploadBytes)
+	// #nosec G120 -- request body is bounded by http.MaxBytesReader above
 	if err := r.ParseMultipartForm(maxUploadBytes); err != nil {
 		writeErrorJSON(w, http.StatusBadRequest, "el archivo supera el límite o el formulario es inválido")
 		return

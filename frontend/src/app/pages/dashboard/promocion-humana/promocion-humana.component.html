@@ -1,0 +1,82 @@
+<div class="page-container">
+  <div class="header-section">
+    <div>
+      <h1 class="page-title">Promoción humana</h1>
+      <p class="page-subtitle">
+        Buscá a un participante por nombre o apellido para ver o crear su ficha
+        de proceso personal.
+      </p>
+    </div>
+  </div>
+
+  <p-card styleClass="p-card-shadow">
+    <label for="busqueda-participante" class="field-label"
+      >Buscar participante</label
+    >
+    <p-iconfield styleClass="search-field">
+      <p-inputicon styleClass="pi pi-search" aria-hidden="true" />
+      <input
+        id="busqueda-participante"
+        type="search"
+        pInputText
+        autocomplete="off"
+        maxlength="100"
+        placeholder="Nombre o apellido"
+        [(ngModel)]="texto"
+        (ngModelChange)="onTextoChange($event)"
+        aria-describedby="busqueda-ayuda"
+      />
+    </p-iconfield>
+    <small id="busqueda-ayuda" class="hint"
+      >Escribí al menos {{ minCaracteres }} letras.</small
+    >
+
+    <div aria-live="polite" class="results-region">
+      <app-error-state *ngIf="error" [message]="error"></app-error-state>
+
+      <app-loading-state
+        *ngIf="buscando"
+        variant="list"
+        label="Buscando participantes…"
+      ></app-loading-state>
+
+      <app-empty-state
+        *ngIf="!buscando && buscado && !error && resultados.length === 0"
+      >
+        No se encontraron participantes con ese nombre.
+      </app-empty-state>
+
+      <ul *ngIf="!buscando && resultados.length > 0" class="result-list">
+        <li *ngFor="let r of resultados" class="result-item">
+          <div class="result-info">
+            <span class="result-name">{{ nombreCompleto(r) }}</span>
+            <p-tag
+              *ngIf="r.ficha_id; else sinFicha"
+              value="Con ficha"
+              severity="success"
+            ></p-tag>
+            <ng-template #sinFicha>
+              <p-tag value="Sin ficha" severity="secondary"></p-tag>
+            </ng-template>
+          </div>
+          <a
+            pButton
+            [routerLink]="[
+              '/dashboard/promocion-humana/participantes',
+              r.participante_id,
+            ]"
+            [state]="{ nombre: nombreCompleto(r) }"
+            [label]="r.ficha_id ? 'Ver ficha' : 'Crear ficha'"
+            [icon]="r.ficha_id ? 'pi pi-file' : 'pi pi-plus'"
+            size="small"
+            [outlined]="!!r.ficha_id"
+            [attr.aria-label]="
+              (r.ficha_id ? 'Ver ficha de ' : 'Crear ficha para ') +
+              nombreCompleto(r)
+            "
+          ></a>
+        </li>
+      </ul>
+    </div>
+  </p-card>
+</div>

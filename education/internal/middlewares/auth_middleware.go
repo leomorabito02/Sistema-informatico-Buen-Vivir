@@ -6,13 +6,24 @@ import (
 	"strings"
 
 	"github.com/golang-jwt/jwt/v5"
+
+	"buenvivir/education/internal/audit"
+	"buenvivir/education/internal/events"
 )
 
 type contextKey string
+
 const (
 	UserIDKey     contextKey = "userID"
 	RoleIDKey     contextKey = "roleID"
 	IsExternalKey contextKey = "isExternal"
+	// TokenKey guarda el JWT crudo (sin "Bearer ") del usuario
+	// autenticado. Lo usa AuthServiceClient para reenviarlo tal cual a
+	// auth-service (GET /api/v1/participants[/{id}], GET /api/v1/users)
+	// al inscribir, registrar asistencia o armar la asistencia general —
+	// así auth-service aplica su propio RBAC sobre el mismo usuario, en
+	// vez de que education necesite un secreto de servicio.
+	TokenKey contextKey = "rawToken"
 )
 
 // JWTService interface local para evitar ciclo de importación
@@ -58,6 +69,11 @@ func AuthMiddleware(jwtService JWTService) func(http.Handler) http.Handler {
 			ctx := context.WithValue(r.Context(), UserIDKey, userID)
 			ctx = context.WithValue(ctx, RoleIDKey, roleID)
 			ctx = context.WithValue(ctx, IsExternalKey, isExternal)
+			ctx = context.WithValue(ctx, TokenKey, tokenString)
+			// Actor de los eventos que se publiquen en este request.
+			ctx = events.WithActor(ctx, userID)
+			// IP del registro de auditoría (baja de cursos, asistencia general).
+			ctx = audit.WithClientIP(ctx, r.RemoteAddr)
 
 			next.ServeHTTP(w, r.WithContext(ctx))
 		})
@@ -65,7 +81,7 @@ func AuthMiddleware(jwtService JWTService) func(http.Handler) http.Handler {
 }
 
 // RequirePermissionMiddleware verifica si el usuario en el contexto tiene permisos
-func RequirePermissionMiddleware(permissionService interface{
+func RequirePermissionMiddleware(permissionService interface {
 	CheckPermission(ctx context.Context, roleID, action, resource string) (bool, error)
 }, requiredAction, requiredResource string) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {

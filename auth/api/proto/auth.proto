@@ -1,0 +1,110 @@
+syntax = "proto3";
+
+package auth;
+
+option go_package = "buenvivir/labor-integration/api/proto/authpb";
+
+service AuthService {
+  rpc GetParticipant(GetParticipantRequest) returns (GetParticipantResponse);
+
+  // Promoción Humana (HU-31, HU-34): datos de perfil del participante,
+  // buscándolo por participant_id o por user_id (el token del
+  // participante solo trae su user_id).
+  rpc GetParticipantProfile(GetParticipantProfileRequest) returns (ParticipantProfile);
+
+  // Promoción Humana (HU-36): búsqueda parcial por nombre o apellido.
+  rpc SearchParticipants(SearchParticipantsRequest) returns (SearchParticipantsResponse);
+
+  // Promoción Humana (HU-33, HU-37): nombre y apellido de los usuarios
+  // responsables de hitos y creadores de fichas.
+  rpc GetUsersByIDs(GetUsersByIDsRequest) returns (GetUsersByIDsResponse);
+
+  rpc GetCompany(GetCompanyRequest) returns (GetCompanyResponse);
+
+  rpc GetUserDeviceTokens(GetUserDeviceTokensRequest) returns (GetUserDeviceTokensResponse);
+  rpc RevokeDeviceTokens(RevokeDeviceTokensRequest) returns (RevokeDeviceTokensResponse);
+}
+
+message GetParticipantRequest {
+  string participant_id = 1;
+}
+
+message GetParticipantResponse {
+  string id = 1;
+  string user_id = 2;
+  string approval_status = 3;
+}
+
+message GetParticipantProfileRequest {
+  oneof lookup {
+    string participant_id = 1;
+    string user_id = 2;
+  }
+}
+
+message ParticipantProfile {
+  string participant_id = 1;
+  string user_id = 2;
+  string first_name = 3;
+  string last_name = 4;
+  // Fecha de nacimiento en formato AAAA-MM-DD; vacía si no está cargada.
+  string birthdate = 5;
+  string approval_status = 6;
+}
+
+message SearchParticipantsRequest {
+  // Al menos 2 caracteres.
+  string query = 1;
+  // Máximo de resultados; 0 o más de 50 se toma como 20.
+  int32 limit = 2;
+}
+
+message SearchParticipantsResponse {
+  repeated ParticipantProfile participants = 1;
+}
+
+message GetUsersByIDsRequest {
+  repeated string user_ids = 1;
+}
+
+message UserSummary {
+  string user_id = 1;
+  string first_name = 2;
+  string last_name = 3;
+}
+
+message GetUsersByIDsResponse {
+  repeated UserSummary users = 1;
+}
+
+message GetCompanyRequest {
+  string company_id = 1;
+}
+
+message GetCompanyResponse {
+  string company_id = 1;
+  string user_id = 2;
+  string business_name = 3;
+  string cuit = 4;
+  string approval_status = 5;
+  string user_email = 6;
+  string user_phone = 7;
+  string user_status = 8;
+}
+
+message GetUserDeviceTokensRequest {
+  string user_id = 1;
+}
+
+message GetUserDeviceTokensResponse {
+  repeated string tokens = 1;
+}
+
+message RevokeDeviceTokensRequest {
+  string user_id = 1;
+  repeated string tokens = 2;
+}
+
+message RevokeDeviceTokensResponse {
+  int32 revoked_count = 1;
+}

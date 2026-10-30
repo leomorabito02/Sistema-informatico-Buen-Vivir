@@ -21,6 +21,18 @@ type ActivityRepository interface {
 	ListByCourse(ctx context.Context, cursoID string) ([]models.Activity, error)
 	Get(ctx context.Context, id string) (*models.Activity, error)
 	Create(ctx context.Context, cursoID string, input models.ActivityInput) (*models.Activity, error)
+	// Update reemplaza titulo/consigna/fecha de la actividad y, en la
+	// misma transacción, reescribe la fecha de sus asistencias: la
+	// asistencia generada por una entrega lleva siempre la fecha de la
+	// actividad, así que si la actividad se reprograma, sus asistencias
+	// se mueven con ella.
+	Update(ctx context.Context, id string, input models.ActivityInput) (*models.Activity, error)
+	// Delete borra la actividad junto con sus entregas, asistencias y
+	// habilidades asociadas en una sola transacción, para que el progreso (entregadas / total) no
+	// quede contando registros de una actividad que ya no existe. Los
+	// adjuntos del bucket los limpia el service (ver
+	// ActivityService.DeleteActivity).
+	Delete(ctx context.Context, id string) error
 }
 
 type activityRepository struct {
@@ -74,6 +86,7 @@ func (r *activityRepository) Create(ctx context.Context, cursoID string, input m
 	a := models.Activity{
 		CursoID:   cursoID,
 		Titulo:    input.Titulo,
+		Consigna:  input.Consigna,
 		Fecha:     input.Fecha,
 		CreatedAt: time.Now().UTC(),
 	}
@@ -84,4 +97,86 @@ func (r *activityRepository) Create(ctx context.Context, cursoID string, input m
 	}
 	a.ID = ref.ID
 	return &a, nil
+}
+
+func (r *activityRepository) Update(ctx context.Context, id string, input models.ActivityInput) (*models.Activity, error) {
+	ref := r.client.Collection(activitiesCollection).Doc(id)
+	var updated models.Activity
+
+	err := r.client.RunTransaction(ctx, func(ctx context.Context, tx *firestore.Transaction) error {
+		doc, err := tx.Get(ref)
+		if err != nil {
+			if status.Code(err) == codes.NotFound {
+				return ErrNotFound
+			}
+			return err
+		}
+		if err := doc.DataTo(&updated); err != nil {
+			return err
+		}
+		attendances, err := tx.Documents(r.client.Collection(attendancesCollection).Where("actividad_id", "==", id)).GetAll()
+		if err != nil {
+			return err
+		}
+
+		updated.Titulo = input.Titulo
+		updated.Consigna = input.Consigna
+		updated.Fecha = input.Fecha
+		if err := tx.Set(ref, updated); err != nil {
+			return err
+		}
+		for _, a := range attendances {
+			if err := tx.Update(a.Ref, []firestore.Update{{Path: "fecha", Value: input.Fecha}}); err != nil {
+				return err
+			}
+		}
+		return nil
+	})
+	if err != nil {
+		if err == ErrNotFound {
+			return nil, ErrNotFound
+		}
+		return nil, fmt.Errorf("error actualizando actividad: %w", err)
+	}
+	updated.ID = id
+	return &updated, nil
+}
+
+func (r *activityRepository) Delete(ctx context.Context, id string) error {
+	ref := r.client.Collection(activitiesCollection).Doc(id)
+
+	err := r.client.RunTransaction(ctx, func(ctx context.Context, tx *firestore.Transaction) error {
+		if _, err := tx.Get(ref); err != nil {
+			if status.Code(err) == codes.NotFound {
+				return ErrNotFound
+			}
+			return err
+		}
+		// También se borran sus vínculos de Actividad_Habilidad: si no,
+		// el curso seguiría mostrando habilidades de una actividad que ya
+		// no existe. Las habilidades que los participantes ya ganaron
+		// (participante_habilidades) se conservan: las aprendieron igual.
+		var related []*firestore.DocumentSnapshot
+		for _, col := range []string{submissionsCollection, attendancesCollection, activitySkillsCollection} {
+			docs, err := tx.Documents(r.client.Collection(col).Where("actividad_id", "==", id)).GetAll()
+			if err != nil {
+				return err
+			}
+			related = append(related, docs...)
+		}
+
+		for _, d := range related {
+			if err := tx.Delete(d.Ref); err != nil {
+				return err
+			}
+		}
+		return tx.Delete(ref)
+	})
+	if err != nil {
+		if err == ErrNotFound {
+			return ErrNotFound
+		}
+		return fmt.Errorf("error eliminando actividad: %w", err)
+	}
+	return nil
 }

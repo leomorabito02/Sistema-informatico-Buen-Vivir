@@ -12,20 +12,26 @@ describe("App Routes", () => {
     expect(routes.length).toBeGreaterThan(0);
 
     const landingRoute = routes.find((r) => r.path === "");
-    expect(landingRoute?.component).toBe(LandingComponent);
+    expect(
+      landingRoute?.loadComponent || landingRoute?.component,
+    ).toBeDefined();
 
     const loginRoute = routes.find((r) => r.path === "login");
-    expect(loginRoute?.component).toBe(LoginComponent);
+    expect(loginRoute?.loadComponent || loginRoute?.component).toBeDefined();
     expect(loginRoute?.canActivate).toEqual([guestGuard]);
 
     const registerRoute = routes.find((r) => r.path === "register");
-    expect(registerRoute?.component).toBe(RegisterComponent);
+    expect(
+      registerRoute?.loadComponent || registerRoute?.component,
+    ).toBeDefined();
     expect(registerRoute?.canActivate).toEqual([guestGuard]);
 
     const dashboardRoute = routes.find((r) => r.path === "dashboard");
-    expect(dashboardRoute?.component).toBe(DashboardComponent);
+    expect(
+      dashboardRoute?.loadComponent || dashboardRoute?.component,
+    ).toBeDefined();
     expect(dashboardRoute?.canActivate).toEqual([authGuard]);
-    expect(dashboardRoute?.children).toHaveSize(14);
+    expect(dashboardRoute?.children).toHaveSize(25);
   });
 
   it("should lazy load pending-approval component", async () => {
@@ -39,6 +45,15 @@ describe("App Routes", () => {
 
   it("should lazy load account-notice component", async () => {
     const route = routes.find((r) => r.path === "account-notice");
+    expect(route?.loadComponent).toBeDefined();
+    if (route?.loadComponent) {
+      const component = await (route.loadComponent as any)();
+      expect(component).toBeDefined();
+    }
+  });
+
+  it("should lazy load verify-email component", async () => {
+    const route = routes.find((r) => r.path === "verify-email");
     expect(route?.loadComponent).toBeDefined();
     if (route?.loadComponent) {
       const component = await (route.loadComponent as any)();
@@ -91,10 +106,22 @@ describe("App Routes", () => {
     }
   });
 
-  it("should lazy load mi-cuenta component and its children", async () => {
+  it("la página pública de campañas no pide sesión (HU-50)", async () => {
+    const route = routes.find((r) => r.path === "campanas-publico");
+    expect(route?.canActivate).toBeUndefined();
+    const component = await (route!.loadComponent as any)();
+    expect(component).toBeDefined();
+  });
+
+  it("la gestión de campañas es solo para administración y voluntariado", () => {
+    const dashboard = routes.find((r) => r.path === "dashboard");
+    const campanas = dashboard?.children?.find((r) => r.path === "campanas");
+    expect(campanas?.canActivate?.length).toBe(1);
+  });
+
+  it("should redirect mi-cuenta to dashboard/mi-perfil", () => {
     const miCuenta = routes.find((r) => r.path === "mi-cuenta");
-    expect(miCuenta?.loadComponent).toBeDefined();
-    expect(miCuenta?.children?.length).toBeGreaterThan(0);
+    expect(miCuenta?.redirectTo).toBe("dashboard/mi-perfil");
   });
 
   const childrenRoutes = [
@@ -109,9 +136,14 @@ describe("App Routes", () => {
     "seguimiento",
     "asistencia",
     "campanas",
-    "insercion",
-    "participantes",
+    "cursos/:id",
+    "inscripciones",
+    "asistencia-cursos",
+    "asistencia-general",
     "notificaciones",
+    "ayuda",
+    "indicadores",
+    "auditoria",
   ];
 
   childrenRoutes.forEach((childPath) => {
@@ -124,5 +156,30 @@ describe("App Routes", () => {
         expect(component).toBeDefined();
       }
     });
+  });
+
+  it("should lazy load 404 and wildcard components", async () => {
+    const route404 = routes.find((r) => r.path === "404");
+    expect(route404?.loadComponent).toBeDefined();
+    if (route404?.loadComponent) {
+      const component = await (route404.loadComponent as any)();
+      expect(component).toBeDefined();
+    }
+
+    const wildcardRoute = routes.find((r) => r.path === "**");
+    expect(wildcardRoute?.loadComponent).toBeDefined();
+    if (wildcardRoute?.loadComponent) {
+      const component = await (wildcardRoute.loadComponent as any)();
+      expect(component).toBeDefined();
+    }
+  });
+
+  it("should lazy load 500 component", async () => {
+    const route500 = routes.find((r) => r.path === "500");
+    expect(route500?.loadComponent).toBeDefined();
+    if (route500?.loadComponent) {
+      const component = await (route500.loadComponent as any)();
+      expect(component).toBeDefined();
+    }
   });
 });

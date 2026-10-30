@@ -1,0 +1,3 @@
+# Los scripts de shell se ejecutan en Linux (CI, Cloud Run, contenedores):
+# siempre con fin de línea LF, aunque el repo se clone en Windows.
+*.sh text eol=lf

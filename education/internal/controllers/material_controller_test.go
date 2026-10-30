@@ -113,6 +113,41 @@ func TestMaterialController_Update_ServiceError(t *testing.T) {
 	assert.Equal(t, http.StatusBadRequest, w.Code)
 }
 
+func TestMaterialController_Update_BadJSON(t *testing.T) {
+	// Arrange
+	mockSvc := new(MockMaterialService)
+	ctrl := controllers.NewMaterialController(mockSvc)
+
+	req := withChiURLParam(httptest.NewRequest("PUT", "/api/materiales/m1", bytes.NewBufferString("{bad")), "id", "m1")
+	w := httptest.NewRecorder()
+
+	// Act
+	ctrl.Update(w, req)
+
+	// Assert
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+}
+
+func TestMaterialController_Update_Success(t *testing.T) {
+	// Arrange
+	mockSvc := new(MockMaterialService)
+	ctrl := controllers.NewMaterialController(mockSvc)
+
+	expected := &models.Material{ID: "m1", Title: "Updated Title"}
+	mockSvc.On("UpdateMaterial", mock.Anything, "m1", mock.AnythingOfType("models.MaterialInput")).
+		Return(expected, nil)
+
+	body, _ := json.Marshal(models.MaterialInput{Title: "Updated Title", Type: "PDF"})
+	req := withChiURLParam(httptest.NewRequest("PUT", "/api/materiales/m1", bytes.NewBuffer(body)), "id", "m1")
+	w := httptest.NewRecorder()
+
+	// Act
+	ctrl.Update(w, req)
+
+	// Assert
+	assert.Equal(t, http.StatusOK, w.Code)
+}
+
 func TestMaterialController_Delete_Success(t *testing.T) {
 	mockSvc := new(MockMaterialService)
 	ctrl := controllers.NewMaterialController(mockSvc)
@@ -186,3 +221,107 @@ func TestMaterialController_Upload_ServiceError(t *testing.T) {
 
 	assert.Equal(t, http.StatusBadGateway, w.Code)
 }
+
+func TestMaterialController_List_ServiceError(t *testing.T) {
+	// Arrange
+	mockSvc := new(MockMaterialService)
+	ctrl := controllers.NewMaterialController(mockSvc)
+	mockSvc.On("ListMaterials", mock.Anything).Return(nil, errors.New("list error"))
+
+	req := httptest.NewRequest("GET", "/api/materiales", nil)
+	w := httptest.NewRecorder()
+
+	// Act
+	ctrl.List(w, req)
+
+	// Assert
+	assert.Equal(t, http.StatusBadGateway, w.Code)
+}
+
+func TestMaterialController_Create_ServiceError(t *testing.T) {
+	// Arrange
+	mockSvc := new(MockMaterialService)
+	ctrl := controllers.NewMaterialController(mockSvc)
+	mockSvc.On("CreateMaterial", mock.Anything, mock.Anything).Return(nil, errors.New("create err"))
+
+	body, _ := json.Marshal(models.MaterialInput{Title: "Guía"})
+	req := httptest.NewRequest("POST", "/api/materiales", bytes.NewBuffer(body))
+	w := httptest.NewRecorder()
+
+	// Act
+	ctrl.Create(w, req)
+
+	// Assert
+	assert.Equal(t, http.StatusBadGateway, w.Code)
+}
+
+func TestMaterialController_Delete_ServiceError(t *testing.T) {
+	// Arrange
+	mockSvc := new(MockMaterialService)
+	ctrl := controllers.NewMaterialController(mockSvc)
+	mockSvc.On("DeleteMaterial", mock.Anything, "m1").Return(errors.New("delete err"))
+
+	req := withChiURLParam(httptest.NewRequest("DELETE", "/api/materiales/m1", nil), "id", "m1")
+	w := httptest.NewRecorder()
+
+	// Act
+	ctrl.Delete(w, req)
+
+	// Assert
+	assert.Equal(t, http.StatusBadGateway, w.Code)
+}
+
+func TestMaterialController_Upload_ValidationErrors(t *testing.T) {
+	t.Run("Upload with missing file returns 400", func(t *testing.T) {
+		// Arrange
+		mockSvc := new(MockMaterialService)
+		ctrl := controllers.NewMaterialController(mockSvc)
+
+		var b bytes.Buffer
+		wMulti := multipart.NewWriter(&b)
+		_ = wMulti.WriteField("title", "Guía")
+		_ = wMulti.Close()
+
+		req := httptest.NewRequest("POST", "/api/materiales/upload", &b)
+		req.Header.Set("Content-Type", wMulti.FormDataContentType())
+		w := httptest.NewRecorder()
+
+		// Act
+		ctrl.Upload(w, req)
+
+		// Assert
+		assert.Equal(t, http.StatusBadRequest, w.Code)
+	})
+
+	t.Run("Upload with invalid multipart form returns 400", func(t *testing.T) {
+		// Arrange
+		mockSvc := new(MockMaterialService)
+		ctrl := controllers.NewMaterialController(mockSvc)
+
+		req := httptest.NewRequest("POST", "/api/materiales/upload", bytes.NewBufferString("not-multipart"))
+		req.Header.Set("Content-Type", "multipart/form-data; boundary=xyz")
+		w := httptest.NewRecorder()
+
+		// Act
+		ctrl.Upload(w, req)
+
+		// Assert
+		assert.Equal(t, http.StatusBadRequest, w.Code)
+	})
+
+	t.Run("Update with invalid JSON body returns 400", func(t *testing.T) {
+		// Arrange
+		mockSvc := new(MockMaterialService)
+		ctrl := controllers.NewMaterialController(mockSvc)
+
+		req := withChiURLParam(httptest.NewRequest("PUT", "/api/materiales/m1", bytes.NewBufferString("{invalid")), "id", "m1")
+		w := httptest.NewRecorder()
+
+		// Act
+		ctrl.Update(w, req)
+
+		// Assert
+		assert.Equal(t, http.StatusBadRequest, w.Code)
+	})
+}
+

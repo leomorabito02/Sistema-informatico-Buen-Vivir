@@ -1,9 +1,12 @@
 package controllers
 
 import (
-	"encoding/json"
 	"net/http"
 
+	"github.com/go-chi/chi/v5"
+
+	"buenvivir/campaigns/internal/middlewares"
+	"buenvivir/campaigns/internal/models"
 	"buenvivir/campaigns/internal/services"
 )
 
@@ -15,18 +18,91 @@ func NewCampaignController(service services.CampaignService) *CampaignController
 	return &CampaignController{service: service}
 }
 
-func (c *CampaignController) GetCampaigns(w http.ResponseWriter, r *http.Request) {
-	campaigns, err := c.service.GetCampaigns(r.Context())
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(campaigns)
+// respuestaConMensaje es la respuesta de las escrituras: la campaña como
+// quedó y el mensaje de éxito que pide la HU.
+type respuestaConMensaje struct {
+	Mensaje string          `json:"mensaje"`
+	Campana models.Campaign `json:"campana"`
 }
 
-func (c *CampaignController) HealthCheck(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]string{"status": "UP", "service": "campaigns-service"})
+// ListPublished: GET /api/v1/campaigns/publicas?q= — sin autenticación
+// (HU-50), solo publicadas, con búsqueda por título (HU-51).
+func (c *CampaignController) ListPublished(w http.ResponseWriter, r *http.Request) {
+	campaigns, err := c.service.ListPublished(r.Context(), r.URL.Query().Get("q"))
+	if err != nil {
+		writeError(w, r, err)
+		return
+	}
+	// El público no necesita saber qué usuario interno creó la campaña.
+	for i := range campaigns {
+		campaigns[i].CreadoPor = ""
+	}
+	writeJSON(w, http.StatusOK, campaigns)
+}
+
+// List: GET /api/v1/campaigns?q=&estado= — gestión (borradores y
+// publicadas).
+func (c *CampaignController) List(w http.ResponseWriter, r *http.Request) {
+	q := r.URL.Query()
+	campaigns, err := c.service.List(r.Context(), q.Get("q"), q.Get("estado"))
+	if err != nil {
+		writeError(w, r, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, campaigns)
+}
+
+// Get: GET /api/v1/campaigns/{id} — gestión.
+func (c *CampaignController) Get(w http.ResponseWriter, r *http.Request) {
+	campaign, err := c.service.Get(r.Context(), chi.URLParam(r, "id"))
+	if err != nil {
+		writeError(w, r, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, campaign)
+}
+
+// Create: POST /api/v1/campaigns (HU-47).
+func (c *CampaignController) Create(w http.ResponseWriter, r *http.Request) {
+	var in models.CampaignInput
+	if err := decodeJSONBody(w, r, &in); err != nil {
+		writeErrorJSON(w, http.StatusBadRequest, "El cuerpo de la solicitud no es válido")
+		return
+	}
+	campaign, err := c.service.Create(r.Context(), in, middlewares.UserIDFromContext(r.Context()))
+	if err != nil {
+		writeError(w, r, err)
+		return
+	}
+	writeJSON(w, http.StatusCreated, respuestaConMensaje{Mensaje: services.MsgCampanaCreada, Campana: campaign})
+}
+
+// Update: PUT /api/v1/campaigns/{id} (HU-48).
+func (c *CampaignController) Update(w http.ResponseWriter, r *http.Request) {
+	var in models.CampaignInput
+	if err := decodeJSONBody(w, r, &in); err != nil {
+		writeErrorJSON(w, http.StatusBadRequest, "El cuerpo de la solicitud no es válido")
+		return
+	}
+	campaign, err := c.service.Update(r.Context(), chi.URLParam(r, "id"), in)
+	if err != nil {
+		writeError(w, r, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, respuestaConMensaje{Mensaje: services.MsgCampanaEditada, Campana: campaign})
+}
+
+// Publish: POST /api/v1/campaigns/{id}/publicar (HU-49).
+func (c *CampaignController) Publish(w http.ResponseWriter, r *http.Request) {
+	campaign, err := c.service.Publish(r.Context(), chi.URLParam(r, "id"))
+	if err != nil {
+		writeError(w, r, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, respuestaConMensaje{Mensaje: services.MsgCampanaPublicada, Campana: campaign})
+}
+
+// HealthCheck: GET /health.
+func (c *CampaignController) HealthCheck(w http.ResponseWriter, _ *http.Request) {
+	writeJSON(w, http.StatusOK, map[string]string{"status": "UP", "service": "campaigns-service"})
 }

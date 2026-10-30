@@ -1,0 +1,63 @@
+<figure class="grafica" [attr.aria-labelledby]="'graf-' + grafica.id">
+  <figcaption [id]="'graf-' + grafica.id" class="grafica-titulo">
+    {{ grafica.titulo }}
+  </figcaption>
+
+  @if (loading) {
+    <p-skeleton height="16rem"></p-skeleton>
+  } @else if (!disponible) {
+    <div class="grafica-estado">
+      <i class="pi pi-exclamation-circle" aria-hidden="true"></i>
+      <p>
+        No disponible: el servicio de origen no respondió. El resto del
+        dashboard se muestra igual.
+      </p>
+    </div>
+  } @else if (vacia) {
+    <div class="grafica-estado">
+      <i class="pi pi-chart-line" aria-hidden="true"></i>
+      <p>No hay datos para el período seleccionado.</p>
+    </div>
+  } @else {
+    <div class="grafica-canvas">
+      <p-chart
+        [type]="grafica.tipo"
+        [data]="data"
+        [options]="options"
+        height="16rem"
+        [ariaLabel]="grafica.titulo + '. ' + resumen"
+      ></p-chart>
+    </div>
+    <p class="grafica-resumen">{{ resumen }}</p>
+    <details class="grafica-datos">
+      <summary>Ver datos en tabla</summary>
+      <div class="tabla-scroll">
+        <table>
+          <caption class="sr-only">
+            {{
+              grafica.titulo
+            }}, por mes
+          </caption>
+          <thead>
+            <tr>
+              <th scope="col">Mes</th>
+              @for (s of grafica.series ?? []; track s.nombre) {
+                <th scope="col">{{ s.nombre }}</th>
+              }
+            </tr>
+          </thead>
+          <tbody>
+            @for (mes of meses; track mes; let i = $index) {
+              <tr>
+                <th scope="row">{{ mes }}</th>
+                @for (s of grafica.series ?? []; track s.nombre) {
+                  <td>{{ s.puntos[i].valor }}</td>
+                }
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </details>
+  }
+</figure>

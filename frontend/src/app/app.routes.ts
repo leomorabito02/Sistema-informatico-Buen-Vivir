@@ -1,26 +1,39 @@
 import { Routes } from "@angular/router";
-import { LandingComponent } from "./pages/landing/landing.component";
-import { LoginComponent } from "./pages/login/login.component";
-import { DashboardComponent } from "./pages/dashboard/dashboard.component";
-import { RegisterComponent } from "./pages/register/register.component";
 import { authGuard } from "./core/guards/auth.guard";
 import { guestGuard } from "./core/guards/guest.guard";
 import { adminGuard } from "./core/guards/admin.guard";
+import { adminOrVolunteerGuard } from "./core/guards/admin-volunteer.guard";
+import { anyTeacherGuard, teacherGuard } from "./core/guards/teacher.guard";
+import { participantGuard } from "./core/guards/participant.guard";
 
 export const routes: Routes = [
   {
     path: "",
-    component: LandingComponent,
+    loadComponent: () =>
+      import("./pages/landing/landing.component").then(
+        (m) => m.LandingComponent,
+      ),
   },
   {
     path: "login",
-    component: LoginComponent,
+    loadComponent: () =>
+      import("./pages/login/login.component").then((m) => m.LoginComponent),
     canActivate: [guestGuard],
   },
   {
     path: "register",
-    component: RegisterComponent,
+    loadComponent: () =>
+      import("./pages/register/register.component").then(
+        (m) => m.RegisterComponent,
+      ),
     canActivate: [guestGuard],
+  },
+  {
+    path: "cv-public/:id",
+    loadComponent: () =>
+      import("./pages/cv-public/cv-public.component").then(
+        (m) => m.CvPublicComponent,
+      ),
   },
   {
     path: "pending-approval",
@@ -35,6 +48,18 @@ export const routes: Routes = [
       import("./pages/account-notice/account-notice.component").then(
         (m) => m.AccountNoticeComponent,
       ),
+  },
+  {
+    path: "verify-email",
+    loadComponent: () =>
+      import("./pages/verify-email/verify-email.component").then(
+        (m) => m.VerifyEmailComponent,
+      ),
+  },
+  {
+    path: "verificar-email",
+    redirectTo: "verify-email",
+    pathMatch: "full",
   },
   {
     path: "select-role",
@@ -87,53 +112,34 @@ export const routes: Routes = [
       ),
   },
   {
-    path: "mi-cuenta",
-    canActivate: [authGuard],
+    // Campañas publicadas, sin iniciar sesión (HU-50, HU-51).
+    path: "campanas-publico",
     loadComponent: () =>
-      import("./pages/mi-cuenta/mi-cuenta.component").then(
-        (m) => m.MiCuentaComponent,
+      import("./pages/campanas-publico/campanas-publico.component").then(
+        (m) => m.CampanasPublicoComponent,
       ),
-    children: [
-      {
-        path: "",
-        redirectTo: "datos-personales",
-        pathMatch: "full",
-      },
-      {
-        path: "datos-personales",
-        loadComponent: () =>
-          import("./pages/mi-cuenta/datos-personales/datos-personales.component").then(
-            (m) => m.DatosPersonalesComponent,
-          ),
-      },
-      {
-        path: "seguridad",
-        loadComponent: () =>
-          import("./pages/mi-cuenta/seguridad/seguridad.component").then(
-            (m) => m.SeguridadComponent,
-          ),
-      },
-      {
-        path: "sesiones",
-        loadComponent: () =>
-          import("./pages/mi-cuenta/sesiones/sesiones.component").then(
-            (m) => m.SesionesComponent,
-          ),
-      },
-      {
-        path: "privacidad",
-        loadComponent: () =>
-          import("./pages/mi-cuenta/privacidad-cuenta/privacidad-cuenta.component").then(
-            (m) => m.PrivacidadCuentaComponent,
-          ),
-      },
-    ],
+  },
+  {
+    path: "mi-cuenta",
+    redirectTo: "dashboard/mi-perfil",
+    pathMatch: "prefix",
   },
   {
     path: "dashboard",
-    component: DashboardComponent,
+    loadComponent: () =>
+      import("./pages/dashboard/dashboard.component").then(
+        (m) => m.DashboardComponent,
+      ),
     canActivate: [authGuard],
     children: [
+      {
+        path: "",
+        pathMatch: "full",
+        loadComponent: () =>
+          import("./pages/dashboard/inicio/inicio.component").then(
+            (m) => m.InicioComponent,
+          ),
+      },
       {
         path: "mi-perfil",
         loadComponent: () =>
@@ -149,6 +155,16 @@ export const routes: Routes = [
           ),
       },
       {
+        // Detalle del curso con sus actividades y entregas. El componente
+        // decide la vista por rol (gestión / docente / participante) y el
+        // backend valida el acceso a cada curso.
+        path: "cursos/:id",
+        loadComponent: () =>
+          import("./pages/dashboard/curso-detalle/curso-detalle.component").then(
+            (m) => m.CursoDetalleComponent,
+          ),
+      },
+      {
         path: "gestion-cursos",
         canActivate: [adminGuard],
         loadComponent: () =>
@@ -157,7 +173,24 @@ export const routes: Routes = [
           ),
       },
       {
+        path: "mis-contenidos",
+        canActivate: [anyTeacherGuard],
+        loadComponent: () =>
+          import("./pages/dashboard/mis-contenidos/mis-contenidos.component").then(
+            (m) => m.MisContenidosComponent,
+          ),
+      },
+      {
+        path: "contenido-docente",
+        canActivate: [adminGuard],
+        loadComponent: () =>
+          import("./pages/dashboard/contenido-docente/contenido-docente.component").then(
+            (m) => m.ContenidoDocenteComponent,
+          ),
+      },
+      {
         path: "mis-cursos",
+        canActivate: [teacherGuard],
         loadComponent: () =>
           import("./pages/dashboard/mis-cursos/mis-cursos.component").then(
             (m) => m.MisCursosComponent,
@@ -165,6 +198,7 @@ export const routes: Routes = [
       },
       {
         path: "progreso",
+        canActivate: [teacherGuard],
         loadComponent: () =>
           import("./pages/dashboard/progreso/progreso.component").then(
             (m) => m.ProgresoComponent,
@@ -200,23 +234,67 @@ export const routes: Routes = [
       },
       {
         path: "asistencia",
+        canActivate: [teacherGuard],
         loadComponent: () =>
           import("./pages/dashboard/asistencia/asistencia.component").then(
             (m) => m.AsistenciaComponent,
           ),
       },
       {
-        path: "campanas",
+        path: "inscripciones",
+        canActivate: [adminOrVolunteerGuard],
         loadComponent: () =>
-          import("./pages/dashboard/campanas/campanas.component").then(
-            (m) => m.CampanasComponent,
+          import("./pages/dashboard/inscripciones/inscripciones.component").then(
+            (m) => m.InscripcionesComponent,
           ),
       },
       {
-        path: "insercion",
+        path: "asistencia-cursos",
+        canActivate: [adminOrVolunteerGuard],
         loadComponent: () =>
-          import("./pages/dashboard/insercion/insercion.component").then(
-            (m) => m.InsercionComponent,
+          import("./pages/dashboard/asistencia-cursos/asistencia-cursos.component").then(
+            (m) => m.AsistenciaCursosComponent,
+          ),
+      },
+      {
+        path: "asistencia-general",
+        canActivate: [adminOrVolunteerGuard],
+        loadComponent: () =>
+          import("./pages/dashboard/asistencia-general/asistencia-general.component").then(
+            (m) => m.AsistenciaGeneralComponent,
+          ),
+      },
+      {
+        path: "promocion-humana",
+        canActivate: [adminOrVolunteerGuard],
+        loadComponent: () =>
+          import("./pages/dashboard/promocion-humana/promocion-humana.component").then(
+            (m) => m.PromocionHumanaComponent,
+          ),
+      },
+      {
+        path: "promocion-humana/participantes/:participanteId",
+        canActivate: [adminOrVolunteerGuard],
+        loadComponent: () =>
+          import("./pages/dashboard/promocion-humana/ficha/ficha.component").then(
+            (m) => m.FichaComponent,
+          ),
+      },
+      {
+        path: "mi-proceso",
+        canActivate: [participantGuard],
+        loadComponent: () =>
+          import("./pages/dashboard/mi-proceso/mi-proceso.component").then(
+            (m) => m.MiProcesoComponent,
+          ),
+      },
+      {
+        path: "campanas",
+        // Gestión de campañas: administración y voluntariado (HU-06).
+        canActivate: [adminOrVolunteerGuard],
+        loadComponent: () =>
+          import("./pages/dashboard/campanas/campanas.component").then(
+            (m) => m.CampanasComponent,
           ),
       },
       {
@@ -226,6 +304,66 @@ export const routes: Routes = [
             (m) => m.NotificacionesComponent,
           ),
       },
+      {
+        path: "indicadores",
+        canActivate: [adminGuard],
+        loadComponent: () =>
+          import("./pages/dashboard/indicadores/dashboard-page.component").then(
+            (m) => m.DashboardPageComponent,
+          ),
+      },
+      {
+        // Registro de auditoría (HU-30, HU-35): solo administración.
+        path: "auditoria",
+        canActivate: [adminGuard],
+        loadComponent: () =>
+          import("./pages/dashboard/auditoria/auditoria.component").then(
+            (m) => m.AuditoriaComponent,
+          ),
+      },
+      {
+        path: "ayuda",
+        loadComponent: () =>
+          import("./pages/dashboard/ayuda/ayuda.component").then(
+            (m) => m.AyudaComponent,
+          ),
+      },
     ],
+  },
+  {
+    path: "404",
+    loadComponent: () =>
+      import("./pages/not-found/not-found.component").then(
+        (m) => m.NotFoundComponent,
+      ),
+  },
+  {
+    path: "not-found",
+    redirectTo: "404",
+    pathMatch: "full",
+  },
+  {
+    path: "500",
+    loadComponent: () =>
+      import("./pages/server-error/server-error.component").then(
+        (m) => m.ServerErrorComponent,
+      ),
+  },
+  {
+    path: "server-error",
+    redirectTo: "500",
+    pathMatch: "full",
+  },
+  {
+    path: "error",
+    redirectTo: "500",
+    pathMatch: "full",
+  },
+  {
+    path: "**",
+    loadComponent: () =>
+      import("./pages/not-found/not-found.component").then(
+        (m) => m.NotFoundComponent,
+      ),
   },
 ];

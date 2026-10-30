@@ -70,3 +70,73 @@ func TestNewFirestoreClient_PathCredentials_LeavesEnvVarUntouched(t *testing.T) 
 
 	assert.Equal(t, "/ruta/inexistente/sa.json", os.Getenv("GOOGLE_APPLICATION_CREDENTIALS"))
 }
+
+// TestGoogleCredentialsJSON_EquivalenceClasses tests credentials resolution using Equivalence Classes without requiring Firestore emulator.
+func TestGoogleCredentialsJSON_EquivalenceClasses(t *testing.T) {
+	t.Run("Class 1: Valid Base64 credentials", func(t *testing.T) {
+		// Arrange
+		expectedJSON := `{"type":"service_account","project_id":"p1"}`
+		b64 := base64.StdEncoding.EncodeToString([]byte(expectedJSON))
+		t.Setenv("GOOGLE_APPLICATION_CREDENTIALS_BASE64", b64)
+
+		// Act
+		raw, err := GoogleCredentialsJSON()
+
+		// Assert
+		require.NoError(t, err)
+		assert.Equal(t, []byte(expectedJSON), raw)
+	})
+
+	t.Run("Class 2: Invalid Base64 credentials returns decoding error", func(t *testing.T) {
+		// Arrange
+		t.Setenv("GOOGLE_APPLICATION_CREDENTIALS_BASE64", "not-valid-base64???")
+
+		// Act
+		raw, err := GoogleCredentialsJSON()
+
+		// Assert
+		assert.Error(t, err)
+		assert.Empty(t, raw)
+	})
+
+	t.Run("Class 3: Raw JSON in GOOGLE_APPLICATION_CREDENTIALS (starts with '{')", func(t *testing.T) {
+		// Arrange
+		t.Setenv("GOOGLE_APPLICATION_CREDENTIALS_BASE64", "")
+		expectedJSON := `{"project_id":"inline-sa"}`
+		t.Setenv("GOOGLE_APPLICATION_CREDENTIALS", expectedJSON)
+
+		// Act
+		raw, err := GoogleCredentialsJSON()
+
+		// Assert
+		require.NoError(t, err)
+		assert.Equal(t, []byte(expectedJSON), raw)
+	})
+
+	t.Run("Class 4: File path in GOOGLE_APPLICATION_CREDENTIALS returns nil", func(t *testing.T) {
+		// Arrange
+		t.Setenv("GOOGLE_APPLICATION_CREDENTIALS_BASE64", "")
+		t.Setenv("GOOGLE_APPLICATION_CREDENTIALS", "/etc/secrets/sa.json")
+
+		// Act
+		raw, err := GoogleCredentialsJSON()
+
+		// Assert
+		require.NoError(t, err)
+		assert.Nil(t, raw)
+	})
+
+	t.Run("Class 5: Empty/unset env variables returns nil", func(t *testing.T) {
+		// Arrange
+		t.Setenv("GOOGLE_APPLICATION_CREDENTIALS_BASE64", "   ")
+		t.Setenv("GOOGLE_APPLICATION_CREDENTIALS", "   ")
+
+		// Act
+		raw, err := GoogleCredentialsJSON()
+
+		// Assert
+		require.NoError(t, err)
+		assert.Nil(t, raw)
+	})
+}
+

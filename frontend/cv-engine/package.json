@@ -1,0 +1,60 @@
+{
+  "name": "@buenvivir/cv-engine",
+  "version": "1.0.0",
+  "type": "module",
+  "private": true,
+  "imports": {
+    "#react-pdf-renderer": "@react-pdf/renderer"
+  },
+  "main": "./dist/node/index.js",
+  "module": "./dist/browser/index.js",
+  "types": "./dist/browser.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/browser.d.ts",
+      "browser": "./dist/browser.js",
+      "node": "./src/index.ts",
+      "default": "./src/index.ts"
+    },
+    "./browser": {
+      "types": "./dist/browser.d.ts",
+      "default": "./dist/browser.js"
+    },
+    "./node": "./src/index.ts",
+    "./map": "./src/map-to-resume-data.ts"
+  },
+  "scripts": {
+    "build": "vite build",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@bramus/specificity": "^2.4.2",
+    "@react-pdf/hyphenate": "0.1.0",
+    "@react-pdf/renderer": "^4.2.0",
+    "@sindresorhus/slugify": "^3.0.1",
+    "@uiw/color-convert": "^2.10.3",
+    "cjk-regex": "^3.5.0",
+    "cn": "^0.3.0",
+    "css-tree": "^3.2.1",
+    "fast-json-patch": "^3.1.1",
+    "fast-png": "^8.0.0",
+    "node-html-parser": "^9.0.4",
+    "phosphor-icons-react-pdf": "^0.1.3",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "react-pdf-html": "^2.1.5",
+    "unique-names-generator": "^4.7.1",
+    "uuid": "^11.0.0",
+    "wink-porter2-stemmer": "2.0.1",
+    "zod": "^4.6.5"
+  },
+  "devDependencies": {
+    "@react-pdf/types": "^2.14.0",
+    "@types/node": "^22.0.0",
+    "@types/react": "^19.0.0",
+    "tsx": "^4.19.2",
+    "typescript": "^5.8.0",
+    "vite": "^5.4.21",
+    "vitest": "^2.1.8"
+  }
+}

@@ -12,6 +12,8 @@ import (
 	"auth/internal/controllers"
 	"auth/internal/dto"
 	"auth/internal/middlewares"
+	"auth/internal/models"
+	"auth/internal/services"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
@@ -19,6 +21,14 @@ import (
 
 type MockAuthService struct {
 	mock.Mock
+}
+
+func (m *MockAuthService) RefreshToken(ctx context.Context, refreshToken string) (*dto.LoginResponse, error) {
+	args := m.Called(ctx, refreshToken)
+	if args.Get(0) != nil {
+		return args.Get(0).(*dto.LoginResponse), args.Error(1)
+	}
+	return nil, args.Error(1)
 }
 
 func (m *MockAuthService) Register(ctx context.Context, req *dto.RegisterRequest) (*dto.LoginResponse, error) {
@@ -65,6 +75,14 @@ func (m *MockAuthService) UpdateMyProfile(ctx context.Context, roleID, userID st
 
 func (m *MockAuthService) GetMyProfile(ctx context.Context, roleID, userID string) (map[string]interface{}, error) {
 	args := m.Called(ctx, roleID, userID)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(map[string]interface{}), args.Error(1)
+}
+
+func (m *MockAuthService) GetUserProfile(ctx context.Context, userID string) (map[string]interface{}, error) {
+	args := m.Called(ctx, userID)
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
 	}
@@ -298,6 +316,21 @@ func TestAuthController_GetMe_Success(t *testing.T) {
 	assert.Equal(t, http.StatusOK, w.Code)
 }
 
+func TestAuthController_GetMe_DiceSiElDocenteEsExterno(t *testing.T) {
+	mockSvc := new(MockAuthService)
+	ctrl := controllers.NewAuthController(mockSvc)
+	ctx := context.WithValue(context.Background(), middlewares.UserIDKey, "usr")
+	ctx = context.WithValue(ctx, middlewares.RoleIDKey, "role_teacher")
+	ctx = context.WithValue(ctx, middlewares.IsExternalKey, true)
+	req := httptest.NewRequest("GET", "/me", nil).WithContext(ctx)
+	w := httptest.NewRecorder()
+
+	mockSvc.On("GetApprovalStatus", mock.Anything, "role_teacher", "usr").Return("approved")
+	ctrl.GetMe(w, req)
+	assert.Equal(t, http.StatusOK, w.Code)
+	assert.Contains(t, w.Body.String(), `"is_external":true`)
+}
+
 
 
 func TestAuthController_UpdateMyProfile_BadJSON(t *testing.T) {
@@ -465,4 +498,123 @@ func TestAuthController_UnlinkGoogleAccount_Success(t *testing.T) {
 	mockSvc.On("UnlinkGoogleAccount", mock.Anything, "usr").Return(nil)
 	ctrl.UnlinkGoogleAccount(w, req)
 	assert.Equal(t, http.StatusOK, w.Code)
+}
+
+type MockVerificationService struct {
+	mock.Mock
+}
+
+func (m *MockVerificationService) GenerateAndSendVerification(ctx context.Context, user *models.User) error {
+	args := m.Called(ctx, user)
+	return args.Error(0)
+}
+
+func (m *MockVerificationService) VerifyEmail(ctx context.Context, rawToken string) error {
+	args := m.Called(ctx, rawToken)
+	return args.Error(0)
+}
+
+func (m *MockVerificationService) ResendVerification(ctx context.Context, email string) error {
+	args := m.Called(ctx, email)
+	return args.Error(0)
+}
+
+func TestAuthController_VerifyEmail_Success(t *testing.T) {
+	mockAuthSvc := new(MockAuthService)
+	mockVerifSvc := new(MockVerificationService)
+	ctrl := controllers.NewAuthController(mockAuthSvc, mockVerifSvc)
+
+	mockVerifSvc.On("VerifyEmail", mock.Anything, "valid-token-xyz").Return(nil)
+
+	reqBody, _ := json.Marshal(dto.VerifyEmailRequest{Token: "valid-token-xyz"})
+	req := httptest.NewRequest("POST", "/verify-email", bytes.NewBuffer(reqBody))
+	w := httptest.NewRecorder()
+
+	ctrl.VerifyEmail(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+	assert.Contains(t, w.Body.String(), "exitosamente")
+}
+
+func TestAuthController_VerifyEmail_PatchSuccess(t *testing.T) {
+	mockAuthSvc := new(MockAuthService)
+	mockVerifSvc := new(MockVerificationService)
+	ctrl := controllers.NewAuthController(mockAuthSvc, mockVerifSvc)
+
+	mockVerifSvc.On("VerifyEmail", mock.Anything, "patch-token-123").Return(nil)
+
+	reqBody, _ := json.Marshal(dto.VerifyEmailRequest{Token: "patch-token-123"})
+	req := httptest.NewRequest("PATCH", "/verify-email", bytes.NewBuffer(reqBody))
+	w := httptest.NewRecorder()
+
+	ctrl.VerifyEmail(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+	assert.Contains(t, w.Body.String(), "exitosamente")
+}
+
+func TestAuthController_VerifyEmail_InvalidToken(t *testing.T) {
+	mockAuthSvc := new(MockAuthService)
+	mockVerifSvc := new(MockVerificationService)
+	ctrl := controllers.NewAuthController(mockAuthSvc, mockVerifSvc)
+
+	mockVerifSvc.On("VerifyEmail", mock.Anything, "expired-token").Return(errors.New("el token de verificación ha expirado"))
+
+	reqBody, _ := json.Marshal(dto.VerifyEmailRequest{Token: "expired-token"})
+	req := httptest.NewRequest("POST", "/verify-email", bytes.NewBuffer(reqBody))
+	w := httptest.NewRecorder()
+
+	ctrl.VerifyEmail(w, req)
+
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+	assert.Contains(t, w.Body.String(), "expirado")
+}
+
+func TestAuthController_ResendVerification_Success(t *testing.T) {
+	mockAuthSvc := new(MockAuthService)
+	mockVerifSvc := new(MockVerificationService)
+	ctrl := controllers.NewAuthController(mockAuthSvc, mockVerifSvc)
+
+	mockVerifSvc.On("ResendVerification", mock.Anything, "user@example.com").Return(nil)
+
+	reqBody, _ := json.Marshal(dto.ResendVerificationRequest{Email: "user@example.com"})
+	req := httptest.NewRequest("POST", "/resend-verification", bytes.NewBuffer(reqBody))
+	w := httptest.NewRecorder()
+
+	ctrl.ResendVerification(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+	assert.Contains(t, w.Body.String(), "reenviado")
+}
+
+func TestAuthController_Login_EmailNotVerified403(t *testing.T) {
+	mockSvc := new(MockAuthService)
+	ctrl := controllers.NewAuthController(mockSvc)
+
+	reqBody, _ := json.Marshal(dto.LoginRequest{UserID: "usr", RoleID: "role_participant", LoginNonce: "nonce"})
+	mockSvc.On("Login", mock.Anything, mock.AnythingOfType("*dto.LoginRequest")).Return(nil, services.ErrEmailNotVerified)
+
+	req := httptest.NewRequest("POST", "/login", bytes.NewBuffer(reqBody))
+	w := httptest.NewRecorder()
+
+	ctrl.Login(w, req)
+
+	assert.Equal(t, http.StatusForbidden, w.Code)
+	assert.Contains(t, w.Body.String(), "EMAIL_NOT_VERIFIED")
+}
+
+func TestAuthController_Login_PendingApproval403(t *testing.T) {
+	mockSvc := new(MockAuthService)
+	ctrl := controllers.NewAuthController(mockSvc)
+
+	reqBody, _ := json.Marshal(dto.LoginRequest{UserID: "usr", RoleID: "role_participant", LoginNonce: "nonce"})
+	mockSvc.On("Login", mock.Anything, mock.AnythingOfType("*dto.LoginRequest")).Return(nil, services.ErrAccountPendingApproval)
+
+	req := httptest.NewRequest("POST", "/login", bytes.NewBuffer(reqBody))
+	w := httptest.NewRecorder()
+
+	ctrl.Login(w, req)
+
+	assert.Equal(t, http.StatusForbidden, w.Code)
+	assert.Contains(t, w.Body.String(), "ACCOUNT_PENDING_APPROVAL")
 }

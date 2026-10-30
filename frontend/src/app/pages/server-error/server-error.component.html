@@ -1,0 +1,52 @@
+<div class="auth-container">
+  <div class="auth-content">
+    <div class="auth-wrapper">
+      <!-- Header -->
+      <div class="auth-header">
+        <div class="auth-logo-container">
+          <img src="assets/logo.png" alt="Logo Buen Vivir" class="auth-logo" />
+        </div>
+        <h1 class="auth-title">Buen Vivir</h1>
+        <p class="auth-subtitle">Centro de Ecología Integral</p>
+      </div>
+
+      <!-- Card -->
+      <div class="auth-card">
+        <div class="status-code">500</div>
+
+        <div class="icon-wrapper">
+          <lucide-angular
+            [img]="TriangleAlertIcon"
+            class="notice-icon"
+          ></lucide-angular>
+        </div>
+
+        <h2 class="auth-card-title text-center">Error del servidor</h2>
+
+        <p class="notice-message">
+          Ocurrió un problema inesperado al procesar la solicitud en el
+          servidor. Por favor, intentá nuevamente en unos instantes.
+        </p>
+
+        <div class="actions-wrapper">
+          <button (click)="reloadPage()" class="btn-submit">
+            <lucide-angular
+              [img]="RotateCwIcon"
+              class="btn-icon"
+            ></lucide-angular>
+            Reintentar
+          </button>
+
+          <button (click)="goToHome()" class="btn-secondary">
+            <lucide-angular [img]="HomeIcon" class="btn-icon"></lucide-angular>
+            Ir a la página principal
+          </button>
+        </div>
+      </div>
+
+      <div class="auth-footer">
+        <a routerLink="/contacto" class="auth-link">Contactar soporte</a>
+      </div>
+    </div>
+  </div>
+</div>

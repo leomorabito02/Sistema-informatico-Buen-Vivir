@@ -1,0 +1,89 @@
+.page-container {
+  max-width: 800px;
+}
+
+.timeline {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  position: relative;
+}
+
+.timeline::before {
+  content: "";
+  position: absolute;
+  left: 7px;
+  top: 0.5rem;
+  bottom: 0.5rem;
+  width: 2px;
+  background: var(--border, rgba(29, 29, 27, 0.2));
+}
+
+.timeline-item {
+  position: relative;
+  padding-left: 2rem;
+  padding-bottom: 1.25rem;
+}
+
+.timeline-item:last-child {
+  padding-bottom: 0;
+}
+
+.timeline-dot {
+  position: absolute;
+  left: 0;
+  top: 0.35rem;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--card, #fff);
+  border: 3px solid var(--primary);
+}
+
+.timeline-content {
+  background: var(--muted, rgba(72, 88, 57, 0.06));
+  border-radius: var(--radius, 0.75rem);
+  padding: 0.85rem 1rem;
+}
+
+.timeline-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 0.35rem;
+}
+
+.timeline-date {
+  font-weight: 700;
+  color: var(--primary);
+}
+
+.timeline-origen {
+  font-size: var(--font-size-sm, 0.875rem);
+  color: var(--text-muted);
+}
+
+.timeline-curso {
+  margin: 0.25rem 0 0;
+  font-weight: 600;
+  color: var(--text-primary, #1d1d1b);
+}
+
+/* La actividad en el centro (no la carga el equipo) va más tenue. */
+.timeline-item--actividad .timeline-dot {
+  border-color: var(--text-muted);
+}
+
+.timeline-item--actividad .timeline-content {
+  background: transparent;
+  border: 1px dashed var(--border);
+}
+
+.texto-libre {
+  white-space: pre-line;
+  color: var(--text-primary, #1d1d1b);
+  margin: 0;
+  line-height: 1.5;
+}

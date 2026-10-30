@@ -8,11 +8,11 @@ import (
 	"buenvivir/education/internal/repositories"
 )
 
-// AttendanceService valida las reglas de negocio de "asistencias"
-// antes de delegar en el repository (Firestore).
+// AttendanceService expone la consulta de "asistencias" por actividad
+// (HU-19). Es de solo lectura: la asistencia por curso ya no se carga a
+// mano, la genera cada entrega (ver SubmissionService.Submit).
 type AttendanceService interface {
 	ListByActivity(ctx context.Context, actividadID string) ([]models.Attendance, error)
-	RegisterBatch(ctx context.Context, actividadID string, inputs []models.AttendanceInput) error
 }
 
 type attendanceService struct {
@@ -28,19 +28,4 @@ func (s *attendanceService) ListByActivity(ctx context.Context, actividadID stri
 		return nil, NewValidationError("el id de la actividad es requerido")
 	}
 	return s.repo.ListByActivity(ctx, actividadID)
-}
-
-func (s *attendanceService) RegisterBatch(ctx context.Context, actividadID string, inputs []models.AttendanceInput) error {
-	if strings.TrimSpace(actividadID) == "" {
-		return NewValidationError("el id de la actividad es requerido")
-	}
-	if len(inputs) == 0 {
-		return NewValidationError("se requiere al menos un registro de asistencia")
-	}
-	for _, in := range inputs {
-		if strings.TrimSpace(in.ParticipanteID) == "" {
-			return NewValidationError("cada registro de asistencia requiere 'participanteId'")
-		}
-	}
-	return s.repo.RegisterBatch(ctx, actividadID, inputs)
 }

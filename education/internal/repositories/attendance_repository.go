@@ -3,7 +3,6 @@ package repositories
 import (
 	"context"
 	"fmt"
-	"time"
 
 	"cloud.google.com/go/firestore"
 	"google.golang.org/api/iterator"
@@ -13,16 +12,13 @@ import (
 
 const attendancesCollection = "asistencias"
 
-// AttendanceRepository encapsula el acceso a la colección Firestore
-// "asistencias".
+// AttendanceRepository encapsula la lectura de la colección Firestore
+// "asistencias". Es de solo lectura: las asistencias no se cargan a
+// mano, las escribe SubmissionRepository.CreateWithAttendance al
+// entregar una actividad.
 type AttendanceRepository interface {
 	ListByActivity(ctx context.Context, actividadID string) ([]models.Attendance, error)
 	ListByParticipant(ctx context.Context, participanteID string) ([]models.Attendance, error)
-	// RegisterBatch registra un documento de asistencia por cada
-	// input, con id determinístico {actividadId}_{participanteId}: si
-	// el docente corrige y vuelve a mandar la misma actividad para el
-	// mismo participante, se sobrescribe en vez de duplicarse.
-	RegisterBatch(ctx context.Context, actividadID string, inputs []models.AttendanceInput) error
 }
 
 type attendanceRepository struct {
@@ -62,28 +58,4 @@ func (r *attendanceRepository) list(ctx context.Context, field, value string) ([
 		attendances = append(attendances, a)
 	}
 	return attendances, nil
-}
-
-func (r *attendanceRepository) RegisterBatch(ctx context.Context, actividadID string, inputs []models.AttendanceInput) error {
-	if len(inputs) == 0 {
-		return nil
-	}
-
-	now := time.Now().UTC()
-	batch := r.client.Batch() //nolint:staticcheck // WriteBatch alcanza para este lote chico y atómico; migrar a BulkWriter no aporta acá
-	for _, in := range inputs {
-		docID := actividadID + "_" + in.ParticipanteID
-		a := models.Attendance{
-			ParticipanteID: in.ParticipanteID,
-			ActividadID:    actividadID,
-			Presente:       in.Presente,
-			Fecha:          now,
-		}
-		batch.Set(r.client.Collection(attendancesCollection).Doc(docID), a)
-	}
-
-	if _, err := batch.Commit(ctx); err != nil {
-		return fmt.Errorf("error registrando asistencia: %w", err)
-	}
-	return nil
 }

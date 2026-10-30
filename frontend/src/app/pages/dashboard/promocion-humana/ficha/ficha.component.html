@@ -1,0 +1,373 @@
+<p-toast></p-toast>
+
+<div class="page-container">
+  <div class="top-bar">
+    <app-back-link
+      to="/dashboard/promocion-humana"
+      label="Volver a la búsqueda"
+    ></app-back-link>
+  </div>
+
+  <app-loading-state
+    *ngIf="loading"
+    variant="detail"
+    label="Cargando ficha…"
+  ></app-loading-state>
+
+  <app-error-state
+    *ngIf="!loading && error"
+    [message]="error"
+    (retry)="cargarFicha()"
+  ></app-error-state>
+
+  <ng-container *ngIf="!loading && !error">
+    <div class="header-section">
+      <div>
+        <h1 class="page-title">{{ nombreCompleto }}</h1>
+        <p class="page-subtitle">
+          {{
+            sinFicha
+              ? "Nueva ficha de proceso personal"
+              : "Ficha de proceso personal"
+          }}
+          <span class="confidencial"
+            ><i class="pi pi-lock" aria-hidden="true"></i> Confidencial</span
+          >
+        </p>
+      </div>
+      <p-button
+        *ngIf="ficha"
+        label="Exportar PDF"
+        icon="pi pi-download"
+        [outlined]="true"
+        [loading]="descargandoPdf"
+        (onClick)="exportarPdf()"
+      ></p-button>
+    </div>
+
+    <!-- ============ DATOS PERSONALES (solo lectura, HU-31) ============ -->
+    <p-card *ngIf="ficha" styleClass="p-card-shadow section-card">
+      <div class="section-head">
+        <h2 class="section-title">Datos personales</h2>
+        <a routerLink="/dashboard/usuarios" class="link-origen">
+          <i class="pi pi-external-link" aria-hidden="true"></i>
+          Editar en gestión de usuarios
+        </a>
+      </div>
+
+      <dl *ngIf="ficha.participante; else sinDatos" class="datos-grid">
+        <div>
+          <dt>Nombre</dt>
+          <dd>{{ ficha.participante.nombre || "Sin dato" }}</dd>
+        </div>
+        <div>
+          <dt>Apellido</dt>
+          <dd>{{ ficha.participante.apellido || "Sin dato" }}</dd>
+        </div>
+        <div>
+          <dt>Fecha de nacimiento</dt>
+          <dd>
+            {{ formatDMY(ficha.participante.fecha_nacimiento) || "Sin dato" }}
+          </dd>
+        </div>
+        <div>
+          <dt>Edad</dt>
+          <dd>
+            {{
+              ficha.participante.edad != null
+                ? ficha.participante.edad + " años"
+                : "Sin dato"
+            }}
+          </dd>
+        </div>
+        <div class="span-2">
+          <dt>Habilidades</dt>
+          <dd>
+            <ng-container *ngIf="ficha.habilidades.length; else sinHabilidades">
+              <p-tag
+                *ngFor="let h of ficha.habilidades"
+                [value]="h"
+                severity="secondary"
+                styleClass="mr-2"
+              ></p-tag>
+            </ng-container>
+            <ng-template #sinHabilidades
+              >Sin habilidades registradas</ng-template
+            >
+          </dd>
+        </div>
+      </dl>
+      <ng-template #sinDatos>
+        <p-message
+          severity="warn"
+          text="Los datos personales no están disponibles en este momento."
+          styleClass="w-full"
+        ></p-message>
+      </ng-template>
+    </p-card>
+
+    <!-- ============ SITUACIÓN Y AVANCES (HU-29, HU-30) ============ -->
+    <p-card styleClass="p-card-shadow section-card">
+      <div class="section-head">
+        <h2 class="section-title">Seguimiento</h2>
+        <p-button
+          *ngIf="ficha && !editando"
+          label="Editar"
+          icon="pi pi-pencil"
+          size="small"
+          [outlined]="true"
+          (onClick)="empezarEdicion()"
+        ></p-button>
+      </div>
+
+      <!-- Vista -->
+      <ng-container *ngIf="ficha && !editando">
+        <h3 class="field-title">Situación actual</h3>
+        <p class="texto-libre">{{ ficha.situacion_actual }}</p>
+        <h3 class="field-title">Avances</h3>
+        <p class="texto-libre">{{ ficha.avances }}</p>
+        <p class="meta">
+          Última actualización: {{ formatDMY(ficha.updated_at) }}
+          <ng-container *ngIf="ficha.creado_por_nombre">
+            · Creada por {{ ficha.creado_por_nombre }}</ng-container
+          >
+        </p>
+      </ng-container>
+
+      <!-- Alta / edición -->
+      <form
+        *ngIf="editando"
+        class="form-grid"
+        (ngSubmit)="guardarFicha()"
+        novalidate
+      >
+        <p-message
+          *ngIf="intentoGuardar && faltanCamposFicha"
+          severity="warn"
+          text="Completar todos los campos obligatorios para continuar"
+          styleClass="w-full"
+        ></p-message>
+
+        <label for="situacion-actual" class="field-label">
+          Situación actual <span class="req" aria-hidden="true">*</span>
+        </label>
+        <textarea
+          id="situacion-actual"
+          name="situacionActual"
+          pTextarea
+          rows="5"
+          required
+          [maxlength]="maxTexto"
+          [(ngModel)]="situacionActual"
+          [class.ng-invalid]="intentoGuardar && !situacionActual.trim()"
+          [class.ng-dirty]="intentoGuardar"
+          [attr.aria-invalid]="intentoGuardar && !situacionActual.trim()"
+        ></textarea>
+
+        <label for="avances" class="field-label">
+          Avances <span class="req" aria-hidden="true">*</span>
+        </label>
+        <textarea
+          id="avances"
+          name="avances"
+          pTextarea
+          rows="5"
+          required
+          [maxlength]="maxTexto"
+          [(ngModel)]="avances"
+          [class.ng-invalid]="intentoGuardar && !avances.trim()"
+          [class.ng-dirty]="intentoGuardar"
+          [attr.aria-invalid]="intentoGuardar && !avances.trim()"
+        ></textarea>
+
+        <div class="form-actions">
+          <p-button
+            *ngIf="!sinFicha"
+            label="Cancelar"
+            severity="secondary"
+            [text]="true"
+            (onClick)="cancelarEdicion()"
+          ></p-button>
+          <p-button
+            type="submit"
+            [label]="sinFicha ? 'Crear ficha' : 'Guardar cambios'"
+            icon="pi pi-check"
+            [loading]="guardando"
+          ></p-button>
+        </div>
+      </form>
+    </p-card>
+
+    <!-- ============ LÍNEA DE TIEMPO (HU-32, HU-33) ============ -->
+    <p-card *ngIf="ficha" styleClass="p-card-shadow section-card">
+      <div class="section-head">
+        <h2 class="section-title">Línea de tiempo</h2>
+        <p-button
+          label="Registrar hito"
+          icon="pi pi-plus"
+          size="small"
+          (onClick)="nuevoHito()"
+        ></p-button>
+      </div>
+
+      <app-error-state
+        *ngIf="errorHitos"
+        [message]="errorHitos"
+        (retry)="cargarHitos()"
+      ></app-error-state>
+
+      <app-loading-state
+        *ngIf="cargandoHitos"
+        variant="list"
+        label="Cargando hitos…"
+      ></app-loading-state>
+
+      <app-empty-state
+        *ngIf="!cargandoHitos && !errorHitos && items.length === 0"
+      >
+        Todavía no hay hitos ni actividad registrados.
+      </app-empty-state>
+
+      <ol *ngIf="!cargandoHitos && items.length > 0" class="timeline">
+        <li
+          *ngFor="let item of items; trackBy: trackByKey"
+          class="timeline-item"
+          [class.timeline-item--actividad]="item.tipo === 'actividad'"
+        >
+          <span class="timeline-dot" aria-hidden="true"></span>
+
+          <div *ngIf="item.tipo === 'hito'" class="timeline-content">
+            <div class="timeline-head">
+              <time class="timeline-date" [attr.datetime]="item.fecha">{{
+                formatDMY(item.fecha)
+              }}</time>
+              <p-tag
+                [value]="
+                  item.hito.visible_participante
+                    ? 'Visible para el participante'
+                    : 'Confidencial'
+                "
+                [icon]="
+                  item.hito.visible_participante ? 'pi pi-eye' : 'pi pi-lock'
+                "
+                [severity]="
+                  item.hito.visible_participante ? 'success' : 'secondary'
+                "
+              ></p-tag>
+            </div>
+            <p class="texto-libre">{{ item.hito.descripcion }}</p>
+            <div class="timeline-foot">
+              <span class="meta"
+                >Responsable:
+                {{ item.hito.responsable_nombre || "Sin dato" }}</span
+              >
+              <p-button
+                label="Editar"
+                icon="pi pi-pencil"
+                size="small"
+                [text]="true"
+                [ariaLabel]="'Editar hito del ' + formatDMY(item.fecha)"
+                (onClick)="editarHito(item.hito)"
+              ></p-button>
+            </div>
+          </div>
+
+          <div *ngIf="item.tipo === 'actividad'" class="timeline-content">
+            <div class="timeline-head">
+              <time class="timeline-date" [attr.datetime]="item.fecha">{{
+                formatDMY(item.fecha)
+              }}</time>
+              <span class="meta">Actividad en el centro</span>
+            </div>
+            <p class="texto-libre">{{ item.actividad.descripcion }}</p>
+            <p *ngIf="item.curso" class="timeline-curso">{{ item.curso }}</p>
+          </div>
+        </li>
+      </ol>
+    </p-card>
+  </ng-container>
+</div>
+
+<!-- ============ DIÁLOGO HITO ============ -->
+<p-dialog
+  [(visible)]="dialogoHito"
+  [modal]="true"
+  [style]="{ width: '560px' }"
+  [breakpoints]="{ '640px': '94vw' }"
+  [header]="hitoEditandoId ? 'Editar hito' : 'Registrar hito'"
+>
+  <form class="form-grid" (ngSubmit)="guardarHito()" novalidate>
+    <p-message
+      *ngIf="intentoGuardarHito && faltanCamposHito"
+      severity="warn"
+      text="Completar todos los campos obligatorios para continuar"
+      styleClass="w-full"
+    ></p-message>
+
+    <label for="hito-fecha" class="field-label">
+      Fecha <span class="req" aria-hidden="true">*</span>
+    </label>
+    <p-datepicker
+      inputId="hito-fecha"
+      name="fecha"
+      [(ngModel)]="hitoForm.fecha"
+      dateFormat="dd/mm/yy"
+      [showIcon]="true"
+      appendTo="body"
+      styleClass="w-full"
+    ></p-datepicker>
+
+    <label for="hito-descripcion" class="field-label">
+      Descripción <span class="req" aria-hidden="true">*</span>
+    </label>
+    <textarea
+      id="hito-descripcion"
+      name="descripcion"
+      pTextarea
+      rows="4"
+      required
+      [maxlength]="maxDescripcion"
+      [(ngModel)]="hitoForm.descripcion"
+      [attr.aria-invalid]="intentoGuardarHito && !hitoForm.descripcion.trim()"
+    ></textarea>
+
+    <label for="hito-responsable" class="field-label">Responsable</label>
+    <p-select
+      inputId="hito-responsable"
+      name="responsable"
+      [options]="responsables"
+      optionLabel="label"
+      optionValue="value"
+      [(ngModel)]="hitoForm.responsableId"
+      appendTo="body"
+      styleClass="w-full"
+    ></p-select>
+
+    <div class="checkbox-row">
+      <p-checkbox
+        inputId="hito-visible"
+        name="visible"
+        [(ngModel)]="hitoForm.visibleParticipante"
+        [binary]="true"
+      ></p-checkbox>
+      <label for="hito-visible">
+        Visible para el participante en su línea de tiempo
+      </label>
+    </div>
+
+    <div class="form-actions">
+      <p-button
+        label="Cancelar"
+        severity="secondary"
+        [text]="true"
+        (onClick)="dialogoHito = false"
+      ></p-button>
+      <p-button
+        type="submit"
+        label="Guardar hito"
+        icon="pi pi-check"
+        [loading]="guardandoHito"
+      ></p-button>
+    </div>
+  </form>
+</p-dialog>

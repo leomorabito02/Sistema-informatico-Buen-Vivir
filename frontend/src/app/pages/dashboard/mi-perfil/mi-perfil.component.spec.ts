@@ -10,10 +10,19 @@ import { of, throwError } from "rxjs";
 import { ReactiveFormsModule } from "@angular/forms";
 import { Auth, GoogleAuthProvider, signInWithPopup } from "@angular/fire/auth";
 
+import { RxResumeService } from "../../../services/rxresume.service";
+import { UsersService } from "../../../services/users.service";
+import { EducationService } from "../../../services/education.service";
+import { JobOfferService } from "../../../services/job-offer.service";
+
 describe("MiPerfilComponent", () => {
   let component: MiPerfilComponent;
   let fixture: ComponentFixture<MiPerfilComponent>;
   let profileServiceSpy: jasmine.SpyObj<ProfileService>;
+  let rxResumeServiceSpy: jasmine.SpyObj<RxResumeService>;
+  let usersServiceSpy: jasmine.SpyObj<UsersService>;
+  let educationServiceSpy: jasmine.SpyObj<EducationService>;
+  let jobOfferServiceSpy: jasmine.SpyObj<JobOfferService>;
   let mockAuth: any;
 
   beforeEach(async () => {
@@ -24,8 +33,47 @@ describe("MiPerfilComponent", () => {
       "unlinkGoogleAccount",
     ]);
     profileServiceSpy.getMyProfile.and.returnValue(
-      of({ user: { email: "test@test.com" }, roles: [] } as any),
+      of({
+        user: {
+          email: "test@test.com",
+          user_id: "u-1",
+          role_id: "role_participant",
+        },
+        roles: [],
+      } as any),
     );
+
+    rxResumeServiceSpy = jasmine.createSpyObj("RxResumeService", [
+      "uploadPicture",
+      "getMyResume",
+    ]);
+    rxResumeServiceSpy.getMyResume.and.returnValue(
+      of({ data: { basics: { name: "Test User" } } } as any),
+    );
+
+    usersServiceSpy = jasmine.createSpyObj("UsersService", [
+      "updateRoleData",
+      "getParticipantDocuments",
+    ]);
+    usersServiceSpy.getParticipantDocuments.and.returnValue(of([]));
+
+    educationServiceSpy = jasmine.createSpyObj("EducationService", [
+      "listMyEnrolledCourses",
+      "getMyCourse",
+      "listMyCourses",
+      "listActivities",
+    ]);
+    educationServiceSpy.listMyEnrolledCourses.and.returnValue(of([]));
+    educationServiceSpy.getMyCourse.and.returnValue(of({} as any));
+    educationServiceSpy.listMyCourses.and.returnValue(of([]));
+    educationServiceSpy.listActivities.and.returnValue(of([]));
+
+    jobOfferServiceSpy = jasmine.createSpyObj("JobOfferService", [
+      "getMyApplications",
+      "getOffers",
+    ]);
+    jobOfferServiceSpy.getMyApplications.and.returnValue(of([]));
+    jobOfferServiceSpy.getOffers.and.returnValue(of([]));
 
     mockAuth = {};
 
@@ -33,6 +81,10 @@ describe("MiPerfilComponent", () => {
       imports: [MiPerfilComponent, ReactiveFormsModule],
       providers: [
         { provide: ProfileService, useValue: profileServiceSpy },
+        { provide: RxResumeService, useValue: rxResumeServiceSpy },
+        { provide: UsersService, useValue: usersServiceSpy },
+        { provide: EducationService, useValue: educationServiceSpy },
+        { provide: JobOfferService, useValue: jobOfferServiceSpy },
         { provide: Auth, useValue: mockAuth },
       ],
     }).compileComponents();
@@ -76,6 +128,32 @@ describe("MiPerfilComponent", () => {
     expect(
       component.formatRoleValue("created_at", "2023-01-01T12:00:00Z"),
     ).toContain("2023");
+  });
+
+  it("should render role image as img and not as text link", () => {
+    component.profileData = {
+      user: {
+        email: "test@test.com",
+        user_id: "u-1",
+        role_id: "role_participant",
+        first_name: "Test",
+        last_name: "User",
+        phone: "",
+        status: "active",
+        twofa_enabled: false,
+        created_at: "",
+        updated_at: "",
+      },
+      role_data: { image_url: "https://example.com/role-avatar.jpg" },
+    };
+    component.isEditingProfile = false;
+    fixture.detectChanges();
+
+    const img = fixture.nativeElement.querySelector(".role-profile-picture");
+    expect(img).not.toBeNull();
+    expect(img?.getAttribute("src")).toBe(
+      "https://example.com/role-avatar.jpg",
+    );
   });
 
   describe("Password Change", () => {
@@ -143,6 +221,39 @@ describe("MiPerfilComponent", () => {
       component.unlinkGoogle();
 
       expect(component.googleError).toBe("Unlink Error");
+    });
+  });
+
+  describe("Data Privacy export", () => {
+    it("should trigger exportUserData and generate pdf", async () => {
+      educationServiceSpy.listMyEnrolledCourses.and.returnValue(
+        of([{ id: "c-1", title: "Agroecología" } as any]),
+      );
+      educationServiceSpy.getMyCourse.and.returnValue(
+        of({
+          curso: { id: "c-1", title: "Agroecología" },
+          actividades: [
+            {
+              id: "a-1",
+              titulo: "Suelo vivo",
+              entrega: { fechaEntrega: "2026-03-01T00:00:00Z" },
+            },
+          ],
+          progreso: {
+            porcentajeAsistencia: 100,
+            actividadesAsistidas: 1,
+            actividadesTotal: 1,
+          },
+        } as any),
+      );
+      jobOfferServiceSpy.getMyApplications.and.returnValue(
+        of([{ oferta_id: "off-1", estado: "Aprobada" } as any]),
+      );
+
+      await component.exportUserData();
+
+      expect(component.isExported).toBeTrue();
+      expect(component.isExporting).toBeFalse();
     });
   });
 });

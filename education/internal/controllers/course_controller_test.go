@@ -7,6 +7,7 @@ import (
 	"errors"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"github.com/go-chi/chi/v5"
@@ -114,6 +115,11 @@ func (m *MockCourseService) VerifyOwnership(ctx context.Context, cursoID, teache
 	return args.Error(0)
 }
 
+func (m *MockCourseService) VerifyExists(ctx context.Context, cursoID string) error {
+	args := m.Called(ctx, cursoID)
+	return args.Error(0)
+}
+
 // withChiURLParam simula lo que hace el router chi al popular
 // chi.URLParam(r, key), necesario porque los controllers lo leen
 // directo en vez de r.PathValue.
@@ -134,6 +140,36 @@ func TestCourseController_List_Success(t *testing.T) {
 	ctrl.List(w, req)
 
 	assert.Equal(t, http.StatusOK, w.Code)
+}
+
+func TestCourseController_List_Busqueda(t *testing.T) {
+	mockSvc := new(MockCourseService)
+	ctrl := controllers.NewCourseController(mockSvc)
+
+	mockSvc.On("ListCourses", mock.Anything).Return([]models.Course{
+		{ID: "c1", Title: "Huerta agroecológica"},
+		{ID: "c2", Title: "Panadería"},
+	}, nil)
+
+	req := httptest.NewRequest("GET", "/api/cursos?q=huerta", nil)
+	w := httptest.NewRecorder()
+	ctrl.List(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+	assert.Contains(t, w.Body.String(), `"id":"c1"`)
+	assert.NotContains(t, w.Body.String(), `"id":"c2"`)
+}
+
+func TestCourseController_List_BusquedaDemasiadoLarga(t *testing.T) {
+	mockSvc := new(MockCourseService)
+	ctrl := controllers.NewCourseController(mockSvc)
+
+	req := httptest.NewRequest("GET", "/api/cursos?q="+strings.Repeat("a", 101), nil)
+	w := httptest.NewRecorder()
+	ctrl.List(w, req)
+
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+	mockSvc.AssertNotCalled(t, "ListCourses", mock.Anything)
 }
 
 func TestCourseController_List_ServiceError(t *testing.T) {
@@ -242,6 +278,25 @@ func TestCourseController_Update_Success(t *testing.T) {
 	assert.Equal(t, http.StatusOK, w.Code)
 }
 
+func TestCourseController_Update_ServiceError(t *testing.T) {
+	// Arrange
+	mockSvc := new(MockCourseService)
+	ctrl := controllers.NewCourseController(mockSvc)
+
+	mockSvc.On("UpdateCourse", mock.Anything, "c1", mock.AnythingOfType("models.CourseInput")).
+		Return(nil, errors.New("update failed"))
+
+	body, _ := json.Marshal(models.CourseInput{Title: "Curso"})
+	req := withChiURLParam(httptest.NewRequest("PUT", "/api/cursos/c1", bytes.NewBuffer(body)), "id", "c1")
+	w := httptest.NewRecorder()
+
+	// Act
+	ctrl.Update(w, req)
+
+	// Assert
+	assert.Equal(t, http.StatusBadGateway, w.Code)
+}
+
 func TestCourseController_Delete_Success(t *testing.T) {
 	mockSvc := new(MockCourseService)
 	ctrl := controllers.NewCourseController(mockSvc)
@@ -321,3 +376,36 @@ func TestCourseController_ListDrafts_Success(t *testing.T) {
 
 	assert.Equal(t, http.StatusOK, w.Code)
 }
+
+func TestCourseController_ListDrafts_ServiceError(t *testing.T) {
+	// Arrange
+	mockSvc := new(MockCourseService)
+	ctrl := controllers.NewCourseController(mockSvc)
+	mockSvc.On("ListAllDraftCourses", mock.Anything).Return(nil, errors.New("db error"))
+
+	req := httptest.NewRequest("GET", "/api/cursos/borradores", nil)
+	w := httptest.NewRecorder()
+
+	// Act
+	ctrl.ListDrafts(w, req)
+
+	// Assert
+	assert.Equal(t, http.StatusBadGateway, w.Code)
+}
+
+func TestCourseController_Unpublish_ServiceError(t *testing.T) {
+	// Arrange
+	mockSvc := new(MockCourseService)
+	ctrl := controllers.NewCourseController(mockSvc)
+	mockSvc.On("UnpublishCourse", mock.Anything, "c1").Return(errors.New("unpublish err"))
+
+	req := withChiURLParam(httptest.NewRequest("POST", "/api/cursos/c1/despublicar", nil), "id", "c1")
+	w := httptest.NewRecorder()
+
+	// Act
+	ctrl.Unpublish(w, req)
+
+	// Assert
+	assert.Equal(t, http.StatusBadGateway, w.Code)
+}
+

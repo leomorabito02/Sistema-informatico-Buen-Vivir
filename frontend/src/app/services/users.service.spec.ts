@@ -77,13 +77,24 @@ describe("UsersService", () => {
     req.flush({ success: true } as any);
   });
 
+  it("sends the search text to the backend", () => {
+    service.listUsers({ q: "  ana " }).subscribe();
+
+    const req = httpMock.expectOne(
+      `${environment.apiUrl ?? ""}/api/v1/users?q=ana`,
+    );
+    req.flush({ success: true, data: [] });
+  });
+
   it("should list users by role", () => {
     service.listByRole("role_admin").subscribe((users) => {
       expect(users).toHaveSize(1);
       expect(users[0].first_name).toBe("Admin");
     });
 
-    const req = httpMock.expectOne(`${environment.apiUrl ?? ""}/api/v1/users`);
+    const req = httpMock.expectOne(
+      `${environment.apiUrl ?? ""}/api/v1/users?role=role_admin`,
+    );
     req.flush({ success: true, data: mockUsers });
   });
 
@@ -167,5 +178,47 @@ describe("UsersService", () => {
 
     const req = httpMock.expectOne(`${environment.apiUrl ?? ""}/api/v1/users`);
     req.flush({}, { status: 404, statusText: "Not Found" });
+  });
+
+  describe("deleteUser", () => {
+    const url = () => `${environment.apiUrl ?? ""}/api/v1/users/u9`;
+
+    it("hace DELETE con credenciales", () => {
+      let done = false;
+      service.deleteUser("u9").subscribe(() => (done = true));
+
+      const req = httpMock.expectOne(url());
+      expect(req.request.method).toBe("DELETE");
+      expect(req.request.withCredentials).toBeTrue();
+      req.flush({ success: true, data: { message: "ok" } });
+      expect(done).toBeTrue();
+    });
+
+    it("devuelve el error del backend", () => {
+      let message = "";
+      service.deleteUser("u9").subscribe({
+        error: (err: Error) => (message = err.message),
+      });
+
+      httpMock
+        .expectOne(url())
+        .flush(
+          { error: "forbidden: access denied" },
+          { status: 500, statusText: "Internal Server Error" },
+        );
+      expect(message).toBe("forbidden: access denied");
+    });
+
+    it("explica cuando la sesión venció", () => {
+      let message = "";
+      service.deleteUser("u9").subscribe({
+        error: (err: Error) => (message = err.message),
+      });
+
+      httpMock
+        .expectOne(url())
+        .flush({}, { status: 401, statusText: "Unauthorized" });
+      expect(message).toContain("Tu sesión expiró");
+    });
   });
 });

@@ -1,4 +1,4 @@
-FROM golang:1.25-alpine AS builder
+FROM golang:1.26-alpine AS builder
 
 WORKDIR /app
 
@@ -23,6 +23,6 @@ RUN chown appuser:appgroup /app/server && \
 
 USER appuser
 
-EXPOSE 8080
+EXPOSE 8080 50051
 
 CMD ["./server"]

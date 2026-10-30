@@ -1,0 +1,51 @@
+.dialog-header-custom {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.header-icon-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 9999px;
+  flex-shrink: 0;
+}
+
+[data-severity="warn"] .header-icon-wrapper {
+  background-color: #fef3c7;
+  color: #92400e;
+}
+
+[data-severity="error"] .header-icon-wrapper {
+  background-color: #fee2e2;
+  color: #b91c1c;
+}
+
+[data-severity="info"] .header-icon-wrapper {
+  background-color: #e0f2fe;
+  color: #0369a1;
+}
+
+.header-title {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--text-main, #1e293b);
+  line-height: 1.35;
+}
+
+.dialog-message {
+  margin: 0.5rem 0 0.25rem;
+  color: var(--text-muted, #475569);
+  font-size: 0.95rem;
+  line-height: 1.5;
+}
+
+.dialog-footer-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  width: 100%;
+}

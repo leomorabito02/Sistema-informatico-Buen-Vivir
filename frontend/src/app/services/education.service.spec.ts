@@ -66,6 +66,69 @@ describe("EducationService", () => {
     req2.flush(mockCourses[0]);
   });
 
+  it("sends search and area filters to the backend (HU-28)", () => {
+    service.listCourses(" huerta ", "a1").subscribe();
+    const req = httpMock.expectOne(
+      (r) => r.url === `${getBaseUrl()}/api/cursos`,
+    );
+    expect(req.request.params.get("q")).toBe("huerta");
+    expect(req.request.params.get("area")).toBe("a1");
+    req.flush([]);
+
+    service.listMyEnrolledCourses("", "a2").subscribe();
+    const req2 = httpMock.expectOne(
+      (r) => r.url === `${getBaseUrl()}/api/participante/cursos`,
+    );
+    expect(req2.request.params.has("q")).toBeFalse();
+    expect(req2.request.params.get("area")).toBe("a2");
+    req2.flush([]);
+  });
+
+  it("searches participants in the backend", () => {
+    const found = [{ participanteId: "p1", nombre: "Ana", apellido: "Paz" }];
+    service.searchParticipants(" ana ", "c1").subscribe((res) => {
+      expect(res).toEqual(found);
+    });
+    const req = httpMock.expectOne(
+      (r) => r.url === `${getBaseUrl()}/api/participantes`,
+    );
+    expect(req.request.params.get("q")).toBe("ana");
+    expect(req.request.params.get("cursoId")).toBe("c1");
+    req.flush(found);
+
+    service.searchParticipants("ana").subscribe();
+    const req2 = httpMock.expectOne(
+      (r) => r.url === `${getBaseUrl()}/api/participantes`,
+    );
+    expect(req2.request.params.has("cursoId")).toBeFalse();
+    req2.flush([]);
+  });
+
+  it("gets the attendance history, the active enrollments and the audit log", () => {
+    service.getParticipantAttendanceHistory("p1").subscribe((h) => {
+      expect(h.length).toBe(1);
+    });
+    httpMock
+      .expectOne(`${getBaseUrl()}/api/participants/p1/asistencia`)
+      .flush([{ cursoId: "c1" }]);
+
+    service.countActiveEnrollments("c1").subscribe((n) => expect(n).toBe(3));
+    httpMock
+      .expectOne(`${getBaseUrl()}/api/cursos/c1/inscriptos-activos`)
+      .flush({ inscriptosActivos: 3 });
+
+    service
+      .listAuditoria({ desde: "2026-10-01", hasta: "", recurso: "curso" })
+      .subscribe((rows) => expect(rows.length).toBe(0));
+    const req = httpMock.expectOne(
+      (r) => r.url === `${getBaseUrl()}/api/auditoria`,
+    );
+    expect(req.request.params.get("desde")).toBe("2026-10-01");
+    expect(req.request.params.has("hasta")).toBeFalse();
+    expect(req.request.params.get("recurso")).toBe("curso");
+    req.flush([]);
+  });
+
   it("should list draft courses", () => {
     const mockDrafts: any[] = [{ id: "2", title: "Draft 1" }];
     service.listDraftCourses().subscribe((res) => {
@@ -192,7 +255,11 @@ describe("EducationService", () => {
     req4.flush([]);
 
     service
-      .createActivity("c1", { titulo: "Act 1", fecha: "2026-01-01" })
+      .createActivity("c1", {
+        titulo: "Act 1",
+        consigna: "Consigna",
+        fecha: "2026-01-01T00:00:00Z",
+      })
       .subscribe();
     const req5 = httpMock.expectOne(
       `${getBaseUrl()}/api/docente/cursos/c1/actividades`,
@@ -208,13 +275,31 @@ describe("EducationService", () => {
     req6.flush([]);
 
     service
-      .registerAttendance("a1", [{ participanteId: "p1", presente: true }])
+      .updateActivity("a1", {
+        titulo: "Act 1",
+        consigna: "Consigna",
+        fecha: "2026-01-02T00:00:00Z",
+      })
       .subscribe();
     const req7 = httpMock.expectOne(
-      `${getBaseUrl()}/api/docente/actividades/a1/asistencia`,
+      `${getBaseUrl()}/api/docente/actividades/a1`,
     );
-    expect(req7.request.method).toBe("POST");
+    expect(req7.request.method).toBe("PUT");
     req7.flush({});
+
+    service.deleteActivity("a1").subscribe();
+    const req7b = httpMock.expectOne(
+      `${getBaseUrl()}/api/docente/actividades/a1`,
+    );
+    expect(req7b.request.method).toBe("DELETE");
+    req7b.flush(null);
+
+    service.listActivitySubmissions("a1").subscribe();
+    const req7c = httpMock.expectOne(
+      `${getBaseUrl()}/api/docente/actividades/a1/entregas`,
+    );
+    expect(req7c.request.method).toBe("GET");
+    req7c.flush([]);
 
     service.listEnrollments("c1").subscribe();
     const req8 = httpMock.expectOne(
@@ -250,7 +335,7 @@ describe("EducationService", () => {
         next: () => fail("expected error"),
         error: (err: Error) => {
           expect(err.message).toBe(
-            "No tenés permisos para esta acción en Educación.",
+            "No tenés permisos para esta acción. Si creés que es un error, consultá con la persona responsable del centro.",
           );
         },
       });
@@ -263,7 +348,7 @@ describe("EducationService", () => {
         next: () => fail("expected error"),
         error: (err: Error) => {
           expect(err.message).toBe(
-            "El recurso solicitado no existe o no está publicado.",
+            "No encontramos lo que buscabas: puede que se haya borrado o que todavía no esté publicado. Volvé a la lista para ver lo actualizado.",
           );
         },
       });
@@ -276,7 +361,7 @@ describe("EducationService", () => {
         next: () => fail("expected error"),
         error: (err: Error) => {
           expect(err.message).toBe(
-            "El módulo de Educación no pudo responder (Contentful/Firestore).",
+            "El servidor de cursos no respondió. Esperá unos minutos y volvé a intentar.",
           );
         },
       });
@@ -289,12 +374,53 @@ describe("EducationService", () => {
         next: () => fail("expected error"),
         error: (err: Error) => {
           expect(err.message).toBe(
-            "Ocurrió un error al comunicarse con el módulo de Educación.",
+            "No pudimos completar la acción. Volvé a intentar en unos minutos; si sigue pasando, avisá al equipo del centro.",
           );
         },
       });
       const req = httpMock.expectOne(`${getBaseUrl()}/api/cursos`);
-      req.flush(null, { status: 500, statusText: "Internal Error" });
+      req.flush(null, { status: 418, statusText: "Teapot" });
+    });
+
+    it("oculta el detalle técnico de un 502 y de un body inválido", () => {
+      const mensajes: string[] = [];
+      service
+        .listCourses()
+        .subscribe({ error: (e: Error) => mensajes.push(e.message) });
+      service
+        .listCourses()
+        .subscribe({ error: (e: Error) => mensajes.push(e.message) });
+      service
+        .listCourses()
+        .subscribe({ error: (e: Error) => mensajes.push(e.message) });
+      const [a, b, c] = httpMock.match(`${getBaseUrl()}/api/cursos`);
+      a.flush(
+        { error: "error de infraestructura: rpc error: code = Unavailable" },
+        { status: 502, statusText: "Bad Gateway" },
+      );
+      b.flush(
+        { error: "body inválido: unexpected EOF" },
+        { status: 400, statusText: "Bad Request" },
+      );
+      c.error(new ProgressEvent("error"), { status: 0 });
+
+      expect(mensajes[0]).toContain("El servidor de cursos no respondió");
+      expect(mensajes[1]).toContain("Revisá el formulario");
+      expect(mensajes[2]).toContain("No hay conexión");
+    });
+
+    it("muestra las reglas de negocio del backend con mayúscula inicial", () => {
+      let message = "";
+      service
+        .listCourses()
+        .subscribe({ error: (e: Error) => (message = e.message) });
+      httpMock
+        .expectOne(`${getBaseUrl()}/api/cursos`)
+        .flush(
+          { error: "la actividad no pertenece a ese curso" },
+          { status: 400, statusText: "Bad Request" },
+        );
+      expect(message).toBe("La actividad no pertenece a ese curso");
     });
 
     it("should handle JSON error body", () => {
@@ -310,5 +436,78 @@ describe("EducationService", () => {
         { status: 400, statusText: "Bad Request" },
       );
     });
+  });
+
+  it("should call the admin/volunteer activity and submission endpoints", () => {
+    const input = {
+      titulo: "Act",
+      consigna: "Hacer",
+      fecha: "2026-10-05T00:00:00Z",
+    };
+
+    service.updateCourseActivity("a1", input).subscribe();
+    const put = httpMock.expectOne(`${getBaseUrl()}/api/actividades/a1`);
+    expect(put.request.method).toBe("PUT");
+    expect(put.request.body).toEqual(input);
+    put.flush({});
+
+    service.deleteCourseActivity("a1").subscribe();
+    const del = httpMock.expectOne(`${getBaseUrl()}/api/actividades/a1`);
+    expect(del.request.method).toBe("DELETE");
+    del.flush(null);
+
+    service.listCourseActivitySubmissions("a1").subscribe();
+    const entregas = httpMock.expectOne(
+      `${getBaseUrl()}/api/actividades/a1/entregas`,
+    );
+    expect(entregas.request.method).toBe("GET");
+    entregas.flush([]);
+  });
+
+  it("should call the participant endpoints", () => {
+    service.listMyEnrolledCourses().subscribe();
+    httpMock.expectOne(`${getBaseUrl()}/api/participante/cursos`).flush([]);
+
+    service.getMyCourse("c1").subscribe();
+    httpMock
+      .expectOne(`${getBaseUrl()}/api/participante/cursos/c1`)
+      .flush({ curso: {}, actividades: [], progreso: {} });
+  });
+
+  it("should submit an activity as multipart with text and files", () => {
+    const file = new File(["contenido"], "tp.pdf", { type: "application/pdf" });
+    service.submitActivity("a1", "mi respuesta", [file]).subscribe();
+
+    const req = httpMock.expectOne(
+      `${getBaseUrl()}/api/participante/actividades/a1/entrega`,
+    );
+    expect(req.request.method).toBe("POST");
+    const body = req.request.body as FormData;
+    expect(body.get("texto")).toBe("mi respuesta");
+    expect((body.getAll("archivos")[0] as File).name).toBe("tp.pdf");
+    req.flush({ id: "a1_p1" });
+  });
+
+  it("should download a submission file as a blob", () => {
+    let blob: Blob | undefined;
+    service.downloadSubmissionFile("a1_p1", 0).subscribe((b) => (blob = b));
+
+    const req = httpMock.expectOne(
+      `${getBaseUrl()}/api/entregas/a1_p1/archivos/0`,
+    );
+    expect(req.request.responseType).toBe("blob");
+    req.flush(new Blob(["%PDF"]));
+    expect(blob).toBeDefined();
+  });
+
+  it("should explain a 413 as a size problem", () => {
+    let message = "";
+    service
+      .submitActivity("a1", "", [])
+      .subscribe({ error: (e: Error) => (message = e.message) });
+    httpMock
+      .expectOne(`${getBaseUrl()}/api/participante/actividades/a1/entrega`)
+      .flush(null, { status: 413, statusText: "Payload Too Large" });
+    expect(message).toContain("tamaño");
   });
 });

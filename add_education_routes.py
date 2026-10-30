@@ -34,9 +34,26 @@ EDUCATION_PATHS = {
     "/api/docente/cursos/borradores": ["get"],
     "/api/docente/cursos/{id}": ["put"],
     "/api/docente/cursos/{cursoId}/actividades": ["get", "post"],
-    "/api/docente/actividades/{actividadId}/asistencia": ["get", "post"],
+    "/api/docente/actividades/{actividadId}": ["put", "delete"],
+    "/api/docente/actividades/{actividadId}/entregas": ["get"],
+    "/api/docente/actividades/{actividadId}/asistencia": ["get"],
     "/api/docente/cursos/{cursoId}/inscriptos": ["get"],
     "/api/docente/cursos/{cursoId}/progreso": ["get"],
+    # role_admin / role_volunteer, sin scope de "mis cursos" (agregado
+    # 2026-09-11 — ver education/CLAUDE.md, sección de Endpoints).
+    "/api/cursos/{id}/inscripciones": ["get", "post"],
+    "/api/cursos/{id}/actividades": ["get", "post"],
+    "/api/actividades/{actividadId}": ["put", "delete"],
+    "/api/actividades/{actividadId}/entregas": ["get"],
+    # la asistencia por actividad es solo lectura: la generan las entregas
+    "/api/actividades/{actividadId}/asistencia": ["get"],
+    "/api/asistencia-general": ["get", "post"],
+    # rol participante: mis cursos, detalle y entrega de actividades
+    "/api/participante/cursos": ["get"],
+    "/api/participante/cursos/{id}": ["get"],
+    "/api/participante/actividades/{actividadId}/entrega": ["post"],
+    # descarga de adjuntos de una entrega (control de acceso por rol en education)
+    "/api/entregas/{entregaId}/archivos/{indice}": ["get"],
 }
 
 CORS_HEADERS = {

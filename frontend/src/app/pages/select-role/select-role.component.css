@@ -36,7 +36,7 @@
   object-fit: cover;
 }
 .auth-title {
-  font-size: 1.875rem;
+  font-size: var(--font-size-3xl);
   margin-bottom: 0.5rem;
   font-weight: 600;
   margin-top: 0;
@@ -53,14 +53,14 @@
   box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
 }
 .auth-card-title {
-  font-size: 1.25rem;
+  font-size: var(--font-size-xl);
   margin-bottom: 0.5rem;
   margin-top: 0;
   font-weight: 600;
 }
 .auth-card-description {
   color: var(--text-muted);
-  font-size: 0.875rem;
+  font-size: var(--font-size-sm);
   margin-top: 0;
   margin-bottom: 1.5rem;
 }
@@ -68,7 +68,7 @@
   display: flex;
   align-items: flex-start;
   gap: 0.5rem;
-  font-size: 0.875rem;
+  font-size: var(--font-size-sm);
   color: var(--destructive);
   background-color: rgba(239, 68, 68, 0.1);
   border: 1px solid rgba(239, 68, 68, 0.2);
@@ -94,7 +94,7 @@
   border: 1px solid var(--border);
   border-radius: 0.5rem;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: var(--transition-interactive);
   text-align: left;
   font-family: inherit;
 }
@@ -112,11 +112,15 @@
   opacity: 0.7;
 }
 .account-icon {
-  font-size: 1.75rem;
-  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   flex-shrink: 0;
   width: 2.5rem;
-  text-align: center;
+  height: 2.5rem;
+  border-radius: var(--radius-md);
+  background: var(--color-primary-soft);
+  color: var(--color-primary);
 }
 .account-info {
   flex: 1;
@@ -126,20 +130,20 @@
 }
 .account-role-name {
   font-weight: 600;
-  font-size: 1rem;
+  font-size: var(--font-size-base);
   color: var(--text-main);
 }
 .account-status {
-  font-size: 0.75rem;
+  font-size: var(--font-size-xs);
   color: var(--text-muted);
 }
 .account-status.status-blocked {
   color: var(--destructive);
 }
 .account-arrow {
-  font-size: 1.25rem;
+  font-size: var(--font-size-xl);
   color: var(--text-muted);
-  transition: transform 0.2s;
+  transition: transform var(--duration-base) var(--ease-standard);
 }
 .account-card:hover:not(:disabled) .account-arrow {
   transform: translateX(3px);
@@ -160,7 +164,7 @@
 .auth-footer {
   text-align: center;
   margin-top: 1.5rem;
-  font-size: 0.875rem;
+  font-size: var(--font-size-sm);
   color: var(--text-muted);
 }
 .auth-link {

@@ -22,6 +22,7 @@ type DocenteController struct {
 	enrollmentService services.EnrollmentService
 	attendanceService services.AttendanceService
 	progressService   services.ProgressService
+	submissionService services.SubmissionService
 }
 
 func NewDocenteController(
@@ -30,6 +31,7 @@ func NewDocenteController(
 	enrollmentService services.EnrollmentService,
 	attendanceService services.AttendanceService,
 	progressService services.ProgressService,
+	submissionService services.SubmissionService,
 ) *DocenteController {
 	return &DocenteController{
 		courseService:     courseService,
@@ -37,6 +39,7 @@ func NewDocenteController(
 		enrollmentService: enrollmentService,
 		attendanceService: attendanceService,
 		progressService:   progressService,
+		submissionService: submissionService,
 	}
 }
 
@@ -142,42 +145,81 @@ func (c *DocenteController) CreateActivity(w http.ResponseWriter, r *http.Reques
 }
 
 // verifyActivityOwnership resuelve el curso de una actividad y valida
-// que pertenezca al docente autenticado. Los endpoints de asistencia
-// se direccionan por actividadId, no por cursoId, así que hace falta
+// que pertenezca al docente autenticado. Los endpoints de actividad,
+// entregas y asistencia se direccionan por actividadId, no por cursoId, así que hace falta
 // este paso extra antes de poder reusar CourseService.VerifyOwnership.
-func (c *DocenteController) verifyActivityOwnership(r *http.Request, actividadID string) error {
+// Devuelve la actividad ya resuelta (además del error) para que el
+// caller no tenga que volver a leerla de Firestore solo para sacarle
+// el CursoID.
+func (c *DocenteController) verifyActivityOwnership(r *http.Request, actividadID string) (*models.Activity, error) {
 	activity, err := c.activityService.GetActivity(r.Context(), actividadID)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	return c.courseService.VerifyOwnership(r.Context(), activity.CursoID, teacherIDFromRequest(r))
+	if err := c.courseService.VerifyOwnership(r.Context(), activity.CursoID, teacherIDFromRequest(r)); err != nil {
+		return nil, err
+	}
+	return activity, nil
 }
 
-// RegisterAttendance responde POST /api/docente/actividades/{actividadId}/asistencia
-func (c *DocenteController) RegisterAttendance(w http.ResponseWriter, r *http.Request) {
+// UpdateActivity responde PUT /api/docente/actividades/{actividadId}
+func (c *DocenteController) UpdateActivity(w http.ResponseWriter, r *http.Request) {
 	actividadID := chi.URLParam(r, "actividadId")
-	if err := c.verifyActivityOwnership(r, actividadID); err != nil {
+	if _, err := c.verifyActivityOwnership(r, actividadID); err != nil {
 		writeError(w, err)
 		return
 	}
 
-	var inputs []models.AttendanceInput
-	if err := decodeJSONBody(r, &inputs); err != nil {
+	var input models.ActivityInput
+	if err := decodeJSONBody(r, &input); err != nil {
 		writeErrorJSON(w, http.StatusBadRequest, "body inválido: "+err.Error())
 		return
 	}
 
-	if err := c.attendanceService.RegisterBatch(r.Context(), actividadID, inputs); err != nil {
+	activity, err := c.activityService.UpdateActivity(r.Context(), actividadID, input)
+	if err != nil {
 		writeError(w, err)
 		return
 	}
-	writeJSON(w, http.StatusOK, map[string]string{"actividadId": actividadID, "status": "asistencia registrada"})
+	writeJSON(w, http.StatusOK, activity)
+}
+
+// DeleteActivity responde DELETE /api/docente/actividades/{actividadId}
+func (c *DocenteController) DeleteActivity(w http.ResponseWriter, r *http.Request) {
+	actividadID := chi.URLParam(r, "actividadId")
+	if _, err := c.verifyActivityOwnership(r, actividadID); err != nil {
+		writeError(w, err)
+		return
+	}
+
+	if err := c.activityService.DeleteActivity(r.Context(), actividadID); err != nil {
+		writeError(w, err)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
+// ListSubmissions responde GET /api/docente/actividades/{actividadId}/entregas
+func (c *DocenteController) ListSubmissions(w http.ResponseWriter, r *http.Request) {
+	activity, err := c.verifyActivityOwnership(r, chi.URLParam(r, "actividadId"))
+	if err != nil {
+		writeError(w, err)
+		return
+	}
+
+	token, _ := r.Context().Value(middlewares.TokenKey).(string)
+	rows, err := c.submissionService.ListByActivity(r.Context(), activity, token)
+	if err != nil {
+		writeError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, rows)
 }
 
 // ListAttendance responde GET /api/docente/actividades/{actividadId}/asistencia
 func (c *DocenteController) ListAttendance(w http.ResponseWriter, r *http.Request) {
 	actividadID := chi.URLParam(r, "actividadId")
-	if err := c.verifyActivityOwnership(r, actividadID); err != nil {
+	if _, err := c.verifyActivityOwnership(r, actividadID); err != nil {
 		writeError(w, err)
 		return
 	}

@@ -83,3 +83,25 @@ func TestFlattenCMAFields(t *testing.T) {
 	_, ok := flat["vacio"]
 	assert.False(t, ok, "los campos que quedan nil tras desenvolver se descartan")
 }
+
+func TestRawInt(t *testing.T) {
+	fields := map[string]json.RawMessage{
+		"capacity": json.RawMessage(`25`),
+		"zero":     json.RawMessage(`0`),
+		"nil":      nil,
+		"invalid":  json.RawMessage(`"not-an-int"`),
+	}
+
+	val := rawInt(fields, "capacity")
+	assert.NotNil(t, val)
+	assert.Equal(t, 25, *val)
+
+	valZero := rawInt(fields, "zero")
+	assert.NotNil(t, valZero)
+	assert.Equal(t, 0, *valZero)
+
+	assert.Nil(t, rawInt(fields, "ausente"))
+	assert.Nil(t, rawInt(fields, "nil"))
+	assert.Nil(t, rawInt(fields, "invalid"))
+}
+

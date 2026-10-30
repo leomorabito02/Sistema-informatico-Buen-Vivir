@@ -10,6 +10,8 @@ import (
 	"auth/internal/models"
 	"auth/internal/repositories"
 	"auth/internal/utils"
+	"io"
+	"auth/internal/storage"
 )
 
 type ParticipantService interface {
@@ -18,14 +20,47 @@ type ParticipantService interface {
 	GetAllParticipants(ctx context.Context) ([]dto.ParticipantResponse, error)
 	UpdateParticipant(ctx context.Context, id string, req *dto.UpdateParticipantRequest) (*dto.ParticipantResponse, error)
 	DeleteParticipant(ctx context.Context, id string) error
+
+	UploadDocument(ctx context.Context, participantID string, docName string, file io.Reader, contentType string, originalName string) (*models.ParticipantDocument, error)
+	GetDocuments(ctx context.Context, participantID string) ([]models.ParticipantDocument, error)
+	UpdateDocument(ctx context.Context, participantID string, docID string, newName string, file io.Reader, contentType string, originalName string) (*models.ParticipantDocument, error)
+	DeleteDocument(ctx context.Context, participantID string, docID string) error
+	DownloadDocument(ctx context.Context, participantID string, docID string) (io.ReadCloser, string, string, error)
 }
 
 type participantService struct {
 	participantRepo repositories.ParticipantRepository
+	userRepo        repositories.UserRepository
+	docRepo         repositories.ParticipantDocumentRepository
+	storage         storage.ObjectStorageService
+	cleanupRepo     repositories.StorageCleanupRepository
 }
 
-func NewParticipantService(participantRepo repositories.ParticipantRepository) ParticipantService {
-	return &participantService{participantRepo: participantRepo}
+func NewParticipantService(
+	participantRepo repositories.ParticipantRepository,
+	docRepo repositories.ParticipantDocumentRepository,
+	storage storage.ObjectStorageService,
+	opts ...any,
+) ParticipantService {
+	var userRepo repositories.UserRepository
+	var cleanupRepo repositories.StorageCleanupRepository
+
+	for _, opt := range opts {
+		switch v := opt.(type) {
+		case repositories.UserRepository:
+			userRepo = v
+		case repositories.StorageCleanupRepository:
+			cleanupRepo = v
+		}
+	}
+
+	return &participantService{
+		participantRepo: participantRepo,
+		docRepo:         docRepo,
+		storage:         storage,
+		userRepo:        userRepo,
+		cleanupRepo:     cleanupRepo,
+	}
 }
 
 func (s *participantService) CreateParticipant(ctx context.Context, req *dto.CreateParticipantRequest) (*dto.ParticipantResponse, error) {
@@ -35,7 +70,7 @@ func (s *participantService) CreateParticipant(ctx context.Context, req *dto.Cre
 	}
 
 	status := req.ApprovalStatus
-	if status == "" {
+	if status == "" || !canApprove(ctx, "role_participant") {
 		status = "pending"
 	}
 
@@ -56,6 +91,8 @@ func (s *participantService) CreateParticipant(ctx context.Context, req *dto.Cre
 	if err := s.participantRepo.Create(ctx, participant); err != nil {
 		return nil, err
 	}
+
+	NewKVSyncService(s.userRepo).SyncImpactStatsAsync()
 
 	return dto.ToParticipantResponse(participant), nil
 }
@@ -94,25 +131,18 @@ func (s *participantService) GetAllParticipants(ctx context.Context) ([]dto.Part
 	return resp, nil
 }
 
-func (s *participantService) UpdateParticipant(ctx context.Context, id string, req *dto.UpdateParticipantRequest) (*dto.ParticipantResponse, error) {
-	val := utils.GetValidator()
-	if err := val.Struct(req); err != nil {
-		return nil, err
-	}
-
-	participant, err := s.participantRepo.FindByID(ctx, id)
-	if err != nil {
-		return nil, err
-	}
-
+func checkParticipantUpdateAccess(ctx context.Context, participant *models.Participant) error {
 	reqRole, _ := ctx.Value(middlewares.RoleIDKey).(string)
 	if reqRole == "role_participant" {
 		reqUserID, _ := ctx.Value(middlewares.UserIDKey).(string)
 		if participant.UserID != reqUserID {
-			return nil, errors.New("forbidden: access denied to edit other participant profiles")
+			return errors.New("forbidden: access denied to edit other participant profiles")
 		}
 	}
+	return nil
+}
 
+func applyUpdates(ctx context.Context, participant *models.Participant, req *dto.UpdateParticipantRequest) {
 	if req.Birthdate != nil {
 		participant.Birthdate = *req.Birthdate
 	}
@@ -138,18 +168,40 @@ func (s *participantService) UpdateParticipant(ctx context.Context, id string, r
 		participant.DocURL = req.DocURL
 	}
 
-	if req.ApprovalStatus != "" {
-		participant.ApprovalStatus = req.ApprovalStatus
+	if req.ApprovalStatus != "" && canApprove(ctx, "role_participant") {
 		if req.ApprovalStatus == "approved" {
+			participant.ApprovalStatus = approvalStatusApproved
 			now := time.Now()
 			participant.ApprovalDate = &now
-			participant.ApprovedBy = &req.ApprovedBy
+			participant.ApprovedBy = resolveApprover(ctx, req.ApprovedBy)
+		} else {
+			participant.ApprovalStatus = req.ApprovalStatus
 		}
 	}
+}
+
+func (s *participantService) UpdateParticipant(ctx context.Context, id string, req *dto.UpdateParticipantRequest) (*dto.ParticipantResponse, error) {
+	val := utils.GetValidator()
+	if err := val.Struct(req); err != nil {
+		return nil, err
+	}
+
+	participant, err := s.participantRepo.FindByID(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := checkParticipantUpdateAccess(ctx, participant); err != nil {
+		return nil, err
+	}
+
+	applyUpdates(ctx, participant, req)
 
 	if err := s.participantRepo.Update(ctx, participant); err != nil {
 		return nil, err
 	}
+
+	NewKVSyncService(s.userRepo).SyncImpactStatsAsync()
 
 	return dto.ToParticipantResponse(participant), nil
 }
@@ -168,5 +220,11 @@ func (s *participantService) DeleteParticipant(ctx context.Context, id string) e
 		}
 	}
 
-	return s.participantRepo.Delete(ctx, id)
+	if err := s.participantRepo.Delete(ctx, id); err != nil {
+		return err
+	}
+
+	NewKVSyncService(s.userRepo).SyncImpactStatsAsync()
+
+	return nil
 }

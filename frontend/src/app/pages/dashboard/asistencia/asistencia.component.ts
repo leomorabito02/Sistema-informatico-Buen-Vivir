@@ -1,48 +1,47 @@
 import { Component, OnInit, inject } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { FormsModule } from "@angular/forms";
-import { TableModule } from "primeng/table";
+import { RouterLink } from "@angular/router";
 import { ButtonModule } from "primeng/button";
-import { TagModule } from "primeng/tag";
-import { CardModule } from "primeng/card";
 import { SelectModule } from "primeng/select";
-import { InputTextModule } from "primeng/inputtext";
-import { DatePickerModule } from "primeng/datepicker";
-import { CheckboxModule } from "primeng/checkbox";
-import { ProgressSpinnerModule } from "primeng/progressspinner";
-import { MessageModule } from "primeng/message";
+import { forkJoin, of } from "rxjs";
+import { map, switchMap } from "rxjs/operators";
+
 import { EducationService } from "../../../services/education.service";
+import { Activity, Course } from "../../../core/models/education.model";
+import { LoadingStateComponent } from "../../../shared/components/loading-state.component";
+import { ErrorStateComponent } from "../../../shared/components/error-state.component";
+import { EmptyStateComponent } from "../../../shared/components/empty-state.component";
 import {
-  Activity,
-  Attendance,
-  Course,
-} from "../../../core/models/education.model";
+  AttendanceMatrixComponent,
+  AttendanceMatrixRow,
+  buildAttendanceMatrixRows,
+} from "../../../shared/components/attendance-matrix.component";
 
 interface Option {
   label: string;
   value: string;
 }
-interface AttendanceDraft {
-  participanteId: string;
-  presente: boolean;
-}
 
+/**
+ * Historial de asistencia de los cursos del docente responsable
+ * (HU-19). Solo consulta: la asistencia la generan las entregas de los
+ * participantes; las actividades se gestionan desde el detalle del
+ * curso (`/dashboard/cursos/:id`).
+ */
 @Component({
   selector: "app-asistencia",
   standalone: true,
   imports: [
+    LoadingStateComponent,
+    ErrorStateComponent,
+    EmptyStateComponent,
     CommonModule,
     FormsModule,
-    TableModule,
+    RouterLink,
     ButtonModule,
-    TagModule,
-    CardModule,
     SelectModule,
-    InputTextModule,
-    DatePickerModule,
-    CheckboxModule,
-    ProgressSpinnerModule,
-    MessageModule,
+    AttendanceMatrixComponent,
   ],
   templateUrl: "./asistencia.component.html",
   styleUrls: ["./asistencia.component.css"],
@@ -52,25 +51,13 @@ export class AsistenciaComponent implements OnInit {
 
   loadingCourses = true;
   error = "";
-  info = "";
 
   courseOptions: Option[] = [];
   selectedCourseId: string | null = null;
 
-  loadingActivities = false;
+  loadingMatrix = false;
   activities: Activity[] = [];
-
-  // crear actividad
-  nuevaActividadTitulo = "";
-  nuevaActividadFecha: Date | null = null;
-  creandoActividad = false;
-
-  // asistencia de la actividad seleccionada
-  selectedActivityId: string | null = null;
-  loadingAttendance = false;
-  attendance: Attendance[] = [];
-  draft: AttendanceDraft[] = [];
-  guardando = false;
+  rows: AttendanceMatrixRow[] = [];
 
   ngOnInit() {
     this.education.listMyCourses().subscribe({
@@ -93,104 +80,48 @@ export class AsistenciaComponent implements OnInit {
   }
 
   onCourseChange() {
-    this.selectedActivityId = null;
-    this.attendance = [];
-    this.draft = [];
-    if (!this.selectedCourseId) return;
-    this.loadingActivities = true;
+    this.activities = [];
+    this.rows = [];
+    const cursoId = this.selectedCourseId;
+    if (!cursoId) return;
+    this.loadingMatrix = true;
     this.error = "";
-    this.education.listActivities(this.selectedCourseId).subscribe({
-      next: (acts) => {
-        this.activities = acts;
-        this.loadingActivities = false;
-      },
-      error: (err: Error) => {
-        this.error = err.message;
-        this.loadingActivities = false;
-      },
-    });
-  }
 
-  crearActividad() {
-    if (
-      !this.selectedCourseId ||
-      !this.nuevaActividadTitulo ||
-      !this.nuevaActividadFecha
-    )
-      return;
-    this.creandoActividad = true;
-    this.error = "";
-    this.education
-      .createActivity(this.selectedCourseId, {
-        titulo: this.nuevaActividadTitulo,
-        fecha: this.nuevaActividadFecha.toISOString(),
-      })
+    forkJoin({
+      enrollments: this.education.listEnrollments(cursoId),
+      activities: this.education.listActivities(cursoId),
+    })
+      .pipe(
+        switchMap(({ enrollments, activities }) =>
+          (activities.length
+            ? forkJoin(
+                activities.map((a) => this.education.listAttendance(a.id)),
+              )
+            : of([])
+          ).pipe(
+            map((porActividad) => ({
+              enrollments,
+              activities,
+              attendance: porActividad.flat(),
+            })),
+          ),
+        ),
+      )
       .subscribe({
-        next: (act) => {
-          this.activities = [...this.activities, act];
-          this.nuevaActividadTitulo = "";
-          this.nuevaActividadFecha = null;
-          this.creandoActividad = false;
-          this.info = "Actividad creada.";
+        next: ({ enrollments, activities, attendance }) => {
+          this.activities = activities;
+          // auth-service no le resuelve nombres de participantes al rol
+          // docente: se muestran por id.
+          this.rows = buildAttendanceMatrixRows(
+            enrollments,
+            attendance,
+            new Map(),
+          );
+          this.loadingMatrix = false;
         },
         error: (err: Error) => {
           this.error = err.message;
-          this.creandoActividad = false;
-        },
-      });
-  }
-
-  selectActivity(id: string) {
-    this.selectedActivityId = id;
-    this.info = "";
-    this.loadingAttendance = true;
-    this.error = "";
-    this.education.listAttendance(id).subscribe({
-      next: (list) => {
-        this.attendance = list;
-        this.draft = list.map((a) => ({
-          participanteId: a.participanteId,
-          presente: a.presente,
-        }));
-        this.loadingAttendance = false;
-      },
-      error: (err: Error) => {
-        this.error = err.message;
-        this.loadingAttendance = false;
-      },
-    });
-  }
-
-  addRow() {
-    this.draft = [...this.draft, { participanteId: "", presente: true }];
-  }
-
-  removeRow(i: number) {
-    this.draft = this.draft.filter((_, idx) => idx !== i);
-  }
-
-  guardar() {
-    if (!this.selectedActivityId) return;
-    const payload = this.draft
-      .map((d) => ({
-        participanteId: d.participanteId.trim(),
-        presente: d.presente,
-      }))
-      .filter((d) => d.participanteId);
-    if (payload.length === 0) return;
-    this.guardando = true;
-    this.error = "";
-    this.education
-      .registerAttendance(this.selectedActivityId, payload)
-      .subscribe({
-        next: () => {
-          this.guardando = false;
-          this.info = "Asistencia registrada.";
-          this.selectActivity(this.selectedActivityId!);
-        },
-        error: (err: Error) => {
-          this.error = err.message;
-          this.guardando = false;
+          this.loadingMatrix = false;
         },
       });
   }

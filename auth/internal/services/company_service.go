@@ -35,7 +35,7 @@ func (s *companyService) CreateCompany(ctx context.Context, req *dto.CreateCompa
 	}
 
 	status := req.ApprovalStatus
-	if status == "" {
+	if status == "" || !canApprove(ctx, "role_company") {
 		status = "pending"
 	}
 
@@ -111,12 +111,14 @@ func (s *companyService) UpdateCompany(ctx context.Context, id string, req *dto.
 		company.BusinessName = req.BusinessName
 	}
 	
-	if req.ApprovalStatus != "" {
-		company.ApprovalStatus = req.ApprovalStatus
+	if req.ApprovalStatus != "" && canApprove(ctx, "role_company") {
 		if req.ApprovalStatus == "approved" {
+			company.ApprovalStatus = approvalStatusApproved
 			now := time.Now()
 			company.ApprovalDate = &now
-			company.ApprovedBy = &req.ApprovedBy
+			company.ApprovedBy = resolveApprover(ctx, req.ApprovedBy)
+		} else {
+			company.ApprovalStatus = req.ApprovalStatus
 		}
 	}
 

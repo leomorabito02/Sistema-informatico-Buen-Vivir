@@ -5,14 +5,14 @@
 }
 
 .section-title {
-  font-size: 2.25rem;
+  font-size: var(--font-size-4xl);
   font-weight: 600;
   margin: 0 0 1rem;
   color: var(--text-main);
 }
 
 .section-subtitle {
-  font-size: 1.05rem;
+  font-size: var(--font-size-base);
   color: var(--text-muted);
   max-width: 38rem;
   margin: 0 auto;
@@ -44,7 +44,7 @@
   border-radius: 0.75rem;
   padding: 2rem 1.5rem;
   text-align: center;
-  transition: all 0.2s ease;
+  transition: var(--transition-interactive);
 }
 
 .pillar-card:hover {
@@ -71,14 +71,14 @@
 }
 
 .pillar-card h3 {
-  font-size: 1.1rem;
+  font-size: var(--font-size-lg);
   font-weight: 600;
   margin: 0 0 0.75rem;
   color: var(--text-main);
 }
 
 .pillar-card p {
-  font-size: 0.9rem;
+  font-size: var(--font-size-sm);
   color: var(--text-muted);
   line-height: 1.6;
   margin: 0;

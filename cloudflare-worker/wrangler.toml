@@ -3,13 +3,13 @@ main = "src/index.js"
 compatibility_date = "2024-01-01"
 
 [vars]
-WORKER_SYNC_TOKEN = "your-sync-token-secret"
+# WORKER_SYNC_TOKEN se inyecta de manera segura usando `wrangler secret put WORKER_SYNC_TOKEN`
 
 # Development / Staging environment
 [env.staging]
 name = "buen-vivir-impact-staging"
 kv_namespaces = [
-  { binding = "IMPACT_KV", id = "STAGING_KV_NAMESPACE_ID" }
+  { binding = "IMPACT_KV", id = "aef6384f69e8414692341be8239c802d" }
 ]
 
 # Production environment
@@ -18,3 +18,4 @@ name = "buen-vivir-impact-prod"
 kv_namespaces = [
   { binding = "IMPACT_KV", id = "PROD_KV_NAMESPACE_ID" }
 ]
+

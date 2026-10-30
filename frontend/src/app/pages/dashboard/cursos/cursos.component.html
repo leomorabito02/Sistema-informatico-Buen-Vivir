@@ -1,47 +1,65 @@
+<p-toast></p-toast>
 <div class="page-container">
   <div class="header-section">
     <div>
       <h1 class="page-title">
-        <i class="pi pi-book mr-2"></i>Catálogo de Cursos
+        {{ esParticipante ? "Mis cursos" : "Catálogo de Cursos" }}
       </h1>
       <p class="page-subtitle">
-        Explorá los cursos y capacitaciones disponibles para la comunidad.
+        {{
+          esParticipante
+            ? "Los cursos en los que estás inscripto. Entrá a cada uno para ver y entregar sus actividades."
+            : "Explorá los cursos y capacitaciones disponibles para la comunidad."
+        }}
       </p>
     </div>
-    <div class="search-box p-input-icon-left">
-      <i class="pi pi-search"></i>
-      <input
-        pInputText
-        type="text"
-        [(ngModel)]="searchTerm"
-        (input)="filterCursos()"
-        placeholder="Buscar cursos..."
-        class="p-inputtext-sm"
-      />
+    <div class="filters">
+      <p-select
+        *ngIf="areaOptions.length > 1"
+        [options]="areaOptions"
+        optionLabel="label"
+        optionValue="value"
+        [(ngModel)]="selectedArea"
+        (onChange)="filterCursos()"
+        ariaLabel="Área formativa"
+        styleClass="area-select"
+      ></p-select>
+      <div class="search-box p-input-icon-left">
+        <i class="pi pi-search"></i>
+        <input
+          pInputText
+          type="text"
+          [(ngModel)]="searchTerm"
+          (input)="filterCursos()"
+          placeholder="Buscar cursos..."
+          class="p-inputtext-sm"
+        />
+      </div>
     </div>
   </div>
 
-  <div *ngIf="loading" class="state-box">
-    <p-progressSpinner
-      strokeWidth="4"
-      [style]="{ width: '48px', height: '48px' }"
-    ></p-progressSpinner>
-    <span>Cargando cursos…</span>
-  </div>
+  <app-loading-state
+    *ngIf="loading"
+    variant="cards"
+    label="Cargando cursos…"
+  ></app-loading-state>
 
-  <p-message
+  <app-error-state
     *ngIf="!loading && error"
-    severity="error"
-    [text]="error"
-    styleClass="w-full"
-  ></p-message>
+    [message]="error"
+  ></app-error-state>
 
-  <p
-    *ngIf="!loading && !error && filteredCursos.length === 0"
-    class="empty-state"
-  >
-    No hay cursos publicados por ahora.
-  </p>
+  <app-empty-state *ngIf="!loading && !error && filteredCursos.length === 0">
+    {{
+      selectedArea
+        ? "No hay cursos de esa área con esa búsqueda."
+        : searchTerm.trim()
+          ? "No se encontraron cursos con «" + searchTerm.trim() + "»."
+          : esParticipante
+            ? "Todavía no estás inscripto en ningún curso. Pedile a un voluntario o administrador que te inscriba."
+            : "No hay cursos publicados por ahora."
+    }}
+  </app-empty-state>
 
   <div class="grid-container" *ngIf="!loading && !error">
     <div *ngFor="let curso of filteredCursos" class="course-card-wrapper">
@@ -77,17 +95,26 @@
         <ng-template pTemplate="footer">
           <div class="card-actions">
             <p-button
+              *ngIf="!esParticipante"
               label="Ver detalle"
               icon="pi pi-eye"
               [text]="true"
               (onClick)="openDetail(curso)"
             ></p-button>
             <p-button
-              label="Inscribirme"
+              *ngIf="canEnrollParticipants"
+              label="Inscribir participante"
               icon="pi pi-check-circle"
-              [disabled]="true"
-              pTooltip="La inscripción a cursos todavía no está disponible en el backend."
               styleClass="p-button-success"
+              (onClick)="openEnrollDialog(curso)"
+            ></p-button>
+            <p-button
+              *ngIf="esParticipante"
+              label="Ir al curso"
+              icon="pi pi-arrow-right"
+              iconPos="right"
+              styleClass="p-button-success"
+              (onClick)="openDetail(curso)"
             ></p-button>
           </div>
         </ng-template>
@@ -148,5 +175,37 @@
     <p class="muted" *ngIf="detail.teacherId">
       Docente responsable: <code>{{ detail.teacherId }}</code>
     </p>
+  </div>
+</p-dialog>
+
+<p-dialog
+  [(visible)]="enrollVisible"
+  [modal]="true"
+  [style]="{ width: '560px' }"
+  [breakpoints]="{ '640px': '90vw' }"
+  styleClass="enroll-dialog"
+  [header]="'Inscribir en: ' + (enrollCurso?.title ?? '')"
+>
+  <div *ngIf="enrollCurso" class="detail">
+    <label for="enroll-participant">Participante</label>
+    <app-participant-picker
+      inputId="enroll-participant"
+      [cursoId]="enrollCurso.id"
+      (seleccionado)="selectedParticipant = $event"
+      style="margin-top: 0.5rem"
+    ></app-participant-picker>
+    <p class="muted">
+      Buscá por nombre, apellido o DNI. No aparecen quienes ya están inscriptos
+      en este curso.
+    </p>
+    <div style="margin-top: 1rem; text-align: right">
+      <p-button
+        label="Inscribir"
+        icon="pi pi-check"
+        [loading]="inscribiendo"
+        [disabled]="!selectedParticipant"
+        (onClick)="inscribir()"
+      ></p-button>
+    </div>
   </div>
 </p-dialog>

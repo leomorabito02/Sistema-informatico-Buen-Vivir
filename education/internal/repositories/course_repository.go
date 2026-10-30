@@ -2,6 +2,7 @@ package repositories
 
 import (
 	"context"
+	"strings"
 
 	"buenvivir/education/internal/models"
 )
@@ -19,6 +20,7 @@ const courseInclude = 2
 // publica automáticamente: crear/editar dejan la entry en borrador y
 // requieren Publish explícito (moderación editorial del contenido).
 type CourseRepository interface {
+	ListByResponsibleTeachers(ctx context.Context, teacherIDs []string) ([]models.Course, error)
 	List(ctx context.Context) ([]models.Course, error)
 	Get(ctx context.Context, id string) (*models.Course, error)
 	Create(ctx context.Context, input models.CourseInput) (*models.Course, error)
@@ -42,6 +44,12 @@ type CourseRepository interface {
 	// (sin filtrar por docente), leídos de la CMA. Referencias solo con
 	// su id.
 	ListAllDrafts(ctx context.Context) ([]models.Course, error)
+	// ExistsInManagement confirma si la entry existe en la CMA (borrador
+	// o publicada), sin importar su estado de publicación. Lo usa
+	// EnrollmentService para distinguir "curso inexistente" de "curso
+	// inactivo/despublicado" cuando Get (que solo ve la CDA, publicados)
+	// devuelve not-found.
+	ExistsInManagement(ctx context.Context, id string) (bool, error)
 }
 
 type courseRepository struct {
@@ -66,14 +74,24 @@ func (r *courseRepository) List(ctx context.Context) ([]models.Course, error) {
 	return courses, nil
 }
 
+// Get busca el curso por sys.id vía el endpoint de colección de la CDA
+// (no GET /entries/{id}): ese endpoint de entry suelta no devuelve
+// "includes" en la respuesta real de Contentful (confirmado contra la
+// API real), así que trainingArea/material/coverImage quedaban sin
+// resolver. El endpoint de colección filtrado sí trae "includes".
 func (r *courseRepository) Get(ctx context.Context, id string) (*models.Course, error) {
-	entry, err := r.client.GetPublishedEntry(ctx, id, courseInclude)
+	collection, err := r.client.ListEntriesWhere(ctx, courseContentType, courseInclude, map[string]string{
+		"sys.id": id,
+	})
 	if err != nil {
 		return nil, err
 	}
+	if len(collection.Items) == 0 {
+		return nil, ErrNotFound
+	}
 
-	idx := models.NewIncludesIndex(entry.Includes.Entry, entry.Includes.Asset)
-	course := courseFromCDAEntry(entry.ContentfulEntry, idx)
+	idx := models.NewIncludesIndex(collection.Includes.Entry, collection.Includes.Asset)
+	course := courseFromCDAEntry(collection.Items[0], idx)
 	return &course, nil
 }
 
@@ -111,6 +129,17 @@ func (r *courseRepository) Delete(ctx context.Context, id string) error {
 	return r.client.DeleteEntryCascade(ctx, id)
 }
 
+func (r *courseRepository) ExistsInManagement(ctx context.Context, id string) (bool, error) {
+	_, err := r.client.GetManagementEntry(ctx, id)
+	if err != nil {
+		if IsNotFound(err) {
+			return false, nil
+		}
+		return false, err
+	}
+	return true, nil
+}
+
 func (r *courseRepository) Publish(ctx context.Context, id string) error {
 	current, err := r.client.GetManagementEntry(ctx, id)
 	if err != nil {
@@ -136,6 +165,32 @@ func (r *courseRepository) ListByResponsibleTeacher(ctx context.Context, teacher
 	courses := make([]models.Course, 0, len(collection.Items))
 	for _, item := range collection.Items {
 		courses = append(courses, courseFromCDAEntry(item, idx))
+	}
+	return courses, nil
+}
+
+func (r *courseRepository) ListByResponsibleTeachers(ctx context.Context, teacherIDs []string) ([]models.Course, error) {
+	if len(teacherIDs) == 0 {
+		return []models.Course{}, nil
+	}
+	courses := make([]models.Course, 0)
+	for i := 0; i < len(teacherIDs); i += 100 {
+		end := i + 100
+		if end > len(teacherIDs) {
+			end = len(teacherIDs)
+		}
+		chunk := teacherIDs[i:end]
+		joinedIDs := strings.Join(chunk, ",")
+		collection, err := r.client.ListEntriesWhere(ctx, courseContentType, courseInclude, map[string]string{
+			"fields.responsibleTeacher[in]": joinedIDs,
+		})
+		if err != nil {
+			return nil, err
+		}
+		idx := models.NewIncludesIndex(collection.Includes.Entry, collection.Includes.Asset)
+		for _, item := range collection.Items {
+			courses = append(courses, courseFromCDAEntry(item, idx))
+		}
 	}
 	return courses, nil
 }
@@ -196,6 +251,13 @@ func courseInputToFields(locale string, input models.CourseInput) map[string]any
 	if input.CoverImageAssetID != "" {
 		fields["coverImage"] = wrapLocale(locale, models.NewAssetLink(input.CoverImageAssetID))
 	}
+	// capacity solo se manda si vino seteado: el campo es opcional y,
+	// si todavía no existe en el content type de Contentful, mandarlo
+	// siempre rompería el Create/Update de CUALQUIER curso (no solo los
+	// que quieren fijar cupo). Ver comentario en models.CourseInput.
+	if input.Capacity != nil {
+		fields["capacity"] = wrapLocale(locale, *input.Capacity)
+	}
 	return fields
 }
 
@@ -210,6 +272,7 @@ func courseFromCDAEntry(entry models.ContentfulEntry, idx *models.IncludesIndex)
 		ResponsibleTeacher: rawString(entry.Fields, "responsibleTeacher"),
 		Mode:               rawString(entry.Fields, "mode"),
 		Duration:           rawString(entry.Fields, "duration"),
+		Capacity:           rawInt(entry.Fields, "capacity"),
 		CreatedAt:          entry.Sys.CreatedAt,
 		UpdatedAt:          entry.Sys.UpdatedAt,
 	}
@@ -251,6 +314,7 @@ func courseFromCMAEntry(locale string, entry models.ContentfulEntry) models.Cour
 		ResponsibleTeacher: rawString(flat, "responsibleTeacher"),
 		Mode:               rawString(flat, "mode"),
 		Duration:           rawString(flat, "duration"),
+		Capacity:           rawInt(flat, "capacity"),
 		CreatedAt:          entry.Sys.CreatedAt,
 		UpdatedAt:          entry.Sys.UpdatedAt,
 	}
@@ -282,6 +346,7 @@ func courseFromInput(sys models.ContentfulSys, input models.CourseInput) models.
 		ResponsibleTeacher: input.ResponsibleTeacher,
 		Mode:               input.Mode,
 		Duration:           input.Duration,
+		Capacity:           input.Capacity,
 		CreatedAt:          sys.CreatedAt,
 		UpdatedAt:          sys.UpdatedAt,
 	}

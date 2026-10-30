@@ -3,6 +3,7 @@ package config
 import (
 	"fmt"
 	"os"
+	"strings"
 )
 
 // AppEnv identifica el ambiente de despliegue de ESTE microservicio.
@@ -35,6 +36,37 @@ type Config struct {
 	ContentfulLocale      string
 
 	CORSAllowedOrigins string
+
+	// AuthServiceURL es la base (sin path) de auth-service, ej.
+	// "http://auth-service:8080" en Docker o
+	// "https://auth-testing-xxxx.run.app" en Cloud Run. La usa
+	// AuthServiceClient para validar participantes al inscribir/registrar
+	// asistencia y para resolver el listado de participantes en la
+	// asistencia general, reenviando el JWT del usuario que llamó a
+	// education. Obligatoria en producción; en testing permite iniciar
+	// sin ella (emitiendo advertencia).
+	AuthServiceURL string
+	// UpstreamIDToken activa la generación de un token de identidad de Google
+	// en X-Serverless-Authorization para llamadas a servicios Cloud Run privados.
+	UpstreamIDToken bool
+
+	// EntregasBucket es el bucket de Cloud Storage (mismo proyecto de
+	// GCP que Firestore) donde se guardan los adjuntos de las entregas
+	// de actividades. Es privado: education lee los archivos con las
+	// mismas credenciales de Firestore y los sirve validando permisos.
+	// Si queda vacío, el servicio arranca igual y las entregas se
+	// aceptan solo con texto.
+	EntregasBucket string
+
+	// SkillsAI es la configuración de la sugerencia de habilidades con IA
+	// (HU-21 / HU-58). Nada es obligatorio: si falta, el servicio arranca
+	// igual y el botón "Sugerir habilidades con IA" responde que no se
+	// pudo generar sugerencias (las habilidades se pueden cargar a mano).
+	SkillsAI SkillsAIConfig
+
+	// Events es la mensajería asíncrona con Pub/Sub (ver
+	// docs/eventos/README.md). Desactivada si falta PUBSUB_PROJECT_ID.
+	Events EventsConfig
 }
 
 // LoadConfig arma la configuración del servicio. El archivo que se
@@ -78,7 +110,12 @@ func LoadConfig() (*Config, error) {
 		ContentfulCMAToken:    os.Getenv("CONTENTFUL_CMA_TOKEN"),
 		ContentfulLocale:      os.Getenv("CONTENTFUL_LOCALE"),
 		CORSAllowedOrigins:    os.Getenv("CORS_ALLOWED_ORIGINS"),
+		AuthServiceURL:        strings.TrimRight(os.Getenv("AUTH_SERVICE_URL"), "/"),
+		UpstreamIDToken:       strings.EqualFold(strings.TrimSpace(os.Getenv("UPSTREAM_ID_TOKEN")), "true"),
+		EntregasBucket:        strings.TrimSpace(os.Getenv("ENTREGAS_BUCKET")),
 	}
+	cfg.SkillsAI = loadSkillsAIConfig()
+	cfg.Events = loadEventsConfig()
 
 	if cfg.ContentfulLocale == "" {
 		cfg.ContentfulLocale = "en-US"
@@ -90,6 +127,10 @@ func LoadConfig() (*Config, error) {
 
 	if cfg.ContentfulSpaceID == "" || cfg.ContentfulCDAToken == "" || cfg.ContentfulCMAToken == "" {
 		return nil, fmt.Errorf("faltan variables de Contentful: CONTENTFUL_SPACE_ID, CONTENTFUL_CDA_TOKEN y CONTENTFUL_CMA_TOKEN son obligatorias")
+	}
+
+	if cfg.AppEnv == AppEnvProduction && cfg.AuthServiceURL == "" {
+		return nil, fmt.Errorf("falta la variable AUTH_SERVICE_URL: obligatoria en producción")
 	}
 
 	return cfg, nil

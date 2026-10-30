@@ -2,32 +2,27 @@
   <p-toast></p-toast>
   <div class="header-section">
     <div>
-      <h1 class="page-title">
-        <i class="pi pi-briefcase mr-2"></i>Mis Cursos Asignados
-      </h1>
+      <h1 class="page-title">Mis Cursos Asignados</h1>
       <p class="page-subtitle">
-        Cursos donde figurás como docente responsable. Desde
+        Cursos donde figurás como docente responsable. Entrá al detalle de cada
+        uno para gestionar sus actividades y ver las entregas; en
         <a routerLink="/dashboard/asistencia">Asistencia</a> y
-        <a routerLink="/dashboard/progreso">Progreso</a> podés gestionar cada
-        uno.
+        <a routerLink="/dashboard/progreso">Progreso</a> consultás el avance de
+        los participantes.
       </p>
     </div>
   </div>
 
-  <div *ngIf="loading" class="state-box">
-    <p-progressSpinner
-      strokeWidth="4"
-      [style]="{ width: '48px', height: '48px' }"
-    ></p-progressSpinner>
-    <span>Cargando tus cursos…</span>
-  </div>
+  <app-loading-state
+    *ngIf="loading"
+    variant="table"
+    label="Cargando tus cursos…"
+  ></app-loading-state>
 
-  <p-message
+  <app-error-state
     *ngIf="!loading && error"
-    severity="error"
-    [text]="error"
-    styleClass="w-full"
-  ></p-message>
+    [message]="error"
+  ></app-error-state>
 
   <p-card *ngIf="!loading && !error" styleClass="p-card-shadow">
     <p-table [value]="courses" class="p-datatable-striped">
@@ -68,6 +63,14 @@
           </td>
           <td>
             <span class="p-column-title">Acciones</span>
+            <p-button
+              *ngIf="course.publicado"
+              label="Ver detalle"
+              icon="pi pi-list-check"
+              [text]="true"
+              size="small"
+              [routerLink]="['/dashboard/cursos', course.id]"
+            ></p-button>
             <p-button
               label="Materiales"
               icon="pi pi-folder-open"
@@ -140,10 +143,11 @@
           optionLabel="label"
           optionValue="value"
           [(ngModel)]="matForm.type"
+          (ngModelChange)="onMatTypeChange()"
         ></p-select>
       </label>
-      <label>
-        URL (video / recurso externo)
+      <label *ngIf="matForm.type !== 'PDF'">
+        URL ({{ matForm.type === "Video" ? "video" : "recurso externo" }})
         <input
           pInputText
           [(ngModel)]="matForm.url"
@@ -154,8 +158,8 @@
           Debe empezar con http:// o https://
         </small>
       </label>
-      <label>
-        …o subir archivo (JPG/PNG/WEBP ≤ 5 MB · PDF/DOC ≤ 10 MB)
+      <label *ngIf="matForm.type === 'PDF'">
+        Subir archivo (JPG/PNG/WEBP ≤ 5 MB · PDF/DOC ≤ 10 MB)
         <input
           type="file"
           accept=".jpg,.jpeg,.png,.webp,.pdf,.doc,.docx"
