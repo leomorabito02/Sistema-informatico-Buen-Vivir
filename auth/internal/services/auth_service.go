@@ -193,9 +193,12 @@ func (s *authService) CheckCredentials(ctx context.Context, req *dto.CheckCreden
 		return nil, errors.New("error generando sesión temporal, intente nuevamente")
 	}
 
-	isEmailVerified := false
-	if len(accounts) > 0 {
-		isEmailVerified = accounts[0].IsEmailVerified
+	isEmailVerified := len(accounts) > 0
+	for _, a := range accounts {
+		if !a.IsEmailVerified {
+			isEmailVerified = false
+			break
+		}
 	}
 
 	return &dto.CheckCredentialsResponse{
@@ -253,9 +256,12 @@ func (s *authService) CheckGoogleCredentials(ctx context.Context, req *dto.Googl
 		return nil, errors.New("error generando sesión temporal, intente nuevamente")
 	}
 
-	isEmailVerified := false
-	if len(accounts) > 0 {
-		isEmailVerified = accounts[0].IsEmailVerified
+	isEmailVerified := len(accounts) > 0
+	for _, a := range accounts {
+		if !a.IsEmailVerified {
+			isEmailVerified = false
+			break
+		}
 	}
 
 	return &dto.CheckCredentialsResponse{

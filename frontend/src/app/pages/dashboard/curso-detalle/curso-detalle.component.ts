@@ -300,10 +300,10 @@ export class CursoDetalleComponent implements OnInit {
     const id = this.curso?.responsibleTeacher;
     if (!id) return;
     this.users
-      .listUsers()
-      .pipe(catchError(() => of([])))
-      .subscribe((lista) => {
-        const u = lista.find((x) => x.user_id === id);
+      .getUserProfile(id)
+      .pipe(catchError(() => of(null)))
+      .subscribe((data) => {
+        const u = data?.user;
         if (u) {
           this.docenteNombre =
             `${u.first_name ?? ""} ${u.last_name ?? ""}`.trim();
