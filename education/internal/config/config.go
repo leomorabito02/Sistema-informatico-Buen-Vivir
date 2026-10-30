@@ -43,9 +43,8 @@ type Config struct {
 	// AuthServiceClient para validar participantes al inscribir/registrar
 	// asistencia y para resolver el listado de participantes en la
 	// asistencia general, reenviando el JWT del usuario que llamó a
-	// education. Si queda vacía, esas funcionalidades fallan en tiempo de
-	// request (no se aborta el arranque del servicio: el resto de
-	// education no depende de auth-service).
+	// education. Obligatoria en producción; en testing permite iniciar
+	// sin ella (emitiendo advertencia).
 	AuthServiceURL string
 	// UpstreamIDToken activa la generación de un token de identidad de Google
 	// en X-Serverless-Authorization para llamadas a servicios Cloud Run privados.
@@ -128,6 +127,10 @@ func LoadConfig() (*Config, error) {
 
 	if cfg.ContentfulSpaceID == "" || cfg.ContentfulCDAToken == "" || cfg.ContentfulCMAToken == "" {
 		return nil, fmt.Errorf("faltan variables de Contentful: CONTENTFUL_SPACE_ID, CONTENTFUL_CDA_TOKEN y CONTENTFUL_CMA_TOKEN son obligatorias")
+	}
+
+	if cfg.AppEnv == AppEnvProduction && cfg.AuthServiceURL == "" {
+		return nil, fmt.Errorf("falta la variable AUTH_SERVICE_URL: obligatoria en producción")
 	}
 
 	return cfg, nil

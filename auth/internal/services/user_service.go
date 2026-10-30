@@ -28,9 +28,10 @@ type UserService interface {
 }
 
 type userService struct {
-	userRepo         repositories.UserRepository
-	querier          repositories.RoleProfileQuerier
-	notificationSync NotificationSyncService
+	userRepo            repositories.UserRepository
+	querier             repositories.RoleProfileQuerier
+	notificationSync    NotificationSyncService
+	verificationService VerificationService
 }
 
 func NewUserService(userRepo repositories.UserRepository, opts ...any) UserService {
@@ -41,6 +42,8 @@ func NewUserService(userRepo repositories.UserRepository, opts ...any) UserServi
 			svc.querier = v
 		case NotificationSyncService:
 			svc.notificationSync = v
+		case VerificationService:
+			svc.verificationService = v
 		}
 	}
 	return svc
@@ -61,14 +64,15 @@ func (s *userService) CreateUser(ctx context.Context, req *dto.CreateUserRequest
 
 	// 3. Crear modelo
 	user := &models.User{
-		UserID:       "usr-" + utils.GenerateRandomString(12), // helper pseudo-id o UUID
-		FirstName:    req.FirstName,
-		LastName:     req.LastName,
-		Email:        req.Email,
-		PasswordHash: string(hashedPassword),
-		Phone:        req.Phone,
-		Status:       "active",
-		RoleID:       req.RoleID,
+		UserID:          "usr-" + utils.GenerateRandomString(12), // helper pseudo-id o UUID
+		FirstName:       req.FirstName,
+		LastName:        req.LastName,
+		Email:           req.Email,
+		PasswordHash:    string(hashedPassword),
+		Phone:           req.Phone,
+		Status:          "active",
+		RoleID:          req.RoleID,
+		IsEmailVerified: false,
 	}
 
 	// 4. Guardar en Base de Datos (a través del repositorio con transacciones)
@@ -84,6 +88,10 @@ func (s *userService) CreateUser(ctx context.Context, req *dto.CreateUserRequest
 
 	if err := s.userRepo.CreateWithRoleProfile(ctx, user, user.RoleID, creatorID); err != nil {
 		return nil, err
+	}
+
+	if s.verificationService != nil {
+		_ = s.verificationService.GenerateAndSendVerification(ctx, user)
 	}
 
 	// Sincronizar stats de impacto y preferencias de notificaciones

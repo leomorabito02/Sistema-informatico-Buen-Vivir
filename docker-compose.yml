@@ -31,14 +31,17 @@ services:
       - ./education/.env
     # Eventos con el emulador de Pub/Sub (ver pubsub-emulator más abajo).
     environment:
+      - AUTH_SERVICE_URL=http://auth-service:8080
       - PUBSUB_PROJECT_ID=ceibuenvivir
       - PUBSUB_EMULATOR_HOST=pubsub-emulator:8086
       - PUBSUB_PUSH_AUTH=disabled
-    depends_on:
-      pubsub-init:
-        condition: service_completed_successfully
     ports:
       - "8210:8210"
+    depends_on:
+      auth-service:
+        condition: service_started
+      pubsub-init:
+        condition: service_completed_successfully
     restart: on-failure
     security_opt:
       - no-new-privileges:true
@@ -179,6 +182,7 @@ services:
     environment:
       - PORT=8080
       - GRPC_PORT=50052
+      - AUTH_GRPC_URL=auth-service:50051
     ports:
       - "8088:8080"
       - "50052:50052"

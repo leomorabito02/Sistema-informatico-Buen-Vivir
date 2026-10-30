@@ -115,14 +115,14 @@ const EXTENSIONES_PERMITIDAS = [
   styleUrls: ["./curso-detalle.component.css"],
 })
 export class CursoDetalleComponent implements OnInit {
-  private route = inject(ActivatedRoute);
-  private router = inject(Router);
-  private authService = inject(AuthService);
-  private education = inject(EducationService);
-  private users = inject(UsersService);
-  private skills = inject(SkillsService);
-  private toast = inject(MessageService);
-  private confirm = inject(ConfirmationService);
+  private readonly route = inject(ActivatedRoute);
+  private readonly router = inject(Router);
+  private readonly authService = inject(AuthService);
+  private readonly education = inject(EducationService);
+  private readonly users = inject(UsersService);
+  private readonly skills = inject(SkillsService);
+  private readonly toast = inject(MessageService);
+  private readonly confirm = inject(ConfirmationService);
 
   readonly extensionesPermitidas = EXTENSIONES_PERMITIDAS.join(",");
   readonly maxArchivos = MAX_ARCHIVOS;
@@ -300,10 +300,10 @@ export class CursoDetalleComponent implements OnInit {
     const id = this.curso?.responsibleTeacher;
     if (!id) return;
     this.users
-      .listUsers()
-      .pipe(catchError(() => of([])))
-      .subscribe((lista) => {
-        const u = lista.find((x) => x.user_id === id);
+      .getUserProfile(id)
+      .pipe(catchError(() => of(null)))
+      .subscribe((data) => {
+        const u = data?.user;
         if (u) {
           this.docenteNombre =
             `${u.first_name ?? ""} ${u.last_name ?? ""}`.trim();
@@ -317,7 +317,7 @@ export class CursoDetalleComponent implements OnInit {
       history.back();
       return;
     }
-    this.router.navigateByUrl(this.destinoVolver());
+    void this.router.navigateByUrl(this.destinoVolver());
   }
 
   /**
@@ -386,13 +386,16 @@ export class CursoDetalleComponent implements OnInit {
     };
     const docente = this.modo === "docente";
     const editando = this.editando;
-    const req$ = editando
-      ? docente
+    let req$: Observable<Activity>;
+    if (editando) {
+      req$ = docente
         ? this.education.updateActivity(editando.id, input)
-        : this.education.updateCourseActivity(editando.id, input)
-      : docente
+        : this.education.updateCourseActivity(editando.id, input);
+    } else {
+      req$ = docente
         ? this.education.createActivity(this.cursoId, input)
         : this.education.createCourseActivity(this.cursoId, input);
+    }
 
     this.guardando = true;
     req$.subscribe({
@@ -428,7 +431,7 @@ export class CursoDetalleComponent implements OnInit {
     const claves = (lista: { nombre: string }[]) =>
       lista
         .map((h) => skillKey(h.nombre))
-        .sort()
+        .sort((a, b) => a.localeCompare(b))
         .join("|");
     const cambiaron = claves(antes) !== claves(this.formSkills);
 
@@ -450,14 +453,12 @@ export class CursoDetalleComponent implements OnInit {
       next: () => {
         this.cargarHabilidades();
         const n = this.formSkills.length;
-        terminar(
+        const textoHabilidades = n === 1 ? "1 habilidad." : `${n} habilidades.`;
+        const detalle =
           n === 0
-            ? actividad.titulo + ". Se quitaron sus habilidades."
-            : actividad.titulo +
-                ", con " +
-                n +
-                (n === 1 ? " habilidad." : " habilidades."),
-        );
+            ? `${actividad.titulo}. Se quitaron sus habilidades.`
+            : `${actividad.titulo}, con ${textoHabilidades}`;
+        terminar(detalle);
       },
       error: (err: Error) => {
         this.guardando = false;

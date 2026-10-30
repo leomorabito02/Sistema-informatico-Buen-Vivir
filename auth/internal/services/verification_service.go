@@ -112,8 +112,15 @@ func (s *verificationService) VerifyEmail(ctx context.Context, rawToken string) 
 		return errors.New("el token de verificación ha expirado")
 	}
 
-	if err := s.userRepo.UpdateEmailVerified(ctx, ev.UserID, true); err != nil {
-		return fmt.Errorf("error al actualizar el estado de verificación del usuario: %w", err)
+	user, err := s.userRepo.FindByID(ctx, ev.UserID)
+	if err == nil && user != nil && user.Email != "" {
+		if err := s.userRepo.UpdateEmailVerifiedByEmail(ctx, user.Email, true); err != nil {
+			return fmt.Errorf("error al actualizar el estado de verificación del usuario: %w", err)
+		}
+	} else {
+		if err := s.userRepo.UpdateEmailVerified(ctx, ev.UserID, true); err != nil {
+			return fmt.Errorf("error al actualizar el estado de verificación del usuario: %w", err)
+		}
 	}
 
 	if err := s.evRepo.Delete(ctx, ev.EmailVerificationID); err != nil {
@@ -129,14 +136,21 @@ func (s *verificationService) ResendVerification(ctx context.Context, email stri
 		return errors.New("el correo electrónico es obligatorio")
 	}
 
-	user, err := s.userRepo.FindByEmail(ctx, trimmedEmail)
-	if err != nil || user == nil {
+	users, err := s.userRepo.FindAllByEmail(ctx, trimmedEmail)
+	if err != nil || len(users) == 0 {
 		return errors.New("no existe ninguna cuenta registrada con este correo electrónico")
 	}
 
-	if user.IsEmailVerified {
+	allVerified := true
+	for _, u := range users {
+		if !u.IsEmailVerified {
+			allVerified = false
+			break
+		}
+	}
+	if allVerified {
 		return errors.New("el correo electrónico de esta cuenta ya ha sido verificado")
 	}
 
-	return s.GenerateAndSendVerification(ctx, user)
+	return s.GenerateAndSendVerification(ctx, &users[0])
 }

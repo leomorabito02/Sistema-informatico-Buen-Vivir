@@ -1297,6 +1297,13 @@ jobs:
         env:
           FIREBASE_JSON: ${{ secrets.GOOGLE_APPLICATION_CREDENTIALS }}
 
+      - name: Validate dependencies (auth-service URL)
+        run: |
+          if [ -z "${{ needs.cd-auth.outputs.service_url }}" ]; then
+            echo "::error::cd-auth output service_url is empty. Cannot deploy education-service without AUTH_SERVICE_URL."
+            exit 1
+          fi
+
       - name: Deploy Education to Cloud Run
         id: deploy
         uses: google-github-actions/deploy-cloudrun@v2
@@ -1327,6 +1334,17 @@ jobs:
           SERVICE="education-${{ needs.cd-setup.outputs.service_suffix }}"
           REGION="${{ secrets.GCP_REGION }}"
           gcloud run services update-traffic "$SERVICE" --region="$REGION" --to-latest --project="${{ secrets.GCP_PROJECT_ID }}"
+
+      - name: Verify AUTH_SERVICE_URL is configured
+        run: |
+          SERVICE="education-${{ needs.cd-setup.outputs.service_suffix }}"
+          REGION="${{ secrets.GCP_REGION }}"
+          CONFIGURED_URL=$(gcloud run services describe "$SERVICE" --region="$REGION" --project="${{ secrets.GCP_PROJECT_ID }}" --format='value(spec.template.spec.containers[0].env)' | grep -o 'AUTH_SERVICE_URL=[^,]*' || true)
+          if [ -z "$CONFIGURED_URL" ]; then
+            echo "::error::AUTH_SERVICE_URL is not configured in deployed revision for $SERVICE"
+            exit 1
+          fi
+          echo "Verified $SERVICE env: $CONFIGURED_URL"
 
 
   cd-human-promotion:
