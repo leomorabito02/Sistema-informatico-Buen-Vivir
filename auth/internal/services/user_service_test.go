@@ -109,6 +109,11 @@ func (m *MockUserRepository) UpdateEmailVerified(ctx context.Context, userID str
 	return args.Error(0)
 }
 
+func (m *MockUserRepository) UpdateEmailVerifiedByEmail(ctx context.Context, email string, verified bool) error {
+	args := m.Called(ctx, email, verified)
+	return args.Error(0)
+}
+
 func TestUserService_GetUserByID_AdminSuccess(t *testing.T) {
 	// Arrange
 	mockRepo := new(MockUserRepository)
@@ -435,4 +440,51 @@ func TestUserService_GetParticipantsHistory_DBError(t *testing.T) {
 	mockRepo.On("FindParticipantsHistory", ctx).Return(nil, errors.New("db error"))
 	_, err := svc.GetParticipantsHistory(ctx)
 	assert.ErrorContains(t, err, "db error")
+}
+
+type mockVerificationService struct {
+	calledWithUser *models.User
+}
+
+func (m *mockVerificationService) GenerateAndSendVerification(ctx context.Context, user *models.User) error {
+	m.calledWithUser = user
+	return nil
+}
+
+func (m *mockVerificationService) VerifyEmail(ctx context.Context, token string) error {
+	return nil
+}
+
+func (m *mockVerificationService) ResendVerification(ctx context.Context, email string) error {
+	return nil
+}
+
+func TestUserService_CreateUser_Success_SendsVerification(t *testing.T) {
+	mockRepo := new(MockUserRepository)
+	mockVerif := &mockVerificationService{}
+	svc := services.NewUserService(mockRepo, mockVerif)
+
+	ctx := context.WithValue(context.Background(), middlewares.RoleIDKey, "role_admin")
+	ctx = context.WithValue(ctx, middlewares.UserIDKey, "admin-1")
+
+	req := &dto.CreateUserRequest{
+		Email:     "newuser@example.com",
+		FirstName: "Nuevo",
+		LastName:  "Usuario",
+		Password:  "Password123!",
+		RoleID:    "role_participant",
+		Phone:     "123456789",
+	}
+
+	mockRepo.On("CreateWithRoleProfile", mock.Anything, mock.MatchedBy(func(u *models.User) bool {
+		return u.Email == "newuser@example.com" && !u.IsEmailVerified
+	}), "role_participant", "admin-1").Return(nil)
+
+	res, err := svc.CreateUser(ctx, req)
+	assert.NoError(t, err)
+	assert.NotNil(t, res)
+	assert.False(t, res.IsEmailVerified)
+	assert.NotNil(t, mockVerif.calledWithUser)
+	assert.Equal(t, "newuser@example.com", mockVerif.calledWithUser.Email)
+	assert.False(t, mockVerif.calledWithUser.IsEmailVerified)
 }

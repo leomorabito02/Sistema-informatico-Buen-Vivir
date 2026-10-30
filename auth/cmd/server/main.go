@@ -89,7 +89,7 @@ func main() {
 		firebaseService,
 		verificationService,
 	)
-	userService := services.NewUserService(userRepo, querier, notificationSyncSvc)
+	userService := services.NewUserService(userRepo, querier, notificationSyncSvc, verificationService)
 	roleService := services.NewRoleService(roleRepo)
 	companyService := services.NewCompanyService(companyRepo)
 	teacherService := services.NewTeacherService(teacherRepo)

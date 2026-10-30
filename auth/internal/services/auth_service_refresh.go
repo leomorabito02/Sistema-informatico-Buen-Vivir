@@ -3,6 +3,7 @@ package services
 import (
 	"context"
 	"errors"
+	"strings"
 	"time"
 
 	"auth/internal/dto"
@@ -25,6 +26,16 @@ func (s *authService) RefreshToken(ctx context.Context, refreshToken string) (*d
 		return nil, errors.New("user not found")
 	}
 
+	statusLower := strings.ToLower(strings.TrimSpace(user.Status))
+	if statusLower != "active" {
+		return nil, ErrAccountBlocked
+	}
+
+	approvalStatus, err := s.validateUserAccess(ctx, user)
+	if err != nil {
+		return nil, err
+	}
+
 	// Revoke old token
 	_ = s.refreshTokenRepo.Revoke(ctx, rt.RefreshTokenID)
 
@@ -39,9 +50,10 @@ func (s *authService) RefreshToken(ctx context.Context, refreshToken string) (*d
 	}
 
 	return &dto.LoginResponse{
-		Token:        accessToken,
-		RefreshToken: newRefreshToken,
-		User:         user,
-		UserStatus:   user.Status,
+		Token:          accessToken,
+		RefreshToken:   newRefreshToken,
+		User:           user,
+		ApprovalStatus: approvalStatus,
+		UserStatus:     user.Status,
 	}, nil
 }

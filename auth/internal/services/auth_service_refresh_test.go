@@ -16,19 +16,21 @@ import (
 )
 
 type refreshFixture struct {
-	users  *MockUserRepository
-	tokens *MockRefreshTokenRepository
-	jwt    *MockJWTService
-	svc    services.AuthService
+	users   *MockUserRepository
+	tokens  *MockRefreshTokenRepository
+	jwt     *MockJWTService
+	querier *MockRoleProfileQuerier
+	svc     services.AuthService
 }
 
 func newRefreshFixture() *refreshFixture {
 	f := &refreshFixture{
-		users:  new(MockUserRepository),
-		tokens: new(MockRefreshTokenRepository),
-		jwt:    new(MockJWTService),
+		users:   new(MockUserRepository),
+		tokens:  new(MockRefreshTokenRepository),
+		jwt:     new(MockJWTService),
+		querier: new(MockRoleProfileQuerier),
 	}
-	f.svc = services.NewAuthService(nil, new(MockRoleProfileQuerier), f.users, f.tokens, f.jwt, nil)
+	f.svc = services.NewAuthService(nil, f.querier, f.users, f.tokens, f.jwt, nil)
 	return f
 }
 
@@ -39,8 +41,9 @@ func (f *refreshFixture) givenToken(rt *models.RefreshToken) {
 func TestAuthService_RefreshToken_Success(t *testing.T) {
 	f := newRefreshFixture()
 	f.givenToken(&models.RefreshToken{RefreshTokenID: "rt-1", UserID: "usr-1", ExpiresAt: time.Now().Add(time.Hour)})
-	user := &models.User{UserID: "usr-1", RoleID: "role_participant", Status: "active"}
+	user := &models.User{UserID: "usr-1", RoleID: "role_participant", Status: "active", IsEmailVerified: true}
 	f.users.On("FindByID", mock.Anything, "usr-1").Return(user, nil)
+	f.querier.On("GetApprovalStatus", mock.Anything, "participants", "usr-1").Return("approved", nil).Maybe()
 	f.tokens.On("Revoke", mock.Anything, "rt-1").Return(nil)
 	f.jwt.On("GenerateTokenPair", "usr-1", "role_participant", false).Return("new-access", "new-refresh", nil)
 	f.tokens.On("Create", mock.Anything, mock.AnythingOfType("*models.RefreshToken")).Return(nil)
@@ -94,10 +97,32 @@ func TestAuthService_RefreshToken_UserNotFound(t *testing.T) {
 	assert.EqualError(t, err, "user not found")
 }
 
+func TestAuthService_RefreshToken_EmailNotVerified(t *testing.T) {
+	f := newRefreshFixture()
+	f.givenToken(&models.RefreshToken{RefreshTokenID: "rt-1", UserID: "usr-1", ExpiresAt: time.Now().Add(time.Hour)})
+	user := &models.User{UserID: "usr-1", RoleID: "role_admin", Status: "active", IsEmailVerified: false}
+	f.users.On("FindByID", mock.Anything, "usr-1").Return(user, nil)
+
+	_, err := f.svc.RefreshToken(context.Background(), "old-refresh")
+
+	assert.ErrorIs(t, err, services.ErrEmailNotVerified)
+}
+
+func TestAuthService_RefreshToken_BlockedUser(t *testing.T) {
+	f := newRefreshFixture()
+	f.givenToken(&models.RefreshToken{RefreshTokenID: "rt-1", UserID: "usr-1", ExpiresAt: time.Now().Add(time.Hour)})
+	user := &models.User{UserID: "usr-1", RoleID: "role_admin", Status: "blocked", IsEmailVerified: true}
+	f.users.On("FindByID", mock.Anything, "usr-1").Return(user, nil)
+
+	_, err := f.svc.RefreshToken(context.Background(), "old-refresh")
+
+	assert.ErrorIs(t, err, services.ErrAccountBlocked)
+}
+
 func TestAuthService_RefreshToken_JWTError(t *testing.T) {
 	f := newRefreshFixture()
 	f.givenToken(&models.RefreshToken{RefreshTokenID: "rt-1", UserID: "usr-1", ExpiresAt: time.Now().Add(time.Hour)})
-	f.users.On("FindByID", mock.Anything, "usr-1").Return(&models.User{UserID: "usr-1", RoleID: "role_admin"}, nil)
+	f.users.On("FindByID", mock.Anything, "usr-1").Return(&models.User{UserID: "usr-1", RoleID: "role_admin", Status: "active", IsEmailVerified: true}, nil)
 	f.tokens.On("Revoke", mock.Anything, "rt-1").Return(nil)
 	f.jwt.On("GenerateTokenPair", "usr-1", "role_admin", false).Return("", "", errors.New("jwt error"))
 
@@ -109,7 +134,7 @@ func TestAuthService_RefreshToken_JWTError(t *testing.T) {
 func TestAuthService_RefreshToken_SaveError(t *testing.T) {
 	f := newRefreshFixture()
 	f.givenToken(&models.RefreshToken{RefreshTokenID: "rt-1", UserID: "usr-1", ExpiresAt: time.Now().Add(time.Hour)})
-	f.users.On("FindByID", mock.Anything, "usr-1").Return(&models.User{UserID: "usr-1", RoleID: "role_admin"}, nil)
+	f.users.On("FindByID", mock.Anything, "usr-1").Return(&models.User{UserID: "usr-1", RoleID: "role_admin", Status: "active", IsEmailVerified: true}, nil)
 	f.tokens.On("Revoke", mock.Anything, "rt-1").Return(nil)
 	f.jwt.On("GenerateTokenPair", "usr-1", "role_admin", false).Return("a", "r", nil)
 	f.tokens.On("Create", mock.Anything, mock.Anything).Return(errors.New("db caída"))

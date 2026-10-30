@@ -92,9 +92,11 @@ describe("CursoDetalleComponent", () => {
     skills.getCourseSkills.and.returnValue(
       of({ habilidades: [excel], porActividad: { a1: [excel] } }),
     );
-    const users = jasmine.createSpyObj("UsersService", ["listUsers"]);
-    users.listUsers.and.returnValue(
-      of([{ user_id: "t1", first_name: "María", last_name: "Rodríguez" }]),
+    const users = jasmine.createSpyObj("UsersService", ["getUserProfile"]);
+    users.getUserProfile.and.returnValue(
+      of({
+        user: { user_id: "t1", first_name: "María", last_name: "Rodríguez" },
+      }),
     );
 
     education.getCourse.and.returnValue(of(curso));
