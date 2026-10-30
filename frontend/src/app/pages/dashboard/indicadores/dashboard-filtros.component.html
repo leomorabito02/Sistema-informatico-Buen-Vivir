@@ -1,0 +1,110 @@
+<section class="filtros" aria-labelledby="filtros-titulo">
+  <h2 id="filtros-titulo" class="sr-only">Filtros</h2>
+
+  <div class="filtros-campos">
+    <div class="campo">
+      <label for="filtroDesde">Desde</label>
+      <p-datepicker
+        inputId="filtroDesde"
+        [(ngModel)]="desde"
+        (onSelect)="emitir()"
+        (onBlur)="emitir()"
+        dateFormat="dd/mm/yy"
+        placeholder="DD/MM/AAAA"
+        [maxDate]="hasta ?? hoy"
+        [showIcon]="true"
+        [readonlyInput]="false"
+        [fluid]="true"
+        [attr.aria-describedby]="errorPeriodo ? 'filtroError' : null"
+      ></p-datepicker>
+    </div>
+
+    <div class="campo">
+      <label for="filtroHasta">Hasta</label>
+      <p-datepicker
+        inputId="filtroHasta"
+        [(ngModel)]="hasta"
+        (onSelect)="emitir()"
+        (onBlur)="emitir()"
+        dateFormat="dd/mm/yy"
+        placeholder="DD/MM/AAAA"
+        [minDate]="desde"
+        [maxDate]="hoy"
+        [showIcon]="true"
+        [fluid]="true"
+      ></p-datepicker>
+    </div>
+
+    <div class="campo">
+      <label for="filtroModulo">Módulo</label>
+      <p-select
+        inputId="filtroModulo"
+        [options]="modulos"
+        optionLabel="label"
+        optionValue="value"
+        [(ngModel)]="modulo"
+        (onChange)="emitir()"
+        [fluid]="true"
+      ></p-select>
+    </div>
+
+    <div class="campo">
+      <label for="filtroArea">Área formativa</label>
+      <p-select
+        inputId="filtroArea"
+        [options]="opcionesArea"
+        optionLabel="label"
+        optionValue="value"
+        [(ngModel)]="areaId"
+        (onChange)="emitir()"
+        [disabled]="areasNoDisponibles"
+        [fluid]="true"
+      ></p-select>
+      @if (areasNoDisponibles) {
+        <small class="campo-ayuda">No se pudieron cargar las áreas.</small>
+      } @else {
+        <small class="campo-ayuda">Afecta a cursos y habilidades.</small>
+      }
+    </div>
+  </div>
+
+  @if (errorPeriodo) {
+    <p id="filtroError" class="filtros-error" role="alert">
+      <i class="pi pi-exclamation-circle" aria-hidden="true"></i>
+      {{ errorPeriodo }}
+    </p>
+  }
+
+  <div class="filtros-pie">
+    <div class="rangos" role="group" aria-label="Accesos rápidos de período">
+      @for (r of rangos; track r.value) {
+        <p-button
+          [label]="r.label"
+          size="small"
+          [outlined]="!rangoActivo(r.value)"
+          [attr.aria-pressed]="rangoActivo(r.value)"
+          (onClick)="aplicarRango(r.value)"
+        ></p-button>
+      }
+    </div>
+
+    <div class="chips" aria-label="Filtros activos" role="list">
+      @for (c of chips; track c.clave) {
+        <p-chip
+          role="listitem"
+          [label]="c.texto"
+          [removable]="c.quitable"
+          (onRemove)="quitar(c)"
+        ></p-chip>
+      }
+      <p-button
+        label="Limpiar filtros"
+        icon="pi pi-filter-slash"
+        [text]="true"
+        size="small"
+        [disabled]="!hayFiltrosQuitables"
+        (onClick)="limpiar()"
+      ></p-button>
+    </div>
+  </div>
+</section>

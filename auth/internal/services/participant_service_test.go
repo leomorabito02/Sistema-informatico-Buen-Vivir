@@ -56,7 +56,7 @@ func (m *MockParticipantRepository) Delete(ctx context.Context, id string) error
 
 func TestParticipantService_GetAllParticipants_Success(t *testing.T) {
 	mockRepo := new(MockParticipantRepository)
-	svc := services.NewParticipantService(mockRepo)
+	svc := services.NewParticipantService(mockRepo, nil, nil)
 
 	expected := []models.Participant{{ParticipantID: "part-1", Address: "ESBN"}}
 	mockRepo.On("FindAll", mock.Anything).Return(expected, nil)
@@ -71,7 +71,7 @@ func TestParticipantService_GetAllParticipants_Success(t *testing.T) {
 
 func TestParticipantService_GetParticipantByID_NotFound(t *testing.T) {
 	mockRepo := new(MockParticipantRepository)
-	svc := services.NewParticipantService(mockRepo)
+	svc := services.NewParticipantService(mockRepo, nil, nil)
 
 	mockRepo.On("FindByID", mock.Anything, "invalid").Return(nil, errors.New("not found"))
 
@@ -84,7 +84,7 @@ func TestParticipantService_GetParticipantByID_NotFound(t *testing.T) {
 
 func TestParticipantService_UpdateParticipant_Success(t *testing.T) {
 	mockRepo := new(MockParticipantRepository)
-	svc := services.NewParticipantService(mockRepo)
+	svc := services.NewParticipantService(mockRepo, nil, nil)
 
 	existing := &models.Participant{ParticipantID: "part-1", Address: "Old"}
 	mockRepo.On("FindByID", mock.Anything, "part-1").Return(existing, nil)
@@ -100,7 +100,7 @@ func TestParticipantService_UpdateParticipant_Success(t *testing.T) {
 
 func TestParticipantService_UpdateParticipant_EmptyFields(t *testing.T) {
 	mockRepo := new(MockParticipantRepository)
-	svc := services.NewParticipantService(mockRepo)
+	svc := services.NewParticipantService(mockRepo, nil, nil)
 
 	existing := &models.Participant{
 		ParticipantID:         "part-1",
@@ -133,7 +133,7 @@ func TestParticipantService_UpdateParticipant_EmptyFields(t *testing.T) {
 }
 
 func TestParticipantService_CreateParticipant_ValidationError(t *testing.T) {
-	svc := services.NewParticipantService(nil)
+	svc := services.NewParticipantService(nil, nil, nil)
 	req := &dto.CreateParticipantRequest{
 		DNI: "", // Assuming empty DNI fails validation
 	}
@@ -144,7 +144,7 @@ func TestParticipantService_CreateParticipant_ValidationError(t *testing.T) {
 
 func TestParticipantService_CreateParticipant_DBError(t *testing.T) {
 	mockRepo := new(MockParticipantRepository)
-	svc := services.NewParticipantService(mockRepo)
+	svc := services.NewParticipantService(mockRepo, nil, nil)
 	
 	req := &dto.CreateParticipantRequest{
 		DNI: "12345678",
@@ -160,7 +160,7 @@ func TestParticipantService_CreateParticipant_DBError(t *testing.T) {
 
 func TestParticipantService_GetParticipantByID_Forbidden(t *testing.T) {
 	mockRepo := new(MockParticipantRepository)
-	svc := services.NewParticipantService(mockRepo)
+	svc := services.NewParticipantService(mockRepo, nil, nil)
 
 	ctx := context.WithValue(context.Background(), middlewares.RoleIDKey, "role_participant")
 	ctx = context.WithValue(ctx, middlewares.UserIDKey, "usr-other")
@@ -175,7 +175,7 @@ func TestParticipantService_GetParticipantByID_Forbidden(t *testing.T) {
 }
 
 func TestParticipantService_GetAllParticipants_Forbidden(t *testing.T) {
-	svc := services.NewParticipantService(nil)
+	svc := services.NewParticipantService(nil, nil, nil)
 	ctx := context.WithValue(context.Background(), middlewares.RoleIDKey, "role_participant")
 
 	res, err := svc.GetAllParticipants(ctx)
@@ -186,7 +186,7 @@ func TestParticipantService_GetAllParticipants_Forbidden(t *testing.T) {
 
 func TestParticipantService_GetAllParticipants_DBError(t *testing.T) {
 	mockRepo := new(MockParticipantRepository)
-	svc := services.NewParticipantService(mockRepo)
+	svc := services.NewParticipantService(mockRepo, nil, nil)
 	
 	ctx := context.WithValue(context.Background(), middlewares.RoleIDKey, "role_admin")
 	mockRepo.On("FindAll", mock.Anything).Return(nil, errors.New("db error"))
@@ -199,7 +199,7 @@ func TestParticipantService_GetAllParticipants_DBError(t *testing.T) {
 func TestParticipantService_UpdateParticipant_ValidationError(t *testing.T) {
 	// Create request that will fail validation
 	mockRepo := new(MockParticipantRepository)
-	svc2 := services.NewParticipantService(mockRepo)
+	svc2 := services.NewParticipantService(mockRepo, nil, nil)
 	mockRepo.On("FindByID", mock.Anything, "part-1").Return(nil, errors.New("db error"))
 
 	res, err := svc2.UpdateParticipant(context.Background(), "part-1", &dto.UpdateParticipantRequest{})
@@ -209,7 +209,7 @@ func TestParticipantService_UpdateParticipant_ValidationError(t *testing.T) {
 
 func TestParticipantService_UpdateParticipant_Forbidden(t *testing.T) {
 	mockRepo := new(MockParticipantRepository)
-	svc := services.NewParticipantService(mockRepo)
+	svc := services.NewParticipantService(mockRepo, nil, nil)
 
 	ctx := context.WithValue(context.Background(), middlewares.RoleIDKey, "role_participant")
 	ctx = context.WithValue(ctx, middlewares.UserIDKey, "usr-other")
@@ -225,7 +225,7 @@ func TestParticipantService_UpdateParticipant_Forbidden(t *testing.T) {
 
 func TestParticipantService_UpdateParticipant_DBError(t *testing.T) {
 	mockRepo := new(MockParticipantRepository)
-	svc := services.NewParticipantService(mockRepo)
+	svc := services.NewParticipantService(mockRepo, nil, nil)
 
 	ctx := context.WithValue(context.Background(), middlewares.RoleIDKey, "role_admin")
 	part := &models.Participant{UserID: "usr-123"}
@@ -240,7 +240,7 @@ func TestParticipantService_UpdateParticipant_DBError(t *testing.T) {
 
 func TestParticipantService_DeleteParticipant_Forbidden(t *testing.T) {
 	mockRepo := new(MockParticipantRepository)
-	svc := services.NewParticipantService(mockRepo)
+	svc := services.NewParticipantService(mockRepo, nil, nil)
 
 	ctx := context.WithValue(context.Background(), middlewares.RoleIDKey, "role_participant")
 	ctx = context.WithValue(ctx, middlewares.UserIDKey, "usr-other")
@@ -255,7 +255,7 @@ func TestParticipantService_DeleteParticipant_Forbidden(t *testing.T) {
 
 func TestParticipantService_DeleteParticipant_DBError(t *testing.T) {
 	mockRepo := new(MockParticipantRepository)
-	svc := services.NewParticipantService(mockRepo)
+	svc := services.NewParticipantService(mockRepo, nil, nil)
 
 	mockRepo.On("FindByID", mock.Anything, "part-1").Return(nil, errors.New("db error"))
 

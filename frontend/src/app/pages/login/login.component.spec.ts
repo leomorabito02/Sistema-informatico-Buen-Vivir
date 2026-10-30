@@ -90,6 +90,7 @@ describe("LoginComponent", () => {
       component.loginForm.setValue({
         email: "test@test.com",
         password: "password",
+        rememberMe: false,
       });
       component.onSubmit();
 
@@ -125,6 +126,7 @@ describe("LoginComponent", () => {
       component.loginForm.setValue({
         email: "test@test.com",
         password: "password",
+        rememberMe: false,
       });
       component.onSubmit();
 
@@ -143,6 +145,7 @@ describe("LoginComponent", () => {
       component.loginForm.setValue({
         email: "test@test.com",
         password: "password",
+        rememberMe: false,
       });
       component.onSubmit();
 
@@ -156,6 +159,7 @@ describe("LoginComponent", () => {
       component.loginForm.setValue({
         email: "test@test.com",
         password: "password",
+        rememberMe: false,
       });
 
       for (let i = 0; i < 5; i++) {
@@ -186,6 +190,7 @@ describe("LoginComponent", () => {
       component.loginForm.setValue({
         email: "test@test.com",
         password: "password",
+        rememberMe: false,
       });
       component.onSubmit();
 
@@ -225,6 +230,55 @@ describe("LoginComponent", () => {
       component.handleGoogleLogin();
 
       expect(component.loginError).toBe("Google Error");
+    });
+
+    it("should navigate to /verify-email when google login account has is_email_verified = false", () => {
+      const accounts = [
+        {
+          user_id: "u1",
+          role_id: "r1",
+          status: "active",
+          role_name: "admin",
+          entity_name: "",
+        },
+      ];
+      authServiceSpy.checkGoogleCredentials.and.returnValue(
+        of({
+          accounts,
+          login_nonce: "nonce",
+          is_email_verified: false,
+          email: "google@example.com",
+        }),
+      );
+
+      component.handleGoogleLogin();
+
+      expect(routerSpy.navigate).toHaveBeenCalledWith(["/verify-email"], {
+        queryParams: { email: "google@example.com" },
+      });
+    });
+
+    it("should navigate to /verify-email when checkCredentials has is_email_verified = false", () => {
+      component.loginForm.setValue({
+        email: "test@example.com",
+        password: "Password123!",
+        rememberMe: false,
+      });
+
+      authServiceSpy.checkCredentials.and.returnValue(
+        of({
+          accounts: [],
+          login_nonce: "nonce",
+          is_email_verified: false,
+          email: "test@example.com",
+        }),
+      );
+
+      component.onSubmit();
+
+      expect(routerSpy.navigate).toHaveBeenCalledWith(["/verify-email"], {
+        queryParams: { email: "test@example.com" },
+      });
     });
   });
 });

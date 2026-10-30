@@ -88,6 +88,7 @@ module.exports = [
       ".angular/**",
       ".stryker-tmp/**",
       "cypress/**",
+      "cv-engine/**",
     ],
   },
 ];

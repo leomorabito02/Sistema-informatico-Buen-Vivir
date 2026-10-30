@@ -18,8 +18,8 @@ func TestParticipantRepository_FindByID(t *testing.T) {
 	repo := repositories.NewParticipantRepository(db)
 
 	t.Run("Success", func(t *testing.T) {
-		mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "participants" WHERE participant_id = $1 AND "participants"."deleted_at" IS NULL ORDER BY "participants"."participant_id" LIMIT $2`)).
-			WithArgs("part-1", 1).
+		mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "participants" WHERE (participant_id = $1 OR user_id = $2) AND "participants"."deleted_at" IS NULL ORDER BY "participants"."participant_id" LIMIT $3`)).
+			WithArgs("part-1", "part-1", 1).
 			WillReturnRows(sqlmock.NewRows([]string{"participant_id", "dni"}).
 				AddRow("part-1", "12345678"))
 
@@ -30,8 +30,8 @@ func TestParticipantRepository_FindByID(t *testing.T) {
 	})
 
 	t.Run("NotFound", func(t *testing.T) {
-		mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "participants" WHERE participant_id = $1 AND "participants"."deleted_at" IS NULL ORDER BY "participants"."participant_id" LIMIT $2`)).
-			WithArgs("notfound", 1).
+		mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "participants" WHERE (participant_id = $1 OR user_id = $2) AND "participants"."deleted_at" IS NULL ORDER BY "participants"."participant_id" LIMIT $3`)).
+			WithArgs("notfound", "notfound", 1).
 			WillReturnRows(sqlmock.NewRows([]string{"participant_id"}))
 
 		part, err := repo.FindByID(context.Background(), "notfound")
@@ -41,8 +41,8 @@ func TestParticipantRepository_FindByID(t *testing.T) {
 	})
 
 	t.Run("DBError", func(t *testing.T) {
-		mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "participants" WHERE participant_id = $1 AND "participants"."deleted_at" IS NULL ORDER BY "participants"."participant_id" LIMIT $2`)).
-			WithArgs("error", 1).
+		mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "participants" WHERE (participant_id = $1 OR user_id = $2) AND "participants"."deleted_at" IS NULL ORDER BY "participants"."participant_id" LIMIT $3`)).
+			WithArgs("error", "error", 1).
 			WillReturnError(errors.New("db error"))
 
 		part, err := repo.FindByID(context.Background(), "error")

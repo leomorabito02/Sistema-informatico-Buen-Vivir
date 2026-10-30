@@ -14,6 +14,7 @@
   "private": true,
   "dependencies": {
     "@angular/animations": "^20.3.29",
+    "@buenvivir/cv-engine": "workspace:*",
     "@angular/common": "^20.3.29",
     "@angular/compiler": "^20.3.29",
     "@angular/core": "^20.3.29",
@@ -26,7 +27,9 @@
     "@angular/service-worker": "^20.3.29",
     "@lucide/angular": "^1.33.0",
     "@primeuix/themes": "^3.0.0",
+    "chart.js": "^4",
     "firebase": "^12.18.0",
+    "jspdf": "^3",
     "lucide-angular": "^1.0.0",
     "primeicons": "^7.0.0",
     "primeng": "^19.0.0",

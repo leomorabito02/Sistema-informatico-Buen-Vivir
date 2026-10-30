@@ -1,0 +1,31 @@
+.date-picker {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.date-picker label {
+  font-weight: 600;
+  color: var(--text-primary, #1d1d1b);
+}
+
+.sin-registrar {
+  display: block;
+  font-size: var(--font-size-xs);
+  color: var(--text-muted);
+  margin-top: 0.25rem;
+}
+
+.attendance-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-top: 1.25rem;
+}
+
+.hint {
+  color: var(--text-muted);
+  font-size: var(--font-size-sm);
+}

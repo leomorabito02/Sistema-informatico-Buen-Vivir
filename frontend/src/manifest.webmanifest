@@ -1,8 +1,8 @@
 {
   "name": "Sistema Informático Buen Vivir",
   "short_name": "Buen Vivir",
-  "theme_color": "#2563eb",
-  "background_color": "#0f172a",
+  "theme_color": "#485839",
+  "background_color": "#485839",
   "display": "standalone",
   "scope": "/",
   "start_url": "/",

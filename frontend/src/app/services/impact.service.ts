@@ -12,8 +12,8 @@ export interface ImpactMetrics {
 }
 
 const DEFAULT_METRICS: ImpactMetrics = {
-  activeParticipants: 10,
-  volunteers: 5,
+  activeParticipants: 0,
+  volunteers: 0,
   courses: "Pendiente",
 };
 

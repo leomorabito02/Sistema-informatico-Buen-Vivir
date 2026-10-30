@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{if .Title}}{{.Title}}{{else}}Alerta de Seguridad{{end}} - Buen Vivir</title>
+</head>
+<body style="margin: 0; padding: 0; background-color: #f6f8f5; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #232b1e;">
+  <div style="background-color: #f6f8f5; padding: 40px 16px;">
+    <div style="max-width: 580px; margin: 0 auto; background-color: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 16px rgba(0,0,0,0.06); border: 1px solid #e3e8df;">
+      <!-- Header -->
+      {{if .IsCritical}}
+      <header style="background-color: #b91c1c; padding: 28px 32px; text-align: center;">
+        <h1 style="margin: 0; font-size: 24px; font-weight: 700; color: #ffffff; letter-spacing: -0.5px;">Buen Vivir</h1>
+        <p style="margin: 4px 0 0 0; font-size: 13px; color: #ffffff; opacity: 0.85;">Centro de Alertas y Notificaciones</p>
+      </header>
+      {{else}}
+      <header style="background-color: #485839; padding: 28px 32px; text-align: center;">
+        <h1 style="margin: 0; font-size: 24px; font-weight: 700; color: #ffffff; letter-spacing: -0.5px;">Buen Vivir</h1>
+        <p style="margin: 4px 0 0 0; font-size: 13px; color: #ffffff; opacity: 0.85;">Centro de Alertas y Notificaciones</p>
+      </header>
+      {{end}}
+      <!-- Body -->
+      <main style="padding: 36px 32px;">
+        {{if .IsCritical}}
+        <div style="display: inline-block; padding: 6px 12px; background-color: #fee2e2; border-radius: 6px; margin-bottom: 16px;">
+          <span style="font-size: 13px; font-weight: 600; color: #991b1b;">
+            &#9888; {{if .Category}}{{.Category}}{{else}}Alerta de Sistema{{end}}
+          </span>
+        </div>
+        {{else}}
+        <div style="display: inline-block; padding: 6px 12px; background-color: #fef3c7; border-radius: 6px; margin-bottom: 16px;">
+          <span style="font-size: 13px; font-weight: 600; color: #92400e;">
+            &#9888; {{if .Category}}{{.Category}}{{else}}Alerta de Sistema{{end}}
+          </span>
+        </div>
+        {{end}}
+        <h2 style="margin: 0 0 16px 0; font-size: 20px; font-weight: 600; color: #232b1e;">{{.Title}}</h2>
+        <p style="margin: 0 0 16px 0; font-size: 15px; line-height: 1.6; color: #4b5843;">
+          Hola {{if .RecipientName}}{{.RecipientName}}{{else}}estimado/a usuario/a{{end}},
+        </p>
+        <p style="margin: 0 0 20px 0; font-size: 15px; line-height: 1.6; color: #4b5843;">
+          {{.Message}}
+        </p>
+        {{if .Details}}
+        <div style="background-color: #f8faf7; border: 1px solid #e3e8df; border-radius: 8px; padding: 16px; margin-bottom: 24px;">
+          <p style="margin: 0; font-size: 14px; line-height: 1.5; color: #374151;">
+            {{.Details}}
+          </p>
+        </div>
+        {{end}}
+        {{if .ActionURL}}
+        <div style="text-align: center; margin: 0 auto 24px auto;">
+          {{if .IsCritical}}
+          <a href="{{.ActionURL}}" target="_blank" style="display: inline-block; padding: 14px 28px; font-size: 15px; font-weight: 600; color: #ffffff; text-decoration: none; border-radius: 8px; background-color: #b91c1c;">
+            {{if .ActionText}}{{.ActionText}}{{else}}Ver detalles en el portal{{end}}
+          </a>
+          {{else}}
+          <a href="{{.ActionURL}}" target="_blank" style="display: inline-block; padding: 14px 28px; font-size: 15px; font-weight: 600; color: #ffffff; text-decoration: none; border-radius: 8px; background-color: #485839;">
+            {{if .ActionText}}{{.ActionText}}{{else}}Ver detalles en el portal{{end}}
+          </a>
+          {{end}}
+        </div>
+        {{end}}
+      </main>
+      <!-- Footer -->
+      <footer style="background-color: #f6f8f5; padding: 20px 32px; text-align: center; border-top: 1px solid #e3e8df;">
+        <p style="margin: 0 0 6px 0; font-size: 12px; color: #7f8d77;">
+          Este es un mensaje automático emitido por el sistema informático de la Asociación Civil Buen Vivir.
+        </p>
+        <p style="margin: 0; font-size: 12px; color: #7f8d77;">
+          &copy; {{.Year}} Asociación Civil Buen Vivir. Todos los derechos reservados.
+        </p>
+      </footer>
+    </div>
+  </div>
+</body>
+</html>

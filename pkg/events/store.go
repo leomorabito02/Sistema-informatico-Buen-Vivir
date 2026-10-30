@@ -1,0 +1,57 @@
+package events
+
+import (
+	"context"
+	"sync"
+)
+
+// ProcessedStore guarda qué eventos ya procesó cada consumidor. Pub/Sub
+// entrega "al menos una vez": el mismo mensaje puede llegar repetido y
+// el consumidor lo tiene que descartar.
+type ProcessedStore interface {
+	IsProcessed(ctx context.Context, consumer, eventID string) (bool, error)
+	MarkProcessed(ctx context.Context, consumer, eventID, eventType string) error
+}
+
+// MemoryStore es un ProcessedStore en memoria, acotado a los últimos
+// `capacity` eventos. Sirve para tests y para consumidores cuyos
+// efectos ya son idempotentes por naturaleza (por ejemplo, invalidar una
+// caché en Dashboard, que no tiene base de datos): ahí solo evita
+// trabajo repetido, no garantiza nada entre instancias.
+type MemoryStore struct {
+	mu       sync.Mutex
+	capacity int
+	seen     map[string]struct{}
+	order    []string
+}
+
+func NewMemoryStore(capacity int) *MemoryStore {
+	if capacity <= 0 {
+		capacity = 1000
+	}
+	return &MemoryStore{capacity: capacity, seen: make(map[string]struct{}, capacity)}
+}
+
+func (s *MemoryStore) IsProcessed(_ context.Context, consumer, eventID string) (bool, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	_, ok := s.seen[consumer+"_"+eventID]
+	return ok, nil
+}
+
+func (s *MemoryStore) MarkProcessed(_ context.Context, consumer, eventID, _ string) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	key := consumer + "_" + eventID
+	if _, ok := s.seen[key]; ok {
+		return nil
+	}
+	if len(s.order) >= s.capacity {
+		oldest := s.order[0]
+		s.order = s.order[1:]
+		delete(s.seen, oldest)
+	}
+	s.seen[key] = struct{}{}
+	s.order = append(s.order, key)
+	return nil
+}

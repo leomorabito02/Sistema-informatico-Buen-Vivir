@@ -1,0 +1,85 @@
+<div class="page-container">
+  <div class="header-section">
+    <div>
+      <h1 class="page-title">Ayuda</h1>
+      <p class="page-subtitle">
+        Pasos cortos para lo que más se hace en Buen Vivir. Si no encontrás lo
+        que buscás, escribile al equipo del centro desde Contacto.
+      </p>
+    </div>
+  </div>
+
+  <div class="ayuda-search">
+    <lucide-icon
+      [img]="Search"
+      [size]="20"
+      class="ayuda-search-icon"
+      aria-hidden="true"
+    ></lucide-icon>
+    <label for="ayudaBuscar" class="sr-only">Buscar en la ayuda</label>
+    <input
+      id="ayudaBuscar"
+      type="search"
+      [(ngModel)]="query"
+      placeholder="Buscar en la ayuda (por ejemplo: entregar, contraseña)"
+      autocomplete="off"
+    />
+  </div>
+
+  <app-empty-state *ngIf="sinResultados" title="Sin resultados">
+    No encontramos ayuda sobre «{{ query }}». Probá con otra palabra o
+    escribinos desde Contacto.
+  </app-empty-state>
+
+  <section
+    *ngIf="filtrar(delRol).length"
+    class="ayuda-section"
+    aria-labelledby="ayuda-rol"
+  >
+    <h2 id="ayuda-rol" class="ayuda-section-title">Tus tareas</h2>
+    <details
+      *ngFor="let tema of filtrar(delRol)"
+      class="ayuda-item"
+      [open]="!!query"
+    >
+      <summary>{{ tema.pregunta }}</summary>
+      <ol>
+        <li *ngFor="let paso of tema.pasos">{{ paso }}</li>
+      </ol>
+    </details>
+  </section>
+
+  <section
+    *ngIf="filtrar(general).length"
+    class="ayuda-section"
+    aria-labelledby="ayuda-general"
+  >
+    <h2 id="ayuda-general" class="ayuda-section-title">Tu cuenta</h2>
+    <details
+      *ngFor="let tema of filtrar(general)"
+      class="ayuda-item"
+      [open]="!!query"
+    >
+      <summary>{{ tema.pregunta }}</summary>
+      <ol>
+        <li *ngFor="let paso of tema.pasos">{{ paso }}</li>
+      </ol>
+    </details>
+  </section>
+
+  <section class="ayuda-section" aria-labelledby="ayuda-atajos">
+    <h2 id="ayuda-atajos" class="ayuda-section-title">Atajos de teclado</h2>
+    <p class="ayuda-note">
+      Para quien usa computadora: funcionan cuando no estás escribiendo en un
+      campo.
+    </p>
+    <ul class="atajos">
+      <li *ngFor="let a of atajos">
+        <span class="teclas">
+          <kbd *ngFor="let t of a.teclas">{{ t }}</kbd>
+        </span>
+        <span>{{ a.accion }}</span>
+      </li>
+    </ul>
+  </section>
+</div>

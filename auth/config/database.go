@@ -40,8 +40,8 @@ func InitDatabase() (*gorm.DB, error) {
 
 	slog.Info("Successfully connected to the database")
 
-	if err := db.AutoMigrate(&models.User{}); err != nil {
-		slog.Warn("Failed to auto-migrate User model", "error", err)
+	if err := db.AutoMigrate(&models.User{}, &models.EmailVerification{}); err != nil {
+		slog.Warn("Failed to auto-migrate models", "error", err)
 	}
 
 	return db, nil

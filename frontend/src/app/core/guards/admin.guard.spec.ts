@@ -68,7 +68,9 @@ describe("AdminGuard", () => {
       if (typeof guardResult !== "boolean" && "subscribe" in guardResult) {
         guardResult.subscribe((res) => {
           expect(res).toBe(mockTree);
-          expect(routerSpy.createUrlTree).toHaveBeenCalledWith(["/dashboard"]);
+          expect(routerSpy.createUrlTree).toHaveBeenCalledWith(["/dashboard"], {
+            queryParams: { acceso: "denegado" },
+          });
           done();
         });
       }

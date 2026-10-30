@@ -9,6 +9,7 @@ import (
 )
 
 func main() {
+	config.LoadEnvFile()
 	config.InitLogger()
 	slog.Info("Iniciando migración de base de datos...")
 
@@ -25,10 +26,13 @@ func main() {
 		&models.User{},
 		&models.Company{},
 		&models.Participant{},
+		&models.ParticipantDocument{},
 		&models.Teacher{},
 		&models.Volunteer{},
 		&models.PasswordRecovery{},
+		&models.EmailVerification{},
 		&models.RefreshToken{},
+		&models.StorageCleanupTask{},
 	)
 	
 	if err != nil {

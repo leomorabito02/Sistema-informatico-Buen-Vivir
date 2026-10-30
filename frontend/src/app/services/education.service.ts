@@ -1,19 +1,32 @@
 import { Injectable, inject } from "@angular/core";
-import { HttpClient, HttpErrorResponse } from "@angular/common/http";
+import {
+  HttpClient,
+  HttpErrorResponse,
+  HttpParams,
+} from "@angular/common/http";
 import { Observable, throwError } from "rxjs";
-import { catchError } from "rxjs/operators";
+import { catchError, map } from "rxjs/operators";
 import { environment } from "../../environments/environment";
 import {
   Activity,
   ActivityInput,
   Attendance,
-  AttendanceInput,
   Course,
   CourseInput,
   Enrollment,
+  EnrollmentInput,
+  FiltroAuditoria,
+  GeneralAttendance,
+  GeneralAttendanceInput,
+  HistorialCurso,
   Material,
   MaterialInput,
+  ParticipantCourseDetail,
   ParticipantProgress,
+  ParticipanteResumen,
+  RegistroAuditoria,
+  Submission,
+  SubmissionStatusRow,
   TrainingArea,
   TrainingAreaInput,
 } from "../core/models/education.model";
@@ -31,7 +44,7 @@ import {
  */
 @Injectable({ providedIn: "root" })
 export class EducationService {
-  private http = inject(HttpClient);
+  private readonly http = inject(HttpClient);
   private readonly base =
     environment.educationApiUrl || environment.apiUrl || "";
 
@@ -53,9 +66,17 @@ export class EducationService {
   }
 
   // ---- Catálogo (cualquier rol autenticado) -----------------------------
-  listCourses(): Observable<Course[]> {
+  /**
+   * q (opcional) busca en título, área y descripción y area (id, opcional)
+   * deja solo los cursos de esa área formativa (HU-28). Los dos los
+   * aplica el backend. No trae los cursos dados de baja.
+   */
+  listCourses(q = "", area = ""): Observable<Course[]> {
     return this.http
-      .get<Course[]>(`${this.base}/api/cursos`, { withCredentials: true })
+      .get<Course[]>(`${this.base}/api/cursos`, {
+        withCredentials: true,
+        params: busqueda(q, area),
+      })
       .pipe(catchError(this.handleError));
   }
 
@@ -103,9 +124,33 @@ export class EducationService {
       .pipe(catchError(this.handleError));
   }
 
+  /** Baja lógica del curso (HU-16): sale del catálogo y queda en el historial. */
   deleteCourse(id: string): Observable<void> {
     return this.http
       .delete<void>(`${this.base}/api/cursos/${id}`, { withCredentials: true })
+      .pipe(catchError(this.handleError));
+  }
+
+  /** Cuántos inscriptos activos tiene el curso: el aviso antes de la baja. */
+  countActiveEnrollments(cursoId: string): Observable<number> {
+    return this.http
+      .get<{ inscriptosActivos: number }>(
+        `${this.base}/api/cursos/${cursoId}/inscriptos-activos`,
+        { withCredentials: true },
+      )
+      .pipe(
+        map((r) => r.inscriptosActivos),
+        catchError(this.handleError),
+      );
+  }
+
+  /** Registro de auditoría de Educación (solo administración). */
+  listAuditoria(filtro: FiltroAuditoria = {}): Observable<RegistroAuditoria[]> {
+    return this.http
+      .get<RegistroAuditoria[]>(`${this.base}/api/auditoria`, {
+        withCredentials: true,
+        params: filtrosAuditoria(filtro),
+      })
       .pipe(catchError(this.handleError));
   }
 
@@ -244,23 +289,46 @@ export class EducationService {
       .pipe(catchError(this.handleError));
   }
 
-  listAttendance(actividadId: string): Observable<Attendance[]> {
+  /** El docente responsable edita una actividad de su curso. */
+  updateActivity(
+    actividadId: string,
+    input: ActivityInput,
+  ): Observable<Activity> {
     return this.http
-      .get<Attendance[]>(
-        `${this.base}/api/docente/actividades/${actividadId}/asistencia`,
+      .put<Activity>(
+        `${this.base}/api/docente/actividades/${actividadId}`,
+        input,
         { withCredentials: true },
       )
       .pipe(catchError(this.handleError));
   }
 
-  registerAttendance(
-    actividadId: string,
-    inputs: AttendanceInput[],
-  ): Observable<{ actividadId: string; status: string }> {
+  /** Borra la actividad junto con sus entregas y asistencias. */
+  deleteActivity(actividadId: string): Observable<void> {
     return this.http
-      .post<{ actividadId: string; status: string }>(
+      .delete<void>(`${this.base}/api/docente/actividades/${actividadId}`, {
+        withCredentials: true,
+      })
+      .pipe(catchError(this.handleError));
+  }
+
+  /** Inscriptos del curso con el estado de entrega de la actividad. */
+  listActivitySubmissions(
+    actividadId: string,
+  ): Observable<SubmissionStatusRow[]> {
+    return this.http
+      .get<SubmissionStatusRow[]>(
+        `${this.base}/api/docente/actividades/${actividadId}/entregas`,
+        { withCredentials: true },
+      )
+      .pipe(catchError(this.handleError));
+  }
+
+  /** Asistencia (solo lectura: la generan las entregas). */
+  listAttendance(actividadId: string): Observable<Attendance[]> {
+    return this.http
+      .get<Attendance[]>(
         `${this.base}/api/docente/actividades/${actividadId}/asistencia`,
-        inputs,
         { withCredentials: true },
       )
       .pipe(catchError(this.handleError));
@@ -284,22 +352,306 @@ export class EducationService {
       .pipe(catchError(this.handleError));
   }
 
+  // ---- Inscripción, asistencia por actividad y asistencia general ------
+  // (role_admin / role_volunteer, sin scope de "mis cursos" — agregado
+  // 2026-09-17 junto con las pantallas nuevas del frontend. Ver
+  // education/CONTEXTO_INSCRIPCIONES_ASISTENCIA.md para el detalle de
+  // los endpoints del backend, ya implementados y probados.)
+
+  /** Inscribe un participante en un curso publicado. */
+  enrollParticipant(
+    cursoId: string,
+    input: EnrollmentInput,
+  ): Observable<Enrollment> {
+    return this.http
+      .post<Enrollment>(
+        `${this.base}/api/cursos/${cursoId}/inscripciones`,
+        input,
+        { withCredentials: true },
+      )
+      .pipe(catchError(this.handleError));
+  }
+
+  getParticipantEnrollments(participantId: string): Observable<Enrollment[]> {
+    return this.http
+      .get<Enrollment[]>(
+        `${this.base}/api/participants/${participantId}/inscripciones`,
+        { withCredentials: true },
+      )
+      .pipe(catchError(this.handleError));
+  }
+
+  getTeacherCourses(teacherId: string): Observable<Course[]> {
+    return this.http
+      .get<Course[]>(`${this.base}/api/docentes/${teacherId}/cursos`, {
+        withCredentials: true,
+      })
+      .pipe(catchError(this.handleError));
+  }
+
+  getBulkUserCourses(
+    userIds: string[],
+  ): Observable<{ user_id: string; courses: string[] }[]> {
+    return this.http
+      .post<{ user_id: string; courses: string[] }[]>(
+        `${this.base}/api/bulk-cursos-usuarios`,
+        { user_ids: userIds },
+        { withCredentials: true },
+      )
+      .pipe(catchError(this.handleError));
+  }
+
+  /**
+   * Buscador de participantes de los selectores (admin y voluntario): el
+   * backend busca por nombre, apellido o DNI y devuelve hasta 20. Con
+   * cursoId deja afuera a los ya inscriptos en ese curso.
+   */
+  searchParticipants(
+    q: string,
+    cursoId = "",
+  ): Observable<ParticipanteResumen[]> {
+    let params = new HttpParams().set("q", q.trim());
+    if (cursoId) params = params.set("cursoId", cursoId);
+    return this.http
+      .get<ParticipanteResumen[]>(`${this.base}/api/participantes`, {
+        withCredentials: true,
+        params,
+      })
+      .pipe(catchError(this.handleError));
+  }
+
+  /** Historial de asistencia de un participante, por curso (HU-19). */
+  getParticipantAttendanceHistory(
+    participanteId: string,
+  ): Observable<HistorialCurso[]> {
+    return this.http
+      .get<HistorialCurso[]>(
+        `${this.base}/api/participants/${participanteId}/asistencia`,
+        { withCredentials: true },
+      )
+      .pipe(catchError(this.handleError));
+  }
+
+  /** Inscriptos de un curso con nombre y apellido (sin chequeo de ownership). */
+  listCourseEnrollments(cursoId: string): Observable<Enrollment[]> {
+    return this.http
+      .get<Enrollment[]>(`${this.base}/api/cursos/${cursoId}/inscripciones`, {
+        withCredentials: true,
+      })
+      .pipe(catchError(this.handleError));
+  }
+
+  /**
+   * Actividades de un curso, sin chequeo de ownership (agregado
+   * 2026-09-21, ver `POST/GET /api/cursos/{id}/actividades` en
+   * education/CLAUDE.md). Reemplaza, para esta pantalla, al `listActivities`
+   * de más arriba (exclusivo de `role_teacher`).
+   */
+  listCourseActivities(cursoId: string): Observable<Activity[]> {
+    return this.http
+      .get<Activity[]>(`${this.base}/api/cursos/${cursoId}/actividades`, {
+        withCredentials: true,
+      })
+      .pipe(catchError(this.handleError));
+  }
+
+  createCourseActivity(
+    cursoId: string,
+    input: ActivityInput,
+  ): Observable<Activity> {
+    return this.http
+      .post<Activity>(`${this.base}/api/cursos/${cursoId}/actividades`, input, {
+        withCredentials: true,
+      })
+      .pipe(catchError(this.handleError));
+  }
+
+  updateCourseActivity(
+    actividadId: string,
+    input: ActivityInput,
+  ): Observable<Activity> {
+    return this.http
+      .put<Activity>(`${this.base}/api/actividades/${actividadId}`, input, {
+        withCredentials: true,
+      })
+      .pipe(catchError(this.handleError));
+  }
+
+  /** Borra la actividad junto con sus entregas y asistencias. */
+  deleteCourseActivity(actividadId: string): Observable<void> {
+    return this.http
+      .delete<void>(`${this.base}/api/actividades/${actividadId}`, {
+        withCredentials: true,
+      })
+      .pipe(catchError(this.handleError));
+  }
+
+  /** Inscriptos del curso con el estado de entrega de la actividad. */
+  listCourseActivitySubmissions(
+    actividadId: string,
+  ): Observable<SubmissionStatusRow[]> {
+    return this.http
+      .get<SubmissionStatusRow[]>(
+        `${this.base}/api/actividades/${actividadId}/entregas`,
+        { withCredentials: true },
+      )
+      .pipe(catchError(this.handleError));
+  }
+
+  /**
+   * Asistencia de una actividad, sin chequeo de ownership del curso.
+   * Solo lectura: la generan las entregas de los participantes.
+   */
+  listActivityAttendance(actividadId: string): Observable<Attendance[]> {
+    return this.http
+      .get<Attendance[]>(
+        `${this.base}/api/actividades/${actividadId}/asistencia`,
+        { withCredentials: true },
+      )
+      .pipe(catchError(this.handleError));
+  }
+
+  // ---- Participante (role_participant) ----------------------------------
+
+  /** Cursos en los que el participante autenticado está inscripto. */
+  listMyEnrolledCourses(q = "", area = ""): Observable<Course[]> {
+    return this.http
+      .get<Course[]>(`${this.base}/api/participante/cursos`, {
+        withCredentials: true,
+        params: busqueda(q, area),
+      })
+      .pipe(catchError(this.handleError));
+  }
+
+  /** Curso + actividades con el estado de mi entrega + mi progreso. */
+  getMyCourse(cursoId: string): Observable<ParticipantCourseDetail> {
+    return this.http
+      .get<ParticipantCourseDetail>(
+        `${this.base}/api/participante/cursos/${cursoId}`,
+        { withCredentials: true },
+      )
+      .pipe(catchError(this.handleError));
+  }
+
+  /** Entrega una actividad (texto opcional + adjuntos). No se puede anular. */
+  submitActivity(
+    actividadId: string,
+    texto: string,
+    archivos: File[],
+  ): Observable<Submission> {
+    const form = new FormData();
+    form.append("texto", texto);
+    for (const f of archivos) {
+      form.append("archivos", f, f.name);
+    }
+    return this.http
+      .post<Submission>(
+        `${this.base}/api/participante/actividades/${actividadId}/entrega`,
+        form,
+        { withCredentials: true },
+      )
+      .pipe(catchError(this.handleError));
+  }
+
+  /**
+   * Descarga un adjunto de una entrega. Pasa por education (no hay URL
+   * pública): el backend valida que quien pide pueda ver esa entrega.
+   */
+  downloadSubmissionFile(entregaId: string, indice: number): Observable<Blob> {
+    return this.http
+      .get(`${this.base}/api/entregas/${entregaId}/archivos/${indice}`, {
+        withCredentials: true,
+        responseType: "blob",
+      })
+      .pipe(catchError(this.handleError));
+  }
+
+  /**
+   * Asistencia general del centro para una fecha (`YYYY-MM-DD`): todos
+   * los participantes aprobados + su registro de ese día, si existe.
+   */
+  getGeneralAttendance(fecha: string): Observable<GeneralAttendance[]> {
+    return this.http
+      .get<GeneralAttendance[]>(`${this.base}/api/asistencia-general`, {
+        withCredentials: true,
+        params: { fecha },
+      })
+      .pipe(catchError(this.handleError));
+  }
+
+  /** Upsert en lote de asistencia general para una fecha. */
+  registerGeneralAttendance(
+    fecha: string,
+    inputs: GeneralAttendanceInput[],
+  ): Observable<{ fecha: string; status: string }> {
+    return this.http
+      .post<{ fecha: string; status: string }>(
+        `${this.base}/api/asistencia-general`,
+        inputs,
+        { withCredentials: true, params: { fecha } },
+      )
+      .pipe(catchError(this.handleError));
+  }
+
   // ---------------------------------------------------------------------
-  private handleError = (error: HttpErrorResponse) => {
-    let message = "Ocurrió un error al comunicarse con el módulo de Educación.";
+  /**
+   * Mensaje para la persona: qué pasó y qué puede hacer. El texto del
+   * backend se muestra solo cuando es una regla de negocio en castellano
+   * (400, 403, 409, 422, 503); los errores técnicos (404 genérico, 5xx,
+   * sin conexión) se reemplazan por un mensaje con una sugerencia.
+   */
+  private readonly handleError = (error: HttpErrorResponse) => {
     const body = error.error as { error?: string } | string | null;
-    if (body && typeof body === "object" && body.error) {
-      message = body.error;
+    const backendMsg =
+      body && typeof body === "object" && body.error ? body.error : "";
+    const legible =
+      backendMsg &&
+      [400, 403, 409, 422, 503].includes(error.status) &&
+      !/^body inválido/i.test(backendMsg);
+
+    let message =
+      "No pudimos completar la acción. Volvé a intentar en unos minutos; si sigue pasando, avisá al equipo del centro.";
+    if (legible) {
+      message = backendMsg.charAt(0).toUpperCase() + backendMsg.slice(1);
+    } else if (error.status === 0) {
+      message =
+        "No hay conexión con el servidor. Revisá tu internet y volvé a intentar.";
+    } else if (error.status === 400) {
+      message =
+        "Algunos datos no son válidos. Revisá el formulario y volvé a intentar.";
     } else if (error.status === 401) {
       message = "Tu sesión expiró o no es válida. Volvé a iniciar sesión.";
     } else if (error.status === 403) {
-      message = "No tenés permisos para esta acción en Educación.";
-    } else if (error.status === 404) {
-      message = "El recurso solicitado no existe o no está publicado.";
-    } else if (error.status === 502) {
       message =
-        "El módulo de Educación no pudo responder (Contentful/Firestore).";
+        "No tenés permisos para esta acción. Si creés que es un error, consultá con la persona responsable del centro.";
+    } else if (error.status === 404) {
+      message =
+        "No encontramos lo que buscabas: puede que se haya borrado o que todavía no esté publicado. Volvé a la lista para ver lo actualizado.";
+    } else if (error.status === 413) {
+      message =
+        "Los archivos superan el tamaño permitido (10 MB cada uno). Elegí archivos más chicos o subilos de a uno.";
+    } else if (error.status >= 500) {
+      message =
+        "El servidor de cursos no respondió. Esperá unos minutos y volvé a intentar.";
     }
     return throwError(() => new Error(message));
   };
+}
+
+/** Parámetros ?q= y ?area= de los buscadores; vacíos = sin parámetro. */
+function busqueda(q: string, area = ""): HttpParams {
+  let params = new HttpParams();
+  const t = q.trim();
+  if (t) params = params.set("q", t);
+  if (area) params = params.set("area", area);
+  return params;
+}
+
+/** Filtros de auditoría como query params, sin los vacíos. */
+export function filtrosAuditoria(f: FiltroAuditoria): HttpParams {
+  let params = new HttpParams();
+  for (const [k, v] of Object.entries(f)) {
+    if (v) params = params.set(k, v);
+  }
+  return params;
 }

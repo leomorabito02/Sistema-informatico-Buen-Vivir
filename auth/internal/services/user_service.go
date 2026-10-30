@@ -4,6 +4,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"os"
+	"strings"
+	"time"
 
 	"auth/internal/dto"
 	"auth/internal/middlewares"
@@ -20,14 +23,30 @@ type UserService interface {
 	GetAllUsers(ctx context.Context) ([]dto.UserResponse, error)
 	UpdateUser(ctx context.Context, id string, req *dto.UpdateUserRequest) (*dto.UserResponse, error)
 	DeleteUser(ctx context.Context, id string) error
+	GetParticipantsHistory(ctx context.Context) ([]dto.ParticipantHistoryResponse, error)
+	ApproveUser(ctx context.Context, id string) (*dto.UserResponse, error)
 }
 
 type userService struct {
-	userRepo repositories.UserRepository
+	userRepo            repositories.UserRepository
+	querier             repositories.RoleProfileQuerier
+	notificationSync    NotificationSyncService
+	verificationService VerificationService
 }
 
-func NewUserService(userRepo repositories.UserRepository) UserService {
-	return &userService{userRepo: userRepo}
+func NewUserService(userRepo repositories.UserRepository, opts ...any) UserService {
+	svc := &userService{userRepo: userRepo}
+	for _, opt := range opts {
+		switch v := opt.(type) {
+		case repositories.RoleProfileQuerier:
+			svc.querier = v
+		case NotificationSyncService:
+			svc.notificationSync = v
+		case VerificationService:
+			svc.verificationService = v
+		}
+	}
+	return svc
 }
 
 func (s *userService) CreateUser(ctx context.Context, req *dto.CreateUserRequest) (*dto.UserResponse, error) {
@@ -45,20 +64,39 @@ func (s *userService) CreateUser(ctx context.Context, req *dto.CreateUserRequest
 
 	// 3. Crear modelo
 	user := &models.User{
-		UserID:       "usr-" + utils.GenerateRandomString(12), // helper pseudo-id o UUID
-		FirstName:    req.FirstName,
-		LastName:     req.LastName,
-		Email:        req.Email,
-		PasswordHash: string(hashedPassword),
-		Phone:        req.Phone,
-		Status:       "active",
-		RoleID:       req.RoleID,
+		UserID:          "usr-" + utils.GenerateRandomString(12), // helper pseudo-id o UUID
+		FirstName:       req.FirstName,
+		LastName:        req.LastName,
+		Email:           req.Email,
+		PasswordHash:    string(hashedPassword),
+		Phone:           req.Phone,
+		Status:          "active",
+		RoleID:          req.RoleID,
+		IsEmailVerified: false,
 	}
 
 	// 4. Guardar en Base de Datos (a través del repositorio con transacciones)
-	if err := s.userRepo.Create(ctx, user); err != nil {
+	reqRole, _ := ctx.Value(middlewares.RoleIDKey).(string)
+	creatorID, _ := ctx.Value(middlewares.UserIDKey).(string)
+
+	// Admin y dev crean cualquier rol; el voluntario, solo participantes
+	// (HU-07). El resto no crea cuentas: antes cualquier usuario con
+	// sesión podía crear un administrador.
+	if !isAdminRequest(ctx) && (reqRole != "role_volunteer" || user.RoleID != "role_participant") {
+		return nil, errors.New("forbidden: access denied to create accounts with this role")
+	}
+
+	if err := s.userRepo.CreateWithRoleProfile(ctx, user, user.RoleID, creatorID); err != nil {
 		return nil, err
 	}
+
+	if s.verificationService != nil {
+		_ = s.verificationService.GenerateAndSendVerification(ctx, user)
+	}
+
+	// Sincronizar stats de impacto y preferencias de notificaciones
+	NewKVSyncService(s.userRepo).SyncImpactStatsAsync()
+	NewNotificationSyncService().InitUserPreferencesAsync(user.UserID)
 
 	return dto.ToUserResponse(user), nil
 }
@@ -73,7 +111,11 @@ func (s *userService) GetUserByID(ctx context.Context, id string) (*dto.UserResp
 	if reqRole != "role_admin" && reqRole != "role_dev" {
 		reqUserID, _ := ctx.Value(middlewares.UserIDKey).(string)
 		if user.UserID != reqUserID {
-			return nil, errors.New("forbidden: access denied to other user accounts")
+			if reqRole == "role_volunteer" && user.RoleID == "role_participant" {
+				// Volunteers can view participants
+			} else {
+				return nil, errors.New("forbidden: access denied to other user accounts")
+			}
 		}
 	}
 
@@ -82,8 +124,8 @@ func (s *userService) GetUserByID(ctx context.Context, id string) (*dto.UserResp
 
 func (s *userService) GetAllUsers(ctx context.Context) ([]dto.UserResponse, error) {
 	reqRole, _ := ctx.Value(middlewares.RoleIDKey).(string)
-	if reqRole != "role_admin" && reqRole != "role_dev" {
-		return nil, errors.New("forbidden: only administrators can list all users")
+	if reqRole != "role_admin" && reqRole != "role_dev" && reqRole != "role_volunteer" {
+		return nil, errors.New("forbidden: insufficient permissions to list users")
 	}
 
 	users, err := s.userRepo.FindAll(ctx)
@@ -92,6 +134,9 @@ func (s *userService) GetAllUsers(ctx context.Context) ([]dto.UserResponse, erro
 	}
 	var resp []dto.UserResponse
 	for _, u := range users {
+		if reqRole == "role_volunteer" && u.RoleID != "role_participant" {
+			continue
+		}
 		resp = append(resp, *dto.ToUserResponse(&u))
 	}
 	return resp, nil
@@ -110,15 +155,8 @@ func (s *userService) UpdateUser(ctx context.Context, id string, req *dto.Update
 		return nil, err
 	}
 
-	reqRole, _ := ctx.Value(middlewares.RoleIDKey).(string)
-	if reqRole != "role_admin" && reqRole != "role_dev" {
-		reqUserID, _ := ctx.Value(middlewares.UserIDKey).(string)
-		if user.UserID != reqUserID {
-			return nil, errors.New("forbidden: access denied to edit other user accounts")
-		}
-		// Si no es admin, tampoco puede cambiar su rol ni status
-		req.RoleID = ""
-		req.Status = ""
+	if err := s.checkUpdatePermissions(ctx, user, req); err != nil {
+		return nil, err
 	}
 
 	// 3. Modificar campos permitidos
@@ -143,6 +181,9 @@ func (s *userService) UpdateUser(ctx context.Context, id string, req *dto.Update
 		return nil, err
 	}
 
+	// Sincronizar stats de impacto (por si cambió de rol)
+	NewKVSyncService(s.userRepo).SyncImpactStatsAsync()
+
 	return dto.ToUserResponse(user), nil
 }
 
@@ -161,5 +202,122 @@ func (s *userService) DeleteUser(ctx context.Context, id string) error {
 		}
 	}
 
-	return s.userRepo.Delete(ctx, id)
+	if err := s.userRepo.Delete(ctx, id); err != nil {
+		return err
+	}
+
+	NewKVSyncService(s.userRepo).SyncImpactStatsAsync()
+
+	return nil
+}
+
+func (s *userService) checkUpdatePermissions(ctx context.Context, user *models.User, req *dto.UpdateUserRequest) error {
+	reqRole, _ := ctx.Value(middlewares.RoleIDKey).(string)
+	if reqRole == "role_admin" || reqRole == "role_dev" {
+		return nil
+	}
+
+	reqUserID, _ := ctx.Value(middlewares.UserIDKey).(string)
+	if user.UserID != reqUserID {
+		if reqRole == "role_volunteer" && user.RoleID == "role_participant" {
+			// Volunteers can edit participants
+		} else {
+			return errors.New("forbidden: access denied to edit other user accounts")
+		}
+	}
+	
+	// Si no es admin, tampoco puede cambiar su rol ni status
+	req.RoleID = ""
+	req.Status = ""
+	return nil
+}
+
+func (s *userService) GetParticipantsHistory(ctx context.Context) ([]dto.ParticipantHistoryResponse, error) {
+	reqRole, _ := ctx.Value(middlewares.RoleIDKey).(string)
+	if reqRole != "role_admin" && reqRole != "role_dev" {
+		return nil, errors.New("forbidden: only administrators can see the participants history")
+	}
+	rows, err := s.userRepo.FindParticipantsHistory(ctx)
+	if err != nil {
+		return nil, err
+	}
+	result := make([]dto.ParticipantHistoryResponse, len(rows))
+	for i, r := range rows {
+		result[i] = dto.ParticipantHistoryResponse{
+			UserID:         r.UserID,
+			Status:         r.Status,
+			ApprovalStatus: r.ApprovalStatus,
+			ApprovalDate:   r.ApprovalDate,
+			CreatedAt:      r.CreatedAt,
+			UpdatedAt:      r.UpdatedAt,
+			DeletedAt:      r.DeletedAt,
+		}
+	}
+	return result, nil
+}
+
+func (s *userService) ApproveUser(ctx context.Context, id string) (*dto.UserResponse, error) {
+	user, err := s.userRepo.FindByID(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+
+	if !canApprove(ctx, user.RoleID) {
+		return nil, errors.New("forbidden: access denied to approve accounts with this role")
+	}
+
+	table := roleTableFromID(user.RoleID)
+	if table == "" {
+		return nil, errors.New("rol no compatible para aprobación")
+	}
+
+	approverID, _ := ctx.Value(middlewares.UserIDKey).(string)
+	now := time.Now()
+	updateData := map[string]any{
+		"approval_status": "approved",
+		"approval_date":   &now,
+	}
+	if approverID != "" {
+		updateData["approved_by"] = approverID
+	}
+
+	if s.querier != nil {
+		if err := s.querier.UpdateRoleData(ctx, table, user.UserID, updateData); err != nil {
+			return nil, fmt.Errorf("error al actualizar el estado de aprobación: %w", err)
+		}
+	}
+
+	user.RoleApprovalStatus = "approved"
+
+	if s.notificationSync != nil {
+		frontendURL := strings.TrimSpace(os.Getenv("FRONTEND_URL"))
+		if frontendURL == "" {
+			frontendURL = "https://tu-pwa.com"
+		}
+		fullName := strings.TrimSpace(user.FirstName + " " + user.LastName)
+		if fullName == "" {
+			fullName = user.Email
+		}
+		actionURL := fmt.Sprintf("%s/login", strings.TrimRight(frontendURL, "/"))
+		go func() {
+			_ = s.notificationSync.SendAccountApprovedEmail(context.Background(), user.UserID, user.Email, fullName, actionURL)
+		}()
+	}
+
+	return dto.ToUserResponse(user), nil
+}
+
+func roleTableFromID(roleID string) string {
+	switch roleID {
+	case "role_teacher":
+		return "teachers"
+	case "role_volunteer":
+		return "volunteers"
+	case "role_participant":
+		return "participants"
+	case "role_company":
+		return "companies"
+	default:
+		return ""
+	}
 }

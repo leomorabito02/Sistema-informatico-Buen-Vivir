@@ -8,17 +8,34 @@ import {
   provideHttpClient,
   withInterceptors,
 } from "@angular/common/http";
+import { of, throwError } from "rxjs";
 import { authInterceptor } from "./auth.interceptor";
+import { AuthService } from "../../services/auth.service";
+import { SessionPromptService } from "../../services/session-prompt.service";
+import { LoginResponse } from "../models/auth.model";
+import { environment } from "../../../environments/environment";
 
 describe("authInterceptor", () => {
   let http: HttpClient;
   let httpMock: HttpTestingController;
+  let authService: jasmine.SpyObj<AuthService>;
+  let prompt: jasmine.SpyObj<SessionPromptService>;
 
   beforeEach(() => {
+    authService = jasmine.createSpyObj<AuthService>("AuthService", [
+      "refreshToken",
+      "logout",
+    ]);
+    prompt = jasmine.createSpyObj<SessionPromptService>(
+      "SessionPromptService",
+      ["ask"],
+    );
     TestBed.configureTestingModule({
       providers: [
         provideHttpClient(withInterceptors([authInterceptor])),
         provideHttpClientTesting(),
+        { provide: AuthService, useValue: authService },
+        { provide: SessionPromptService, useValue: prompt },
       ],
     });
 
@@ -48,5 +65,88 @@ describe("authInterceptor", () => {
     expect(req.request.method).toBe("POST");
     expect(req.request.body).toEqual({ foo: "bar" });
     req.flush({});
+  });
+
+  it("should not add credentials to external URLs", () => {
+    http.get("https://example.com/data").subscribe();
+
+    const req = httpMock.expectOne("https://example.com/data");
+    expect(req.request.withCredentials).toBeFalse();
+    req.flush({});
+  });
+
+  it("should add credentials to environment.apiUrl requests", () => {
+    const originalApiUrl = environment.apiUrl;
+    (environment as any).apiUrl = "http://localhost:8080";
+    const targetUrl = "http://localhost:8080/api/v1/users";
+    http.get(targetUrl).subscribe();
+
+    const req = httpMock.expectOne(targetUrl);
+    expect(req.request.withCredentials).toBe(true);
+    req.flush({});
+    (environment as any).apiUrl = originalApiUrl;
+  });
+
+  it("should refresh the session and retry when the user accepts extending it", () => {
+    prompt.ask.and.returnValue(of(true));
+    authService.refreshToken.and.returnValue(
+      of({ token: "t" } as LoginResponse),
+    );
+    let body: unknown;
+    http.get("/api/cursos").subscribe((b) => (body = b));
+
+    httpMock
+      .expectOne("/api/cursos")
+      .flush("", { status: 401, statusText: "Unauthorized" });
+    httpMock.expectOne("/api/cursos").flush({ ok: true });
+
+    expect(authService.refreshToken).toHaveBeenCalled();
+    expect(body).toEqual({ ok: true });
+    expect(authService.logout).not.toHaveBeenCalled();
+  });
+
+  it("should log out when the user declines extending the session", () => {
+    prompt.ask.and.returnValue(of(false));
+    let status = 0;
+    http.get("/api/cursos").subscribe({ error: (e) => (status = e.status) });
+
+    httpMock
+      .expectOne("/api/cursos")
+      .flush("", { status: 401, statusText: "Unauthorized" });
+
+    expect(status).toBe(401);
+    expect(authService.logout).toHaveBeenCalled();
+    expect(authService.refreshToken).not.toHaveBeenCalled();
+  });
+
+  it("should log out when the refresh fails", () => {
+    prompt.ask.and.returnValue(of(true));
+    authService.refreshToken.and.returnValue(
+      throwError(() => new Error("refresh vencido")),
+    );
+    let error: Error | undefined;
+    http.get("/api/cursos").subscribe({ error: (e) => (error = e) });
+
+    httpMock
+      .expectOne("/api/cursos")
+      .flush("", { status: 401, statusText: "Unauthorized" });
+
+    expect(error?.message).toBe("refresh vencido");
+    expect(authService.logout).toHaveBeenCalled();
+  });
+
+  it("should not try to refresh on auth endpoints or other errors", () => {
+    http.post("/api/v1/auth/login", {}).subscribe({ error: () => undefined });
+    http.get("/api/cursos").subscribe({ error: () => undefined });
+
+    httpMock
+      .expectOne("/api/v1/auth/login")
+      .flush("", { status: 401, statusText: "Unauthorized" });
+    httpMock
+      .expectOne("/api/cursos")
+      .flush("", { status: 500, statusText: "Server Error" });
+
+    expect(prompt.ask).not.toHaveBeenCalled();
+    expect(authService.refreshToken).not.toHaveBeenCalled();
   });
 });

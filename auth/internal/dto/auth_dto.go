@@ -19,16 +19,20 @@ type CheckCredentialsRequest struct {
 
 // AvailableAccount represents a user account associated with an email, each with a unique role
 type AvailableAccount struct {
-	UserID   string `json:"user_id"`
-	RoleID   string `json:"role_id"`
-	RoleName string `json:"role_name"`
-	Status   string `json:"status"`
+	UserID          string `json:"user_id"`
+	RoleID          string `json:"role_id"`
+	RoleName        string `json:"role_name"`
+	Status          string `json:"status"`
+	ApprovalStatus  string `json:"approval_status,omitempty"`
+	IsEmailVerified bool   `json:"is_email_verified"`
 }
 
 // CheckCredentialsResponse is the result of step 1, containing the list of accounts for the email
 type CheckCredentialsResponse struct {
-	Accounts   []AvailableAccount `json:"accounts"`
-	LoginNonce string             `json:"login_nonce"`
+	Accounts        []AvailableAccount `json:"accounts"`
+	LoginNonce      string             `json:"login_nonce"`
+	IsEmailVerified bool               `json:"is_email_verified"`
+	Email           string             `json:"email,omitempty"`
 }
 
 // LoginRequest is used in step 2: select a specific account/role to receive a token

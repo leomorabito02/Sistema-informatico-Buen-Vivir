@@ -1,49 +1,90 @@
-.page-container {
-  padding: 1.5rem;
-  max-width: 1200px;
-  margin: 0 auto;
-}
-
-.header-section {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 1rem;
-  margin-bottom: 2rem;
-}
-
-.page-title {
-  font-size: 1.75rem;
-  font-weight: 700;
-  color: var(--primary);
-  margin: 0 0 0.5rem 0;
-}
-
-.page-subtitle {
-  color: var(--text-muted);
-  margin: 0;
-}
-
 .grid-container {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
   gap: 1.5rem;
 }
 
-.info-footer {
+.filtros {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.filtros label,
+.form-grid label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+}
+
+.form-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.req {
+  color: var(--destructive, #b91c1c);
+}
+
+.campana-card {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--border, #e5e5e0);
+  border-radius: 0.75rem;
+  overflow: hidden;
+  background: var(--card, #fff);
+}
+
+.campana-img {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+  background: var(--muted, #f2f2ee);
+}
+
+.campana-body {
+  padding: 1rem;
+  flex: 1;
+}
+
+.campana-cabecera {
   display: flex;
   justify-content: space-between;
+  align-items: flex-start;
+  gap: 0.5rem;
+}
+
+.campana-titulo {
+  margin: 0;
+  font-size: var(--font-size-lg);
+}
+
+.campana-fecha {
+  margin: 0.5rem 0;
+  font-size: var(--font-size-sm);
+  color: var(--muted-foreground, #66655b);
+}
+
+.campana-texto {
+  margin: 0;
+  white-space: pre-line;
+  display: -webkit-box;
+  -webkit-line-clamp: 4;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
 .card-footer-buttons {
   display: flex;
   gap: 0.5rem;
+  padding: 0 1rem 1rem;
 }
 
-@media (max-width: 768px) {
-  .header-section {
-    flex-direction: column;
-    align-items: stretch;
-  }
+.estado-carga {
+  color: var(--muted-foreground, #66655b);
 }

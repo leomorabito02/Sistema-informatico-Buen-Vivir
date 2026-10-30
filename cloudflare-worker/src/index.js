@@ -53,10 +53,21 @@ export default {
 
       try {
         const payload = await request.json();
+
+        const rawKvData = await env.IMPACT_KV.get("impact_stats");
+        let existingStats = {};
+        if (rawKvData) {
+          try {
+            existingStats = JSON.parse(rawKvData);
+          } catch (e) {
+            existingStats = {};
+          }
+        }
+
         const stats = {
-          activeParticipants: payload.activeParticipants ?? 0,
-          volunteers: payload.volunteers ?? 0,
-          courses: "Pendiente",
+          activeParticipants: payload.activeParticipants ?? existingStats.activeParticipants ?? 0,
+          volunteers: payload.volunteers ?? existingStats.volunteers ?? 0,
+          courses: payload.courses ?? existingStats.courses ?? "Pendiente",
           updatedAt: new Date().toISOString(),
         };
 

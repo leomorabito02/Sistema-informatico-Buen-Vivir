@@ -5,8 +5,9 @@ import { AuthService } from "../../services/auth.service";
 import { MeResponse } from "../models/auth.model";
 
 /**
- * Deja pasar solo a `role_admin` / `role_dev`. Cualquier otro rol
- * (o sesión inválida) se redirige al dashboard / login.
+ * Deja pasar solo a `role_admin` / `role_dev`. Cualquier otro rol se
+ * redirige al inicio con `?acceso=denegado`, y el panel muestra el aviso
+ * de acceso denegado (403). Una sesión inválida va al login.
  * Se apoya en `GET /api/v1/auth/me`, igual que `authGuard`.
  */
 export const adminGuard: CanActivateFn = () => {
@@ -21,7 +22,9 @@ export const adminGuard: CanActivateFn = () => {
     map((res: MeResponse) => {
       const roleId = res.role_id ?? res.user?.role_id ?? "";
       if (roleId === "role_admin" || roleId === "role_dev") return true;
-      return router.createUrlTree(["/dashboard"]);
+      return router.createUrlTree(["/dashboard"], {
+        queryParams: { acceso: "denegado" },
+      });
     }),
     catchError(() => of(router.createUrlTree(["/login"]))),
   );

@@ -1,9 +1,7 @@
 <div class="page-container">
   <div class="header-section">
     <div>
-      <h1 class="page-title">
-        <i class="pi pi-eye mr-2"></i>Seguimiento Pedagógico
-      </h1>
+      <h1 class="page-title">Seguimiento Pedagógico</h1>
       <p class="page-subtitle">
         Cruce de inscripciones y asistencia por participante para detectar
         riesgo de deserción.
@@ -11,25 +9,22 @@
     </div>
   </div>
 
-  <p-message
-    *ngIf="error"
-    severity="error"
-    [text]="error"
-    styleClass="w-full"
-  ></p-message>
+  <app-error-state *ngIf="error" [message]="error"></app-error-state>
 
-  <div *ngIf="loadingCourses" class="state-box">
-    <p-progressSpinner
-      strokeWidth="4"
-      [style]="{ width: '40px', height: '40px' }"
-    ></p-progressSpinner>
-    <span>Cargando tus cursos…</span>
-  </div>
+  <app-loading-state
+    *ngIf="loadingCourses"
+    variant="list"
+    [rows]="1"
+    label="Cargando tus cursos…"
+  ></app-loading-state>
 
   <ng-container *ngIf="!loadingCourses">
-    <p *ngIf="courseOptions.length === 0 && !error" class="empty-state">
+    <app-empty-state
+      *ngIf="courseOptions.length === 0 && !error"
+      [compact]="true"
+    >
       No tenés cursos asignados como docente responsable.
-    </p>
+    </app-empty-state>
 
     <div *ngIf="courseOptions.length > 0" class="course-picker">
       <label>Curso</label>
@@ -44,12 +39,7 @@
       ></p-select>
     </div>
 
-    <div *ngIf="loadingData" class="state-box">
-      <p-progressSpinner
-        strokeWidth="4"
-        [style]="{ width: '32px', height: '32px' }"
-      ></p-progressSpinner>
-    </div>
+    <app-loading-state *ngIf="loadingData" variant="list"></app-loading-state>
 
     <p-card *ngIf="selectedCourseId && !loadingData" styleClass="p-card-shadow">
       <p-table [value]="rows" class="p-datatable-striped">

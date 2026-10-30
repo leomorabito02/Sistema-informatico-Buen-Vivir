@@ -10,6 +10,13 @@ import { Auth } from "@angular/fire/auth";
 import { Router } from "@angular/router";
 
 describe("AuthService", () => {
+  // environment es un objeto compartido entre specs: se restaura para no
+  // cambiarle la URL a los specs que corren después (orden aleatorio).
+  const apiUrlOriginal = environment.apiUrl;
+  afterAll(() => {
+    environment.apiUrl = apiUrlOriginal;
+  });
+
   let service: AuthService;
   let httpMock: HttpTestingController;
   let mockRouter: jasmine.SpyObj<Router>;
@@ -45,11 +52,11 @@ describe("AuthService", () => {
   it("should manage local authentication state in localStorage", () => {
     expect(service.isLocallyAuthenticated()).toBeFalse();
 
-    service.setLocallyAuthenticated(true);
+    service.setLocallyAuthenticated();
     expect(service.isLocallyAuthenticated()).toBeTrue();
     expect(localStorage.getItem("isAuthenticated")).toBe("true");
 
-    service.setLocallyAuthenticated(false);
+    service.clearLocallyAuthenticated();
     expect(service.isLocallyAuthenticated()).toBeFalse();
     expect(localStorage.getItem("isAuthenticated")).toBeNull();
   });
@@ -66,6 +73,7 @@ describe("AuthService", () => {
       password: "password123",
     });
     expect(req.request.withCredentials).toBe(true);
+    expect(req.request.headers.get("X-Skip-Global-Error")).toBe("true");
     req.flush({ accounts: [], login_nonce: "nonce" });
   });
 
@@ -128,7 +136,7 @@ describe("AuthService", () => {
   });
 
   it("should send POST to logout, sign out from Auth and navigate to login on success", () => {
-    service.setLocallyAuthenticated(true);
+    service.setLocallyAuthenticated();
     service.logout();
 
     const req = httpMock.expectOne("http://localhost:3000/api/v1/auth/logout");
@@ -168,7 +176,7 @@ describe("AuthService", () => {
     });
 
     it("should handle 401 error and reset local authentication", () => {
-      service.setLocallyAuthenticated(true);
+      service.setLocallyAuthenticated();
       service.isAuthenticated().subscribe({
         next: () => fail("should fail"),
         error: (err: Error) => {

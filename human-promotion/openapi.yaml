@@ -1,0 +1,406 @@
+openapi: 3.0.3
+info:
+  title: Buen Vivir - Promoción Humana
+  version: 1.0.0
+  description: |
+    Fichas de proceso personal, hitos y líneas de tiempo de los participantes
+    (HU-29 a HU-37). Los datos son confidenciales (Ley 25.326): situación actual,
+    avances y descripción de los hitos se guardan cifrados con AES-256-GCM.
+
+    Autenticación: JWT emitido por auth-service, en la cookie `__Host-access_token`
+    o en el header `Authorization: Bearer`. Las fechas viajan como AAAA-MM-DD;
+    el frontend las muestra DD/MM/AAAA.
+
+    Roles: los endpoints de fichas, hitos, búsqueda y PDF son para `role_admin` y
+    `role_volunteer` (también `role_dev`). `/mi-linea-de-tiempo` es para
+    `role_participant`. Un rol no autorizado recibe 403.
+servers:
+  - url: /api/v1/human-promotion
+
+security:
+  - bearerAuth: []
+  - cookieAuth: []
+
+paths:
+  /participantes:
+    get:
+      summary: Buscar participantes por nombre (HU-36)
+      description: Coincidencia parcial en nombre o apellido. Devuelve hasta 20 resultados; una lista vacía significa "sin resultados".
+      parameters:
+        - name: q
+          in: query
+          required: true
+          schema: { type: string, minLength: 2, maxLength: 100 }
+      responses:
+        "200":
+          description: Participantes encontrados
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/ResultadoBusqueda" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+
+  /fichas:
+    get:
+      summary: Ficha de un participante
+      description: Devuelve 404 si el participante todavía no tiene ficha (el frontend ofrece el alta).
+      parameters:
+        - name: participante_id
+          in: query
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: Ficha con los datos de Auth
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/FichaDetalle" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+    post:
+      summary: Crear ficha (HU-29)
+      description: Solo para un participante que existe en Auth y no tiene ficha previa.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CreateFichaInput" }
+      responses:
+        "201":
+          description: Ficha creada
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Ficha" }
+        "400":
+          description: 'Falta un campo obligatorio ("Completar todos los campos obligatorios para continuar") o el participante no existe'
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "409":
+          description: El participante ya tiene una ficha
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+
+  /fichas/{id}:
+    parameters:
+      - $ref: "#/components/parameters/FichaID"
+    get:
+      summary: Ver ficha (HU-31)
+      responses:
+        "200":
+          description: Ficha con los datos de Auth
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/FichaDetalle" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+    put:
+      summary: Editar ficha (HU-30)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/UpdateFichaInput" }
+      responses:
+        "200":
+          description: Ficha modificada
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Ficha personal modificada correctamente
+                  ficha: { $ref: "#/components/schemas/Ficha" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  /fichas/{id}/pdf:
+    parameters:
+      - $ref: "#/components/parameters/FichaID"
+    get:
+      summary: Exportar ficha y línea de tiempo a PDF (HU-37)
+      description: Mismos permisos que la ficha. El PDF se genera en el backend.
+      responses:
+        "200":
+          description: PDF de la ficha
+          headers:
+            Content-Disposition:
+              schema: { type: string, example: 'attachment; filename="ficha-abc123.pdf"' }
+          content:
+            application/pdf:
+              schema: { type: string, format: binary }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  /fichas/{id}/hitos:
+    parameters:
+      - $ref: "#/components/parameters/FichaID"
+    get:
+      summary: Línea de tiempo profesional (HU-33)
+      description: Todos los hitos de la ficha, en orden cronológico.
+      responses:
+        "200":
+          description: Hitos ordenados por fecha
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/HitoDetalle" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+    post:
+      summary: Registrar hito (HU-32)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/HitoInput" }
+      responses:
+        "201":
+          description: Hito creado
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Hito" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  /fichas/{id}/hitos/{hitoId}:
+    parameters:
+      - $ref: "#/components/parameters/FichaID"
+      - name: hitoId
+        in: path
+        required: true
+        schema: { type: string }
+    put:
+      summary: Editar hito (HU-32)
+      description: responsable_id y visible_participante son opcionales; si no vienen, se mantienen.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/HitoInput" }
+      responses:
+        "200":
+          description: Hito modificado
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Hito" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  /fichas/{id}/actividad:
+    parameters:
+      - $ref: "#/components/parameters/FichaID"
+    get:
+      summary: Actividad del participante en el centro (HU-33)
+      description: |
+        Inscripciones, cursos completados y asistencia al centro (una entrada
+        por mes, sin contar días) que llegan por eventos de Educación. El
+        frontend la mezcla por fecha con los hitos. Solo admin y voluntario.
+      responses:
+        "200":
+          description: Actividad en orden cronológico (vacía si no hay)
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/EntradaActividad" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  /mi-linea-de-tiempo:
+    get:
+      summary: Línea de tiempo del participante (HU-34)
+      description: |
+        Solo los hitos con visible_participante = true de la ficha del participante
+        logueado (identificado por su token), más su actividad en el centro
+        (la misma de /fichas/{id}/actividad). Nunca incluye situación actual,
+        avances, responsables ni hitos confidenciales.
+      responses:
+        "200":
+          description: |
+            Hitos visibles y actividad, cada lista en orden cronológico. Sin
+            ficha, hitos viene vacío y la actividad se muestra igual.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  hitos:
+                    type: array
+                    items: { $ref: "#/components/schemas/HitoParticipante" }
+                  actividad:
+                    type: array
+                    items: { $ref: "#/components/schemas/EntradaActividad" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: __Host-access_token
+
+  parameters:
+    FichaID:
+      name: id
+      in: path
+      required: true
+      schema: { type: string }
+
+  responses:
+    BadRequest:
+      description: Datos inválidos
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+    Unauthorized:
+      description: Falta el token o es inválido
+    Forbidden:
+      description: El rol no tiene permiso (el intento queda registrado)
+    NotFound:
+      description: Recurso no encontrado
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+
+  schemas:
+    Error:
+      type: object
+      properties:
+        error: { type: string }
+
+    CreateFichaInput:
+      type: object
+      required: [participante_id, situacion_actual, avances]
+      additionalProperties: false
+      properties:
+        participante_id: { type: string }
+        situacion_actual: { type: string, maxLength: 5000 }
+        avances: { type: string, maxLength: 5000 }
+
+    UpdateFichaInput:
+      type: object
+      required: [situacion_actual, avances]
+      additionalProperties: false
+      properties:
+        situacion_actual: { type: string, maxLength: 5000 }
+        avances: { type: string, maxLength: 5000 }
+
+    Ficha:
+      type: object
+      properties:
+        id: { type: string }
+        participante_id: { type: string }
+        situacion_actual: { type: string }
+        avances: { type: string }
+        creado_por: { type: string, description: user_id de quien creó la ficha }
+        updated_at: { type: string, format: date-time }
+
+    FichaDetalle:
+      allOf:
+        - $ref: "#/components/schemas/Ficha"
+        - type: object
+          properties:
+            participante:
+              nullable: true
+              description: Datos de Auth (solo lectura). null si Auth no respondió.
+              type: object
+              properties:
+                nombre: { type: string }
+                apellido: { type: string }
+                fecha_nacimiento: { type: string, format: date }
+                edad: { type: integer }
+            creado_por_nombre: { type: string }
+            habilidades:
+              type: array
+              items: { type: string }
+              description: Sugeridas por IA en Educación (HU-21); por ahora siempre vacío.
+
+    HitoInput:
+      type: object
+      required: [fecha, descripcion]
+      additionalProperties: false
+      properties:
+        fecha: { type: string, format: date, example: "2026-08-10" }
+        descripcion: { type: string, maxLength: 2000 }
+        responsable_id:
+          type: string
+          description: Por defecto, el usuario logueado.
+        visible_participante:
+          type: boolean
+          description: Si el participante lo ve en su línea de tiempo. Por defecto false.
+
+    Hito:
+      type: object
+      properties:
+        id: { type: string }
+        ficha_id: { type: string }
+        fecha: { type: string, format: date }
+        descripcion: { type: string }
+        responsable_id: { type: string }
+        visible_participante: { type: boolean }
+
+    HitoDetalle:
+      allOf:
+        - $ref: "#/components/schemas/Hito"
+        - type: object
+          properties:
+            responsable_nombre: { type: string }
+
+    HitoParticipante:
+      type: object
+      properties:
+        id: { type: string }
+        fecha: { type: string, format: date }
+        descripcion: { type: string }
+
+    EntradaActividad:
+      type: object
+      properties:
+        id: { type: string }
+        tipo:
+          type: string
+          enum: [inscripcion, curso_completado, asistencia_general]
+        fecha: { type: string, format: date }
+        descripcion: { type: string }
+        curso_id:
+          type: string
+          description: Vacío en la asistencia al centro.
+
+    ResultadoBusqueda:
+      type: object
+      properties:
+        participante_id: { type: string }
+        nombre: { type: string }
+        apellido: { type: string }
+        ficha_id:
+          type: string
+          nullable: true
+          description: null si el participante todavía no tiene ficha.

@@ -1,4 +1,4 @@
-import { Component, inject } from "@angular/core";
+import { Component, inject, OnInit } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import {
   FormBuilder,
@@ -7,14 +7,7 @@ import {
   Validators,
 } from "@angular/forms";
 import { Router, RouterLink } from "@angular/router";
-import {
-  LucideAngularModule,
-  Mail,
-  Lock,
-  AlertCircle,
-  Eye,
-  EyeOff,
-} from "lucide-angular";
+import { LucideAngularModule, Mail, Lock, Eye, EyeOff } from "lucide-angular";
 import { AuthService } from "../../services/auth.service";
 import { AvailableAccount } from "../../core/models/auth.model";
 
@@ -39,10 +32,9 @@ import { MessageModule } from "primeng/message";
   templateUrl: "./login.component.html",
   styleUrl: "./login.component.css",
 })
-export class LoginComponent {
+export class LoginComponent implements OnInit {
   readonly MailIcon = Mail;
   readonly LockIcon = Lock;
-  readonly AlertCircleIcon = AlertCircle;
   readonly EyeIcon = Eye;
   readonly EyeOffIcon = EyeOff;
 
@@ -63,7 +55,18 @@ export class LoginComponent {
     this.loginForm = this.fb.group({
       email: ["", [Validators.required, Validators.email]],
       password: ["", [Validators.required, Validators.minLength(4)]],
+      rememberMe: [false],
     });
+  }
+
+  ngOnInit(): void {
+    const savedEmail = localStorage.getItem("rememberedEmail");
+    if (savedEmail) {
+      this.loginForm.patchValue({
+        email: savedEmail,
+        rememberMe: true,
+      });
+    }
   }
 
   togglePasswordVisibility(): void {
@@ -93,7 +96,14 @@ export class LoginComponent {
       return;
     }
 
-    const { email, password } = this.loginForm.value;
+    const { email, password, rememberMe } = this.loginForm.value;
+
+    if (rememberMe) {
+      localStorage.setItem("rememberedEmail", email);
+    } else {
+      localStorage.removeItem("rememberedEmail");
+    }
+
     this.loading = true;
     this.loginError = "";
 
@@ -101,6 +111,12 @@ export class LoginComponent {
       next: (res) => {
         this.loading = false;
         this.loginError = "";
+        if (res.is_email_verified === false) {
+          void this.router.navigate(["/verify-email"], {
+            queryParams: { email: res.email || email },
+          });
+          return;
+        }
         this.handleAccountsResponse(res.accounts, res.login_nonce);
       },
       error: (err) => {
@@ -112,7 +128,7 @@ export class LoginComponent {
           errorMsg.includes("bloque")
         ) {
           this.loginError = "";
-          this.router.navigate(["/account-notice"]);
+          void this.router.navigate(["/account-notice"]);
         } else {
           this.handleFailedAttempt(errorMsg);
         }
@@ -129,6 +145,12 @@ export class LoginComponent {
       next: (res) => {
         this.googleLoading = false;
         this.loginError = "";
+        if (res.is_email_verified === false) {
+          void this.router.navigate(["/verify-email"], {
+            queryParams: { email: res.email },
+          });
+          return;
+        }
         this.handleAccountsResponse(res.accounts, res.login_nonce);
       },
       error: (err) => {
@@ -162,7 +184,7 @@ export class LoginComponent {
       this.loginWithAccount(accounts[0], loginNonce);
     } else {
       // Multiple accounts — navigate to role selection, carry nonce in router state
-      this.router.navigate(["/select-role"], {
+      void this.router.navigate(["/select-role"], {
         state: { accounts, loginNonce },
       });
     }
@@ -173,7 +195,7 @@ export class LoginComponent {
    */
   private loginWithAccount(account: AvailableAccount, loginNonce: string) {
     if (account.status !== "active") {
-      this.router.navigate(["/account-notice"]);
+      void this.router.navigate(["/account-notice"]);
       return;
     }
 
@@ -185,18 +207,28 @@ export class LoginComponent {
           this.loading = false;
           this.loginError = "";
           if (res.user_status === "blocked") {
-            this.router.navigate(["/account-notice"]);
+            void this.router.navigate(["/account-notice"]);
           } else if (res.approval_status === "pending") {
-            this.router.navigate(["/pending-approval"]);
+            void this.router.navigate(["/pending-approval"]);
           } else {
-            this.router.navigate(["/dashboard"]);
+            void this.router.navigate(["/dashboard"]);
           }
         },
         error: (err) => {
           this.loading = false;
-          const errorMsg = err.error?.error || "";
+          const errorMsg = err.error?.error || err.message || "";
+          if (
+            errorMsg === "EMAIL_NOT_VERIFIED" ||
+            errorMsg.includes("verificar tu correo")
+          ) {
+            const email = this.loginForm.get("email")?.value;
+            void this.router.navigate(["/verify-email"], {
+              queryParams: email ? { email } : undefined,
+            });
+            return;
+          }
           if (errorMsg.includes("activa") || errorMsg.includes("bloque")) {
-            this.router.navigate(["/account-notice"]);
+            void this.router.navigate(["/account-notice"]);
           } else {
             this.handleFailedAttempt(errorMsg);
           }

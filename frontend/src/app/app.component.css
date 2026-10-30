@@ -9,12 +9,12 @@
 
 .app-title {
   margin: 0;
-  font-size: 1.25rem;
+  font-size: var(--font-size-xl);
   color: var(--primary);
 }
 
 .app-badge {
-  font-size: 0.875rem;
+  font-size: var(--font-size-sm);
   background: #166534;
   color: #4ade80;
   padding: 0.25rem 0.75rem;

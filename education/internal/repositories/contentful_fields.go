@@ -20,6 +20,22 @@ func rawString(fields map[string]json.RawMessage, key string) string {
 	return s
 }
 
+// rawInt extrae un campo Number opcional. Si el campo no existe todavía
+// en el content type de Contentful (caso típico: "capacity" en cursos
+// creados antes de agregar el campo al Space) o no vino en la respuesta,
+// devuelve nil sin error — se interpreta como "sin límite".
+func rawInt(fields map[string]json.RawMessage, key string) *int {
+	raw, ok := fields[key]
+	if !ok || raw == nil {
+		return nil
+	}
+	var n int
+	if err := json.Unmarshal(raw, &n); err != nil {
+		return nil
+	}
+	return &n
+}
+
 // rawLink extrae el id de un campo Reference/Media de tipo Link.
 func rawLink(fields map[string]json.RawMessage, key string) (string, bool) {
 	raw, ok := fields[key]

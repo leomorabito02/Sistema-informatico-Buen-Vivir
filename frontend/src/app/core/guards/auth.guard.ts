@@ -17,6 +17,11 @@ export const authGuard: CanActivateFn = () => {
       if (res.user_status === "blocked" || res.user?.status === "blocked") {
         return router.createUrlTree(["/account-notice"]);
       }
+      if (res.user?.is_email_verified === false) {
+        return router.createUrlTree(["/verify-email"], {
+          queryParams: res.user?.email ? { email: res.user.email } : undefined,
+        });
+      }
       if (res.approval_status === "pending") {
         return router.createUrlTree(["/pending-approval"]);
       }

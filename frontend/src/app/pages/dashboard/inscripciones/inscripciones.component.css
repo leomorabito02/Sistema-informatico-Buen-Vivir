@@ -1,0 +1,51 @@
+.hint {
+  color: var(--text-muted);
+  font-size: var(--font-size-sm);
+  margin: 0.5rem 0 0 0;
+}
+
+.course-picker {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  margin-bottom: 1.5rem;
+  max-width: 320px;
+}
+
+.course-picker label {
+  font-weight: 600;
+  color: var(--text-primary, #1d1d1b);
+}
+
+.two-col {
+  display: grid;
+  grid-template-columns: 1fr 1.4fr;
+  gap: 1.5rem;
+  align-items: start;
+}
+
+.new-enrollment {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.6rem;
+}
+
+.new-enrollment label {
+  font-weight: 600;
+  color: var(--text-primary, #1d1d1b);
+}
+
+.new-enrollment app-participant-picker {
+  width: 100%;
+}
+
+.new-enrollment .hint {
+  margin: 0;
+}
+
+@media (max-width: 900px) {
+  .two-col {
+    grid-template-columns: 1fr;
+  }
+}

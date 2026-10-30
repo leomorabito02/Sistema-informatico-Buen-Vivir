@@ -6,10 +6,11 @@ import { TagModule } from "primeng/tag";
 import { CardModule } from "primeng/card";
 import { SelectModule } from "primeng/select";
 import { ProgressBarModule } from "primeng/progressbar";
-import { ProgressSpinnerModule } from "primeng/progressspinner";
-import { MessageModule } from "primeng/message";
 import { forkJoin } from "rxjs";
 import { EducationService } from "../../../services/education.service";
+import { LoadingStateComponent } from "../../../shared/components/loading-state.component";
+import { ErrorStateComponent } from "../../../shared/components/error-state.component";
+import { EmptyStateComponent } from "../../../shared/components/empty-state.component";
 import { Course } from "../../../core/models/education.model";
 
 interface Option {
@@ -29,6 +30,9 @@ interface SeguimientoRow {
   selector: "app-seguimiento",
   standalone: true,
   imports: [
+    LoadingStateComponent,
+    ErrorStateComponent,
+    EmptyStateComponent,
     CommonModule,
     FormsModule,
     TableModule,
@@ -36,8 +40,6 @@ interface SeguimientoRow {
     CardModule,
     SelectModule,
     ProgressBarModule,
-    ProgressSpinnerModule,
-    MessageModule,
   ],
   templateUrl: "./seguimiento.component.html",
   styleUrls: ["./seguimiento.component.css"],

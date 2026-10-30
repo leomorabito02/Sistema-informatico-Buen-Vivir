@@ -39,9 +39,9 @@ func TestFirestoreIntegrityConstraints(t *testing.T) {
 		Passed:    true,
 	}
 
-	// 1. Id determinístico de asistencia: {actividadId}_{participanteId}
-	// evita registros duplicados cuando el docente corrige una asistencia
-	// (ver AttendanceRepository.RegisterBatch).
+	// 1. Id determinístico de asistencia: {actividadId}_{participanteId},
+	// el mismo que el de la entrega que la genera (ver
+	// SubmissionRepository.CreateWithAttendance).
 	report.Checks = append(report.Checks, CheckResult{
 		Name:    "Attendance Deterministic ID Assertion",
 		Status:  "PASSED",

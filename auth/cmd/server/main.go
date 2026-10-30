@@ -8,15 +8,23 @@ import (
 
 	"github.com/go-chi/chi/v5"
 
+	"auth/api/proto/authpb"
 	"auth/config"
 	"auth/internal/controllers"
+	"context"
 	"auth/internal/middlewares"
 	"auth/internal/repositories"
 	"auth/internal/services"
+	"auth/internal/storage"
+	"google.golang.org/grpc"
+	"net"
 
 )
 
 func main() {
+	// Load local .env if present (fallback for local development)
+	config.LoadEnvFile()
+
 	// 1. Setup Logger
 	config.InitLogger()
 	slog.Info("Starting Auth Service...")
@@ -34,9 +42,25 @@ func main() {
 	companyRepo := repositories.NewCompanyRepository(db)
 	teacherRepo := repositories.NewTeacherRepository(db)
 	participantRepo := repositories.NewParticipantRepository(db)
+	participantDocRepo := repositories.NewParticipantDocumentRepository(db)
 	permissionRepo := repositories.NewPermissionRepository(db)
 	volunteerRepo := repositories.NewVolunteerRepository(db)
 	refreshTokenRepo := repositories.NewRefreshTokenRepository(db)
+	participantDirectoryRepo := repositories.NewParticipantDirectoryRepository(db)
+	storageCleanupRepo := repositories.NewStorageCleanupRepository(db)
+	emailVerificationRepo := repositories.NewEmailVerificationRepository(db)
+
+	// Setup Storage
+	storageSvc, err := storage.NewObjectStorageService(
+		context.Background(),
+		os.Getenv("GCP_PROJECT_ID"),
+		os.Getenv("GCP_BUCKET_NAME"),
+		os.Getenv("GCP_EMULATOR_HOST"),
+		os.Getenv("GOOGLE_APPLICATION_CREDENTIALS"),
+	)
+	if err != nil {
+		slog.Warn("GCP Storage initialization failed, skipping file uploads", "error", err)
+	}
 
 	// 4. Setup Services
 	jwtService, err := services.NewJWTServiceFromEnv()
@@ -53,6 +77,9 @@ func main() {
 	transactor := repositories.NewGormTransactor(db)
 	querier := repositories.NewGormRoleProfileQuerier(db)
 
+	notificationSyncSvc := services.NewNotificationSyncService()
+	verificationService := services.NewVerificationService(emailVerificationRepo, userRepo, notificationSyncSvc)
+
 	authService := services.NewAuthService(
 		transactor,
 		querier,
@@ -60,17 +87,32 @@ func main() {
 		refreshTokenRepo,
 		jwtService,
 		firebaseService,
+		verificationService,
 	)
-	userService := services.NewUserService(userRepo)
+	userService := services.NewUserService(userRepo, querier, notificationSyncSvc, verificationService)
 	roleService := services.NewRoleService(roleRepo)
 	companyService := services.NewCompanyService(companyRepo)
 	teacherService := services.NewTeacherService(teacherRepo)
-	participantService := services.NewParticipantService(participantRepo)
+	participantService := services.NewParticipantService(participantRepo, participantDocRepo, storageSvc, userRepo, storageCleanupRepo)
 	permissionService := services.NewPermissionService(permissionRepo)
-	volunteerService := services.NewVolunteerService(volunteerRepo)
+	volunteerService := services.NewVolunteerService(volunteerRepo, userRepo)
+
+	// Iniciar worker de reconciliación asíncrona de archivos huérfanos
+	cleanupWorker := services.NewStorageCleanupWorker(storageCleanupRepo, storageSvc)
+	cleanupWorker.Start(context.Background(), 5*time.Minute)
+
+	// Sincronizar contadores de impacto en Cloudflare Worker KV al iniciar el servicio
+	services.NewKVSyncService(userRepo).SyncImpactStatsAsync()
 
 	// 5. Setup Controllers
-	authController := controllers.NewAuthController(authService)
+	firestoreClient, err := storage.NewFirestoreClient(context.Background(), "")
+	if err != nil {
+		slog.Warn("Firestore initialization failed, push notification tokens will not be persisted", "error", err)
+	}
+	deviceRepo := repositories.NewFirestoreDeviceRepository(firestoreClient)
+	deviceController := controllers.NewDeviceController(deviceRepo)
+
+	authController := controllers.NewAuthController(authService, verificationService)
 	userController := controllers.NewUserController(userService)
 	roleController := controllers.NewRoleController(roleService)
 	companyController := controllers.NewCompanyController(companyService)
@@ -79,6 +121,22 @@ func main() {
 	permissionController := controllers.NewPermissionController(permissionService)
 	volunteerController := controllers.NewVolunteerController(volunteerService)
 	tokenValidatorController := controllers.NewTokenValidatorController(jwtService)
+	participantDirectoryService := services.NewParticipantDirectoryService(participantDirectoryRepo)
+	directoryController := controllers.NewDirectoryController(participantDirectoryService)
+	grpcAuthController := controllers.NewGrpcAuthController(participantService, companyService, userService, participantDirectoryService, deviceRepo)
+	go func() {
+		lis, err := net.Listen("tcp", ":50051")
+		if err != nil {
+			slog.Error("failed to listen on gRPC port", "error", err)
+			return
+		}
+		grpcServer := grpc.NewServer()
+		authpb.RegisterAuthServiceServer(grpcServer, grpcAuthController)
+		slog.Info("Servicio Auth (gRPC) escuchando en el puerto 50051")
+		if err := grpcServer.Serve(lis); err != nil {
+			slog.Error("failed to serve gRPC", "error", err)
+		}
+	}()
 
 	// 6. Setup Router and Middlewares
 	r := chi.NewRouter()
@@ -127,6 +185,10 @@ func main() {
 			// Step 2: select account/role, receive JWT
 			r.With(middlewares.StrictRateLimiter()).Post("/login", authController.Login)
 			r.With(middlewares.StrictRateLimiter()).Post("/logout", authController.Logout)
+			r.With(middlewares.StrictRateLimiter()).Post("/refresh", authController.Refresh)
+			r.With(middlewares.StrictRateLimiter()).Post("/verify-email", authController.VerifyEmail)
+			r.With(middlewares.StrictRateLimiter()).Patch("/verify-email", authController.VerifyEmail)
+			r.With(middlewares.StrictRateLimiter()).Post("/resend-verification", authController.ResendVerification)
 		})
 		
 		// Protected Routes
@@ -143,7 +205,17 @@ func main() {
 			r.Route("/users", func(r chi.Router) {
 				r.Post("/", userController.CreateUser)
 				r.Get("/", userController.GetAllUsers)
+				// Dashboard: participantes con altas y bajas. Ruta estática:
+				// chi la resuelve antes que /{id}.
+				r.With(middlewares.RequireRole("role_admin", "role_dev")).
+					Get("/participants/history", userController.GetParticipantsHistory)
+				r.Post("/me/devices", deviceController.RegisterDevice)
+				r.With(middlewares.RequireRole("role_admin", "role_dev", "role_volunteer")).
+					Post("/{id}/approve", userController.ApproveUser)
+				r.With(middlewares.RequireRole("role_admin", "role_dev", "role_volunteer")).
+					Patch("/{id}/approval", userController.ApproveUser)
 				r.Get("/{id}", userController.GetUser)
+				r.Get("/{id}/profile", authController.GetUserProfile)
 				r.Put("/{id}", userController.UpdateUser)
 				r.Delete("/{id}", userController.DeleteUser)
 			})
@@ -158,7 +230,7 @@ func main() {
 			})
 
 			// Companies CRUD
-			r.With(middlewares.RequireRole("role_company")).Route("/companies", func(r chi.Router) {
+			r.With(middlewares.RequireRole("role_admin", "role_company")).Route("/companies", func(r chi.Router) {
 				r.Post("/", companyController.CreateCompany)
 				r.Get("/", companyController.GetAllCompanies)
 				r.Get("/{id}", companyController.GetCompany)
@@ -167,7 +239,7 @@ func main() {
 			})
 
 			// Teachers CRUD
-			r.With(middlewares.RequireRole("role_teacher")).Route("/teachers", func(r chi.Router) {
+			r.With(middlewares.RequireRole("role_admin", "role_teacher")).Route("/teachers", func(r chi.Router) {
 				r.Post("/", teacherController.CreateTeacher)
 				r.Get("/", teacherController.GetAllTeachers)
 				r.Get("/{id}", teacherController.GetTeacher)
@@ -175,13 +247,24 @@ func main() {
 				r.Delete("/{id}", teacherController.DeleteTeacher)
 			})
 
-			// Participants CRUD
-			r.With(middlewares.RequireRole("role_participant")).Route("/participants", func(r chi.Router) {
+			// Participants CRUD. role_volunteer también entra (HU-07/08/09 y
+			// HU-06: "vista voluntario" puede crear/editar/eliminar perfiles
+			// de participantes) — lo necesita education-service para poder
+			// validar/listar participantes (inscripción, asistencia).
+			r.With(middlewares.RequireRole("role_admin", "role_participant", "role_volunteer")).Route("/participants", func(r chi.Router) {
 				r.Post("/", participantController.CreateParticipant)
 				r.Get("/", participantController.GetAllParticipants)
 				r.Get("/{id}", participantController.GetParticipant)
 				r.Put("/{id}", participantController.UpdateParticipant)
 				r.Delete("/{id}", participantController.DeleteParticipant)
+				
+				r.Route("/{id}/documents", func(r chi.Router) {
+					r.Post("/", participantController.UploadDocument)
+					r.Get("/", participantController.GetDocuments)
+					r.Get("/{docId}/download", participantController.DownloadDocument)
+					r.Put("/{docId}", participantController.UpdateDocument)
+					r.Delete("/{docId}", participantController.DeleteDocument)
+				})
 			})
 
 			// Permissions CRUD
@@ -194,12 +277,26 @@ func main() {
 			})
 
 			// Volunteers CRUD
-			r.With(middlewares.RequireRole("role_volunteer")).Route("/volunteers", func(r chi.Router) {
+			r.With(middlewares.RequireRole("role_admin", "role_volunteer")).Route("/volunteers", func(r chi.Router) {
 				r.Post("/", volunteerController.CreateVolunteer)
 				r.Get("/", volunteerController.GetAllVolunteers)
 				r.Get("/{id}", volunteerController.GetVolunteer)
 				r.Put("/{id}", volunteerController.UpdateVolunteer)
 				r.Delete("/{id}", volunteerController.DeleteVolunteer)
+			})
+
+			// Participant Directory (read-only for inter-service communication)
+			r.Route("/directory", func(r chi.Router) {
+				// El docente solo puede pedir un participante por id (nombre,
+				// sin DNI ni contacto): Educación lo usa para mostrarle los
+				// nombres de sus alumnos en las entregas.
+				r.With(middlewares.RequireRole("role_admin", "role_dev", "role_volunteer", "role_teacher")).Get("/participants/{id}", directoryController.GetParticipantProfile)
+				r.Group(func(r chi.Router) {
+					r.Use(middlewares.RequireRole("role_admin", "role_dev", "role_volunteer"))
+					r.Get("/participants/by-user/{userId}", directoryController.GetProfileByUserID)
+					r.Get("/participants/search", directoryController.SearchParticipants)
+					r.Post("/users/summaries", directoryController.GetUserSummaries)
+				})
 			})
 		})
 	})

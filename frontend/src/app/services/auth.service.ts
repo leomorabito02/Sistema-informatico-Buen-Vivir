@@ -15,29 +15,45 @@ import {
   UpdateTeacherProfile,
   User,
 } from "../core/models/auth.model";
+import { SKIP_GLOBAL_ERROR_HEADER } from "../core/interceptors/error.interceptor";
+
+import { PushNotificationService } from "./push-notification.service";
 
 @Injectable({
   providedIn: "root",
 })
 export class AuthService {
-  private http = inject(HttpClient);
-  private auth = inject(Auth);
-  private router = inject(Router);
+  private readonly http = inject(HttpClient);
+  private readonly auth = inject(Auth);
+  private readonly router = inject(Router);
+  private readonly pushService = inject(PushNotificationService);
 
   private readonly apiUrl = environment.apiUrl;
 
   constructor() {}
 
+  async syncPushNotifications(): Promise<void> {
+    try {
+      const token = await this.pushService.requestPermissionAndGetToken();
+      if (token) {
+        this.pushService.registerDeviceToken(token).subscribe();
+        this.pushService.listenForegroundMessages();
+      }
+    } catch {
+      // Non-blocking: push token retrieval does not interrupt auth flow
+    }
+  }
+
   isLocallyAuthenticated(): boolean {
     return localStorage.getItem("isAuthenticated") === "true";
   }
 
-  setLocallyAuthenticated(status: boolean): void {
-    if (status) {
-      localStorage.setItem("isAuthenticated", "true");
-    } else {
-      localStorage.removeItem("isAuthenticated");
-    }
+  setLocallyAuthenticated(): void {
+    localStorage.setItem("isAuthenticated", "true");
+  }
+
+  clearLocallyAuthenticated(): void {
+    localStorage.removeItem("isAuthenticated");
   }
 
   /**
@@ -52,7 +68,10 @@ export class AuthService {
       .post<CheckCredentialsResponse>(
         `${this.apiUrl}/api/v1/auth/check-credentials`,
         { email, password },
-        { withCredentials: true },
+        {
+          withCredentials: true,
+          headers: { [SKIP_GLOBAL_ERROR_HEADER]: "true" },
+        },
       )
       .pipe(catchError(this.handleError));
   }
@@ -77,7 +96,10 @@ export class AuthService {
           .post<CheckCredentialsResponse>(
             `${this.apiUrl}/api/v1/auth/google-check-credentials`,
             { id_token: idToken, google_id: googleId },
-            { withCredentials: true },
+            {
+              withCredentials: true,
+              headers: { [SKIP_GLOBAL_ERROR_HEADER]: "true" },
+            },
           )
           .pipe(catchError(this.handleError)),
       ),
@@ -101,7 +123,26 @@ export class AuthService {
         { withCredentials: true },
       )
       .pipe(
-        tap(() => this.setLocallyAuthenticated(true)),
+        tap(() => {
+          this.setLocallyAuthenticated();
+          void this.syncPushNotifications();
+        }),
+        catchError(this.handleError),
+      );
+  }
+
+  refreshToken(): Observable<LoginResponse> {
+    return this.http
+      .post<LoginResponse>(
+        `${this.apiUrl}/api/v1/auth/refresh`,
+        {},
+        {
+          withCredentials: true,
+          headers: { [SKIP_GLOBAL_ERROR_HEADER]: "true" },
+        },
+      )
+      .pipe(
+        tap(() => this.setLocallyAuthenticated()),
         catchError(this.handleError),
       );
   }
@@ -115,7 +156,10 @@ export class AuthService {
         withCredentials: true,
       })
       .pipe(
-        tap(() => this.setLocallyAuthenticated(true)),
+        tap(() => {
+          this.setLocallyAuthenticated();
+          void this.syncPushNotifications();
+        }),
         catchError(this.handleError),
       );
   }
@@ -129,7 +173,12 @@ export class AuthService {
       .get<MeResponse>(`${this.apiUrl}/api/v1/auth/me`, {
         withCredentials: true,
       })
-      .pipe(catchError(this.handleError));
+      .pipe(
+        tap(() => {
+          void this.syncPushNotifications();
+        }),
+        catchError(this.handleError),
+      );
   }
 
   updateProfile(
@@ -148,27 +197,68 @@ export class AuthService {
    * The backend is responsible for invalidating the session and clearing the cookies.
    */
   logout(): void {
-    this.setLocallyAuthenticated(false);
+    this.clearLocallyAuthenticated();
     this.http
-      .post(`${this.apiUrl}/api/v1/auth/logout`, {}, { withCredentials: true })
+      .post(
+        `${this.apiUrl}/api/v1/auth/logout`,
+        {},
+        {
+          withCredentials: true,
+          headers: { [SKIP_GLOBAL_ERROR_HEADER]: "true" },
+        },
+      )
       .subscribe({
         next: () => {
-          this.auth.signOut();
-          this.router.navigate(["/login"]);
+          void this.auth.signOut();
+          void this.router.navigate(["/login"]);
         },
         error: () => {
           // Even if the backend request fails, clear the Firebase session and redirect
-          this.auth.signOut();
-          this.router.navigate(["/login"]);
+          void this.auth.signOut();
+          void this.router.navigate(["/login"]);
         },
       });
   }
 
-  private handleError = (error: HttpErrorResponse) => {
+  /**
+   * Dispara el reenvío del correo de confirmación con enlace temporal.
+   */
+  resendVerificationEmail(email: string): Observable<{ message: string }> {
+    return this.http
+      .post<{ message: string }>(
+        `${this.apiUrl}/api/v1/auth/resend-verification`,
+        { email },
+        {
+          withCredentials: true,
+          headers: { [SKIP_GLOBAL_ERROR_HEADER]: "true" },
+        },
+      )
+      .pipe(catchError(this.handleError));
+  }
+
+  /**
+   * Ejecuta el PATCH para validar el token y pasar is_email_verified = true.
+   */
+  verifyEmail(
+    token: string,
+  ): Observable<{ is_email_verified: boolean; message: string }> {
+    return this.http
+      .patch<{ is_email_verified: boolean; message: string }>(
+        `${this.apiUrl}/api/v1/auth/verify-email`,
+        { token },
+        {
+          withCredentials: true,
+          headers: { [SKIP_GLOBAL_ERROR_HEADER]: "true" },
+        },
+      )
+      .pipe(catchError(this.handleError));
+  }
+
+  private readonly handleError = (error: HttpErrorResponse) => {
     let errorMessage =
       "Ocurrió un error inesperado. Por favor, intente nuevamente.";
     if (error.status === 401) {
-      this.setLocallyAuthenticated(false);
+      this.clearLocallyAuthenticated();
     }
 
     if (error.error && (error.error as { message?: string }).message) {

@@ -1,0 +1,512 @@
+<p-toast></p-toast>
+<p-confirmDialog
+  [style]="{ width: '460px' }"
+  [breakpoints]="{ '640px': '92vw' }"
+></p-confirmDialog>
+
+<div class="page-container">
+  <div class="top-bar">
+    <app-back-link (back)="volver()"></app-back-link>
+  </div>
+
+  <app-loading-state
+    *ngIf="loading"
+    variant="detail"
+    label="Cargando curso…"
+  ></app-loading-state>
+
+  <app-error-state
+    *ngIf="!loading && error"
+    [message]="error"
+    (retry)="cargar()"
+  ></app-error-state>
+
+  <ng-container *ngIf="!loading && !error && curso">
+    <!-- Datos del curso -->
+    <section class="course-header">
+      <div class="course-tags">
+        <p-tag
+          *ngIf="curso.trainingArea?.name"
+          [value]="curso.trainingArea!.name"
+          icon="pi pi-sitemap"
+          severity="secondary"
+        ></p-tag>
+        <p-tag
+          *ngIf="curso.mode"
+          [value]="curso.mode"
+          [severity]="modeSeverity(curso.mode)"
+        ></p-tag>
+      </div>
+      <h1 class="course-title">{{ curso.title }}</h1>
+
+      <dl class="course-meta">
+        <div>
+          <dt><i class="pi pi-user"></i> Docente</dt>
+          <dd>{{ docenteNombre || "Docente asignado" }}</dd>
+        </div>
+        <div>
+          <dt><i class="pi pi-desktop"></i> Modalidad</dt>
+          <dd>{{ curso.mode || "—" }}</dd>
+        </div>
+        <div *ngIf="curso.duration">
+          <dt><i class="pi pi-clock"></i> Duración</dt>
+          <dd>{{ curso.duration }}</dd>
+        </div>
+      </dl>
+
+      <div class="course-desc">
+        <app-rich-text [doc]="curso.description"></app-rich-text>
+      </div>
+
+      <div *ngIf="habilidadesCurso.length > 0" class="course-skills">
+        <h2 class="course-skills-title">
+          Habilidades que desarrolla este curso
+        </h2>
+        <ul class="skill-chips">
+          <li *ngFor="let h of habilidadesCurso" class="skill-chip">
+            {{ h.nombre }}
+          </li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- Progreso del participante (HU-20) -->
+    <section *ngIf="esParticipante && progreso" class="progress-card">
+      <div class="progress-head">
+        <span>Tu progreso</span>
+        <strong>{{ progreso.porcentajeAsistencia | number: "1.0-0" }}%</strong>
+      </div>
+      <p-progressBar
+        [value]="progreso.porcentajeAsistencia"
+        [showValue]="false"
+        styleClass="progress-bar"
+      ></p-progressBar>
+      <p class="muted">
+        {{ progreso.actividadesAsistidas }} de
+        {{ progreso.actividadesTotal }} actividades entregadas
+      </p>
+    </section>
+
+    <!-- Actividades -->
+    <section class="activities">
+      <div class="activities-head">
+        <h2><i class="pi pi-list-check"></i> Actividades</h2>
+        <p-button
+          *ngIf="puedeGestionar"
+          label="Nueva actividad"
+          icon="pi pi-plus"
+          (onClick)="nuevaActividad()"
+        ></p-button>
+      </div>
+
+      <app-empty-state *ngIf="actividades.length === 0">
+        {{
+          puedeGestionar
+            ? 'Este curso todavía no tiene actividades. Creá la primera con "Nueva actividad".'
+            : "Este curso todavía no tiene actividades."
+        }}
+      </app-empty-state>
+
+      <ul class="activity-list">
+        <li *ngFor="let a of actividades" class="activity-item">
+          <div class="activity-date">
+            <i class="pi pi-calendar"></i>
+            {{ a.fecha | date: "dd/MM/yyyy" : "UTC" }}
+          </div>
+          <div class="activity-body">
+            <h3>{{ a.titulo }}</h3>
+            <p class="activity-consigna">{{ a.consigna }}</p>
+            <ul
+              *ngIf="habilidadesDe(a.id).length > 0"
+              class="skill-chips skill-chips-sm"
+              aria-label="Habilidades que desarrolla"
+            >
+              <li *ngFor="let h of habilidadesDe(a.id)" class="skill-chip">
+                {{ h.nombre }}
+              </li>
+            </ul>
+            <div *ngIf="esParticipante" class="activity-status">
+              <p-tag
+                *ngIf="a.entrega; else pendiente"
+                severity="success"
+                icon="pi pi-check"
+                [value]="
+                  'Entregado el ' +
+                  (a.entrega.fechaEntrega | date: 'dd/MM/yyyy')
+                "
+              ></p-tag>
+              <ng-template #pendiente>
+                <p-tag severity="secondary" value="Sin entregar"></p-tag>
+              </ng-template>
+            </div>
+          </div>
+
+          <div class="activity-actions">
+            <ng-container *ngIf="puedeGestionar">
+              <p-button
+                label="Entregas"
+                icon="pi pi-inbox"
+                [outlined]="true"
+                size="small"
+                (onClick)="verEntregas(a)"
+              ></p-button>
+              <p-button
+                icon="pi pi-pencil"
+                [text]="true"
+                size="small"
+                pTooltip="Editar"
+                ariaLabel="Editar actividad"
+                (onClick)="editarActividad(a)"
+              ></p-button>
+              <p-button
+                icon="pi pi-trash"
+                [text]="true"
+                size="small"
+                severity="danger"
+                pTooltip="Eliminar"
+                ariaLabel="Eliminar actividad"
+                (onClick)="eliminarActividad(a)"
+              ></p-button>
+            </ng-container>
+
+            <ng-container *ngIf="esParticipante">
+              <p-button
+                *ngIf="!a.entrega"
+                label="Realizar"
+                icon="pi pi-pencil"
+                size="small"
+                (onClick)="abrirEntrega(a)"
+              ></p-button>
+              <p-button
+                *ngIf="a.entrega"
+                label="Ver entrega"
+                icon="pi pi-eye"
+                [outlined]="true"
+                size="small"
+                (onClick)="abrirEntrega(a)"
+              ></p-button>
+            </ng-container>
+          </div>
+        </li>
+      </ul>
+    </section>
+
+    <app-comentarios
+      entidadTipo="curso"
+      [entidadId]="cursoId"
+      [puedeModerar]="esAdmin"
+    ></app-comentarios>
+  </ng-container>
+</div>
+
+<!-- Alta / edición de actividad -->
+<p-dialog
+  [(visible)]="formVisible"
+  [modal]="true"
+  [style]="{ width: '640px' }"
+  [breakpoints]="{ '700px': '94vw' }"
+  [header]="editando ? 'Editar actividad' : 'Nueva actividad'"
+  styleClass="activity-dialog"
+>
+  <form class="activity-form" (ngSubmit)="guardarActividad()">
+    <label for="act-titulo">Título</label>
+    <input
+      id="act-titulo"
+      name="titulo"
+      pInputText
+      [(ngModel)]="form.titulo"
+      maxlength="150"
+      placeholder="Ej.: Práctica de amasado"
+    />
+
+    <label for="act-consigna">Consigna</label>
+    <textarea
+      id="act-consigna"
+      name="consigna"
+      pTextarea
+      rows="6"
+      [(ngModel)]="form.consigna"
+      placeholder="Qué tiene que hacer y entregar el participante"
+    ></textarea>
+
+    <label for="act-fecha">Fecha</label>
+    <p-datepicker
+      inputId="act-fecha"
+      name="fecha"
+      [(ngModel)]="form.fecha"
+      dateFormat="dd/mm/yy"
+      placeholder="dd/mm/aaaa"
+      [showIcon]="true"
+      appendTo="body"
+    ></p-datepicker>
+    <small class="muted">
+      Es la fecha con la que queda registrada la asistencia de quienes la
+      entreguen.
+    </small>
+
+    <app-activity-skills
+      [cursoId]="cursoId"
+      [actividadId]="editando?.id ?? ''"
+      [titulo]="form.titulo"
+      [consigna]="form.consigna"
+      [(skills)]="formSkills"
+    ></app-activity-skills>
+  </form>
+
+  <ng-template pTemplate="footer">
+    <p-button
+      label="Cancelar"
+      [text]="true"
+      (onClick)="formVisible = false"
+    ></p-button>
+    <p-button
+      [label]="editando ? 'Guardar cambios' : 'Crear actividad'"
+      icon="pi pi-check"
+      [loading]="guardando"
+      [disabled]="!formValido"
+      (onClick)="guardarActividad()"
+    ></p-button>
+  </ng-template>
+</p-dialog>
+
+<!-- Entregas de una actividad -->
+<p-dialog
+  [(visible)]="entregasVisible"
+  [modal]="true"
+  [style]="{ width: '860px' }"
+  [breakpoints]="{ '900px': '96vw' }"
+  [header]="'Entregas — ' + (entregasActividad?.titulo ?? '')"
+>
+  <app-loading-state
+    *ngIf="loadingEntregas"
+    variant="table"
+    label="Cargando entregas…"
+  ></app-loading-state>
+
+  <ng-container *ngIf="!loadingEntregas">
+    <p class="entregas-resumen" *ngIf="entregas.length > 0">
+      <strong>{{ entregadasCount }}</strong> de
+      <strong>{{ entregas.length }}</strong> participantes entregaron.
+    </p>
+
+    <p-table
+      [value]="entregas"
+      dataKey="participanteId"
+      [expandedRowKeys]="expandedRows"
+      styleClass="p-datatable-sm"
+    >
+      <ng-template pTemplate="header">
+        <tr>
+          <th style="width: 3rem"></th>
+          <th>Participante</th>
+          <th>Estado</th>
+          <th>Fecha de entrega</th>
+          <th>Adjuntos</th>
+        </tr>
+      </ng-template>
+      <ng-template pTemplate="body" let-r let-expanded="expanded">
+        <tr>
+          <td>
+            <p-button
+              *ngIf="r.entrega"
+              type="button"
+              [pRowToggler]="r"
+              [text]="true"
+              [rounded]="true"
+              size="small"
+              [icon]="expanded ? 'pi pi-chevron-down' : 'pi pi-chevron-right'"
+              [ariaLabel]="expanded ? 'Ocultar entrega' : 'Ver entrega'"
+            ></p-button>
+          </td>
+          <td>{{ nombreParticipante(r) }}</td>
+          <td>
+            <p-tag
+              [value]="r.estado === 'entregado' ? 'Entregado' : 'Sin entregar'"
+              [severity]="r.estado === 'entregado' ? 'success' : 'secondary'"
+            ></p-tag>
+          </td>
+          <td>
+            {{
+              r.entrega
+                ? (r.entrega.fechaEntrega | date: "dd/MM/yyyy HH:mm")
+                : "—"
+            }}
+          </td>
+          <td>{{ r.entrega ? r.entrega.archivos.length : "—" }}</td>
+        </tr>
+      </ng-template>
+      <ng-template pTemplate="expandedrow" let-r>
+        <tr>
+          <td colspan="5" class="entrega-detalle">
+            <h4>Respuesta</h4>
+            <p class="entrega-texto" *ngIf="r.entrega.texto; else sinTexto">
+              {{ r.entrega.texto }}
+            </p>
+            <ng-template #sinTexto>
+              <p class="muted">Sin texto.</p>
+            </ng-template>
+
+            <h4>Archivos adjuntos</h4>
+            <ul
+              class="file-list"
+              *ngIf="r.entrega.archivos.length; else sinArchivos"
+            >
+              <li *ngFor="let f of r.entrega.archivos; let i = index">
+                <i class="pi" [ngClass]="iconoArchivo(f.tipo)"></i>
+                <span class="file-name">{{ f.nombre }}</span>
+                <span class="muted">{{ tamanoLegible(f.tamano) }}</span>
+                <p-button
+                  icon="pi pi-download"
+                  [text]="true"
+                  size="small"
+                  pTooltip="Descargar"
+                  [ariaLabel]="'Descargar ' + f.nombre"
+                  [loading]="descargando === r.entrega.id + '-' + i"
+                  (onClick)="descargar(r.entrega, i, f)"
+                ></p-button>
+              </li>
+            </ul>
+            <ng-template #sinArchivos>
+              <p class="muted">Sin archivos.</p>
+            </ng-template>
+          </td>
+        </tr>
+      </ng-template>
+      <ng-template pTemplate="emptymessage">
+        <tr>
+          <td colspan="5" class="empty-state">
+            No hay participantes inscriptos en este curso.
+          </td>
+        </tr>
+      </ng-template>
+    </p-table>
+  </ng-container>
+</p-dialog>
+
+<!-- Participante: realizar / ver entrega -->
+<p-dialog
+  [(visible)]="entregaVisible"
+  [modal]="true"
+  [style]="{ width: '640px' }"
+  [breakpoints]="{ '700px': '96vw' }"
+  [header]="entregaActividad?.titulo ?? 'Actividad'"
+  styleClass="entrega-dialog"
+>
+  <ng-container *ngIf="entregaActividad as a">
+    <p class="entrega-fecha">
+      <i class="pi pi-calendar"></i>
+      {{ a.fecha | date: "dd/MM/yyyy" : "UTC" }}
+    </p>
+
+    <div class="consigna-box">
+      <h4>Consigna</h4>
+      <p>{{ a.consigna }}</p>
+    </div>
+
+    <!-- Ya entregada: solo lectura -->
+    <div *ngIf="a.entrega as e" class="entrega-hecha">
+      <div class="entrega-estado">
+        <i class="pi pi-check-circle"></i>
+        <div>
+          <strong>Entregado</strong>
+          <span>{{ e.fechaEntrega | date: "dd/MM/yyyy 'a las' HH:mm" }}</span>
+        </div>
+      </div>
+
+      <h4>Tu respuesta</h4>
+      <p class="entrega-texto" *ngIf="e.texto; else sinTextoPropio">
+        {{ e.texto }}
+      </p>
+      <ng-template #sinTextoPropio><p class="muted">Sin texto.</p></ng-template>
+
+      <h4>Tus archivos</h4>
+      <ul class="file-list" *ngIf="e.archivos.length; else sinArchivosPropios">
+        <li *ngFor="let f of e.archivos; let i = index">
+          <i class="pi" [ngClass]="iconoArchivo(f.tipo)"></i>
+          <span class="file-name">{{ f.nombre }}</span>
+          <span class="muted">{{ tamanoLegible(f.tamano) }}</span>
+          <p-button
+            icon="pi pi-download"
+            [text]="true"
+            size="small"
+            [ariaLabel]="'Descargar ' + f.nombre"
+            [loading]="descargando === e.id + '-' + i"
+            (onClick)="descargar(e, i, f)"
+          ></p-button>
+        </li>
+      </ul>
+      <ng-template #sinArchivosPropios
+        ><p class="muted">Sin archivos.</p></ng-template
+      >
+    </div>
+
+    <!-- Pendiente: formulario de entrega -->
+    <div *ngIf="!a.entrega" class="entrega-form">
+      <label for="entrega-texto"
+        >Tu respuesta <span class="muted">(opcional)</span></label
+      >
+      <textarea
+        id="entrega-texto"
+        pTextarea
+        rows="6"
+        [(ngModel)]="entregaTexto"
+        maxlength="10000"
+        placeholder="Escribí tu respuesta"
+      ></textarea>
+
+      <div class="adjuntos">
+        <input
+          #fileInput
+          type="file"
+          multiple
+          hidden
+          [accept]="extensionesPermitidas"
+          (change)="onArchivosSeleccionados($event)"
+        />
+        <p-button
+          label="Adjuntar archivo"
+          icon="pi pi-paperclip"
+          [outlined]="true"
+          size="small"
+          [disabled]="entregaArchivos.length >= maxArchivos"
+          (onClick)="fileInput.click()"
+        ></p-button>
+        <small class="muted">
+          Hasta {{ maxArchivos }} archivos de 10 MB (PDF, Word, Excel,
+          PowerPoint, texto o imagen).
+        </small>
+      </div>
+
+      <ul class="file-list" *ngIf="entregaArchivos.length">
+        <li *ngFor="let f of entregaArchivos; let i = index">
+          <i class="pi pi-file"></i>
+          <span class="file-name">{{ f.name }}</span>
+          <span class="muted">{{ tamanoLegible(f.size) }}</span>
+          <p-button
+            icon="pi pi-times"
+            [text]="true"
+            size="small"
+            severity="secondary"
+            [ariaLabel]="'Quitar ' + f.name"
+            (onClick)="quitarArchivo(i)"
+          ></p-button>
+        </li>
+      </ul>
+    </div>
+  </ng-container>
+
+  <ng-template pTemplate="footer">
+    <p-button
+      [label]="entregaActividad?.entrega ? 'Cerrar' : 'Cancelar'"
+      [text]="true"
+      (onClick)="entregaVisible = false"
+    ></p-button>
+    <p-button
+      *ngIf="entregaActividad && !entregaActividad.entrega"
+      label="Entregar"
+      icon="pi pi-send"
+      [loading]="entregando"
+      (onClick)="confirmarEntrega()"
+    ></p-button>
+  </ng-template>
+</p-dialog>
