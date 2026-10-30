@@ -28,13 +28,17 @@ type UserRepository interface {
 	// aprobación y baja. Para el Dashboard.
 	FindParticipantsHistory(ctx context.Context) ([]models.ParticipantHistory, error)
 	UpdateEmailVerified(ctx context.Context, userID string, verified bool) error
+	UpdateEmailVerifiedByEmail(ctx context.Context, email string, verified bool) error
 }
 
 type userRepository struct {
 	db *gorm.DB
 }
 
-const queryUserID = "user_id = ?"
+const (
+	queryUserID = "user_id = ?"
+	queryEmail  = "email = ?"
+)
 
 func NewUserRepository(db *gorm.DB) UserRepository {
 	return &userRepository{db: db}
@@ -42,7 +46,7 @@ func NewUserRepository(db *gorm.DB) UserRepository {
 
 func (r *userRepository) FindByEmail(ctx context.Context, email string) (*models.User, error) {
 	var user models.User
-	if err := r.db.WithContext(ctx).Where("email = ?", email).First(&user).Error; err != nil {
+	if err := r.db.WithContext(ctx).Where(queryEmail, email).First(&user).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, errors.New("usuario no encontrado")
 		}
@@ -54,7 +58,7 @@ func (r *userRepository) FindByEmail(ctx context.Context, email string) (*models
 // FindAllByEmail returns all user accounts associated with the given email (one per role in the current schema)
 func (r *userRepository) FindAllByEmail(ctx context.Context, email string) ([]models.User, error) {
 	var users []models.User
-	if err := r.db.WithContext(ctx).Where("email = ?", email).Find(&users).Error; err != nil {
+	if err := r.db.WithContext(ctx).Where(queryEmail, email).Find(&users).Error; err != nil {
 		return nil, err
 	}
 	if len(users) == 0 {
@@ -189,6 +193,12 @@ func (r *userRepository) Update(ctx context.Context, user *models.User) error {
 func (r *userRepository) UpdateEmailVerified(ctx context.Context, userID string, verified bool) error {
 	return r.db.WithContext(ctx).Model(&models.User{}).
 		Where(queryUserID, userID).
+		Update("is_email_verified", verified).Error
+}
+
+func (r *userRepository) UpdateEmailVerifiedByEmail(ctx context.Context, email string, verified bool) error {
+	return r.db.WithContext(ctx).Model(&models.User{}).
+		Where(queryEmail, email).
 		Update("is_email_verified", verified).Error
 }
 

@@ -111,8 +111,34 @@ func (m *mockUserRepoForVerification) UpdateEmailVerified(ctx context.Context, u
 	return errors.New("usuario no encontrado")
 }
 
+func (m *mockUserRepoForVerification) UpdateEmailVerifiedByEmail(ctx context.Context, email string, verified bool) error {
+	if m.updateEmailVerifiedErr != nil {
+		return m.updateEmailVerifiedErr
+	}
+	found := false
+	for _, u := range m.users {
+		if u.Email == email {
+			u.IsEmailVerified = verified
+			found = true
+		}
+	}
+	if found {
+		return nil
+	}
+	return errors.New("usuario no encontrado")
+}
+
 func (m *mockUserRepoForVerification) FindAllByEmail(ctx context.Context, email string) ([]models.User, error) {
-	return nil, nil
+	var res []models.User
+	for _, u := range m.users {
+		if u.Email == email {
+			res = append(res, *u)
+		}
+	}
+	if len(res) == 0 {
+		return nil, errors.New("usuario no encontrado")
+	}
+	return res, nil
 }
 func (m *mockUserRepoForVerification) FindAllByGoogleID(ctx context.Context, googleID string) ([]models.User, error) {
 	return nil, nil
@@ -252,4 +278,33 @@ func TestVerificationService_ResendVerification(t *testing.T) {
 	// Resend for nonexistent user should fail
 	errNotFound := svc.ResendVerification(context.Background(), "nonexistent@example.com")
 	assert.Error(t, errNotFound)
+}
+
+func TestVerificationService_VerifyEmail_MultiAccount(t *testing.T) {
+	// Arrange
+	evRepo := newMockEmailVerificationRepo()
+	userRepo := newMockUserRepoForVerification()
+	notifSync := &mockNotificationSync{}
+	svc := services.NewVerificationService(evRepo, userRepo, notifSync)
+
+	u1 := &models.User{UserID: "usr-1", Email: "multi@example.com", IsEmailVerified: false}
+	u2 := &models.User{UserID: "usr-2", Email: "multi@example.com", IsEmailVerified: false}
+	_ = userRepo.Create(context.Background(), u1)
+	_ = userRepo.Create(context.Background(), u2)
+
+	manualHash := "2c26b46b68ffc68ff99b453c1d30413413422d706483bfa0f98a5e886266e7ae" // sha256 of "foo"
+	evRepo.verifications[manualHash] = &models.EmailVerification{
+		EmailVerificationID: "ev-multi",
+		UserID:              "usr-1",
+		TokenHash:           manualHash,
+		ExpiresAt:           time.Now().Add(1 * time.Hour),
+	}
+
+	// Act
+	err := svc.VerifyEmail(context.Background(), "foo")
+
+	// Assert
+	assert.NoError(t, err)
+	assert.True(t, u1.IsEmailVerified)
+	assert.True(t, u2.IsEmailVerified)
 }
