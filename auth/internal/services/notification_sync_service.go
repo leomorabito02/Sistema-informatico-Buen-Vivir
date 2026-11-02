@@ -3,6 +3,9 @@ package services
 import (
 	"bytes"
 	"context"
+	"crypto/hmac"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"log/slog"
 	"net/http"
@@ -197,6 +200,13 @@ func (s *notificationSyncService) postNotification(ctx context.Context, targetUR
 		return err
 	}
 	req.Header.Set("Content-Type", "application/json")
+
+	secret := strings.TrimSpace(os.Getenv("INTERNAL_HMAC_SECRET"))
+	if secret != "" {
+		mac := hmac.New(sha256.New, []byte(secret))
+		mac.Write(body)
+		req.Header.Set("X-Internal-Signature", hex.EncodeToString(mac.Sum(nil)))
+	}
 
 	resp, err := s.client.Do(req)
 	if err != nil {

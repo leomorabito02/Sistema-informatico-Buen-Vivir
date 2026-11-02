@@ -2,7 +2,7 @@
 // versions:
 // - protoc-gen-go-grpc v1.6.2
 // - protoc             v4.25.1
-// source: auth.proto
+// source: api/proto/auth.proto
 
 package authpb
 
@@ -19,13 +19,15 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	AuthService_GetParticipant_FullMethodName        = "/auth.AuthService/GetParticipant"
-	AuthService_GetParticipantProfile_FullMethodName = "/auth.AuthService/GetParticipantProfile"
-	AuthService_SearchParticipants_FullMethodName    = "/auth.AuthService/SearchParticipants"
-	AuthService_GetUsersByIDs_FullMethodName         = "/auth.AuthService/GetUsersByIDs"
-	AuthService_GetCompany_FullMethodName            = "/auth.AuthService/GetCompany"
-	AuthService_GetUserDeviceTokens_FullMethodName   = "/auth.AuthService/GetUserDeviceTokens"
-	AuthService_RevokeDeviceTokens_FullMethodName    = "/auth.AuthService/RevokeDeviceTokens"
+	AuthService_GetParticipant_FullMethodName         = "/auth.AuthService/GetParticipant"
+	AuthService_GetParticipantProfile_FullMethodName  = "/auth.AuthService/GetParticipantProfile"
+	AuthService_SearchParticipants_FullMethodName     = "/auth.AuthService/SearchParticipants"
+	AuthService_GetUsersByIDs_FullMethodName          = "/auth.AuthService/GetUsersByIDs"
+	AuthService_GetCompany_FullMethodName             = "/auth.AuthService/GetCompany"
+	AuthService_GetUserDeviceTokens_FullMethodName    = "/auth.AuthService/GetUserDeviceTokens"
+	AuthService_RevokeDeviceTokens_FullMethodName     = "/auth.AuthService/RevokeDeviceTokens"
+	AuthService_GetCampaignRecipients_FullMethodName  = "/auth.AuthService/GetCampaignRecipients"
+	AuthService_CheckUserEmailVerified_FullMethodName = "/auth.AuthService/CheckUserEmailVerified"
 )
 
 // AuthServiceClient is the client API for AuthService service.
@@ -45,6 +47,8 @@ type AuthServiceClient interface {
 	GetCompany(ctx context.Context, in *GetCompanyRequest, opts ...grpc.CallOption) (*GetCompanyResponse, error)
 	GetUserDeviceTokens(ctx context.Context, in *GetUserDeviceTokensRequest, opts ...grpc.CallOption) (*GetUserDeviceTokensResponse, error)
 	RevokeDeviceTokens(ctx context.Context, in *RevokeDeviceTokensRequest, opts ...grpc.CallOption) (*RevokeDeviceTokensResponse, error)
+	GetCampaignRecipients(ctx context.Context, in *GetCampaignRecipientsRequest, opts ...grpc.CallOption) (*GetCampaignRecipientsResponse, error)
+	CheckUserEmailVerified(ctx context.Context, in *CheckUserEmailVerifiedRequest, opts ...grpc.CallOption) (*CheckUserEmailVerifiedResponse, error)
 }
 
 type authServiceClient struct {
@@ -125,6 +129,26 @@ func (c *authServiceClient) RevokeDeviceTokens(ctx context.Context, in *RevokeDe
 	return out, nil
 }
 
+func (c *authServiceClient) GetCampaignRecipients(ctx context.Context, in *GetCampaignRecipientsRequest, opts ...grpc.CallOption) (*GetCampaignRecipientsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetCampaignRecipientsResponse)
+	err := c.cc.Invoke(ctx, AuthService_GetCampaignRecipients_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *authServiceClient) CheckUserEmailVerified(ctx context.Context, in *CheckUserEmailVerifiedRequest, opts ...grpc.CallOption) (*CheckUserEmailVerifiedResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(CheckUserEmailVerifiedResponse)
+	err := c.cc.Invoke(ctx, AuthService_CheckUserEmailVerified_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // AuthServiceServer is the server API for AuthService service.
 // All implementations must embed UnimplementedAuthServiceServer
 // for forward compatibility.
@@ -142,6 +166,8 @@ type AuthServiceServer interface {
 	GetCompany(context.Context, *GetCompanyRequest) (*GetCompanyResponse, error)
 	GetUserDeviceTokens(context.Context, *GetUserDeviceTokensRequest) (*GetUserDeviceTokensResponse, error)
 	RevokeDeviceTokens(context.Context, *RevokeDeviceTokensRequest) (*RevokeDeviceTokensResponse, error)
+	GetCampaignRecipients(context.Context, *GetCampaignRecipientsRequest) (*GetCampaignRecipientsResponse, error)
+	CheckUserEmailVerified(context.Context, *CheckUserEmailVerifiedRequest) (*CheckUserEmailVerifiedResponse, error)
 	mustEmbedUnimplementedAuthServiceServer()
 }
 
@@ -172,6 +198,12 @@ func (UnimplementedAuthServiceServer) GetUserDeviceTokens(context.Context, *GetU
 }
 func (UnimplementedAuthServiceServer) RevokeDeviceTokens(context.Context, *RevokeDeviceTokensRequest) (*RevokeDeviceTokensResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method RevokeDeviceTokens not implemented")
+}
+func (UnimplementedAuthServiceServer) GetCampaignRecipients(context.Context, *GetCampaignRecipientsRequest) (*GetCampaignRecipientsResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetCampaignRecipients not implemented")
+}
+func (UnimplementedAuthServiceServer) CheckUserEmailVerified(context.Context, *CheckUserEmailVerifiedRequest) (*CheckUserEmailVerifiedResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method CheckUserEmailVerified not implemented")
 }
 func (UnimplementedAuthServiceServer) mustEmbedUnimplementedAuthServiceServer() {}
 func (UnimplementedAuthServiceServer) testEmbeddedByValue()                     {}
@@ -320,6 +352,42 @@ func _AuthService_RevokeDeviceTokens_Handler(srv interface{}, ctx context.Contex
 	return interceptor(ctx, in, info, handler)
 }
 
+func _AuthService_GetCampaignRecipients_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetCampaignRecipientsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AuthServiceServer).GetCampaignRecipients(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AuthService_GetCampaignRecipients_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AuthServiceServer).GetCampaignRecipients(ctx, req.(*GetCampaignRecipientsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AuthService_CheckUserEmailVerified_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CheckUserEmailVerifiedRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AuthServiceServer).CheckUserEmailVerified(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AuthService_CheckUserEmailVerified_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AuthServiceServer).CheckUserEmailVerified(ctx, req.(*CheckUserEmailVerifiedRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // AuthService_ServiceDesc is the grpc.ServiceDesc for AuthService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -355,7 +423,15 @@ var AuthService_ServiceDesc = grpc.ServiceDesc{
 			MethodName: "RevokeDeviceTokens",
 			Handler:    _AuthService_RevokeDeviceTokens_Handler,
 		},
+		{
+			MethodName: "GetCampaignRecipients",
+			Handler:    _AuthService_GetCampaignRecipients_Handler,
+		},
+		{
+			MethodName: "CheckUserEmailVerified",
+			Handler:    _AuthService_CheckUserEmailVerified_Handler,
+		},
 	},
 	Streams:  []grpc.StreamDesc{},
-	Metadata: "auth.proto",
+	Metadata: "api/proto/auth.proto",
 }

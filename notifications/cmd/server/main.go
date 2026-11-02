@@ -79,7 +79,7 @@ func main() {
 	startGRPCServer(cfg.GRPCPort, grpcController)
 
 	mux := http.NewServeMux()
-	routes.RegisterRoutes(mux, controller)
+	routes.RegisterRoutes(mux, controller, cfg.InternalHMACSecret)
 
 	log.Printf("Servicio Notifications escuchando en :%s", cfg.Port)
 	if err := http.ListenAndServe(":"+cfg.Port, mux); err != nil {

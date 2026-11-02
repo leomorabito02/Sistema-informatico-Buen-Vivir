@@ -47,12 +47,34 @@ type CampaignService interface {
 	ListPublished(ctx context.Context, busqueda string) ([]models.Campaign, error)
 }
 
-type campaignService struct {
-	repo repositories.CampaignRepository
+type CampaignServiceOption func(*campaignService)
+
+// WithNotificationDispatcher configures the dispatcher used to notify users on campaign events.
+func WithNotificationDispatcher(d NotificationDispatcher) CampaignServiceOption {
+	return func(s *campaignService) {
+		s.dispatcher = d
+	}
 }
 
-func NewCampaignService(repo repositories.CampaignRepository) CampaignService {
-	return &campaignService{repo: repo}
+// WithSyncDispatch enables synchronous notification dispatch (useful for testing).
+func WithSyncDispatch(sync bool) CampaignServiceOption {
+	return func(s *campaignService) {
+		s.syncDispatch = sync
+	}
+}
+
+type campaignService struct {
+	repo         repositories.CampaignRepository
+	dispatcher   NotificationDispatcher
+	syncDispatch bool
+}
+
+func NewCampaignService(repo repositories.CampaignRepository, opts ...CampaignServiceOption) CampaignService {
+	s := &campaignService{repo: repo}
+	for _, opt := range opts {
+		opt(s)
+	}
+	return s
 }
 
 func (s *campaignService) Create(ctx context.Context, in models.CampaignInput, creadoPor string) (models.Campaign, error) {
@@ -63,7 +85,7 @@ func (s *campaignService) Create(ctx context.Context, in models.CampaignInput, c
 	if err != nil {
 		return models.Campaign{}, err
 	}
-	return s.repo.Create(ctx, models.Campaign{
+	created, err := s.repo.Create(ctx, models.Campaign{
 		Titulo:    in.Titulo,
 		Texto:     in.Texto,
 		ImagenURL: in.ImagenURL,
@@ -71,6 +93,21 @@ func (s *campaignService) Create(ctx context.Context, in models.CampaignInput, c
 		Estado:    models.EstadoBorrador,
 		CreadoPor: creadoPor,
 	})
+	if err != nil {
+		return models.Campaign{}, err
+	}
+
+	if s.dispatcher != nil {
+		if s.syncDispatch {
+			_ = s.dispatcher.DispatchCampaignCreated(ctx, created, creadoPor)
+		} else {
+			go func(c models.Campaign, author string) {
+				_ = s.dispatcher.DispatchCampaignCreated(context.Background(), c, author)
+			}(created, creadoPor)
+		}
+	}
+
+	return created, nil
 }
 
 func (s *campaignService) Update(ctx context.Context, id string, in models.CampaignInput) (models.Campaign, error) {

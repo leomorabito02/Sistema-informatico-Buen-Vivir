@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"buenvivir/notifications/api/proto/authpb"
@@ -13,10 +14,21 @@ import (
 
 const defaultAuthTimeout = 5 * time.Second
 
-// AuthClient abstracts gRPC communication with the Auth service for device token management.
+// RecipientContact represents contact details for a campaign recipient.
+type RecipientContact struct {
+	UserID          string
+	Email           string
+	FirstName       string
+	LastName        string
+	IsEmailVerified bool
+}
+
+// AuthClient abstracts gRPC communication with the Auth service for device token management and recipient queries.
 type AuthClient interface {
 	GetUserDeviceTokens(ctx context.Context, userID string) ([]string, error)
 	RevokeDeviceTokens(ctx context.Context, userID string, tokens []string) error
+	GetCampaignRecipients(ctx context.Context) ([]RecipientContact, error)
+	IsUserEmailVerified(ctx context.Context, userID string) (bool, error)
 	Close() error
 }
 
@@ -76,6 +88,42 @@ func (c *authClient) RevokeDeviceTokens(ctx context.Context, userID string, toke
 		return fmt.Errorf("failed to revoke device tokens: %w", err)
 	}
 	return nil
+}
+
+func (c *authClient) GetCampaignRecipients(ctx context.Context) ([]RecipientContact, error) {
+	callCtx, cancel := context.WithTimeout(ctx, defaultAuthTimeout)
+	defer cancel()
+
+	resp, err := c.client.GetCampaignRecipients(callCtx, &authpb.GetCampaignRecipientsRequest{})
+	if err != nil {
+		return nil, fmt.Errorf("failed to retrieve campaign recipients: %w", err)
+	}
+
+	out := make([]RecipientContact, 0, len(resp.Recipients))
+	for _, r := range resp.Recipients {
+		out = append(out, RecipientContact{
+			UserID:          r.UserId,
+			Email:           r.Email,
+			FirstName:       r.FirstName,
+			LastName:        r.LastName,
+			IsEmailVerified: r.IsEmailVerified,
+		})
+	}
+	return out, nil
+}
+
+func (c *authClient) IsUserEmailVerified(ctx context.Context, userID string) (bool, error) {
+	if strings.TrimSpace(userID) == "" {
+		return false, errors.New("user_id cannot be empty")
+	}
+	callCtx, cancel := context.WithTimeout(ctx, defaultAuthTimeout)
+	defer cancel()
+
+	resp, err := c.client.CheckUserEmailVerified(callCtx, &authpb.CheckUserEmailVerifiedRequest{UserId: userID})
+	if err != nil {
+		return false, fmt.Errorf("failed to check email verification: %w", err)
+	}
+	return resp.IsVerified, nil
 }
 
 func (c *authClient) Close() error {

@@ -218,8 +218,8 @@ func validateIngestRequest(req dto.SendNotificationRequestDTO) error {
 	if strings.TrimSpace(req.SourceService) == "" || strings.TrimSpace(req.Title) == "" || strings.TrimSpace(req.Message) == "" {
 		return ErrInvalidInput
 	}
-	if len(req.RecipientUserIDs) == 0 && req.TargetRole == nil {
-		return errors.New("notification must target at least one recipient user or role")
+	if len(req.RecipientUserIDs) == 0 && req.TargetRole == nil && req.TargetType != string(models.TargetTypeBroadcast) {
+		return errors.New("notification must target at least one recipient user, role, or broadcast")
 	}
 	return nil
 }
@@ -257,6 +257,8 @@ func (s *notificationService) IngestNotification(ctx context.Context, req dto.Se
 		return "", 0, err
 	}
 
+	s.resolveCampaignBroadcastRecipients(ctx, &req)
+
 	notifID := generateEntityID("ntf")
 	notif := buildNotificationModel(notifID, req)
 
@@ -270,6 +272,60 @@ func (s *notificationService) IngestNotification(ctx context.Context, req dto.Se
 	}
 
 	return notifID, count, nil
+}
+
+func (s *notificationService) resolveCampaignBroadcastRecipients(ctx context.Context, req *dto.SendNotificationRequestDTO) {
+	isCampaignBroadcast := (req.TargetType == string(models.TargetTypeBroadcast) || len(req.RecipientUserIDs) == 0) &&
+		models.NotificationCategory(req.Category) == models.CategoryCampaigns
+	if !isCampaignBroadcast || s.authClient == nil {
+		return
+	}
+
+	contacts, err := s.authClient.GetCampaignRecipients(ctx)
+	if err != nil || len(contacts) == 0 {
+		return
+	}
+
+	req.TargetType = string(models.TargetTypeBroadcast)
+	userIDs, userEmails, userNames, userVerified := extractCampaignRecipientMaps(contacts)
+	req.RecipientUserIDs = userIDs
+
+	var currentData map[string]interface{}
+	if strings.TrimSpace(req.Data) != "" {
+		_ = json.Unmarshal([]byte(req.Data), &currentData)
+	}
+	if currentData == nil {
+		currentData = make(map[string]interface{})
+	}
+	currentData["user_emails"] = userEmails
+	currentData["user_names"] = userNames
+	currentData["user_verified_emails"] = userVerified
+	if mergedJSON, err := json.Marshal(currentData); err == nil {
+		req.Data = string(mergedJSON)
+	}
+}
+
+func extractCampaignRecipientMaps(contacts []clients.RecipientContact) ([]string, map[string]string, map[string]string, map[string]bool) {
+	userIDs := make([]string, 0, len(contacts))
+	userEmails := make(map[string]string, len(contacts))
+	userNames := make(map[string]string, len(contacts))
+	userVerified := make(map[string]bool, len(contacts))
+
+	for _, c := range contacts {
+		if c.UserID == "" {
+			continue
+		}
+		userIDs = append(userIDs, c.UserID)
+		if c.Email != "" {
+			userEmails[c.UserID] = c.Email
+		}
+		name := strings.TrimSpace(c.FirstName + " " + c.LastName)
+		if name != "" {
+			userNames[c.UserID] = name
+		}
+		userVerified[c.UserID] = c.IsEmailVerified
+	}
+	return userIDs, userEmails, userNames, userVerified
 }
 
 func buildNotificationModel(notifID string, req dto.SendNotificationRequestDTO) *models.Notification {
@@ -652,12 +708,20 @@ func (s *notificationService) dispatchEmailChannel(
 		return models.DeliveryStatusSkipped, nil, nil
 	}
 
+	// Email Verification Validation: Recipient must have verified their email before receiving emails.
+	// Exception: The verification email itself is allowed through to deliver the verification token.
+	if !isEmailVerificationMessage(notif, dataMap) {
+		if !s.isUserEmailVerified(ctx, userID, dataMap) {
+			return models.DeliveryStatusSkipped, nil, nil
+		}
+	}
+
 	senderType := EmailSenderNotification
 	if notif.IsCritical || notif.Category == models.CategorySecurity {
 		senderType = EmailSenderAlert
 	}
 
-	htmlBody := s.renderNotificationEmail(notif, toEmail, dataMap)
+	htmlBody := s.renderNotificationEmail(notif, userID, toEmail, dataMap)
 	id, err := s.emailService.SendEmail(ctx, EmailMessage{
 		To:         []string{toEmail},
 		Subject:    notif.Title,
@@ -786,22 +850,15 @@ func (s *notificationService) renderAuthTemplate(
 
 func (s *notificationService) renderNotificationEmail(
 	notif *models.Notification,
-	recipientEmail string,
+	userID, recipientEmail string,
 	dataMap map[string]interface{},
 ) string {
 	if s.tmplEngine == nil {
 		return fmt.Sprintf("<h2>%s</h2><p>%s</p>", notif.Title, notif.Message)
 	}
 
-	actionURL := extractString(dataMap, "action_url")
-	if actionURL == "" && notif.ActionURL != nil {
-		actionURL = *notif.ActionURL
-	}
-
-	recipientName := extractString(dataMap, "recipient_name")
-	if recipientName == "" {
-		recipientName = recipientEmail
-	}
+	actionURL := resolveNotificationActionURL(notif, dataMap)
+	recipientName := resolveNotificationRecipientName(userID, recipientEmail, dataMap)
 
 	templateID := templates.EmailTemplateID(extractString(dataMap, "template_id"))
 	year := templates.CurrentYear()
@@ -828,6 +885,30 @@ func (s *notificationService) renderNotificationEmail(
 	return alertHTML
 }
 
+func resolveNotificationActionURL(notif *models.Notification, dataMap map[string]interface{}) string {
+	actionURL := extractString(dataMap, "action_url")
+	if actionURL == "" && notif.ActionURL != nil {
+		return *notif.ActionURL
+	}
+	return actionURL
+}
+
+func resolveNotificationRecipientName(userID, recipientEmail string, dataMap map[string]interface{}) string {
+	if recipientName := extractString(dataMap, "recipient_name"); recipientName != "" {
+		return recipientName
+	}
+	if namesMap, ok := dataMap["user_names"].(map[string]interface{}); ok {
+		if nm, ok := namesMap[userID].(string); ok && strings.TrimSpace(nm) != "" {
+			return nm
+		}
+	} else if namesMap, ok := dataMap["user_names"].(map[string]string); ok {
+		if nm, ok := namesMap[userID]; ok && strings.TrimSpace(nm) != "" {
+			return nm
+		}
+	}
+	return recipientEmail
+}
+
 func resolveEmail(userID string, data map[string]interface{}) string {
 	if strings.Contains(userID, "@") {
 		return userID
@@ -838,5 +919,49 @@ func resolveEmail(userID string, data map[string]interface{}) string {
 	if email, ok := data["recipient_email"].(string); ok && strings.Contains(email, "@") {
 		return email
 	}
+	if emailsMap, ok := data["user_emails"].(map[string]interface{}); ok {
+		if em, ok := emailsMap[userID].(string); ok && strings.Contains(em, "@") {
+			return em
+		}
+	}
+	if emailsMap, ok := data["user_emails"].(map[string]string); ok {
+		if em, ok := emailsMap[userID]; ok && strings.Contains(em, "@") {
+			return em
+		}
+	}
 	return ""
+}
+
+func isEmailVerificationMessage(notif *models.Notification, dataMap map[string]interface{}) bool {
+	if notif != nil && notif.EventType == "auth.email_verification" {
+		return true
+	}
+	if templateID, ok := dataMap["template_id"].(string); ok && templateID == string(templates.TemplateEmailVerification) {
+		return true
+	}
+	return false
+}
+
+func (s *notificationService) isUserEmailVerified(ctx context.Context, userID string, dataMap map[string]interface{}) bool {
+	if verifiedMap, ok := dataMap["user_verified_emails"].(map[string]bool); ok {
+		if verified, found := verifiedMap[userID]; found {
+			return verified
+		}
+	}
+	if verifiedMap, ok := dataMap["user_verified_emails"].(map[string]interface{}); ok {
+		if v, found := verifiedMap[userID]; found {
+			if verified, ok := v.(bool); ok {
+				return verified
+			}
+		}
+	}
+
+	if s.authClient != nil && userID != "" {
+		verified, err := s.authClient.IsUserEmailVerified(ctx, userID)
+		if err == nil {
+			return verified
+		}
+		return false
+	}
+	return false
 }

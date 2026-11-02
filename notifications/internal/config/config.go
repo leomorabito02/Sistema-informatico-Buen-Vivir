@@ -15,6 +15,7 @@ type Config struct {
 	ResendFromNotifications string
 	ResendFromAlerts        string
 	DatabaseURL             string
+	InternalHMACSecret      string
 }
 
 func LoadConfig() *Config {
@@ -59,6 +60,7 @@ func LoadConfig() *Config {
 		ResendFromNotifications: resendFromNotifications,
 		ResendFromAlerts:        resendFromAlerts,
 		DatabaseURL:             os.Getenv("DATABASE_URL_NOTIFICATIONS"),
+		InternalHMACSecret:      os.Getenv("INTERNAL_HMAC_SECRET"),
 	}
 }
 

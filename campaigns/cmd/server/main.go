@@ -33,7 +33,11 @@ func main() {
 	}
 	defer func() { _ = firestoreClient.Close() }()
 
-	service := services.NewCampaignService(repositories.NewCampaignRepository(firestoreClient))
+	dispatcher := services.NewHTTPNotificationDispatcher(cfg.NotificationsServiceURL, cfg.InternalHMACSecret)
+	service := services.NewCampaignService(
+		repositories.NewCampaignRepository(firestoreClient),
+		services.WithNotificationDispatcher(dispatcher),
+	)
 
 	r := chi.NewRouter()
 	middlewares.SetupMiddlewares(r, cfg.CORSAllowedOrigins)

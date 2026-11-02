@@ -50,7 +50,7 @@ describe("CampanasPublicoComponent", () => {
     fixture.detectChanges();
     const el: HTMLElement = fixture.nativeElement;
     expect(service.publicas).toHaveBeenCalledWith("");
-    expect(el.querySelectorAll(".tarjeta").length).toBe(1);
+    expect(el.querySelectorAll(".tarjeta")).toHaveSize(1);
     expect(el.textContent).toContain("Campaña del árbol");
     expect(el.textContent).toContain("21/09/2026");
   }));
@@ -103,5 +103,15 @@ describe("CampanasPublicoComponent", () => {
     expect(
       fixture.nativeElement.querySelector("[role=alert]")?.textContent,
     ).toContain("No se pudieron cargar las campañas.");
+  }));
+
+  it("reemplaza la imagen por el placeholder ante error de carga", fakeAsync(() => {
+    service.publicas.and.returnValue(of([]));
+    crear();
+    tick(300);
+    const img = document.createElement("img");
+    img.src = "https://broken.example.com/fail.jpg";
+    fixture.componentInstance.onImageError({ target: img } as unknown as Event);
+    expect(img.src).toContain("data:image/svg+xml");
   }));
 });

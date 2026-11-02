@@ -10,9 +10,13 @@ import (
 )
 
 type mockAuthServiceClient struct {
-	tokens       []string
-	getTokensErr error
-	revokeErr    error
+	tokens                   []string
+	getTokensErr             error
+	revokeErr                error
+	campaignRecipients       []*authpb.CampaignRecipient
+	getCampaignRecipientsErr error
+	isVerified               bool
+	checkEmailVerifiedErr    error
 }
 
 func (m *mockAuthServiceClient) GetUserDeviceTokens(ctx context.Context, in *authpb.GetUserDeviceTokensRequest, opts ...grpc.CallOption) (*authpb.GetUserDeviceTokensResponse, error) {
@@ -47,6 +51,20 @@ func (m *mockAuthServiceClient) GetUsersByIDs(ctx context.Context, in *authpb.Ge
 
 func (m *mockAuthServiceClient) GetCompany(ctx context.Context, in *authpb.GetCompanyRequest, opts ...grpc.CallOption) (*authpb.GetCompanyResponse, error) {
 	return nil, nil
+}
+
+func (m *mockAuthServiceClient) GetCampaignRecipients(ctx context.Context, in *authpb.GetCampaignRecipientsRequest, opts ...grpc.CallOption) (*authpb.GetCampaignRecipientsResponse, error) {
+	if m.getCampaignRecipientsErr != nil {
+		return nil, m.getCampaignRecipientsErr
+	}
+	return &authpb.GetCampaignRecipientsResponse{Recipients: m.campaignRecipients}, nil
+}
+
+func (m *mockAuthServiceClient) CheckUserEmailVerified(ctx context.Context, in *authpb.CheckUserEmailVerifiedRequest, opts ...grpc.CallOption) (*authpb.CheckUserEmailVerifiedResponse, error) {
+	if m.checkEmailVerifiedErr != nil {
+		return nil, m.checkEmailVerifiedErr
+	}
+	return &authpb.CheckUserEmailVerifiedResponse{IsVerified: m.isVerified}, nil
 }
 
 func TestAuthClient_GetUserDeviceTokens(t *testing.T) {
@@ -112,3 +130,77 @@ func TestAuthClient_RevokeDeviceTokens_Error(t *testing.T) {
 		t.Fatal("expected error, got nil")
 	}
 }
+
+func TestAuthClient_GetCampaignRecipients_Success(t *testing.T) {
+	mockService := &mockAuthServiceClient{
+		campaignRecipients: []*authpb.CampaignRecipient{
+			{UserId: "usr-1", Email: "u1@test.com", FirstName: "Ana", LastName: "Gomez"},
+			{UserId: "usr-2", Email: "u2@test.com", FirstName: "Carlos", LastName: "Perez"},
+		},
+	}
+	client := NewAuthClientWithService(mockService)
+
+	recipients, err := client.GetCampaignRecipients(context.Background())
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(recipients) != 2 {
+		t.Fatalf("expected 2 recipients, got %d", len(recipients))
+	}
+	if recipients[0].UserID != "usr-1" || recipients[0].Email != "u1@test.com" {
+		t.Errorf("unexpected recipient 0: %+v", recipients[0])
+	}
+}
+
+func TestAuthClient_GetCampaignRecipients_Error(t *testing.T) {
+	mockService := &mockAuthServiceClient{
+		getCampaignRecipientsErr: errors.New("rpc network failure"),
+	}
+	client := NewAuthClientWithService(mockService)
+
+	_, err := client.GetCampaignRecipients(context.Background())
+	if err == nil {
+		t.Fatal("expected error from GetCampaignRecipients, got nil")
+	}
+}
+
+func TestAuthClient_IsUserEmailVerified(t *testing.T) {
+	t.Run("EmptyUserID", func(t *testing.T) {
+		client := NewAuthClientWithService(&mockAuthServiceClient{})
+		_, err := client.IsUserEmailVerified(context.Background(), "")
+		if err == nil {
+			t.Fatal("expected error on empty user_id")
+		}
+	})
+
+	t.Run("Verified", func(t *testing.T) {
+		client := NewAuthClientWithService(&mockAuthServiceClient{isVerified: true})
+		verified, err := client.IsUserEmailVerified(context.Background(), "usr-1")
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if !verified {
+			t.Errorf("expected isVerified true, got false")
+		}
+	})
+
+	t.Run("Unverified", func(t *testing.T) {
+		client := NewAuthClientWithService(&mockAuthServiceClient{isVerified: false})
+		verified, err := client.IsUserEmailVerified(context.Background(), "usr-2")
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if verified {
+			t.Errorf("expected isVerified false, got true")
+		}
+	})
+
+	t.Run("RPCError", func(t *testing.T) {
+		client := NewAuthClientWithService(&mockAuthServiceClient{checkEmailVerifiedErr: errors.New("auth down")})
+		_, err := client.IsUserEmailVerified(context.Background(), "usr-1")
+		if err == nil {
+			t.Fatal("expected error from IsUserEmailVerified, got nil")
+		}
+	})
+}
+

@@ -11,6 +11,7 @@ import (
 
 	"auth/internal/controllers"
 	"auth/internal/dto"
+	"auth/internal/repositories"
 	"github.com/go-chi/chi/v5"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
@@ -67,10 +68,21 @@ func (m *MockUserService) DeleteUser(ctx context.Context, id string) error {
 
 func (m *MockUserService) ApproveUser(ctx context.Context, id string) (*dto.UserResponse, error) {
 	args := m.Called(ctx, id)
+	resp, _ := args.Get(0).(*dto.UserResponse)
+	return resp, args.Error(1)
+}
+
+func (m *MockUserService) GetCampaignEligibleUsers(ctx context.Context) ([]repositories.CampaignEligibleUser, error) {
+	args := m.Called(ctx)
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
 	}
-	return args.Get(0).(*dto.UserResponse), args.Error(1)
+	return args.Get(0).([]repositories.CampaignEligibleUser), args.Error(1)
+}
+
+func (m *MockUserService) IsEmailVerified(ctx context.Context, identifier string) (bool, error) {
+	args := m.Called(ctx, identifier)
+	return args.Bool(0), args.Error(1)
 }
 
 func TestUserController_GetUser_Success(t *testing.T) {

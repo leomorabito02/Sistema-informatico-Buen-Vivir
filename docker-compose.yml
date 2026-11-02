@@ -7,6 +7,7 @@ services:
       - ./auth/.env
     environment:
       - NOTIFICATIONS_SERVICE_URL=http://notifications-service:8080
+      - INTERNAL_HMAC_SECRET=${INTERNAL_HMAC_SECRET:-buenvivir-internal-hmac-secret-dev}
     ports:
       - "8082:8080"
       - "50051:50051"
@@ -162,6 +163,8 @@ services:
         required: false
     environment:
       - PORT=8080
+      - NOTIFICATIONS_SERVICE_URL=http://notifications-service:8080
+      - INTERNAL_HMAC_SECRET=${INTERNAL_HMAC_SECRET:-buenvivir-internal-hmac-secret-dev}
     restart: on-failure
     security_opt:
       - no-new-privileges:true
@@ -183,6 +186,7 @@ services:
       - PORT=8080
       - GRPC_PORT=50052
       - AUTH_GRPC_URL=auth-service:50051
+      - INTERNAL_HMAC_SECRET=${INTERNAL_HMAC_SECRET:-buenvivir-internal-hmac-secret-dev}
     ports:
       - "8088:8080"
       - "50052:50052"

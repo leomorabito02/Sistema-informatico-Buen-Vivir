@@ -25,6 +25,8 @@ type UserService interface {
 	DeleteUser(ctx context.Context, id string) error
 	GetParticipantsHistory(ctx context.Context) ([]dto.ParticipantHistoryResponse, error)
 	ApproveUser(ctx context.Context, id string) (*dto.UserResponse, error)
+	GetCampaignEligibleUsers(ctx context.Context) ([]repositories.CampaignEligibleUser, error)
+	IsEmailVerified(ctx context.Context, identifier string) (bool, error)
 }
 
 type userService struct {
@@ -305,6 +307,28 @@ func (s *userService) ApproveUser(ctx context.Context, id string) (*dto.UserResp
 	}
 
 	return dto.ToUserResponse(user), nil
+}
+
+func (s *userService) GetCampaignEligibleUsers(ctx context.Context) ([]repositories.CampaignEligibleUser, error) {
+	return s.userRepo.FindCampaignEligibleUsers(ctx)
+}
+
+func (s *userService) IsEmailVerified(ctx context.Context, identifier string) (bool, error) {
+	trimmed := strings.TrimSpace(identifier)
+	if trimmed == "" {
+		return false, errors.New("identifier cannot be empty")
+	}
+	var user *models.User
+	var err error
+	if strings.Contains(trimmed, "@") {
+		user, err = s.userRepo.FindByEmail(ctx, trimmed)
+	} else {
+		user, err = s.userRepo.FindByID(ctx, trimmed)
+	}
+	if err != nil || user == nil {
+		return false, err
+	}
+	return user.IsEmailVerified, nil
 }
 
 func roleTableFromID(roleID string) string {

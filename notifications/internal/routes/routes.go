@@ -7,7 +7,7 @@ import (
 	"buenvivir/notifications/internal/middlewares"
 )
 
-func RegisterRoutes(mux *http.ServeMux, ctrl *controllers.NotificationController) {
+func RegisterRoutes(mux *http.ServeMux, ctrl *controllers.NotificationController, internalHMACSecret ...string) {
 	// Healthcheck endpoint (public)
 	mux.HandleFunc("GET /health", ctrl.HealthCheck)
 
@@ -26,6 +26,10 @@ func RegisterRoutes(mux *http.ServeMux, ctrl *controllers.NotificationController
 	mux.Handle("POST /api/v1/notifications/preferences/init", middlewares.AuthHeaders(http.HandlerFunc(ctrl.InitDefaultPreferences)))
 	mux.Handle("PATCH /api/v1/notifications/preferences", middlewares.AuthHeaders(http.HandlerFunc(ctrl.PatchPreference)))
 
-	// Internal notification ingestion endpoint
-	mux.HandleFunc("POST /api/v1/notifications/send", ctrl.IngestNotification)
+	// Internal notification ingestion endpoint (protected via HMAC-SHA256 signature)
+	secret := ""
+	if len(internalHMACSecret) > 0 {
+		secret = internalHMACSecret[0]
+	}
+	mux.Handle("POST /api/v1/notifications/send", middlewares.RequireInternalHMAC(secret)(http.HandlerFunc(ctrl.IngestNotification)))
 }

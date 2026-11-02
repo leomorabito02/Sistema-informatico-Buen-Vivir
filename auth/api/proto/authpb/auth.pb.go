@@ -2,7 +2,7 @@
 // versions:
 // 	protoc-gen-go v1.36.12
 // 	protoc        v4.25.1
-// source: auth.proto
+// source: api/proto/auth.proto
 
 package authpb
 
@@ -30,7 +30,7 @@ type GetParticipantRequest struct {
 
 func (x *GetParticipantRequest) Reset() {
 	*x = GetParticipantRequest{}
-	mi := &file_auth_proto_msgTypes[0]
+	mi := &file_api_proto_auth_proto_msgTypes[0]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -42,7 +42,7 @@ func (x *GetParticipantRequest) String() string {
 func (*GetParticipantRequest) ProtoMessage() {}
 
 func (x *GetParticipantRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_auth_proto_msgTypes[0]
+	mi := &file_api_proto_auth_proto_msgTypes[0]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -55,7 +55,7 @@ func (x *GetParticipantRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetParticipantRequest.ProtoReflect.Descriptor instead.
 func (*GetParticipantRequest) Descriptor() ([]byte, []int) {
-	return file_auth_proto_rawDescGZIP(), []int{0}
+	return file_api_proto_auth_proto_rawDescGZIP(), []int{0}
 }
 
 func (x *GetParticipantRequest) GetParticipantId() string {
@@ -76,7 +76,7 @@ type GetParticipantResponse struct {
 
 func (x *GetParticipantResponse) Reset() {
 	*x = GetParticipantResponse{}
-	mi := &file_auth_proto_msgTypes[1]
+	mi := &file_api_proto_auth_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -88,7 +88,7 @@ func (x *GetParticipantResponse) String() string {
 func (*GetParticipantResponse) ProtoMessage() {}
 
 func (x *GetParticipantResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_auth_proto_msgTypes[1]
+	mi := &file_api_proto_auth_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -101,7 +101,7 @@ func (x *GetParticipantResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetParticipantResponse.ProtoReflect.Descriptor instead.
 func (*GetParticipantResponse) Descriptor() ([]byte, []int) {
-	return file_auth_proto_rawDescGZIP(), []int{1}
+	return file_api_proto_auth_proto_rawDescGZIP(), []int{1}
 }
 
 func (x *GetParticipantResponse) GetId() string {
@@ -138,7 +138,7 @@ type GetParticipantProfileRequest struct {
 
 func (x *GetParticipantProfileRequest) Reset() {
 	*x = GetParticipantProfileRequest{}
-	mi := &file_auth_proto_msgTypes[2]
+	mi := &file_api_proto_auth_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -150,7 +150,7 @@ func (x *GetParticipantProfileRequest) String() string {
 func (*GetParticipantProfileRequest) ProtoMessage() {}
 
 func (x *GetParticipantProfileRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_auth_proto_msgTypes[2]
+	mi := &file_api_proto_auth_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -163,7 +163,7 @@ func (x *GetParticipantProfileRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetParticipantProfileRequest.ProtoReflect.Descriptor instead.
 func (*GetParticipantProfileRequest) Descriptor() ([]byte, []int) {
-	return file_auth_proto_rawDescGZIP(), []int{2}
+	return file_api_proto_auth_proto_rawDescGZIP(), []int{2}
 }
 
 func (x *GetParticipantProfileRequest) GetLookup() isGetParticipantProfileRequest_Lookup {
@@ -222,7 +222,7 @@ type ParticipantProfile struct {
 
 func (x *ParticipantProfile) Reset() {
 	*x = ParticipantProfile{}
-	mi := &file_auth_proto_msgTypes[3]
+	mi := &file_api_proto_auth_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -234,7 +234,7 @@ func (x *ParticipantProfile) String() string {
 func (*ParticipantProfile) ProtoMessage() {}
 
 func (x *ParticipantProfile) ProtoReflect() protoreflect.Message {
-	mi := &file_auth_proto_msgTypes[3]
+	mi := &file_api_proto_auth_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -247,7 +247,7 @@ func (x *ParticipantProfile) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ParticipantProfile.ProtoReflect.Descriptor instead.
 func (*ParticipantProfile) Descriptor() ([]byte, []int) {
-	return file_auth_proto_rawDescGZIP(), []int{3}
+	return file_api_proto_auth_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *ParticipantProfile) GetParticipantId() string {
@@ -304,7 +304,7 @@ type SearchParticipantsRequest struct {
 
 func (x *SearchParticipantsRequest) Reset() {
 	*x = SearchParticipantsRequest{}
-	mi := &file_auth_proto_msgTypes[4]
+	mi := &file_api_proto_auth_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -316,7 +316,7 @@ func (x *SearchParticipantsRequest) String() string {
 func (*SearchParticipantsRequest) ProtoMessage() {}
 
 func (x *SearchParticipantsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_auth_proto_msgTypes[4]
+	mi := &file_api_proto_auth_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -329,7 +329,7 @@ func (x *SearchParticipantsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SearchParticipantsRequest.ProtoReflect.Descriptor instead.
 func (*SearchParticipantsRequest) Descriptor() ([]byte, []int) {
-	return file_auth_proto_rawDescGZIP(), []int{4}
+	return file_api_proto_auth_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *SearchParticipantsRequest) GetQuery() string {
@@ -355,7 +355,7 @@ type SearchParticipantsResponse struct {
 
 func (x *SearchParticipantsResponse) Reset() {
 	*x = SearchParticipantsResponse{}
-	mi := &file_auth_proto_msgTypes[5]
+	mi := &file_api_proto_auth_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -367,7 +367,7 @@ func (x *SearchParticipantsResponse) String() string {
 func (*SearchParticipantsResponse) ProtoMessage() {}
 
 func (x *SearchParticipantsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_auth_proto_msgTypes[5]
+	mi := &file_api_proto_auth_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -380,7 +380,7 @@ func (x *SearchParticipantsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SearchParticipantsResponse.ProtoReflect.Descriptor instead.
 func (*SearchParticipantsResponse) Descriptor() ([]byte, []int) {
-	return file_auth_proto_rawDescGZIP(), []int{5}
+	return file_api_proto_auth_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *SearchParticipantsResponse) GetParticipants() []*ParticipantProfile {
@@ -399,7 +399,7 @@ type GetUsersByIDsRequest struct {
 
 func (x *GetUsersByIDsRequest) Reset() {
 	*x = GetUsersByIDsRequest{}
-	mi := &file_auth_proto_msgTypes[6]
+	mi := &file_api_proto_auth_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -411,7 +411,7 @@ func (x *GetUsersByIDsRequest) String() string {
 func (*GetUsersByIDsRequest) ProtoMessage() {}
 
 func (x *GetUsersByIDsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_auth_proto_msgTypes[6]
+	mi := &file_api_proto_auth_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -424,7 +424,7 @@ func (x *GetUsersByIDsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetUsersByIDsRequest.ProtoReflect.Descriptor instead.
 func (*GetUsersByIDsRequest) Descriptor() ([]byte, []int) {
-	return file_auth_proto_rawDescGZIP(), []int{6}
+	return file_api_proto_auth_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *GetUsersByIDsRequest) GetUserIds() []string {
@@ -445,7 +445,7 @@ type UserSummary struct {
 
 func (x *UserSummary) Reset() {
 	*x = UserSummary{}
-	mi := &file_auth_proto_msgTypes[7]
+	mi := &file_api_proto_auth_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -457,7 +457,7 @@ func (x *UserSummary) String() string {
 func (*UserSummary) ProtoMessage() {}
 
 func (x *UserSummary) ProtoReflect() protoreflect.Message {
-	mi := &file_auth_proto_msgTypes[7]
+	mi := &file_api_proto_auth_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -470,7 +470,7 @@ func (x *UserSummary) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UserSummary.ProtoReflect.Descriptor instead.
 func (*UserSummary) Descriptor() ([]byte, []int) {
-	return file_auth_proto_rawDescGZIP(), []int{7}
+	return file_api_proto_auth_proto_rawDescGZIP(), []int{7}
 }
 
 func (x *UserSummary) GetUserId() string {
@@ -503,7 +503,7 @@ type GetUsersByIDsResponse struct {
 
 func (x *GetUsersByIDsResponse) Reset() {
 	*x = GetUsersByIDsResponse{}
-	mi := &file_auth_proto_msgTypes[8]
+	mi := &file_api_proto_auth_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -515,7 +515,7 @@ func (x *GetUsersByIDsResponse) String() string {
 func (*GetUsersByIDsResponse) ProtoMessage() {}
 
 func (x *GetUsersByIDsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_auth_proto_msgTypes[8]
+	mi := &file_api_proto_auth_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -528,7 +528,7 @@ func (x *GetUsersByIDsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetUsersByIDsResponse.ProtoReflect.Descriptor instead.
 func (*GetUsersByIDsResponse) Descriptor() ([]byte, []int) {
-	return file_auth_proto_rawDescGZIP(), []int{8}
+	return file_api_proto_auth_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *GetUsersByIDsResponse) GetUsers() []*UserSummary {
@@ -547,7 +547,7 @@ type GetCompanyRequest struct {
 
 func (x *GetCompanyRequest) Reset() {
 	*x = GetCompanyRequest{}
-	mi := &file_auth_proto_msgTypes[9]
+	mi := &file_api_proto_auth_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -559,7 +559,7 @@ func (x *GetCompanyRequest) String() string {
 func (*GetCompanyRequest) ProtoMessage() {}
 
 func (x *GetCompanyRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_auth_proto_msgTypes[9]
+	mi := &file_api_proto_auth_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -572,7 +572,7 @@ func (x *GetCompanyRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetCompanyRequest.ProtoReflect.Descriptor instead.
 func (*GetCompanyRequest) Descriptor() ([]byte, []int) {
-	return file_auth_proto_rawDescGZIP(), []int{9}
+	return file_api_proto_auth_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *GetCompanyRequest) GetCompanyId() string {
@@ -598,7 +598,7 @@ type GetCompanyResponse struct {
 
 func (x *GetCompanyResponse) Reset() {
 	*x = GetCompanyResponse{}
-	mi := &file_auth_proto_msgTypes[10]
+	mi := &file_api_proto_auth_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -610,7 +610,7 @@ func (x *GetCompanyResponse) String() string {
 func (*GetCompanyResponse) ProtoMessage() {}
 
 func (x *GetCompanyResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_auth_proto_msgTypes[10]
+	mi := &file_api_proto_auth_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -623,7 +623,7 @@ func (x *GetCompanyResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetCompanyResponse.ProtoReflect.Descriptor instead.
 func (*GetCompanyResponse) Descriptor() ([]byte, []int) {
-	return file_auth_proto_rawDescGZIP(), []int{10}
+	return file_api_proto_auth_proto_rawDescGZIP(), []int{10}
 }
 
 func (x *GetCompanyResponse) GetCompanyId() string {
@@ -691,7 +691,7 @@ type GetUserDeviceTokensRequest struct {
 
 func (x *GetUserDeviceTokensRequest) Reset() {
 	*x = GetUserDeviceTokensRequest{}
-	mi := &file_auth_proto_msgTypes[11]
+	mi := &file_api_proto_auth_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -703,7 +703,7 @@ func (x *GetUserDeviceTokensRequest) String() string {
 func (*GetUserDeviceTokensRequest) ProtoMessage() {}
 
 func (x *GetUserDeviceTokensRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_auth_proto_msgTypes[11]
+	mi := &file_api_proto_auth_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -716,7 +716,7 @@ func (x *GetUserDeviceTokensRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetUserDeviceTokensRequest.ProtoReflect.Descriptor instead.
 func (*GetUserDeviceTokensRequest) Descriptor() ([]byte, []int) {
-	return file_auth_proto_rawDescGZIP(), []int{11}
+	return file_api_proto_auth_proto_rawDescGZIP(), []int{11}
 }
 
 func (x *GetUserDeviceTokensRequest) GetUserId() string {
@@ -735,7 +735,7 @@ type GetUserDeviceTokensResponse struct {
 
 func (x *GetUserDeviceTokensResponse) Reset() {
 	*x = GetUserDeviceTokensResponse{}
-	mi := &file_auth_proto_msgTypes[12]
+	mi := &file_api_proto_auth_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -747,7 +747,7 @@ func (x *GetUserDeviceTokensResponse) String() string {
 func (*GetUserDeviceTokensResponse) ProtoMessage() {}
 
 func (x *GetUserDeviceTokensResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_auth_proto_msgTypes[12]
+	mi := &file_api_proto_auth_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -760,7 +760,7 @@ func (x *GetUserDeviceTokensResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetUserDeviceTokensResponse.ProtoReflect.Descriptor instead.
 func (*GetUserDeviceTokensResponse) Descriptor() ([]byte, []int) {
-	return file_auth_proto_rawDescGZIP(), []int{12}
+	return file_api_proto_auth_proto_rawDescGZIP(), []int{12}
 }
 
 func (x *GetUserDeviceTokensResponse) GetTokens() []string {
@@ -780,7 +780,7 @@ type RevokeDeviceTokensRequest struct {
 
 func (x *RevokeDeviceTokensRequest) Reset() {
 	*x = RevokeDeviceTokensRequest{}
-	mi := &file_auth_proto_msgTypes[13]
+	mi := &file_api_proto_auth_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -792,7 +792,7 @@ func (x *RevokeDeviceTokensRequest) String() string {
 func (*RevokeDeviceTokensRequest) ProtoMessage() {}
 
 func (x *RevokeDeviceTokensRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_auth_proto_msgTypes[13]
+	mi := &file_api_proto_auth_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -805,7 +805,7 @@ func (x *RevokeDeviceTokensRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RevokeDeviceTokensRequest.ProtoReflect.Descriptor instead.
 func (*RevokeDeviceTokensRequest) Descriptor() ([]byte, []int) {
-	return file_auth_proto_rawDescGZIP(), []int{13}
+	return file_api_proto_auth_proto_rawDescGZIP(), []int{13}
 }
 
 func (x *RevokeDeviceTokensRequest) GetUserId() string {
@@ -831,7 +831,7 @@ type RevokeDeviceTokensResponse struct {
 
 func (x *RevokeDeviceTokensResponse) Reset() {
 	*x = RevokeDeviceTokensResponse{}
-	mi := &file_auth_proto_msgTypes[14]
+	mi := &file_api_proto_auth_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -843,7 +843,7 @@ func (x *RevokeDeviceTokensResponse) String() string {
 func (*RevokeDeviceTokensResponse) ProtoMessage() {}
 
 func (x *RevokeDeviceTokensResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_auth_proto_msgTypes[14]
+	mi := &file_api_proto_auth_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -856,7 +856,7 @@ func (x *RevokeDeviceTokensResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RevokeDeviceTokensResponse.ProtoReflect.Descriptor instead.
 func (*RevokeDeviceTokensResponse) Descriptor() ([]byte, []int) {
-	return file_auth_proto_rawDescGZIP(), []int{14}
+	return file_api_proto_auth_proto_rawDescGZIP(), []int{14}
 }
 
 func (x *RevokeDeviceTokensResponse) GetRevokedCount() int32 {
@@ -866,12 +866,255 @@ func (x *RevokeDeviceTokensResponse) GetRevokedCount() int32 {
 	return 0
 }
 
-var File_auth_proto protoreflect.FileDescriptor
+type GetCampaignRecipientsRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
 
-const file_auth_proto_rawDesc = "" +
+func (x *GetCampaignRecipientsRequest) Reset() {
+	*x = GetCampaignRecipientsRequest{}
+	mi := &file_api_proto_auth_proto_msgTypes[15]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetCampaignRecipientsRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetCampaignRecipientsRequest) ProtoMessage() {}
+
+func (x *GetCampaignRecipientsRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_api_proto_auth_proto_msgTypes[15]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetCampaignRecipientsRequest.ProtoReflect.Descriptor instead.
+func (*GetCampaignRecipientsRequest) Descriptor() ([]byte, []int) {
+	return file_api_proto_auth_proto_rawDescGZIP(), []int{15}
+}
+
+type CampaignRecipient struct {
+	state           protoimpl.MessageState `protogen:"open.v1"`
+	UserId          string                 `protobuf:"bytes,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
+	Email           string                 `protobuf:"bytes,2,opt,name=email,proto3" json:"email,omitempty"`
+	FirstName       string                 `protobuf:"bytes,3,opt,name=first_name,json=firstName,proto3" json:"first_name,omitempty"`
+	LastName        string                 `protobuf:"bytes,4,opt,name=last_name,json=lastName,proto3" json:"last_name,omitempty"`
+	IsEmailVerified bool                   `protobuf:"varint,5,opt,name=is_email_verified,json=isEmailVerified,proto3" json:"is_email_verified,omitempty"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
+}
+
+func (x *CampaignRecipient) Reset() {
+	*x = CampaignRecipient{}
+	mi := &file_api_proto_auth_proto_msgTypes[16]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CampaignRecipient) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CampaignRecipient) ProtoMessage() {}
+
+func (x *CampaignRecipient) ProtoReflect() protoreflect.Message {
+	mi := &file_api_proto_auth_proto_msgTypes[16]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CampaignRecipient.ProtoReflect.Descriptor instead.
+func (*CampaignRecipient) Descriptor() ([]byte, []int) {
+	return file_api_proto_auth_proto_rawDescGZIP(), []int{16}
+}
+
+func (x *CampaignRecipient) GetUserId() string {
+	if x != nil {
+		return x.UserId
+	}
+	return ""
+}
+
+func (x *CampaignRecipient) GetEmail() string {
+	if x != nil {
+		return x.Email
+	}
+	return ""
+}
+
+func (x *CampaignRecipient) GetFirstName() string {
+	if x != nil {
+		return x.FirstName
+	}
+	return ""
+}
+
+func (x *CampaignRecipient) GetLastName() string {
+	if x != nil {
+		return x.LastName
+	}
+	return ""
+}
+
+func (x *CampaignRecipient) GetIsEmailVerified() bool {
+	if x != nil {
+		return x.IsEmailVerified
+	}
+	return false
+}
+
+type GetCampaignRecipientsResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Recipients    []*CampaignRecipient   `protobuf:"bytes,1,rep,name=recipients,proto3" json:"recipients,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetCampaignRecipientsResponse) Reset() {
+	*x = GetCampaignRecipientsResponse{}
+	mi := &file_api_proto_auth_proto_msgTypes[17]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetCampaignRecipientsResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetCampaignRecipientsResponse) ProtoMessage() {}
+
+func (x *GetCampaignRecipientsResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_api_proto_auth_proto_msgTypes[17]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetCampaignRecipientsResponse.ProtoReflect.Descriptor instead.
+func (*GetCampaignRecipientsResponse) Descriptor() ([]byte, []int) {
+	return file_api_proto_auth_proto_rawDescGZIP(), []int{17}
+}
+
+func (x *GetCampaignRecipientsResponse) GetRecipients() []*CampaignRecipient {
+	if x != nil {
+		return x.Recipients
+	}
+	return nil
+}
+
+type CheckUserEmailVerifiedRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	UserId        string                 `protobuf:"bytes,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *CheckUserEmailVerifiedRequest) Reset() {
+	*x = CheckUserEmailVerifiedRequest{}
+	mi := &file_api_proto_auth_proto_msgTypes[18]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CheckUserEmailVerifiedRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CheckUserEmailVerifiedRequest) ProtoMessage() {}
+
+func (x *CheckUserEmailVerifiedRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_api_proto_auth_proto_msgTypes[18]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CheckUserEmailVerifiedRequest.ProtoReflect.Descriptor instead.
+func (*CheckUserEmailVerifiedRequest) Descriptor() ([]byte, []int) {
+	return file_api_proto_auth_proto_rawDescGZIP(), []int{18}
+}
+
+func (x *CheckUserEmailVerifiedRequest) GetUserId() string {
+	if x != nil {
+		return x.UserId
+	}
+	return ""
+}
+
+type CheckUserEmailVerifiedResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	IsVerified    bool                   `protobuf:"varint,1,opt,name=is_verified,json=isVerified,proto3" json:"is_verified,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *CheckUserEmailVerifiedResponse) Reset() {
+	*x = CheckUserEmailVerifiedResponse{}
+	mi := &file_api_proto_auth_proto_msgTypes[19]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CheckUserEmailVerifiedResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CheckUserEmailVerifiedResponse) ProtoMessage() {}
+
+func (x *CheckUserEmailVerifiedResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_api_proto_auth_proto_msgTypes[19]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CheckUserEmailVerifiedResponse.ProtoReflect.Descriptor instead.
+func (*CheckUserEmailVerifiedResponse) Descriptor() ([]byte, []int) {
+	return file_api_proto_auth_proto_rawDescGZIP(), []int{19}
+}
+
+func (x *CheckUserEmailVerifiedResponse) GetIsVerified() bool {
+	if x != nil {
+		return x.IsVerified
+	}
+	return false
+}
+
+var File_api_proto_auth_proto protoreflect.FileDescriptor
+
+const file_api_proto_auth_proto_rawDesc = "" +
 	"\n" +
-	"\n" +
-	"auth.proto\x12\x04auth\">\n" +
+	"\x14api/proto/auth.proto\x12\x04auth\">\n" +
 	"\x15GetParticipantRequest\x12%\n" +
 	"\x0eparticipant_id\x18\x01 \x01(\tR\rparticipantId\"j\n" +
 	"\x16GetParticipantResponse\x12\x0e\n" +
@@ -928,7 +1171,24 @@ const file_auth_proto_rawDesc = "" +
 	"\auser_id\x18\x01 \x01(\tR\x06userId\x12\x16\n" +
 	"\x06tokens\x18\x02 \x03(\tR\x06tokens\"A\n" +
 	"\x1aRevokeDeviceTokensResponse\x12#\n" +
-	"\rrevoked_count\x18\x01 \x01(\x05R\frevokedCount2\xca\x04\n" +
+	"\rrevoked_count\x18\x01 \x01(\x05R\frevokedCount\"\x1e\n" +
+	"\x1cGetCampaignRecipientsRequest\"\xaa\x01\n" +
+	"\x11CampaignRecipient\x12\x17\n" +
+	"\auser_id\x18\x01 \x01(\tR\x06userId\x12\x14\n" +
+	"\x05email\x18\x02 \x01(\tR\x05email\x12\x1d\n" +
+	"\n" +
+	"first_name\x18\x03 \x01(\tR\tfirstName\x12\x1b\n" +
+	"\tlast_name\x18\x04 \x01(\tR\blastName\x12*\n" +
+	"\x11is_email_verified\x18\x05 \x01(\bR\x0fisEmailVerified\"X\n" +
+	"\x1dGetCampaignRecipientsResponse\x127\n" +
+	"\n" +
+	"recipients\x18\x01 \x03(\v2\x17.auth.CampaignRecipientR\n" +
+	"recipients\"8\n" +
+	"\x1dCheckUserEmailVerifiedRequest\x12\x17\n" +
+	"\auser_id\x18\x01 \x01(\tR\x06userId\"A\n" +
+	"\x1eCheckUserEmailVerifiedResponse\x12\x1f\n" +
+	"\vis_verified\x18\x01 \x01(\bR\n" +
+	"isVerified2\x91\x06\n" +
 	"\vAuthService\x12K\n" +
 	"\x0eGetParticipant\x12\x1b.auth.GetParticipantRequest\x1a\x1c.auth.GetParticipantResponse\x12U\n" +
 	"\x15GetParticipantProfile\x12\".auth.GetParticipantProfileRequest\x1a\x18.auth.ParticipantProfile\x12W\n" +
@@ -937,68 +1197,80 @@ const file_auth_proto_rawDesc = "" +
 	"\n" +
 	"GetCompany\x12\x17.auth.GetCompanyRequest\x1a\x18.auth.GetCompanyResponse\x12Z\n" +
 	"\x13GetUserDeviceTokens\x12 .auth.GetUserDeviceTokensRequest\x1a!.auth.GetUserDeviceTokensResponse\x12W\n" +
-	"\x12RevokeDeviceTokens\x12\x1f.auth.RevokeDeviceTokensRequest\x1a .auth.RevokeDeviceTokensResponseB.Z,buenvivir/labor-integration/api/proto/authpbb\x06proto3"
+	"\x12RevokeDeviceTokens\x12\x1f.auth.RevokeDeviceTokensRequest\x1a .auth.RevokeDeviceTokensResponse\x12`\n" +
+	"\x15GetCampaignRecipients\x12\".auth.GetCampaignRecipientsRequest\x1a#.auth.GetCampaignRecipientsResponse\x12c\n" +
+	"\x16CheckUserEmailVerified\x12#.auth.CheckUserEmailVerifiedRequest\x1a$.auth.CheckUserEmailVerifiedResponseB.Z,buenvivir/labor-integration/api/proto/authpbb\x06proto3"
 
 var (
-	file_auth_proto_rawDescOnce sync.Once
-	file_auth_proto_rawDescData []byte
+	file_api_proto_auth_proto_rawDescOnce sync.Once
+	file_api_proto_auth_proto_rawDescData []byte
 )
 
-func file_auth_proto_rawDescGZIP() []byte {
-	file_auth_proto_rawDescOnce.Do(func() {
-		file_auth_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_auth_proto_rawDesc), len(file_auth_proto_rawDesc)))
+func file_api_proto_auth_proto_rawDescGZIP() []byte {
+	file_api_proto_auth_proto_rawDescOnce.Do(func() {
+		file_api_proto_auth_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_api_proto_auth_proto_rawDesc), len(file_api_proto_auth_proto_rawDesc)))
 	})
-	return file_auth_proto_rawDescData
+	return file_api_proto_auth_proto_rawDescData
 }
 
-var file_auth_proto_msgTypes = make([]protoimpl.MessageInfo, 15)
-var file_auth_proto_goTypes = []any{
-	(*GetParticipantRequest)(nil),        // 0: auth.GetParticipantRequest
-	(*GetParticipantResponse)(nil),       // 1: auth.GetParticipantResponse
-	(*GetParticipantProfileRequest)(nil), // 2: auth.GetParticipantProfileRequest
-	(*ParticipantProfile)(nil),           // 3: auth.ParticipantProfile
-	(*SearchParticipantsRequest)(nil),    // 4: auth.SearchParticipantsRequest
-	(*SearchParticipantsResponse)(nil),   // 5: auth.SearchParticipantsResponse
-	(*GetUsersByIDsRequest)(nil),         // 6: auth.GetUsersByIDsRequest
-	(*UserSummary)(nil),                  // 7: auth.UserSummary
-	(*GetUsersByIDsResponse)(nil),        // 8: auth.GetUsersByIDsResponse
-	(*GetCompanyRequest)(nil),            // 9: auth.GetCompanyRequest
-	(*GetCompanyResponse)(nil),           // 10: auth.GetCompanyResponse
-	(*GetUserDeviceTokensRequest)(nil),   // 11: auth.GetUserDeviceTokensRequest
-	(*GetUserDeviceTokensResponse)(nil),  // 12: auth.GetUserDeviceTokensResponse
-	(*RevokeDeviceTokensRequest)(nil),    // 13: auth.RevokeDeviceTokensRequest
-	(*RevokeDeviceTokensResponse)(nil),   // 14: auth.RevokeDeviceTokensResponse
+var file_api_proto_auth_proto_msgTypes = make([]protoimpl.MessageInfo, 20)
+var file_api_proto_auth_proto_goTypes = []any{
+	(*GetParticipantRequest)(nil),          // 0: auth.GetParticipantRequest
+	(*GetParticipantResponse)(nil),         // 1: auth.GetParticipantResponse
+	(*GetParticipantProfileRequest)(nil),   // 2: auth.GetParticipantProfileRequest
+	(*ParticipantProfile)(nil),             // 3: auth.ParticipantProfile
+	(*SearchParticipantsRequest)(nil),      // 4: auth.SearchParticipantsRequest
+	(*SearchParticipantsResponse)(nil),     // 5: auth.SearchParticipantsResponse
+	(*GetUsersByIDsRequest)(nil),           // 6: auth.GetUsersByIDsRequest
+	(*UserSummary)(nil),                    // 7: auth.UserSummary
+	(*GetUsersByIDsResponse)(nil),          // 8: auth.GetUsersByIDsResponse
+	(*GetCompanyRequest)(nil),              // 9: auth.GetCompanyRequest
+	(*GetCompanyResponse)(nil),             // 10: auth.GetCompanyResponse
+	(*GetUserDeviceTokensRequest)(nil),     // 11: auth.GetUserDeviceTokensRequest
+	(*GetUserDeviceTokensResponse)(nil),    // 12: auth.GetUserDeviceTokensResponse
+	(*RevokeDeviceTokensRequest)(nil),      // 13: auth.RevokeDeviceTokensRequest
+	(*RevokeDeviceTokensResponse)(nil),     // 14: auth.RevokeDeviceTokensResponse
+	(*GetCampaignRecipientsRequest)(nil),   // 15: auth.GetCampaignRecipientsRequest
+	(*CampaignRecipient)(nil),              // 16: auth.CampaignRecipient
+	(*GetCampaignRecipientsResponse)(nil),  // 17: auth.GetCampaignRecipientsResponse
+	(*CheckUserEmailVerifiedRequest)(nil),  // 18: auth.CheckUserEmailVerifiedRequest
+	(*CheckUserEmailVerifiedResponse)(nil), // 19: auth.CheckUserEmailVerifiedResponse
 }
-var file_auth_proto_depIdxs = []int32{
+var file_api_proto_auth_proto_depIdxs = []int32{
 	3,  // 0: auth.SearchParticipantsResponse.participants:type_name -> auth.ParticipantProfile
 	7,  // 1: auth.GetUsersByIDsResponse.users:type_name -> auth.UserSummary
-	0,  // 2: auth.AuthService.GetParticipant:input_type -> auth.GetParticipantRequest
-	2,  // 3: auth.AuthService.GetParticipantProfile:input_type -> auth.GetParticipantProfileRequest
-	4,  // 4: auth.AuthService.SearchParticipants:input_type -> auth.SearchParticipantsRequest
-	6,  // 5: auth.AuthService.GetUsersByIDs:input_type -> auth.GetUsersByIDsRequest
-	9,  // 6: auth.AuthService.GetCompany:input_type -> auth.GetCompanyRequest
-	11, // 7: auth.AuthService.GetUserDeviceTokens:input_type -> auth.GetUserDeviceTokensRequest
-	13, // 8: auth.AuthService.RevokeDeviceTokens:input_type -> auth.RevokeDeviceTokensRequest
-	1,  // 9: auth.AuthService.GetParticipant:output_type -> auth.GetParticipantResponse
-	3,  // 10: auth.AuthService.GetParticipantProfile:output_type -> auth.ParticipantProfile
-	5,  // 11: auth.AuthService.SearchParticipants:output_type -> auth.SearchParticipantsResponse
-	8,  // 12: auth.AuthService.GetUsersByIDs:output_type -> auth.GetUsersByIDsResponse
-	10, // 13: auth.AuthService.GetCompany:output_type -> auth.GetCompanyResponse
-	12, // 14: auth.AuthService.GetUserDeviceTokens:output_type -> auth.GetUserDeviceTokensResponse
-	14, // 15: auth.AuthService.RevokeDeviceTokens:output_type -> auth.RevokeDeviceTokensResponse
-	9,  // [9:16] is the sub-list for method output_type
-	2,  // [2:9] is the sub-list for method input_type
-	2,  // [2:2] is the sub-list for extension type_name
-	2,  // [2:2] is the sub-list for extension extendee
-	0,  // [0:2] is the sub-list for field type_name
+	16, // 2: auth.GetCampaignRecipientsResponse.recipients:type_name -> auth.CampaignRecipient
+	0,  // 3: auth.AuthService.GetParticipant:input_type -> auth.GetParticipantRequest
+	2,  // 4: auth.AuthService.GetParticipantProfile:input_type -> auth.GetParticipantProfileRequest
+	4,  // 5: auth.AuthService.SearchParticipants:input_type -> auth.SearchParticipantsRequest
+	6,  // 6: auth.AuthService.GetUsersByIDs:input_type -> auth.GetUsersByIDsRequest
+	9,  // 7: auth.AuthService.GetCompany:input_type -> auth.GetCompanyRequest
+	11, // 8: auth.AuthService.GetUserDeviceTokens:input_type -> auth.GetUserDeviceTokensRequest
+	13, // 9: auth.AuthService.RevokeDeviceTokens:input_type -> auth.RevokeDeviceTokensRequest
+	15, // 10: auth.AuthService.GetCampaignRecipients:input_type -> auth.GetCampaignRecipientsRequest
+	18, // 11: auth.AuthService.CheckUserEmailVerified:input_type -> auth.CheckUserEmailVerifiedRequest
+	1,  // 12: auth.AuthService.GetParticipant:output_type -> auth.GetParticipantResponse
+	3,  // 13: auth.AuthService.GetParticipantProfile:output_type -> auth.ParticipantProfile
+	5,  // 14: auth.AuthService.SearchParticipants:output_type -> auth.SearchParticipantsResponse
+	8,  // 15: auth.AuthService.GetUsersByIDs:output_type -> auth.GetUsersByIDsResponse
+	10, // 16: auth.AuthService.GetCompany:output_type -> auth.GetCompanyResponse
+	12, // 17: auth.AuthService.GetUserDeviceTokens:output_type -> auth.GetUserDeviceTokensResponse
+	14, // 18: auth.AuthService.RevokeDeviceTokens:output_type -> auth.RevokeDeviceTokensResponse
+	17, // 19: auth.AuthService.GetCampaignRecipients:output_type -> auth.GetCampaignRecipientsResponse
+	19, // 20: auth.AuthService.CheckUserEmailVerified:output_type -> auth.CheckUserEmailVerifiedResponse
+	12, // [12:21] is the sub-list for method output_type
+	3,  // [3:12] is the sub-list for method input_type
+	3,  // [3:3] is the sub-list for extension type_name
+	3,  // [3:3] is the sub-list for extension extendee
+	0,  // [0:3] is the sub-list for field type_name
 }
 
-func init() { file_auth_proto_init() }
-func file_auth_proto_init() {
-	if File_auth_proto != nil {
+func init() { file_api_proto_auth_proto_init() }
+func file_api_proto_auth_proto_init() {
+	if File_api_proto_auth_proto != nil {
 		return
 	}
-	file_auth_proto_msgTypes[2].OneofWrappers = []any{
+	file_api_proto_auth_proto_msgTypes[2].OneofWrappers = []any{
 		(*GetParticipantProfileRequest_ParticipantId)(nil),
 		(*GetParticipantProfileRequest_UserId)(nil),
 	}
@@ -1006,17 +1278,17 @@ func file_auth_proto_init() {
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
-			RawDescriptor: unsafe.Slice(unsafe.StringData(file_auth_proto_rawDesc), len(file_auth_proto_rawDesc)),
+			RawDescriptor: unsafe.Slice(unsafe.StringData(file_api_proto_auth_proto_rawDesc), len(file_api_proto_auth_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   15,
+			NumMessages:   20,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
-		GoTypes:           file_auth_proto_goTypes,
-		DependencyIndexes: file_auth_proto_depIdxs,
-		MessageInfos:      file_auth_proto_msgTypes,
+		GoTypes:           file_api_proto_auth_proto_goTypes,
+		DependencyIndexes: file_api_proto_auth_proto_depIdxs,
+		MessageInfos:      file_api_proto_auth_proto_msgTypes,
 	}.Build()
-	File_auth_proto = out.File
-	file_auth_proto_goTypes = nil
-	file_auth_proto_depIdxs = nil
+	File_api_proto_auth_proto = out.File
+	file_api_proto_auth_proto_goTypes = nil
+	file_api_proto_auth_proto_depIdxs = nil
 }

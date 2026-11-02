@@ -31,6 +31,7 @@ type UserRepository interface {
 	UpdateEmailVerifiedByEmail(ctx context.Context, email string, verified bool) error
 	UpdatePasswordHashByEmail(ctx context.Context, email string, passwordHash string) error
 	UpdatePasswordAndVerifiedByEmail(ctx context.Context, email string, passwordHash string, verified bool) error
+	FindCampaignEligibleUsers(ctx context.Context) ([]CampaignEligibleUser, error)
 }
 
 type userRepository struct {
@@ -277,4 +278,26 @@ func (r *userRepository) FindParticipantsHistory(ctx context.Context) ([]models.
 		return nil, err
 	}
 	return rows, nil
+}
+
+type CampaignEligibleUser struct {
+	UserID          string `json:"user_id"`
+	Email           string `json:"email"`
+	FirstName       string `json:"first_name"`
+	LastName        string `json:"last_name"`
+	IsEmailVerified bool   `json:"is_email_verified"`
+}
+
+func (r *userRepository) FindCampaignEligibleUsers(ctx context.Context) ([]CampaignEligibleUser, error) {
+	var results []CampaignEligibleUser
+	err := r.db.WithContext(ctx).
+		Table("users").
+		Select("users.user_id, users.email, users.first_name, users.last_name, users.is_email_verified").
+		Joins("LEFT JOIN teachers t ON users.user_id = t.user_id AND t.deleted_at IS NULL").
+		Where("users.deleted_at IS NULL").
+		Where("users.status = ?", "active").
+		Where("users.role_id != ?", "role_company").
+		Where("NOT (users.role_id = ? AND t.is_external = ?)", "role_teacher", true).
+		Scan(&results).Error
+	return results, err
 }
