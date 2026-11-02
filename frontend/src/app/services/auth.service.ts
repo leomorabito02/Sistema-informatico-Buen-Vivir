@@ -254,6 +254,41 @@ export class AuthService {
       .pipe(catchError(this.handleError));
   }
 
+  /**
+   * Solicita el restablecimiento de contraseña enviando un enlace al email provisto.
+   */
+  forgotPassword(email: string): Observable<{ message: string }> {
+    return this.http
+      .post<{ message: string }>(
+        `${this.apiUrl}/api/v1/auth/forgot-password`,
+        { email },
+        {
+          withCredentials: true,
+          headers: { [SKIP_GLOBAL_ERROR_HEADER]: "true" },
+        },
+      )
+      .pipe(catchError(this.handleError));
+  }
+
+  /**
+   * Restablece la contraseña utilizando el token temporal recibido por email.
+   */
+  resetPassword(
+    token: string,
+    newPassword: string,
+  ): Observable<{ message: string }> {
+    return this.http
+      .post<{ message: string }>(
+        `${this.apiUrl}/api/v1/auth/reset-password`,
+        { token, new_password: newPassword },
+        {
+          withCredentials: true,
+          headers: { [SKIP_GLOBAL_ERROR_HEADER]: "true" },
+        },
+      )
+      .pipe(catchError(this.handleError));
+  }
+
   private readonly handleError = (error: HttpErrorResponse) => {
     let errorMessage =
       "Ocurrió un error inesperado. Por favor, intente nuevamente.";
