@@ -49,7 +49,7 @@ describe("CampanasComponent", () => {
     crear();
     const el: HTMLElement = fixture.nativeElement;
     const tarjetas = el.querySelectorAll(".campana-card");
-    expect(tarjetas.length).toBe(2);
+    expect(tarjetas).toHaveSize(2);
     expect(tarjetas[0].textContent).toContain("Borrador");
     expect(tarjetas[0].textContent).toContain("05/11/2026");
     expect(tarjetas[0].textContent).toContain("Publicar");
@@ -172,5 +172,13 @@ describe("CampanasComponent", () => {
     component.publicar(borrador);
     expect(service.publicar).toHaveBeenCalledWith("c1");
     expect(service.listar).toHaveBeenCalledTimes(2);
+  });
+
+  it("reemplaza la imagen por el placeholder ante error de carga", () => {
+    crear();
+    const img = document.createElement("img");
+    img.src = "https://broken.example.com/fail.jpg";
+    component.onImageError({ target: img } as unknown as Event);
+    expect(img.src).toContain("data:image/svg+xml");
   });
 });

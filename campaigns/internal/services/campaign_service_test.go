@@ -2,8 +2,11 @@ package services
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
+	"net/http"
+	"net/http/httptest"
 	"sort"
 	"strings"
 	"testing"
@@ -259,5 +262,97 @@ func TestErroresDelRepositorioSePropagan(t *testing.T) {
 	}
 	if _, err := svc.ListPublished(context.Background(), ""); err == nil {
 		t.Error("list: esperaba el error del repositorio")
+	}
+}
+
+type fakeDispatcher struct {
+	dispatched []models.Campaign
+	creadoPor  []string
+	err        error
+}
+
+func (f *fakeDispatcher) DispatchCampaignCreated(_ context.Context, c models.Campaign, creadoPor string) error {
+	if f.err != nil {
+		return f.err
+	}
+	f.dispatched = append(f.dispatched, c)
+	f.creadoPor = append(f.creadoPor, creadoPor)
+	return nil
+}
+
+func TestCreate_DispatchesNotification(t *testing.T) {
+	dispatcher := &fakeDispatcher{}
+	svc := NewCampaignService(
+		newFakeRepo(),
+		WithNotificationDispatcher(dispatcher),
+		WithSyncDispatch(true),
+	)
+	c, err := svc.Create(context.Background(), entradaValida(), "usuario-admin")
+	if err != nil {
+		t.Fatalf("error inesperado: %v", err)
+	}
+	if len(dispatcher.dispatched) != 1 {
+		t.Fatalf("esperaba 1 notificación despachada, obtuve %d", len(dispatcher.dispatched))
+	}
+	if dispatcher.dispatched[0].ID != c.ID || dispatcher.creadoPor[0] != "usuario-admin" {
+		t.Errorf("datos de despacho incorrectos: %+v, %s", dispatcher.dispatched[0], dispatcher.creadoPor[0])
+	}
+}
+
+func TestCreate_NotificationFailureDoesNotBlockCreation(t *testing.T) {
+	dispatcher := &fakeDispatcher{err: errors.New("notification service down")}
+	svc := NewCampaignService(
+		newFakeRepo(),
+		WithNotificationDispatcher(dispatcher),
+		WithSyncDispatch(true),
+	)
+	c, err := svc.Create(context.Background(), entradaValida(), "usuario-admin")
+	if err != nil {
+		t.Fatalf("la creación no debería fallar si falla el despacho: %v", err)
+	}
+	if c.ID == "" {
+		t.Fatalf("esperaba campaña creada")
+	}
+}
+
+func TestHTTPNotificationDispatcher_DispatchCampaignCreated(t *testing.T) {
+	var receivedBody map[string]interface{}
+	var receivedSignature string
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/api/v1/notifications/send" {
+			t.Errorf("ruta inesperada: %s", r.URL.Path)
+			w.WriteHeader(http.StatusNotFound)
+			return
+		}
+		if r.Method != http.MethodPost {
+			t.Errorf("método inesperado: %s", r.Method)
+		}
+		receivedSignature = r.Header.Get("X-Internal-Signature")
+		_ = json.NewDecoder(r.Body).Decode(&receivedBody)
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(`{"notification_id":"ntf-123","recipients_count":5}`))
+	}))
+	defer ts.Close()
+
+	d := NewHTTPNotificationDispatcher(ts.URL, "test-hmac-secret-123")
+	c := models.Campaign{
+		ID:        "cmp-100",
+		Titulo:    "Vacunación",
+		Texto:     "Jornada de salud",
+		ImagenURL: "https://example.com/img.jpg",
+	}
+	err := d.DispatchCampaignCreated(context.Background(), c, "usr-creator")
+	if err != nil {
+		t.Fatalf("error inesperado al despachar: %v", err)
+	}
+
+	if receivedBody["source_service"] != "campaigns" || receivedBody["category"] != "campaigns" {
+		t.Errorf("payload inesperado: %v", receivedBody)
+	}
+	if receivedBody["target_type"] != "broadcast" {
+		t.Errorf("target_type debería ser broadcast: %v", receivedBody["target_type"])
+	}
+	if receivedSignature == "" {
+		t.Errorf("esperaba cabecera X-Internal-Signature presente")
 	}
 }

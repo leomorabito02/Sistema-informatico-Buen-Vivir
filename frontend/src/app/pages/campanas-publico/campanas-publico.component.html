@@ -52,7 +52,7 @@
       />
     </label>
 
-    <p *ngIf="cargando" class="mensaje" role="status">Cargando campañas…</p>
+    <output *ngIf="cargando" class="mensaje">Cargando campañas…</output>
     <p *ngIf="!cargando && error" class="mensaje mensaje-error" role="alert">
       {{ error }}
     </p>
@@ -68,9 +68,10 @@
       <article *ngFor="let c of campanas" class="tarjeta">
         <img
           [src]="c.imagen_url"
-          [alt]="'Imagen de la campaña ' + c.titulo"
+          [alt]="c.titulo"
           class="tarjeta-img"
           loading="lazy"
+          (error)="onImageError($event)"
         />
         <div class="tarjeta-body">
           <h2 class="tarjeta-titulo">{{ c.titulo }}</h2>

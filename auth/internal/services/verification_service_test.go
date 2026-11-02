@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"auth/internal/models"
+	"auth/internal/repositories"
 	"auth/internal/services"
 
 	"github.com/stretchr/testify/assert"
@@ -195,6 +196,9 @@ func (m *mockUserRepoForVerification) CountVolunteers(ctx context.Context) (int6
 	return 0, nil
 }
 func (m *mockUserRepoForVerification) FindParticipantsHistory(ctx context.Context) ([]models.ParticipantHistory, error) {
+	return nil, nil
+}
+func (m *mockUserRepoForVerification) FindCampaignEligibleUsers(ctx context.Context) ([]repositories.CampaignEligibleUser, error) {
 	return nil, nil
 }
 

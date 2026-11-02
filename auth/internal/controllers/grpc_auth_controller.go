@@ -174,9 +174,11 @@ func directoryError(err error) error {
 	}
 }
 
+const errUserIDRequired = "user_id is required"
+
 func (c *GrpcAuthController) GetUserDeviceTokens(ctx context.Context, req *authpb.GetUserDeviceTokensRequest) (*authpb.GetUserDeviceTokensResponse, error) {
 	if req.UserId == "" {
-		return nil, status.Error(codes.InvalidArgument, "user_id is required")
+		return nil, status.Error(codes.InvalidArgument, errUserIDRequired)
 	}
 	if c.deviceRepo == nil {
 		return &authpb.GetUserDeviceTokensResponse{Tokens: []string{}}, nil
@@ -191,7 +193,7 @@ func (c *GrpcAuthController) GetUserDeviceTokens(ctx context.Context, req *authp
 
 func (c *GrpcAuthController) RevokeDeviceTokens(ctx context.Context, req *authpb.RevokeDeviceTokensRequest) (*authpb.RevokeDeviceTokensResponse, error) {
 	if req.UserId == "" {
-		return nil, status.Error(codes.InvalidArgument, "user_id is required")
+		return nil, status.Error(codes.InvalidArgument, errUserIDRequired)
 	}
 	if len(req.Tokens) == 0 || c.deviceRepo == nil {
 		return &authpb.RevokeDeviceTokensResponse{RevokedCount: 0}, nil
@@ -201,4 +203,33 @@ func (c *GrpcAuthController) RevokeDeviceTokens(ctx context.Context, req *authpb
 		return nil, status.Error(codes.Internal, err.Error())
 	}
 	return &authpb.RevokeDeviceTokensResponse{RevokedCount: int32(len(req.Tokens))}, nil
+}
+
+func (c *GrpcAuthController) GetCampaignRecipients(ctx context.Context, _ *authpb.GetCampaignRecipientsRequest) (*authpb.GetCampaignRecipientsResponse, error) {
+	users, err := c.userService.GetCampaignEligibleUsers(ctx)
+	if err != nil {
+		return nil, status.Error(codes.Internal, err.Error())
+	}
+	out := make([]*authpb.CampaignRecipient, 0, len(users))
+	for _, u := range users {
+		out = append(out, &authpb.CampaignRecipient{
+			UserId:          u.UserID,
+			Email:           u.Email,
+			FirstName:       u.FirstName,
+			LastName:        u.LastName,
+			IsEmailVerified: u.IsEmailVerified,
+		})
+	}
+	return &authpb.GetCampaignRecipientsResponse{Recipients: out}, nil
+}
+
+func (c *GrpcAuthController) CheckUserEmailVerified(ctx context.Context, req *authpb.CheckUserEmailVerifiedRequest) (*authpb.CheckUserEmailVerifiedResponse, error) {
+	if req.UserId == "" {
+		return nil, status.Error(codes.InvalidArgument, errUserIDRequired)
+	}
+	verified, err := c.userService.IsEmailVerified(ctx, req.UserId)
+	if err != nil {
+		return &authpb.CheckUserEmailVerifiedResponse{IsVerified: false}, nil
+	}
+	return &authpb.CheckUserEmailVerifiedResponse{IsVerified: verified}, nil
 }

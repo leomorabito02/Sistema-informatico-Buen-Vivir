@@ -368,3 +368,36 @@ func TestUserRepository_FindParticipantsHistory(t *testing.T) {
 		assert.Nil(t, rows)
 	})
 }
+
+func TestUserRepository_FindCampaignEligibleUsers(t *testing.T) {
+	db, mock := setupTestDB(t)
+	repo := repositories.NewUserRepository(db)
+	query := regexp.QuoteMeta(`SELECT users.user_id, users.email, users.first_name, users.last_name, users.is_email_verified FROM "users" LEFT JOIN teachers t ON users.user_id = t.user_id AND t.deleted_at IS NULL WHERE users.deleted_at IS NULL AND users.status = $1 AND users.role_id != $2 AND (NOT (users.role_id = $3 AND t.is_external = $4))`)
+
+	t.Run("Success", func(t *testing.T) {
+		mock.ExpectQuery(query).
+			WithArgs("active", "role_company", "role_teacher", true).
+			WillReturnRows(sqlmock.NewRows([]string{"user_id", "email", "first_name", "last_name", "is_email_verified"}).
+				AddRow("usr-1", "user1@test.com", "Lucia", "Gomez", true).
+				AddRow("usr-2", "user2@test.com", "Marcos", "Lopez", false))
+
+		users, err := repo.FindCampaignEligibleUsers(context.Background())
+		require.NoError(t, err)
+		require.Len(t, users, 2)
+		assert.Equal(t, "usr-1", users[0].UserID)
+		assert.Equal(t, "user1@test.com", users[0].Email)
+		assert.Equal(t, "Lucia", users[0].FirstName)
+		assert.True(t, users[0].IsEmailVerified)
+		assert.False(t, users[1].IsEmailVerified)
+	})
+
+	t.Run("DBError", func(t *testing.T) {
+		mock.ExpectQuery(query).
+			WithArgs("active", "role_company", "role_teacher", true).
+			WillReturnError(errors.New("database connection lost"))
+
+		users, err := repo.FindCampaignEligibleUsers(context.Background())
+		assert.Error(t, err)
+		assert.Nil(t, users)
+	})
+}

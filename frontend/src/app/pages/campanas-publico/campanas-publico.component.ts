@@ -21,7 +21,10 @@ import {
 } from "lucide-angular";
 import { FooterComponent } from "../../components/layout/footer/footer.component";
 import { CampaignsService } from "../../services/campaigns.service";
-import { Campana } from "../../core/models/campaign.model";
+import {
+  Campana,
+  DEFAULT_CAMPAIGN_PLACEHOLDER,
+} from "../../core/models/campaign.model";
 import { ComentariosComponent } from "../../shared/components/comentarios.component";
 
 /**
@@ -100,5 +103,12 @@ export class CampanasPublicoComponent implements OnInit {
   alternarComentarios(id: string): void {
     if (this.comentariosAbiertos.has(id)) this.comentariosAbiertos.delete(id);
     else this.comentariosAbiertos.add(id);
+  }
+
+  onImageError(event: Event): void {
+    const el = event.target as HTMLImageElement;
+    if (el && el.src !== DEFAULT_CAMPAIGN_PLACEHOLDER) {
+      el.src = DEFAULT_CAMPAIGN_PLACEHOLDER;
+    }
   }
 }

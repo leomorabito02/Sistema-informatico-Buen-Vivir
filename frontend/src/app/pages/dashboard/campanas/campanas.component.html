@@ -26,9 +26,10 @@
         placeholder="Ej.: reciclaje"
       />
     </label>
-    <label>
-      Estado
+    <div class="campo">
+      <label for="filtro-estado">Estado</label>
       <p-select
+        inputId="filtro-estado"
         name="estado"
         [options]="estados"
         [(ngModel)]="estado"
@@ -36,7 +37,7 @@
         optionValue="value"
         (onChange)="cargar()"
       ></p-select>
-    </label>
+    </div>
     <p-button
       type="submit"
       label="Buscar"
@@ -45,7 +46,7 @@
     ></p-button>
   </form>
 
-  <p *ngIf="cargando" class="estado-carga" role="status">Cargando campañas…</p>
+  <output *ngIf="cargando" class="estado-carga">Cargando campañas…</output>
 
   <app-empty-state
     *ngIf="!cargando && error"
@@ -69,9 +70,10 @@
     <article *ngFor="let c of campaigns" class="campana-card">
       <img
         [src]="c.imagen_url"
-        [alt]="'Imagen de la campaña ' + c.titulo"
+        [alt]="c.titulo"
         class="campana-img"
         loading="lazy"
+        (error)="onImageError($event)"
       />
       <div class="campana-body">
         <div class="campana-cabecera">

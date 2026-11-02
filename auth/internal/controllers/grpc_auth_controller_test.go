@@ -14,6 +14,7 @@ import (
 	"auth/internal/controllers"
 	"auth/internal/dto"
 	"auth/internal/middlewares"
+	"auth/internal/repositories"
 )
 
 func TestGrpcGetCompany_LeeElUsuarioConPermisosDeSistema(t *testing.T) {
@@ -94,5 +95,58 @@ func TestGrpcRevokeDeviceTokens_Success(t *testing.T) {
 func TestGrpcRevokeDeviceTokens_MissingUserID(t *testing.T) {
 	ctrl := controllers.NewGrpcAuthController(nil, nil, nil, nil)
 	_, err := ctrl.RevokeDeviceTokens(context.Background(), &authpb.RevokeDeviceTokensRequest{})
+	assert.Equal(t, codes.InvalidArgument, status.Code(err))
+}
+
+func TestGrpcGetCampaignRecipients_Success(t *testing.T) {
+	userSvc := new(MockUserService)
+	ctrl := controllers.NewGrpcAuthController(nil, nil, userSvc, nil)
+
+	userSvc.On("GetCampaignEligibleUsers", mock.Anything).Return([]repositories.CampaignEligibleUser{
+		{UserID: "usr-1", Email: "u1@test.com", FirstName: "Ana", LastName: "Gomez"},
+		{UserID: "usr-2", Email: "u2@test.com", FirstName: "Carlos", LastName: "Perez"},
+	}, nil)
+
+	res, err := ctrl.GetCampaignRecipients(context.Background(), &authpb.GetCampaignRecipientsRequest{})
+	assert.NoError(t, err)
+	assert.Len(t, res.Recipients, 2)
+	assert.Equal(t, "usr-1", res.Recipients[0].UserId)
+	assert.Equal(t, "u1@test.com", res.Recipients[0].Email)
+	assert.Equal(t, "Ana", res.Recipients[0].FirstName)
+	userSvc.AssertExpectations(t)
+}
+
+func TestGrpcGetCampaignRecipients_Error(t *testing.T) {
+	userSvc := new(MockUserService)
+	ctrl := controllers.NewGrpcAuthController(nil, nil, userSvc, nil)
+
+	userSvc.On("GetCampaignEligibleUsers", mock.Anything).Return(nil, errors.New("db error"))
+
+	_, err := ctrl.GetCampaignRecipients(context.Background(), &authpb.GetCampaignRecipientsRequest{})
+	assert.Error(t, err)
+	assert.Equal(t, codes.Internal, status.Code(err))
+}
+
+func TestGrpcCheckUserEmailVerified_Success(t *testing.T) {
+	userSvc := new(MockUserService)
+	ctrl := controllers.NewGrpcAuthController(nil, nil, userSvc, nil)
+
+	userSvc.On("IsEmailVerified", mock.Anything, "usr-verified").Return(true, nil)
+	userSvc.On("IsEmailVerified", mock.Anything, "usr-unverified").Return(false, nil)
+
+	res1, err := ctrl.CheckUserEmailVerified(context.Background(), &authpb.CheckUserEmailVerifiedRequest{UserId: "usr-verified"})
+	assert.NoError(t, err)
+	assert.True(t, res1.IsVerified)
+
+	res2, err := ctrl.CheckUserEmailVerified(context.Background(), &authpb.CheckUserEmailVerifiedRequest{UserId: "usr-unverified"})
+	assert.NoError(t, err)
+	assert.False(t, res2.IsVerified)
+
+	userSvc.AssertExpectations(t)
+}
+
+func TestGrpcCheckUserEmailVerified_MissingUserID(t *testing.T) {
+	ctrl := controllers.NewGrpcAuthController(nil, nil, nil, nil)
+	_, err := ctrl.CheckUserEmailVerified(context.Background(), &authpb.CheckUserEmailVerifiedRequest{})
 	assert.Equal(t, codes.InvalidArgument, status.Code(err))
 }

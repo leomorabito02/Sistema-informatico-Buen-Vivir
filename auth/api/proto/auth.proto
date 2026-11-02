@@ -23,6 +23,9 @@ service AuthService {
 
   rpc GetUserDeviceTokens(GetUserDeviceTokensRequest) returns (GetUserDeviceTokensResponse);
   rpc RevokeDeviceTokens(RevokeDeviceTokensRequest) returns (RevokeDeviceTokensResponse);
+
+  rpc GetCampaignRecipients(GetCampaignRecipientsRequest) returns (GetCampaignRecipientsResponse);
+  rpc CheckUserEmailVerified(CheckUserEmailVerifiedRequest) returns (CheckUserEmailVerifiedResponse);
 }
 
 message GetParticipantRequest {
@@ -107,4 +110,26 @@ message RevokeDeviceTokensRequest {
 
 message RevokeDeviceTokensResponse {
   int32 revoked_count = 1;
+}
+
+message GetCampaignRecipientsRequest {}
+
+message CampaignRecipient {
+  string user_id = 1;
+  string email = 2;
+  string first_name = 3;
+  string last_name = 4;
+  bool is_email_verified = 5;
+}
+
+message GetCampaignRecipientsResponse {
+  repeated CampaignRecipient recipients = 1;
+}
+
+message CheckUserEmailVerifiedRequest {
+  string user_id = 1;
+}
+
+message CheckUserEmailVerifiedResponse {
+  bool is_verified = 1;
 }

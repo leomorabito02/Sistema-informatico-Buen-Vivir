@@ -15,6 +15,7 @@ import {
   Campana,
   CampanaInput,
   EstadoCampana,
+  DEFAULT_CAMPAIGN_PLACEHOLDER,
 } from "../../../core/models/campaign.model";
 
 /**
@@ -160,6 +161,13 @@ export class CampanasComponent implements OnInit {
   fechaDMY(fecha: string): string {
     const [a, m, d] = fecha.split("-");
     return d && m && a ? `${d}/${m}/${a}` : fecha;
+  }
+
+  onImageError(event: Event): void {
+    const el = event.target as HTMLImageElement;
+    if (el && el.src !== DEFAULT_CAMPAIGN_PLACEHOLDER) {
+      el.src = DEFAULT_CAMPAIGN_PLACEHOLDER;
+    }
   }
 }
 
