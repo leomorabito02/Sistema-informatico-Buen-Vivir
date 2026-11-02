@@ -81,7 +81,9 @@ describe("ChangePasswordComponent", () => {
     component.handleRequestReset();
 
     // Assert
-    expect(authServiceSpy.forgotPassword).toHaveBeenCalledWith("user@example.com");
+    expect(authServiceSpy.forgotPassword).toHaveBeenCalledWith(
+      "user@example.com",
+    );
     expect(component.requestSuccess).toBe("Enlace enviado");
     expect(component.requesting).toBeFalse();
   });

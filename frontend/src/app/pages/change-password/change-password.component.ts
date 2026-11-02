@@ -89,8 +89,7 @@ export class ChangePasswordComponent implements OnInit {
 
   get passwordsMatch(): boolean {
     return (
-      this.newPassword.length > 0 &&
-      this.newPassword === this.confirmPassword
+      this.newPassword.length > 0 && this.newPassword === this.confirmPassword
     );
   }
 
@@ -127,7 +126,12 @@ export class ChangePasswordComponent implements OnInit {
   }
 
   handleResetPassword(): void {
-    if (!this.token || !this.isPasswordValid || !this.passwordsMatch || this.resetting) {
+    if (
+      !this.token ||
+      !this.isPasswordValid ||
+      !this.passwordsMatch ||
+      this.resetting
+    ) {
       return;
     }
 
@@ -135,20 +139,22 @@ export class ChangePasswordComponent implements OnInit {
     this.resetSuccess = "";
     this.resetError = "";
 
-    this.authService.resetPassword(this.token.trim(), this.newPassword).subscribe({
-      next: (res) => {
-        this.resetting = false;
-        this.resetSuccess =
-          res?.message ||
-          "Contraseña restablecida exitosamente. Ya podés iniciar sesión con tu nueva contraseña.";
-      },
-      error: (err) => {
-        this.resetting = false;
-        this.resetError =
-          err?.message ||
-          "El enlace de restablecimiento es inválido, ya fue utilizado o ha expirado.";
-      },
-    });
+    this.authService
+      .resetPassword(this.token.trim(), this.newPassword)
+      .subscribe({
+        next: (res) => {
+          this.resetting = false;
+          this.resetSuccess =
+            res?.message ||
+            "Contraseña restablecida exitosamente. Ya podés iniciar sesión con tu nueva contraseña.";
+        },
+        error: (err) => {
+          this.resetting = false;
+          this.resetError =
+            err?.message ||
+            "El enlace de restablecimiento es inválido, ya fue utilizado o ha expirado.";
+        },
+      });
   }
 
   clearTokenAndRetry(): void {
