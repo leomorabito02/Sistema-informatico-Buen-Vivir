@@ -1347,7 +1347,9 @@ jobs:
         run: |
           SERVICE="education-${{ needs.cd-setup.outputs.service_suffix }}"
           REGION="${{ secrets.GCP_REGION }}"
-          CONFIGURED_URL=$(gcloud run services describe "$SERVICE" --region="$REGION" --project="${{ secrets.GCP_PROJECT_ID }}" --format='value(spec.template.spec.containers[0].env)' | grep -o 'AUTH_SERVICE_URL=[^,]*' || true)
+          # value(...env) no imprime NAME=valor sino {'name': ..., 'value': ...}:
+          # se lee el JSON con jq.
+          CONFIGURED_URL=$(gcloud run services describe "$SERVICE" --region="$REGION" --project="${{ secrets.GCP_PROJECT_ID }}" --format=json             | jq -r '.spec.template.spec.containers[0].env[]? | select(.name == "AUTH_SERVICE_URL") | .value')
           if [ -z "$CONFIGURED_URL" ]; then
             echo "::error::AUTH_SERVICE_URL is not configured in deployed revision for $SERVICE"
             exit 1
