@@ -21,7 +21,8 @@ const (
 	errUnauthorized   = "unauthorized"
 	cookieHostAccess  = "__Host-access_token"
 	cookieHostRefresh = "__Host-refresh_token"
-	msgInvalidReqBody = "Cuerpo de solicitud inválido"
+	msgInvalidReqBody   = "Cuerpo de solicitud inválido"
+	msgInvalidReqFormat = "El formato de la solicitud es inválido."
 )
 
 func writeJSONResponse(w http.ResponseWriter, status int, data any) {
@@ -36,9 +37,10 @@ func writeJSONError(w http.ResponseWriter, status int, message string) {
 
 // AuthController representa el Controlador (C de MVC)
 type AuthController struct {
-	authService         services.AuthService
-	verificationService services.VerificationService
-	validate            *validator.Validate
+	authService             services.AuthService
+	verificationService     services.VerificationService
+	passwordRecoveryService services.PasswordRecoveryService
+	validate                *validator.Validate
 }
 
 func NewAuthController(authService services.AuthService, opts ...any) *AuthController {
@@ -49,6 +51,9 @@ func NewAuthController(authService services.AuthService, opts ...any) *AuthContr
 	for _, opt := range opts {
 		if vs, ok := opt.(services.VerificationService); ok {
 			ctrl.verificationService = vs
+		}
+		if prs, ok := opt.(services.PasswordRecoveryService); ok {
+			ctrl.passwordRecoveryService = prs
 		}
 	}
 	return ctrl
@@ -409,7 +414,7 @@ func (c *AuthController) VerifyEmail(w http.ResponseWriter, r *http.Request) {
 	r.Body = http.MaxBytesReader(w, r.Body, 1<<20)
 	var req dto.VerifyEmailRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		writeJSONError(w, http.StatusBadRequest, "El formato de la solicitud es inválido.")
+		writeJSONError(w, http.StatusBadRequest, msgInvalidReqFormat)
 		return
 	}
 
@@ -438,7 +443,7 @@ func (c *AuthController) ResendVerification(w http.ResponseWriter, r *http.Reque
 	r.Body = http.MaxBytesReader(w, r.Body, 1<<20)
 	var req dto.ResendVerificationRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		writeJSONError(w, http.StatusBadRequest, "El formato de la solicitud es inválido.")
+		writeJSONError(w, http.StatusBadRequest, msgInvalidReqFormat)
 		return
 	}
 
@@ -461,3 +466,59 @@ func (c *AuthController) ResendVerification(w http.ResponseWriter, r *http.Reque
 		"message": "Se ha reenviado el correo electrónico de verificación.",
 	})
 }
+
+func (c *AuthController) ForgotPassword(w http.ResponseWriter, r *http.Request) {
+	r.Body = http.MaxBytesReader(w, r.Body, 1<<20)
+	var req dto.ForgotPasswordRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		writeJSONError(w, http.StatusBadRequest, msgInvalidReqFormat)
+		return
+	}
+
+	req.Email = strings.TrimSpace(req.Email)
+	if err := c.validate.Struct(req); err != nil {
+		writeJSONError(w, http.StatusBadRequest, "Debe ingresar una dirección de correo electrónico válida.")
+		return
+	}
+
+	if c.passwordRecoveryService == nil {
+		writeJSONError(w, http.StatusInternalServerError, "Servicio de recuperación no disponible.")
+		return
+	}
+
+	_ = c.passwordRecoveryService.RequestReset(r.Context(), req.Email)
+
+	writeJSONResponse(w, http.StatusOK, map[string]interface{}{
+		"message": "Si la dirección de correo electrónico está registrada, recibirás un enlace para restablecer tu contraseña.",
+	})
+}
+
+func (c *AuthController) ResetPassword(w http.ResponseWriter, r *http.Request) {
+	r.Body = http.MaxBytesReader(w, r.Body, 1<<20)
+	var req dto.ResetPasswordRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		writeJSONError(w, http.StatusBadRequest, msgInvalidReqFormat)
+		return
+	}
+
+	req.Token = strings.TrimSpace(req.Token)
+	if err := c.validate.Struct(req); err != nil {
+		writeJSONError(w, http.StatusBadRequest, "Datos inválidos: revise el enlace y la contraseña (mínimo 8 caracteres, con mayúscula, minúscula y carácter especial).")
+		return
+	}
+
+	if c.passwordRecoveryService == nil {
+		writeJSONError(w, http.StatusInternalServerError, "Servicio de recuperación no disponible.")
+		return
+	}
+
+	if err := c.passwordRecoveryService.ResetPassword(r.Context(), req.Token, req.NewPassword); err != nil {
+		writeJSONError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	writeJSONResponse(w, http.StatusOK, map[string]interface{}{
+		"message": "Contraseña restablecida exitosamente. Ya podés iniciar sesión con tu nueva contraseña.",
+	})
+}
+

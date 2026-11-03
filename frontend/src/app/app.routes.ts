@@ -57,6 +57,13 @@ export const routes: Routes = [
       ),
   },
   {
+    path: "change-password",
+    loadComponent: () =>
+      import("./pages/change-password/change-password.component").then(
+        (m) => m.ChangePasswordComponent,
+      ),
+  },
+  {
     path: "verificar-email",
     redirectTo: "verify-email",
     pathMatch: "full",

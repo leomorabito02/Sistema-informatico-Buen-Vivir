@@ -49,6 +49,7 @@ func main() {
 	participantDirectoryRepo := repositories.NewParticipantDirectoryRepository(db)
 	storageCleanupRepo := repositories.NewStorageCleanupRepository(db)
 	emailVerificationRepo := repositories.NewEmailVerificationRepository(db)
+	passwordRecoveryRepo := repositories.NewPasswordRecoveryRepository(db)
 
 	// Setup Storage
 	storageSvc, err := storage.NewObjectStorageService(
@@ -79,6 +80,7 @@ func main() {
 
 	notificationSyncSvc := services.NewNotificationSyncService()
 	verificationService := services.NewVerificationService(emailVerificationRepo, userRepo, notificationSyncSvc)
+	passwordRecoveryService := services.NewPasswordRecoveryService(passwordRecoveryRepo, userRepo, refreshTokenRepo, notificationSyncSvc)
 
 	authService := services.NewAuthService(
 		transactor,
@@ -112,7 +114,7 @@ func main() {
 	deviceRepo := repositories.NewFirestoreDeviceRepository(firestoreClient)
 	deviceController := controllers.NewDeviceController(deviceRepo)
 
-	authController := controllers.NewAuthController(authService, verificationService)
+	authController := controllers.NewAuthController(authService, verificationService, passwordRecoveryService)
 	userController := controllers.NewUserController(userService)
 	roleController := controllers.NewRoleController(roleService)
 	companyController := controllers.NewCompanyController(companyService)
@@ -156,7 +158,7 @@ func main() {
 				w.Header().Set("Access-Control-Allow-Origin", origin)
 				w.Header().Set("Vary", "Origin")
 				w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE, OPTIONS")
-				w.Header().Set("Access-Control-Allow-Headers", "Accept, Authorization, Content-Type, X-CSRF-Token, X-Requested-With")
+				w.Header().Set("Access-Control-Allow-Headers", "Accept, Authorization, Content-Type, X-CSRF-Token, X-Requested-With, X-Skip-Global-Error, X-Redirect-On-404, X-Skip-500-Redirect")
 				w.Header().Set("Access-Control-Expose-Headers", "Link, Set-Cookie")
 				w.Header().Set("Access-Control-Allow-Credentials", "true")
 				w.Header().Set("Access-Control-Max-Age", "300")
@@ -189,6 +191,8 @@ func main() {
 			r.With(middlewares.StrictRateLimiter()).Post("/verify-email", authController.VerifyEmail)
 			r.With(middlewares.StrictRateLimiter()).Patch("/verify-email", authController.VerifyEmail)
 			r.With(middlewares.StrictRateLimiter()).Post("/resend-verification", authController.ResendVerification)
+			r.With(middlewares.StrictRateLimiter()).Post("/forgot-password", authController.ForgotPassword)
+			r.With(middlewares.StrictRateLimiter()).Post("/reset-password", authController.ResetPassword)
 		})
 		
 		// Protected Routes
@@ -309,8 +313,8 @@ func main() {
 	server := &http.Server{
 		Addr:         ":" + port,
 		Handler:      middlewares.OptionsInterceptor(r),
-		ReadTimeout:  10 * time.Second,
-		WriteTimeout: 10 * time.Second,
+		ReadTimeout:  30 * time.Second,
+		WriteTimeout: 30 * time.Second,
 		IdleTimeout:  120 * time.Second,
 	}
 

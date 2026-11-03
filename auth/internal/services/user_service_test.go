@@ -114,6 +114,16 @@ func (m *MockUserRepository) UpdateEmailVerifiedByEmail(ctx context.Context, ema
 	return args.Error(0)
 }
 
+func (m *MockUserRepository) UpdatePasswordHashByEmail(ctx context.Context, email string, passwordHash string) error {
+	args := m.Called(ctx, email, passwordHash)
+	return args.Error(0)
+}
+
+func (m *MockUserRepository) UpdatePasswordAndVerifiedByEmail(ctx context.Context, email string, passwordHash string, verified bool) error {
+	args := m.Called(ctx, email, passwordHash, verified)
+	return args.Error(0)
+}
+
 func TestUserService_GetUserByID_AdminSuccess(t *testing.T) {
 	// Arrange
 	mockRepo := new(MockUserRepository)
