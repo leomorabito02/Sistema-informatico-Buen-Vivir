@@ -29,8 +29,6 @@ type UserRepository interface {
 	FindParticipantsHistory(ctx context.Context) ([]models.ParticipantHistory, error)
 	UpdateEmailVerified(ctx context.Context, userID string, verified bool) error
 	UpdateEmailVerifiedByEmail(ctx context.Context, email string, verified bool) error
-	UpdatePasswordHashByEmail(ctx context.Context, email string, passwordHash string) error
-	UpdatePasswordAndVerifiedByEmail(ctx context.Context, email string, passwordHash string, verified bool) error
 }
 
 type userRepository struct {
@@ -202,21 +200,6 @@ func (r *userRepository) UpdateEmailVerifiedByEmail(ctx context.Context, email s
 	return r.db.WithContext(ctx).Model(&models.User{}).
 		Where(queryEmail, email).
 		Update("is_email_verified", verified).Error
-}
-
-func (r *userRepository) UpdatePasswordHashByEmail(ctx context.Context, email string, passwordHash string) error {
-	return r.db.WithContext(ctx).Model(&models.User{}).
-		Where(queryEmail, email).
-		Update("password_hash", passwordHash).Error
-}
-
-func (r *userRepository) UpdatePasswordAndVerifiedByEmail(ctx context.Context, email string, passwordHash string, verified bool) error {
-	return r.db.WithContext(ctx).Model(&models.User{}).
-		Where(queryEmail, email).
-		Updates(map[string]interface{}{
-			"password_hash":     passwordHash,
-			"is_email_verified": verified,
-		}).Error
 }
 
 func (r *userRepository) Delete(ctx context.Context, id string) error {

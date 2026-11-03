@@ -68,12 +68,3 @@ type LoginResponse struct {
 	ApprovalStatus string        `json:"approval_status,omitempty"`
 	UserStatus     string        `json:"user_status,omitempty"`
 }
-
-type ForgotPasswordRequest struct {
-	Email string `json:"email" validate:"required,email"`
-}
-
-type ResetPasswordRequest struct {
-	Token       string `json:"token" validate:"required"`
-	NewPassword string `json:"new_password" validate:"required,password"`
-}
