@@ -29,6 +29,7 @@ type AuthClient interface {
 	RevokeDeviceTokens(ctx context.Context, userID string, tokens []string) error
 	GetCampaignRecipients(ctx context.Context) ([]RecipientContact, error)
 	IsUserEmailVerified(ctx context.Context, userID string) (bool, error)
+	GetUserContact(ctx context.Context, userID string) (*RecipientContact, error)
 	Close() error
 }
 
@@ -125,6 +126,27 @@ func (c *authClient) IsUserEmailVerified(ctx context.Context, userID string) (bo
 	}
 	return resp.IsVerified, nil
 }
+
+func (c *authClient) GetUserContact(ctx context.Context, userID string) (*RecipientContact, error) {
+	if strings.TrimSpace(userID) == "" {
+		return nil, errors.New("user_id cannot be empty")
+	}
+	callCtx, cancel := context.WithTimeout(ctx, defaultAuthTimeout)
+	defer cancel()
+
+	resp, err := c.client.GetUserContact(callCtx, &authpb.GetUserContactRequest{UserId: userID})
+	if err != nil {
+		return nil, fmt.Errorf("failed to retrieve user contact: %w", err)
+	}
+	return &RecipientContact{
+		UserID:          resp.UserId,
+		Email:           resp.Email,
+		FirstName:       resp.FirstName,
+		LastName:        resp.LastName,
+		IsEmailVerified: resp.IsEmailVerified,
+	}, nil
+}
+
 
 func (c *authClient) Close() error {
 	if c.conn != nil {

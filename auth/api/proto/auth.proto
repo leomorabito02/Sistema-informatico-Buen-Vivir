@@ -26,6 +26,7 @@ service AuthService {
 
   rpc GetCampaignRecipients(GetCampaignRecipientsRequest) returns (GetCampaignRecipientsResponse);
   rpc CheckUserEmailVerified(CheckUserEmailVerifiedRequest) returns (CheckUserEmailVerifiedResponse);
+  rpc GetUserContact(GetUserContactRequest) returns (GetUserContactResponse);
 }
 
 message GetParticipantRequest {
@@ -132,4 +133,16 @@ message CheckUserEmailVerifiedRequest {
 
 message CheckUserEmailVerifiedResponse {
   bool is_verified = 1;
+}
+
+message GetUserContactRequest {
+  string user_id = 1;
+}
+
+message GetUserContactResponse {
+  string user_id = 1;
+  string email = 2;
+  string first_name = 3;
+  string last_name = 4;
+  bool is_email_verified = 5;
 }

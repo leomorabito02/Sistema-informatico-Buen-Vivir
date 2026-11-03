@@ -49,7 +49,7 @@ type SendNotificationRequestDTO struct {
 	IsCritical       bool     `json:"is_critical"`
 	SendEmail        bool     `json:"send_email"`
 	SendPush         bool     `json:"send_push"`
-	SendInApp        bool     `json:"send_in_app"`
+	SendInApp        *bool    `json:"send_in_app,omitempty"`
 }
 
 // NotificationPreferenceDTO represents a user's notification channel preferences for a category.

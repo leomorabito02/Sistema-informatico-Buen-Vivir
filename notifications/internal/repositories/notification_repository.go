@@ -31,6 +31,7 @@ type NotificationRepository interface {
 	UpdateDeliveryStatus(ctx context.Context, recipientID string, emailStatus, pushStatus models.DeliveryStatus, emailMsgID, pushMsgID, errorMsg *string) error
 	GetPreference(ctx context.Context, userID string, category models.NotificationCategory) (*models.NotificationPreference, error)
 	GetPreferencesByUserID(ctx context.Context, userID string) ([]models.NotificationPreference, error)
+	GetPreferencesByUserIDsAndCategory(ctx context.Context, userIDs []string, category models.NotificationCategory) (map[string]*models.NotificationPreference, error)
 	UpsertPreference(ctx context.Context, pref *models.NotificationPreference) error
 }
 
@@ -96,9 +97,10 @@ func (r *notificationRepository) CreateRecipients(ctx context.Context, recipient
 func (r *notificationRepository) FindRecipientsByUserID(ctx context.Context, userID string, limit, offset int) ([]models.NotificationRecipient, error) {
 	var list []models.NotificationRecipient
 	query := r.db.WithContext(ctx).
+		Joins("JOIN notifications ON notifications.id = notification_recipients.notification_id").
 		Preload("Notification").
-		Where("user_id = ?", userID).
-		Order("created_at DESC")
+		Where("notification_recipients.user_id = ? AND notifications.send_in_app = ?", userID, true).
+		Order("notification_recipients.created_at DESC")
 	if limit > 0 {
 		query = query.Limit(limit)
 	}
@@ -128,7 +130,8 @@ func (r *notificationRepository) CountUnreadByUserID(ctx context.Context, userID
 	var count int64
 	err := r.db.WithContext(ctx).
 		Model(&models.NotificationRecipient{}).
-		Where("user_id = ? AND is_read = ?", userID, false).
+		Joins("JOIN notifications ON notifications.id = notification_recipients.notification_id").
+		Where("notification_recipients.user_id = ? AND notification_recipients.is_read = ? AND notifications.send_in_app = ?", userID, false, true).
 		Count(&count).Error
 	return count, err
 }
@@ -261,6 +264,24 @@ func (r *notificationRepository) GetPreferencesByUserID(ctx context.Context, use
 	return list, err
 }
 
+func (r *notificationRepository) GetPreferencesByUserIDsAndCategory(ctx context.Context, userIDs []string, category models.NotificationCategory) (map[string]*models.NotificationPreference, error) {
+	result := make(map[string]*models.NotificationPreference, len(userIDs))
+	if len(userIDs) == 0 {
+		return result, nil
+	}
+	var list []models.NotificationPreference
+	err := r.db.WithContext(ctx).
+		Where("user_id IN ? AND category = ?", userIDs, category).
+		Find(&list).Error
+	if err != nil {
+		return nil, err
+	}
+	for i := range list {
+		result[list[i].UserID] = &list[i]
+	}
+	return result, nil
+}
+
 func (r *notificationRepository) UpsertPreference(ctx context.Context, pref *models.NotificationPreference) error {
 	if pref == nil {
 		return errors.New("preference cannot be nil")
@@ -349,8 +370,12 @@ func (m *memoryNotificationRepository) FindRecipientsByUserID(_ context.Context,
 	var list []models.NotificationRecipient
 	for _, rec := range m.recipients {
 		if rec.UserID == userID {
+			notif := m.notifications[rec.NotificationID]
+			if notif != nil && !notif.SendInApp {
+				continue
+			}
 			recCopy := rec
-			recCopy.Notification = m.notifications[rec.NotificationID]
+			recCopy.Notification = notif
 			list = append(list, recCopy)
 		}
 	}
@@ -383,6 +408,10 @@ func (m *memoryNotificationRepository) CountUnreadByUserID(_ context.Context, us
 	var count int64
 	for _, rec := range m.recipients {
 		if rec.UserID == userID && !rec.IsRead {
+			notif := m.notifications[rec.NotificationID]
+			if notif != nil && !notif.SendInApp {
+				continue
+			}
 			count++
 		}
 	}
@@ -486,6 +515,19 @@ func (m *memoryNotificationRepository) GetPreferencesByUserID(_ context.Context,
 		}
 	}
 	return list, nil
+}
+
+func (m *memoryNotificationRepository) GetPreferencesByUserIDsAndCategory(_ context.Context, userIDs []string, category models.NotificationCategory) (map[string]*models.NotificationPreference, error) {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	result := make(map[string]*models.NotificationPreference, len(userIDs))
+	for _, uid := range userIDs {
+		key := uid + ":" + string(category)
+		if p, ok := m.preferences[key]; ok {
+			result[uid] = p
+		}
+	}
+	return result, nil
 }
 
 func (m *memoryNotificationRepository) UpsertPreference(_ context.Context, pref *models.NotificationPreference) error {

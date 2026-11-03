@@ -227,6 +227,7 @@ func TestNotificationEndpoints_PreferencesFlow(t *testing.T) {
 	t.Run("GetPreferenceByCategory", func(t *testing.T) { testGetPreferenceByCategory(t, mux) })
 	t.Run("SavePreferences_InvalidCategory", func(t *testing.T) { testSavePreferencesInvalidCategory(t, mux) })
 	t.Run("InitDefaultPreferences_POST", func(t *testing.T) { testInitDefaultPreferencesPOST(t, mux) })
+	t.Run("InitDefaultPreferences_POST_WithReset", func(t *testing.T) { testInitDefaultPreferencesWithReset(t, mux) })
 }
 
 func testGetPreferencesUnauthorized(t *testing.T, mux http.Handler) {
@@ -357,6 +358,29 @@ func testInitDefaultPreferencesPOST(t *testing.T, mux http.Handler) {
 	_ = json.Unmarshal(rec.Body.Bytes(), &list)
 	if len(list) != 5 {
 		t.Fatalf("expected 5 initialized preferences, got %d", len(list))
+	}
+}
+
+func testInitDefaultPreferencesWithReset(t *testing.T, mux http.Handler) {
+	t.Helper()
+	body := `{"user_id":"usr-init-test","reset":true}`
+	req := httptest.NewRequest("POST", "/api/v1/notifications/preferences/init", strings.NewReader(body))
+	req.Header.Set("X-User-ID", "usr-init-test")
+	rec := httptest.NewRecorder()
+	mux.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusCreated {
+		t.Fatalf("expected status 201 Created, got %d", rec.Code)
+	}
+	var list []dto.NotificationPreferenceDTO
+	_ = json.Unmarshal(rec.Body.Bytes(), &list)
+	if len(list) != 5 {
+		t.Fatalf("expected 5 reset preferences, got %d", len(list))
+	}
+	for _, p := range list {
+		if !p.EmailEnabled || !p.PushEnabled {
+			t.Fatalf("expected all channels true after reset for category %s", p.Category)
+		}
 	}
 }
 

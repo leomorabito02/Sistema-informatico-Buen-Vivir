@@ -284,6 +284,11 @@
                   [severity]="getCategorySeverity(pref.category)"
                   styleClass="text-xs"
                 ></p-tag>
+                <p-tag
+                  [value]="getChannelModeLabel(pref)"
+                  [severity]="getChannelModeSeverity(pref)"
+                  styleClass="text-xs font-semibold"
+                ></p-tag>
                 <span
                   *ngIf="isCategoryChanged(pref)"
                   class="badge-modified text-xs font-semibold"

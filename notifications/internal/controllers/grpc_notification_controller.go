@@ -40,7 +40,7 @@ func (c *GrpcNotificationController) SendNotification(ctx context.Context, req *
 		IsCritical:       req.IsCritical,
 		SendEmail:        req.SendEmail,
 		SendPush:         req.SendPush,
-		SendInApp:        req.SendInApp,
+		SendInApp:        &req.SendInApp,
 	}
 	if req.TargetRole != "" {
 		dtoReq.TargetRole = &req.TargetRole
