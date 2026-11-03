@@ -199,14 +199,16 @@ export class NotificationsService {
     }
   }
 
-  async initPreferences(): Promise<NotificationPreference[]> {
+  async initPreferences(reset = false): Promise<NotificationPreference[]> {
     try {
-      const url = `${this.baseUrl}/preferences/init`;
+      const url = `${this.baseUrl}/preferences/init${reset ? "?reset=true" : ""}`;
       const res = await fetch(url, {
         method: "POST",
         headers: {
+          "Content-Type": "application/json",
           Accept: "application/json",
         },
+        body: JSON.stringify({ reset }),
         credentials: "include",
       });
 

@@ -37,6 +37,7 @@ type NotificationService interface {
 	SavePreference(ctx context.Context, userID string, req dto.UpdatePreferenceRequestDTO) (*dto.NotificationPreferenceDTO, error)
 	PatchPreference(ctx context.Context, userID string, category string, req dto.PatchPreferenceRequestDTO) (*dto.NotificationPreferenceDTO, error)
 	InitDefaultPreferences(ctx context.Context, userID string) error
+	ResetPreferences(ctx context.Context, userID string) error
 
 	// Deprecated / Backwards compatibility
 	FindByUserID(ctx context.Context, userID string) ([]*models.Notification, error)
@@ -229,7 +230,12 @@ func (s *notificationService) persistAndDispatchRecipients(
 	notif *models.Notification,
 	req dto.SendNotificationRequestDTO,
 ) (int, error) {
-	recipients := buildNotificationRecipients(notif.ID, req)
+	prefMap, _ := s.repo.GetPreferencesByUserIDsAndCategory(ctx, req.RecipientUserIDs, notif.Category)
+	if prefMap == nil {
+		prefMap = make(map[string]*models.NotificationPreference)
+	}
+
+	recipients := buildNotificationRecipients(notif, req, prefMap)
 	if len(recipients) == 0 {
 		return 0, nil
 	}
@@ -238,8 +244,10 @@ func (s *notificationService) persistAndDispatchRecipients(
 		return 0, fmt.Errorf("failed to persist recipients: %w", err)
 	}
 
-	for _, uid := range req.RecipientUserIDs {
-		_ = s.InitDefaultPreferences(context.Background(), uid)
+	for _, rec := range recipients {
+		if prefMap[rec.UserID] == nil {
+			_ = s.InitDefaultPreferences(context.Background(), rec.UserID)
+		}
 	}
 
 	if notif.SendEmail || notif.SendPush {
@@ -357,6 +365,11 @@ func buildNotificationModel(notifID string, req dto.SendNotificationRequestDTO) 
 		}
 	}
 
+	sendInApp := true
+	if req.SendInApp != nil {
+		sendInApp = *req.SendInApp
+	}
+
 	return &models.Notification{
 		ID:            notifID,
 		SourceService: req.SourceService,
@@ -374,30 +387,58 @@ func buildNotificationModel(notifID string, req dto.SendNotificationRequestDTO) 
 		IsCritical:    req.IsCritical,
 		SendEmail:     req.SendEmail,
 		SendPush:      req.SendPush,
-		SendInApp:     req.SendInApp,
+		SendInApp:     sendInApp,
 		CreatedAt:     time.Now(),
 	}
 }
 
-func buildNotificationRecipients(notifID string, req dto.SendNotificationRequestDTO) []models.NotificationRecipient {
+func buildNotificationRecipients(
+	notif *models.Notification,
+	req dto.SendNotificationRequestDTO,
+	prefMap map[string]*models.NotificationPreference,
+) []models.NotificationRecipient {
 	recipients := make([]models.NotificationRecipient, 0, len(req.RecipientUserIDs))
-	emailStatus := models.DeliveryStatusNotRequested
-	if req.SendEmail {
-		emailStatus = models.DeliveryStatusPending
-	}
-	pushStatus := models.DeliveryStatusNotRequested
-	if req.SendPush {
-		pushStatus = models.DeliveryStatusPending
-	}
+	isCritical := notif.IsCritical || notif.Category == models.CategorySecurity
 
 	for _, uid := range req.RecipientUserIDs {
-		if strings.TrimSpace(uid) == "" {
+		trimmedUID := strings.TrimSpace(uid)
+		if trimmedUID == "" {
 			continue
 		}
+
+		pref := prefMap[trimmedUID]
+		emailAllowed := pref == nil || pref.AllowsChannel("email", isCritical)
+		pushAllowed := pref == nil || pref.AllowsChannel("push", isCritical)
+		inAppAllowed := pref == nil || pref.AllowsChannel("in_app", isCritical)
+
+		// If user chose "Ninguna" (both channels false and in_app disabled) and notification is not critical/security:
+		// completely omit recipient from inbox and dispatching.
+		if !isCritical && !emailAllowed && !pushAllowed && !inAppAllowed {
+			continue
+		}
+
+		emailStatus := models.DeliveryStatusNotRequested
+		if req.SendEmail {
+			if emailAllowed {
+				emailStatus = models.DeliveryStatusPending
+			} else {
+				emailStatus = models.DeliveryStatusSkipped
+			}
+		}
+
+		pushStatus := models.DeliveryStatusNotRequested
+		if req.SendPush {
+			if pushAllowed {
+				pushStatus = models.DeliveryStatusPending
+			} else {
+				pushStatus = models.DeliveryStatusSkipped
+			}
+		}
+
 		rec := models.NotificationRecipient{
 			RecipientID:    generateEntityID("rcp"),
-			NotificationID: notifID,
-			UserID:         uid,
+			NotificationID: notif.ID,
+			UserID:         trimmedUID,
 			RoleID:         req.TargetRole,
 			IsRead:         false,
 			EmailStatus:    emailStatus,
@@ -452,6 +493,28 @@ func (s *notificationService) InitDefaultPreferences(ctx context.Context, userID
 			if err := s.repo.UpsertPreference(ctx, newPref); err != nil {
 				return err
 			}
+		}
+	}
+	return nil
+}
+
+func (s *notificationService) ResetPreferences(ctx context.Context, userID string) error {
+	if strings.TrimSpace(userID) == "" {
+		return ErrInvalidUserID
+	}
+
+	for _, cat := range standardCategories {
+		pref := &models.NotificationPreference{
+			ID:           generateEntityID("prf"),
+			UserID:       userID,
+			Category:     cat,
+			EmailEnabled: true,
+			PushEnabled:  true,
+			InAppEnabled: true,
+			UpdatedAt:    time.Now(),
+		}
+		if err := s.repo.UpsertPreference(ctx, pref); err != nil {
+			return err
 		}
 	}
 	return nil
@@ -657,14 +720,24 @@ func (s *notificationService) dispatchForRecipient(
 	ctx := context.Background()
 	pref, _ := s.repo.GetPreference(ctx, rec.UserID, notif.Category)
 
-	emailStatus, emailMsgID, emailErr := s.dispatchEmailChannel(ctx, notif, rec.UserID, pref, dataMap)
-	if emailStatus == models.DeliveryStatusNotRequested {
-		emailStatus = rec.EmailStatus
+	emailStatus := rec.EmailStatus
+	var emailMsgID *string
+	var emailErr error
+	if rec.EmailStatus == models.DeliveryStatusPending {
+		emailStatus, emailMsgID, emailErr = s.dispatchEmailChannel(ctx, notif, rec.UserID, pref, dataMap)
+		if emailStatus == models.DeliveryStatusNotRequested {
+			emailStatus = rec.EmailStatus
+		}
 	}
 
-	pushStatus, pushMsgID, pushErr := s.dispatchPushChannel(ctx, notif, rec.UserID, pref, dataMap)
-	if pushStatus == models.DeliveryStatusNotRequested {
-		pushStatus = rec.PushStatus
+	pushStatus := rec.PushStatus
+	var pushMsgID *string
+	var pushErr error
+	if rec.PushStatus == models.DeliveryStatusPending {
+		pushStatus, pushMsgID, pushErr = s.dispatchPushChannel(ctx, notif, rec.UserID, pref, dataMap)
+		if pushStatus == models.DeliveryStatusNotRequested {
+			pushStatus = rec.PushStatus
+		}
 	}
 
 	var errorMsg *string
@@ -704,6 +777,25 @@ func (s *notificationService) dispatchEmailChannel(
 	}
 
 	toEmail := resolveEmail(userID, dataMap)
+	isVerifiedKnown := false
+	isVerifiedVal := false
+	if toEmail == "" && s.authClient != nil && userID != "" && !strings.Contains(userID, "@") {
+		contact, err := s.authClient.GetUserContact(ctx, userID)
+		if err == nil && contact != nil && contact.Email != "" {
+			toEmail = contact.Email
+			isVerifiedKnown = true
+			isVerifiedVal = contact.IsEmailVerified
+			if contact.FirstName != "" || contact.LastName != "" {
+				fullName := strings.TrimSpace(contact.FirstName + " " + contact.LastName)
+				if dataMap == nil {
+					dataMap = make(map[string]interface{})
+				}
+				if _, exists := dataMap["recipient_name"]; !exists && fullName != "" {
+					dataMap["recipient_name"] = fullName
+				}
+			}
+		}
+	}
 	if toEmail == "" {
 		return models.DeliveryStatusSkipped, nil, nil
 	}
@@ -711,7 +803,13 @@ func (s *notificationService) dispatchEmailChannel(
 	// Email Verification Validation: Recipient must have verified their email before receiving emails.
 	// Exception: The verification email itself is allowed through to deliver the verification token.
 	if !isEmailVerificationMessage(notif, dataMap) {
-		if !s.isUserEmailVerified(ctx, userID, dataMap) {
+		verified := false
+		if isVerifiedKnown {
+			verified = isVerifiedVal
+		} else {
+			verified = s.isUserEmailVerified(ctx, userID, dataMap)
+		}
+		if !verified {
 			return models.DeliveryStatusSkipped, nil, nil
 		}
 	}

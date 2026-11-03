@@ -21,9 +21,9 @@ type NotificationPreference struct {
 	DeletedAt gorm.DeletedAt `json:"-" gorm:"index"`
 }
 
-// AllowsChannel returns true if the user allows delivery through the specified channel or if notification is critical.
+// AllowsChannel returns true if the user allows delivery through the specified channel or if notification is critical/security.
 func (p *NotificationPreference) AllowsChannel(channel string, isCritical bool) bool {
-	if isCritical {
+	if isCritical || p.Category == CategorySecurity {
 		return true
 	}
 	switch channel {
@@ -32,7 +32,7 @@ func (p *NotificationPreference) AllowsChannel(channel string, isCritical bool) 
 	case "push":
 		return p.PushEnabled
 	case "in_app":
-		return p.InAppEnabled
+		return p.InAppEnabled && (p.EmailEnabled || p.PushEnabled)
 	default:
 		return false
 	}

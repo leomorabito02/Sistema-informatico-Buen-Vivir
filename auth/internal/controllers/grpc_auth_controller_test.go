@@ -150,3 +150,47 @@ func TestGrpcCheckUserEmailVerified_MissingUserID(t *testing.T) {
 	_, err := ctrl.CheckUserEmailVerified(context.Background(), &authpb.CheckUserEmailVerifiedRequest{})
 	assert.Equal(t, codes.InvalidArgument, status.Code(err))
 }
+
+func TestGrpcGetUserContact_Success(t *testing.T) {
+	userSvc := new(MockUserService)
+	ctrl := controllers.NewGrpcAuthController(nil, nil, userSvc, nil)
+
+	userSvc.On("GetUserByID", mock.MatchedBy(func(ctx context.Context) bool {
+		role, _ := ctx.Value(middlewares.RoleIDKey).(string)
+		return role == "role_dev"
+	}), "usr-123").Return(&dto.UserResponse{
+		UserID:          "usr-123",
+		Email:           "usr123@test.com",
+		FirstName:       "Juan",
+		LastName:        "Perez",
+		IsEmailVerified: true,
+	}, nil)
+
+	res, err := ctrl.GetUserContact(context.Background(), &authpb.GetUserContactRequest{UserId: "usr-123"})
+	assert.NoError(t, err)
+	assert.Equal(t, "usr-123", res.UserId)
+	assert.Equal(t, "usr123@test.com", res.Email)
+	assert.Equal(t, "Juan", res.FirstName)
+	assert.Equal(t, "Perez", res.LastName)
+	assert.True(t, res.IsEmailVerified)
+	userSvc.AssertExpectations(t)
+}
+
+func TestGrpcGetUserContact_NotFound(t *testing.T) {
+	userSvc := new(MockUserService)
+	ctrl := controllers.NewGrpcAuthController(nil, nil, userSvc, nil)
+
+	userSvc.On("GetUserByID", mock.Anything, "usr-404").Return(nil, errors.New("user not found"))
+
+	_, err := ctrl.GetUserContact(context.Background(), &authpb.GetUserContactRequest{UserId: "usr-404"})
+	assert.Error(t, err)
+	assert.Equal(t, codes.NotFound, status.Code(err))
+	userSvc.AssertExpectations(t)
+}
+
+func TestGrpcGetUserContact_MissingUserID(t *testing.T) {
+	ctrl := controllers.NewGrpcAuthController(nil, nil, nil, nil)
+	_, err := ctrl.GetUserContact(context.Background(), &authpb.GetUserContactRequest{})
+	assert.Equal(t, codes.InvalidArgument, status.Code(err))
+}
+

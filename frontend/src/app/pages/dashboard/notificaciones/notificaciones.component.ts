@@ -269,6 +269,9 @@ export class NotificacionesComponent implements OnInit {
   }
 
   onPreferenceChange(): void {
+    for (const p of this.preferences) {
+      p.in_app_enabled = p.email_enabled || p.push_enabled;
+    }
     this.hasUnsavedChanges = this.checkUnsavedChanges();
   }
 
@@ -338,7 +341,7 @@ export class NotificacionesComponent implements OnInit {
     this.preferencesErrorMessage = null;
 
     try {
-      const defaults = await this.notificationsService.initPreferences();
+      const defaults = await this.notificationsService.initPreferences(true);
       this.preferences = defaults.map((p) => ({ ...p }));
       this.initialPreferences = defaults.map((p) => ({ ...p }));
       this.hasUnsavedChanges = false;
@@ -357,6 +360,31 @@ export class NotificacionesComponent implements OnInit {
     } finally {
       this.preferencesSaving = false;
     }
+  }
+
+  getChannelModeLabel(pref: NotificationPreference): string {
+    if (pref.email_enabled && pref.push_enabled) {
+      return "Ambas";
+    }
+    if (pref.email_enabled && !pref.push_enabled) {
+      return "Solo Email";
+    }
+    if (!pref.email_enabled && pref.push_enabled) {
+      return "Solo Push";
+    }
+    return "Ninguna";
+  }
+
+  getChannelModeSeverity(
+    pref: NotificationPreference,
+  ): "success" | "info" | "warn" | "danger" | "secondary" {
+    if (pref.email_enabled && pref.push_enabled) {
+      return "success";
+    }
+    if (pref.email_enabled || pref.push_enabled) {
+      return "info";
+    }
+    return "warn";
   }
 
   getCategoryDescription(category?: string): string {

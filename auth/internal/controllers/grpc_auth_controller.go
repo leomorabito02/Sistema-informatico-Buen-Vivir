@@ -233,3 +233,21 @@ func (c *GrpcAuthController) CheckUserEmailVerified(ctx context.Context, req *au
 	}
 	return &authpb.CheckUserEmailVerifiedResponse{IsVerified: verified}, nil
 }
+
+func (c *GrpcAuthController) GetUserContact(ctx context.Context, req *authpb.GetUserContactRequest) (*authpb.GetUserContactResponse, error) {
+	if req.UserId == "" {
+		return nil, status.Error(codes.InvalidArgument, errUserIDRequired)
+	}
+	user, err := c.userService.GetUserByID(serviceCtx(ctx), req.UserId)
+	if err != nil {
+		return nil, status.Error(codes.NotFound, "user not found")
+	}
+	return &authpb.GetUserContactResponse{
+		UserId:          user.UserID,
+		Email:           user.Email,
+		FirstName:       user.FirstName,
+		LastName:        user.LastName,
+		IsEmailVerified: user.IsEmailVerified,
+	}, nil
+}
+

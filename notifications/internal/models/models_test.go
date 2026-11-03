@@ -88,6 +88,33 @@ func TestNotificationPreference_AllowsChannel_NormalNotification(t *testing.T) {
 	}
 }
 
+func TestNotificationPreference_AllowsChannel_NingunaOmitted(t *testing.T) {
+	// Arrange (Category not security, normal notification, both channels false)
+	pref := &models.NotificationPreference{
+		ID:           "pref-none",
+		UserID:       "usr-none",
+		Category:     models.CategoryCampaigns,
+		EmailEnabled: false,
+		PushEnabled:  false,
+		InAppEnabled: true,
+	}
+
+	// Act & Assert (Neither email nor push enabled -> in_app omitted unless critical)
+	if pref.AllowsChannel("email", false) {
+		t.Errorf("expected email to be disabled")
+	}
+	if pref.AllowsChannel("push", false) {
+		t.Errorf("expected push to be disabled")
+	}
+	if pref.AllowsChannel("in_app", false) {
+		t.Errorf("expected in_app to be omitted when Ninguna (email and push false)")
+	}
+	// Critical still allows
+	if !pref.AllowsChannel("in_app", true) {
+		t.Errorf("expected critical notification to bypass Ninguna preference")
+	}
+}
+
 func TestNotificationPreference_AllowsChannel_CriticalBypass(t *testing.T) {
 	// Arrange
 	pref := &models.NotificationPreference{

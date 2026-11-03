@@ -2,6 +2,7 @@ package services_test
 
 import (
 	"context"
+	"errors"
 	"testing"
 
 	"buenvivir/notifications/internal/clients"
@@ -10,6 +11,10 @@ import (
 	"buenvivir/notifications/internal/repositories"
 	"buenvivir/notifications/internal/services"
 )
+
+func boolPtr(b bool) *bool {
+	return &b
+}
 
 func TestNotificationService_CRUD_ValidationErrors(t *testing.T) {
 	repo := repositories.NewMemoryNotificationRepository()
@@ -47,7 +52,7 @@ func TestNotificationService_CRUD_IngestionAndListing(t *testing.T) {
 		Message:          "Tu inscripción al curso de Angular ha sido aprobada.",
 		Data:             `{"course_id":"crs-101"}`,
 		IsCritical:       false,
-		SendInApp:        true,
+		SendInApp:        boolPtr(true),
 		SendEmail:        true,
 	}
 
@@ -92,7 +97,7 @@ func TestNotificationService_CRUD_ReadStatusAndDeletion(t *testing.T) {
 		Title:            "Inscripción Confirmada",
 		Message:          "Tu inscripción al curso de Angular ha sido aprobada.",
 		IsCritical:       false,
-		SendInApp:        true,
+		SendInApp:        boolPtr(true),
 	}
 
 	_, _, err := svc.IngestNotification(ctx, req)
@@ -284,6 +289,7 @@ type testAuthMock struct {
 	revokedTokens  []string
 	recipients     []clients.RecipientContact
 	verifiedByUser map[string]bool
+	contactsByUser map[string]*clients.RecipientContact
 }
 
 func (m *testAuthMock) GetUserDeviceTokens(ctx context.Context, userID string) ([]string, error) {
@@ -307,6 +313,15 @@ func (m *testAuthMock) IsUserEmailVerified(ctx context.Context, userID string) (
 		return m.verifiedByUser[userID], nil
 	}
 	return true, nil
+}
+
+func (m *testAuthMock) GetUserContact(ctx context.Context, userID string) (*clients.RecipientContact, error) {
+	if m.contactsByUser != nil {
+		if c, ok := m.contactsByUser[userID]; ok {
+			return c, nil
+		}
+	}
+	return nil, errors.New("user not found")
 }
 
 func (m *testAuthMock) Close() error {
@@ -454,7 +469,7 @@ func TestNotificationService_CampaignBroadcast_AdheresToPreferences(t *testing.T
 		IsCritical:    false,
 		SendEmail:     true,
 		SendPush:      true,
-		SendInApp:     true,
+		SendInApp:     boolPtr(true),
 	}
 
 	// Act
@@ -464,8 +479,14 @@ func TestNotificationService_CampaignBroadcast_AdheresToPreferences(t *testing.T
 	if err != nil {
 		t.Fatalf("unexpected error during ingest: %v", err)
 	}
-	if notifID == "" || count != 5 {
-		t.Fatalf("expected 5 recipients created, got count=%d", count)
+	// usr-none has both email and push disabled (Ninguna) and is non-critical, so it must be omitted
+	if notifID == "" || count != 4 {
+		t.Fatalf("expected 4 recipients created (usr-none omitted due to Ninguna preference), got count=%d", count)
+	}
+
+	noneItems, err := svc.GetNotifications(ctx, "usr-none", 10, 0)
+	if err != nil || len(noneItems) != 0 {
+		t.Fatalf("expected 0 in-app notifications for usr-none, got %d", len(noneItems))
 	}
 
 	// Verify emails sent: should only be usr-all and usr-no-push (unverified user must be skipped!)
@@ -580,4 +601,326 @@ func TestNotificationService_EmailDispatch_RequiresEmailVerification(t *testing.
 		}
 	})
 }
+
+func TestNotificationService_Preferences_ResetPreferences(t *testing.T) {
+	repo := repositories.NewMemoryNotificationRepository()
+	svc := services.NewNotificationService(repo)
+	ctx := context.Background()
+
+	// Disable one category
+	emailOff := false
+	_, err := svc.SavePreference(ctx, "usr-reset-test", dto.UpdatePreferenceRequestDTO{
+		Category:     "education",
+		EmailEnabled: &emailOff,
+	})
+	if err != nil {
+		t.Fatalf("failed to setup disabled preference: %v", err)
+	}
+
+	// Reset preferences
+	if err := svc.ResetPreferences(ctx, "usr-reset-test"); err != nil {
+		t.Fatalf("failed to reset preferences: %v", err)
+	}
+
+	prefs, err := svc.GetPreferences(ctx, "usr-reset-test")
+	if err != nil || len(prefs) != 5 {
+		t.Fatalf("expected 5 preferences, got %d", len(prefs))
+	}
+	for _, p := range prefs {
+		if !p.EmailEnabled || !p.PushEnabled || !p.InAppEnabled {
+			t.Fatalf("expected all channels re-enabled after reset for category %s", p.Category)
+		}
+	}
+}
+
+func TestNotificationService_DeliveryChannels_Combinations(t *testing.T) {
+	ctx := context.Background()
+
+	setupServiceWithUserPref := func(emailEnabled, pushEnabled bool) (services.NotificationService, repositories.NotificationRepository, *testEmailMock, *testPushMock) {
+		repo := repositories.NewMemoryNotificationRepository()
+		_ = repo.UpsertPreference(ctx, &models.NotificationPreference{
+			ID:           "prf-test",
+			UserID:       "usr-test",
+			Category:     models.CategoryEducation,
+			EmailEnabled: emailEnabled,
+			PushEnabled:  pushEnabled,
+			InAppEnabled: true,
+		})
+
+		emailMock := &testEmailMock{}
+		pushMock := &testPushMock{}
+		authMock := &testAuthMock{
+			tokensByUser: map[string][]string{
+				"usr-test": {"fcm-token-test"},
+			},
+			verifiedByUser: map[string]bool{
+				"usr-test": true,
+			},
+		}
+
+		svc := services.NewNotificationService(
+			repo,
+			services.WithEmailService(emailMock),
+			services.WithPushService(pushMock),
+			services.WithAuthClient(authMock),
+			services.WithSyncDispatch(true),
+		)
+		return svc, repo, emailMock, pushMock
+	}
+
+	t.Run("SoloEmail_SendsEmailSkipsPush", func(t *testing.T) {
+		svc, repo, emailMock, pushMock := setupServiceWithUserPref(true, false)
+		req := dto.SendNotificationRequestDTO{
+			SourceService:    "education",
+			EventType:        "education.course.created",
+			Category:         "education",
+			RecipientUserIDs: []string{"usr-test"},
+			Title:            "Curso Nuevo",
+			Message:          "Detalle del curso",
+			Data:             `{"email":"usr-test@example.com"}`,
+			SendEmail:        true,
+			SendPush:         true,
+		}
+		notifID, count, err := svc.IngestNotification(ctx, req)
+		if err != nil || count != 1 || notifID == "" {
+			t.Fatalf("unexpected ingest error or count: count=%d, err=%v", count, err)
+		}
+		if len(emailMock.sentMessages) != 1 {
+			t.Fatalf("expected 1 email sent, got %d", len(emailMock.sentMessages))
+		}
+		if len(pushMock.sentTokens) != 0 {
+			t.Fatalf("expected 0 push tokens sent, got %d", len(pushMock.sentTokens))
+		}
+		recs, _ := repo.FindRecipientsByUserID(ctx, "usr-test", 10, 0)
+		if len(recs) != 1 || recs[0].EmailStatus != models.DeliveryStatusSent || recs[0].PushStatus != models.DeliveryStatusSkipped {
+			t.Fatalf("expected email sent and push skipped in db: %+v", recs)
+		}
+	})
+
+	t.Run("SoloPush_SendsPushSkipsEmail", func(t *testing.T) {
+		svc, repo, emailMock, pushMock := setupServiceWithUserPref(false, true)
+		req := dto.SendNotificationRequestDTO{
+			SourceService:    "education",
+			EventType:        "education.course.created",
+			Category:         "education",
+			RecipientUserIDs: []string{"usr-test"},
+			Title:            "Curso Nuevo",
+			Message:          "Detalle del curso",
+			Data:             `{"email":"usr-test@example.com"}`,
+			SendEmail:        true,
+			SendPush:         true,
+		}
+		notifID, count, err := svc.IngestNotification(ctx, req)
+		if err != nil || count != 1 || notifID == "" {
+			t.Fatalf("unexpected ingest error or count: count=%d, err=%v", count, err)
+		}
+		if len(emailMock.sentMessages) != 0 {
+			t.Fatalf("expected 0 email sent, got %d", len(emailMock.sentMessages))
+		}
+		if len(pushMock.sentTokens) != 1 {
+			t.Fatalf("expected 1 push token sent, got %d", len(pushMock.sentTokens))
+		}
+		recs, _ := repo.FindRecipientsByUserID(ctx, "usr-test", 10, 0)
+		if len(recs) != 1 || recs[0].EmailStatus != models.DeliveryStatusSkipped || recs[0].PushStatus != models.DeliveryStatusSent {
+			t.Fatalf("expected email skipped and push sent in db: %+v", recs)
+		}
+	})
+
+	t.Run("Ninguna_OmittedWhenNonCritical", func(t *testing.T) {
+		svc, repo, emailMock, pushMock := setupServiceWithUserPref(false, false)
+		req := dto.SendNotificationRequestDTO{
+			SourceService:    "education",
+			EventType:        "education.course.created",
+			Category:         "education",
+			RecipientUserIDs: []string{"usr-test"},
+			Title:            "Curso Nuevo",
+			Message:          "Detalle del curso",
+			Data:             `{"email":"usr-test@example.com"}`,
+			SendEmail:        true,
+			SendPush:         true,
+			IsCritical:       false,
+		}
+		notifID, count, err := svc.IngestNotification(ctx, req)
+		if err != nil {
+			t.Fatalf("unexpected ingest error: %v", err)
+		}
+		if notifID == "" || count != 0 {
+			t.Fatalf("expected 0 recipients created for Ninguna, got %d", count)
+		}
+		if len(emailMock.sentMessages) != 0 || len(pushMock.sentTokens) != 0 {
+			t.Fatalf("expected no email or push sent")
+		}
+		recs, _ := repo.FindRecipientsByUserID(ctx, "usr-test", 10, 0)
+		if len(recs) != 0 {
+			t.Fatalf("expected 0 recipient records in db, got %d", len(recs))
+		}
+	})
+
+	t.Run("CriticalBypassesNinguna", func(t *testing.T) {
+		svc, repo, emailMock, pushMock := setupServiceWithUserPref(false, false)
+		req := dto.SendNotificationRequestDTO{
+			SourceService:    "auth",
+			EventType:        "auth.security.critical",
+			Category:         "education",
+			RecipientUserIDs: []string{"usr-test"},
+			Title:            "Alerta de Seguridad",
+			Message:          "Acceso no autorizado detectado",
+			Data:             `{"email":"usr-test@example.com"}`,
+			SendEmail:        true,
+			SendPush:         true,
+			IsCritical:       true,
+		}
+		notifID, count, err := svc.IngestNotification(ctx, req)
+		if err != nil || count != 1 || notifID == "" {
+			t.Fatalf("unexpected ingest error or count for critical: count=%d, err=%v", count, err)
+		}
+		if len(emailMock.sentMessages) != 1 || len(pushMock.sentTokens) != 1 {
+			t.Fatalf("expected both email and push sent for critical bypass")
+		}
+		recs, _ := repo.FindRecipientsByUserID(ctx, "usr-test", 10, 0)
+		if len(recs) != 1 {
+			t.Fatalf("expected recipient created in db for critical notification")
+		}
+	})
+}
+
+func TestNotificationService_EmailResolution_ViaAuthClient_ADR0007(t *testing.T) {
+	ctx := context.Background()
+
+	t.Run("ResolvesEmailAndNameFromAuthClient", func(t *testing.T) {
+		repo := repositories.NewMemoryNotificationRepository()
+		emailMock := &testEmailMock{}
+		authMock := &testAuthMock{
+			contactsByUser: map[string]*clients.RecipientContact{
+				"usr-adr0007": {
+					UserID:          "usr-adr0007",
+					Email:           "adr0007@example.com",
+					FirstName:       "Carlos",
+					LastName:        "Tevez",
+					IsEmailVerified: true,
+				},
+			},
+		}
+
+		svc := services.NewNotificationService(
+			repo,
+			services.WithEmailService(emailMock),
+			services.WithAuthClient(authMock),
+			services.WithSyncDispatch(true),
+		)
+
+		req := dto.SendNotificationRequestDTO{
+			SourceService:    "education",
+			EventType:        "course.enrollment",
+			Category:         "education",
+			RecipientUserIDs: []string{"usr-adr0007"},
+			Title:            "Curso confirmado",
+			Message:          "Tu inscripción al curso ha sido confirmada",
+			Data:             `{"course_id":"c-1"}`,
+			SendEmail:        true,
+			SendPush:         false,
+		}
+
+		notifID, count, err := svc.IngestNotification(ctx, req)
+		if err != nil || count != 1 || notifID == "" {
+			t.Fatalf("unexpected ingest error: count=%d, err=%v", count, err)
+		}
+
+		if len(emailMock.sentMessages) != 1 {
+			t.Fatalf("expected 1 email sent, got %d", len(emailMock.sentMessages))
+		}
+		if emailMock.sentMessages[0].To[0] != "adr0007@example.com" {
+			t.Errorf("expected to adr0007@example.com, got %s", emailMock.sentMessages[0].To[0])
+		}
+	})
+
+	t.Run("SkipsIfEmailNotVerifiedInAuthClient", func(t *testing.T) {
+		repo := repositories.NewMemoryNotificationRepository()
+		emailMock := &testEmailMock{}
+		authMock := &testAuthMock{
+			contactsByUser: map[string]*clients.RecipientContact{
+				"usr-unverified": {
+					UserID:          "usr-unverified",
+					Email:           "unverified@example.com",
+					FirstName:       "Unverified",
+					LastName:        "User",
+					IsEmailVerified: false,
+				},
+			},
+		}
+
+		svc := services.NewNotificationService(
+			repo,
+			services.WithEmailService(emailMock),
+			services.WithAuthClient(authMock),
+			services.WithSyncDispatch(true),
+		)
+
+		req := dto.SendNotificationRequestDTO{
+			SourceService:    "education",
+			EventType:        "course.enrollment",
+			Category:         "education",
+			RecipientUserIDs: []string{"usr-unverified"},
+			Title:            "Curso confirmado",
+			Message:          "Inscripción confirmada",
+			SendEmail:        true,
+		}
+
+		_, count, err := svc.IngestNotification(ctx, req)
+		if err != nil || count != 1 {
+			t.Fatalf("unexpected ingest: count=%d, err=%v", count, err)
+		}
+
+		if len(emailMock.sentMessages) != 0 {
+			t.Fatalf("expected 0 emails sent for unverified email, got %d", len(emailMock.sentMessages))
+		}
+	})
+}
+
+func TestNotificationRepository_InAppFiltering(t *testing.T) {
+	ctx := context.Background()
+	repo := repositories.NewMemoryNotificationRepository()
+
+	notifInApp := &models.Notification{
+		ID:        "notif-in-app",
+		SendInApp: true,
+		SendEmail: false,
+		SendPush:  false,
+		Title:     "In-App Notification",
+	}
+	notifExternalOnly := &models.Notification{
+		ID:        "notif-external-only",
+		SendInApp: false,
+		SendEmail: true,
+		SendPush:  true,
+		Title:     "External Only Notification",
+	}
+
+	_ = repo.CreateNotification(ctx, notifInApp)
+	_ = repo.CreateNotification(ctx, notifExternalOnly)
+
+	_ = repo.CreateRecipients(ctx, []models.NotificationRecipient{
+		{RecipientID: "rec-in-app", NotificationID: notifInApp.ID, UserID: "usr-filter", IsRead: false},
+		{RecipientID: "rec-ext", NotificationID: notifExternalOnly.ID, UserID: "usr-filter", IsRead: false},
+	})
+
+	// FindRecipientsByUserID should only return the notification with SendInApp: true
+	recs, err := repo.FindRecipientsByUserID(ctx, "usr-filter", 10, 0)
+	if err != nil {
+		t.Fatalf("unexpected error finding recipients: %v", err)
+	}
+	if len(recs) != 1 || recs[0].RecipientID != "rec-in-app" {
+		t.Fatalf("expected 1 in-app recipient (rec-in-app), got %d (%+v)", len(recs), recs)
+	}
+
+	// CountUnreadByUserID should only count unread notifications with SendInApp: true
+	unread, err := repo.CountUnreadByUserID(ctx, "usr-filter")
+	if err != nil {
+		t.Fatalf("unexpected error counting unread: %v", err)
+	}
+	if unread != 1 {
+		t.Fatalf("expected 1 unread in-app notification, got %d", unread)
+	}
+}
+
 

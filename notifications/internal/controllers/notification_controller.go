@@ -309,16 +309,23 @@ func (c *NotificationController) PatchPreference(w http.ResponseWriter, r *http.
 	c.respondJSON(w, http.StatusOK, res)
 }
 
-// InitDefaultPreferences initializes default preferences in DB for a user.
+// InitDefaultPreferences initializes or resets default preferences in DB for a user.
 func (c *NotificationController) InitDefaultPreferences(w http.ResponseWriter, r *http.Request) {
 	userID, _ := middlewares.GetUserID(r.Context())
+	shouldReset := r.URL.Query().Get("reset") == "true"
 
 	if r.Body != nil {
 		var body struct {
 			UserID string `json:"user_id"`
+			Reset  bool   `json:"reset"`
 		}
-		if err := json.NewDecoder(r.Body).Decode(&body); err == nil && body.UserID != "" {
-			userID = body.UserID
+		if err := json.NewDecoder(r.Body).Decode(&body); err == nil {
+			if body.UserID != "" {
+				userID = body.UserID
+			}
+			if body.Reset {
+				shouldReset = true
+			}
 		}
 	}
 
@@ -327,7 +334,13 @@ func (c *NotificationController) InitDefaultPreferences(w http.ResponseWriter, r
 		return
 	}
 
-	if err := c.service.InitDefaultPreferences(r.Context(), userID); err != nil {
+	var err error
+	if shouldReset {
+		err = c.service.ResetPreferences(r.Context(), userID)
+	} else {
+		err = c.service.InitDefaultPreferences(r.Context(), userID)
+	}
+	if err != nil {
 		c.respondError(w, http.StatusInternalServerError, err.Error())
 		return
 	}

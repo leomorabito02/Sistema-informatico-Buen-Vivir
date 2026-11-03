@@ -1110,6 +1110,126 @@ func (x *CheckUserEmailVerifiedResponse) GetIsVerified() bool {
 	return false
 }
 
+type GetUserContactRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	UserId        string                 `protobuf:"bytes,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetUserContactRequest) Reset() {
+	*x = GetUserContactRequest{}
+	mi := &file_api_proto_auth_proto_msgTypes[20]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetUserContactRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetUserContactRequest) ProtoMessage() {}
+
+func (x *GetUserContactRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_api_proto_auth_proto_msgTypes[20]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetUserContactRequest.ProtoReflect.Descriptor instead.
+func (*GetUserContactRequest) Descriptor() ([]byte, []int) {
+	return file_api_proto_auth_proto_rawDescGZIP(), []int{20}
+}
+
+func (x *GetUserContactRequest) GetUserId() string {
+	if x != nil {
+		return x.UserId
+	}
+	return ""
+}
+
+type GetUserContactResponse struct {
+	state           protoimpl.MessageState `protogen:"open.v1"`
+	UserId          string                 `protobuf:"bytes,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
+	Email           string                 `protobuf:"bytes,2,opt,name=email,proto3" json:"email,omitempty"`
+	FirstName       string                 `protobuf:"bytes,3,opt,name=first_name,json=firstName,proto3" json:"first_name,omitempty"`
+	LastName        string                 `protobuf:"bytes,4,opt,name=last_name,json=lastName,proto3" json:"last_name,omitempty"`
+	IsEmailVerified bool                   `protobuf:"varint,5,opt,name=is_email_verified,json=isEmailVerified,proto3" json:"is_email_verified,omitempty"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
+}
+
+func (x *GetUserContactResponse) Reset() {
+	*x = GetUserContactResponse{}
+	mi := &file_api_proto_auth_proto_msgTypes[21]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetUserContactResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetUserContactResponse) ProtoMessage() {}
+
+func (x *GetUserContactResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_api_proto_auth_proto_msgTypes[21]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetUserContactResponse.ProtoReflect.Descriptor instead.
+func (*GetUserContactResponse) Descriptor() ([]byte, []int) {
+	return file_api_proto_auth_proto_rawDescGZIP(), []int{21}
+}
+
+func (x *GetUserContactResponse) GetUserId() string {
+	if x != nil {
+		return x.UserId
+	}
+	return ""
+}
+
+func (x *GetUserContactResponse) GetEmail() string {
+	if x != nil {
+		return x.Email
+	}
+	return ""
+}
+
+func (x *GetUserContactResponse) GetFirstName() string {
+	if x != nil {
+		return x.FirstName
+	}
+	return ""
+}
+
+func (x *GetUserContactResponse) GetLastName() string {
+	if x != nil {
+		return x.LastName
+	}
+	return ""
+}
+
+func (x *GetUserContactResponse) GetIsEmailVerified() bool {
+	if x != nil {
+		return x.IsEmailVerified
+	}
+	return false
+}
+
 var File_api_proto_auth_proto protoreflect.FileDescriptor
 
 const file_api_proto_auth_proto_rawDesc = "" +
@@ -1188,7 +1308,16 @@ const file_api_proto_auth_proto_rawDesc = "" +
 	"\auser_id\x18\x01 \x01(\tR\x06userId\"A\n" +
 	"\x1eCheckUserEmailVerifiedResponse\x12\x1f\n" +
 	"\vis_verified\x18\x01 \x01(\bR\n" +
-	"isVerified2\x91\x06\n" +
+	"isVerified\"0\n" +
+	"\x15GetUserContactRequest\x12\x17\n" +
+	"\auser_id\x18\x01 \x01(\tR\x06userId\"\xaf\x01\n" +
+	"\x16GetUserContactResponse\x12\x17\n" +
+	"\auser_id\x18\x01 \x01(\tR\x06userId\x12\x14\n" +
+	"\x05email\x18\x02 \x01(\tR\x05email\x12\x1d\n" +
+	"\n" +
+	"first_name\x18\x03 \x01(\tR\tfirstName\x12\x1b\n" +
+	"\tlast_name\x18\x04 \x01(\tR\blastName\x12*\n" +
+	"\x11is_email_verified\x18\x05 \x01(\bR\x0fisEmailVerified2\xde\x06\n" +
 	"\vAuthService\x12K\n" +
 	"\x0eGetParticipant\x12\x1b.auth.GetParticipantRequest\x1a\x1c.auth.GetParticipantResponse\x12U\n" +
 	"\x15GetParticipantProfile\x12\".auth.GetParticipantProfileRequest\x1a\x18.auth.ParticipantProfile\x12W\n" +
@@ -1199,7 +1328,8 @@ const file_api_proto_auth_proto_rawDesc = "" +
 	"\x13GetUserDeviceTokens\x12 .auth.GetUserDeviceTokensRequest\x1a!.auth.GetUserDeviceTokensResponse\x12W\n" +
 	"\x12RevokeDeviceTokens\x12\x1f.auth.RevokeDeviceTokensRequest\x1a .auth.RevokeDeviceTokensResponse\x12`\n" +
 	"\x15GetCampaignRecipients\x12\".auth.GetCampaignRecipientsRequest\x1a#.auth.GetCampaignRecipientsResponse\x12c\n" +
-	"\x16CheckUserEmailVerified\x12#.auth.CheckUserEmailVerifiedRequest\x1a$.auth.CheckUserEmailVerifiedResponseB.Z,buenvivir/labor-integration/api/proto/authpbb\x06proto3"
+	"\x16CheckUserEmailVerified\x12#.auth.CheckUserEmailVerifiedRequest\x1a$.auth.CheckUserEmailVerifiedResponse\x12K\n" +
+	"\x0eGetUserContact\x12\x1b.auth.GetUserContactRequest\x1a\x1c.auth.GetUserContactResponseB.Z,buenvivir/labor-integration/api/proto/authpbb\x06proto3"
 
 var (
 	file_api_proto_auth_proto_rawDescOnce sync.Once
@@ -1213,7 +1343,7 @@ func file_api_proto_auth_proto_rawDescGZIP() []byte {
 	return file_api_proto_auth_proto_rawDescData
 }
 
-var file_api_proto_auth_proto_msgTypes = make([]protoimpl.MessageInfo, 20)
+var file_api_proto_auth_proto_msgTypes = make([]protoimpl.MessageInfo, 22)
 var file_api_proto_auth_proto_goTypes = []any{
 	(*GetParticipantRequest)(nil),          // 0: auth.GetParticipantRequest
 	(*GetParticipantResponse)(nil),         // 1: auth.GetParticipantResponse
@@ -1235,6 +1365,8 @@ var file_api_proto_auth_proto_goTypes = []any{
 	(*GetCampaignRecipientsResponse)(nil),  // 17: auth.GetCampaignRecipientsResponse
 	(*CheckUserEmailVerifiedRequest)(nil),  // 18: auth.CheckUserEmailVerifiedRequest
 	(*CheckUserEmailVerifiedResponse)(nil), // 19: auth.CheckUserEmailVerifiedResponse
+	(*GetUserContactRequest)(nil),          // 20: auth.GetUserContactRequest
+	(*GetUserContactResponse)(nil),         // 21: auth.GetUserContactResponse
 }
 var file_api_proto_auth_proto_depIdxs = []int32{
 	3,  // 0: auth.SearchParticipantsResponse.participants:type_name -> auth.ParticipantProfile
@@ -1249,17 +1381,19 @@ var file_api_proto_auth_proto_depIdxs = []int32{
 	13, // 9: auth.AuthService.RevokeDeviceTokens:input_type -> auth.RevokeDeviceTokensRequest
 	15, // 10: auth.AuthService.GetCampaignRecipients:input_type -> auth.GetCampaignRecipientsRequest
 	18, // 11: auth.AuthService.CheckUserEmailVerified:input_type -> auth.CheckUserEmailVerifiedRequest
-	1,  // 12: auth.AuthService.GetParticipant:output_type -> auth.GetParticipantResponse
-	3,  // 13: auth.AuthService.GetParticipantProfile:output_type -> auth.ParticipantProfile
-	5,  // 14: auth.AuthService.SearchParticipants:output_type -> auth.SearchParticipantsResponse
-	8,  // 15: auth.AuthService.GetUsersByIDs:output_type -> auth.GetUsersByIDsResponse
-	10, // 16: auth.AuthService.GetCompany:output_type -> auth.GetCompanyResponse
-	12, // 17: auth.AuthService.GetUserDeviceTokens:output_type -> auth.GetUserDeviceTokensResponse
-	14, // 18: auth.AuthService.RevokeDeviceTokens:output_type -> auth.RevokeDeviceTokensResponse
-	17, // 19: auth.AuthService.GetCampaignRecipients:output_type -> auth.GetCampaignRecipientsResponse
-	19, // 20: auth.AuthService.CheckUserEmailVerified:output_type -> auth.CheckUserEmailVerifiedResponse
-	12, // [12:21] is the sub-list for method output_type
-	3,  // [3:12] is the sub-list for method input_type
+	20, // 12: auth.AuthService.GetUserContact:input_type -> auth.GetUserContactRequest
+	1,  // 13: auth.AuthService.GetParticipant:output_type -> auth.GetParticipantResponse
+	3,  // 14: auth.AuthService.GetParticipantProfile:output_type -> auth.ParticipantProfile
+	5,  // 15: auth.AuthService.SearchParticipants:output_type -> auth.SearchParticipantsResponse
+	8,  // 16: auth.AuthService.GetUsersByIDs:output_type -> auth.GetUsersByIDsResponse
+	10, // 17: auth.AuthService.GetCompany:output_type -> auth.GetCompanyResponse
+	12, // 18: auth.AuthService.GetUserDeviceTokens:output_type -> auth.GetUserDeviceTokensResponse
+	14, // 19: auth.AuthService.RevokeDeviceTokens:output_type -> auth.RevokeDeviceTokensResponse
+	17, // 20: auth.AuthService.GetCampaignRecipients:output_type -> auth.GetCampaignRecipientsResponse
+	19, // 21: auth.AuthService.CheckUserEmailVerified:output_type -> auth.CheckUserEmailVerifiedResponse
+	21, // 22: auth.AuthService.GetUserContact:output_type -> auth.GetUserContactResponse
+	13, // [13:23] is the sub-list for method output_type
+	3,  // [3:13] is the sub-list for method input_type
 	3,  // [3:3] is the sub-list for extension type_name
 	3,  // [3:3] is the sub-list for extension extendee
 	0,  // [0:3] is the sub-list for field type_name
@@ -1280,7 +1414,7 @@ func file_api_proto_auth_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_api_proto_auth_proto_rawDesc), len(file_api_proto_auth_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   20,
+			NumMessages:   22,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

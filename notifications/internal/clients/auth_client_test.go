@@ -17,6 +17,8 @@ type mockAuthServiceClient struct {
 	getCampaignRecipientsErr error
 	isVerified               bool
 	checkEmailVerifiedErr    error
+	userContact              *authpb.GetUserContactResponse
+	getUserContactErr        error
 }
 
 func (m *mockAuthServiceClient) GetUserDeviceTokens(ctx context.Context, in *authpb.GetUserDeviceTokensRequest, opts ...grpc.CallOption) (*authpb.GetUserDeviceTokensResponse, error) {
@@ -65,6 +67,16 @@ func (m *mockAuthServiceClient) CheckUserEmailVerified(ctx context.Context, in *
 		return nil, m.checkEmailVerifiedErr
 	}
 	return &authpb.CheckUserEmailVerifiedResponse{IsVerified: m.isVerified}, nil
+}
+
+func (m *mockAuthServiceClient) GetUserContact(ctx context.Context, in *authpb.GetUserContactRequest, opts ...grpc.CallOption) (*authpb.GetUserContactResponse, error) {
+	if m.getUserContactErr != nil {
+		return nil, m.getUserContactErr
+	}
+	if m.userContact != nil {
+		return m.userContact, nil
+	}
+	return nil, errors.New("user not found")
 }
 
 func TestAuthClient_GetUserDeviceTokens(t *testing.T) {
@@ -203,4 +215,52 @@ func TestAuthClient_IsUserEmailVerified(t *testing.T) {
 		}
 	})
 }
+
+func TestAuthClient_GetUserContact(t *testing.T) {
+	t.Run("EmptyUserID", func(t *testing.T) {
+		client := NewAuthClientWithService(&mockAuthServiceClient{})
+		_, err := client.GetUserContact(context.Background(), "")
+		if err == nil {
+			t.Fatal("expected error on empty user_id")
+		}
+	})
+
+	t.Run("Success", func(t *testing.T) {
+		mockService := &mockAuthServiceClient{
+			userContact: &authpb.GetUserContactResponse{
+				UserId:          "usr-10",
+				Email:           "diego@example.com",
+				FirstName:       "Diego",
+				LastName:        "Armando",
+				IsEmailVerified: true,
+			},
+		}
+		client := NewAuthClientWithService(mockService)
+		contact, err := client.GetUserContact(context.Background(), "usr-10")
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if contact.Email != "diego@example.com" {
+			t.Errorf("expected diego@example.com, got %s", contact.Email)
+		}
+		if contact.FirstName != "Diego" || contact.LastName != "Armando" {
+			t.Errorf("expected Diego Armando, got %s %s", contact.FirstName, contact.LastName)
+		}
+		if !contact.IsEmailVerified {
+			t.Errorf("expected IsEmailVerified true, got false")
+		}
+	})
+
+	t.Run("RPCError", func(t *testing.T) {
+		mockService := &mockAuthServiceClient{
+			getUserContactErr: errors.New("grpc unavailable"),
+		}
+		client := NewAuthClientWithService(mockService)
+		_, err := client.GetUserContact(context.Background(), "usr-10")
+		if err == nil {
+			t.Fatal("expected error from GetUserContact, got nil")
+		}
+	})
+}
+
 
