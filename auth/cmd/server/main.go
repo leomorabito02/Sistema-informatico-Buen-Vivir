@@ -49,7 +49,6 @@ func main() {
 	participantDirectoryRepo := repositories.NewParticipantDirectoryRepository(db)
 	storageCleanupRepo := repositories.NewStorageCleanupRepository(db)
 	emailVerificationRepo := repositories.NewEmailVerificationRepository(db)
-	passwordRecoveryRepo := repositories.NewPasswordRecoveryRepository(db)
 
 	// Setup Storage
 	storageSvc, err := storage.NewObjectStorageService(
@@ -80,7 +79,6 @@ func main() {
 
 	notificationSyncSvc := services.NewNotificationSyncService()
 	verificationService := services.NewVerificationService(emailVerificationRepo, userRepo, notificationSyncSvc)
-	passwordRecoveryService := services.NewPasswordRecoveryService(passwordRecoveryRepo, userRepo, refreshTokenRepo, notificationSyncSvc)
 
 	authService := services.NewAuthService(
 		transactor,
@@ -114,7 +112,7 @@ func main() {
 	deviceRepo := repositories.NewFirestoreDeviceRepository(firestoreClient)
 	deviceController := controllers.NewDeviceController(deviceRepo)
 
-	authController := controllers.NewAuthController(authService, verificationService, passwordRecoveryService)
+	authController := controllers.NewAuthController(authService, verificationService)
 	userController := controllers.NewUserController(userService)
 	roleController := controllers.NewRoleController(roleService)
 	companyController := controllers.NewCompanyController(companyService)
@@ -191,8 +189,6 @@ func main() {
 			r.With(middlewares.StrictRateLimiter()).Post("/verify-email", authController.VerifyEmail)
 			r.With(middlewares.StrictRateLimiter()).Patch("/verify-email", authController.VerifyEmail)
 			r.With(middlewares.StrictRateLimiter()).Post("/resend-verification", authController.ResendVerification)
-			r.With(middlewares.StrictRateLimiter()).Post("/forgot-password", authController.ForgotPassword)
-			r.With(middlewares.StrictRateLimiter()).Post("/reset-password", authController.ResetPassword)
 		})
 		
 		// Protected Routes
@@ -313,8 +309,8 @@ func main() {
 	server := &http.Server{
 		Addr:         ":" + port,
 		Handler:      middlewares.OptionsInterceptor(r),
-		ReadTimeout:  30 * time.Second,
-		WriteTimeout: 30 * time.Second,
+		ReadTimeout:  10 * time.Second,
+		WriteTimeout: 10 * time.Second,
 		IdleTimeout:  120 * time.Second,
 	}
 

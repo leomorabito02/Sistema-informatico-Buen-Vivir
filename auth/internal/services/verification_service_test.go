@@ -128,35 +128,6 @@ func (m *mockUserRepoForVerification) UpdateEmailVerifiedByEmail(ctx context.Con
 	return errors.New("usuario no encontrado")
 }
 
-func (m *mockUserRepoForVerification) UpdatePasswordHashByEmail(ctx context.Context, email string, passwordHash string) error {
-	found := false
-	for _, u := range m.users {
-		if u.Email == email {
-			u.PasswordHash = passwordHash
-			found = true
-		}
-	}
-	if found {
-		return nil
-	}
-	return errors.New("usuario no encontrado")
-}
-
-func (m *mockUserRepoForVerification) UpdatePasswordAndVerifiedByEmail(ctx context.Context, email string, passwordHash string, verified bool) error {
-	found := false
-	for _, u := range m.users {
-		if u.Email == email {
-			u.PasswordHash = passwordHash
-			u.IsEmailVerified = verified
-			found = true
-		}
-	}
-	if found {
-		return nil
-	}
-	return errors.New("usuario no encontrado")
-}
-
 func (m *mockUserRepoForVerification) FindAllByEmail(ctx context.Context, email string) ([]models.User, error) {
 	var res []models.User
 	for _, u := range m.users {
@@ -208,9 +179,6 @@ func (m *mockNotificationSync) SendVerificationEmail(ctx context.Context, userID
 	return nil
 }
 func (m *mockNotificationSync) SendAccountApprovedEmail(ctx context.Context, userID, email, name, actionURL string) error {
-	return nil
-}
-func (m *mockNotificationSync) SendPasswordRecoveryEmail(ctx context.Context, userID, email, name, actionURL string) error {
 	return nil
 }
 

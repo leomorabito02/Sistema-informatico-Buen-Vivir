@@ -219,39 +219,4 @@ describe("AuthService", () => {
       req.flush(null, { status: 500, statusText: "Internal Error" });
     });
   });
-
-  describe("Password Recovery", () => {
-    it("should call forgotPassword and return message", () => {
-      const mockResponse = { message: "Enlace enviado" };
-
-      service.forgotPassword("user@example.com").subscribe((res) => {
-        expect(res).toEqual(mockResponse);
-      });
-
-      const req = httpMock.expectOne(
-        "http://localhost:3000/api/v1/auth/forgot-password",
-      );
-      expect(req.request.method).toBe("POST");
-      expect(req.request.body).toEqual({ email: "user@example.com" });
-      req.flush(mockResponse);
-    });
-
-    it("should call resetPassword and return message", () => {
-      const mockResponse = { message: "Contraseña actualizada" };
-
-      service.resetPassword("token-123", "NewPass123!").subscribe((res) => {
-        expect(res).toEqual(mockResponse);
-      });
-
-      const req = httpMock.expectOne(
-        "http://localhost:3000/api/v1/auth/reset-password",
-      );
-      expect(req.request.method).toBe("POST");
-      expect(req.request.body).toEqual({
-        token: "token-123",
-        new_password: "NewPass123!",
-      });
-      req.flush(mockResponse);
-    });
-  });
 });

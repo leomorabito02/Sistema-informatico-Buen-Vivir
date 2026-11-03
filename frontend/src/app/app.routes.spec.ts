@@ -61,15 +61,6 @@ describe("App Routes", () => {
     }
   });
 
-  it("should lazy load change-password component", async () => {
-    const route = routes.find((r) => r.path === "change-password");
-    expect(route?.loadComponent).toBeDefined();
-    if (route?.loadComponent) {
-      const component = await (route.loadComponent as any)();
-      expect(component).toBeDefined();
-    }
-  });
-
   it("should lazy load select-role component", async () => {
     const route = routes.find((r) => r.path === "select-role");
     expect(route?.loadComponent).toBeDefined();
