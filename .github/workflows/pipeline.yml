@@ -1196,8 +1196,8 @@ jobs:
           region: '${{ secrets.GCP_REGION }}'
           image: '${{ secrets.ARTIFACT_REGISTRY_HOST }}/${{ secrets.GCP_PROJECT_ID }}/${{ secrets.ARTIFACT_REGISTRY_REPO }}/notifications:${{ github.sha }}'
           flags: '--no-allow-unauthenticated --min-instances=0 --max-instances=1 --cpu=1 --memory=256Mi --service-account=${{ secrets.GCP_SERVICE_ACCOUNT }}'
+          # PORT lo pone Cloud Run (8080 por defecto): pasarlo es un error.
           env_vars: |-
-            PORT=8080
             RESEND_API_KEY=${{ secrets.RESEND_API_KEY }}
             RESEND_FROM_EMAIL_NOTIFICATIONS=${{ secrets.RESEND_FROM_EMAIL_NOTIFICATIONS }}
             RESEND_FROM_EMAIL_ALERTS=${{ secrets.RESEND_FROM_EMAIL_ALERTS }}
@@ -1566,9 +1566,10 @@ jobs:
           service: 'cv-renderer-${{ needs.cd-setup.outputs.service_suffix }}'
           region: '${{ secrets.GCP_REGION }}'
           image: '${{ secrets.ARTIFACT_REGISTRY_HOST }}/${{ secrets.GCP_PROJECT_ID }}/${{ secrets.ARTIFACT_REGISTRY_REPO }}/cv-renderer:${{ github.sha }}'
-          flags: '--no-allow-unauthenticated --min-instances=0 --max-instances=1 --cpu=1 --memory=1Gi --service-account=${{ secrets.GCP_SERVICE_ACCOUNT }}'
+          # PORT es reservada en Cloud Run: el puerto se fija con --port y
+          # Cloud Run se lo pasa al contenedor como PORT=5005.
+          flags: '--port=5005 --no-allow-unauthenticated --min-instances=0 --max-instances=1 --cpu=1 --memory=1Gi --service-account=${{ secrets.GCP_SERVICE_ACCOUNT }}'
           env_vars: |-
-            PORT=5005
             NODE_ENV=production
 
       - name: Ensure 100% traffic routed to latest Cloud Run revision
@@ -1794,6 +1795,14 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+
+      # cloudflare-worker tiene pnpm-lock.yaml, así que wrangler-action
+      # instala wrangler con pnpm: sin este paso no lo encuentra.
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+          run_install: false
 
       - name: Deploy Worker to Cloudflare
         uses: cloudflare/wrangler-action@v3
