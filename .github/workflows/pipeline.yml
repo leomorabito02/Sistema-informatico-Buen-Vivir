@@ -1244,6 +1244,15 @@ jobs:
         env:
           FIREBASE_JSON: ${{ secrets.GOOGLE_APPLICATION_CREDENTIALS }}
 
+      # deploy-cloudrun separa env_vars por comas: las comas de la lista de
+      # orígenes se escapan con \ para que llegue entera.
+      - name: Escape CORS origins for deploy-cloudrun
+        run: |
+          ESCAPED=$(printf '%s' "$CORS_ALLOWED_ORIGINS" | sed 's/,/\\,/g')
+          echo "CORS_ALLOWED_ORIGINS_ESCAPED=$ESCAPED" >> $GITHUB_ENV
+        env:
+          CORS_ALLOWED_ORIGINS: ${{ secrets.CORS_ALLOWED_ORIGINS }}
+
       - name: Deploy Auth to Cloud Run
         id: deploy
         uses: google-github-actions/deploy-cloudrun@v2
@@ -1258,7 +1267,7 @@ jobs:
             JWT_REFRESH_EXPIRATION_DAYS=${{ secrets.JWT_REFRESH_EXPIRATION_DAYS }}
             JWT_REFRESH_SECRET=${{ secrets.JWT_REFRESH_SECRET }}
             FIREBASE_CREDENTIALS_BASE64=${{ env.FIREBASE_CREDENTIALS_BASE64 }}
-            CORS_ALLOWED_ORIGINS=${{ secrets.CORS_ALLOWED_ORIGINS }}
+            CORS_ALLOWED_ORIGINS=${{ env.CORS_ALLOWED_ORIGINS_ESCAPED }}
             WORKER_IMPACT_URL=${{ secrets.WORKER_IMPACT_URL }}
             WORKER_SYNC_TOKEN=${{ secrets.WORKER_SYNC_TOKEN }}
             NOTIFICATIONS_SERVICE_URL=${{ needs.cd-notifications.outputs.service_url }}
@@ -1311,6 +1320,15 @@ jobs:
             exit 1
           fi
 
+      # deploy-cloudrun separa env_vars por comas: las comas de la lista de
+      # orígenes se escapan con \ para que llegue entera.
+      - name: Escape CORS origins for deploy-cloudrun
+        run: |
+          ESCAPED=$(printf '%s' "$CORS_ALLOWED_ORIGINS" | sed 's/,/\\,/g')
+          echo "CORS_ALLOWED_ORIGINS_ESCAPED=$ESCAPED" >> $GITHUB_ENV
+        env:
+          CORS_ALLOWED_ORIGINS: ${{ secrets.CORS_ALLOWED_ORIGINS }}
+
       - name: Deploy Education to Cloud Run
         id: deploy
         uses: google-github-actions/deploy-cloudrun@v2
@@ -1328,7 +1346,7 @@ jobs:
             CONTENTFUL_LOCALE=${{ secrets.CONTENTFUL_LOCALE }}
             JWT_SECRET=${{ secrets.JWT_SECRET }}
             GOOGLE_APPLICATION_CREDENTIALS_BASE64=${{ env.GOOGLE_APPLICATION_CREDENTIALS_BASE64 }}
-            CORS_ALLOWED_ORIGINS=${{ secrets.CORS_ALLOWED_ORIGINS }}
+            CORS_ALLOWED_ORIGINS=${{ env.CORS_ALLOWED_ORIGINS_ESCAPED }}
             WORKER_IMPACT_URL=${{ secrets.WORKER_IMPACT_URL }}
             WORKER_SYNC_TOKEN=${{ secrets.WORKER_SYNC_TOKEN }}
             AUTH_SERVICE_URL=${{ needs.cd-auth.outputs.service_url }}
@@ -1385,10 +1403,26 @@ jobs:
         env:
           FIREBASE_JSON: ${{ secrets.GOOGLE_APPLICATION_CREDENTIALS }}
 
+      # deploy-cloudrun separa env_vars por comas: las comas de la lista de
+      # orígenes se escapan con \ para que llegue entera.
+      - name: Escape CORS origins for deploy-cloudrun
+        run: |
+          ESCAPED=$(printf '%s' "$CORS_ALLOWED_ORIGINS" | sed 's/,/\\,/g')
+          echo "CORS_ALLOWED_ORIGINS_ESCAPED=$ESCAPED" >> $GITHUB_ENV
+        env:
+          CORS_ALLOWED_ORIGINS: ${{ secrets.CORS_ALLOWED_ORIGINS }}
+
       # La clave AES-256 NO viaja por el pipeline: el servicio la lee de
       # Secret Manager en el arranque (ENCRYPTION_KEY_SECRET = nombre
       # completo del secreto). La service account necesita el rol
       # roles/secretmanager.secretAccessor sobre ese secreto.
+      - name: Validate encryption key secret name
+        run: |
+          if [ -z "${{ vars.HUMAN_PROMOTION_ENCRYPTION_KEY_SECRET }}" ]; then
+            echo "::error::Falta la variable HUMAN_PROMOTION_ENCRYPTION_KEY_SECRET (environment ${{ needs.cd-setup.outputs.env_name }}). Sin ella el servicio no arranca."
+            exit 1
+          fi
+
       - name: Deploy Human Promotion to Cloud Run
         id: deploy
         uses: google-github-actions/deploy-cloudrun@v2
@@ -1400,7 +1434,7 @@ jobs:
           env_vars: |-
             JWT_SECRET=${{ secrets.JWT_SECRET }}
             GOOGLE_APPLICATION_CREDENTIALS_BASE64=${{ env.GOOGLE_APPLICATION_CREDENTIALS_BASE64 }}
-            CORS_ALLOWED_ORIGINS=${{ secrets.CORS_ALLOWED_ORIGINS }}
+            CORS_ALLOWED_ORIGINS=${{ env.CORS_ALLOWED_ORIGINS_ESCAPED }}
             ENCRYPTION_KEY_SECRET=${{ vars.HUMAN_PROMOTION_ENCRYPTION_KEY_SECRET }}
             AUTH_SERVICE_URL=${{ needs.cd-auth.outputs.service_url }}
             EDUCATION_SERVICE_URL=${{ needs.cd-education.outputs.service_url }}
@@ -1451,6 +1485,15 @@ jobs:
         env:
           FIREBASE_JSON: ${{ secrets.GOOGLE_APPLICATION_CREDENTIALS }}
 
+      # deploy-cloudrun separa env_vars por comas: las comas de la lista de
+      # orígenes se escapan con \ para que llegue entera.
+      - name: Escape CORS origins for deploy-cloudrun
+        run: |
+          ESCAPED=$(printf '%s' "$CORS_ALLOWED_ORIGINS" | sed 's/,/\\,/g')
+          echo "CORS_ALLOWED_ORIGINS_ESCAPED=$ESCAPED" >> $GITHUB_ENV
+        env:
+          CORS_ALLOWED_ORIGINS: ${{ secrets.CORS_ALLOWED_ORIGINS }}
+
       - name: Deploy Campaigns to Cloud Run
         id: deploy
         uses: google-github-actions/deploy-cloudrun@v2
@@ -1462,7 +1505,7 @@ jobs:
           env_vars: |-
             JWT_SECRET=${{ secrets.JWT_SECRET }}
             GOOGLE_APPLICATION_CREDENTIALS_BASE64=${{ env.GOOGLE_APPLICATION_CREDENTIALS_BASE64 }}
-            CORS_ALLOWED_ORIGINS=${{ secrets.CORS_ALLOWED_ORIGINS }}
+            CORS_ALLOWED_ORIGINS=${{ env.CORS_ALLOWED_ORIGINS_ESCAPED }}
 
       - name: Ensure 100% traffic routed to latest Cloud Run revision
         run: |
