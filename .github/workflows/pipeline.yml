@@ -1195,7 +1195,7 @@ jobs:
           service: 'notifications-${{ needs.cd-setup.outputs.service_suffix }}'
           region: '${{ secrets.GCP_REGION }}'
           image: '${{ secrets.ARTIFACT_REGISTRY_HOST }}/${{ secrets.GCP_PROJECT_ID }}/${{ secrets.ARTIFACT_REGISTRY_REPO }}/notifications:${{ github.sha }}'
-          flags: '--no-allow-unauthenticated --min-instances=0 --max-instances=1 --cpu=1 --memory=256Mi --service-account=${{ secrets.GCP_SERVICE_ACCOUNT }}'
+          flags: '--no-allow-unauthenticated --min-instances=0 --max-instances=3 --cpu=1 --cpu-boost --memory=256Mi --service-account=${{ secrets.GCP_SERVICE_ACCOUNT }}'
           # PORT lo pone Cloud Run (8080 por defecto): pasarlo es un error.
           env_vars: |-
             RESEND_API_KEY=${{ secrets.RESEND_API_KEY }}
@@ -1260,7 +1260,7 @@ jobs:
           service: 'auth-${{ needs.cd-setup.outputs.service_suffix }}'
           region: '${{ secrets.GCP_REGION }}'
           image: '${{ secrets.ARTIFACT_REGISTRY_HOST }}/${{ secrets.GCP_PROJECT_ID }}/${{ secrets.ARTIFACT_REGISTRY_REPO }}/auth:${{ github.sha }}'
-          flags: '--no-allow-unauthenticated --min-instances=0 --max-instances=1 --cpu=1 --memory=1Gi --service-account=${{ secrets.GCP_SERVICE_ACCOUNT }}'
+          flags: '--no-allow-unauthenticated --min-instances=0 --max-instances=3 --cpu=1 --cpu-boost --memory=1Gi --service-account=${{ secrets.GCP_SERVICE_ACCOUNT }}'
           env_vars: |-
             DATABASE_URL_AUTH=${{ secrets.DATABASE_URL_AUTH }}
             JWT_SECRET=${{ secrets.JWT_SECRET }}
@@ -1336,7 +1336,7 @@ jobs:
           service: 'education-${{ needs.cd-setup.outputs.service_suffix }}'
           region: '${{ secrets.GCP_REGION }}'
           image: '${{ secrets.ARTIFACT_REGISTRY_HOST }}/${{ secrets.GCP_PROJECT_ID }}/${{ secrets.ARTIFACT_REGISTRY_REPO }}/education:${{ github.sha }}'
-          flags: '--no-allow-unauthenticated --min-instances=0 --max-instances=1 --cpu=1 --memory=1Gi --service-account=${{ secrets.GCP_SERVICE_ACCOUNT }}'
+          flags: '--no-allow-unauthenticated --min-instances=0 --max-instances=3 --cpu=1 --cpu-boost --memory=1Gi --service-account=${{ secrets.GCP_SERVICE_ACCOUNT }}'
           env_vars: |-
             APP_ENV=${{ needs.cd-setup.outputs.app_env }}
             CONTENTFUL_ENVIRONMENT=${{ needs.cd-setup.outputs.contentful_environment }}
@@ -1430,7 +1430,7 @@ jobs:
           service: 'human-promotion-${{ needs.cd-setup.outputs.service_suffix }}'
           region: '${{ secrets.GCP_REGION }}'
           image: '${{ secrets.ARTIFACT_REGISTRY_HOST }}/${{ secrets.GCP_PROJECT_ID }}/${{ secrets.ARTIFACT_REGISTRY_REPO }}/human-promotion:${{ github.sha }}'
-          flags: '--no-allow-unauthenticated --min-instances=0 --max-instances=1 --cpu=1 --memory=512Mi --service-account=${{ secrets.GCP_SERVICE_ACCOUNT }}'
+          flags: '--no-allow-unauthenticated --min-instances=0 --max-instances=3 --cpu=1 --cpu-boost --memory=512Mi --service-account=${{ secrets.GCP_SERVICE_ACCOUNT }}'
           env_vars: |-
             JWT_SECRET=${{ secrets.JWT_SECRET }}
             GOOGLE_APPLICATION_CREDENTIALS_BASE64=${{ env.GOOGLE_APPLICATION_CREDENTIALS_BASE64 }}
@@ -1501,7 +1501,7 @@ jobs:
           service: 'campaigns-${{ needs.cd-setup.outputs.service_suffix }}'
           region: '${{ secrets.GCP_REGION }}'
           image: '${{ secrets.ARTIFACT_REGISTRY_HOST }}/${{ secrets.GCP_PROJECT_ID }}/${{ secrets.ARTIFACT_REGISTRY_REPO }}/campaigns:${{ github.sha }}'
-          flags: '--no-allow-unauthenticated --min-instances=0 --max-instances=1 --cpu=1 --memory=256Mi --service-account=${{ secrets.GCP_SERVICE_ACCOUNT }}'
+          flags: '--no-allow-unauthenticated --min-instances=0 --max-instances=3 --cpu=1 --cpu-boost --memory=256Mi --service-account=${{ secrets.GCP_SERVICE_ACCOUNT }}'
           env_vars: |-
             JWT_SECRET=${{ secrets.JWT_SECRET }}
             GOOGLE_APPLICATION_CREDENTIALS_BASE64=${{ env.GOOGLE_APPLICATION_CREDENTIALS_BASE64 }}
@@ -1565,7 +1565,7 @@ jobs:
           service: 'dashboard-${{ needs.cd-setup.outputs.service_suffix }}'
           region: '${{ secrets.GCP_REGION }}'
           image: '${{ secrets.ARTIFACT_REGISTRY_HOST }}/${{ secrets.GCP_PROJECT_ID }}/${{ secrets.ARTIFACT_REGISTRY_REPO }}/dashboard:${{ github.sha }}'
-          flags: '--no-allow-unauthenticated --min-instances=0 --max-instances=1 --cpu=1 --memory=256Mi --service-account=${{ secrets.GCP_SERVICE_ACCOUNT }}'
+          flags: '--no-allow-unauthenticated --min-instances=0 --max-instances=3 --cpu=1 --cpu-boost --memory=256Mi --service-account=${{ secrets.GCP_SERVICE_ACCOUNT }}'
           env_vars: |-
             APP_ENV=${{ needs.cd-setup.outputs.app_env }}
             JWT_SECRET=${{ secrets.JWT_SECRET }}
@@ -1613,7 +1613,7 @@ jobs:
           image: '${{ secrets.ARTIFACT_REGISTRY_HOST }}/${{ secrets.GCP_PROJECT_ID }}/${{ secrets.ARTIFACT_REGISTRY_REPO }}/cv-renderer:${{ github.sha }}'
           # PORT es reservada en Cloud Run: el puerto se fija con --port y
           # Cloud Run se lo pasa al contenedor como PORT=5005.
-          flags: '--port=5005 --no-allow-unauthenticated --min-instances=0 --max-instances=1 --cpu=1 --memory=1Gi --service-account=${{ secrets.GCP_SERVICE_ACCOUNT }}'
+          flags: '--port=5005 --no-allow-unauthenticated --min-instances=0 --max-instances=3 --cpu=1 --cpu-boost --memory=1Gi --service-account=${{ secrets.GCP_SERVICE_ACCOUNT }}'
           env_vars: |-
             NODE_ENV=production
 
@@ -1653,7 +1653,7 @@ jobs:
           service: 'rxresume-${{ needs.cd-setup.outputs.service_suffix }}'
           region: '${{ secrets.GCP_REGION }}'
           image: '${{ secrets.ARTIFACT_REGISTRY_HOST }}/${{ secrets.GCP_PROJECT_ID }}/${{ secrets.ARTIFACT_REGISTRY_REPO }}/rxresume:${{ github.sha }}'
-          flags: '--no-allow-unauthenticated --min-instances=0 --max-instances=1 --cpu=1 --memory=1Gi --service-account=${{ secrets.GCP_SERVICE_ACCOUNT }}'
+          flags: '--no-allow-unauthenticated --min-instances=0 --max-instances=3 --cpu=1 --cpu-boost --memory=1Gi --service-account=${{ secrets.GCP_SERVICE_ACCOUNT }}'
           env_vars: |-
             DATABASE_URL=${{ secrets.DATABASE_URL_RXRESUME }}
             RENDERER_URL=${{ needs.cd-cv-renderer.outputs.service_url }}
