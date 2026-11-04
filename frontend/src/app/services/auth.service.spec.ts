@@ -8,6 +8,8 @@ import { provideHttpClient } from "@angular/common/http";
 import { environment } from "../../environments/environment";
 import { Auth } from "@angular/fire/auth";
 import { Router } from "@angular/router";
+import { of } from "rxjs";
+import { PushNotificationService } from "./push-notification.service";
 
 describe("AuthService", () => {
   // environment es un objeto compartido entre specs: se restaura para no
@@ -253,5 +255,62 @@ describe("AuthService", () => {
       });
       req.flush(mockResponse);
     });
+  });
+});
+
+describe("AuthService - notificaciones push", () => {
+  let service: AuthService;
+  let push: jasmine.SpyObj<PushNotificationService>;
+
+  beforeEach(() => {
+    push = jasmine.createSpyObj("PushNotificationService", [
+      "requestPermissionAndGetToken",
+      "registerDeviceToken",
+      "listenForegroundMessages",
+    ]);
+    push.requestPermissionAndGetToken.and.resolveTo("fcm-token");
+    push.registerDeviceToken.and.returnValue(of(null));
+
+    TestBed.configureTestingModule({
+      providers: [
+        AuthService,
+        provideHttpClient(),
+        provideHttpClientTesting(),
+        { provide: Auth, useValue: { signOut: jasmine.createSpy("signOut") } },
+        {
+          provide: Router,
+          useValue: jasmine.createSpyObj("Router", ["navigate"]),
+        },
+        { provide: PushNotificationService, useValue: push },
+      ],
+    });
+    service = TestBed.inject(AuthService);
+  });
+
+  it("por defecto no pide permiso (es lo que se usa en cada guard)", async () => {
+    await service.syncPushNotifications();
+    expect(push.requestPermissionAndGetToken).toHaveBeenCalledOnceWith(false);
+  });
+
+  it("registra el dispositivo una sola vez aunque se llame en cada navegación", async () => {
+    await service.syncPushNotifications(true);
+    await service.syncPushNotifications();
+    await service.syncPushNotifications();
+
+    expect(push.requestPermissionAndGetToken).toHaveBeenCalledTimes(1);
+    expect(push.registerDeviceToken).toHaveBeenCalledOnceWith("fcm-token");
+    expect(push.listenForegroundMessages).toHaveBeenCalledTimes(1);
+  });
+
+  it("si no hubo token (permiso sin responder o denegado) lo vuelve a intentar después", async () => {
+    push.requestPermissionAndGetToken.and.resolveTo(null);
+    await service.syncPushNotifications();
+    await service.syncPushNotifications(true);
+
+    expect(push.requestPermissionAndGetToken.calls.allArgs()).toEqual([
+      [false],
+      [true],
+    ]);
+    expect(push.registerDeviceToken).not.toHaveBeenCalled();
   });
 });

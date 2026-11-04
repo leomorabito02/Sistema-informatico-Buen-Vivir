@@ -1553,12 +1553,22 @@ jobs:
         env:
           FIREBASE_JSON: ${{ secrets.GOOGLE_APPLICATION_CREDENTIALS }}
 
+      # deploy-cloudrun separa env_vars por comas: las comas de la lista de
+      # orígenes se escapan con \ para que llegue entera.
+      - name: Escape CORS origins for deploy-cloudrun
+        run: |
+          ESCAPED=$(printf '%s' "$CORS_ALLOWED_ORIGINS" | sed 's/,/\\,/g')
+          echo "CORS_ALLOWED_ORIGINS_ESCAPED=$ESCAPED" >> $GITHUB_ENV
+        env:
+          CORS_ALLOWED_ORIGINS: ${{ secrets.CORS_ALLOWED_ORIGINS }}
+
       # El Dashboard valida el token por su cuenta (en Google Cloud el
       # gateway no pasa el rol) y llama a los demás servicios con un token
       # de identidad de Google (UPSTREAM_ID_TOKEN): la service account
       # necesita roles/run.invoker sobre auth, education y human-promotion.
       # Inserción Laboral todavía no se despliega: LABOR_SERVICE_URL vacío
-      # = ese indicador sale como "No disponible".
+      # = ese indicador sale como "No disponible". El CORS lo pone el
+      # servicio (en Docker lo pone nginx).
       - name: Deploy Dashboard to Cloud Run
         id: deploy
         uses: google-github-actions/deploy-cloudrun@v2
@@ -1576,6 +1586,7 @@ jobs:
             LABOR_SERVICE_URL=
             UPSTREAM_ID_TOKEN=true
             REPORTES_BUCKET=ceibuenvivir-bucket
+            CORS_ALLOWED_ORIGINS=${{ env.CORS_ALLOWED_ORIGINS_ESCAPED }}
             GOOGLE_APPLICATION_CREDENTIALS_BASE64=${{ env.GOOGLE_APPLICATION_CREDENTIALS_BASE64 }}
 
       - name: Ensure 100% traffic routed to latest Cloud Run revision
