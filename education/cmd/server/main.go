@@ -157,7 +157,7 @@ func main() {
 		},
 	)
 
-	handler := routes.WithAsync(r, asyncEndpoints(cfg, firestoreClient, enrollmentRepo, contentfulClient, eventProducer, relay))
+	handler := routes.WithAsync(r, asyncEndpoints(cfg, firestoreClient, enrollmentRepo, activityRepo, contentfulClient, eventProducer, relay))
 
 	log.Printf("Servicio Education escuchando en :%s (appEnv=%s, contentfulEnvironment=%s)", cfg.Port, cfg.AppEnv, cfg.ContentfulEnvironment)
 	srv := &http.Server{
@@ -224,7 +224,7 @@ func startRelay(ctx context.Context, cfg *config.Config, client *firestore.Clien
 // asyncEndpoints arma los endpoints de eventos según la configuración:
 // los push de Pub/Sub solo si se puede verificar quién los manda, y el
 // webhook de Contentful solo si tiene secreto y hay dónde publicar.
-func asyncEndpoints(cfg *config.Config, client *firestore.Client, enrollments repositories.EnrollmentRepository, contentful *repositories.ContentfulClient, producer *producers.Educacion, relay *outbox.Relay) routes.AsyncEndpoints {
+func asyncEndpoints(cfg *config.Config, client *firestore.Client, enrollments repositories.EnrollmentRepository, activities repositories.ActivityRepository, contentful *repositories.ContentfulClient, producer *producers.Educacion, relay *outbox.Relay) routes.AsyncEndpoints {
 	var a routes.AsyncEndpoints
 	if cfg.Events.ContentfulWebhookSecret != "" && producer.Enabled() {
 		a.ContentfulWebhook = http.HandlerFunc(controllers.NewContentfulWebhookController(cfg.Events.ContentfulWebhookSecret, producer).Receive)
@@ -241,6 +241,10 @@ func asyncEndpoints(cfg *config.Config, client *firestore.Client, enrollments re
 	a.Contenido = consumers.NewContenido(verifier, store, contentful, slog.Default())
 	if relay != nil {
 		a.OutboxFlush = relay.FlushHandler(verifier)
+	}
+	if activities != nil && enrollments != nil && producer.Enabled() {
+		reminderService := services.NewReminderService(activities, enrollments, producer)
+		a.RemindersTrigger = services.RemindersTriggerHandler(reminderService, verifier)
 	}
 	return a
 }

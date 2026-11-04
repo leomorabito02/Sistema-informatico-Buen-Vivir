@@ -4,7 +4,7 @@ package events
 
 import (
 	"crypto/rand"
-	"crypto/sha1" // #nosec G505 -- SHA-1 solo para derivar ids determinísticos (UUID v5), no como función criptográfica
+	"crypto/sha1" //nolint:gosec // SHA-1 solo para derivar ids determinísticos (UUID v5), no como función criptográfica
 	"encoding/hex"
 	"fmt"
 )
@@ -29,7 +29,7 @@ func NewUUID() string {
 func NameUUID(name string) string {
 	// Namespace propio del sistema (UUID v4 fijo, generado una vez).
 	namespace := [16]byte{0x6b, 0x1c, 0x2f, 0x4a, 0x93, 0x0e, 0x4d, 0x58, 0x8a, 0x3e, 0x51, 0x77, 0xc2, 0x09, 0xd4, 0x6f}
-	h := sha1.New() // #nosec G401 -- UUID v5 deterministic hash
+	h := sha1.New() //nolint:gosec // ver import
 	h.Write(namespace[:])
 	h.Write([]byte(name))
 	sum := h.Sum(nil)

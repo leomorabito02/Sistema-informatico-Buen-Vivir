@@ -155,8 +155,8 @@ func TestNotificationService_Preferences_Defaults(t *testing.T) {
 	ctx := context.Background()
 
 	prefs, err := svc.GetPreferences(ctx, "usr-pref-1")
-	if err != nil || len(prefs) != 5 {
-		t.Fatalf("expected 5 default preferences, got %d (err: %v)", len(prefs), err)
+	if err != nil || len(prefs) != 6 {
+		t.Fatalf("expected 6 default preferences, got %d (err: %v)", len(prefs), err)
 	}
 	for _, p := range prefs {
 		if !p.EmailEnabled || !p.PushEnabled || !p.InAppEnabled {
@@ -165,8 +165,8 @@ func TestNotificationService_Preferences_Defaults(t *testing.T) {
 	}
 
 	persisted, err := repo.GetPreferencesByUserID(ctx, "usr-pref-1")
-	if err != nil || len(persisted) != 5 {
-		t.Fatalf("expected 5 preferences persisted in repo, got %d", len(persisted))
+	if err != nil || len(persisted) != 6 {
+		t.Fatalf("expected 6 preferences persisted in repo, got %d", len(persisted))
 	}
 }
 
@@ -179,8 +179,8 @@ func TestNotificationService_Preferences_InitDirectly(t *testing.T) {
 		t.Fatalf("unexpected error initializing preferences: %v", err)
 	}
 	persisted, err := repo.GetPreferencesByUserID(ctx, "usr-new-user")
-	if err != nil || len(persisted) != 5 {
-		t.Fatalf("expected 5 persisted rows for new user, got %d", len(persisted))
+	if err != nil || len(persisted) != 6 {
+		t.Fatalf("expected 6 persisted rows for new user, got %d", len(persisted))
 	}
 }
 
@@ -322,6 +322,18 @@ func (m *testAuthMock) GetUserContact(ctx context.Context, userID string) (*clie
 		}
 	}
 	return nil, errors.New("user not found")
+}
+
+func (m *testAuthMock) GetActiveUserIDsByRoles(ctx context.Context, roleIDs []string) ([]string, error) {
+	return nil, nil
+}
+
+func (m *testAuthMock) GetParticipantUserID(ctx context.Context, participantID string) (string, error) {
+	return "usr-participant-mock", nil
+}
+
+func (m *testAuthMock) IssueActionLink(ctx context.Context, requestID, userID, actionType string) (string, error) {
+	return "https://example.com/action", nil
 }
 
 func (m *testAuthMock) Close() error {
@@ -623,8 +635,8 @@ func TestNotificationService_Preferences_ResetPreferences(t *testing.T) {
 	}
 
 	prefs, err := svc.GetPreferences(ctx, "usr-reset-test")
-	if err != nil || len(prefs) != 5 {
-		t.Fatalf("expected 5 preferences, got %d", len(prefs))
+	if err != nil || len(prefs) != 6 {
+		t.Fatalf("expected 6 preferences, got %d", len(prefs))
 	}
 	for _, p := range prefs {
 		if !p.EmailEnabled || !p.PushEnabled || !p.InAppEnabled {

@@ -11,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+	"auth/internal/events/producers"
 	"auth/internal/models"
 	"auth/internal/repositories"
 	"auth/internal/utils"
@@ -19,6 +20,7 @@ import (
 type PasswordRecoveryService interface {
 	RequestReset(ctx context.Context, email string) error
 	ResetPassword(ctx context.Context, rawToken, newPassword string) error
+	IssueActionLink(ctx context.Context, requestID, userID string) (string, error)
 }
 
 type passwordRecoveryService struct {
@@ -26,6 +28,7 @@ type passwordRecoveryService struct {
 	userRepo         repositories.UserRepository
 	refreshTokenRepo repositories.RefreshTokenRepository
 	notificationSync NotificationSyncService
+	producer         producers.UsuariosProducer
 }
 
 func NewPasswordRecoveryService(
@@ -33,13 +36,18 @@ func NewPasswordRecoveryService(
 	userRepo repositories.UserRepository,
 	refreshTokenRepo repositories.RefreshTokenRepository,
 	notificationSync NotificationSyncService,
+	producer ...producers.UsuariosProducer,
 ) PasswordRecoveryService {
-	return &passwordRecoveryService{
+	svc := &passwordRecoveryService{
 		recoveryRepo:     recoveryRepo,
 		userRepo:         userRepo,
 		refreshTokenRepo: refreshTokenRepo,
 		notificationSync: notificationSync,
 	}
+	if len(producer) > 0 {
+		svc.producer = producer[0]
+	}
+	return svc
 }
 
 func (s *passwordRecoveryService) RequestReset(ctx context.Context, email string) error {
@@ -76,27 +84,9 @@ func (s *passwordRecoveryService) RequestReset(ctx context.Context, email string
 		return fmt.Errorf("error guardando solicitud de recuperación: %w", err)
 	}
 
-	frontendURL := strings.TrimSpace(os.Getenv("FRONTEND_URL"))
-	if frontendURL == "" {
-		frontendURL = "https://ceibuenvivir.org"
+	if s.producer != nil {
+		_ = s.producer.EmailSolicitado(ctx, recovery.PasswordRecoveryID, primaryUser.UserID, "recuperacion_password")
 	}
-	resetPath := strings.TrimSpace(os.Getenv("RESET_PASSWORD_PATH"))
-	if resetPath == "" {
-		resetPath = "/change-password"
-	}
-	if !strings.HasPrefix(resetPath, "/") {
-		resetPath = "/" + resetPath
-	}
-	actionURL := fmt.Sprintf("%s%s?token=%s", strings.TrimRight(frontendURL, "/"), resetPath, rawToken)
-
-	fullName := strings.TrimSpace(primaryUser.FirstName + " " + primaryUser.LastName)
-	if fullName == "" {
-		fullName = primaryUser.Email
-	}
-
-	go func() {
-		_ = s.notificationSync.SendPasswordRecoveryEmail(context.Background(), primaryUser.UserID, primaryUser.Email, fullName, actionURL)
-	}()
 
 	return nil
 }
@@ -169,3 +159,42 @@ func (s *passwordRecoveryService) ResetPassword(ctx context.Context, rawToken, n
 
 	return nil
 }
+
+func (s *passwordRecoveryService) IssueActionLink(ctx context.Context, requestID, userID string) (string, error) {
+	tokenBytes := make([]byte, 32)
+	if _, err := rand.Read(tokenBytes); err != nil {
+		return "", fmt.Errorf("error generando token criptográfico: %w", err)
+	}
+	rawToken := hex.EncodeToString(tokenBytes)
+	tokenHash := utils.HashToken(rawToken)
+
+	if requestID == "" {
+		requestID = "pr-" + utils.GenerateRandomString(10)
+	}
+
+	recovery := &models.PasswordRecovery{
+		PasswordRecoveryID: requestID,
+		UserID:             userID,
+		TokenHash:          tokenHash,
+		ExpiresAt:          time.Now().Add(30 * time.Minute),
+	}
+
+	_ = s.recoveryRepo.DeleteByUserID(ctx, userID)
+	if err := s.recoveryRepo.Create(ctx, recovery); err != nil {
+		return "", fmt.Errorf("error guardando solicitud de recuperación: %w", err)
+	}
+
+	frontendURL := strings.TrimSpace(os.Getenv("FRONTEND_URL"))
+	if frontendURL == "" {
+		frontendURL = "https://ceibuenvivir.org"
+	}
+	resetPath := strings.TrimSpace(os.Getenv("RESET_PASSWORD_PATH"))
+	if resetPath == "" {
+		resetPath = "/change-password"
+	}
+	if !strings.HasPrefix(resetPath, "/") {
+		resetPath = "/" + resetPath
+	}
+	return fmt.Sprintf("%s%s?token=%s", strings.TrimRight(frontendURL, "/"), resetPath, rawToken), nil
+}
+

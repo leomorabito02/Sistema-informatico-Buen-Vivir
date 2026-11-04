@@ -14,6 +14,7 @@
 #   EDUCATION_URL=https://education-xxxx.run.app \
 #   HUMAN_PROMOTION_URL=https://human-promotion-xxxx.run.app \
 #   DASHBOARD_URL=https://dashboard-xxxx.run.app \
+#   NOTIFICATIONS_URL=https://notifications-xxxx.run.app \
 #   EDUCATION_SA=education-run@ceibuenvivir.iam.gserviceaccount.com \
 #   HUMAN_PROMOTION_SA=human-promotion-run@ceibuenvivir.iam.gserviceaccount.com \
 #   infra/pubsub/setup.sh
@@ -29,6 +30,7 @@ set -euo pipefail
 : "${EDUCATION_URL:?falta EDUCATION_URL}"
 : "${HUMAN_PROMOTION_URL:?falta HUMAN_PROMOTION_URL}"
 : "${DASHBOARD_URL:?falta DASHBOARD_URL}"
+: "${NOTIFICATIONS_URL:?falta NOTIFICATIONS_URL}"
 : "${EDUCATION_SA:?falta EDUCATION_SA (service account de Cloud Run de education)}"
 : "${HUMAN_PROMOTION_SA:?falta HUMAN_PROMOTION_SA}"
 REGION="${REGION:-us-central1}"
@@ -40,7 +42,7 @@ PUBSUB_AGENT="service-${PROJECT_NUMBER}@gcp-sa-pubsub.iam.gserviceaccount.com"
 log() { printf '\n== %s\n' "$*"; }
 
 # ── Topics + dead-letter topics ───────────────────────────────────────
-TOPICS=(usuarios-eventos educacion-eventos promocion-humana-eventos contenido-eventos insercion-laboral-eventos)
+TOPICS=(usuarios-eventos educacion-eventos promocion-humana-eventos contenido-eventos insercion-laboral-eventos campanas-eventos)
 
 ensure_topic() {
   if "${G[@]}" pubsub topics describe "$1" >/dev/null 2>&1; then
@@ -81,6 +83,11 @@ SA_EDU_CONTENIDO="$(ensure_sa sa-push-edu-contenido 'Push contenido-eventos -> e
 SA_PH_EDUCACION="$(ensure_sa sa-push-ph-educacion 'Push educacion-eventos -> human-promotion')"
 SA_PH_USUARIOS="$(ensure_sa sa-push-ph-usuarios 'Push usuarios-eventos -> human-promotion')"
 SA_DASHBOARD="$(ensure_sa sa-push-dashboard 'Push eventos -> dashboard')"
+SA_NOTIF_EDU="$(ensure_sa sa-push-notif-edu 'Push educacion-eventos -> notifications')"
+SA_NOTIF_PH="$(ensure_sa sa-push-notif-ph 'Push promocion-humana-eventos -> notifications')"
+SA_NOTIF_USUARIOS="$(ensure_sa sa-push-notif-usuarios 'Push usuarios-eventos -> notifications')"
+SA_NOTIF_LABOR="$(ensure_sa sa-push-notif-labor 'Push insercion-laboral-eventos -> notifications')"
+SA_NOTIF_CAMPANAS="$(ensure_sa sa-push-notif-campanas 'Push campanas-eventos -> notifications')"
 SA_SCHEDULER="$(ensure_sa sa-scheduler-outbox 'Cloud Scheduler -> barrido del outbox')"
 
 # ── Suscripciones push ───────────────────────────────────────────────
@@ -124,8 +131,16 @@ ensure_push_sub dashboard-educacion educacion-eventos "$DASHBOARD_URL/eventos" "
   "$(filter educacion.curso.completado_por_participante educacion.curso.creado educacion.curso.eliminado educacion.habilidad.otorgada)" false
 ensure_push_sub dashboard-insercion-laboral insercion-laboral-eventos "$DASHBOARD_URL/eventos" "$SA_DASHBOARD" "$DASHBOARD_URL/eventos" \
   "$(filter insercion_laboral.postulacion.seleccionada)" false
-# notificaciones-educacion: se crea cuando exista el servicio de
-# Notificaciones (ver docs/eventos/README.md, "Pendientes").
+ensure_push_sub notificaciones-educacion educacion-eventos "$NOTIFICATIONS_URL/eventos/educacion" "$SA_NOTIF_EDU" "$NOTIFICATIONS_URL" \
+  "$(filter educacion.actividad.recordatorio educacion.contenido_docente.moderado educacion.contenido_docente.subido educacion.curso.completado_por_participante educacion.curso.creado educacion.curso.eliminado educacion.habilidad.otorgada educacion.inscripcion.creada)" false
+ensure_push_sub notificaciones-promocion-humana promocion-humana-eventos "$NOTIFICATIONS_URL/eventos/promocion-humana" "$SA_NOTIF_PH" "$NOTIFICATIONS_URL" \
+  "$(filter promocion_humana.ficha.actualizada promocion_humana.ficha.creada promocion_humana.hito.actualizado promocion_humana.hito.registrado)" true
+ensure_push_sub notificaciones-usuarios usuarios-eventos "$NOTIFICATIONS_URL/eventos/usuarios" "$SA_NOTIF_USUARIOS" "$NOTIFICATIONS_URL" \
+  "$(filter usuarios.email.solicitado usuarios.participante.eliminado usuarios.usuario.creado)" true
+ensure_push_sub notificaciones-insercion-laboral insercion-laboral-eventos "$NOTIFICATIONS_URL/eventos/insercion-laboral" "$SA_NOTIF_LABOR" "$NOTIFICATIONS_URL" \
+  "$(filter insercion_laboral.oferta.creada insercion_laboral.oferta.revisada insercion_laboral.postulacion.creada insercion_laboral.postulacion.decidida)" true
+ensure_push_sub notificaciones-campanas campanas-eventos "$NOTIFICATIONS_URL/eventos/campanas" "$SA_NOTIF_CAMPANAS" "$NOTIFICATIONS_URL" \
+  "$(filter campanas.campana.creada)" false
 
 # ── Permisos de publicación (productores) ────────────────────────────
 grant_publisher() { # $1=topic $2=service account
@@ -139,6 +154,7 @@ grant_publisher contenido-eventos "$EDUCATION_SA" # el receptor del webhook de C
 grant_publisher promocion-humana-eventos "$HUMAN_PROMOTION_SA"
 [[ -n "${AUTH_SA:-}" ]] && grant_publisher usuarios-eventos "$AUTH_SA"
 [[ -n "${LABOR_SA:-}" ]] && grant_publisher insercion-laboral-eventos "$LABOR_SA"
+[[ -n "${CAMPAIGNS_SA:-}" ]] && grant_publisher campanas-eventos "$CAMPAIGNS_SA"
 
 # ── Idempotencia: TTL de eventos_procesados ──────────────────────────
 log "TTL de Firestore"
@@ -146,12 +162,14 @@ log "TTL de Firestore"
   echo "(no se pudo configurar el TTL: revisar que la base Firestore sea la (default))"
 
 # ── Barrido del outbox (Cloud Run escala a cero) ─────────────────────
-ensure_job() { # $1=nombre $2=url base
+ensure_job() { # $1=nombre $2=url base $3=path (opcional) $4=schedule (opcional)
+  local path="${3:-/internal/outbox/flush}"
+  local sched="${4:-* * * * *}"
   if "${G[@]}" scheduler jobs describe "$1" --location "$REGION" >/dev/null 2>&1; then
     echo "job $1: ya existe"
   else
     "${G[@]}" scheduler jobs create http "$1" --location "$REGION" \
-      --schedule "* * * * *" --http-method POST --uri "$2/internal/outbox/flush" \
+      --schedule "$sched" --http-method POST --uri "$2$path" \
       --oidc-service-account-email "$SA_SCHEDULER" --oidc-token-audience "$2"
   fi
 }
@@ -159,6 +177,8 @@ ensure_job() { # $1=nombre $2=url base
 log "Cloud Scheduler"
 ensure_job outbox-flush-education "$EDUCATION_URL"
 ensure_job outbox-flush-human-promotion "$HUMAN_PROMOTION_URL"
+ensure_job delivery-flush-notifications "$NOTIFICATIONS_URL" "/internal/delivery/flush"
+ensure_job reminders-education "$EDUCATION_URL" "/internal/reminders/trigger" "0 8 * * *"
 
 cat <<EOF
 
@@ -178,6 +198,11 @@ Listo. Variables a cargar en Cloud Run:
   dashboard:
     PUBSUB_PUSH_AUDIENCE=$DASHBOARD_URL/eventos
     PUBSUB_PUSH_SERVICE_ACCOUNTS=$SA_DASHBOARD
+
+  notifications:
+    PUBSUB_PROJECT_ID=$PROJECT_ID
+    PUBSUB_PUSH_AUDIENCE=$NOTIFICATIONS_URL
+    PUBSUB_PUSH_SERVICE_ACCOUNTS=$SA_NOTIF_EDU,$SA_NOTIF_PH,$SA_NOTIF_USUARIOS,$SA_SCHEDULER
 
 Webhook de Contentful: POST $EDUCATION_URL/webhooks/contentful, con el
 header secreto X-Webhook-Secret y los topics Entry.publish, Entry.unpublish

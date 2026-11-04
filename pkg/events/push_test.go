@@ -195,7 +195,7 @@ func TestInfraFilters(t *testing.T) {
 	if !SameTypes(got, []string{ContenidoPublicado, ContenidoDespublicado}) {
 		t.Errorf("educacion-contenido: %v", got)
 	}
-	if len(filters) != 7 {
+	if len(filters) != 12 {
 		t.Errorf("suscripciones: %v", filters)
 	}
 	if SameTypes([]string{"a"}, []string{"a", "b"}) || SameTypes([]string{"a"}, []string{"b"}) {

@@ -39,8 +39,12 @@ func (p *PromocionHumana) emit(ctx context.Context, tx *firestore.Transaction, e
 	return p.writer.AddTx(ctx, tx, outbox.Event{Topic: p.topic, Type: eventType, Payload: payload, OrderingKey: participanteID})
 }
 
-func (p *PromocionHumana) FichaCreada(ctx context.Context, tx *firestore.Transaction, fichaID, participanteID string) error {
-	return p.emit(ctx, tx, events.FichaCreada, events.FichaPayload{FichaID: fichaID, ParticipanteID: participanteID}, participanteID)
+func (p *PromocionHumana) FichaCreada(ctx context.Context, tx *firestore.Transaction, fichaID, participanteID string, creadoPor ...string) error {
+	cp := ""
+	if len(creadoPor) > 0 {
+		cp = creadoPor[0]
+	}
+	return p.emit(ctx, tx, events.FichaCreada, events.FichaPayload{FichaID: fichaID, ParticipanteID: participanteID, CreadoPor: cp}, participanteID)
 }
 
 func (p *PromocionHumana) FichaActualizada(ctx context.Context, tx *firestore.Transaction, fichaID, participanteID string) error {

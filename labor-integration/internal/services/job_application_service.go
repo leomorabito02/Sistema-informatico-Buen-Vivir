@@ -3,33 +3,28 @@ package services
 import (
 	"context"
 	"errors"
+	"log/slog"
+	"strings"
 	"time"
 
+	"buenvivir/labor-integration/internal/events/producers"
 	"buenvivir/labor-integration/internal/models"
 	"buenvivir/labor-integration/internal/repositories"
 )
 
 type JobApplicationService struct {
-	repo         repositories.JobApplicationRepository
-	offerRepo    repositories.JobOfferRepository
-	authClient   repositories.AuthServiceClient
-	dispatcher   NotificationDispatcher
-	syncDispatch bool
+	repo       repositories.JobApplicationRepository
+	offerRepo  repositories.JobOfferRepository
+	authClient repositories.AuthServiceClient
+	producer   producers.InsercionLaboralProducer
 }
 
 type JobApplicationServiceOption func(*JobApplicationService)
 
-// WithApplicationDispatcher sets a NotificationDispatcher for JobApplicationService.
-func WithApplicationDispatcher(dispatcher NotificationDispatcher) JobApplicationServiceOption {
+// WithApplicationProducer sets an InsercionLaboralProducer for JobApplicationService.
+func WithApplicationProducer(producer producers.InsercionLaboralProducer) JobApplicationServiceOption {
 	return func(s *JobApplicationService) {
-		s.dispatcher = dispatcher
-	}
-}
-
-// WithApplicationSyncDispatch sets synchronous dispatching for tests.
-func WithApplicationSyncDispatch(sync bool) JobApplicationServiceOption {
-	return func(s *JobApplicationService) {
-		s.syncDispatch = sync
+		s.producer = producer
 	}
 }
 
@@ -38,7 +33,6 @@ func NewJobApplicationService(repo repositories.JobApplicationRepository, offerR
 		repo:       repo,
 		offerRepo:  offerRepo,
 		authClient: authClient,
-		dispatcher: NewNoopNotificationDispatcher(),
 	}
 	for _, opt := range opts {
 		opt(s)
@@ -84,14 +78,21 @@ func (s *JobApplicationService) ApplyToJob(ctx context.Context, application *mod
 		return err
 	}
 
-	if s.dispatcher != nil && s.offerRepo != nil {
-		offer, err := s.offerRepo.GetByID(ctx, application.OfferID)
-		if err == nil && offer != nil {
-			if s.syncDispatch {
-				s.dispatcher.ApplicationReceived(ctx, application, offer, application.UserID)
-			} else {
-				go s.dispatcher.ApplicationReceived(context.Background(), application, offer, application.UserID)
+	if s.producer != nil {
+		partID := application.ParticipantID
+		if partID == "" {
+			partID = application.UserID
+		}
+		empresaID := ""
+		if s.offerRepo != nil {
+			if offer, err := s.offerRepo.GetByID(ctx, application.OfferID); err == nil && offer != nil {
+				empresaID = offer.CompanyID
 			}
+		}
+		if err := s.producer.PostulacionCreada(ctx, application.ID, application.OfferID, partID, empresaID); err != nil {
+			slog.Warn("failed to emit postulacion.creada", slog.String("error", err.Error()), slog.String("application_id", application.ID))
+		} else {
+			s.producer.Notify()
 		}
 	}
 
@@ -128,12 +129,27 @@ func (s *JobApplicationService) UpdateStatus(ctx context.Context, applicationID 
 		return err
 	}
 
-	if s.dispatcher != nil && previousStatus != status {
-		app.Status = status
-		if s.syncDispatch {
-			s.dispatcher.ApplicationDecided(ctx, app, offer, status)
+	if s.producer != nil && isStatusSelected(status) && !isStatusSelected(previousStatus) {
+		partID := app.ParticipantID
+		if partID == "" {
+			partID = app.UserID
+		}
+		if err := s.producer.PostulacionSeleccionada(ctx, app.ID, app.OfferID, partID, offer.CompanyID); err != nil {
+			slog.Warn("failed to emit postulacion.seleccionada", slog.String("error", err.Error()), slog.String("application_id", app.ID))
 		} else {
-			go s.dispatcher.ApplicationDecided(context.Background(), app, offer, status)
+			s.producer.Notify()
+		}
+	}
+
+	if s.producer != nil && previousStatus != status {
+		partID := app.ParticipantID
+		if partID == "" {
+			partID = app.UserID
+		}
+		if err := s.producer.PostulacionDecidida(ctx, app.ID, app.OfferID, partID, offer.CompanyID, status); err != nil {
+			slog.Warn("failed to emit postulacion.decidida", slog.String("error", err.Error()), slog.String("application_id", app.ID))
+		} else {
+			s.producer.Notify()
 		}
 	}
 	
@@ -170,3 +186,13 @@ func (s *JobApplicationService) DeleteApplication(ctx context.Context, appID str
 
 	return s.repo.Delete(ctx, appID)
 }
+
+func isStatusSelected(status string) bool {
+	switch strings.ToLower(strings.TrimSpace(status)) {
+	case "aceptado", "aceptada", "accepted", "aprobada", "aprobado", "seleccionado", "contratado":
+		return true
+	default:
+		return false
+	}
+}
+

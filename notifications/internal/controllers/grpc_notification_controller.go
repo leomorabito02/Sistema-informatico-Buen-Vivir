@@ -97,10 +97,15 @@ func (c *GrpcNotificationController) InitDefaultPreferences(ctx context.Context,
 		return nil, status.Error(codes.Internal, err.Error())
 	}
 
+	prefs, err := c.service.GetPreferences(ctx, req.UserId)
+	if err != nil {
+		return nil, status.Error(codes.Internal, err.Error())
+	}
+
 	return &notificationpb.InitDefaultPreferencesResponse{
 		UserId:  req.UserId,
 		Success: true,
-		Count:   5,
+		Count:   int32(len(prefs)),
 	}, nil
 }
 

@@ -29,11 +29,13 @@ channels:
   usuariosEventos:
     address: usuarios-eventos
     title: Cascada de cambios de usuarios
-    description: Lo publica Autenticación (pendiente de coordinar). DLQ usuarios-eventos-dlq.
+    description: Lo publica Autenticación. DLQ usuarios-eventos-dlq.
     messages:
       participanteCreado: { $ref: '#/components/messages/ParticipanteCreado' }
       participanteEliminado: { $ref: '#/components/messages/ParticipanteEliminado' }
       usuarioActualizado: { $ref: '#/components/messages/UsuarioActualizado' }
+      usuarioCreado: { $ref: '#/components/messages/UsuarioCreado' }
+      emailSolicitado: { $ref: '#/components/messages/EmailSolicitado' }
     x-retencion: 7d
 
   educacionEventos:
@@ -51,6 +53,7 @@ channels:
       asistenciaGeneralActualizada: { $ref: '#/components/messages/AsistenciaGeneralActualizada' }
       contenidoDocenteSubido: { $ref: '#/components/messages/ContenidoDocenteSubido' }
       contenidoDocenteModerado: { $ref: '#/components/messages/ContenidoDocenteModerado' }
+      actividadRecordatorio: { $ref: '#/components/messages/ActividadRecordatorio' }
     x-retencion: 7d
 
   promocionHumanaEventos:
@@ -74,9 +77,21 @@ channels:
 
   insercionLaboralEventos:
     address: insercion-laboral-eventos
-    description: Lo publica Inserción Laboral (pendiente de coordinar). DLQ insercion-laboral-eventos-dlq.
+    description: Lo publica Inserción Laboral vía outbox. DLQ insercion-laboral-eventos-dlq.
     messages:
       postulacionSeleccionada: { $ref: '#/components/messages/PostulacionSeleccionada' }
+      ofertaCreada: { $ref: '#/components/messages/OfertaCreada' }
+      ofertaRevisada: { $ref: '#/components/messages/OfertaRevisada' }
+      postulacionCreada: { $ref: '#/components/messages/PostulacionCreada' }
+      postulacionDecidida: { $ref: '#/components/messages/PostulacionDecidida' }
+    x-retencion: 7d
+
+  campanasEventos:
+    address: campanas-eventos
+    title: Eventos del dominio de campañas
+    description: Lo publica Campañas vía outbox. DLQ campanas-eventos-dlq.
+    messages:
+      campanaCreada: { $ref: '#/components/messages/CampanaCreada' }
     x-retencion: 7d
 
   rxresumeSync:
@@ -110,8 +125,11 @@ operations:
   insercionLaboralPublica:
     action: send
     channel: { $ref: '#/channels/insercionLaboralEventos' }
-    summary: Inserción Laboral publica postulaciones seleccionadas (PENDIENTE).
-    x-estado: pendiente
+    summary: Inserción Laboral publica ofertas y postulaciones vía outbox.
+  campanasPublica:
+    action: send
+    channel: { $ref: '#/channels/campanasEventos' }
+    summary: Campañas publica eventos de campañas vía outbox.
   rxresumeEncola:
     action: send
     channel: { $ref: '#/channels/rxresumeSync' }
@@ -175,12 +193,48 @@ operations:
   notificacionesConsumeEducacion:
     action: receive
     channel: { $ref: '#/channels/educacionEventos' }
-    summary: FUTURO (Notificaciones no implementado). Email de confirmación de inscripción y avisos de moderación.
-    x-estado: pendiente
+    summary: Suscripción notificaciones-educacion → POST /eventos/educacion. Notificaciones a alumnos, docentes y administradores.
     messages:
       - $ref: '#/channels/educacionEventos/messages/inscripcionCreada'
       - $ref: '#/channels/educacionEventos/messages/contenidoDocenteSubido'
       - $ref: '#/channels/educacionEventos/messages/contenidoDocenteModerado'
+      - $ref: '#/channels/educacionEventos/messages/cursoCompletado'
+      - $ref: '#/channels/educacionEventos/messages/habilidadOtorgada'
+      - $ref: '#/channels/educacionEventos/messages/cursoEliminado'
+      - $ref: '#/channels/educacionEventos/messages/cursoCreado'
+      - $ref: '#/channels/educacionEventos/messages/actividadRecordatorio'
+  notificacionesConsumePromocionHumana:
+    action: receive
+    channel: { $ref: '#/channels/promocionHumanaEventos' }
+    summary: Suscripción notificaciones-promocion-humana → POST /eventos/promocion-humana. Notificaciones a voluntarios y administradores.
+    messages:
+      - $ref: '#/channels/promocionHumanaEventos/messages/fichaCreada'
+      - $ref: '#/channels/promocionHumanaEventos/messages/fichaActualizada'
+      - $ref: '#/channels/promocionHumanaEventos/messages/hitoRegistrado'
+      - $ref: '#/channels/promocionHumanaEventos/messages/hitoActualizado'
+  notificacionesConsumeUsuarios:
+    action: receive
+    channel: { $ref: '#/channels/usuariosEventos' }
+    summary: Suscripción notificaciones-usuarios → POST /eventos/usuarios.
+    messages:
+      - $ref: '#/channels/usuariosEventos/messages/participanteEliminado'
+      - $ref: '#/channels/usuariosEventos/messages/usuarioCreado'
+      - $ref: '#/channels/usuariosEventos/messages/emailSolicitado'
+  notificacionesConsumeInsercionLaboral:
+    action: receive
+    channel: { $ref: '#/channels/insercionLaboralEventos' }
+    summary: Suscripción notificaciones-insercion-laboral → POST /eventos/insercion-laboral.
+    messages:
+      - $ref: '#/channels/insercionLaboralEventos/messages/ofertaCreada'
+      - $ref: '#/channels/insercionLaboralEventos/messages/ofertaRevisada'
+      - $ref: '#/channels/insercionLaboralEventos/messages/postulacionCreada'
+      - $ref: '#/channels/insercionLaboralEventos/messages/postulacionDecidida'
+  notificacionesConsumeCampanas:
+    action: receive
+    channel: { $ref: '#/channels/campanasEventos' }
+    summary: Suscripción notificaciones-campanas → POST /eventos/campanas.
+    messages:
+      - $ref: '#/channels/campanasEventos/messages/campanaCreada'
   rxresumeConsume:
     action: receive
     channel: { $ref: '#/channels/rxresumeSync' }
@@ -214,10 +268,63 @@ components:
         occurred_at: { type: string, format: date-time, description: RFC 3339 en UTC }
         producer:
           type: string
-          enum: [servicio-autenticacion, servicio-educacion, servicio-promocion-humana, receptor-contentful, servicio-insercion-laboral]
+          enum: [servicio-autenticacion, servicio-educacion, servicio-promocion-humana, receptor-contentful, servicio-insercion-laboral, servicio-campanas]
         correlation_id: { type: string, format: uuid }
         actor_id: { type: string, description: 'Usuario que originó la acción; vacío si no hubo (webhook).' }
         payload: { type: object }
+
+    UsuarioCreadoPayload:
+      type: object
+      required: [user_id, role_id]
+      properties:
+        user_id: { type: string }
+        role_id: { type: string }
+    EmailSolicitadoPayload:
+      type: object
+      required: [request_id, user_id, tipo]
+      properties:
+        request_id: { type: string }
+        user_id: { type: string }
+        tipo: { type: string, examples: [verificacion, recuperacion_password, cuenta_aprobada] }
+    OfertaCreadaPayload:
+      type: object
+      required: [oferta_id, empresa_id, estado]
+      properties:
+        oferta_id: { type: string }
+        empresa_id: { type: string }
+        estado: { type: string, examples: [Pendiente, Activa] }
+    OfertaRevisadaPayload:
+      type: object
+      required: [oferta_id, empresa_id, aprobada]
+      properties:
+        oferta_id: { type: string }
+        empresa_id: { type: string }
+        aprobada: { type: boolean }
+    PostulacionCreadaPayload:
+      type: object
+      required: [postulacion_id, oferta_id, participante_id]
+      properties:
+        postulacion_id: { type: string }
+        oferta_id: { type: string }
+        participante_id: { type: string }
+        empresa_id: { type: string }
+    PostulacionDecididaPayload:
+      type: object
+      required: [postulacion_id, oferta_id, participante_id, resultado]
+      properties:
+        postulacion_id: { type: string }
+        oferta_id: { type: string }
+        participante_id: { type: string }
+        empresa_id: { type: string }
+        resultado: { type: string, examples: [Aprobada, Rechazada] }
+    CampanaCreadaPayload:
+      type: object
+      required: [campana_id, titulo, tipo]
+      properties:
+        campana_id: { type: string }
+        titulo: { type: string }
+        tipo: { type: string, examples: [donacion, difusion] }
+        meta: { type: number }
 
     ParticipantePayload:
       type: object
@@ -322,6 +429,16 @@ components:
         docente_id: { type: string }
         tipo: { type: string, enum: [curso, material] }
         resultado: { type: string, enum: [aprobado, rechazado] }
+    ActividadRecordatorioPayload:
+      type: object
+      description: Recordatorio de actividad próxima (HU-26).
+      required: [actividad_id, curso_id, participante_id, fecha]
+      properties:
+        actividad_id: { type: string }
+        curso_id: { type: string }
+        participante_id: { type: string }
+        fecha: { type: string }
+        titulo: { type: string }
     FichaPayload:
       type: object
       required: [ficha_id, participante_id]
@@ -374,7 +491,6 @@ components:
           - properties: { payload: { $ref: '#/components/schemas/UsuarioActualizadoPayload' } }
     PostulacionSeleccionada:
       name: insercion_laboral.postulacion.seleccionada
-      x-estado: pendiente
       traits: [{ $ref: '#/components/messageTraits/estandar' }]
       payload:
         allOf:
@@ -475,6 +591,15 @@ components:
         allOf:
           - $ref: '#/components/schemas/Envelope'
           - properties: { payload: { $ref: '#/components/schemas/ContenidoDocenteModeradoPayload' } }
+    ActividadRecordatorio:
+      name: educacion.actividad.recordatorio
+      x-estado: nuevo
+      x-ordering-key: participante_id
+      traits: [{ $ref: '#/components/messageTraits/estandar' }]
+      payload:
+        allOf:
+          - $ref: '#/components/schemas/Envelope'
+          - properties: { payload: { $ref: '#/components/schemas/ActividadRecordatorioPayload' } }
     FichaCreada:
       name: promocion_humana.ficha.creada
       x-estado: nuevo
@@ -537,3 +662,66 @@ components:
         required: [user_id]
         properties:
           user_id: { type: string }
+    UsuarioCreado:
+      name: usuarios.usuario.creado
+      x-estado: nuevo
+      x-ordering-key: user_id
+      traits: [{ $ref: '#/components/messageTraits/estandar' }]
+      payload:
+        allOf:
+          - $ref: '#/components/schemas/Envelope'
+          - properties: { payload: { $ref: '#/components/schemas/UsuarioCreadoPayload' } }
+    EmailSolicitado:
+      name: usuarios.email.solicitado
+      x-estado: nuevo
+      x-ordering-key: user_id
+      traits: [{ $ref: '#/components/messageTraits/estandar' }]
+      payload:
+        allOf:
+          - $ref: '#/components/schemas/Envelope'
+          - properties: { payload: { $ref: '#/components/schemas/EmailSolicitadoPayload' } }
+    OfertaCreada:
+      name: insercion_laboral.oferta.creada
+      x-estado: nuevo
+      x-ordering-key: empresa_id
+      traits: [{ $ref: '#/components/messageTraits/estandar' }]
+      payload:
+        allOf:
+          - $ref: '#/components/schemas/Envelope'
+          - properties: { payload: { $ref: '#/components/schemas/OfertaCreadaPayload' } }
+    OfertaRevisada:
+      name: insercion_laboral.oferta.revisada
+      x-estado: nuevo
+      x-ordering-key: empresa_id
+      traits: [{ $ref: '#/components/messageTraits/estandar' }]
+      payload:
+        allOf:
+          - $ref: '#/components/schemas/Envelope'
+          - properties: { payload: { $ref: '#/components/schemas/OfertaRevisadaPayload' } }
+    PostulacionCreada:
+      name: insercion_laboral.postulacion.creada
+      x-estado: nuevo
+      x-ordering-key: participante_id
+      traits: [{ $ref: '#/components/messageTraits/estandar' }]
+      payload:
+        allOf:
+          - $ref: '#/components/schemas/Envelope'
+          - properties: { payload: { $ref: '#/components/schemas/PostulacionCreadaPayload' } }
+    PostulacionDecidida:
+      name: insercion_laboral.postulacion.decidida
+      x-estado: nuevo
+      x-ordering-key: participante_id
+      traits: [{ $ref: '#/components/messageTraits/estandar' }]
+      payload:
+        allOf:
+          - $ref: '#/components/schemas/Envelope'
+          - properties: { payload: { $ref: '#/components/schemas/PostulacionDecididaPayload' } }
+    CampanaCreada:
+      name: campanas.campana.creada
+      x-estado: nuevo
+      x-ordering-key: campana_id
+      traits: [{ $ref: '#/components/messageTraits/estandar' }]
+      payload:
+        allOf:
+          - $ref: '#/components/schemas/Envelope'
+          - properties: { payload: { $ref: '#/components/schemas/CampanaCreadaPayload' } }

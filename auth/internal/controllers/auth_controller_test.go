@@ -519,6 +519,11 @@ func (m *MockVerificationService) ResendVerification(ctx context.Context, email 
 	return args.Error(0)
 }
 
+func (m *MockVerificationService) IssueActionLink(ctx context.Context, requestID, userID string) (string, error) {
+	args := m.Called(ctx, requestID, userID)
+	return args.String(0), args.Error(1)
+}
+
 func TestAuthController_VerifyEmail_Success(t *testing.T) {
 	mockAuthSvc := new(MockAuthService)
 	mockVerifSvc := new(MockVerificationService)
@@ -631,6 +636,11 @@ func (m *MockPasswordRecoveryService) RequestReset(ctx context.Context, email st
 func (m *MockPasswordRecoveryService) ResetPassword(ctx context.Context, rawToken, newPassword string) error {
 	args := m.Called(ctx, rawToken, newPassword)
 	return args.Error(0)
+}
+
+func (m *MockPasswordRecoveryService) IssueActionLink(ctx context.Context, requestID, userID string) (string, error) {
+	args := m.Called(ctx, requestID, userID)
+	return args.String(0), args.Error(1)
 }
 
 func TestAuthController_ForgotPassword_Success(t *testing.T) {

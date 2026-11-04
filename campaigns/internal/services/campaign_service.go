@@ -2,6 +2,7 @@ package services
 
 import (
 	"context"
+	"log/slog"
 	"net/url"
 	"regexp"
 	"strings"
@@ -9,6 +10,7 @@ import (
 	"unicode"
 	"unicode/utf8"
 
+	"buenvivir/campaigns/internal/events/producers"
 	"buenvivir/campaigns/internal/models"
 	"buenvivir/campaigns/internal/repositories"
 )
@@ -49,24 +51,16 @@ type CampaignService interface {
 
 type CampaignServiceOption func(*campaignService)
 
-// WithNotificationDispatcher configures the dispatcher used to notify users on campaign events.
-func WithNotificationDispatcher(d NotificationDispatcher) CampaignServiceOption {
+// WithCampanasProducer configures the outbox producer for campaign domain events.
+func WithCampanasProducer(p producers.CampanasProducer) CampaignServiceOption {
 	return func(s *campaignService) {
-		s.dispatcher = d
-	}
-}
-
-// WithSyncDispatch enables synchronous notification dispatch (useful for testing).
-func WithSyncDispatch(sync bool) CampaignServiceOption {
-	return func(s *campaignService) {
-		s.syncDispatch = sync
+		s.producer = p
 	}
 }
 
 type campaignService struct {
-	repo         repositories.CampaignRepository
-	dispatcher   NotificationDispatcher
-	syncDispatch bool
+	repo     repositories.CampaignRepository
+	producer producers.CampanasProducer
 }
 
 func NewCampaignService(repo repositories.CampaignRepository, opts ...CampaignServiceOption) CampaignService {
@@ -97,13 +91,11 @@ func (s *campaignService) Create(ctx context.Context, in models.CampaignInput, c
 		return models.Campaign{}, err
 	}
 
-	if s.dispatcher != nil {
-		if s.syncDispatch {
-			_ = s.dispatcher.DispatchCampaignCreated(ctx, created, creadoPor)
+	if s.producer != nil {
+		if err := s.producer.CampanaCreada(ctx, created.ID, creadoPor); err != nil {
+			slog.Warn("failed to emit campana.creada to outbox", slog.String("error", err.Error()), slog.String("campaign_id", created.ID))
 		} else {
-			go func(c models.Campaign, author string) {
-				_ = s.dispatcher.DispatchCampaignCreated(context.Background(), c, author)
-			}(created, creadoPor)
+			s.producer.Notify()
 		}
 	}
 

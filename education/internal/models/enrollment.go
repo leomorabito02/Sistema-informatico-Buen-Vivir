@@ -18,8 +18,9 @@ type Enrollment struct {
 	FechaBaja  *time.Time `json:"fechaBaja,omitempty" firestore:"fecha_baja,omitempty"`
 	// Nombre y Apellido no se guardan: los completa
 	// GET /api/cursos/{id}/inscripciones contra auth-service.
-	Nombre   string `json:"nombre,omitempty" firestore:"-"`
-	Apellido string `json:"apellido,omitempty" firestore:"-"`
+	Nombre      string `json:"nombre,omitempty" firestore:"-"`
+	Apellido    string `json:"apellido,omitempty" firestore:"-"`
+	CourseTitle string `json:"courseTitle,omitempty" firestore:"-"`
 }
 
 // MotivoBajaParticipanteEliminado es el motivo que se guarda cuando la

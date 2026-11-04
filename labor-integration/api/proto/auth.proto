@@ -28,6 +28,7 @@ service AuthService {
   rpc CheckUserEmailVerified(CheckUserEmailVerifiedRequest) returns (CheckUserEmailVerifiedResponse);
   rpc GetUserContact(GetUserContactRequest) returns (GetUserContactResponse);
   rpc GetActiveUserIDsByRoles(GetActiveUserIDsByRolesRequest) returns (GetActiveUserIDsByRolesResponse);
+  rpc IssueActionLink(IssueActionLinkRequest) returns (IssueActionLinkResponse);
 }
 
 message GetParticipantRequest {
@@ -154,5 +155,15 @@ message GetActiveUserIDsByRolesRequest {
 
 message GetActiveUserIDsByRolesResponse {
   repeated string user_ids = 1;
+}
+
+message IssueActionLinkRequest {
+  string request_id = 1;
+  string user_id = 2;
+  string type = 3;
+}
+
+message IssueActionLinkResponse {
+  string action_url = 1;
 }
 

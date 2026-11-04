@@ -486,6 +486,10 @@ func (m *mockVerificationService) ResendVerification(ctx context.Context, email 
 	return nil
 }
 
+func (m *mockVerificationService) IssueActionLink(ctx context.Context, requestID, userID string) (string, error) {
+	return "", nil
+}
+
 func TestUserService_CreateUser_Success_SendsVerification(t *testing.T) {
 	mockRepo := new(MockUserRepository)
 	mockVerif := &mockVerificationService{}

@@ -22,8 +22,8 @@ no se pierdan ni se procesen dos veces.
 
 ```mermaid
 flowchart LR
-    AUTH["Autenticación<br/><i>pendiente de coordinar</i>"]:::pend
-    LAB["Inserción Laboral<br/><i>pendiente de coordinar</i>"]:::pend
+    AUTH["Autenticación"]
+    LAB["Inserción Laboral"]
     EDU["Educación"]
     WH["Receptor webhooks Contentful<br/>(dentro de Educación)"]
     PH["Promoción Humana"]
@@ -36,10 +36,10 @@ flowchart LR
     T_IL[["insercion-laboral-eventos"]]
 
     DASH["Dashboard"]
-    NOTIF["Notificaciones<br/><i>no implementado</i>"]:::pend
+    NOTIF["Notificaciones"]
 
-    AUTH -. participante.creado / .eliminado<br/>usuario.actualizado .-> T_US
-    LAB -. postulacion.seleccionada .-> T_IL
+    AUTH --> T_US
+    LAB --> T_IL
     EDU --> T_ED
     CF -- webhook --> WH --> T_CO
     PH --> T_PH
@@ -47,33 +47,27 @@ flowchart LR
     T_US -- participante.eliminado<br/>usuario.actualizado --> EDU
     T_US -- participante.eliminado --> PH
     T_US -- participante.creado / .eliminado --> DASH
+    T_US -- participante.eliminado --> NOTIF
     T_CO -- contenido.publicado / .despublicado --> EDU
     T_ED -- inscripcion.creada<br/>curso.completado_por_participante<br/>asistencia_general.registrada --> PH
     T_ED -- curso.creado / .eliminado<br/>curso.completado_por_participante<br/>habilidad.otorgada --> DASH
-    T_ED -. inscripcion.creada<br/>contenido_docente.* .-> NOTIF
+    T_ED -- inscripcion.creada<br/>actividad.recordatorio<br/>contenido_docente.*<br/>curso.*<br/>habilidad.otorgada --> NOTIF
+    T_PH -- ficha.*<br/>hito.* --> NOTIF
     T_IL -- postulacion.seleccionada --> DASH
-
-    classDef pend stroke-dasharray: 5 5
 ```
 
-Las flechas punteadas son lo que todavía no existe. Autenticación e
-Inserción Laboral **no publican eventos hoy**: los consumidores ya están
-listos para cuando lo hagan (ver la sección 5). Notificaciones no está
-implementado: los eventos que va a usar ya se publican.
-
-`promocion-humana-eventos` todavía no tiene consumidores. Sus eventos
-quedan disponibles para Notificaciones o para la auditoría centralizada
-en el futuro.
+Todos los servicios productores publican eventos de dominio usando el patrón Outbox (Postgres en Auth, Firestore en Educación, Promoción Humana e Inserción Laboral).
 
 ## 2. Topics
 
 | Topic | Lo publica | Lo consumen | DLQ |
 |---|---|---|---|
-| `usuarios-eventos` ("Cascada de cambios de usuarios") | Autenticación *(pendiente)* | Educación, Promoción Humana, Dashboard | `usuarios-eventos-dlq` |
-| `educacion-eventos` | Educación | Promoción Humana, Dashboard, Notificaciones *(futuro)* | `educacion-eventos-dlq` |
-| `promocion-humana-eventos` | Promoción Humana | — | `promocion-humana-eventos-dlq` |
+| `usuarios-eventos` ("Cascada de cambios de usuarios") | Autenticación | Educación, Promoción Humana, Dashboard, Notificaciones | `usuarios-eventos-dlq` |
+| `educacion-eventos` | Educación | Promoción Humana, Dashboard, Notificaciones | `educacion-eventos-dlq` |
+| `promocion-humana-eventos` | Promoción Humana | Notificaciones | `promocion-humana-eventos-dlq` |
 | `contenido-eventos` ("Cola de eventos de contenido") | Receptor de webhooks de Contentful | Educación | `contenido-eventos-dlq` |
-| `insercion-laboral-eventos` | Inserción Laboral *(pendiente)* | Dashboard | `insercion-laboral-eventos-dlq` |
+| `insercion-laboral-eventos` | Inserción Laboral | Dashboard, Notificaciones | `insercion-laboral-eventos-dlq` |
+| `campanas-eventos` | Campañas | Notificaciones | `campanas-eventos-dlq` |
 
 El único topic que ya existía es `rxresume-sync-topic` (cola interna de
 rxresume). No se tocó, ver la sección 6.
@@ -92,6 +86,11 @@ atributo `event_type`. Solo le llegan los eventos que procesa.
 | `dashboard-usuarios` | usuarios-eventos | `dashboard /eventos` | participante.creado, participante.eliminado |
 | `dashboard-educacion` | educacion-eventos | `dashboard /eventos` | curso.creado, curso.eliminado, curso.completado_por_participante, habilidad.otorgada |
 | `dashboard-insercion-laboral` | insercion-laboral-eventos | `dashboard /eventos` | postulacion.seleccionada |
+| `notificaciones-educacion` | educacion-eventos | `notifications /eventos/educacion` | actividad.recordatorio, contenido_docente.moderado, contenido_docente.subido, curso.completado_por_participante, curso.creado, curso.eliminado, habilidad.otorgada, inscripcion.creada |
+| `notificaciones-promocion-humana` | promocion-humana-eventos | `notifications /eventos/promocion-humana` | ficha.actualizada, ficha.creada, hito.actualizado, hito.registrado |
+| `notificaciones-usuarios` | usuarios-eventos | `notifications /eventos/usuarios` | email.solicitado, participante.eliminado, usuario.creado |
+| `notificaciones-insercion-laboral` | insercion-laboral-eventos | `notifications /eventos/insercion-laboral` | oferta.creada, oferta.revisada, postulacion.creada, postulacion.decidida |
+| `notificaciones-campanas` | campanas-eventos | `notifications /eventos/campanas` | campana.creada |
 
 Un test de cada servicio (`TestFiltrosDeInfraCoincidenConLosConsumidores`)
 lee `infra/pubsub/setup.sh` y falla si el filtro no coincide con lo que
@@ -165,60 +164,42 @@ tarea; **pendiente** = falta coordinarlo con quien mantiene ese servicio.
 Los structs Go de cada payload están en `pkg/events/catalog.go`. Todos
 están en `version: 1`.
 
-### Para Notificaciones (cuando se implemente)
+### Notificaciones (implementado)
 
-Notificaciones va a necesitar una suscripción propia, por ejemplo
-`notificaciones-educacion` sobre `educacion-eventos`, con este filtro:
+Notificaciones consume eventos mediante suscripciones push con OIDC:
+- `notificaciones-educacion` sobre `educacion-eventos` (`/eventos/educacion`).
+- `notificaciones-promocion-humana` sobre `promocion-humana-eventos` (`/eventos/promocion-humana`).
 
-```
-attributes.event_type = "educacion.inscripcion.creada"
-OR attributes.event_type = "educacion.contenido_docente.moderado"
-OR attributes.event_type = "educacion.contenido_docente.subido"
-```
+Reglas aplicadas:
+- **`inscripcion.creada`**: confirmación de inscripción al participante y aviso al docente (HU-18, HU-26, HU-60).
+- **`actividad.recordatorio`**: recordatorio de actividad próxima a participantes inscriptos (HU-26).
+- **`contenido_docente.subido`**: aviso a administradores para revisión (HU-23).
+- **`contenido_docente.moderado`**: aviso al docente con el resultado de aprobación/rechazo (HU-23).
+- **`curso.completado_por_participante`**: felicitación al participante y aviso al docente.
+- **`habilidad.otorgada`**: notificación de logro al participante.
+- **`curso.creado` / `curso.eliminado`**: avisos a administradores y docentes.
+- **`ficha.creada` / `ficha.actualizada`**: aviso a administradores y voluntarios responsables.
+- **`hito.registrado` / `hito.actualizado`**: aviso a administradores y responsable del hito (prioritario si el hito es crítico).
+- **`participante.eliminado`**: alerta de archivo/baja a administradores y voluntarios.
 
-- **`inscripcion.creada` → email de confirmación (HU-26, HU-60).** El
-  payload no trae email ni nombre: Notificaciones resuelve el email del
-  participante con `participante_id` contra Autenticación, y el título
-  del curso con `curso_id` contra Educación (`GET /api/cursos/{id}`).
-- **`contenido_docente.subido`** → avisarle a la administración que hay
-  un curso o un material para revisar.
-- **`contenido_docente.moderado`** → avisarle al docente el resultado.
-  Con `tipo: "material"` (ContenidoDocente, desde 2026-10-22) el evento
-  trae `docente_id`; si es un curso, `docente_id` sale del curso.
-- Los mensajes que se publiquen **antes** de que exista esa suscripción
-  no le van a llegar: Pub/Sub solo entrega a suscripciones existentes.
-  Hay que crearla antes de habilitar el envío de emails.
+El servicio aplica idempotencia en Postgres (`eventos_procesados`), resolución de destinatarios por roles (`GetActiveUserIDsByRoles`) o participante (`GetParticipant`) vía gRPC hacia Autenticación, persist-first atómico y despacho en segundo plano (`Worker`) con reintentos exponenciales y DLQ (`delivery_status = 'dead'`).
 
-## 5. Autenticación e Inserción Laboral: lo que encontré y lo que falta
+## 5. Autenticación e Inserción Laboral: integración con Outbox
 
-**Resultado de la revisión (2026-10-16): ninguno de los dos servicios
-publica eventos en Pub/Sub.** No hay cliente de Pub/Sub, ni topics, ni
-nombres de evento en `auth/` ni en `labor-integration/`. No había nada
-para reutilizar. Como pediste, no agregué nada en su código. Estos son
-los cuatro eventos que faltan, para coordinar con quien los mantiene:
+Ambos servicios publican sus eventos de dominio mediante el patrón Outbox garantizando no pérdida:
 
-| Evento | Servicio | Dónde publicarlo | Payload |
+| Evento | Servicio | Dónde se publica | Payload |
 |---|---|---|---|
-| `usuarios.participante.creado` | Autenticación | `auth/internal/services/participant_service.go`, `CreateParticipant` (línea ~66), después de crear el participante | `{"participante_id","user_id"}` |
-| `usuarios.participante.eliminado` | Autenticación | `participant_service.go`, `DeleteParticipant` (~209), y `user_service.go`, `DeleteUser` (~163) cuando el usuario es participante | `{"participante_id","user_id"}` |
-| `usuarios.usuario.actualizado` | Autenticación | `user_service.go`, `UpdateUser` (~118), y `participant_service.go`, `UpdateParticipant` (~183), cuando cambia `status` o `approval_status` | `{"user_id","role_id","participante_id","status","approval_status"}` |
-| `insercion_laboral.postulacion.seleccionada` | Inserción Laboral | `labor-integration/internal/services/job_application_service.go`, `UpdateStatus` (~63), cuando el estado nuevo es "aceptado"/"seleccionado"/"contratado" (mismo criterio que `MapPostulacion` en Dashboard) y el anterior no | `{"postulacion_id","oferta_id","participante_id","empresa_id"}` |
+| `usuarios.participante.creado` | Autenticación | `auth/internal/services/participant_service.go`, `CreateParticipant`, tras crear el participante | `{"participante_id","user_id"}` |
+| `usuarios.participante.eliminado` | Autenticación | `participant_service.go`, `DeleteParticipant`, y `user_service.go`, `DeleteUser` cuando el usuario es participante | `{"participante_id","user_id"}` |
+| `usuarios.usuario.actualizado` | Autenticación | `user_service.go`, `UpdateUser`, y `participant_service.go`, `UpdateParticipant`, cuando cambia `status` o `approval_status` | `{"user_id","role_id","participante_id","status","approval_status"}` |
+| `insercion_laboral.postulacion.seleccionada` | Inserción Laboral | `labor-integration/internal/services/job_application_service.go`, `UpdateStatus`, cuando el estado nuevo es "aceptado"/"seleccionado"/"contratado" (mismo criterio que `MapPostulacion` en Dashboard) y el anterior no | `{"postulacion_id","oferta_id","participante_id","empresa_id"}` |
 
-Cómo publicarlos sin perder eventos:
+Cómo se publican sin perder eventos:
 
-- **Autenticación (Postgres/GORM)** ya tiene un outbox propio:
-  `models.StorageCleanupTask` y `storage_cleanup_worker.go`. Lo natural
-  es una tabla `outbox_eventos` con la misma idea, escrita en la misma
-  transacción GORM que el cambio, y un worker que publique con
-  `cloud.google.com/go/pubsub/v2`. El envelope y los atributos tienen que
-  ser los de la sección 3. `pkg/events` se puede copiar tal cual, porque
-  no tiene dependencias.
-- **Inserción Laboral (Firestore)** puede usar `pkg/events` + `pkg/outbox`
-  exactamente igual que Educación: agregarla a `TARGETS` en
-  `scripts/sync-eventlib.sh`.
-- `usuarios-eventos` y `insercion-laboral-eventos` ya los crea
-  `infra/pubsub/setup.sh`. Para darles permiso de publicar alcanza con
-  pasar `AUTH_SA` / `LABOR_SA` al script.
+- **Autenticación (Postgres/GORM)** utiliza la tabla `outbox_events` escrita en la misma transacción que los cambios de usuario/participante, y un worker en segundo plano (`OutboxWorker`) que publica en `usuarios-eventos` con `cloud.google.com/go/pubsub/v2`.
+- **Inserción Laboral (Firestore)** utiliza `internal/outbox` (`Writer` en la colección `outbox_eventos` y `Relay` en segundo plano) publicando en `insercion-laboral-eventos`.
+- `usuarios-eventos` e `insercion-laboral-eventos` están provisionados en `infra/pubsub/setup.sh` y `infra/pubsub/emulator.sh`.
 
 ## 6. Diferencias de formato con lo que ya existía
 

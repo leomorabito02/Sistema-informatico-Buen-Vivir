@@ -19,6 +19,36 @@ type mockAuthServiceClient struct {
 	checkEmailVerifiedErr    error
 	userContact              *authpb.GetUserContactResponse
 	getUserContactErr        error
+	activeUserIDs            []string
+	getActiveUserIDsErr      error
+	participantUserID        string
+	getParticipantErr        error
+	actionURL                string
+	issueActionLinkErr       error
+}
+
+func (m *mockAuthServiceClient) IssueActionLink(ctx context.Context, in *authpb.IssueActionLinkRequest, opts ...grpc.CallOption) (*authpb.IssueActionLinkResponse, error) {
+	if m.issueActionLinkErr != nil {
+		return nil, m.issueActionLinkErr
+	}
+	if m.actionURL != "" {
+		return &authpb.IssueActionLinkResponse{ActionUrl: m.actionURL}, nil
+	}
+	return &authpb.IssueActionLinkResponse{ActionUrl: "https://ceibuenvivir.org/action"}, nil
+}
+
+func (m *mockAuthServiceClient) GetParticipant(ctx context.Context, in *authpb.GetParticipantRequest, opts ...grpc.CallOption) (*authpb.GetParticipantResponse, error) {
+	if m.getParticipantErr != nil {
+		return nil, m.getParticipantErr
+	}
+	return &authpb.GetParticipantResponse{Id: in.ParticipantId, UserId: m.participantUserID}, nil
+}
+
+func (m *mockAuthServiceClient) GetActiveUserIDsByRoles(ctx context.Context, in *authpb.GetActiveUserIDsByRolesRequest, opts ...grpc.CallOption) (*authpb.GetActiveUserIDsByRolesResponse, error) {
+	if m.getActiveUserIDsErr != nil {
+		return nil, m.getActiveUserIDsErr
+	}
+	return &authpb.GetActiveUserIDsByRolesResponse{UserIds: m.activeUserIDs}, nil
 }
 
 func (m *mockAuthServiceClient) GetUserDeviceTokens(ctx context.Context, in *authpb.GetUserDeviceTokensRequest, opts ...grpc.CallOption) (*authpb.GetUserDeviceTokensResponse, error) {
@@ -33,10 +63,6 @@ func (m *mockAuthServiceClient) RevokeDeviceTokens(ctx context.Context, in *auth
 		return nil, m.revokeErr
 	}
 	return &authpb.RevokeDeviceTokensResponse{RevokedCount: int32(len(in.Tokens))}, nil
-}
-
-func (m *mockAuthServiceClient) GetParticipant(ctx context.Context, in *authpb.GetParticipantRequest, opts ...grpc.CallOption) (*authpb.GetParticipantResponse, error) {
-	return nil, nil
 }
 
 func (m *mockAuthServiceClient) GetParticipantProfile(ctx context.Context, in *authpb.GetParticipantProfileRequest, opts ...grpc.CallOption) (*authpb.ParticipantProfile, error) {
@@ -259,6 +285,94 @@ func TestAuthClient_GetUserContact(t *testing.T) {
 		_, err := client.GetUserContact(context.Background(), "usr-10")
 		if err == nil {
 			t.Fatal("expected error from GetUserContact, got nil")
+		}
+	})
+}
+
+func TestAuthClient_GetActiveUserIDsByRoles(t *testing.T) {
+	t.Run("EmptyRoles", func(t *testing.T) {
+		client := NewAuthClientWithService(&mockAuthServiceClient{})
+		res, err := client.GetActiveUserIDsByRoles(context.Background(), nil)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if len(res) != 0 {
+			t.Fatalf("expected 0 user IDs, got %d", len(res))
+		}
+	})
+
+	t.Run("Success", func(t *testing.T) {
+		mockService := &mockAuthServiceClient{
+			activeUserIDs: []string{"usr-admin-1", "usr-admin-2"},
+		}
+		client := NewAuthClientWithService(mockService)
+		res, err := client.GetActiveUserIDsByRoles(context.Background(), []string{"role_admin"})
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if len(res) != 2 || res[0] != "usr-admin-1" {
+			t.Fatalf("unexpected response: %v", res)
+		}
+	})
+
+	t.Run("RPCError", func(t *testing.T) {
+		mockService := &mockAuthServiceClient{
+			getActiveUserIDsErr: errors.New("connection refused"),
+		}
+		client := NewAuthClientWithService(mockService)
+		_, err := client.GetActiveUserIDsByRoles(context.Background(), []string{"role_admin"})
+		if err == nil {
+			t.Fatal("expected error, got nil")
+		}
+	})
+}
+
+func TestAuthClient_GetParticipantUserID(t *testing.T) {
+	t.Run("EmptyParticipantID", func(t *testing.T) {
+		client := NewAuthClientWithService(&mockAuthServiceClient{})
+		_, err := client.GetParticipantUserID(context.Background(), "")
+		if err == nil {
+			t.Fatal("expected error on empty participantID")
+		}
+	})
+
+	t.Run("Success", func(t *testing.T) {
+		client := NewAuthClientWithService(&mockAuthServiceClient{participantUserID: "usr-participant-10"})
+		uid, err := client.GetParticipantUserID(context.Background(), "part-99")
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if uid != "usr-participant-10" {
+			t.Errorf("expected usr-participant-10, got %s", uid)
+		}
+	})
+
+	t.Run("RPCError", func(t *testing.T) {
+		client := NewAuthClientWithService(&mockAuthServiceClient{getParticipantErr: errors.New("participant not found")})
+		_, err := client.GetParticipantUserID(context.Background(), "part-99")
+		if err == nil {
+			t.Fatal("expected error from GetParticipantUserID, got nil")
+		}
+	})
+}
+
+func TestAuthClient_IssueActionLink(t *testing.T) {
+	t.Run("Success", func(t *testing.T) {
+		client := NewAuthClientWithService(&mockAuthServiceClient{actionURL: "https://ceibuenvivir.org/verify?token=xyz"})
+		link, err := client.IssueActionLink(context.Background(), "req-1", "usr-1", "verificacion")
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if link != "https://ceibuenvivir.org/verify?token=xyz" {
+			t.Errorf("expected link https://ceibuenvivir.org/verify?token=xyz, got %s", link)
+		}
+	})
+
+	t.Run("Error", func(t *testing.T) {
+		client := NewAuthClientWithService(&mockAuthServiceClient{issueActionLinkErr: errors.New("rpc failed")})
+		_, err := client.IssueActionLink(context.Background(), "req-1", "usr-1", "verificacion")
+		if err == nil {
+			t.Fatal("expected error, got nil")
 		}
 	})
 }

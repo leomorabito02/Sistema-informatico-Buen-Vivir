@@ -6,6 +6,8 @@ import (
 	"time"
 
 	"auth/internal/dto"
+	"auth/internal/events"
+	"auth/internal/events/producers"
 	"auth/internal/middlewares"
 	"auth/internal/models"
 	"auth/internal/repositories"
@@ -34,6 +36,7 @@ type participantService struct {
 	docRepo         repositories.ParticipantDocumentRepository
 	storage         storage.ObjectStorageService
 	cleanupRepo     repositories.StorageCleanupRepository
+	producer        producers.UsuariosProducer
 }
 
 func NewParticipantService(
@@ -44,6 +47,7 @@ func NewParticipantService(
 ) ParticipantService {
 	var userRepo repositories.UserRepository
 	var cleanupRepo repositories.StorageCleanupRepository
+	var producer producers.UsuariosProducer
 
 	for _, opt := range opts {
 		switch v := opt.(type) {
@@ -51,6 +55,8 @@ func NewParticipantService(
 			userRepo = v
 		case repositories.StorageCleanupRepository:
 			cleanupRepo = v
+		case producers.UsuariosProducer:
+			producer = v
 		}
 	}
 
@@ -60,6 +66,7 @@ func NewParticipantService(
 		storage:         storage,
 		userRepo:        userRepo,
 		cleanupRepo:     cleanupRepo,
+		producer:        producer,
 	}
 }
 
@@ -90,6 +97,10 @@ func (s *participantService) CreateParticipant(ctx context.Context, req *dto.Cre
 
 	if err := s.participantRepo.Create(ctx, participant); err != nil {
 		return nil, err
+	}
+
+	if s.producer != nil {
+		_ = s.producer.ParticipanteCreado(ctx, participant.ParticipantID, participant.UserID)
 	}
 
 	NewKVSyncService(s.userRepo).SyncImpactStatsAsync()
@@ -195,10 +206,21 @@ func (s *participantService) UpdateParticipant(ctx context.Context, id string, r
 		return nil, err
 	}
 
+	oldStatus := participant.ApprovalStatus
 	applyUpdates(ctx, participant, req)
 
 	if err := s.participantRepo.Update(ctx, participant); err != nil {
 		return nil, err
+	}
+
+	if s.producer != nil && oldStatus != participant.ApprovalStatus {
+		_ = s.producer.UsuarioActualizado(ctx, events.UsuarioActualizadoPayload{
+			UserID:         participant.UserID,
+			RoleID:         "role_participant",
+			ParticipanteID: participant.ParticipantID,
+			Status:         "active",
+			ApprovalStatus: participant.ApprovalStatus,
+		})
 	}
 
 	NewKVSyncService(s.userRepo).SyncImpactStatsAsync()
@@ -222,6 +244,10 @@ func (s *participantService) DeleteParticipant(ctx context.Context, id string) e
 
 	if err := s.participantRepo.Delete(ctx, id); err != nil {
 		return err
+	}
+
+	if s.producer != nil {
+		_ = s.producer.ParticipanteEliminado(ctx, participant.ParticipantID, participant.UserID)
 	}
 
 	NewKVSyncService(s.userRepo).SyncImpactStatsAsync()

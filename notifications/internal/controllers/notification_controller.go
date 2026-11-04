@@ -26,25 +26,6 @@ func NewNotificationController(service services.NotificationService) *Notificati
 	return &NotificationController{service: service}
 }
 
-// IngestNotification handles internal HTTP ingestion of notifications.
-func (c *NotificationController) IngestNotification(w http.ResponseWriter, r *http.Request) {
-	var req dto.SendNotificationRequestDTO
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		c.respondError(w, http.StatusBadRequest, errInvalidRequestBody)
-		return
-	}
-	id, count, err := c.service.IngestNotification(r.Context(), req)
-	if err != nil {
-		c.respondError(w, http.StatusInternalServerError, err.Error())
-		return
-	}
-	c.respondJSON(w, http.StatusCreated, map[string]interface{}{
-		"notification_id":  id,
-		"recipients_count": count,
-		"status":           "created",
-	})
-}
-
 // GetNotifications returns the paginated list of notifications for the authenticated user.
 func (c *NotificationController) GetNotifications(w http.ResponseWriter, r *http.Request) {
 	userID, err := middlewares.GetUserID(r.Context())

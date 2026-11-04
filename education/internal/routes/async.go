@@ -18,9 +18,10 @@ type AsyncEndpoints struct {
 	// Usuarios y Contenido son las suscripciones push de Pub/Sub; y
 	// OutboxFlush, el barrido del outbox que dispara Cloud Scheduler.
 	// Los tres se autentican con el token OIDC de Google.
-	Usuarios    http.Handler
-	Contenido   http.Handler
-	OutboxFlush http.Handler
+	Usuarios         http.Handler
+	Contenido        http.Handler
+	OutboxFlush      http.Handler
+	RemindersTrigger http.Handler
 }
 
 // WithAsync arma el handler raíz del servicio. Los endpoints asíncronos
@@ -39,6 +40,7 @@ func WithAsync(api http.Handler, a AsyncEndpoints) http.Handler {
 	mount("POST /eventos/usuarios", a.Usuarios)
 	mount("POST /eventos/contenido", a.Contenido)
 	mount("POST /internal/outbox/flush", a.OutboxFlush)
+	mount("POST /internal/reminders/trigger", a.RemindersTrigger)
 	mux.Handle("/", api)
 	return events.CorrelationMiddleware(mux)
 }

@@ -21,6 +21,9 @@ type NotificationRecipient struct {
 	EmailMessageID *string        `gorm:"size:128" json:"email_message_id,omitempty"`
 	PushMessageID  *string        `gorm:"size:128" json:"push_message_id,omitempty"`
 	ErrorMessage   *string        `gorm:"type:text" json:"error_message,omitempty"`
+	Attempts       int            `gorm:"default:0" json:"attempts"`
+	NextAttemptAt  *time.Time     `gorm:"index" json:"next_attempt_at,omitempty"`
+	DedupeKey      string         `gorm:"size:128;index" json:"dedupe_key,omitempty"`
 
 	Notification *Notification `gorm:"foreignKey:NotificationID" json:"notification,omitempty"`
 

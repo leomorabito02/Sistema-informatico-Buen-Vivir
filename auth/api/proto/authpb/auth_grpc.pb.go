@@ -2,7 +2,7 @@
 // versions:
 // - protoc-gen-go-grpc v1.6.2
 // - protoc             v4.25.1
-// source: api/proto/auth.proto
+// source: auth.proto
 
 package authpb
 
@@ -30,6 +30,7 @@ const (
 	AuthService_CheckUserEmailVerified_FullMethodName  = "/auth.AuthService/CheckUserEmailVerified"
 	AuthService_GetUserContact_FullMethodName          = "/auth.AuthService/GetUserContact"
 	AuthService_GetActiveUserIDsByRoles_FullMethodName = "/auth.AuthService/GetActiveUserIDsByRoles"
+	AuthService_IssueActionLink_FullMethodName         = "/auth.AuthService/IssueActionLink"
 )
 
 // AuthServiceClient is the client API for AuthService service.
@@ -53,6 +54,7 @@ type AuthServiceClient interface {
 	CheckUserEmailVerified(ctx context.Context, in *CheckUserEmailVerifiedRequest, opts ...grpc.CallOption) (*CheckUserEmailVerifiedResponse, error)
 	GetUserContact(ctx context.Context, in *GetUserContactRequest, opts ...grpc.CallOption) (*GetUserContactResponse, error)
 	GetActiveUserIDsByRoles(ctx context.Context, in *GetActiveUserIDsByRolesRequest, opts ...grpc.CallOption) (*GetActiveUserIDsByRolesResponse, error)
+	IssueActionLink(ctx context.Context, in *IssueActionLinkRequest, opts ...grpc.CallOption) (*IssueActionLinkResponse, error)
 }
 
 type authServiceClient struct {
@@ -173,6 +175,16 @@ func (c *authServiceClient) GetActiveUserIDsByRoles(ctx context.Context, in *Get
 	return out, nil
 }
 
+func (c *authServiceClient) IssueActionLink(ctx context.Context, in *IssueActionLinkRequest, opts ...grpc.CallOption) (*IssueActionLinkResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(IssueActionLinkResponse)
+	err := c.cc.Invoke(ctx, AuthService_IssueActionLink_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // AuthServiceServer is the server API for AuthService service.
 // All implementations must embed UnimplementedAuthServiceServer
 // for forward compatibility.
@@ -194,6 +206,7 @@ type AuthServiceServer interface {
 	CheckUserEmailVerified(context.Context, *CheckUserEmailVerifiedRequest) (*CheckUserEmailVerifiedResponse, error)
 	GetUserContact(context.Context, *GetUserContactRequest) (*GetUserContactResponse, error)
 	GetActiveUserIDsByRoles(context.Context, *GetActiveUserIDsByRolesRequest) (*GetActiveUserIDsByRolesResponse, error)
+	IssueActionLink(context.Context, *IssueActionLinkRequest) (*IssueActionLinkResponse, error)
 	mustEmbedUnimplementedAuthServiceServer()
 }
 
@@ -236,6 +249,9 @@ func (UnimplementedAuthServiceServer) GetUserContact(context.Context, *GetUserCo
 }
 func (UnimplementedAuthServiceServer) GetActiveUserIDsByRoles(context.Context, *GetActiveUserIDsByRolesRequest) (*GetActiveUserIDsByRolesResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method GetActiveUserIDsByRoles not implemented")
+}
+func (UnimplementedAuthServiceServer) IssueActionLink(context.Context, *IssueActionLinkRequest) (*IssueActionLinkResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method IssueActionLink not implemented")
 }
 func (UnimplementedAuthServiceServer) mustEmbedUnimplementedAuthServiceServer() {}
 func (UnimplementedAuthServiceServer) testEmbeddedByValue()                     {}
@@ -456,6 +472,24 @@ func _AuthService_GetActiveUserIDsByRoles_Handler(srv interface{}, ctx context.C
 	return interceptor(ctx, in, info, handler)
 }
 
+func _AuthService_IssueActionLink_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(IssueActionLinkRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AuthServiceServer).IssueActionLink(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AuthService_IssueActionLink_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AuthServiceServer).IssueActionLink(ctx, req.(*IssueActionLinkRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // AuthService_ServiceDesc is the grpc.ServiceDesc for AuthService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -507,7 +541,11 @@ var AuthService_ServiceDesc = grpc.ServiceDesc{
 			MethodName: "GetActiveUserIDsByRoles",
 			Handler:    _AuthService_GetActiveUserIDsByRoles_Handler,
 		},
+		{
+			MethodName: "IssueActionLink",
+			Handler:    _AuthService_IssueActionLink_Handler,
+		},
 	},
 	Streams:  []grpc.StreamDesc{},
-	Metadata: "api/proto/auth.proto",
+	Metadata: "auth.proto",
 }

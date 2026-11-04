@@ -4,6 +4,7 @@ go 1.26.0
 
 require (
 	cloud.google.com/go/firestore v1.22.0
+	cloud.google.com/go/pubsub/v2 v2.6.0
 	cloud.google.com/go/storage v1.62.1
 	firebase.google.com/go/v4 v4.21.0
 	github.com/DATA-DOG/go-sqlmock v1.5.2
@@ -62,6 +63,7 @@ require (
 	github.com/spiffe/go-spiffe/v2 v2.7.0 // indirect
 	github.com/stretchr/objx v0.5.3 // indirect
 	github.com/zeebo/xxh3 v1.0.2 // indirect
+	go.opencensus.io v0.24.0 // indirect
 	go.opentelemetry.io/auto/sdk v1.2.1 // indirect
 	go.opentelemetry.io/contrib/detectors/gcp v1.44.0 // indirect
 	go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc v0.68.0 // indirect

@@ -6,9 +6,10 @@ type NotificationCategory string
 const (
 	CategorySecurity  NotificationCategory = "security"
 	CategoryEducation NotificationCategory = "education"
-	CategoryLabor     NotificationCategory = "labor"
-	CategoryCampaigns NotificationCategory = "campaigns"
-	CategorySystem    NotificationCategory = "system"
+	CategoryLabor          NotificationCategory = "labor"
+	CategoryCampaigns      NotificationCategory = "campaigns"
+	CategoryHumanPromotion NotificationCategory = "human_promotion"
+	CategorySystem         NotificationCategory = "system"
 )
 
 // NotificationPriority defines delivery urgency.
@@ -45,6 +46,7 @@ const (
 	DeliveryStatusPending      DeliveryStatus = "pending"
 	DeliveryStatusSent         DeliveryStatus = "sent"
 	DeliveryStatusFailed       DeliveryStatus = "failed"
+	DeliveryStatusDead         DeliveryStatus = "dead"
 	DeliveryStatusSkipped      DeliveryStatus = "skipped"
 	DeliveryStatusNotRequested DeliveryStatus = "not_requested"
 )
