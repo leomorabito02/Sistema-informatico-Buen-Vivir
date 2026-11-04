@@ -144,7 +144,6 @@ export class MiPerfilComponent implements OnInit {
     const controls: any = {
       email: [user.email || "", [Validators.required, Validators.email]],
       phone: [user.phone || ""],
-      image_url: [user.image_url || roleData["image_url"] || ""],
     };
 
     const role = user.role_id;
@@ -154,6 +153,7 @@ export class MiPerfilComponent implements OnInit {
         controls["business_name"] = [roleData["business_name"] || ""];
       }
     } else if (role === "role_participant") {
+      controls["image_url"] = [user.image_url || roleData["image_url"] || ""];
       controls["emergency_contact_name"] = [
         roleData["emergency_contact_name"] || "",
       ];

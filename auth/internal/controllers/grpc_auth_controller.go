@@ -251,3 +251,15 @@ func (c *GrpcAuthController) GetUserContact(ctx context.Context, req *authpb.Get
 	}, nil
 }
 
+func (c *GrpcAuthController) GetActiveUserIDsByRoles(ctx context.Context, req *authpb.GetActiveUserIDsByRolesRequest) (*authpb.GetActiveUserIDsByRolesResponse, error) {
+	if req == nil || len(req.RoleIds) == 0 {
+		return nil, status.Error(codes.InvalidArgument, "role_ids cannot be empty")
+	}
+	ids, err := c.userService.GetActiveUserIDsByRoles(serviceCtx(ctx), req.RoleIds)
+	if err != nil {
+		return nil, status.Error(codes.Internal, err.Error())
+	}
+	return &authpb.GetActiveUserIDsByRolesResponse{UserIds: ids}, nil
+}
+
+

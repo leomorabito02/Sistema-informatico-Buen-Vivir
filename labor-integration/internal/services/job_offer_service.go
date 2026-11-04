@@ -11,13 +11,40 @@ import (
 )
 
 type JobOfferService struct {
-	repo       repositories.JobOfferRepository
-	appRepo    repositories.JobApplicationRepository
-	authClient repositories.AuthServiceClient
+	repo         repositories.JobOfferRepository
+	appRepo      repositories.JobApplicationRepository
+	authClient   repositories.AuthServiceClient
+	dispatcher   NotificationDispatcher
+	syncDispatch bool
 }
 
-func NewJobOfferService(repo repositories.JobOfferRepository, appRepo repositories.JobApplicationRepository, authClient repositories.AuthServiceClient) *JobOfferService {
-	return &JobOfferService{repo: repo, appRepo: appRepo, authClient: authClient}
+type JobOfferServiceOption func(*JobOfferService)
+
+// WithOfferDispatcher configures a custom NotificationDispatcher for JobOfferService.
+func WithOfferDispatcher(dispatcher NotificationDispatcher) JobOfferServiceOption {
+	return func(s *JobOfferService) {
+		s.dispatcher = dispatcher
+	}
+}
+
+// WithOfferSyncDispatch controls whether notifications are dispatched synchronously (e.g. for testing).
+func WithOfferSyncDispatch(sync bool) JobOfferServiceOption {
+	return func(s *JobOfferService) {
+		s.syncDispatch = sync
+	}
+}
+
+func NewJobOfferService(repo repositories.JobOfferRepository, appRepo repositories.JobApplicationRepository, authClient repositories.AuthServiceClient, opts ...JobOfferServiceOption) *JobOfferService {
+	s := &JobOfferService{
+		repo:       repo,
+		appRepo:    appRepo,
+		authClient: authClient,
+		dispatcher: NewNoopNotificationDispatcher(),
+	}
+	for _, opt := range opts {
+		opt(s)
+	}
+	return s
 }
 
 func (s *JobOfferService) CreateOffer(ctx context.Context, offer *models.JobOffer, role string, userID string) error {
@@ -43,11 +70,26 @@ func (s *JobOfferService) CreateOffer(ctx context.Context, offer *models.JobOffe
 	if role == "role_admin" || role == "role_volunteer" {
 		offer.Status = "Activa"
 		offer.ApprovedBy = userID
+		if offer.CompanyID == "" {
+			offer.CompanyID = userID
+		}
 	} else {
 		offer.Status = "Pendiente"
 	}
 	
-	return s.repo.Create(ctx, offer)
+	if err := s.repo.Create(ctx, offer); err != nil {
+		return err
+	}
+
+	if s.dispatcher != nil {
+		if s.syncDispatch {
+			s.dispatcher.OfferCreated(ctx, offer, userID)
+		} else {
+			go s.dispatcher.OfferCreated(context.Background(), offer, userID)
+		}
+	}
+
+	return nil
 }
 
 func (s *JobOfferService) ListOffers(ctx context.Context, companyID string, role string) ([]*models.JobOffer, error) {
@@ -125,9 +167,35 @@ func (s *JobOfferService) DeleteOffer(ctx context.Context, id string) error {
 }
 
 func (s *JobOfferService) ApproveOffer(ctx context.Context, id string, approvedBy string) error {
-	return s.repo.UpdateStatusAndApprover(ctx, id, "Activa", approvedBy)
+	if err := s.repo.UpdateStatusAndApprover(ctx, id, "Activa", approvedBy); err != nil {
+		return err
+	}
+	if s.dispatcher != nil {
+		offer, err := s.repo.GetByID(ctx, id)
+		if err == nil && offer != nil {
+			if s.syncDispatch {
+				s.dispatcher.OfferReviewed(ctx, offer, true)
+			} else {
+				go s.dispatcher.OfferReviewed(context.Background(), offer, true)
+			}
+		}
+	}
+	return nil
 }
 
 func (s *JobOfferService) RejectOffer(ctx context.Context, id string, approvedBy string) error {
-	return s.repo.UpdateStatusAndApprover(ctx, id, "Rechazada", approvedBy)
+	if err := s.repo.UpdateStatusAndApprover(ctx, id, "Rechazada", approvedBy); err != nil {
+		return err
+	}
+	if s.dispatcher != nil {
+		offer, err := s.repo.GetByID(ctx, id)
+		if err == nil && offer != nil {
+			if s.syncDispatch {
+				s.dispatcher.OfferReviewed(ctx, offer, false)
+			} else {
+				go s.dispatcher.OfferReviewed(context.Background(), offer, false)
+			}
+		}
+	}
+	return nil
 }

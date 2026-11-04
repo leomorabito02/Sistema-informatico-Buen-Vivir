@@ -24,6 +24,16 @@ func (s *authService) UpdateMyProfile(ctx context.Context, roleID, userID string
 		updateBaseUser = true
 		delete(data, "phone")
 	}
+	if firstName, ok := data["first_name"].(string); ok && firstName != "" {
+		user.FirstName = firstName
+		updateBaseUser = true
+		delete(data, "first_name")
+	}
+	if lastName, ok := data["last_name"].(string); ok && lastName != "" {
+		user.LastName = lastName
+		updateBaseUser = true
+		delete(data, "last_name")
+	}
 
 	if updateBaseUser {
 		if err := s.userRepo.Update(ctx, user); err != nil {
@@ -32,15 +42,35 @@ func (s *authService) UpdateMyProfile(ctx context.Context, roleID, userID string
 	}
 
 	var tableName string
+	var allowedFields map[string]bool
 	switch roleID {
 	case "role_participant":
 		tableName = "participants"
+		allowedFields = map[string]bool{
+			"birthdate":               true,
+			"dni":                     true,
+			"address":                 true,
+			"gender":                  true,
+			"image_url":               true,
+			"doc_url":                 true,
+			"emergency_contact_name":  true,
+			"emergency_contact_phone": true,
+		}
 	case "role_company":
 		tableName = "companies"
+		allowedFields = map[string]bool{
+			"business_name": true,
+			"cuit":          true,
+		}
 	case "role_teacher":
 		tableName = "teachers"
+		allowedFields = map[string]bool{
+			"specialization": true,
+			"is_external":    true,
+		}
 	case "role_volunteer":
 		tableName = "volunteers"
+		allowedFields = map[string]bool{}
 	default:
 		if len(data) > 0 {
 			return errors.New("rol no soporta perfil extra o es inválido")
@@ -48,23 +78,18 @@ func (s *authService) UpdateMyProfile(ctx context.Context, roleID, userID string
 		return nil
 	}
 
-	// Remove unupdatable fields just in case
-	delete(data, "user_id")
-	delete(data, "approval_status") // security: they shouldn't auto-approve themselves
-	delete(data, "approval_date")
-	delete(data, "approved_by")
-	delete(data, "created_at")
-	delete(data, "updated_at")
-	delete(data, "participant_id")
-	delete(data, "company_id")
-	delete(data, "teacher_id")
-	delete(data, "volunteer_id")
+	roleUpdateData := make(map[string]interface{})
+	for k, v := range data {
+		if allowedFields[k] {
+			roleUpdateData[k] = v
+		}
+	}
 
-	if len(data) == 0 {
+	if len(roleUpdateData) == 0 {
 		return nil // nothing to update
 	}
 
-	err = s.querier.UpdateRoleData(ctx, tableName, userID, data)
+	err = s.querier.UpdateRoleData(ctx, tableName, userID, roleUpdateData)
 	if err != nil {
 		return fmt.Errorf("error actualizando perfil: %w", err)
 	}

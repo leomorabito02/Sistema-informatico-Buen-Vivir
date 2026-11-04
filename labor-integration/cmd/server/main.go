@@ -39,9 +39,34 @@ func main() {
 	jobOfferRepo := repositories.NewJobOfferRepository(firestoreClient)
 	jobApplicationRepo := repositories.NewJobApplicationRepository(firestoreClient)
 
+	// Configuration
+	cfg := config.LoadConfig()
+
+	// Notification Dispatcher
+	var notificationDispatcher services.NotificationDispatcher
+	if cfg.NotificationsServiceURL != "" {
+		notificationDispatcher = services.NewHTTPNotificationDispatcher(
+			cfg.NotificationsServiceURL,
+			cfg.InternalHMACSecret,
+			authServiceClient,
+		)
+	} else {
+		notificationDispatcher = services.NewNoopNotificationDispatcher()
+	}
+
 	// Services
-	jobOfferService := services.NewJobOfferService(jobOfferRepo, jobApplicationRepo, authServiceClient)
-	jobApplicationService := services.NewJobApplicationService(jobApplicationRepo, jobOfferRepo, authServiceClient)
+	jobOfferService := services.NewJobOfferService(
+		jobOfferRepo,
+		jobApplicationRepo,
+		authServiceClient,
+		services.WithOfferDispatcher(notificationDispatcher),
+	)
+	jobApplicationService := services.NewJobApplicationService(
+		jobApplicationRepo,
+		jobOfferRepo,
+		authServiceClient,
+		services.WithApplicationDispatcher(notificationDispatcher),
+	)
 
 	// Controllers
 	jobOfferController := controllers.NewJobOfferController(jobOfferService)

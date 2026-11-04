@@ -133,6 +133,14 @@ func (m *MockUserRepository) FindCampaignEligibleUsers(ctx context.Context) ([]r
 	return args.Get(0).([]repositories.CampaignEligibleUser), args.Error(1)
 }
 
+func (m *MockUserRepository) FindActiveUserIDsByRoles(ctx context.Context, roles []string) ([]string, error) {
+	args := m.Called(ctx, roles)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).([]string), args.Error(1)
+}
+
 func TestUserService_GetUserByID_AdminSuccess(t *testing.T) {
 	// Arrange
 	mockRepo := new(MockUserRepository)

@@ -353,3 +353,83 @@ func TestAuthService_UnlinkGoogleAccount_Success(t *testing.T) {
 	err := svc.UnlinkGoogleAccount(context.Background(), "u1")
 	assert.NoError(t, err)
 }
+
+func TestAuthService_UpdateMyProfile_Volunteer(t *testing.T) {
+	mockUserRepo := new(MockUserRepository)
+	mockQuerier := new(MockRoleProfileQuerier)
+	svc := services.NewAuthService(nil, mockQuerier, mockUserRepo, nil, nil, nil)
+
+	user := &models.User{UserID: "vol-1", Email: "old@test.com", Phone: "111"}
+	mockUserRepo.On("FindByID", mock.Anything, "vol-1").Return(user, nil)
+	mockUserRepo.On("Update", mock.Anything, mock.MatchedBy(func(u *models.User) bool {
+		return u.Email == "new@test.com" && u.Phone == "222"
+	})).Return(nil)
+
+	// Volunteer sending email, phone and image_url (which is not a volunteer column)
+	data := map[string]interface{}{
+		"email":     "new@test.com",
+		"phone":     "222",
+		"image_url": "",
+	}
+
+	err := svc.UpdateMyProfile(context.Background(), "role_volunteer", "vol-1", data)
+	assert.NoError(t, err)
+	mockUserRepo.AssertExpectations(t)
+	// UpdateRoleData should NOT be called because volunteers table has no extra columns
+	mockQuerier.AssertNotCalled(t, "UpdateRoleData", mock.Anything, mock.Anything, mock.Anything, mock.Anything)
+}
+
+func TestAuthService_UpdateMyProfile_Company_StripsImageUrl(t *testing.T) {
+	mockUserRepo := new(MockUserRepository)
+	mockQuerier := new(MockRoleProfileQuerier)
+	svc := services.NewAuthService(nil, mockQuerier, mockUserRepo, nil, nil, nil)
+
+	user := &models.User{UserID: "comp-1", Email: "empresa@test.com"}
+	mockUserRepo.On("FindByID", mock.Anything, "comp-1").Return(user, nil)
+	mockUserRepo.On("Update", mock.Anything, mock.MatchedBy(func(u *models.User) bool {
+		return u.Email == "new@acme.com"
+	})).Return(nil)
+
+	// Company sending email, business_name, cuit, and image_url from form
+	data := map[string]interface{}{
+		"email":         "new@acme.com",
+		"business_name": "Acme Inc",
+		"cuit":          "30-12345678-9",
+		"image_url":     "",
+	}
+
+	mockQuerier.On("UpdateRoleData", mock.Anything, "companies", "comp-1", map[string]interface{}{
+		"business_name": "Acme Inc",
+		"cuit":          "30-12345678-9",
+	}).Return(nil)
+
+	err := svc.UpdateMyProfile(context.Background(), "role_company", "comp-1", data)
+	assert.NoError(t, err)
+	mockUserRepo.AssertExpectations(t)
+	mockQuerier.AssertExpectations(t)
+}
+
+func TestAuthService_UpdateMyProfile_Participant_AllowsImageUrlAndStripsPrivilegedFields(t *testing.T) {
+	mockUserRepo := new(MockUserRepository)
+	mockQuerier := new(MockRoleProfileQuerier)
+	svc := services.NewAuthService(nil, mockQuerier, mockUserRepo, nil, nil, nil)
+
+	user := &models.User{UserID: "part-1", Email: "part@test.com"}
+	mockUserRepo.On("FindByID", mock.Anything, "part-1").Return(user, nil)
+
+	data := map[string]interface{}{
+		"address":         "Calle Falsa 123",
+		"image_url":       "https://example.com/avatar.jpg",
+		"approval_status": "approved", // malicious attempt
+	}
+
+	mockQuerier.On("UpdateRoleData", mock.Anything, "participants", "part-1", map[string]interface{}{
+		"address":   "Calle Falsa 123",
+		"image_url": "https://example.com/avatar.jpg",
+	}).Return(nil)
+
+	err := svc.UpdateMyProfile(context.Background(), "role_participant", "part-1", data)
+	assert.NoError(t, err)
+	mockQuerier.AssertExpectations(t)
+}
+
