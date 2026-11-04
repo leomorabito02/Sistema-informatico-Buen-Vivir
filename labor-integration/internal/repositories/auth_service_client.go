@@ -13,6 +13,7 @@ import (
 type AuthServiceClient interface {
 	GetParticipant(ctx context.Context, participantID string) (*authpb.GetParticipantResponse, error)
 	GetCompany(ctx context.Context, companyID string) (*authpb.GetCompanyResponse, error)
+	GetActiveUserIDsByRoles(ctx context.Context, roles []string) ([]string, error)
 	Close() error
 }
 
@@ -46,6 +47,18 @@ func (c *authServiceClient) GetCompany(ctx context.Context, companyID string) (*
 	}
 	return c.client.GetCompany(ctx, req)
 }
+
+func (c *authServiceClient) GetActiveUserIDsByRoles(ctx context.Context, roles []string) ([]string, error) {
+	req := &authpb.GetActiveUserIDsByRolesRequest{
+		RoleIds: roles,
+	}
+	resp, err := c.client.GetActiveUserIDsByRoles(ctx, req)
+	if err != nil {
+		return nil, err
+	}
+	return resp.UserIds, nil
+}
+
 
 func (c *authServiceClient) Close() error {
 	return c.conn.Close()

@@ -21,6 +21,9 @@ func (fakeAuth) GetParticipant(_ context.Context, id string) (*authpb.GetPartici
 func (fakeAuth) GetCompany(context.Context, string) (*authpb.GetCompanyResponse, error) {
 	return nil, nil
 }
+func (fakeAuth) GetActiveUserIDsByRoles(context.Context, []string) ([]string, error) {
+	return []string{"admin-1", "vol-1"}, nil
+}
 func (fakeAuth) Close() error { return nil }
 
 // fakeApps guarda las postulaciones en memoria.

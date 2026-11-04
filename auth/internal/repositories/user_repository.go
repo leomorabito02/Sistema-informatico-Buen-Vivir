@@ -32,6 +32,7 @@ type UserRepository interface {
 	UpdatePasswordHashByEmail(ctx context.Context, email string, passwordHash string) error
 	UpdatePasswordAndVerifiedByEmail(ctx context.Context, email string, passwordHash string, verified bool) error
 	FindCampaignEligibleUsers(ctx context.Context) ([]CampaignEligibleUser, error)
+	FindActiveUserIDsByRoles(ctx context.Context, roles []string) ([]string, error)
 }
 
 type userRepository struct {
@@ -301,3 +302,25 @@ func (r *userRepository) FindCampaignEligibleUsers(ctx context.Context) ([]Campa
 		Scan(&results).Error
 	return results, err
 }
+
+func (r *userRepository) FindActiveUserIDsByRoles(ctx context.Context, roles []string) ([]string, error) {
+	if len(roles) == 0 {
+		return []string{}, nil
+	}
+	var userIDs []string
+	query := r.db.WithContext(ctx).
+		Table("users").
+		Select("users.user_id").
+		Joins("LEFT JOIN volunteers v ON users.user_id = v.user_id AND v.deleted_at IS NULL").
+		Where("users.deleted_at IS NULL").
+		Where("users.status = ?", "active").
+		Where("users.role_id IN ?", roles).
+		Where("(users.role_id != 'role_volunteer' OR v.approval_status = 'approved')")
+
+	err := query.Pluck("users.user_id", &userIDs).Error
+	if err != nil {
+		return nil, err
+	}
+	return userIDs, nil
+}
+

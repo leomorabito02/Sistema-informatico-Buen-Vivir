@@ -27,6 +27,7 @@ type UserService interface {
 	ApproveUser(ctx context.Context, id string) (*dto.UserResponse, error)
 	GetCampaignEligibleUsers(ctx context.Context) ([]repositories.CampaignEligibleUser, error)
 	IsEmailVerified(ctx context.Context, identifier string) (bool, error)
+	GetActiveUserIDsByRoles(ctx context.Context, roles []string) ([]string, error)
 }
 
 type userService struct {
@@ -329,6 +330,20 @@ func (s *userService) IsEmailVerified(ctx context.Context, identifier string) (b
 		return false, err
 	}
 	return user.IsEmailVerified, nil
+}
+
+func (s *userService) GetActiveUserIDsByRoles(ctx context.Context, roles []string) ([]string, error) {
+	validRoles := make([]string, 0, len(roles))
+	for _, r := range roles {
+		trimmed := strings.TrimSpace(r)
+		if trimmed == "role_admin" || trimmed == "role_volunteer" || trimmed == "role_company" || trimmed == "role_participant" || trimmed == "role_teacher" {
+			validRoles = append(validRoles, trimmed)
+		}
+	}
+	if len(validRoles) == 0 {
+		return []string{}, nil
+	}
+	return s.userRepo.FindActiveUserIDsByRoles(ctx, validRoles)
 }
 
 func roleTableFromID(roleID string) string {

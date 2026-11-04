@@ -64,6 +64,8 @@ services:
       - ./labor-integration/.env
     environment:
       - AUTH_SERVICE_GRPC_TARGET=auth-service:50051
+      - NOTIFICATIONS_SERVICE_URL=http://notifications-service:8080
+      - INTERNAL_HMAC_SECRET=${INTERNAL_HMAC_SECRET:-buenvivir-internal-hmac-secret-dev}
     ports:
       - "8310:8080"
     depends_on:

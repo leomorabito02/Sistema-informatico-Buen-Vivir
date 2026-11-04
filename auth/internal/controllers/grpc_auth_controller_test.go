@@ -194,3 +194,41 @@ func TestGrpcGetUserContact_MissingUserID(t *testing.T) {
 	assert.Equal(t, codes.InvalidArgument, status.Code(err))
 }
 
+func TestGrpcGetActiveUserIDsByRoles_Success(t *testing.T) {
+	userSvc := new(MockUserService)
+	ctrl := controllers.NewGrpcAuthController(nil, nil, userSvc, nil)
+
+	userSvc.On("GetActiveUserIDsByRoles", mock.MatchedBy(func(ctx context.Context) bool {
+		role, _ := ctx.Value(middlewares.RoleIDKey).(string)
+		return role == "role_dev"
+	}), []string{"role_admin", "role_volunteer"}).Return([]string{"admin-1", "vol-1"}, nil)
+
+	res, err := ctrl.GetActiveUserIDsByRoles(context.Background(), &authpb.GetActiveUserIDsByRolesRequest{
+		RoleIds: []string{"role_admin", "role_volunteer"},
+	})
+	assert.NoError(t, err)
+	assert.Equal(t, []string{"admin-1", "vol-1"}, res.UserIds)
+	userSvc.AssertExpectations(t)
+}
+
+func TestGrpcGetActiveUserIDsByRoles_Empty(t *testing.T) {
+	ctrl := controllers.NewGrpcAuthController(nil, nil, nil, nil)
+	_, err := ctrl.GetActiveUserIDsByRoles(context.Background(), &authpb.GetActiveUserIDsByRolesRequest{})
+	assert.Equal(t, codes.InvalidArgument, status.Code(err))
+}
+
+func TestGrpcGetActiveUserIDsByRoles_ServiceError(t *testing.T) {
+	userSvc := new(MockUserService)
+	ctrl := controllers.NewGrpcAuthController(nil, nil, userSvc, nil)
+
+	userSvc.On("GetActiveUserIDsByRoles", mock.Anything, []string{"role_admin"}).Return(nil, errors.New("db error"))
+
+	_, err := ctrl.GetActiveUserIDsByRoles(context.Background(), &authpb.GetActiveUserIDsByRolesRequest{
+		RoleIds: []string{"role_admin"},
+	})
+	assert.Error(t, err)
+	assert.Equal(t, codes.Internal, status.Code(err))
+	userSvc.AssertExpectations(t)
+}
+
+

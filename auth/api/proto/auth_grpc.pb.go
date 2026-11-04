@@ -19,16 +19,17 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	AuthService_GetParticipant_FullMethodName         = "/auth.AuthService/GetParticipant"
-	AuthService_GetParticipantProfile_FullMethodName  = "/auth.AuthService/GetParticipantProfile"
-	AuthService_SearchParticipants_FullMethodName     = "/auth.AuthService/SearchParticipants"
-	AuthService_GetUsersByIDs_FullMethodName          = "/auth.AuthService/GetUsersByIDs"
-	AuthService_GetCompany_FullMethodName             = "/auth.AuthService/GetCompany"
-	AuthService_GetUserDeviceTokens_FullMethodName    = "/auth.AuthService/GetUserDeviceTokens"
-	AuthService_RevokeDeviceTokens_FullMethodName     = "/auth.AuthService/RevokeDeviceTokens"
-	AuthService_GetCampaignRecipients_FullMethodName  = "/auth.AuthService/GetCampaignRecipients"
-	AuthService_CheckUserEmailVerified_FullMethodName = "/auth.AuthService/CheckUserEmailVerified"
-	AuthService_GetUserContact_FullMethodName         = "/auth.AuthService/GetUserContact"
+	AuthService_GetParticipant_FullMethodName          = "/auth.AuthService/GetParticipant"
+	AuthService_GetParticipantProfile_FullMethodName   = "/auth.AuthService/GetParticipantProfile"
+	AuthService_SearchParticipants_FullMethodName      = "/auth.AuthService/SearchParticipants"
+	AuthService_GetUsersByIDs_FullMethodName           = "/auth.AuthService/GetUsersByIDs"
+	AuthService_GetCompany_FullMethodName              = "/auth.AuthService/GetCompany"
+	AuthService_GetUserDeviceTokens_FullMethodName     = "/auth.AuthService/GetUserDeviceTokens"
+	AuthService_RevokeDeviceTokens_FullMethodName      = "/auth.AuthService/RevokeDeviceTokens"
+	AuthService_GetCampaignRecipients_FullMethodName   = "/auth.AuthService/GetCampaignRecipients"
+	AuthService_CheckUserEmailVerified_FullMethodName  = "/auth.AuthService/CheckUserEmailVerified"
+	AuthService_GetUserContact_FullMethodName          = "/auth.AuthService/GetUserContact"
+	AuthService_GetActiveUserIDsByRoles_FullMethodName = "/auth.AuthService/GetActiveUserIDsByRoles"
 )
 
 // AuthServiceClient is the client API for AuthService service.
@@ -51,6 +52,7 @@ type AuthServiceClient interface {
 	GetCampaignRecipients(ctx context.Context, in *GetCampaignRecipientsRequest, opts ...grpc.CallOption) (*GetCampaignRecipientsResponse, error)
 	CheckUserEmailVerified(ctx context.Context, in *CheckUserEmailVerifiedRequest, opts ...grpc.CallOption) (*CheckUserEmailVerifiedResponse, error)
 	GetUserContact(ctx context.Context, in *GetUserContactRequest, opts ...grpc.CallOption) (*GetUserContactResponse, error)
+	GetActiveUserIDsByRoles(ctx context.Context, in *GetActiveUserIDsByRolesRequest, opts ...grpc.CallOption) (*GetActiveUserIDsByRolesResponse, error)
 }
 
 type authServiceClient struct {
@@ -161,6 +163,16 @@ func (c *authServiceClient) GetUserContact(ctx context.Context, in *GetUserConta
 	return out, nil
 }
 
+func (c *authServiceClient) GetActiveUserIDsByRoles(ctx context.Context, in *GetActiveUserIDsByRolesRequest, opts ...grpc.CallOption) (*GetActiveUserIDsByRolesResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetActiveUserIDsByRolesResponse)
+	err := c.cc.Invoke(ctx, AuthService_GetActiveUserIDsByRoles_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // AuthServiceServer is the server API for AuthService service.
 // All implementations must embed UnimplementedAuthServiceServer
 // for forward compatibility.
@@ -181,6 +193,7 @@ type AuthServiceServer interface {
 	GetCampaignRecipients(context.Context, *GetCampaignRecipientsRequest) (*GetCampaignRecipientsResponse, error)
 	CheckUserEmailVerified(context.Context, *CheckUserEmailVerifiedRequest) (*CheckUserEmailVerifiedResponse, error)
 	GetUserContact(context.Context, *GetUserContactRequest) (*GetUserContactResponse, error)
+	GetActiveUserIDsByRoles(context.Context, *GetActiveUserIDsByRolesRequest) (*GetActiveUserIDsByRolesResponse, error)
 	mustEmbedUnimplementedAuthServiceServer()
 }
 
@@ -220,6 +233,9 @@ func (UnimplementedAuthServiceServer) CheckUserEmailVerified(context.Context, *C
 }
 func (UnimplementedAuthServiceServer) GetUserContact(context.Context, *GetUserContactRequest) (*GetUserContactResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method GetUserContact not implemented")
+}
+func (UnimplementedAuthServiceServer) GetActiveUserIDsByRoles(context.Context, *GetActiveUserIDsByRolesRequest) (*GetActiveUserIDsByRolesResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetActiveUserIDsByRoles not implemented")
 }
 func (UnimplementedAuthServiceServer) mustEmbedUnimplementedAuthServiceServer() {}
 func (UnimplementedAuthServiceServer) testEmbeddedByValue()                     {}
@@ -422,6 +438,24 @@ func _AuthService_GetUserContact_Handler(srv interface{}, ctx context.Context, d
 	return interceptor(ctx, in, info, handler)
 }
 
+func _AuthService_GetActiveUserIDsByRoles_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetActiveUserIDsByRolesRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AuthServiceServer).GetActiveUserIDsByRoles(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AuthService_GetActiveUserIDsByRoles_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AuthServiceServer).GetActiveUserIDsByRoles(ctx, req.(*GetActiveUserIDsByRolesRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // AuthService_ServiceDesc is the grpc.ServiceDesc for AuthService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -468,6 +502,10 @@ var AuthService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetUserContact",
 			Handler:    _AuthService_GetUserContact_Handler,
+		},
+		{
+			MethodName: "GetActiveUserIDsByRoles",
+			Handler:    _AuthService_GetActiveUserIDsByRoles_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

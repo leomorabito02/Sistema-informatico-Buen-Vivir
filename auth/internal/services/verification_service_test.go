@@ -201,6 +201,9 @@ func (m *mockUserRepoForVerification) FindParticipantsHistory(ctx context.Contex
 func (m *mockUserRepoForVerification) FindCampaignEligibleUsers(ctx context.Context) ([]repositories.CampaignEligibleUser, error) {
 	return nil, nil
 }
+func (m *mockUserRepoForVerification) FindActiveUserIDsByRoles(ctx context.Context, roles []string) ([]string, error) {
+	return nil, nil
+}
 
 type mockNotificationSync struct {
 	sentVerificationEmails []string

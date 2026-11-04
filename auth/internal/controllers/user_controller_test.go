@@ -85,6 +85,14 @@ func (m *MockUserService) IsEmailVerified(ctx context.Context, identifier string
 	return args.Bool(0), args.Error(1)
 }
 
+func (m *MockUserService) GetActiveUserIDsByRoles(ctx context.Context, roles []string) ([]string, error) {
+	args := m.Called(ctx, roles)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).([]string), args.Error(1)
+}
+
 func TestUserController_GetUser_Success(t *testing.T) {
 	mockSvc := new(MockUserService)
 	ctrl := controllers.NewUserController(mockSvc)

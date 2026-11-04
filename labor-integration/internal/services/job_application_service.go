@@ -10,17 +10,40 @@ import (
 )
 
 type JobApplicationService struct {
-	repo       repositories.JobApplicationRepository
-	offerRepo  repositories.JobOfferRepository
-	authClient repositories.AuthServiceClient
+	repo         repositories.JobApplicationRepository
+	offerRepo    repositories.JobOfferRepository
+	authClient   repositories.AuthServiceClient
+	dispatcher   NotificationDispatcher
+	syncDispatch bool
 }
 
-func NewJobApplicationService(repo repositories.JobApplicationRepository, offerRepo repositories.JobOfferRepository, authClient repositories.AuthServiceClient) *JobApplicationService {
-	return &JobApplicationService{
+type JobApplicationServiceOption func(*JobApplicationService)
+
+// WithApplicationDispatcher sets a NotificationDispatcher for JobApplicationService.
+func WithApplicationDispatcher(dispatcher NotificationDispatcher) JobApplicationServiceOption {
+	return func(s *JobApplicationService) {
+		s.dispatcher = dispatcher
+	}
+}
+
+// WithApplicationSyncDispatch sets synchronous dispatching for tests.
+func WithApplicationSyncDispatch(sync bool) JobApplicationServiceOption {
+	return func(s *JobApplicationService) {
+		s.syncDispatch = sync
+	}
+}
+
+func NewJobApplicationService(repo repositories.JobApplicationRepository, offerRepo repositories.JobOfferRepository, authClient repositories.AuthServiceClient, opts ...JobApplicationServiceOption) *JobApplicationService {
+	s := &JobApplicationService{
 		repo:       repo,
 		offerRepo:  offerRepo,
 		authClient: authClient,
+		dispatcher: NewNoopNotificationDispatcher(),
 	}
+	for _, opt := range opts {
+		opt(s)
+	}
+	return s
 }
 
 func (s *JobApplicationService) ApplyToJob(ctx context.Context, application *models.JobApplication) error {
@@ -57,7 +80,22 @@ func (s *JobApplicationService) ApplyToJob(ctx context.Context, application *mod
 	application.CreatedAt = now
 	application.UpdatedAt = now
 
-	return s.repo.Create(ctx, application)
+	if err := s.repo.Create(ctx, application); err != nil {
+		return err
+	}
+
+	if s.dispatcher != nil && s.offerRepo != nil {
+		offer, err := s.offerRepo.GetByID(ctx, application.OfferID)
+		if err == nil && offer != nil {
+			if s.syncDispatch {
+				s.dispatcher.ApplicationReceived(ctx, application, offer, application.UserID)
+			} else {
+				go s.dispatcher.ApplicationReceived(context.Background(), application, offer, application.UserID)
+			}
+		}
+	}
+
+	return nil
 }
 
 // ListByParticipant recibe el id de usuario del token. Busca por ese id
@@ -84,8 +122,22 @@ func (s *JobApplicationService) UpdateStatus(ctx context.Context, applicationID 
 	if offer.CompanyID != companyID {
 		return errors.New("unauthorized: you do not own the offer for this application")
 	}
+
+	previousStatus := app.Status
+	if err := s.repo.UpdateStatus(ctx, applicationID, status); err != nil {
+		return err
+	}
+
+	if s.dispatcher != nil && previousStatus != status {
+		app.Status = status
+		if s.syncDispatch {
+			s.dispatcher.ApplicationDecided(ctx, app, offer, status)
+		} else {
+			go s.dispatcher.ApplicationDecided(context.Background(), app, offer, status)
+		}
+	}
 	
-	return s.repo.UpdateStatus(ctx, applicationID, status)
+	return nil
 }
 
 
