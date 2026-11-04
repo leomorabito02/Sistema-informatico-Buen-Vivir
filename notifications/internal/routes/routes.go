@@ -7,7 +7,7 @@ import (
 	"buenvivir/notifications/internal/middlewares"
 )
 
-func RegisterRoutes(mux *http.ServeMux, ctrl *controllers.NotificationController, internalHMACSecret ...string) {
+func RegisterRoutes(mux *http.ServeMux, ctrl *controllers.NotificationController) {
 	// Healthcheck endpoint (public)
 	mux.HandleFunc("GET /health", ctrl.HealthCheck)
 
@@ -25,11 +25,37 @@ func RegisterRoutes(mux *http.ServeMux, ctrl *controllers.NotificationController
 	mux.Handle("POST /api/v1/notifications/preferences", middlewares.AuthHeaders(http.HandlerFunc(ctrl.SavePreferences)))
 	mux.Handle("POST /api/v1/notifications/preferences/init", middlewares.AuthHeaders(http.HandlerFunc(ctrl.InitDefaultPreferences)))
 	mux.Handle("PATCH /api/v1/notifications/preferences", middlewares.AuthHeaders(http.HandlerFunc(ctrl.PatchPreference)))
+}
 
-	// Internal notification ingestion endpoint (protected via HMAC-SHA256 signature)
-	secret := ""
-	if len(internalHMACSecret) > 0 {
-		secret = internalHMACSecret[0]
+// AsyncEndpoints groups Pub/Sub push subscription and background flush handlers.
+type AsyncEndpoints struct {
+	Educacion        http.Handler
+	PromocionHumana  http.Handler
+	Usuarios         http.Handler
+	InsercionLaboral http.Handler
+	Campanas         http.Handler
+	DeliveryFlush    http.Handler
+}
+
+// RegisterAsyncRoutes binds unauthenticated/OIDC-verified push and flush endpoints.
+func RegisterAsyncRoutes(mux *http.ServeMux, a AsyncEndpoints) {
+	if a.Educacion != nil {
+		mux.Handle("POST /eventos/educacion", a.Educacion)
 	}
-	mux.Handle("POST /api/v1/notifications/send", middlewares.RequireInternalHMAC(secret)(http.HandlerFunc(ctrl.IngestNotification)))
+	if a.PromocionHumana != nil {
+		mux.Handle("POST /eventos/promocion-humana", a.PromocionHumana)
+	}
+	if a.Usuarios != nil {
+		mux.Handle("POST /eventos/usuarios", a.Usuarios)
+	}
+	if a.InsercionLaboral != nil {
+		mux.Handle("POST /eventos/insercion-laboral", a.InsercionLaboral)
+	}
+	if a.Campanas != nil {
+		mux.Handle("POST /eventos/campanas", a.Campanas)
+	}
+	if a.DeliveryFlush != nil {
+		mux.Handle("POST /internal/delivery/flush", a.DeliveryFlush)
+		mux.Handle("POST /internal/outbox/flush", a.DeliveryFlush)
+	}
 }

@@ -58,53 +58,64 @@ func (m *mockOfferRepo) GetByID(ctx context.Context, id string) (*models.JobOffe
 	return m.offers[id], nil
 }
 
-type mockDispatcher struct {
-	createdOffer     *models.JobOffer
-	createdActor     string
-	reviewedOffer    *models.JobOffer
-	reviewedApproved bool
-	receivedApp      *models.JobApplication
-	receivedOffer    *models.JobOffer
-	decidedApp       *models.JobApplication
-	decidedOffer     *models.JobOffer
-	decidedStatus    string
+type mockLaborProducer struct {
+	createdOfferID  string
+	createdEmpresa  string
+	createdEstado   string
+	reviewedOfferID string
+	reviewedEmpresa string
+	reviewedApprove bool
+	appliedPostID   string
+	appliedOfferID  string
+	appliedPartID   string
+	decidedPostID   string
+	decidedResult   string
+	notified        bool
 }
 
-func (m *mockDispatcher) OfferCreated(ctx context.Context, offer *models.JobOffer, actorID string) {
-	m.createdOffer = offer
-	m.createdActor = actorID
+func (m *mockLaborProducer) Enabled() bool { return true }
+func (m *mockLaborProducer) Notify()       { m.notified = true }
+func (m *mockLaborProducer) OfertaCreada(ctx context.Context, ofertaID, empresaID, estado string) error {
+	m.createdOfferID = ofertaID
+	m.createdEmpresa = empresaID
+	m.createdEstado = estado
+	return nil
 }
-
-func (m *mockDispatcher) OfferReviewed(ctx context.Context, offer *models.JobOffer, approved bool) {
-	m.reviewedOffer = offer
-	m.reviewedApproved = approved
+func (m *mockLaborProducer) OfertaRevisada(ctx context.Context, ofertaID, empresaID string, aprobada bool) error {
+	m.reviewedOfferID = ofertaID
+	m.reviewedEmpresa = empresaID
+	m.reviewedApprove = aprobada
+	return nil
 }
-
-func (m *mockDispatcher) ApplicationReceived(ctx context.Context, app *models.JobApplication, offer *models.JobOffer, actorID string) {
-	m.receivedApp = app
-	m.receivedOffer = offer
+func (m *mockLaborProducer) PostulacionCreada(ctx context.Context, postulacionID, ofertaID, participanteID, empresaID string) error {
+	m.appliedPostID = postulacionID
+	m.appliedOfferID = ofertaID
+	m.appliedPartID = participanteID
+	return nil
 }
-
-func (m *mockDispatcher) ApplicationDecided(ctx context.Context, app *models.JobApplication, offer *models.JobOffer, status string) {
-	m.decidedApp = app
-	m.decidedOffer = offer
-	m.decidedStatus = status
+func (m *mockLaborProducer) PostulacionSeleccionada(ctx context.Context, postulacionID, ofertaID, participanteID, empresaID string) error {
+	return nil
+}
+func (m *mockLaborProducer) PostulacionDecidida(ctx context.Context, postulacionID, ofertaID, participanteID, empresaID, resultado string) error {
+	m.decidedPostID = postulacionID
+	m.decidedResult = resultado
+	return nil
 }
 
 func TestJobOfferService_NotificationDispatching(t *testing.T) {
 	// Arrange
 	repo := newMockOfferRepo()
-	dispatcher := &mockDispatcher{}
+	producer := &mockLaborProducer{}
 	svc := NewJobOfferService(
 		repo,
 		nil,
 		fakeAuth{},
-		WithOfferDispatcher(dispatcher),
-		WithOfferSyncDispatch(true),
+		WithOfferProducer(producer),
 	)
 
 	// Act 1: Create offer as admin
 	offer := &models.JobOffer{
+		ID:    "off-1",
 		Title: "Recepcionista",
 	}
 	err := svc.CreateOffer(context.Background(), offer, "role_admin", "usr-admin-1")
@@ -113,11 +124,8 @@ func TestJobOfferService_NotificationDispatching(t *testing.T) {
 	}
 
 	// Assert 1
-	if dispatcher.createdOffer == nil || dispatcher.createdOffer.Title != "Recepcionista" {
-		t.Errorf("expected dispatcher.OfferCreated to be called with offer")
-	}
-	if dispatcher.createdActor != "usr-admin-1" {
-		t.Errorf("expected actor usr-admin-1, got %s", dispatcher.createdActor)
+	if producer.createdOfferID != "off-1" || producer.createdEstado != "Activa" {
+		t.Errorf("expected producer.OfertaCreada with off-1 Activa, got %s %s", producer.createdOfferID, producer.createdEstado)
 	}
 	if offer.CompanyID != "usr-admin-1" {
 		t.Errorf("expected creator admin to be assigned as CompanyID, got %s", offer.CompanyID)
@@ -130,8 +138,8 @@ func TestJobOfferService_NotificationDispatching(t *testing.T) {
 	}
 
 	// Assert 2
-	if dispatcher.reviewedOffer == nil || !dispatcher.reviewedApproved {
-		t.Errorf("expected dispatcher.OfferReviewed with approved=true")
+	if producer.reviewedOfferID != "off-1" || !producer.reviewedApprove {
+		t.Errorf("expected producer.OfertaRevisada with approved=true")
 	}
 
 	// Act 3: Reject offer
@@ -141,8 +149,8 @@ func TestJobOfferService_NotificationDispatching(t *testing.T) {
 	}
 
 	// Assert 3
-	if dispatcher.reviewedOffer == nil || dispatcher.reviewedApproved {
-		t.Errorf("expected dispatcher.OfferReviewed with approved=false")
+	if producer.reviewedOfferID != "off-1" || producer.reviewedApprove {
+		t.Errorf("expected producer.OfertaRevisada with approved=false")
 	}
 }
 
@@ -159,14 +167,13 @@ func TestJobApplicationService_NotificationDispatching(t *testing.T) {
 	appRepo := &fakeAppsWithGetByID{
 		apps: make(map[string]*models.JobApplication),
 	}
-	dispatcher := &mockDispatcher{}
+	producer := &mockLaborProducer{}
 
 	svc := NewJobApplicationService(
 		appRepo,
 		offerRepo,
 		fakeAuth{},
-		WithApplicationDispatcher(dispatcher),
-		WithApplicationSyncDispatch(true),
+		WithApplicationProducer(producer),
 	)
 
 	// Act 1: Apply to job
@@ -180,11 +187,8 @@ func TestJobApplicationService_NotificationDispatching(t *testing.T) {
 	}
 
 	// Assert 1
-	if dispatcher.receivedApp == nil || dispatcher.receivedOffer == nil {
-		t.Fatalf("expected ApplicationReceived to be called")
-	}
-	if dispatcher.receivedOffer.ID != "off-1" {
-		t.Errorf("expected offer ID off-1, got %s", dispatcher.receivedOffer.ID)
+	if producer.appliedOfferID != "off-1" || producer.appliedPartID != "part-1" {
+		t.Fatalf("expected PostulacionCreada to be emitted")
 	}
 
 	// Act 2: Update status
@@ -194,8 +198,8 @@ func TestJobApplicationService_NotificationDispatching(t *testing.T) {
 	}
 
 	// Assert 2
-	if dispatcher.decidedApp == nil || dispatcher.decidedStatus != "Aceptado" {
-		t.Errorf("expected ApplicationDecided with status Aceptado, got %s", dispatcher.decidedStatus)
+	if producer.decidedPostID != "app-1" || producer.decidedResult != "Aceptado" {
+		t.Errorf("expected PostulacionDecidida with status Aceptado, got %s", producer.decidedResult)
 	}
 }
 

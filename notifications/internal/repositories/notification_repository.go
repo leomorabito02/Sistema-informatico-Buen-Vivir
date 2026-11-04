@@ -29,6 +29,9 @@ type NotificationRepository interface {
 	HardDeleteRecipient(ctx context.Context, recipientID, userID string) error
 	FindPendingRecipients(ctx context.Context, limit int) ([]models.NotificationRecipient, error)
 	UpdateDeliveryStatus(ctx context.Context, recipientID string, emailStatus, pushStatus models.DeliveryStatus, emailMsgID, pushMsgID, errorMsg *string) error
+	UpdateRecipientRetry(ctx context.Context, recipientID string, attempts int, nextAttemptAt time.Time, lastError string) error
+	UpdateRecipientDead(ctx context.Context, recipientID string, lastError string) error
+	CreateNotificationAndRecipients(ctx context.Context, notification *models.Notification, recipients []models.NotificationRecipient) error
 	GetPreference(ctx context.Context, userID string, category models.NotificationCategory) (*models.NotificationPreference, error)
 	GetPreferencesByUserID(ctx context.Context, userID string) ([]models.NotificationPreference, error)
 	GetPreferencesByUserIDsAndCategory(ctx context.Context, userIDs []string, category models.NotificationCategory) (map[string]*models.NotificationPreference, error)
@@ -199,15 +202,73 @@ func (r *notificationRepository) HardDeleteRecipient(ctx context.Context, recipi
 
 func (r *notificationRepository) FindPendingRecipients(ctx context.Context, limit int) ([]models.NotificationRecipient, error) {
 	var pending []models.NotificationRecipient
+	now := time.Now().UTC()
 	query := r.db.WithContext(ctx).
 		Preload("Notification").
-		Where("email_status = ? OR push_status = ?", models.DeliveryStatusPending, models.DeliveryStatusPending).
+		Where("(email_status = ? OR push_status = ?) AND (next_attempt_at IS NULL OR next_attempt_at <= ?)",
+			models.DeliveryStatusPending, models.DeliveryStatusPending, now).
 		Order("created_at ASC")
 	if limit > 0 {
 		query = query.Limit(limit)
 	}
 	err := query.Find(&pending).Error
 	return pending, err
+}
+
+func (r *notificationRepository) UpdateRecipientRetry(ctx context.Context, recipientID string, attempts int, nextAttemptAt time.Time, lastError string) error {
+	return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		return tx.Model(&models.NotificationRecipient{}).
+			Where("recipient_id = ?", recipientID).
+			Updates(map[string]interface{}{
+				"attempts":        attempts,
+				"next_attempt_at": nextAttemptAt,
+				"error_message":   lastError,
+			}).Error
+	})
+}
+
+func (r *notificationRepository) UpdateRecipientDead(ctx context.Context, recipientID string, lastError string) error {
+	return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		return tx.Model(&models.NotificationRecipient{}).
+			Where("recipient_id = ?", recipientID).
+			Updates(map[string]interface{}{
+				"email_status":  models.DeliveryStatusDead,
+				"push_status":   models.DeliveryStatusDead,
+				"error_message": lastError,
+			}).Error
+	})
+}
+
+func (r *notificationRepository) CreateNotificationAndRecipients(ctx context.Context, notification *models.Notification, recipients []models.NotificationRecipient) error {
+	if notification == nil {
+		return errors.New("notification cannot be nil")
+	}
+	return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		if err := tx.Create(notification).Error; err != nil {
+			return fmt.Errorf("failed to create notification: %w", err)
+		}
+		if len(recipients) > 0 {
+			toInsert := make([]models.NotificationRecipient, 0, len(recipients))
+			for _, rec := range recipients {
+				if rec.DedupeKey != "" {
+					var exists int64
+					_ = tx.Model(&models.NotificationRecipient{}).
+						Where("user_id = ? AND dedupe_key = ?", rec.UserID, rec.DedupeKey).
+						Count(&exists).Error
+					if exists > 0 {
+						continue
+					}
+				}
+				toInsert = append(toInsert, rec)
+			}
+			if len(toInsert) > 0 {
+				if err := tx.Create(&toInsert).Error; err != nil {
+					return fmt.Errorf("failed to create recipients: %w", err)
+				}
+			}
+		}
+		return nil
+	})
 }
 
 func (r *notificationRepository) UpdateDeliveryStatus(
@@ -460,9 +521,11 @@ func (m *memoryNotificationRepository) HardDeleteRecipient(_ context.Context, re
 func (m *memoryNotificationRepository) FindPendingRecipients(_ context.Context, limit int) ([]models.NotificationRecipient, error) {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
+	now := time.Now().UTC()
 	var pending []models.NotificationRecipient
 	for _, rec := range m.recipients {
-		if rec.EmailStatus == models.DeliveryStatusPending || rec.PushStatus == models.DeliveryStatusPending {
+		if (rec.EmailStatus == models.DeliveryStatusPending || rec.PushStatus == models.DeliveryStatusPending) &&
+			(rec.NextAttemptAt == nil || rec.NextAttemptAt.Before(now) || rec.NextAttemptAt.Equal(now)) {
 			recCopy := rec
 			recCopy.Notification = m.notifications[rec.NotificationID]
 			pending = append(pending, recCopy)
@@ -472,6 +535,59 @@ func (m *memoryNotificationRepository) FindPendingRecipients(_ context.Context, 
 		}
 	}
 	return pending, nil
+}
+
+func (m *memoryNotificationRepository) UpdateRecipientRetry(_ context.Context, recipientID string, attempts int, nextAttemptAt time.Time, lastError string) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	for i := range m.recipients {
+		if m.recipients[i].RecipientID == recipientID {
+			m.recipients[i].Attempts = attempts
+			m.recipients[i].NextAttemptAt = &nextAttemptAt
+			m.recipients[i].ErrorMessage = &lastError
+			return nil
+		}
+	}
+	return errors.New("recipient not found")
+}
+
+func (m *memoryNotificationRepository) UpdateRecipientDead(_ context.Context, recipientID string, lastError string) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	for i := range m.recipients {
+		if m.recipients[i].RecipientID == recipientID {
+			m.recipients[i].EmailStatus = models.DeliveryStatusDead
+			m.recipients[i].PushStatus = models.DeliveryStatusDead
+			m.recipients[i].ErrorMessage = &lastError
+			return nil
+		}
+	}
+	return errors.New("recipient not found")
+}
+
+func (m *memoryNotificationRepository) CreateNotificationAndRecipients(ctx context.Context, notification *models.Notification, recipients []models.NotificationRecipient) error {
+	if notification == nil {
+		return errors.New("notification cannot be nil")
+	}
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.notifications[notification.ID] = notification
+	for _, rec := range recipients {
+		if rec.DedupeKey != "" {
+			exists := false
+			for _, existing := range m.recipients {
+				if existing.UserID == rec.UserID && existing.DedupeKey == rec.DedupeKey {
+					exists = true
+					break
+				}
+			}
+			if exists {
+				continue
+			}
+		}
+		m.recipients = append(m.recipients, rec)
+	}
+	return nil
 }
 
 func (m *memoryNotificationRepository) UpdateDeliveryStatus(

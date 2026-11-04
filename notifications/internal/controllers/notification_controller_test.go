@@ -254,8 +254,8 @@ func testGetPreferencesDefaults(t *testing.T, mux http.Handler) {
 	if err := json.Unmarshal(rec.Body.Bytes(), &prefs); err != nil {
 		t.Fatalf("failed to decode response: %v", err)
 	}
-	if len(prefs) != 5 {
-		t.Fatalf("expected 5 default preferences, got %d", len(prefs))
+	if len(prefs) != 6 {
+		t.Fatalf("expected 6 default preferences, got %d", len(prefs))
 	}
 }
 
@@ -356,8 +356,8 @@ func testInitDefaultPreferencesPOST(t *testing.T, mux http.Handler) {
 	}
 	var list []dto.NotificationPreferenceDTO
 	_ = json.Unmarshal(rec.Body.Bytes(), &list)
-	if len(list) != 5 {
-		t.Fatalf("expected 5 initialized preferences, got %d", len(list))
+	if len(list) != 6 {
+		t.Fatalf("expected 6 initialized preferences, got %d", len(list))
 	}
 }
 
@@ -374,8 +374,8 @@ func testInitDefaultPreferencesWithReset(t *testing.T, mux http.Handler) {
 	}
 	var list []dto.NotificationPreferenceDTO
 	_ = json.Unmarshal(rec.Body.Bytes(), &list)
-	if len(list) != 5 {
-		t.Fatalf("expected 5 reset preferences, got %d", len(list))
+	if len(list) != 6 {
+		t.Fatalf("expected 6 reset preferences, got %d", len(list))
 	}
 	for _, p := range list {
 		if !p.EmailEnabled || !p.PushEnabled {
@@ -392,62 +392,14 @@ func TestGrpcNotificationController_InitPreferences(t *testing.T) {
 	res, err := grpcCtrl.InitDefaultPreferences(ctx, &notificationpb.InitDefaultPreferencesRequest{
 		UserId: "usr-grpc-pref",
 	})
-	if err != nil || !res.Success || res.Count != 5 {
+	if err != nil || !res.Success || res.Count != 6 {
 		t.Fatalf("failed to init preferences via gRPC: %v", err)
 	}
 
 	prefs, err := svc.GetPreferences(ctx, "usr-grpc-pref")
-	if err != nil || len(prefs) != 5 {
-		t.Fatalf("expected 5 preferences in service, got %d", len(prefs))
+	if err != nil || len(prefs) != 6 {
+		t.Fatalf("expected 6 preferences in service, got %d", len(prefs))
 	}
 }
 
-func TestNotificationController_IngestNotification(t *testing.T) {
-	mux, _, svc := setupTestApp()
 
-	t.Run("ValidPayload", func(t *testing.T) {
-		body := `{
-			"source_service": "auth",
-			"event_type": "auth.email_verification",
-			"category": "security",
-			"priority": "high",
-			"sender_type": "system",
-			"sender_id": "auth-service",
-			"recipient_user_ids": ["usr-ingest-test"],
-			"title": "Verifica tu correo electrónico",
-			"message": "Por favor verifica tu correo",
-			"data": "{\"template_id\":\"email_verification\",\"recipient_name\":\"Juan\",\"action_url\":\"https://example.com/verify\"}",
-			"send_email": true
-		}`
-		req := httptest.NewRequest("POST", "/api/v1/notifications/send", strings.NewReader(body))
-		rec := httptest.NewRecorder()
-		mux.ServeHTTP(rec, req)
-
-		if rec.Code != http.StatusCreated {
-			t.Fatalf("expected status 201 Created, got %d with body: %s", rec.Code, rec.Body.String())
-		}
-
-		var res map[string]interface{}
-		if err := json.Unmarshal(rec.Body.Bytes(), &res); err != nil {
-			t.Fatalf("failed to decode response: %v", err)
-		}
-		if res["status"] != "created" {
-			t.Errorf("expected status 'created', got %v", res["status"])
-		}
-
-		list, err := svc.GetNotifications(context.Background(), "usr-ingest-test", 10, 0)
-		if err != nil || len(list) != 1 {
-			t.Fatalf("expected notification to be stored, got error %v", err)
-		}
-	})
-
-	t.Run("InvalidJSON", func(t *testing.T) {
-		req := httptest.NewRequest("POST", "/api/v1/notifications/send", strings.NewReader("{invalid-json"))
-		rec := httptest.NewRecorder()
-		mux.ServeHTTP(rec, req)
-
-		if rec.Code != http.StatusBadRequest {
-			t.Fatalf("expected status 400 Bad Request, got %d", rec.Code)
-		}
-	})
-}

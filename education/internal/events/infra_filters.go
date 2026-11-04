@@ -20,7 +20,6 @@ var (
 // consumidor realmente procesa (si no, los eventos nuevos no llegarían
 // o llegarían de más).
 func InfraFilters(setupPath string) (map[string][]string, error) {
-	// #nosec G304 -- test helper reading local infrastructure setup file
 	raw, err := os.ReadFile(setupPath)
 	if err != nil {
 		return nil, err

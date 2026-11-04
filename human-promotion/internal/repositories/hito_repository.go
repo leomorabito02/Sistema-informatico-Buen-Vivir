@@ -57,7 +57,7 @@ func (r *hitoRepository) participanteDeFicha(tx *firestore.Transaction, fichaID 
 func hitoPayload(id, participanteID string, doc models.HitoDocument) events.HitoPayload {
 	return events.HitoPayload{
 		HitoID: id, FichaID: doc.FichaID, ParticipanteID: participanteID,
-		Fecha: doc.Fecha, VisibleParticipante: doc.VisibleParticipante,
+		Fecha: doc.Fecha, ResponsableID: doc.ResponsableID, VisibleParticipante: doc.VisibleParticipante,
 	}
 }
 

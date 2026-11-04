@@ -33,6 +33,7 @@ func main() {
 		&models.EmailVerification{},
 		&models.RefreshToken{},
 		&models.StorageCleanupTask{},
+		&models.OutboxEvent{},
 	)
 	
 	if err != nil {

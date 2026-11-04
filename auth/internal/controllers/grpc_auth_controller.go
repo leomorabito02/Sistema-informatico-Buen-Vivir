@@ -3,6 +3,9 @@ package controllers
 import (
 	"context"
 	"errors"
+	"fmt"
+	"os"
+	"strings"
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -24,11 +27,18 @@ func serviceCtx(ctx context.Context) context.Context {
 
 type GrpcAuthController struct {
 	authpb.UnimplementedAuthServiceServer
-	participantService services.ParticipantService
-	companyService     services.CompanyService
-	userService        services.UserService
-	directoryService   services.ParticipantDirectoryService
-	deviceRepo         repositories.DeviceRepository
+	participantService  services.ParticipantService
+	companyService      services.CompanyService
+	userService         services.UserService
+	directoryService    services.ParticipantDirectoryService
+	deviceRepo          repositories.DeviceRepository
+	verificationService services.VerificationService
+	recoveryService     services.PasswordRecoveryService
+}
+
+func (c *GrpcAuthController) SetLinkIssuers(v services.VerificationService, r services.PasswordRecoveryService) {
+	c.verificationService = v
+	c.recoveryService = r
 }
 
 func NewGrpcAuthController(
@@ -261,5 +271,44 @@ func (c *GrpcAuthController) GetActiveUserIDsByRoles(ctx context.Context, req *a
 	}
 	return &authpb.GetActiveUserIDsByRolesResponse{UserIds: ids}, nil
 }
+
+func (c *GrpcAuthController) IssueActionLink(ctx context.Context, req *authpb.IssueActionLinkRequest) (*authpb.IssueActionLinkResponse, error) {
+	if req == nil {
+		return nil, status.Error(codes.InvalidArgument, "request cannot be nil")
+	}
+
+	switch req.Type {
+	case "cuenta_aprobada":
+		frontendURL := strings.TrimSpace(os.Getenv("FRONTEND_URL"))
+		if frontendURL == "" {
+			frontendURL = "https://ceibuenvivir.org"
+		}
+		return &authpb.IssueActionLinkResponse{ActionUrl: fmt.Sprintf("%s/login", strings.TrimRight(frontendURL, "/"))}, nil
+
+	case "verificacion":
+		if c.verificationService == nil {
+			return nil, status.Error(codes.Unimplemented, "verification service not configured")
+		}
+		link, err := c.verificationService.IssueActionLink(ctx, req.RequestId, req.UserId)
+		if err != nil {
+			return nil, status.Errorf(codes.Internal, "failed to issue verification link: %v", err)
+		}
+		return &authpb.IssueActionLinkResponse{ActionUrl: link}, nil
+
+	case "recuperacion_password":
+		if c.recoveryService == nil {
+			return nil, status.Error(codes.Unimplemented, "recovery service not configured")
+		}
+		link, err := c.recoveryService.IssueActionLink(ctx, req.RequestId, req.UserId)
+		if err != nil {
+			return nil, status.Errorf(codes.Internal, "failed to issue recovery link: %v", err)
+		}
+		return &authpb.IssueActionLinkResponse{ActionUrl: link}, nil
+
+	default:
+		return nil, status.Errorf(codes.InvalidArgument, "unsupported action link type: %s", req.Type)
+	}
+}
+
 
 

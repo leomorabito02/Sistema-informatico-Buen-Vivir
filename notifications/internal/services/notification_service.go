@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"html"
 	"strings"
 	"time"
 
@@ -461,6 +462,7 @@ var standardCategories = []models.NotificationCategory{
 	models.CategoryEducation,
 	models.CategoryLabor,
 	models.CategoryCampaigns,
+	models.CategoryHumanPromotion,
 	models.CategorySystem,
 }
 
@@ -687,7 +689,7 @@ func (s *notificationService) PatchPreference(ctx context.Context, userID string
 func parseCategory(category string) (models.NotificationCategory, error) {
 	cat := models.NotificationCategory(strings.TrimSpace(category))
 	switch cat {
-	case models.CategorySecurity, models.CategoryEducation, models.CategoryLabor, models.CategoryCampaigns, models.CategorySystem:
+	case models.CategorySecurity, models.CategoryEducation, models.CategoryLabor, models.CategoryCampaigns, models.CategoryHumanPromotion, models.CategorySystem:
 		return cat, nil
 	default:
 		return "", fmt.Errorf("invalid notification category: %s", category)
@@ -952,7 +954,7 @@ func (s *notificationService) renderNotificationEmail(
 	dataMap map[string]interface{},
 ) string {
 	if s.tmplEngine == nil {
-		return fmt.Sprintf("<h2>%s</h2><p>%s</p>", notif.Title, notif.Message)
+		return fmt.Sprintf("<h2>%s</h2><p>%s</p>", html.EscapeString(notif.Title), html.EscapeString(notif.Message))
 	}
 
 	actionURL := resolveNotificationActionURL(notif, dataMap)
@@ -961,9 +963,9 @@ func (s *notificationService) renderNotificationEmail(
 	templateID := templates.EmailTemplateID(extractString(dataMap, "template_id"))
 	year := templates.CurrentYear()
 
-	html, err := s.renderAuthTemplate(templateID, recipientName, actionURL, dataMap, year)
+	renderedHTML, err := s.renderAuthTemplate(templateID, recipientName, actionURL, dataMap, year)
 	if err == nil {
-		return html
+		return renderedHTML
 	}
 
 	alertHTML, alertErr := s.tmplEngine.RenderEmail(templates.TemplateGeneralAlert, templates.GeneralAlertData{
@@ -978,7 +980,7 @@ func (s *notificationService) renderNotificationEmail(
 		Year:          year,
 	})
 	if alertErr != nil {
-		return fmt.Sprintf("<h2>%s</h2><p>%s</p>", notif.Title, notif.Message)
+		return fmt.Sprintf("<h2>%s</h2><p>%s</p>", html.EscapeString(notif.Title), html.EscapeString(notif.Message))
 	}
 	return alertHTML
 }

@@ -11,6 +11,7 @@ import (
 	"auth/api/proto/authpb"
 	"auth/config"
 	"auth/internal/controllers"
+	"auth/internal/events/producers"
 	"context"
 	"auth/internal/middlewares"
 	"auth/internal/repositories"
@@ -78,9 +79,12 @@ func main() {
 	transactor := repositories.NewGormTransactor(db)
 	querier := repositories.NewGormRoleProfileQuerier(db)
 
+	outboxRepo := repositories.NewOutboxRepository(db)
+	usuariosProducer := producers.NewUsuariosProducer(outboxRepo)
+
 	notificationSyncSvc := services.NewNotificationSyncService()
-	verificationService := services.NewVerificationService(emailVerificationRepo, userRepo, notificationSyncSvc)
-	passwordRecoveryService := services.NewPasswordRecoveryService(passwordRecoveryRepo, userRepo, refreshTokenRepo, notificationSyncSvc)
+	verificationService := services.NewVerificationService(emailVerificationRepo, userRepo, notificationSyncSvc, usuariosProducer)
+	passwordRecoveryService := services.NewPasswordRecoveryService(passwordRecoveryRepo, userRepo, refreshTokenRepo, notificationSyncSvc, usuariosProducer)
 
 	authService := services.NewAuthService(
 		transactor,
@@ -91,17 +95,29 @@ func main() {
 		firebaseService,
 		verificationService,
 	)
-	userService := services.NewUserService(userRepo, querier, notificationSyncSvc, verificationService)
+
+	userService := services.NewUserService(userRepo, querier, notificationSyncSvc, verificationService, usuariosProducer)
 	roleService := services.NewRoleService(roleRepo)
 	companyService := services.NewCompanyService(companyRepo)
 	teacherService := services.NewTeacherService(teacherRepo)
-	participantService := services.NewParticipantService(participantRepo, participantDocRepo, storageSvc, userRepo, storageCleanupRepo)
+	participantService := services.NewParticipantService(participantRepo, participantDocRepo, storageSvc, userRepo, storageCleanupRepo, usuariosProducer)
 	permissionService := services.NewPermissionService(permissionRepo)
 	volunteerService := services.NewVolunteerService(volunteerRepo, userRepo)
 
 	// Iniciar worker de reconciliación asíncrona de archivos huérfanos
 	cleanupWorker := services.NewStorageCleanupWorker(storageCleanupRepo, storageSvc)
 	cleanupWorker.Start(context.Background(), 5*time.Minute)
+
+	// Iniciar worker de outbox para publicación a Pub/Sub si está configurado
+	pubsubProject := os.Getenv("PUBSUB_PROJECT_ID")
+	if pubsubProject != "" {
+		if pubPublisher, err := services.NewPubSubPublisher(context.Background(), pubsubProject); err == nil {
+			outboxWorker := services.NewOutboxWorker(outboxRepo, pubPublisher)
+			outboxWorker.Start(context.Background(), 5*time.Second)
+		} else {
+			slog.Warn("PubSub publisher initialization failed for outbox worker", "error", err)
+		}
+	}
 
 	// Sincronizar contadores de impacto en Cloudflare Worker KV al iniciar el servicio
 	services.NewKVSyncService(userRepo).SyncImpactStatsAsync()
@@ -126,6 +142,7 @@ func main() {
 	participantDirectoryService := services.NewParticipantDirectoryService(participantDirectoryRepo)
 	directoryController := controllers.NewDirectoryController(participantDirectoryService)
 	grpcAuthController := controllers.NewGrpcAuthController(participantService, companyService, userService, participantDirectoryService, deviceRepo)
+	grpcAuthController.SetLinkIssuers(verificationService, passwordRecoveryService)
 	go func() {
 		lis, err := net.Listen("tcp", ":50051")
 		if err != nil {

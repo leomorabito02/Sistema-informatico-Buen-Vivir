@@ -4,11 +4,12 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"os"
 	"strings"
 	"time"
 
 	"auth/internal/dto"
+	"auth/internal/events"
+	"auth/internal/events/producers"
 	"auth/internal/middlewares"
 	"auth/internal/models"
 	"auth/internal/repositories"
@@ -35,6 +36,7 @@ type userService struct {
 	querier             repositories.RoleProfileQuerier
 	notificationSync    NotificationSyncService
 	verificationService VerificationService
+	producer            producers.UsuariosProducer
 }
 
 func NewUserService(userRepo repositories.UserRepository, opts ...any) UserService {
@@ -47,6 +49,8 @@ func NewUserService(userRepo repositories.UserRepository, opts ...any) UserServi
 			svc.notificationSync = v
 		case VerificationService:
 			svc.verificationService = v
+		case producers.UsuariosProducer:
+			svc.producer = v
 		}
 	}
 	return svc
@@ -91,6 +95,10 @@ func (s *userService) CreateUser(ctx context.Context, req *dto.CreateUserRequest
 
 	if err := s.userRepo.CreateWithRoleProfile(ctx, user, user.RoleID, creatorID); err != nil {
 		return nil, err
+	}
+
+	if s.producer != nil {
+		_ = s.producer.UsuarioCreado(ctx, user.UserID, user.RoleID)
 	}
 
 	if s.verificationService != nil {
@@ -162,6 +170,9 @@ func (s *userService) UpdateUser(ctx context.Context, id string, req *dto.Update
 		return nil, err
 	}
 
+	oldStatus := user.Status
+	oldRole := user.RoleID
+
 	// 3. Modificar campos permitidos
 	if req.FirstName != "" {
 		user.FirstName = req.FirstName
@@ -182,6 +193,14 @@ func (s *userService) UpdateUser(ctx context.Context, id string, req *dto.Update
 	// 4. Actualizar
 	if err := s.userRepo.Update(ctx, user); err != nil {
 		return nil, err
+	}
+
+	if s.producer != nil && (oldStatus != user.Status || oldRole != user.RoleID) {
+		_ = s.producer.UsuarioActualizado(ctx, events.UsuarioActualizadoPayload{
+			UserID: user.UserID,
+			RoleID: user.RoleID,
+			Status: user.Status,
+		})
 	}
 
 	// Sincronizar stats de impacto (por si cambió de rol)
@@ -207,6 +226,10 @@ func (s *userService) DeleteUser(ctx context.Context, id string) error {
 
 	if err := s.userRepo.Delete(ctx, id); err != nil {
 		return err
+	}
+
+	if s.producer != nil && user.RoleID == "role_participant" {
+		_ = s.producer.ParticipanteEliminado(ctx, user.UserID, user.UserID)
 	}
 
 	NewKVSyncService(s.userRepo).SyncImpactStatsAsync()
@@ -292,19 +315,8 @@ func (s *userService) ApproveUser(ctx context.Context, id string) (*dto.UserResp
 
 	user.RoleApprovalStatus = "approved"
 
-	if s.notificationSync != nil {
-		frontendURL := strings.TrimSpace(os.Getenv("FRONTEND_URL"))
-		if frontendURL == "" {
-			frontendURL = "https://tu-pwa.com"
-		}
-		fullName := strings.TrimSpace(user.FirstName + " " + user.LastName)
-		if fullName == "" {
-			fullName = user.Email
-		}
-		actionURL := fmt.Sprintf("%s/login", strings.TrimRight(frontendURL, "/"))
-		go func() {
-			_ = s.notificationSync.SendAccountApprovedEmail(context.Background(), user.UserID, user.Email, fullName, actionURL)
-		}()
+	if s.producer != nil {
+		_ = s.producer.EmailSolicitado(ctx, "app-"+user.UserID, user.UserID, "cuenta_aprobada")
 	}
 
 	return dto.ToUserResponse(user), nil

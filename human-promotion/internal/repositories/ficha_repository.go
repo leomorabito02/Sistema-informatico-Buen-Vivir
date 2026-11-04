@@ -81,7 +81,7 @@ func (r *fichaRepository) Create(ctx context.Context, doc models.FichaDocument) 
 		if err := tx.Create(ref, doc); err != nil {
 			return err
 		}
-		if err := r.events.FichaCreada(ctx, tx, ref.ID, doc.ParticipanteID); err != nil {
+		if err := r.events.FichaCreada(ctx, tx, ref.ID, doc.ParticipanteID, doc.CreadoPor); err != nil {
 			return err
 		}
 		return audit.RecordTx(ctx, r.client, tx, audit.AccionCrear, audit.RecursoFicha, ref.ID)

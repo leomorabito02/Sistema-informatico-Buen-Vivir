@@ -30,6 +30,7 @@ func main() {
 		&models.Notification{},
 		&models.NotificationRecipient{},
 		&models.NotificationPreference{},
+		&models.ProcessedEvent{},
 	)
 	if err != nil {
 		slog.Error("AutoMigrate failed", "error", err)

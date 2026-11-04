@@ -134,8 +134,14 @@ func (p *Educacion) InscripcionCreada(ctx context.Context, tx *firestore.Transac
 		InscripcionID:    e.ID,
 		CursoID:          e.CursoID,
 		ParticipanteID:   e.ParticipanteID,
+		Titulo:           e.CourseTitle,
 		FechaInscripcion: e.FechaInscripcion,
 	}, e.ParticipanteID))
+}
+
+// ActividadRecordatorio emite el recordatorio programado de una actividad próxima (HU-26).
+func (p *Educacion) ActividadRecordatorio(ctx context.Context, tx *firestore.Transaction, payload events.ActividadRecordatorioPayload) error {
+	return p.emit(ctx, tx, p.event(events.ActividadRecordatorio, payload, payload.ParticipanteID))
 }
 
 // AsistenciaRegistrada sale de cada entrega de actividad.

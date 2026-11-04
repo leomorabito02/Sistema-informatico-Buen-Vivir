@@ -3,14 +3,19 @@ package main
 import (
 	"context"
 	"log"
+	"log/slog"
 	"net/http"
 	"os"
 
+	"cloud.google.com/go/firestore"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 
 	"buenvivir/labor-integration/internal/config"
 	"buenvivir/labor-integration/internal/controllers"
+	"buenvivir/labor-integration/internal/events"
+	"buenvivir/labor-integration/internal/events/producers"
+	"buenvivir/labor-integration/internal/outbox"
 	"buenvivir/labor-integration/internal/repositories"
 	"buenvivir/labor-integration/internal/routes"
 	"buenvivir/labor-integration/internal/services"
@@ -42,30 +47,26 @@ func main() {
 	// Configuration
 	cfg := config.LoadConfig()
 
-	// Notification Dispatcher
-	var notificationDispatcher services.NotificationDispatcher
-	if cfg.NotificationsServiceURL != "" {
-		notificationDispatcher = services.NewHTTPNotificationDispatcher(
-			cfg.NotificationsServiceURL,
-			cfg.InternalHMACSecret,
-			authServiceClient,
-		)
-	} else {
-		notificationDispatcher = services.NewNoopNotificationDispatcher()
+	// Mensajería asíncrona (docs/eventos/README.md).
+	relay := startRelay(ctx, cfg, firestoreClient)
+	var writer *outbox.Writer
+	if relay != nil {
+		writer = outbox.NewWriter(firestoreClient, events.ProducerInsercionLaboral, relay.Notify)
 	}
+	insercionLaboralProducer := producers.NewInsercionLaboral(writer, cfg.Events.TopicInsercionLaboral)
 
 	// Services
 	jobOfferService := services.NewJobOfferService(
 		jobOfferRepo,
 		jobApplicationRepo,
 		authServiceClient,
-		services.WithOfferDispatcher(notificationDispatcher),
+		services.WithOfferProducer(insercionLaboralProducer),
 	)
 	jobApplicationService := services.NewJobApplicationService(
 		jobApplicationRepo,
 		jobOfferRepo,
 		authServiceClient,
-		services.WithApplicationDispatcher(notificationDispatcher),
+		services.WithApplicationProducer(insercionLaboralProducer),
 	)
 
 	// Controllers
@@ -90,4 +91,18 @@ func main() {
 	if err := http.ListenAndServe(":"+port, r); err != nil {
 		log.Fatalf("failed to start server: %v", err)
 	}
+}
+
+func startRelay(ctx context.Context, cfg *config.Config, client *firestore.Client) *outbox.Relay {
+	if !cfg.Events.PublishEnabled() {
+		log.Println("PUBSUB_PROJECT_ID vacío: labor-integration no publica eventos")
+		return nil
+	}
+	publisher, err := outbox.NewPubSubPublisher(ctx, cfg.Events.ProjectID)
+	if err != nil {
+		log.Fatalf("no se pudo inicializar Pub/Sub: %v", err)
+	}
+	relay := outbox.NewRelay(client, publisher, slog.Default())
+	go relay.Run(ctx)
+	return relay
 }

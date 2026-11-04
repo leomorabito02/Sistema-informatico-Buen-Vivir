@@ -205,21 +205,9 @@ func (m *mockUserRepoForVerification) FindActiveUserIDsByRoles(ctx context.Conte
 	return nil, nil
 }
 
-type mockNotificationSync struct {
-	sentVerificationEmails []string
-}
+type mockNotificationSync struct{}
 
 func (m *mockNotificationSync) InitUserPreferencesAsync(userID string) {}
-func (m *mockNotificationSync) SendVerificationEmail(ctx context.Context, userID, email, name, actionURL string) error {
-	m.sentVerificationEmails = append(m.sentVerificationEmails, email)
-	return nil
-}
-func (m *mockNotificationSync) SendAccountApprovedEmail(ctx context.Context, userID, email, name, actionURL string) error {
-	return nil
-}
-func (m *mockNotificationSync) SendPasswordRecoveryEmail(ctx context.Context, userID, email, name, actionURL string) error {
-	return nil
-}
 
 func TestVerificationService_GenerateAndSendVerification(t *testing.T) {
 	// Arrange

@@ -16,6 +16,10 @@ type Config struct {
 	ResendFromAlerts        string
 	DatabaseURL             string
 	InternalHMACSecret      string
+	PubSubPushAudience      string
+	PubSubPushServiceAccounts []string
+	PubSubPushAuth          string
+	Environment             string
 }
 
 func LoadConfig() *Config {
@@ -61,7 +65,25 @@ func LoadConfig() *Config {
 		ResendFromAlerts:        resendFromAlerts,
 		DatabaseURL:             os.Getenv("DATABASE_URL_NOTIFICATIONS"),
 		InternalHMACSecret:      os.Getenv("INTERNAL_HMAC_SECRET"),
+		PubSubPushAudience:      strings.TrimSpace(os.Getenv("PUBSUB_PUSH_AUDIENCE")),
+		PubSubPushServiceAccounts: splitCommaList(os.Getenv("PUBSUB_PUSH_SERVICE_ACCOUNTS")),
+		PubSubPushAuth:          strings.TrimSpace(os.Getenv("PUBSUB_PUSH_AUTH")),
+		Environment:             strings.TrimSpace(os.Getenv("ENV")),
 	}
+}
+
+func splitCommaList(raw string) []string {
+	if raw == "" {
+		return nil
+	}
+	parts := strings.Split(raw, ",")
+	var out []string
+	for _, p := range parts {
+		if trimmed := strings.TrimSpace(p); trimmed != "" {
+			out = append(out, trimmed)
+		}
+	}
+	return out
 }
 
 func loadEnvFile(path string) error {

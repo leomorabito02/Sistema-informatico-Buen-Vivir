@@ -16,11 +16,12 @@ PROJECT="${PROJECT:-ceibuenvivir}"
 EDUCATION_URL="${EDUCATION_URL:-http://host.docker.internal:8210}"
 HUMAN_PROMOTION_URL="${HUMAN_PROMOTION_URL:-http://host.docker.internal:8085}"
 DASHBOARD_URL="${DASHBOARD_URL:-http://host.docker.internal:8090}"
+NOTIFICATIONS_URL="${NOTIFICATIONS_URL:-http://host.docker.internal:8088}"
 API="http://$HOST/v1/projects/$PROJECT"
 
 filter() { local out="" t; for t in "$@"; do out+="${out:+ OR }attributes.event_type = \\\"$t\\\""; done; echo "$out"; }
 
-for t in usuarios-eventos educacion-eventos promocion-humana-eventos contenido-eventos insercion-laboral-eventos; do
+for t in usuarios-eventos educacion-eventos promocion-humana-eventos contenido-eventos insercion-laboral-eventos campanas-eventos; do
   curl -s -o /dev/null -X PUT "$API/topics/$t" && echo "topic $t"
 done
 
@@ -40,3 +41,8 @@ sub promocion-humana-usuarios usuarios-eventos "$HUMAN_PROMOTION_URL/eventos/usu
 sub dashboard-usuarios usuarios-eventos "$DASHBOARD_URL/eventos" "$(filter usuarios.participante.creado usuarios.participante.eliminado)"
 sub dashboard-educacion educacion-eventos "$DASHBOARD_URL/eventos" "$(filter educacion.curso.completado_por_participante educacion.curso.creado educacion.curso.eliminado educacion.habilidad.otorgada)"
 sub dashboard-insercion-laboral insercion-laboral-eventos "$DASHBOARD_URL/eventos" "$(filter insercion_laboral.postulacion.seleccionada)"
+sub notificaciones-educacion educacion-eventos "$NOTIFICATIONS_URL/eventos/educacion" "$(filter educacion.actividad.recordatorio educacion.contenido_docente.moderado educacion.contenido_docente.subido educacion.curso.completado_por_participante educacion.curso.creado educacion.curso.eliminado educacion.habilidad.otorgada educacion.inscripcion.creada)"
+sub notificaciones-promocion-humana promocion-humana-eventos "$NOTIFICATIONS_URL/eventos/promocion-humana" "$(filter promocion_humana.ficha.actualizada promocion_humana.ficha.creada promocion_humana.hito.actualizado promocion_humana.hito.registrado)"
+sub notificaciones-usuarios usuarios-eventos "$NOTIFICATIONS_URL/eventos/usuarios" "$(filter usuarios.email.solicitado usuarios.participante.eliminado usuarios.usuario.creado)"
+sub notificaciones-insercion-laboral insercion-laboral-eventos "$NOTIFICATIONS_URL/eventos/insercion-laboral" "$(filter insercion_laboral.oferta.creada insercion_laboral.oferta.revisada insercion_laboral.postulacion.creada insercion_laboral.postulacion.decidida)"
+sub notificaciones-campanas campanas-eventos "$NOTIFICATIONS_URL/eventos/campanas" "$(filter campanas.campana.creada)"

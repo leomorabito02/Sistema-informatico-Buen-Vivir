@@ -19,6 +19,7 @@ const activitiesCollection = "actividades"
 // "actividades".
 type ActivityRepository interface {
 	ListByCourse(ctx context.Context, cursoID string) ([]models.Activity, error)
+	ListByDateRange(ctx context.Context, start, end time.Time) ([]models.Activity, error)
 	Get(ctx context.Context, id string) (*models.Activity, error)
 	Create(ctx context.Context, cursoID string, input models.ActivityInput) (*models.Activity, error)
 	// Update reemplaza titulo/consigna/fecha de la actividad y, en la
@@ -55,6 +56,32 @@ func (r *activityRepository) ListByCourse(ctx context.Context, cursoID string) (
 		}
 		if err != nil {
 			return nil, fmt.Errorf("error listando actividades: %w", err)
+		}
+		var a models.Activity
+		if err := doc.DataTo(&a); err != nil {
+			return nil, fmt.Errorf("error leyendo actividad: %w", err)
+		}
+		a.ID = doc.Ref.ID
+		activities = append(activities, a)
+	}
+	return activities, nil
+}
+
+func (r *activityRepository) ListByDateRange(ctx context.Context, start, end time.Time) ([]models.Activity, error) {
+	iter := r.client.Collection(activitiesCollection).
+		Where("fecha", ">=", start).
+		Where("fecha", "<=", end).
+		Documents(ctx)
+	defer iter.Stop()
+
+	activities := make([]models.Activity, 0)
+	for {
+		doc, err := iter.Next()
+		if err == iterator.Done {
+			break
+		}
+		if err != nil {
+			return nil, fmt.Errorf("error listando actividades por rango de fecha: %w", err)
 		}
 		var a models.Activity
 		if err := doc.DataTo(&a); err != nil {

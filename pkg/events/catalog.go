@@ -12,6 +12,7 @@ const (
 	TopicPromocionHumana  = "promocion-humana-eventos"
 	TopicContenido        = "contenido-eventos"
 	TopicInsercionLaboral = "insercion-laboral-eventos"
+	TopicCampanas         = "campanas-eventos"
 
 	DLQSuffix = "-dlq"
 )
@@ -23,21 +24,27 @@ const (
 	ProducerPromocionHumana  = "servicio-promocion-humana"
 	ProducerContentful       = "receptor-contentful"
 	ProducerInsercionLaboral = "servicio-insercion-laboral"
+	ProducerCampanas         = "servicio-campanas"
 )
 
 // Tipos de evento: "<dominio>.<entidad>.<acción>".
-//
-// Los de Autenticación e Inserción Laboral son PROPUESTOS: esos servicios
-// todavía no publican nada (ver docs/eventos/README.md, "Pendientes de
-// coordinar"). Se definen acá para que los consumidores ya estén listos.
 const (
-	// Autenticación (propuestos, pendientes de coordinar).
+	// Autenticación.
+	UsuarioCreado         = "usuarios.usuario.creado"
+	EmailSolicitado       = "usuarios.email.solicitado"
 	ParticipanteCreado    = "usuarios.participante.creado"
 	ParticipanteEliminado = "usuarios.participante.eliminado"
 	UsuarioActualizado    = "usuarios.usuario.actualizado"
 
-	// Inserción Laboral (propuesto, pendiente de coordinar).
+	// Inserción Laboral.
+	OfertaCreada            = "insercion_laboral.oferta.creada"
+	OfertaRevisada          = "insercion_laboral.oferta.revisada"
+	PostulacionCreada       = "insercion_laboral.postulacion.creada"
 	PostulacionSeleccionada = "insercion_laboral.postulacion.seleccionada"
+	PostulacionDecidida     = "insercion_laboral.postulacion.decidida"
+
+	// Campañas.
+	CampanaCreada = "campanas.campana.creada"
 
 	// Educación.
 	CursoCreado                  = "educacion.curso.creado"
@@ -51,6 +58,7 @@ const (
 	AsistenciaGeneralActualizada = "educacion.asistencia_general.actualizada"
 	ContenidoDocenteSubido       = "educacion.contenido_docente.subido"
 	ContenidoDocenteModerado     = "educacion.contenido_docente.moderado"
+	ActividadRecordatorio        = "educacion.actividad.recordatorio"
 
 	// Promoción Humana.
 	FichaCreada      = "promocion_humana.ficha.creada"
@@ -82,6 +90,57 @@ func CurrentVersion(eventType string) int {
 //
 // Regla (Ley 25.326, RNF-06, RNF-08): SOLO ids y metadatos. Nunca
 // nombres, DNI, teléfono, email, texto libre ni contenido de fichas.
+
+// UsuarioCreadoPayload es el payload de usuarios.usuario.creado.
+type UsuarioCreadoPayload struct {
+	UserID string `json:"user_id"`
+	RoleID string `json:"role_id"`
+}
+
+// EmailSolicitadoPayload es el payload de usuarios.email.solicitado.
+// Tipo: "verificacion", "cuenta_aprobada", "recuperacion_password".
+type EmailSolicitadoPayload struct {
+	RequestID string `json:"request_id"`
+	UserID    string `json:"user_id"`
+	Tipo      string `json:"tipo"`
+}
+
+// OfertaCreadaPayload es el payload de insercion_laboral.oferta.creada.
+type OfertaCreadaPayload struct {
+	OfertaID  string `json:"oferta_id"`
+	EmpresaID string `json:"empresa_id"`
+	Estado    string `json:"estado"`
+}
+
+// OfertaRevisadaPayload es el payload de insercion_laboral.oferta.revisada.
+type OfertaRevisadaPayload struct {
+	OfertaID  string `json:"oferta_id"`
+	EmpresaID string `json:"empresa_id"`
+	Aprobada  bool   `json:"aprobada"`
+}
+
+// PostulacionCreadaPayload es el payload de insercion_laboral.postulacion.creada.
+type PostulacionCreadaPayload struct {
+	PostulacionID  string `json:"postulacion_id"`
+	OfertaID       string `json:"oferta_id"`
+	ParticipanteID string `json:"participante_id"`
+	EmpresaID      string `json:"empresa_id"`
+}
+
+// PostulacionDecididaPayload es el payload de insercion_laboral.postulacion.decidida.
+type PostulacionDecididaPayload struct {
+	PostulacionID  string `json:"postulacion_id"`
+	OfertaID       string `json:"oferta_id"`
+	ParticipanteID string `json:"participante_id"`
+	EmpresaID      string `json:"empresa_id"`
+	Resultado      string `json:"resultado"`
+}
+
+// CampanaCreadaPayload es el payload de campanas.campana.creada.
+type CampanaCreadaPayload struct {
+	CampanaID string `json:"campana_id"`
+	CreadoPor string `json:"creado_por"`
+}
 
 // ParticipantePayload es el payload de usuarios.participante.creado y
 // usuarios.participante.eliminado (propuesto para Autenticación).
@@ -129,7 +188,18 @@ type InscripcionCreadaPayload struct {
 	InscripcionID    string    `json:"inscripcion_id"`
 	CursoID          string    `json:"curso_id"`
 	ParticipanteID   string    `json:"participante_id"`
+	DocenteID        string    `json:"docente_id,omitempty"`
+	Titulo           string    `json:"titulo,omitempty"`
 	FechaInscripcion time.Time `json:"fecha_inscripcion"`
+}
+
+// ActividadRecordatorioPayload: aviso programado de actividad próxima (HU-26).
+type ActividadRecordatorioPayload struct {
+	ActividadID    string `json:"actividad_id"`
+	CursoID        string `json:"curso_id"`
+	ParticipanteID string `json:"participante_id"`
+	Fecha          string `json:"fecha"`
+	Titulo         string `json:"titulo,omitempty"`
 }
 
 // AsistenciaRegistradaPayload: asistencia a una actividad, generada al
@@ -210,6 +280,7 @@ type ContenidoDocenteModeradoPayload struct {
 type FichaPayload struct {
 	FichaID        string `json:"ficha_id"`
 	ParticipanteID string `json:"participante_id"`
+	CreadoPor      string `json:"creado_por,omitempty"`
 }
 
 // HitoPayload es el payload de promocion_humana.hito.registrado/actualizado.
@@ -219,6 +290,7 @@ type HitoPayload struct {
 	FichaID             string `json:"ficha_id"`
 	ParticipanteID      string `json:"participante_id"`
 	Fecha               string `json:"fecha"` // AAAA-MM-DD
+	ResponsableID       string `json:"responsable_id,omitempty"`
 	VisibleParticipante bool   `json:"visible_participante"`
 }
 

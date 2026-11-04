@@ -91,7 +91,7 @@ func TestAsyncEndpoints_DecisionTable(t *testing.T) {
 		}
 
 		// Act
-		endpoints := asyncEndpoints(cfg, nil, nil, nil, nil, nil)
+		endpoints := asyncEndpoints(cfg, nil, nil, nil, nil, nil, nil)
 
 		// Assert
 		assert.Nil(t, endpoints.Usuarios)
@@ -114,7 +114,7 @@ func TestAsyncEndpoints_DecisionTable(t *testing.T) {
 		relay := &outbox.Relay{}
 
 		// Act
-		endpoints := asyncEndpoints(cfg, nil, nil, nil, producer, relay)
+		endpoints := asyncEndpoints(cfg, nil, nil, nil, nil, producer, relay)
 
 		// Assert
 		assert.NotNil(t, endpoints.ContentfulWebhook)
@@ -134,7 +134,7 @@ func TestAsyncEndpoints_DecisionTable(t *testing.T) {
 		producer := producers.NewEducacion(nil, "", "")
 
 		// Act
-		endpoints := asyncEndpoints(cfg, nil, nil, nil, producer, nil)
+		endpoints := asyncEndpoints(cfg, nil, nil, nil, nil, producer, nil)
 
 		// Assert
 		assert.Nil(t, endpoints.ContentfulWebhook)
@@ -155,7 +155,7 @@ func TestAsyncEndpoints_DecisionTable(t *testing.T) {
 		producer := producers.NewEducacion(writer, "t1", "t2")
 
 		// Act
-		endpoints := asyncEndpoints(cfg, nil, nil, nil, producer, nil)
+		endpoints := asyncEndpoints(cfg, nil, nil, nil, nil, producer, nil)
 
 		// Assert
 		assert.NotNil(t, endpoints.ContentfulWebhook)
@@ -175,7 +175,7 @@ func TestAsyncEndpoints_DecisionTable(t *testing.T) {
 		}
 
 		// Act
-		endpoints := asyncEndpoints(cfg, nil, nil, nil, nil, nil)
+		endpoints := asyncEndpoints(cfg, nil, nil, nil, nil, nil, nil)
 
 		// Assert
 		assert.NotNil(t, endpoints.Usuarios)

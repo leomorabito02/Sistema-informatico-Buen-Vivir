@@ -11,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+	"auth/internal/events/producers"
 	"auth/internal/models"
 	"auth/internal/repositories"
 	"auth/internal/utils"
@@ -20,24 +21,31 @@ type VerificationService interface {
 	GenerateAndSendVerification(ctx context.Context, user *models.User) error
 	VerifyEmail(ctx context.Context, rawToken string) error
 	ResendVerification(ctx context.Context, email string) error
+	IssueActionLink(ctx context.Context, requestID, userID string) (string, error)
 }
 
 type verificationService struct {
 	evRepo           repositories.EmailVerificationRepository
 	userRepo         repositories.UserRepository
 	notificationSync NotificationSyncService
+	producer         producers.UsuariosProducer
 }
 
 func NewVerificationService(
 	evRepo repositories.EmailVerificationRepository,
 	userRepo repositories.UserRepository,
 	notificationSync NotificationSyncService,
+	producer ...producers.UsuariosProducer,
 ) VerificationService {
-	return &verificationService{
+	svc := &verificationService{
 		evRepo:           evRepo,
 		userRepo:         userRepo,
 		notificationSync: notificationSync,
 	}
+	if len(producer) > 0 {
+		svc.producer = producer[0]
+	}
+	return svc
 }
 
 func (s *verificationService) GenerateAndSendVerification(ctx context.Context, user *models.User) error {
@@ -65,27 +73,9 @@ func (s *verificationService) GenerateAndSendVerification(ctx context.Context, u
 		return fmt.Errorf("error guardando token de verificación: %w", err)
 	}
 
-	frontendURL := strings.TrimSpace(os.Getenv("FRONTEND_URL"))
-	if frontendURL == "" {
-		frontendURL = "https://ceibuenvivir.org"
+	if s.producer != nil {
+		_ = s.producer.EmailSolicitado(ctx, ev.EmailVerificationID, user.UserID, "verificacion")
 	}
-	verifyPath := strings.TrimSpace(os.Getenv("EMAIL_VERIFICATION_PATH"))
-	if verifyPath == "" {
-		verifyPath = "/verify-email"
-	}
-	if !strings.HasPrefix(verifyPath, "/") {
-		verifyPath = "/" + verifyPath
-	}
-	actionURL := fmt.Sprintf("%s%s?token=%s", strings.TrimRight(frontendURL, "/"), verifyPath, rawToken)
-
-	fullName := strings.TrimSpace(user.FirstName + " " + user.LastName)
-	if fullName == "" {
-		fullName = user.Email
-	}
-
-	go func() {
-		_ = s.notificationSync.SendVerificationEmail(context.Background(), user.UserID, user.Email, fullName, actionURL)
-	}()
 
 	return nil
 }
@@ -154,3 +144,43 @@ func (s *verificationService) ResendVerification(ctx context.Context, email stri
 
 	return s.GenerateAndSendVerification(ctx, &users[0])
 }
+
+func (s *verificationService) IssueActionLink(ctx context.Context, requestID, userID string) (string, error) {
+	tokenBytes := make([]byte, 32)
+	if _, err := rand.Read(tokenBytes); err != nil {
+		return "", fmt.Errorf("error generando token criptográfico: %w", err)
+	}
+	rawToken := hex.EncodeToString(tokenBytes)
+	hash := sha256.Sum256([]byte(rawToken))
+	tokenHash := hex.EncodeToString(hash[:])
+
+	if requestID == "" {
+		requestID = "ev-" + utils.GenerateRandomString(10)
+	}
+
+	ev := &models.EmailVerification{
+		EmailVerificationID: requestID,
+		UserID:              userID,
+		TokenHash:           tokenHash,
+		ExpiresAt:           time.Now().Add(24 * time.Hour),
+	}
+
+	_ = s.evRepo.Delete(ctx, requestID)
+	if err := s.evRepo.Create(ctx, ev); err != nil {
+		return "", fmt.Errorf("error guardando token de verificación: %w", err)
+	}
+
+	frontendURL := strings.TrimSpace(os.Getenv("FRONTEND_URL"))
+	if frontendURL == "" {
+		frontendURL = "https://ceibuenvivir.org"
+	}
+	verifyPath := strings.TrimSpace(os.Getenv("EMAIL_VERIFICATION_PATH"))
+	if verifyPath == "" {
+		verifyPath = "/verify-email"
+	}
+	if !strings.HasPrefix(verifyPath, "/") {
+		verifyPath = "/" + verifyPath
+	}
+	return fmt.Sprintf("%s%s?token=%s", strings.TrimRight(frontendURL, "/"), verifyPath, rawToken), nil
+}
+

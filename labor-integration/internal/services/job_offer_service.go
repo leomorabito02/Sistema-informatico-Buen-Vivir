@@ -3,34 +3,28 @@ package services
 import (
 	"context"
 	"errors"
+	"log/slog"
 	"strings"
 	"time"
 
+	"buenvivir/labor-integration/internal/events/producers"
 	"buenvivir/labor-integration/internal/models"
 	"buenvivir/labor-integration/internal/repositories"
 )
 
 type JobOfferService struct {
-	repo         repositories.JobOfferRepository
-	appRepo      repositories.JobApplicationRepository
-	authClient   repositories.AuthServiceClient
-	dispatcher   NotificationDispatcher
-	syncDispatch bool
+	repo       repositories.JobOfferRepository
+	appRepo    repositories.JobApplicationRepository
+	authClient repositories.AuthServiceClient
+	producer   producers.InsercionLaboralProducer
 }
 
 type JobOfferServiceOption func(*JobOfferService)
 
-// WithOfferDispatcher configures a custom NotificationDispatcher for JobOfferService.
-func WithOfferDispatcher(dispatcher NotificationDispatcher) JobOfferServiceOption {
+// WithOfferProducer sets an InsercionLaboralProducer for JobOfferService.
+func WithOfferProducer(producer producers.InsercionLaboralProducer) JobOfferServiceOption {
 	return func(s *JobOfferService) {
-		s.dispatcher = dispatcher
-	}
-}
-
-// WithOfferSyncDispatch controls whether notifications are dispatched synchronously (e.g. for testing).
-func WithOfferSyncDispatch(sync bool) JobOfferServiceOption {
-	return func(s *JobOfferService) {
-		s.syncDispatch = sync
+		s.producer = producer
 	}
 }
 
@@ -39,7 +33,6 @@ func NewJobOfferService(repo repositories.JobOfferRepository, appRepo repositori
 		repo:       repo,
 		appRepo:    appRepo,
 		authClient: authClient,
-		dispatcher: NewNoopNotificationDispatcher(),
 	}
 	for _, opt := range opts {
 		opt(s)
@@ -81,11 +74,11 @@ func (s *JobOfferService) CreateOffer(ctx context.Context, offer *models.JobOffe
 		return err
 	}
 
-	if s.dispatcher != nil {
-		if s.syncDispatch {
-			s.dispatcher.OfferCreated(ctx, offer, userID)
+	if s.producer != nil {
+		if err := s.producer.OfertaCreada(ctx, offer.ID, offer.CompanyID, offer.Status); err != nil {
+			slog.Warn("failed to emit oferta.creada", slog.String("error", err.Error()), slog.String("offer_id", offer.ID))
 		} else {
-			go s.dispatcher.OfferCreated(context.Background(), offer, userID)
+			s.producer.Notify()
 		}
 	}
 
@@ -170,14 +163,12 @@ func (s *JobOfferService) ApproveOffer(ctx context.Context, id string, approvedB
 	if err := s.repo.UpdateStatusAndApprover(ctx, id, "Activa", approvedBy); err != nil {
 		return err
 	}
-	if s.dispatcher != nil {
-		offer, err := s.repo.GetByID(ctx, id)
-		if err == nil && offer != nil {
-			if s.syncDispatch {
-				s.dispatcher.OfferReviewed(ctx, offer, true)
-			} else {
-				go s.dispatcher.OfferReviewed(context.Background(), offer, true)
-			}
+	offer, err := s.repo.GetByID(ctx, id)
+	if err == nil && offer != nil && s.producer != nil {
+		if err := s.producer.OfertaRevisada(ctx, offer.ID, offer.CompanyID, true); err != nil {
+			slog.Warn("failed to emit oferta.revisada", slog.String("error", err.Error()), slog.String("offer_id", offer.ID))
+		} else {
+			s.producer.Notify()
 		}
 	}
 	return nil
@@ -187,14 +178,12 @@ func (s *JobOfferService) RejectOffer(ctx context.Context, id string, approvedBy
 	if err := s.repo.UpdateStatusAndApprover(ctx, id, "Rechazada", approvedBy); err != nil {
 		return err
 	}
-	if s.dispatcher != nil {
-		offer, err := s.repo.GetByID(ctx, id)
-		if err == nil && offer != nil {
-			if s.syncDispatch {
-				s.dispatcher.OfferReviewed(ctx, offer, false)
-			} else {
-				go s.dispatcher.OfferReviewed(context.Background(), offer, false)
-			}
+	offer, err := s.repo.GetByID(ctx, id)
+	if err == nil && offer != nil && s.producer != nil {
+		if err := s.producer.OfertaRevisada(ctx, offer.ID, offer.CompanyID, false); err != nil {
+			slog.Warn("failed to emit oferta.revisada", slog.String("error", err.Error()), slog.String("offer_id", offer.ID))
+		} else {
+			s.producer.Notify()
 		}
 	}
 	return nil

@@ -30,6 +30,9 @@ type AuthClient interface {
 	GetCampaignRecipients(ctx context.Context) ([]RecipientContact, error)
 	IsUserEmailVerified(ctx context.Context, userID string) (bool, error)
 	GetUserContact(ctx context.Context, userID string) (*RecipientContact, error)
+	GetActiveUserIDsByRoles(ctx context.Context, roleIDs []string) ([]string, error)
+	GetParticipantUserID(ctx context.Context, participantID string) (string, error)
+	IssueActionLink(ctx context.Context, requestID, userID, actionType string) (string, error)
 	Close() error
 }
 
@@ -147,6 +150,48 @@ func (c *authClient) GetUserContact(ctx context.Context, userID string) (*Recipi
 	}, nil
 }
 
+func (c *authClient) GetActiveUserIDsByRoles(ctx context.Context, roleIDs []string) ([]string, error) {
+	if len(roleIDs) == 0 {
+		return []string{}, nil
+	}
+	callCtx, cancel := context.WithTimeout(ctx, defaultAuthTimeout)
+	defer cancel()
+
+	resp, err := c.client.GetActiveUserIDsByRoles(callCtx, &authpb.GetActiveUserIDsByRolesRequest{RoleIds: roleIDs})
+	if err != nil {
+		return nil, fmt.Errorf("failed to retrieve user IDs by roles: %w", err)
+	}
+	return resp.UserIds, nil
+}
+
+func (c *authClient) GetParticipantUserID(ctx context.Context, participantID string) (string, error) {
+	if strings.TrimSpace(participantID) == "" {
+		return "", errors.New("participant_id cannot be empty")
+	}
+	callCtx, cancel := context.WithTimeout(ctx, defaultAuthTimeout)
+	defer cancel()
+
+	resp, err := c.client.GetParticipant(callCtx, &authpb.GetParticipantRequest{ParticipantId: participantID})
+	if err != nil {
+		return "", fmt.Errorf("failed to retrieve participant: %w", err)
+	}
+	return resp.UserId, nil
+}
+
+func (c *authClient) IssueActionLink(ctx context.Context, requestID, userID, actionType string) (string, error) {
+	callCtx, cancel := context.WithTimeout(ctx, defaultAuthTimeout)
+	defer cancel()
+
+	resp, err := c.client.IssueActionLink(callCtx, &authpb.IssueActionLinkRequest{
+		RequestId: requestID,
+		UserId:    userID,
+		Type:      actionType,
+	})
+	if err != nil {
+		return "", fmt.Errorf("failed to issue action link: %w", err)
+	}
+	return resp.ActionUrl, nil
+}
 
 func (c *authClient) Close() error {
 	if c.conn != nil {
