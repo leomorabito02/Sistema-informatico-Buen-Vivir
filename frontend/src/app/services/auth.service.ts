@@ -30,12 +30,26 @@ export class AuthService {
 
   private readonly apiUrl = environment.apiUrl;
 
+  /** El token se registra una vez por carga de la página, no en cada navegación. */
+  private pushSynced = false;
+
   constructor() {}
 
-  async syncPushNotifications(): Promise<void> {
+  /**
+   * Registra el dispositivo para las notificaciones push.
+   * @param askPermission `true` solo al iniciar sesión o registrarse: ahí se
+   *   muestra el pedido de permiso. Al validar la sesión (en cada guard) va
+   *   `false`, para no volver a preguntar en cada pantalla.
+   */
+  async syncPushNotifications(askPermission = false): Promise<void> {
+    if (this.pushSynced) {
+      return;
+    }
     try {
-      const token = await this.pushService.requestPermissionAndGetToken();
+      const token =
+        await this.pushService.requestPermissionAndGetToken(askPermission);
       if (token) {
+        this.pushSynced = true;
         this.pushService.registerDeviceToken(token).subscribe();
         this.pushService.listenForegroundMessages();
       }
@@ -125,7 +139,7 @@ export class AuthService {
       .pipe(
         tap(() => {
           this.setLocallyAuthenticated();
-          void this.syncPushNotifications();
+          void this.syncPushNotifications(true);
         }),
         catchError(this.handleError),
       );
@@ -158,7 +172,7 @@ export class AuthService {
       .pipe(
         tap(() => {
           this.setLocallyAuthenticated();
-          void this.syncPushNotifications();
+          void this.syncPushNotifications(true);
         }),
         catchError(this.handleError),
       );

@@ -30,6 +30,9 @@ type Config struct {
 	ReportesBucket string
 	// Tiempo máximo de cada consulta a un servicio de origen.
 	Timeout time.Duration
+	// CORSAllowedOrigins: orígenes del frontend (separados por comas). En
+	// Docker queda vacío porque el CORS lo pone nginx.
+	CORSAllowedOrigins string
 
 	// CacheTTL es cuánto se reusa lo que devolvió cada fuente (los
 	// eventos de Pub/Sub la invalidan antes). 0 desactiva la caché.
@@ -57,6 +60,8 @@ func LoadConfig() *Config {
 		LaborURL:          env("LABOR_SERVICE_URL", "http://labor-integration:8080"),
 		HumanPromotionURL: env("HUMAN_PROMOTION_SERVICE_URL", "http://human-promotion:8085"),
 		Timeout:           15 * time.Second,
+
+		CORSAllowedOrigins: os.Getenv("CORS_ALLOWED_ORIGINS"),
 
 		JWTSecret:       os.Getenv("JWT_SECRET"),
 		UpstreamIDToken: strings.EqualFold(strings.TrimSpace(os.Getenv("UPSTREAM_ID_TOKEN")), "true"),

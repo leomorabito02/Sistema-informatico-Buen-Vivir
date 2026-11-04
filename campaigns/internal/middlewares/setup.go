@@ -27,7 +27,7 @@ func SetupMiddlewares(r *chi.Mux, allowedOriginsEnv string) {
 	r.Use(cors.New(cors.Options{
 		AllowedOrigins:   allowedOrigins,
 		AllowedMethods:   []string{"GET", "POST", "PUT", "OPTIONS"},
-		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-CSRF-Token", "X-Requested-With"},
+		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-CSRF-Token", "X-Requested-With", "X-Skip-Global-Error", "X-Redirect-On-404", "X-Skip-500-Redirect"},
 		AllowCredentials: true,
 		MaxAge:           300,
 	}).Handler)

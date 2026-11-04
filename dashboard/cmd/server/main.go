@@ -84,7 +84,7 @@ func main() {
 
 	srv := &http.Server{
 		Addr:              ":" + cfg.Port,
-		Handler:           mux,
+		Handler:           routes.WithCORS(mux, routes.ParseOrigins(cfg.CORSAllowedOrigins)),
 		ReadHeaderTimeout: 10 * time.Second,
 		// Cursos con muchas actividades pueden tardar: margen sobre el
 		// timeout de cada consulta a un servicio de origen.

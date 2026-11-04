@@ -10,6 +10,13 @@ export interface DeviceRegistrationResponse {
   message?: string;
 }
 
+/**
+ * Scope propio del service worker de Firebase (el mismo que usa Firebase
+ * por defecto). Registrarlo en "/" pisaba al service worker de la app
+ * (ngsw-worker.js), que vive en ese scope.
+ */
+export const FIREBASE_SW_SCOPE = "/firebase-cloud-messaging-push-scope";
+
 @Injectable({
   providedIn: "root",
 })
@@ -17,8 +24,17 @@ export class PushNotificationService {
   private readonly messaging = inject(Messaging, { optional: true });
   private readonly http = inject(HttpClient);
   private readonly apiUrl = environment.apiUrl ?? "";
+  private listening = false;
 
-  async requestPermissionAndGetToken(): Promise<string | null> {
+  /**
+   * Devuelve el token FCM del navegador.
+   * @param askPermission si es `true` y el usuario todavía no respondió,
+   *   muestra el pedido de permiso. Con `false` nunca pregunta: solo
+   *   obtiene el token si el permiso ya estaba concedido.
+   */
+  async requestPermissionAndGetToken(
+    askPermission = true,
+  ): Promise<string | null> {
     if (
       typeof window === "undefined" ||
       !("Notification" in window) ||
@@ -32,12 +48,11 @@ export class PushNotificationService {
     }
 
     try {
-      const permission = await Notification.requestPermission();
+      let permission = Notification.permission;
+      if (permission === "default" && askPermission) {
+        permission = await Notification.requestPermission();
+      }
       if (permission !== "granted") {
-        console.warn(
-          "[PushNotificationService] Notification permission was not granted:",
-          permission,
-        );
         return null;
       }
 
@@ -52,10 +67,13 @@ export class PushNotificationService {
         return null;
       }
 
-      await navigator.serviceWorker.register("/firebase-messaging-sw.js", {
-        scope: "/",
-      });
-      const swRegistration = await navigator.serviceWorker.ready;
+      // `navigator.serviceWorker.ready` daría el de la app (scope "/"),
+      // así que se usa el registro de Firebase y se espera a que esté activo.
+      const swRegistration = await navigator.serviceWorker.register(
+        "/firebase-messaging-sw.js",
+        { scope: FIREBASE_SW_SCOPE },
+      );
+      await waitUntilActive(swRegistration);
 
       const token = await getToken(this.messaging, {
         vapidKey,
@@ -73,10 +91,12 @@ export class PushNotificationService {
     }
   }
 
+  /** Se suscribe una sola vez: llamarla de nuevo no agrega otro listener. */
   listenForegroundMessages(callback?: (payload: unknown) => void): void {
-    if (!this.messaging) {
+    if (!this.messaging || this.listening) {
       return;
     }
+    this.listening = true;
 
     onMessage(this.messaging, (payload) => {
       console.info(
@@ -124,4 +144,24 @@ export class PushNotificationService {
       )
       .pipe(catchError(() => of(null)));
   }
+}
+
+/** Espera a que el service worker recién registrado quede activo. */
+function waitUntilActive(
+  registration: ServiceWorkerRegistration,
+): Promise<void> {
+  if (registration.active) {
+    return Promise.resolve();
+  }
+  const worker = registration.installing ?? registration.waiting;
+  if (!worker) {
+    return Promise.resolve();
+  }
+  return new Promise((resolve) => {
+    worker.addEventListener("statechange", () => {
+      if (worker.state === "activated" || worker.state === "redundant") {
+        resolve();
+      }
+    });
+  });
 }

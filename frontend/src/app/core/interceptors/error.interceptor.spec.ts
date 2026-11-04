@@ -196,7 +196,9 @@ describe("errorInterceptor", () => {
     httpClient.get("/test").subscribe({
       next: () => fail("should have failed"),
       error: () => {
-        expect(routerSpy.navigate).toHaveBeenCalledWith(["/500"]);
+        expect(routerSpy.navigate).toHaveBeenCalledWith(["/500"], {
+          skipLocationChange: true,
+        });
       },
     });
 
