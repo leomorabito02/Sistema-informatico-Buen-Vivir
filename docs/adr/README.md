@@ -14,3 +14,4 @@ cambia, se escribe uno nuevo que lo reemplace.
 | [0006](0006-cache-de-contenido.md) | Caché de Contentful con contenido stale | 2026-10-16 | Aceptada |
 | [0007](0007-sin-pii-en-eventos.md) | Sin datos personales en los eventos | 2026-10-16 | Aceptada |
 | [0008](0008-webhook-contentful-en-education.md) | Receptor de webhooks de Contentful dentro de Educación | 2026-10-16 | Aceptada |
+| [0009](0009-migracion-notificaciones-pubsub-total.md) | Migración total de notificaciones a Pub/Sub y eliminación de HTTP sincrónico | 2026-11-04 | Aceptada |
