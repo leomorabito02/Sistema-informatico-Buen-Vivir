@@ -24,6 +24,7 @@ no se pierdan ni se procesen dos veces.
 flowchart LR
     AUTH["Autenticación"]
     LAB["Inserción Laboral"]
+    CAMP["Campañas"]
     EDU["Educación"]
     WH["Receptor webhooks Contentful<br/>(dentro de Educación)"]
     PH["Promoción Humana"]
@@ -34,12 +35,14 @@ flowchart LR
     T_PH[["promocion-humana-eventos"]]
     T_CO[["contenido-eventos"]]
     T_IL[["insercion-laboral-eventos"]]
+    T_CA[["campanas-eventos"]]
 
     DASH["Dashboard"]
     NOTIF["Notificaciones"]
 
     AUTH --> T_US
     LAB --> T_IL
+    CAMP --> T_CA
     EDU --> T_ED
     CF -- webhook --> WH --> T_CO
     PH --> T_PH
@@ -47,16 +50,18 @@ flowchart LR
     T_US -- participante.eliminado<br/>usuario.actualizado --> EDU
     T_US -- participante.eliminado --> PH
     T_US -- participante.creado / .eliminado --> DASH
-    T_US -- participante.eliminado --> NOTIF
+    T_US -- participante.eliminado<br/>usuario.creado<br/>email.solicitado --> NOTIF
     T_CO -- contenido.publicado / .despublicado --> EDU
     T_ED -- inscripcion.creada<br/>curso.completado_por_participante<br/>asistencia_general.registrada --> PH
     T_ED -- curso.creado / .eliminado<br/>curso.completado_por_participante<br/>habilidad.otorgada --> DASH
     T_ED -- inscripcion.creada<br/>actividad.recordatorio<br/>contenido_docente.*<br/>curso.*<br/>habilidad.otorgada --> NOTIF
     T_PH -- ficha.*<br/>hito.* --> NOTIF
     T_IL -- postulacion.seleccionada --> DASH
+    T_IL -- oferta.*<br/>postulacion.* --> NOTIF
+    T_CA -- campana.creada --> NOTIF
 ```
 
-Todos los servicios productores publican eventos de dominio usando el patrón Outbox (Postgres en Auth, Firestore en Educación, Promoción Humana e Inserción Laboral).
+Todos los servicios productores publican eventos de dominio usando el patrón Outbox (Postgres en Auth, Firestore en Educación, Promoción Humana, Inserción Laboral y Campañas).
 
 ## 2. Topics
 
@@ -139,10 +144,17 @@ tarea; **pendiente** = falta coordinarlo con quien mantiene ese servicio.
 
 | event_type | Productor | Consumidores | HU | Payload | Estado |
 |---|---|---|---|---|---|
-| `usuarios.participante.creado` | Autenticación | Dashboard | HU-52 | `participante_id`, `user_id` | **pendiente** |
-| `usuarios.participante.eliminado` | Autenticación | Educación, Promoción Humana, Dashboard | HU-09, HU-16 | `participante_id`, `user_id` | **pendiente** |
-| `usuarios.usuario.actualizado` | Autenticación | Educación | HU-09 | `user_id`, `role_id`, `participante_id?`, `status`, `approval_status?` | **pendiente** |
-| `insercion_laboral.postulacion.seleccionada` | Inserción Laboral | Dashboard | HU-52 | `postulacion_id`, `oferta_id`, `participante_id`, `empresa_id` | **pendiente** |
+| `usuarios.usuario.creado` | Autenticación | Notificaciones | HU-01, HU-02 | `user_id`, `role_id`, `requires_verification`, `requires_approval` | nuevo |
+| `usuarios.email.solicitado` | Autenticación | Notificaciones | HU-04, HU-06 | `user_id`, `email_type` | nuevo |
+| `usuarios.participante.creado` | Autenticación | Dashboard | HU-52 | `participante_id`, `user_id` | nuevo |
+| `usuarios.participante.eliminado` | Autenticación | Educación, Promoción Humana, Dashboard, Notificaciones | HU-09, HU-16 | `participante_id`, `user_id` | nuevo |
+| `usuarios.usuario.actualizado` | Autenticación | Educación | HU-09 | `user_id`, `role_id`, `participante_id?`, `status`, `approval_status?` | nuevo |
+| `insercion_laboral.oferta.creada` | Inserción Laboral | Notificaciones | HU-38 | `oferta_id`, `titulo`, `empresa_id` | nuevo |
+| `insercion_laboral.oferta.revisada` | Inserción Laboral | Notificaciones | HU-39 | `oferta_id`, `estado`, `observaciones` | nuevo |
+| `insercion_laboral.postulacion.creada` | Inserción Laboral | Notificaciones | HU-41 | `postulacion_id`, `oferta_id`, `participante_id` | nuevo |
+| `insercion_laboral.postulacion.decidida` | Inserción Laboral | Notificaciones | HU-42 | `postulacion_id`, `oferta_id`, `participante_id`, `estado`, `observaciones` | nuevo |
+| `insercion_laboral.postulacion.seleccionada` | Inserción Laboral | Dashboard | HU-52 | `postulacion_id`, `oferta_id`, `participante_id`, `empresa_id` | nuevo |
+| `campanas.campana.creada` | Campañas | Notificaciones | HU-48 | `campana_id`, `titulo`, `tipo_campana`, `creada_por` | nuevo |
 | `educacion.curso.creado` | Educación | Dashboard | HU-14 | `curso_id`, `area_formativa_id`, `docente_id`, `modalidad` | nuevo |
 | `educacion.curso.actualizado` | Educación | — | HU-15 | ídem | nuevo |
 | `educacion.curso.eliminado` | Educación | Dashboard | HU-16 | `curso_id` | nuevo |
@@ -166,9 +178,12 @@ están en `version: 1`.
 
 ### Notificaciones (implementado)
 
-Notificaciones consume eventos mediante suscripciones push con OIDC:
+Notificaciones consume eventos mediante 5 suscripciones push con OIDC:
 - `notificaciones-educacion` sobre `educacion-eventos` (`/eventos/educacion`).
 - `notificaciones-promocion-humana` sobre `promocion-humana-eventos` (`/eventos/promocion-humana`).
+- `notificaciones-usuarios` sobre `usuarios-eventos` (`/eventos/usuarios`).
+- `notificaciones-insercion-laboral` sobre `insercion-laboral-eventos` (`/eventos/insercion-laboral`).
+- `notificaciones-campanas` sobre `campanas-eventos` (`/eventos/campanas`).
 
 Reglas aplicadas:
 - **`inscripcion.creada`**: confirmación de inscripción al participante y aviso al docente (HU-18, HU-26, HU-60).
@@ -181,25 +196,44 @@ Reglas aplicadas:
 - **`ficha.creada` / `ficha.actualizada`**: aviso a administradores y voluntarios responsables.
 - **`hito.registrado` / `hito.actualizado`**: aviso a administradores y responsable del hito (prioritario si el hito es crítico).
 - **`participante.eliminado`**: alerta de archivo/baja a administradores y voluntarios.
+- **`usuario.creado`**: email de verificación de cuenta y aviso a administradores si requiere aprobación manual (HU-01, HU-02).
+- **`email.solicitado`**: despacho de emails transaccionales de seguridad (recuperación de contraseña, reenvío de verificación o aprobación de cuenta) (HU-04, HU-06).
+- **`oferta.creada`**: aviso a administradores para moderación de ofertas laborales (HU-38).
+- **`oferta.revisada`**: notificación a la empresa postulante con la decisión (HU-39).
+- **`postulacion.creada`**: aviso a la empresa ante una nueva postulación (HU-41).
+- **`postulacion.decidida`**: notificación al participante sobre el resultado de su postulación (HU-42).
+- **`campana.creada`**: difusión y alerta a administradores y voluntarios (HU-48).
+
+**Seguridad y enlaces de acción:** Los eventos de dominio **no contienen tokens de seguridad ni links con credenciales** (cumpliendo ADR 0007). Cuando Notificaciones procesa un evento transaccional (`usuario.creado`, `email.solicitado`), solicita a demanda el enlace de acción seguro al microservicio `auth` vía gRPC (`IssueActionLink`), garantizando que ningún token viaje por Pub/Sub, registros de logs ni DLQs.
+
+**Eliminación de deuda técnica HTTP:** El endpoint legado `POST /api/v1/notifications/send` y el middleware de firmas HMAC compartidas han sido **completamente eliminados**. Todos los disparadores de notificación del sistema son 100% asíncronos y desacoplados a través de Pub/Sub y el patrón Outbox.
 
 El servicio aplica idempotencia en Postgres (`eventos_procesados`), resolución de destinatarios por roles (`GetActiveUserIDsByRoles`) o participante (`GetParticipant`) vía gRPC hacia Autenticación, persist-first atómico y despacho en segundo plano (`Worker`) con reintentos exponenciales y DLQ (`delivery_status = 'dead'`).
 
-## 5. Autenticación e Inserción Laboral: integración con Outbox
+## 5. Autenticación, Inserción Laboral y Campañas: integración con Outbox
 
-Ambos servicios publican sus eventos de dominio mediante el patrón Outbox garantizando no pérdida:
+Todos los servicios publican sus eventos de dominio mediante el patrón Outbox transaccional garantizando no pérdida ante caídas de infraestructura:
 
 | Evento | Servicio | Dónde se publica | Payload |
 |---|---|---|---|
+| `usuarios.usuario.creado` | Autenticación | `auth/internal/services/user_service.go`, `Register` | `{"user_id","role_id","requires_verification","requires_approval"}` |
+| `usuarios.email.solicitado` | Autenticación | `auth/internal/services/verification_service.go`, `password_recovery_service.go` | `{"user_id","email_type"}` |
 | `usuarios.participante.creado` | Autenticación | `auth/internal/services/participant_service.go`, `CreateParticipant`, tras crear el participante | `{"participante_id","user_id"}` |
 | `usuarios.participante.eliminado` | Autenticación | `participant_service.go`, `DeleteParticipant`, y `user_service.go`, `DeleteUser` cuando el usuario es participante | `{"participante_id","user_id"}` |
 | `usuarios.usuario.actualizado` | Autenticación | `user_service.go`, `UpdateUser`, y `participant_service.go`, `UpdateParticipant`, cuando cambia `status` o `approval_status` | `{"user_id","role_id","participante_id","status","approval_status"}` |
-| `insercion_laboral.postulacion.seleccionada` | Inserción Laboral | `labor-integration/internal/services/job_application_service.go`, `UpdateStatus`, cuando el estado nuevo es "aceptado"/"seleccionado"/"contratado" (mismo criterio que `MapPostulacion` en Dashboard) y el anterior no | `{"postulacion_id","oferta_id","participante_id","empresa_id"}` |
+| `insercion_laboral.oferta.creada` | Inserción Laboral | `labor-integration/internal/services/job_offer_service.go`, `CreateOffer` | `{"oferta_id","titulo","empresa_id"}` |
+| `insercion_laboral.oferta.revisada` | Inserción Laboral | `labor-integration/internal/services/job_offer_service.go`, `ApproveOffer`, `RejectOffer` | `{"oferta_id","estado","observaciones"}` |
+| `insercion_laboral.postulacion.creada` | Inserción Laboral | `labor-integration/internal/services/job_application_service.go`, `ApplyToJob` | `{"postulacion_id","oferta_id","participante_id"}` |
+| `insercion_laboral.postulacion.decidida` | Inserción Laboral | `labor-integration/internal/services/job_application_service.go`, `UpdateStatus` | `{"postulacion_id","oferta_id","participante_id","estado","observaciones"}` |
+| `insercion_laboral.postulacion.seleccionada` | Inserción Laboral | `labor-integration/internal/services/job_application_service.go`, `UpdateStatus`, cuando el estado nuevo es "aceptado"/"seleccionado"/"contratado" (para Dashboard) | `{"postulacion_id","oferta_id","participante_id","empresa_id"}` |
+| `campanas.campana.creada` | Campañas | `campaigns/internal/services/campaign_service.go`, `Create` | `{"campana_id","titulo","tipo_campana","creada_por"}` |
 
 Cómo se publican sin perder eventos:
 
-- **Autenticación (Postgres/GORM)** utiliza la tabla `outbox_events` escrita en la misma transacción que los cambios de usuario/participante, y un worker en segundo plano (`OutboxWorker`) que publica en `usuarios-eventos` con `cloud.google.com/go/pubsub/v2`.
+- **Autenticación (Postgres/GORM)** utiliza la tabla `outbox_events` escrita en la misma transacción que las entidades de dominio, y un worker en segundo plano (`OutboxWorker`) que publica en `usuarios-eventos` con `cloud.google.com/go/pubsub/v2`.
 - **Inserción Laboral (Firestore)** utiliza `internal/outbox` (`Writer` en la colección `outbox_eventos` y `Relay` en segundo plano) publicando en `insercion-laboral-eventos`.
-- `usuarios-eventos` e `insercion-laboral-eventos` están provisionados en `infra/pubsub/setup.sh` y `infra/pubsub/emulator.sh`.
+- **Campañas (MongoDB)** utiliza la colección `outbox_eventos` dentro de transacciones de MongoDB con un worker en segundo plano (`Worker`) publicando en `campanas-eventos`.
+- Los topics `usuarios-eventos`, `insercion-laboral-eventos` y `campanas-eventos` están provisionados en `infra/pubsub/setup.sh` y `infra/pubsub/emulator.sh`.
 
 ## 6. Diferencias de formato con lo que ya existía
 
