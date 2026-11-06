@@ -29,7 +29,15 @@
         </p>
 
         <div class="actions-wrapper">
-          <button (click)="goToHome()" class="btn-submit">
+          <button (click)="reloadPage()" class="btn-submit">
+            <lucide-angular
+              [img]="RotateCwIcon"
+              class="btn-icon"
+            ></lucide-angular>
+            Reintentar
+          </button>
+
+          <button (click)="goToHome()" class="btn-secondary">
             <lucide-angular [img]="HomeIcon" class="btn-icon"></lucide-angular>
             Ir a la página principal
           </button>
