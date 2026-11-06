@@ -75,8 +75,12 @@ function notifyNotFound(
   );
 }
 
+/**
+ * Muestra la pantalla de error sin cambiar la URL: así "Reintentar" (y F5)
+ * recargan la página donde estaba el usuario, no `/500`.
+ */
 function navigateToServerError(router: Router): void {
-  void router.navigate(["/500"]);
+  void router.navigate(["/500"], { skipLocationChange: true });
 }
 
 function notifyServerError(
