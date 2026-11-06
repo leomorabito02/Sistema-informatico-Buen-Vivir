@@ -28,8 +28,8 @@ func (r *UsuarioCreadoRule) Build(_ context.Context, env events.Envelope) ([]Not
 	}
 
 	// Inicializa las preferencias del usuario creando un aviso de bienvenida
-	actionURL := "/profile"
-	return []NotificationPlan{
+	actionURL := "/dashboard/perfil"
+	plans := []NotificationPlan{
 		{
 			SourceService:    "auth",
 			EventType:        env.EventType,
@@ -43,7 +43,28 @@ func (r *UsuarioCreadoRule) Build(_ context.Context, env events.Envelope) ([]Not
 			SendInApp:        true,
 			DedupeKey:        fmt.Sprintf("%s_welcome_%s", env.EventID, p.UserID),
 		},
-	}, nil
+	}
+
+	if p.RoleID != "" && p.RoleID != "role_admin" && p.RoleID != "role_dev" {
+		adminRole := "role_admin"
+		adminURL := "/dashboard/usuarios"
+		plans = append(plans, NotificationPlan{
+			SourceService: "auth",
+			EventType:     env.EventType,
+			Category:      models.CategorySystem,
+			Priority:      models.PriorityNormal,
+			AudienceType:  AudienceRole,
+			TargetRole:    &adminRole,
+			Title:         "Nuevo usuario pendiente de revisión",
+			Message:       "Se ha registrado una nueva cuenta que requiere aprobación en la plataforma.",
+			ActionURL:     &adminURL,
+			SendInApp:     true,
+			SendEmail:     true,
+			DedupeKey:     fmt.Sprintf("%s_admin_review", env.EventID),
+		})
+	}
+
+	return plans, nil
 }
 
 // ── U2: EmailSolicitadoRule ──────────────────────────────────────────────

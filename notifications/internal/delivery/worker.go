@@ -40,6 +40,7 @@ type Worker struct {
 	BatchSize   int
 	MaxAttempts int
 	Interval    time.Duration
+	FrontendURL string
 	Now         func() time.Time
 }
 
@@ -334,6 +335,9 @@ func (w *Worker) renderEmailBody(notif *models.Notification, dataMap map[string]
 		actionURL = *notif.ActionURL
 	} else if au, ok := dataMap["action_url"].(string); ok {
 		actionURL = au
+	}
+	if strings.HasPrefix(actionURL, "/") && strings.TrimSpace(w.FrontendURL) != "" {
+		actionURL = strings.TrimRight(strings.TrimSpace(w.FrontendURL), "/") + actionURL
 	}
 
 	templateID := templates.TemplateGeneralAlert

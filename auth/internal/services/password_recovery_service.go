@@ -64,28 +64,10 @@ func (s *passwordRecoveryService) RequestReset(ctx context.Context, email string
 	}
 
 	primaryUser := &users[0]
-	_ = s.recoveryRepo.DeleteByUserID(ctx, primaryUser.UserID)
-
-	tokenBytes := make([]byte, 32)
-	if _, err := rand.Read(tokenBytes); err != nil {
-		return fmt.Errorf("error generando token criptográfico: %w", err)
-	}
-	rawToken := hex.EncodeToString(tokenBytes)
-	tokenHash := utils.HashToken(rawToken)
-
-	recovery := &models.PasswordRecovery{
-		PasswordRecoveryID: "pr-" + utils.GenerateRandomString(10),
-		UserID:             primaryUser.UserID,
-		TokenHash:          tokenHash,
-		ExpiresAt:          time.Now().Add(30 * time.Minute),
-	}
-
-	if err := s.recoveryRepo.Create(ctx, recovery); err != nil {
-		return fmt.Errorf("error guardando solicitud de recuperación: %w", err)
-	}
+	requestID := "pr-" + utils.GenerateRandomString(10)
 
 	if s.producer != nil {
-		_ = s.producer.EmailSolicitado(ctx, recovery.PasswordRecoveryID, primaryUser.UserID, "recuperacion_password")
+		_ = s.producer.EmailSolicitado(ctx, requestID, primaryUser.UserID, "recuperacion_password")
 	}
 
 	return nil

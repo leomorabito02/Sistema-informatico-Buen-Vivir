@@ -129,7 +129,7 @@ func (c *JobOfferController) Approve(w http.ResponseWriter, r *http.Request) {
 	// Aprobar y rechazar es solo del administrador (HU-41); el voluntario
 	// consulta ofertas sin poder aprobarlas (HU-06).
 	role := r.Header.Get(headerUserRole)
-	if role != "role_admin" {
+	if role != "role_admin" && role != "role_dev" {
 		http.Error(w, "unauthorized", http.StatusForbidden)
 		return
 	}
@@ -147,7 +147,7 @@ func (c *JobOfferController) Approve(w http.ResponseWriter, r *http.Request) {
 
 func (c *JobOfferController) Reject(w http.ResponseWriter, r *http.Request) {
 	role := r.Header.Get(headerUserRole)
-	if role != "role_admin" {
+	if role != "role_admin" && role != "role_dev" {
 		http.Error(w, "unauthorized", http.StatusForbidden)
 		return
 	}

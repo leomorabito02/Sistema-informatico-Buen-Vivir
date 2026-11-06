@@ -22,11 +22,32 @@ func (r *CampanaCreadaRule) Build(_ context.Context, env events.Envelope) ([]Not
 		return nil, err
 	}
 
+	if p.CampanaID == "" {
+		return nil, nil
+	}
+
+	adminRole := "role_admin"
 	partRole := "role_participant"
 	volRole := "role_volunteer"
-	actionURL := "/campaigns/" + p.CampanaID
+	staffActionURL := "/dashboard/campanas"
+	publicActionURL := "/campanas-publico"
 
 	return []NotificationPlan{
+		{
+			SourceService: "campaigns",
+			EventType:     env.EventType,
+			Category:      models.CategoryCampaigns,
+			Priority:      models.PriorityNormal,
+			AudienceType:  AudienceRole,
+			TargetRole:    &adminRole,
+			Title:         "Nueva campaña comunitaria",
+			Message:       "Se ha registrado una nueva campaña comunitaria.",
+			ActionURL:     &staffActionURL,
+			SendInApp:     true,
+			SendEmail:     true,
+			SendPush:      true,
+			DedupeKey:     fmt.Sprintf("%s_admin", env.EventID),
+		},
 		{
 			SourceService: "campaigns",
 			EventType:     env.EventType,
@@ -36,7 +57,7 @@ func (r *CampanaCreadaRule) Build(_ context.Context, env events.Envelope) ([]Not
 			TargetRole:    &partRole,
 			Title:         "Nueva campaña comunitaria",
 			Message:       "Hay una nueva campaña disponible en Buen Vivir.",
-			ActionURL:     &actionURL,
+			ActionURL:     &publicActionURL,
 			SendInApp:     true,
 			SendEmail:     true,
 			SendPush:      true,
@@ -51,7 +72,7 @@ func (r *CampanaCreadaRule) Build(_ context.Context, env events.Envelope) ([]Not
 			TargetRole:    &volRole,
 			Title:         "Nueva campaña comunitaria",
 			Message:       "Hay una nueva campaña comunitaria disponible.",
-			ActionURL:     &actionURL,
+			ActionURL:     &staffActionURL,
 			SendInApp:     true,
 			SendEmail:     true,
 			SendPush:      true,

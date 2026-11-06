@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"auth/internal/dto"
+	"auth/internal/events/producers"
 	"auth/internal/models"
 	"auth/internal/repositories"
 	"auth/internal/utils"
@@ -45,6 +46,7 @@ type authService struct {
 	jwtService          JWTService
 	firebaseService     FirebaseService
 	verificationService VerificationService
+	producer            producers.UsuariosProducer
 }
 
 func NewAuthService(
@@ -67,6 +69,9 @@ func NewAuthService(
 	for _, opt := range opts {
 		if vs, ok := opt.(VerificationService); ok {
 			svc.verificationService = vs
+		}
+		if prod, ok := opt.(producers.UsuariosProducer); ok {
+			svc.producer = prod
 		}
 	}
 	return svc
@@ -143,6 +148,9 @@ func (s *authService) Register(ctx context.Context, req *dto.RegisterRequest) (r
 
 	if s.verificationService != nil {
 		_ = s.verificationService.GenerateAndSendVerification(ctx, user)
+	}
+	if s.producer != nil {
+		_ = s.producer.UsuarioCreado(ctx, user.UserID, user.RoleID)
 	}
 
 	// Sincronizar contadores de impacto en Cloudflare Workers KV y preferencias de notificaciones

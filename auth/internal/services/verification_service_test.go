@@ -6,12 +6,43 @@ import (
 	"testing"
 	"time"
 
+	"auth/internal/events"
 	"auth/internal/models"
 	"auth/internal/repositories"
 	"auth/internal/services"
 
 	"github.com/stretchr/testify/assert"
+	"gorm.io/gorm"
 )
+
+type mockUsuariosProducer struct {
+	emailSolicitadoCalls []struct {
+		RequestID string
+		UserID    string
+		Tipo      string
+	}
+}
+
+func (m *mockUsuariosProducer) UsuarioCreado(_ context.Context, _, _ string, _ ...*gorm.DB) error {
+	return nil
+}
+func (m *mockUsuariosProducer) EmailSolicitado(_ context.Context, requestID, userID, tipo string, _ ...*gorm.DB) error {
+	m.emailSolicitadoCalls = append(m.emailSolicitadoCalls, struct {
+		RequestID string
+		UserID    string
+		Tipo      string
+	}{RequestID: requestID, UserID: userID, Tipo: tipo})
+	return nil
+}
+func (m *mockUsuariosProducer) ParticipanteCreado(_ context.Context, _, _ string, _ ...*gorm.DB) error {
+	return nil
+}
+func (m *mockUsuariosProducer) ParticipanteEliminado(_ context.Context, _, _ string, _ ...*gorm.DB) error {
+	return nil
+}
+func (m *mockUsuariosProducer) UsuarioActualizado(_ context.Context, _ events.UsuarioActualizadoPayload, _ ...*gorm.DB) error {
+	return nil
+}
 
 type mockEmailVerificationRepo struct {
 	verifications map[string]*models.EmailVerification
@@ -214,7 +245,8 @@ func TestVerificationService_GenerateAndSendVerification(t *testing.T) {
 	evRepo := newMockEmailVerificationRepo()
 	userRepo := newMockUserRepoForVerification()
 	notifSync := &mockNotificationSync{}
-	svc := services.NewVerificationService(evRepo, userRepo, notifSync)
+	producer := &mockUsuariosProducer{}
+	svc := services.NewVerificationService(evRepo, userRepo, notifSync, producer)
 
 	user := &models.User{
 		UserID:    "usr-1",
@@ -228,7 +260,37 @@ func TestVerificationService_GenerateAndSendVerification(t *testing.T) {
 
 	// Assert
 	assert.NoError(t, err)
+	assert.Equal(t, 0, len(evRepo.verifications))
+	assert.Len(t, producer.emailSolicitadoCalls, 1)
+	assert.Equal(t, "usr-1", producer.emailSolicitadoCalls[0].UserID)
+	assert.Equal(t, "verificacion", producer.emailSolicitadoCalls[0].Tipo)
+	assert.NotEmpty(t, producer.emailSolicitadoCalls[0].RequestID)
+}
+
+func TestVerificationService_IssueActionLink(t *testing.T) {
+	// Arrange
+	evRepo := newMockEmailVerificationRepo()
+	userRepo := newMockUserRepoForVerification()
+	notifSync := &mockNotificationSync{}
+	svc := services.NewVerificationService(evRepo, userRepo, notifSync)
+
+	// Act
+	link, err := svc.IssueActionLink(context.Background(), "ev-req-1", "usr-1")
+
+	// Assert
+	assert.NoError(t, err)
+	assert.Contains(t, link, "token=")
 	assert.Equal(t, 1, len(evRepo.verifications))
+
+	var savedEV *models.EmailVerification
+	for _, v := range evRepo.verifications {
+		savedEV = v
+		break
+	}
+	assert.NotNil(t, savedEV)
+	assert.Equal(t, "ev-req-1", savedEV.EmailVerificationID)
+	assert.Equal(t, "usr-1", savedEV.UserID)
+	assert.NotEmpty(t, savedEV.TokenHash)
 }
 
 func TestVerificationService_VerifyEmail_Success(t *testing.T) {

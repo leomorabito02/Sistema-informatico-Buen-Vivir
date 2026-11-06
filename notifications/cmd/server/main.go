@@ -94,6 +94,7 @@ func main() {
 
 	// Delivery Worker
 	deliveryWorker := delivery.NewWorker(repo, emailSvc, pushSvc, authClient, tmplEngine, nil)
+	deliveryWorker.FrontendURL = cfg.FrontendURL
 	go deliveryWorker.Run(context.Background())
 
 	// Pub/Sub Push Verifier and Processed Store

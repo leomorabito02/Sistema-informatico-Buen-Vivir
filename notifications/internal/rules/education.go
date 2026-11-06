@@ -30,7 +30,7 @@ func (r *InscripcionCreadaRule) Build(_ context.Context, env events.Envelope) ([
 	plans := make([]NotificationPlan, 0, 2)
 
 	// E1: Notificación al participante
-	actionURL := "/education/courses/" + p.CursoID
+	actionURL := "/dashboard/educacion/cursos/" + p.CursoID
 	title := "Inscripción confirmada"
 	msg := "Te has inscripto correctamente al curso formativo."
 	if p.Titulo != "" {
@@ -55,7 +55,7 @@ func (r *InscripcionCreadaRule) Build(_ context.Context, env events.Envelope) ([
 
 	// E2: Notificación al docente si está presente
 	if p.DocenteID != "" {
-		teacherURL := "/education/teacher/courses/" + p.CursoID
+		teacherURL := "/dashboard/educacion/cursos/" + p.CursoID
 		docenteTitle := "Nueva inscripción en tu curso"
 		docenteMsg := "Un participante se ha inscripto a tu curso."
 		if p.Titulo != "" {
@@ -95,7 +95,7 @@ func (r *ContenidoDocenteSubidoRule) Build(_ context.Context, env events.Envelop
 	}
 
 	adminRole := "role_admin"
-	actionURL := "/admin/education/moderation"
+	actionURL := "/dashboard/educacion/moderacion"
 	return []NotificationPlan{
 		{
 			SourceService: "education",
@@ -132,7 +132,7 @@ func (r *ContenidoDocenteModeradoRule) Build(_ context.Context, env events.Envel
 		return nil, nil
 	}
 
-	actionURL := "/teacher/materials"
+	actionURL := "/dashboard/educacion"
 	msg := fmt.Sprintf("Tu contenido docente ha sido %s por la administración.", p.Resultado)
 
 	return []NotificationPlan{
@@ -168,7 +168,7 @@ func (r *CursoCompletadoRule) Build(_ context.Context, env events.Envelope) ([]N
 		return nil, err
 	}
 
-	actionURL := "/education/my-courses"
+	actionURL := "/dashboard/educacion"
 	return []NotificationPlan{
 		{
 			SourceService: "education",
@@ -201,7 +201,7 @@ func (r *HabilidadOtorgadaRule) Build(_ context.Context, env events.Envelope) ([
 		return nil, err
 	}
 
-	actionURL := "/profile"
+	actionURL := "/dashboard/mi-proceso"
 	return []NotificationPlan{
 		{
 			SourceService: "education",
@@ -256,7 +256,7 @@ func (r *CursoCreadoRule) EventType() string {
 
 func (r *CursoCreadoRule) Build(_ context.Context, env events.Envelope) ([]NotificationPlan, error) {
 	adminRole := "role_admin"
-	actionURL := "/education/catalog"
+	actionURL := "/dashboard/educacion"
 	return []NotificationPlan{
 		{
 			SourceService: "education",
@@ -288,7 +288,7 @@ func (r *ActividadRecordatorioRule) Build(_ context.Context, env events.Envelope
 		return nil, err
 	}
 
-	actionURL := fmt.Sprintf("/education/courses/%s/activities/%s", p.CursoID, p.ActividadID)
+	actionURL := "/dashboard/educacion/cursos/" + p.CursoID
 	title := "Recordatorio de actividad"
 	msg := fmt.Sprintf("Tenés una actividad programada para la fecha %s.", p.Fecha)
 	if p.Titulo != "" {

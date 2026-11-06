@@ -19,6 +19,7 @@ type Config struct {
 	PubSubPushAudience      string
 	PubSubPushServiceAccounts []string
 	PubSubPushAuth          string
+	FrontendURL             string
 	Environment             string
 }
 
@@ -55,6 +56,11 @@ func LoadConfig() *Config {
 		resendFromAlerts = resendFromNotifications
 	}
 
+	frontendURL := strings.TrimSpace(os.Getenv("FRONTEND_URL"))
+	if frontendURL == "" {
+		frontendURL = "http://localhost:4200"
+	}
+
 	return &Config{
 		Port:                    port,
 		GRPCPort:                grpcPort,
@@ -68,6 +74,7 @@ func LoadConfig() *Config {
 		PubSubPushAudience:      strings.TrimSpace(os.Getenv("PUBSUB_PUSH_AUDIENCE")),
 		PubSubPushServiceAccounts: splitCommaList(os.Getenv("PUBSUB_PUSH_SERVICE_ACCOUNTS")),
 		PubSubPushAuth:          strings.TrimSpace(os.Getenv("PUBSUB_PUSH_AUTH")),
+		FrontendURL:             frontendURL,
 		Environment:             strings.TrimSpace(os.Getenv("ENV")),
 	}
 }

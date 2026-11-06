@@ -203,6 +203,8 @@ export class NotificacionesComponent implements OnInit {
         return "success";
       case "campaigns":
         return "warn";
+      case "human_promotion":
+        return "info";
       default:
         return "secondary";
     }
@@ -218,6 +220,8 @@ export class NotificacionesComponent implements OnInit {
         return "Inserción Laboral";
       case "campaigns":
         return "Campañas";
+      case "human_promotion":
+        return "Promoción Humana";
       default:
         return "Sistema";
     }
@@ -397,6 +401,8 @@ export class NotificacionesComponent implements OnInit {
         return "Nuevas ofertas laborales, actualización del estado de tus postulaciones y revisión de CV.";
       case "campaigns":
         return "Iniciativas comunitarias, voluntariados, colectas y eventos de la fundación.";
+      case "human_promotion":
+        return "Actualizaciones de acompañamiento, fichas de seguimiento y nuevos hitos en tu línea de tiempo.";
       default:
         return "Avisos generales del sistema, novedades y mantenimiento de la plataforma.";
     }
@@ -412,6 +418,8 @@ export class NotificacionesComponent implements OnInit {
         return "pi pi-briefcase";
       case "campaigns":
         return "pi pi-heart";
+      case "human_promotion":
+        return "pi pi-users";
       default:
         return "pi pi-cog";
     }

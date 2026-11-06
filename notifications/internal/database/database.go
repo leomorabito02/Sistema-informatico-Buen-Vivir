@@ -2,13 +2,16 @@ package database
 
 import (
 	"fmt"
+	"log/slog"
 	"time"
+
+	"buenvivir/notifications/internal/models"
 
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
 
-// InitDatabase initializes the connection pool to PostgreSQL using GORM without executing migrations.
+// InitDatabase initializes the connection pool to PostgreSQL using GORM and runs schema auto-migrations.
 func InitDatabase(dsn string) (*gorm.DB, error) {
 	if dsn == "" {
 		return nil, fmt.Errorf("database connection string is empty")
@@ -31,6 +34,15 @@ func InitDatabase(dsn string) (*gorm.DB, error) {
 
 	if err := sqlDB.Ping(); err != nil {
 		return nil, fmt.Errorf("failed to ping database: %w", err)
+	}
+
+	if err := db.AutoMigrate(
+		&models.Notification{},
+		&models.NotificationRecipient{},
+		&models.NotificationPreference{},
+		&models.ProcessedEvent{},
+	); err != nil {
+		slog.Warn("Failed to auto-migrate notifications models", "error", err)
 	}
 
 	return db, nil

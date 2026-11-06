@@ -141,14 +141,46 @@ func TestPasswordRecoveryService_RequestReset_Success(t *testing.T) {
 	}
 	rtRepo := &mockRefreshTokenRepoForRecovery{}
 	notifSync := &mockNotificationSync{}
-	svc := services.NewPasswordRecoveryService(recoveryRepo, userRepo, rtRepo, notifSync)
+	producer := &mockUsuariosProducer{}
+	svc := services.NewPasswordRecoveryService(recoveryRepo, userRepo, rtRepo, notifSync, producer)
 
 	// Act
 	err := svc.RequestReset(context.Background(), "user@example.com")
 
 	// Assert
 	assert.NoError(t, err)
+	assert.Len(t, recoveryRepo.records, 0)
+	assert.Len(t, producer.emailSolicitadoCalls, 1)
+	assert.Equal(t, "usr-1", producer.emailSolicitadoCalls[0].UserID)
+	assert.Equal(t, "recuperacion_password", producer.emailSolicitadoCalls[0].Tipo)
+	assert.NotEmpty(t, producer.emailSolicitadoCalls[0].RequestID)
+}
+
+func TestPasswordRecoveryService_IssueActionLink(t *testing.T) {
+	// Arrange
+	recoveryRepo := newMockPasswordRecoveryRepo()
+	userRepo := newMockUserRepoForVerification()
+	rtRepo := &mockRefreshTokenRepoForRecovery{}
+	notifSync := &mockNotificationSync{}
+	svc := services.NewPasswordRecoveryService(recoveryRepo, userRepo, rtRepo, notifSync)
+
+	// Act
+	link, err := svc.IssueActionLink(context.Background(), "pr-req-1", "usr-1")
+
+	// Assert
+	assert.NoError(t, err)
+	assert.Contains(t, link, "token=")
 	assert.Len(t, recoveryRepo.records, 1)
+
+	var savedPR *models.PasswordRecovery
+	for _, v := range recoveryRepo.records {
+		savedPR = v
+		break
+	}
+	assert.NotNil(t, savedPR)
+	assert.Equal(t, "pr-req-1", savedPR.PasswordRecoveryID)
+	assert.Equal(t, "usr-1", savedPR.UserID)
+	assert.NotEmpty(t, savedPR.TokenHash)
 }
 
 func TestPasswordRecoveryService_ResetPassword_EmptyToken(t *testing.T) {
