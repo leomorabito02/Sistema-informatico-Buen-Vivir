@@ -34,11 +34,15 @@ type GrpcAuthController struct {
 	deviceRepo          repositories.DeviceRepository
 	verificationService services.VerificationService
 	recoveryService     services.PasswordRecoveryService
+	twofaService        services.TwofaService
 }
 
-func (c *GrpcAuthController) SetLinkIssuers(v services.VerificationService, r services.PasswordRecoveryService) {
+func (c *GrpcAuthController) SetLinkIssuers(v services.VerificationService, r services.PasswordRecoveryService, t ...services.TwofaService) {
 	c.verificationService = v
 	c.recoveryService = r
+	if len(t) > 0 {
+		c.twofaService = t[0]
+	}
 }
 
 func NewGrpcAuthController(
@@ -277,38 +281,69 @@ func (c *GrpcAuthController) IssueActionLink(ctx context.Context, req *authpb.Is
 		return nil, status.Error(codes.InvalidArgument, "request cannot be nil")
 	}
 
+	var actionURL string
+	var err error
+
 	switch req.Type {
 	case "cuenta_aprobada":
-		frontendURL := strings.TrimSpace(os.Getenv("FRONTEND_URL"))
-		if frontendURL == "" {
-			frontendURL = "https://ceibuenvivir.org"
-		}
-		return &authpb.IssueActionLinkResponse{ActionUrl: fmt.Sprintf("%s/login", strings.TrimRight(frontendURL, "/"))}, nil
-
+		actionURL = resolveAccountApprovedURL()
 	case "verificacion":
-		if c.verificationService == nil {
-			return nil, status.Error(codes.Unimplemented, "verification service not configured")
-		}
-		link, err := c.verificationService.IssueActionLink(ctx, req.RequestId, req.UserId)
-		if err != nil {
-			return nil, status.Errorf(codes.Internal, "failed to issue verification link: %v", err)
-		}
-		return &authpb.IssueActionLinkResponse{ActionUrl: link}, nil
-
+		actionURL, err = c.issueVerificationLink(ctx, req)
 	case "recuperacion_password":
-		if c.recoveryService == nil {
-			return nil, status.Error(codes.Unimplemented, "recovery service not configured")
-		}
-		link, err := c.recoveryService.IssueActionLink(ctx, req.RequestId, req.UserId)
-		if err != nil {
-			return nil, status.Errorf(codes.Internal, "failed to issue recovery link: %v", err)
-		}
-		return &authpb.IssueActionLinkResponse{ActionUrl: link}, nil
-
+		actionURL, err = c.issueRecoveryLink(ctx, req)
+	case "two_factor_code":
+		actionURL, err = c.issueTwoFactorCode(ctx, req.UserId)
 	default:
 		return nil, status.Errorf(codes.InvalidArgument, "unsupported action link type: %s", req.Type)
 	}
+
+	if err != nil {
+		return nil, err
+	}
+	return &authpb.IssueActionLinkResponse{ActionUrl: actionURL}, nil
 }
 
+func (c *GrpcAuthController) issueVerificationLink(ctx context.Context, req *authpb.IssueActionLinkRequest) (string, error) {
+	if c.verificationService == nil {
+		return "", status.Error(codes.Unimplemented, "verification service not configured")
+	}
+	link, err := c.verificationService.IssueActionLink(ctx, req.RequestId, req.UserId)
+	if err != nil {
+		return "", status.Errorf(codes.Internal, "failed to issue verification link: %v", err)
+	}
+	return link, nil
+}
 
+func (c *GrpcAuthController) issueRecoveryLink(ctx context.Context, req *authpb.IssueActionLinkRequest) (string, error) {
+	if c.recoveryService == nil {
+		return "", status.Error(codes.Unimplemented, "recovery service not configured")
+	}
+	link, err := c.recoveryService.IssueActionLink(ctx, req.RequestId, req.UserId)
+	if err != nil {
+		return "", status.Errorf(codes.Internal, "failed to issue recovery link: %v", err)
+	}
+	return link, nil
+}
 
+func (c *GrpcAuthController) issueTwoFactorCode(ctx context.Context, userID string) (string, error) {
+	if c.twofaService == nil {
+		return "", status.Error(codes.Unimplemented, "twofa service not configured")
+	}
+	user, err := c.userService.GetUserByID(serviceCtx(ctx), userID)
+	if err != nil {
+		return "", status.Errorf(codes.NotFound, "user not found: %v", err)
+	}
+	code := c.twofaService.GetActiveCodeForEmail(user.Email)
+	if code == "" {
+		return "", status.Error(codes.NotFound, "no active 2FA code found for user")
+	}
+	return code, nil
+}
+
+func resolveAccountApprovedURL() string {
+	frontendURL := strings.TrimSpace(os.Getenv("FRONTEND_URL"))
+	if frontendURL == "" {
+		frontendURL = "https://ceibuenvivir.org"
+	}
+	return fmt.Sprintf("%s/login", strings.TrimRight(frontendURL, "/"))
+}

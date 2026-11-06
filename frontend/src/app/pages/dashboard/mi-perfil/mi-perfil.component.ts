@@ -4,6 +4,7 @@ import {
   AbstractControlOptions,
   FormBuilder,
   FormGroup,
+  FormsModule,
   ReactiveFormsModule,
   Validators,
 } from "@angular/forms";
@@ -11,6 +12,7 @@ import { Auth, signInWithPopup, GoogleAuthProvider } from "@angular/fire/auth";
 import { from, switchMap, firstValueFrom, of, catchError } from "rxjs";
 import { ProfileService } from "../../../services/profile.service";
 import { ProfileResponse } from "../../../core/models/auth.model";
+import { generateQRCodeSVG } from "../../../shared/utils/qr-code.util";
 import {
   LucideAngularModule,
   User as UserIcon,
@@ -26,8 +28,13 @@ import {
   Download,
   Trash2,
   ShieldAlert,
+  ShieldCheck,
   FileText,
+  Smartphone,
+  Mail,
+  Copy,
 } from "lucide-angular";
+import { DialogModule } from "primeng/dialog";
 import { RxResumeService } from "../../../services/rxresume.service";
 import { UsersService } from "../../../services/users.service";
 import { EducationService } from "../../../services/education.service";
@@ -37,7 +44,7 @@ import { ImageService } from "../../../services/image.service";
 @Component({
   selector: "app-mi-perfil",
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, LucideAngularModule],
+  imports: [CommonModule, FormsModule, ReactiveFormsModule, LucideAngularModule, DialogModule],
   templateUrl: "./mi-perfil.component.html",
   styleUrls: ["./mi-perfil.component.css"],
 })
@@ -57,6 +64,7 @@ export class MiPerfilComponent implements OnInit {
 
   readonly UserIcon = UserIcon;
   readonly ShieldIcon = Shield;
+  readonly ShieldCheckIcon = ShieldCheck;
   readonly BriefcaseIcon = Briefcase;
   readonly LockIcon = Lock;
   readonly CheckCircleIcon = CircleCheck;
@@ -69,6 +77,9 @@ export class MiPerfilComponent implements OnInit {
   readonly TrashIcon = Trash2;
   readonly ShieldAlertIcon = ShieldAlert;
   readonly FileTextIcon = FileText;
+  readonly SmartphoneIcon = Smartphone;
+  readonly MailIcon = Mail;
+  readonly CopyIcon = Copy;
 
   isExported = false;
   isExporting = false;
@@ -98,6 +109,22 @@ export class MiPerfilComponent implements OnInit {
   profileUpdateLoading = false;
   profileUpdateSuccess = "";
   profileUpdateError = "";
+
+  // 2FA state
+  showTwofaSetupModal = false;
+  showTwofaDisableModal = false;
+  twofaStep: "select" | "verify" = "select";
+  twofaMethod: "email" | "totp" = "totp";
+  twofaSecret = "";
+  twofaQrDataUrl = "";
+  twofaCode = "";
+  twofaDisablePassword = "";
+  twofaDisableCode = "";
+  twofaLoading = false;
+  twofaError = "";
+  twofaSuccess = "";
+  copiedSecret = false;
+  deviceRevokedMessage = "";
 
   constructor() {
     this.passwordForm = this.fb.group(
@@ -1082,5 +1109,139 @@ export class MiPerfilComponent implements OnInit {
     } finally {
       this.isExporting = false;
     }
+  }
+
+  // ─── 2FA Methods ─────────────────────────────────────────────────────────────
+
+  openTwofaSetup(): void {
+    this.twofaStep = "select";
+    this.twofaMethod = "totp";
+    this.twofaSecret = "";
+    this.twofaQrDataUrl = "";
+    this.twofaCode = "";
+    this.twofaError = "";
+    this.twofaSuccess = "";
+    this.copiedSecret = false;
+    this.showTwofaSetupModal = true;
+  }
+
+  closeTwofaSetup(): void {
+    this.showTwofaSetupModal = false;
+    this.twofaLoading = false;
+    this.twofaError = "";
+  }
+
+  selectTwofaMethod(method: "email" | "totp"): void {
+    this.twofaMethod = method;
+    this.twofaError = "";
+    this.twofaLoading = true;
+
+    this.profileService.setupTwoFactor(method).subscribe({
+      next: (res) => {
+        this.twofaLoading = false;
+        this.twofaStep = "verify";
+        if (method === "totp" && res.secret && res.otpauth_url) {
+          this.twofaSecret = res.secret;
+          const svg = generateQRCodeSVG(res.otpauth_url, 180);
+          this.twofaQrDataUrl = `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
+        }
+      },
+      error: (err) => {
+        this.twofaLoading = false;
+        this.twofaError = err.message || "Error al iniciar la configuración de 2FA.";
+      },
+    });
+  }
+
+  confirmEnableTwofa(): void {
+    if (this.twofaCode?.trim().length !== 6) return;
+    this.twofaLoading = true;
+    this.twofaError = "";
+
+    this.profileService
+      .enableTwoFactor(this.twofaMethod, this.twofaCode.trim())
+      .subscribe({
+        next: () => {
+          this.twofaLoading = false;
+          this.showTwofaSetupModal = false;
+          this.twofaSuccess = "Autenticación de dos factores activada con éxito.";
+          if (this.profileData?.user) {
+            this.profileData.user.twofa_enabled = true;
+            this.profileData.user.twofa_method = this.twofaMethod;
+          }
+          setTimeout(() => {
+            this.twofaSuccess = "";
+          }, 4000);
+        },
+        error: (err) => {
+          this.twofaLoading = false;
+          this.twofaError = err.message || "Código incorrecto. Verificá e intentá nuevamente.";
+        },
+      });
+  }
+
+  copySecret(): void {
+    if (!this.twofaSecret) return;
+    void navigator.clipboard.writeText(this.twofaSecret).then(() => {
+      this.copiedSecret = true;
+      setTimeout(() => {
+        this.copiedSecret = false;
+      }, 2500);
+    }).catch(() => {
+      // Ignore clipboard write failure
+    });
+  }
+
+  openTwofaDisable(): void {
+    this.twofaDisablePassword = "";
+    this.twofaDisableCode = "";
+    this.twofaError = "";
+    this.showTwofaDisableModal = true;
+  }
+
+  closeTwofaDisable(): void {
+    this.showTwofaDisableModal = false;
+    this.twofaLoading = false;
+    this.twofaError = "";
+  }
+
+  confirmDisableTwofa(): void {
+    this.twofaLoading = true;
+    this.twofaError = "";
+
+    this.profileService
+      .disableTwoFactor(this.twofaDisablePassword, this.twofaDisableCode)
+      .subscribe({
+        next: () => {
+          this.twofaLoading = false;
+          this.showTwofaDisableModal = false;
+          this.twofaSuccess = "Autenticación de dos factores desactivada exitosamente.";
+          if (this.profileData?.user) {
+            this.profileData.user.twofa_enabled = false;
+            this.profileData.user.twofa_method = undefined;
+          }
+          setTimeout(() => {
+            this.twofaSuccess = "";
+          }, 4000);
+        },
+        error: (err) => {
+          this.twofaLoading = false;
+          this.twofaError = err.message || "Error al desactivar 2FA. Verificá tu contraseña o código.";
+        },
+      });
+  }
+
+  revokeTrustedDevice(): void {
+    this.profileService.revokeTrustedDevice().subscribe({
+      next: (res) => {
+        this.deviceRevokedMessage = res.message || "Dispositivo de confianza olvidado exitosamente.";
+        setTimeout(() => {
+          this.deviceRevokedMessage = "";
+        }, 4000);
+      },
+      error: (err) => {
+        this.twofaError = err.message || "Error al olvidar dispositivo.";
+      },
+    });
   }
 }

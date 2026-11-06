@@ -17,6 +17,8 @@ describe("LoginComponent", () => {
       "checkCredentials",
       "checkGoogleCredentials",
       "loginWithAccount",
+      "verifyTwoFactor",
+      "resendTwoFactorCode",
     ]);
 
     await TestBed.configureTestingModule({
@@ -279,6 +281,83 @@ describe("LoginComponent", () => {
       expect(routerSpy.navigate).toHaveBeenCalledWith(["/verify-email"], {
         queryParams: { email: "test@example.com" },
       });
+    });
+
+    it("should transition to 2FA step when credentials check returns requires_2fa = true", () => {
+      component.loginForm.setValue({
+        email: "2fa@example.com",
+        password: "Password123!",
+        rememberMe: false,
+      });
+
+      authServiceSpy.checkCredentials.and.returnValue(
+        of({
+          accounts: [],
+          login_nonce: "",
+          requires_2fa: true,
+          twofa_method: "totp",
+          twofa_nonce: "nonce-2fa-123",
+          email: "2fa@example.com",
+        }),
+      );
+
+      component.onSubmit();
+
+      expect(component.is2faStep).toBeTrue();
+      expect(component.twofaNonce).toBe("nonce-2fa-123");
+      expect(component.twofaMethod).toBe("totp");
+    });
+
+    it("should verify 2FA code and log in on success", () => {
+      component.is2faStep = true;
+      component.twofaNonce = "nonce-2fa-123";
+      component.twofaCode = "123456";
+
+      const accounts = [
+        {
+          user_id: "u1",
+          role_id: "r1",
+          status: "active",
+          role_name: "admin",
+          entity_name: "",
+        },
+      ];
+      authServiceSpy.verifyTwoFactor.and.returnValue(
+        of({
+          accounts,
+          login_nonce: "step2-nonce",
+          requires_2fa: false,
+        }),
+      );
+      authServiceSpy.loginWithAccount.and.returnValue(
+        of({ user_status: "active", approval_status: "approved" } as any),
+      );
+
+      component.onVerifyTwofa();
+
+      expect(authServiceSpy.verifyTwoFactor).toHaveBeenCalledWith(
+        "nonce-2fa-123",
+        "123456",
+        false,
+      );
+      expect(component.is2faStep).toBeFalse();
+      expect(authServiceSpy.loginWithAccount).toHaveBeenCalledWith(
+        "u1",
+        "r1",
+        "step2-nonce",
+      );
+    });
+
+    it("should reset 2FA state on cancelTwofa", () => {
+      component.is2faStep = true;
+      component.twofaNonce = "nonce-123";
+      component.twofaCode = "654321";
+
+      component.cancelTwofa();
+
+      expect(component.is2faStep).toBeFalse();
+      expect(component.twofaNonce).toBe("");
+      expect(component.twofaCode).toBe("");
     });
   });
 });

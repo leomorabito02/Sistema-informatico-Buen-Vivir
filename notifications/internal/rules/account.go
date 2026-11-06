@@ -104,6 +104,10 @@ func (r *EmailSolicitadoRule) Build(_ context.Context, env events.Envelope) ([]N
 		title = "Recuperación de contraseña - Buen Vivir"
 		message = "Recibimos una solicitud para restablecer tu contraseña."
 		templateID = "password_recovery"
+	case "two_factor_code":
+		title = "Tu código de verificación de seguridad - Buen Vivir"
+		message = "Utilizá este código para completar el inicio de sesión."
+		templateID = "two_factor_code"
 	default:
 		title = "Aviso de seguridad - Buen Vivir"
 		message = "Notificación de seguridad de tu cuenta."

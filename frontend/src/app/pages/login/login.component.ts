@@ -3,11 +3,12 @@ import { CommonModule } from "@angular/common";
 import {
   FormBuilder,
   FormGroup,
+  FormsModule,
   ReactiveFormsModule,
   Validators,
 } from "@angular/forms";
 import { Router, RouterLink } from "@angular/router";
-import { LucideAngularModule, Mail, Lock, Eye, EyeOff } from "lucide-angular";
+import { LucideAngularModule, Mail, Lock, Eye, EyeOff, ShieldCheck } from "lucide-angular";
 import { AuthService } from "../../services/auth.service";
 import { AvailableAccount } from "../../core/models/auth.model";
 
@@ -21,6 +22,7 @@ import { MessageModule } from "primeng/message";
   standalone: true,
   imports: [
     CommonModule,
+    FormsModule,
     ReactiveFormsModule,
     RouterLink,
     LucideAngularModule,
@@ -37,6 +39,7 @@ export class LoginComponent implements OnInit {
   readonly LockIcon = Lock;
   readonly EyeIcon = Eye;
   readonly EyeOffIcon = EyeOff;
+  readonly ShieldIcon = ShieldCheck;
 
   private readonly fb = inject(FormBuilder);
   private readonly authService = inject(AuthService);
@@ -50,6 +53,16 @@ export class LoginComponent implements OnInit {
   failedAttempts = 0;
   MAX_ATTEMPTS = 5;
   showPassword = false;
+
+  // 2FA state
+  is2faStep = false;
+  twofaMethod = "email";
+  twofaNonce = "";
+  twofaCode = "";
+  trustDevice = false;
+  twofaEmail = "";
+  resendSuccess = "";
+  resendingCode = false;
 
   constructor() {
     this.loginForm = this.fb.group({
@@ -111,6 +124,14 @@ export class LoginComponent implements OnInit {
       next: (res) => {
         this.loading = false;
         this.loginError = "";
+        if (res.requires_2fa) {
+          this.is2faStep = true;
+          this.twofaNonce = res.twofa_nonce || "";
+          this.twofaMethod = res.twofa_method || "email";
+          this.twofaEmail = res.email || email;
+          this.twofaCode = "";
+          return;
+        }
         if (res.is_email_verified === false) {
           void this.router.navigate(["/verify-email"], {
             queryParams: { email: res.email || email },
@@ -145,6 +166,14 @@ export class LoginComponent implements OnInit {
       next: (res) => {
         this.googleLoading = false;
         this.loginError = "";
+        if (res.requires_2fa) {
+          this.is2faStep = true;
+          this.twofaNonce = res.twofa_nonce || "";
+          this.twofaMethod = res.twofa_method || "email";
+          this.twofaEmail = res.email || "";
+          this.twofaCode = "";
+          return;
+        }
         if (res.is_email_verified === false) {
           void this.router.navigate(["/verify-email"], {
             queryParams: { email: res.email },
@@ -161,6 +190,56 @@ export class LoginComponent implements OnInit {
           "Hubo un error al iniciar sesión con Google. Intentá nuevamente.";
       },
     });
+  }
+
+  onVerifyTwofa(): void {
+    if (this.loading || this.twofaCode?.trim().length !== 6) return;
+    this.loading = true;
+    this.loginError = "";
+    this.resendSuccess = "";
+
+    this.authService
+      .verifyTwoFactor(this.twofaNonce, this.twofaCode.trim(), this.trustDevice)
+      .subscribe({
+        next: (res) => {
+          this.loading = false;
+          this.is2faStep = false;
+          this.handleAccountsResponse(res.accounts, res.login_nonce);
+        },
+        error: (err) => {
+          this.loading = false;
+          const errorMsg = err.error?.error || err.message || "";
+          this.loginError = errorMsg || "Código de verificación incorrecto.";
+        },
+      });
+  }
+
+  onResendTwofa(): void {
+    if (this.resendingCode || !this.twofaNonce) return;
+    this.resendingCode = true;
+    this.loginError = "";
+    this.resendSuccess = "";
+
+    this.authService.resendTwoFactorCode(this.twofaNonce).subscribe({
+      next: (res) => {
+        this.resendingCode = false;
+        this.resendSuccess = res.message || "Se ha reenviado el código a tu correo electrónico.";
+      },
+      error: (err) => {
+        this.resendingCode = false;
+        const errorMsg = err.error?.error || err.message || "";
+        this.loginError = errorMsg || "Error al reenviar el código.";
+      },
+    });
+  }
+
+  cancelTwofa(): void {
+    this.is2faStep = false;
+    this.twofaNonce = "";
+    this.twofaCode = "";
+    this.trustDevice = false;
+    this.loginError = "";
+    this.resendSuccess = "";
   }
 
   /**

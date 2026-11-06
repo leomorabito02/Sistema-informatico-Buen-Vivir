@@ -17,6 +17,7 @@ export interface User {
   role_id: string;
   role?: Role;
   twofa_enabled: boolean;
+  twofa_method?: string;
   is_email_verified?: boolean;
   created_at: string;
   updated_at: string;
@@ -56,6 +57,32 @@ export interface CheckCredentialsResponse {
   login_nonce: string;
   is_email_verified?: boolean;
   email?: string;
+  requires_2fa?: boolean;
+  twofa_method?: string;
+  twofa_nonce?: string;
+}
+
+export interface VerifyTwofaRequest {
+  twofa_nonce: string;
+  code: string;
+  trust_device?: boolean;
+}
+
+export interface SetupTwofaResponse {
+  method: string;
+  secret?: string;
+  otpauth_url?: string;
+  message?: string;
+}
+
+export interface EnableTwofaRequest {
+  method: string;
+  code: string;
+}
+
+export interface DisableTwofaRequest {
+  password?: string;
+  code?: string;
 }
 
 export interface MeResponse {

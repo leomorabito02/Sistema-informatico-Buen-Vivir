@@ -12,9 +12,96 @@
 
       <!-- Login Form -->
       <p-card styleClass="auth-card p-card-shadow">
-        <h2 class="auth-card-title">Iniciar Sesión</h2>
+        <!-- 2FA Challenge Step -->
+        <div *ngIf="is2faStep" class="twofa-challenge-container">
+          <div class="text-center mb-4">
+            <div class="inline-flex items-center justify-center w-12 h-12 rounded-full bg-emerald-50 text-emerald-600 mb-2">
+              <lucide-angular [img]="ShieldIcon" class="w-6 h-6"></lucide-angular>
+            </div>
+            <h2 class="auth-card-title text-xl font-bold">Verificación de dos pasos</h2>
+            <p *ngIf="twofaMethod === 'totp'" class="text-sm text-muted-foreground mt-1">
+              Ingresá el código de 6 dígitos generado por tu aplicación autenticadora (Google Authenticator, Authy, etc.).
+            </p>
+            <p *ngIf="twofaMethod === 'email'" class="text-sm text-muted-foreground mt-1">
+              Enviamos un código de seguridad de 6 dígitos a <strong class="text-foreground">{{ twofaEmail }}</strong>.
+            </p>
+          </div>
 
-        <form [formGroup]="loginForm" (ngSubmit)="onSubmit()" class="auth-form">
+          <form (ngSubmit)="onVerifyTwofa()" class="auth-form">
+            <div class="form-group">
+              <label class="form-label" for="twofaCode">Código de verificación</label>
+              <div class="input-wrapper">
+                <input
+                  id="twofaCode"
+                  pInputText
+                  type="text"
+                  name="twofaCode"
+                  [(ngModel)]="twofaCode"
+                  class="form-input p-inputtext-sm text-center text-2xl tracking-widest font-mono"
+                  placeholder="000000"
+                  maxlength="6"
+                  autocomplete="one-time-code"
+                  required
+                />
+              </div>
+            </div>
+
+            <div class="flex-between my-2">
+              <label class="checkbox-label" for="trustDevice">
+                <input
+                  type="checkbox"
+                  id="trustDevice"
+                  class="checkbox-input"
+                  name="trustDevice"
+                  [(ngModel)]="trustDevice"
+                />
+                <span>Confiar en este dispositivo por 30 días</span>
+              </label>
+            </div>
+
+            <div *ngIf="loginError" class="error-msg my-2">
+              <p-message severity="error" [text]="loginError" styleClass="w-full"></p-message>
+            </div>
+
+            <div *ngIf="resendSuccess" class="success-msg my-2">
+              <p-message severity="success" [text]="resendSuccess" styleClass="w-full"></p-message>
+            </div>
+
+            <button
+              type="submit"
+              [disabled]="loading || !twofaCode || twofaCode.trim().length !== 6"
+              class="btn-submit"
+            >
+              <i *ngIf="loading" class="pi pi-spin pi-spinner"></i>
+              <span>{{ loading ? "Verificando..." : "Verificar e Ingresar" }}</span>
+            </button>
+
+            <div *ngIf="twofaMethod === 'email'" class="text-center mt-3">
+              <button
+                type="button"
+                (click)="onResendTwofa()"
+                [disabled]="resendingCode"
+                class="text-sm text-emerald-600 hover:text-emerald-700 underline bg-transparent border-0 cursor-pointer"
+              >
+                {{ resendingCode ? "Reenviando..." : "¿No recibiste el código? Reenviar" }}
+              </button>
+            </div>
+
+            <button
+              type="button"
+              (click)="cancelTwofa()"
+              class="w-full mt-2 py-2 text-sm text-muted-foreground hover:text-foreground bg-transparent border-0 cursor-pointer"
+            >
+              Volver a iniciar sesión
+            </button>
+          </form>
+        </div>
+
+        <!-- Normal Credentials Step -->
+        <div *ngIf="!is2faStep">
+          <h2 class="auth-card-title">Iniciar Sesión</h2>
+
+          <form [formGroup]="loginForm" (ngSubmit)="onSubmit()" class="auth-form">
           <div class="form-group">
             <label class="form-label" for="email">Email</label>
             <div class="input-wrapper p-input-icon-left">
@@ -154,6 +241,7 @@
               : "Iniciar sesión con Google"
           }}</span>
         </button>
+        </div>
       </p-card>
 
       <div class="auth-footer">
