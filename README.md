@@ -1,6 +1,6 @@
 # Sistema Informático Buen Vivir
 
-Plataforma basada en **Arquitectura de Microservicios** (Go), **Google Cloud API Gateway** y **Frontend Angular PWA** bajo el patrón de diseño **Modelo-Vista-Controlador (MVC)**.
+Plataforma basada en **Arquitectura de Microservicios** (Go), **Google Cloud API Gateway** y **Frontend Angular PWA** bajo el patrón de diseño **Modelo-Vista-Controlador (MVC)**
 
 ---
 
