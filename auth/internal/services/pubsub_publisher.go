@@ -37,6 +37,7 @@ func (p *PubSubPublisher) Publish(ctx context.Context, topic string, msg *pubsub
 	pub, ok := p.publishers[topic]
 	if !ok {
 		pub = p.client.Publisher(topic)
+		pub.EnableMessageOrdering = true
 		p.publishers[topic] = pub
 	}
 	p.mu.Unlock()

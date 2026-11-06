@@ -114,12 +114,13 @@ export class OfertasComponent implements OnInit {
   ngOnInit() {
     this.authService.isAuthenticated().subscribe({
       next: (res) => {
-        if (res?.role_id) {
-          this.isCompany = res.role_id === "role_company";
-          this.isParticipant = res.role_id === "role_participant";
-          this.isAdmin = res.role_id === "role_admin";
+        const role = res?.role_id ?? res?.user?.role_id;
+        if (role) {
+          this.isCompany = role === "role_company";
+          this.isParticipant = role === "role_participant";
+          this.isAdmin = role === "role_admin" || role === "role_dev";
           this.isAdminOrVolunteer =
-            this.isAdmin || res.role_id === "role_volunteer";
+            this.isAdmin || role === "role_volunteer";
         }
         const r = res as any;
         const uid = r.user_id || res?.user?.user_id;
@@ -133,6 +134,7 @@ export class OfertasComponent implements OnInit {
         if (this.isAdminOrVolunteer) {
           this.loadParticipants();
         }
+        this.filterJobs();
 
         this.profileService.getMyProfile().subscribe({
           next: (profile) => {
@@ -208,11 +210,15 @@ export class OfertasComponent implements OnInit {
       }
     } else if (this.isCompany) {
       if (this.companyTab !== "Todas") {
-        filtered = filtered.filter((j) => j.estado === this.companyTab);
+        filtered = filtered.filter(
+          (j) => j.estado?.toLowerCase() === this.companyTab.toLowerCase(),
+        );
       }
     } else if (this.isAdminOrVolunteer) {
       if (this.adminTab !== "Todas") {
-        filtered = filtered.filter((j) => j.estado === this.adminTab);
+        filtered = filtered.filter(
+          (j) => j.estado?.toLowerCase() === this.adminTab.toLowerCase(),
+        );
       }
     }
 

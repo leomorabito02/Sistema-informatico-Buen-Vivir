@@ -22,8 +22,9 @@ func (r *FichaCreadaRule) Build(_ context.Context, env events.Envelope) ([]Notif
 		return nil, err
 	}
 
+	_ = p.FichaID
 	adminRole := "role_admin"
-	actionURL := "/human-promotion/fichas/" + p.FichaID
+	actionURL := "/dashboard/acompanamiento"
 	return []NotificationPlan{
 		{
 			SourceService: "human-promotion",
@@ -57,7 +58,7 @@ func (r *FichaActualizadaRule) Build(_ context.Context, env events.Envelope) ([]
 
 	// Si fue actualizada por alguien distinto del creador original, avisarle al creador
 	if p.CreadoPor != "" && env.ActorID != "" && p.CreadoPor != env.ActorID {
-		actionURL := "/human-promotion/fichas/" + p.FichaID
+		actionURL := "/dashboard/acompanamiento"
 		return []NotificationPlan{
 			{
 				SourceService:    "human-promotion",
@@ -96,7 +97,7 @@ func (r *HitoRegistradoRule) Build(_ context.Context, env events.Envelope) ([]No
 
 	// P3: Notificación al participante si el hito está marcado como visible
 	if p.VisibleParticipante {
-		actionURL := "/mi-linea-de-tiempo"
+		actionURL := "/dashboard/mi-proceso"
 		plans = append(plans, NotificationPlan{
 			SourceService: "human-promotion",
 			EventType:     env.EventType,
@@ -115,7 +116,7 @@ func (r *HitoRegistradoRule) Build(_ context.Context, env events.Envelope) ([]No
 
 	// P4: Notificación al voluntario responsable asignado (si es distinto del actor que lo creó)
 	if p.ResponsableID != "" && p.ResponsableID != env.ActorID {
-		actionURL := "/human-promotion/fichas/" + p.FichaID
+		actionURL := "/dashboard/acompanamiento"
 		plans = append(plans, NotificationPlan{
 			SourceService:    "human-promotion",
 			EventType:        env.EventType,
@@ -150,7 +151,7 @@ func (r *HitoActualizadoRule) Build(_ context.Context, env events.Envelope) ([]N
 	}
 
 	if p.VisibleParticipante {
-		actionURL := "/mi-linea-de-tiempo"
+		actionURL := "/dashboard/mi-proceso"
 		return []NotificationPlan{
 			{
 				SourceService: "human-promotion",

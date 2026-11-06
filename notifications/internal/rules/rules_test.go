@@ -218,3 +218,61 @@ func TestRegistry(t *testing.T) {
 	}
 }
 
+func TestCampaignRules(t *testing.T) {
+	ctx := context.Background()
+
+	t.Run("CampanaCreadaRule", func(t *testing.T) {
+		rule := &rules.CampanaCreadaRule{}
+		payload := events.CampanaCreadaPayload{
+			CampanaID: "camp-123",
+			CreadoPor: "vol-1",
+		}
+		env := newTestEnvelope(t, rule.EventType(), payload, "vol-1")
+
+		plans, err := rule.Build(ctx, env)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if len(plans) != 3 {
+			t.Fatalf("expected 3 plans (admin, participant, volunteer), got %d", len(plans))
+		}
+		if *plans[0].TargetRole != "role_admin" || *plans[0].ActionURL != "/dashboard/campanas" {
+			t.Errorf("expected role_admin target with /dashboard/campanas, got %v %v", *plans[0].TargetRole, *plans[0].ActionURL)
+		}
+		if *plans[1].TargetRole != "role_participant" || *plans[1].ActionURL != "/campanas-publico" {
+			t.Errorf("expected role_participant target with /campanas-publico, got %v %v", *plans[1].TargetRole, *plans[1].ActionURL)
+		}
+		if *plans[2].TargetRole != "role_volunteer" || *plans[2].ActionURL != "/dashboard/campanas" {
+			t.Errorf("expected role_volunteer target with /dashboard/campanas, got %v %v", *plans[2].TargetRole, *plans[2].ActionURL)
+		}
+	})
+}
+
+func TestAccountRules(t *testing.T) {
+	ctx := context.Background()
+
+	t.Run("UsuarioCreadoRule_WithApprovalRequiredRole", func(t *testing.T) {
+		rule := &rules.UsuarioCreadoRule{}
+		payload := events.UsuarioCreadoPayload{
+			UserID: "usr-new-1",
+			RoleID: "role_volunteer",
+		}
+		env := newTestEnvelope(t, rule.EventType(), payload, "usr-new-1")
+
+		plans, err := rule.Build(ctx, env)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if len(plans) != 2 {
+			t.Fatalf("expected 2 plans (welcome + admin review), got %d", len(plans))
+		}
+		if *plans[0].ActionURL != "/dashboard/perfil" {
+			t.Errorf("expected /dashboard/perfil, got %s", *plans[0].ActionURL)
+		}
+		if plans[1].TargetRole == nil || *plans[1].TargetRole != "role_admin" || *plans[1].ActionURL != "/dashboard/usuarios" {
+			t.Errorf("unexpected admin review plan: %+v", plans[1])
+		}
+	})
+}
+
+

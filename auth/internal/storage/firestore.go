@@ -19,6 +19,9 @@ func NewFirestoreClient(ctx context.Context, projectID string) (*firestore.Clien
 	}
 
 	credsPath := os.Getenv("GOOGLE_APPLICATION_CREDENTIALS")
+	if credsPath == "" {
+		credsPath = os.Getenv("FIREBASE_CREDENTIALS_JSON")
+	}
 	var opts []option.ClientOption
 
 	if credsPath != "" {

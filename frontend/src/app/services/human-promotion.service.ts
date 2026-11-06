@@ -25,6 +25,7 @@ import {
   RegistroAuditoria,
 } from "../core/models/education.model";
 import { filtrosAuditoria } from "./education.service";
+import { SKIP_GLOBAL_ERROR_HEADER } from "../core/interceptors/error.interceptor";
 
 /** Fila del log tal como la devuelve el backend (snake_case). */
 interface RegistroAuditoriaApi {
@@ -82,6 +83,7 @@ export class HumanPromotionService {
       .get<FichaDetalle>(`${this.base}/fichas`, {
         params,
         withCredentials: true,
+        headers: { [SKIP_GLOBAL_ERROR_HEADER]: "true" },
       })
       .pipe(catchError(this.handleError));
   }

@@ -94,6 +94,7 @@ func main() {
 		jwtService,
 		firebaseService,
 		verificationService,
+		usuariosProducer,
 	)
 
 	userService := services.NewUserService(userRepo, querier, notificationSyncSvc, verificationService, usuariosProducer)

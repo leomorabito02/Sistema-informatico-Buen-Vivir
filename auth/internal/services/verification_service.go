@@ -53,28 +53,10 @@ func (s *verificationService) GenerateAndSendVerification(ctx context.Context, u
 		return errors.New("el usuario no puede ser nulo")
 	}
 
-	tokenBytes := make([]byte, 32)
-	if _, err := rand.Read(tokenBytes); err != nil {
-		return fmt.Errorf("error generando token criptográfico: %w", err)
-	}
-	rawToken := hex.EncodeToString(tokenBytes)
-
-	hash := sha256.Sum256([]byte(rawToken))
-	tokenHash := hex.EncodeToString(hash[:])
-
-	ev := &models.EmailVerification{
-		EmailVerificationID: "ev-" + utils.GenerateRandomString(10),
-		UserID:              user.UserID,
-		TokenHash:           tokenHash,
-		ExpiresAt:           time.Now().Add(24 * time.Hour),
-	}
-
-	if err := s.evRepo.Create(ctx, ev); err != nil {
-		return fmt.Errorf("error guardando token de verificación: %w", err)
-	}
+	requestID := "ev-" + utils.GenerateRandomString(10)
 
 	if s.producer != nil {
-		_ = s.producer.EmailSolicitado(ctx, ev.EmailVerificationID, user.UserID, "verificacion")
+		_ = s.producer.EmailSolicitado(ctx, requestID, user.UserID, "verificacion")
 	}
 
 	return nil

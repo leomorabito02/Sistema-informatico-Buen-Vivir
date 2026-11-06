@@ -6,8 +6,11 @@ services:
     env_file:
       - ./auth/.env
     environment:
-      - NOTIFICATIONS_SERVICE_URL=http://notifications-service:8080
-      - INTERNAL_HMAC_SECRET=${INTERNAL_HMAC_SECRET:-buenvivir-internal-hmac-secret-dev}
+      - PUBSUB_PROJECT_ID=ceibuenvivir
+      - PUBSUB_EMULATOR_HOST=pubsub-emulator:8086
+    depends_on:
+      pubsub-init:
+        condition: service_completed_successfully
     ports:
       - "8082:8080"
       - "50051:50051"
@@ -64,12 +67,16 @@ services:
       - ./labor-integration/.env
     environment:
       - AUTH_SERVICE_GRPC_TARGET=auth-service:50051
-      - NOTIFICATIONS_SERVICE_URL=http://notifications-service:8080
-      - INTERNAL_HMAC_SECRET=${INTERNAL_HMAC_SECRET:-buenvivir-internal-hmac-secret-dev}
+      - PUBSUB_PROJECT_ID=ceibuenvivir
+      - PUBSUB_EMULATOR_HOST=pubsub-emulator:8086
+      - PUBSUB_PUSH_AUTH=disabled
     ports:
       - "8310:8080"
     depends_on:
-      - auth-service
+      auth-service:
+        condition: service_started
+      pubsub-init:
+        condition: service_completed_successfully
     restart: on-failure
     security_opt:
       - no-new-privileges:true
@@ -165,8 +172,11 @@ services:
         required: false
     environment:
       - PORT=8080
-      - NOTIFICATIONS_SERVICE_URL=http://notifications-service:8080
-      - INTERNAL_HMAC_SECRET=${INTERNAL_HMAC_SECRET:-buenvivir-internal-hmac-secret-dev}
+      - PUBSUB_PROJECT_ID=ceibuenvivir
+      - PUBSUB_EMULATOR_HOST=pubsub-emulator:8086
+    depends_on:
+      pubsub-init:
+        condition: service_completed_successfully
     restart: on-failure
     security_opt:
       - no-new-privileges:true
@@ -182,13 +192,22 @@ services:
       context: ./notifications
       dockerfile: Dockerfile
     env_file:
+      - path: ./campaigns/.env
+        required: false
       - path: ./notifications/.env
         required: false
     environment:
       - PORT=8080
       - GRPC_PORT=50052
       - AUTH_GRPC_URL=auth-service:50051
-      - INTERNAL_HMAC_SECRET=${INTERNAL_HMAC_SECRET:-buenvivir-internal-hmac-secret-dev}
+      - PUBSUB_PUSH_AUTH=disabled
+      - FRONTEND_URL=http://localhost:4200
+      - FIREBASE_PROJECT_ID=ceibuenvivir
+    depends_on:
+      auth-service:
+        condition: service_started
+      pubsub-init:
+        condition: service_completed_successfully
     ports:
       - "8088:8080"
       - "50052:50052"
@@ -316,6 +335,7 @@ services:
       - EDUCATION_URL=http://education-service:8210
       - HUMAN_PROMOTION_URL=http://human-promotion:8085
       - DASHBOARD_URL=http://dashboard-service:8090
+      - NOTIFICATIONS_URL=http://notifications-service:8080
     volumes:
       - ./infra/pubsub:/pubsub:ro
     depends_on:

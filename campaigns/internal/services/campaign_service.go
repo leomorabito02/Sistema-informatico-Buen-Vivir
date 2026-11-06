@@ -121,7 +121,18 @@ func (s *campaignService) Publish(ctx context.Context, id string) (models.Campai
 	if c.Estado == models.EstadoPublicada {
 		return c, nil
 	}
-	return s.repo.SetEstado(ctx, id, models.EstadoPublicada)
+	published, err := s.repo.SetEstado(ctx, id, models.EstadoPublicada)
+	if err != nil {
+		return models.Campaign{}, err
+	}
+	if s.producer != nil {
+		if err := s.producer.CampanaCreada(ctx, published.ID, published.CreadoPor); err != nil {
+			slog.Warn("failed to emit campana.creada on publish to outbox", slog.String("error", err.Error()), slog.String("campaign_id", published.ID))
+		} else {
+			s.producer.Notify()
+		}
+	}
+	return published, nil
 }
 
 func (s *campaignService) Get(ctx context.Context, id string) (models.Campaign, error) {

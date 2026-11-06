@@ -271,14 +271,14 @@
               (onClick)="confirmDelete(job)"
             ></p-button>
             <p-button
-              *ngIf="isAdmin && job.estado === 'Pendiente'"
+              *ngIf="isAdmin && (job.estado === 'Pendiente' || job.estado?.toLowerCase() === 'pendiente')"
               label="Aprobar"
               icon="pi pi-check"
               styleClass="w-full p-button-outlined p-button-success"
               (onClick)="approveJob(job)"
             ></p-button>
             <p-button
-              *ngIf="isAdmin && job.estado === 'Pendiente'"
+              *ngIf="isAdmin && (job.estado === 'Pendiente' || job.estado?.toLowerCase() === 'pendiente')"
               label="Rechazar"
               icon="pi pi-times"
               styleClass="w-full p-button-outlined p-button-danger"
