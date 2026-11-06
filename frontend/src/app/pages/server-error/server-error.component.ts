@@ -7,6 +7,7 @@ import {
   RotateCw,
   House,
 } from "lucide-angular";
+import { NavigationHistoryService } from "../../services/navigation-history.service";
 
 @Component({
   selector: "app-server-error",
@@ -21,9 +22,10 @@ export class ServerErrorComponent {
   readonly HomeIcon = House;
 
   private readonly router = inject(Router);
+  private readonly navHistory = inject(NavigationHistoryService);
 
   reloadPage(): void {
-    window.location.reload();
+    this.navHistory.reloadPreviousPage();
   }
 
   goToHome(): void {

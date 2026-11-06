@@ -1,6 +1,7 @@
 import { ComponentFixture, TestBed } from "@angular/core/testing";
 import { NotFoundComponent } from "./not-found.component";
 import { Router, provideRouter } from "@angular/router";
+import { NavigationHistoryService } from "../../services/navigation-history.service";
 
 describe("NotFoundComponent", () => {
   let component: NotFoundComponent;
@@ -38,5 +39,12 @@ describe("NotFoundComponent", () => {
     } else {
       expect(router.navigate).toHaveBeenCalledWith(["/"]);
     }
+  });
+
+  it("should delegate reloadPage to NavigationHistoryService", () => {
+    const navHistory = TestBed.inject(NavigationHistoryService);
+    spyOn(navHistory, "reloadPreviousPage");
+    component.reloadPage();
+    expect(navHistory.reloadPreviousPage).toHaveBeenCalled();
   });
 });

@@ -338,6 +338,11 @@ export const routes: Routes = [
     ],
   },
   {
+    path: "400",
+    redirectTo: "404",
+    pathMatch: "full",
+  },
+  {
     path: "404",
     loadComponent: () =>
       import("./pages/not-found/not-found.component").then(
