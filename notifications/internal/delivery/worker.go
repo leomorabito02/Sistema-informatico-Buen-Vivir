@@ -219,36 +219,13 @@ func (w *Worker) deliverEmail(
 		return models.DeliveryStatusSkipped, nil, nil
 	}
 
-	// Resolve destination email
-	toEmail := ""
-	if strings.Contains(userID, "@") {
-		toEmail = userID
-	} else if w.authClient != nil {
-		contact, err := w.authClient.GetUserContact(ctx, userID)
-		if err == nil && contact != nil && contact.Email != "" {
-			if !contact.IsEmailVerified && !isCritical {
-				return models.DeliveryStatusSkipped, nil, nil
-			}
-			toEmail = contact.Email
-			if _, hasName := dataMap["recipient_name"]; !hasName {
-				dataMap["recipient_name"] = strings.TrimSpace(contact.FirstName + " " + contact.LastName)
-			}
-		}
-	}
-
-	if toEmail == "" {
+	toEmail, ok := w.resolveRecipientEmail(ctx, userID, isCritical, dataMap)
+	if !ok || toEmail == "" {
 		return models.DeliveryStatusSkipped, nil, nil
 	}
 
-	// Resolve action URL if request_id is present (on-demand token issue via Auth gRPC)
-	if reqID, ok := dataMap["request_id"].(string); ok && reqID != "" && w.authClient != nil {
-		actionType, _ := dataMap["tipo"].(string)
-		link, err := w.authClient.IssueActionLink(ctx, reqID, userID, actionType)
-		if err != nil {
-			return models.DeliveryStatusFailed, nil, fmt.Errorf("failed to issue action link: %w", err)
-		}
-		notif.ActionURL = &link
-		dataMap["action_url"] = link
+	if err := w.resolveActionLink(ctx, notif, userID, dataMap); err != nil {
+		return models.DeliveryStatusFailed, nil, fmt.Errorf("failed to issue action link: %w", err)
 	}
 
 	senderType := services.EmailSenderNotification
@@ -269,6 +246,45 @@ func (w *Worker) deliverEmail(
 	}
 
 	return models.DeliveryStatusSent, &msgID, nil
+}
+
+func (w *Worker) resolveRecipientEmail(ctx context.Context, userID string, isCritical bool, dataMap map[string]interface{}) (string, bool) {
+	if strings.Contains(userID, "@") {
+		return userID, true
+	}
+	if w.authClient == nil {
+		return "", false
+	}
+	contact, err := w.authClient.GetUserContact(ctx, userID)
+	if err != nil || contact == nil || contact.Email == "" {
+		return "", false
+	}
+	if !contact.IsEmailVerified && !isCritical {
+		return "", false
+	}
+	if _, hasName := dataMap["recipient_name"]; !hasName {
+		dataMap["recipient_name"] = strings.TrimSpace(contact.FirstName + " " + contact.LastName)
+	}
+	return contact.Email, true
+}
+
+func (w *Worker) resolveActionLink(ctx context.Context, notif *models.Notification, userID string, dataMap map[string]interface{}) error {
+	reqID, ok := dataMap["request_id"].(string)
+	if !ok || reqID == "" || w.authClient == nil {
+		return nil
+	}
+	actionType, _ := dataMap["tipo"].(string)
+	link, err := w.authClient.IssueActionLink(ctx, reqID, userID, actionType)
+	if err != nil {
+		return err
+	}
+	if actionType == "two_factor_code" {
+		dataMap["code"] = link
+	} else {
+		notif.ActionURL = &link
+		dataMap["action_url"] = link
+	}
+	return nil
 }
 
 func (w *Worker) deliverPush(
@@ -369,6 +385,17 @@ func (w *Worker) renderEmailBody(notif *models.Notification, dataMap map[string]
 			ExpiryMinutes: 30,
 			Year:          templates.CurrentYear(),
 		})
+	case templates.TemplateTwoFactorCode:
+		code := ""
+		if c, ok := dataMap["code"].(string); ok {
+			code = c
+		}
+		alertHTML, err = w.tmplEngine.RenderEmail(templateID, templates.TwoFactorCodeData{
+			RecipientName: recipientName,
+			Code:          code,
+			ExpiryMinutes: 10,
+			Year:          templates.CurrentYear(),
+		})
 	default:
 		alertHTML, err = w.tmplEngine.RenderEmail(templates.TemplateGeneralAlert, templates.GeneralAlertData{
 			RecipientName: recipientName,
@@ -411,4 +438,3 @@ func (w *Worker) FlushHandler(verifier events.Verifier) http.Handler {
 		_, _ = fmt.Fprintf(rw, `{"flushed":%d}`, n)
 	})
 }
-

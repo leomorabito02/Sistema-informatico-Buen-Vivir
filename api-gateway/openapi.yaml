@@ -146,6 +146,74 @@ paths:
               type: boolean
             Access-Control-Max-Age:
               type: integer
+  /api/v1/auth/verify-2fa:
+    post:
+      summary: POST /api/v1/auth/verify-2fa
+      operationId: post__api_v1_auth_verify-2fa
+      x-google-backend:
+        address: ${AUTH_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+        jwt_audience: ${AUTH_SERVICE_URL}
+      responses:
+        '200':
+          description: OK
+    options:
+      summary: CORS preflight for /api/v1/auth/verify-2fa
+      operationId: options__api_v1_auth_verify-2fa
+      x-google-backend:
+        address: ${AUTH_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+        jwt_audience: ${AUTH_SERVICE_URL}
+      responses:
+        '200':
+          description: OK
+          headers:
+            Access-Control-Allow-Origin:
+              type: string
+            Access-Control-Allow-Methods:
+              type: string
+            Access-Control-Allow-Headers:
+              type: string
+            Access-Control-Expose-Headers:
+              type: string
+            Access-Control-Allow-Credentials:
+              type: boolean
+            Access-Control-Max-Age:
+              type: integer
+  /api/v1/auth/resend-2fa:
+    post:
+      summary: POST /api/v1/auth/resend-2fa
+      operationId: post__api_v1_auth_resend-2fa
+      x-google-backend:
+        address: ${AUTH_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+        jwt_audience: ${AUTH_SERVICE_URL}
+      responses:
+        '200':
+          description: OK
+    options:
+      summary: CORS preflight for /api/v1/auth/resend-2fa
+      operationId: options__api_v1_auth_resend-2fa
+      x-google-backend:
+        address: ${AUTH_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+        jwt_audience: ${AUTH_SERVICE_URL}
+      responses:
+        '200':
+          description: OK
+          headers:
+            Access-Control-Allow-Origin:
+              type: string
+            Access-Control-Allow-Methods:
+              type: string
+            Access-Control-Allow-Headers:
+              type: string
+            Access-Control-Expose-Headers:
+              type: string
+            Access-Control-Allow-Credentials:
+              type: boolean
+            Access-Control-Max-Age:
+              type: integer
   /api/v1/auth/logout:
     post:
       summary: POST /api/v1/auth/logout
@@ -340,6 +408,142 @@ paths:
     options:
       summary: CORS preflight for /api/v1/profile/me/unlink-google
       operationId: options__api_v1_profile_me_unlink-google
+      x-google-backend:
+        address: ${AUTH_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+        jwt_audience: ${AUTH_SERVICE_URL}
+      responses:
+        '200':
+          description: OK
+          headers:
+            Access-Control-Allow-Origin:
+              type: string
+            Access-Control-Allow-Methods:
+              type: string
+            Access-Control-Allow-Headers:
+              type: string
+            Access-Control-Expose-Headers:
+              type: string
+            Access-Control-Allow-Credentials:
+              type: boolean
+            Access-Control-Max-Age:
+              type: integer
+  /api/v1/profile/me/2fa/setup:
+    post:
+      summary: POST /api/v1/profile/me/2fa/setup
+      operationId: post__api_v1_profile_me_2fa_setup
+      x-google-backend:
+        address: ${AUTH_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+        jwt_audience: ${AUTH_SERVICE_URL}
+      responses:
+        '200':
+          description: OK
+    options:
+      summary: CORS preflight for /api/v1/profile/me/2fa/setup
+      operationId: options__api_v1_profile_me_2fa_setup
+      x-google-backend:
+        address: ${AUTH_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+        jwt_audience: ${AUTH_SERVICE_URL}
+      responses:
+        '200':
+          description: OK
+          headers:
+            Access-Control-Allow-Origin:
+              type: string
+            Access-Control-Allow-Methods:
+              type: string
+            Access-Control-Allow-Headers:
+              type: string
+            Access-Control-Expose-Headers:
+              type: string
+            Access-Control-Allow-Credentials:
+              type: boolean
+            Access-Control-Max-Age:
+              type: integer
+  /api/v1/profile/me/2fa/enable:
+    post:
+      summary: POST /api/v1/profile/me/2fa/enable
+      operationId: post__api_v1_profile_me_2fa_enable
+      x-google-backend:
+        address: ${AUTH_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+        jwt_audience: ${AUTH_SERVICE_URL}
+      responses:
+        '200':
+          description: OK
+    options:
+      summary: CORS preflight for /api/v1/profile/me/2fa/enable
+      operationId: options__api_v1_profile_me_2fa_enable
+      x-google-backend:
+        address: ${AUTH_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+        jwt_audience: ${AUTH_SERVICE_URL}
+      responses:
+        '200':
+          description: OK
+          headers:
+            Access-Control-Allow-Origin:
+              type: string
+            Access-Control-Allow-Methods:
+              type: string
+            Access-Control-Allow-Headers:
+              type: string
+            Access-Control-Expose-Headers:
+              type: string
+            Access-Control-Allow-Credentials:
+              type: boolean
+            Access-Control-Max-Age:
+              type: integer
+  /api/v1/profile/me/2fa/disable:
+    post:
+      summary: POST /api/v1/profile/me/2fa/disable
+      operationId: post__api_v1_profile_me_2fa_disable
+      x-google-backend:
+        address: ${AUTH_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+        jwt_audience: ${AUTH_SERVICE_URL}
+      responses:
+        '200':
+          description: OK
+    options:
+      summary: CORS preflight for /api/v1/profile/me/2fa/disable
+      operationId: options__api_v1_profile_me_2fa_disable
+      x-google-backend:
+        address: ${AUTH_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+        jwt_audience: ${AUTH_SERVICE_URL}
+      responses:
+        '200':
+          description: OK
+          headers:
+            Access-Control-Allow-Origin:
+              type: string
+            Access-Control-Allow-Methods:
+              type: string
+            Access-Control-Allow-Headers:
+              type: string
+            Access-Control-Expose-Headers:
+              type: string
+            Access-Control-Allow-Credentials:
+              type: boolean
+            Access-Control-Max-Age:
+              type: integer
+  /api/v1/profile/me/2fa/revoke-device:
+    post:
+      summary: POST /api/v1/profile/me/2fa/revoke-device
+      operationId: post__api_v1_profile_me_2fa_revoke-device
+      x-google-backend:
+        address: ${AUTH_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+        jwt_audience: ${AUTH_SERVICE_URL}
+      responses:
+        '200':
+          description: OK
+    options:
+      summary: CORS preflight for /api/v1/profile/me/2fa/revoke-device
+      operationId: options__api_v1_profile_me_2fa_revoke-device
       x-google-backend:
         address: ${AUTH_SERVICE_URL}
         path_translation: APPEND_PATH_TO_ADDRESS

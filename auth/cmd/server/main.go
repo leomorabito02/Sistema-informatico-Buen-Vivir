@@ -12,14 +12,13 @@ import (
 	"auth/config"
 	"auth/internal/controllers"
 	"auth/internal/events/producers"
-	"context"
 	"auth/internal/middlewares"
 	"auth/internal/repositories"
 	"auth/internal/services"
 	"auth/internal/storage"
+	"context"
 	"google.golang.org/grpc"
 	"net"
-
 )
 
 func main() {
@@ -85,6 +84,7 @@ func main() {
 	notificationSyncSvc := services.NewNotificationSyncService()
 	verificationService := services.NewVerificationService(emailVerificationRepo, userRepo, notificationSyncSvc, usuariosProducer)
 	passwordRecoveryService := services.NewPasswordRecoveryService(passwordRecoveryRepo, userRepo, refreshTokenRepo, notificationSyncSvc, usuariosProducer)
+	twofaService := services.NewTwofaService(userRepo, querier, transactor, usuariosProducer)
 
 	authService := services.NewAuthService(
 		transactor,
@@ -95,6 +95,7 @@ func main() {
 		firebaseService,
 		verificationService,
 		usuariosProducer,
+		twofaService,
 	)
 
 	userService := services.NewUserService(userRepo, querier, notificationSyncSvc, verificationService, usuariosProducer)
@@ -110,15 +111,7 @@ func main() {
 	cleanupWorker.Start(context.Background(), 5*time.Minute)
 
 	// Iniciar worker de outbox para publicación a Pub/Sub si está configurado
-	pubsubProject := os.Getenv("PUBSUB_PROJECT_ID")
-	if pubsubProject != "" {
-		if pubPublisher, err := services.NewPubSubPublisher(context.Background(), pubsubProject); err == nil {
-			outboxWorker := services.NewOutboxWorker(outboxRepo, pubPublisher)
-			outboxWorker.Start(context.Background(), 5*time.Second)
-		} else {
-			slog.Warn("PubSub publisher initialization failed for outbox worker", "error", err)
-		}
-	}
+	startOutboxWorker(outboxRepo)
 
 	// Sincronizar contadores de impacto en Cloudflare Worker KV al iniciar el servicio
 	services.NewKVSyncService(userRepo).SyncImpactStatsAsync()
@@ -131,7 +124,7 @@ func main() {
 	deviceRepo := repositories.NewFirestoreDeviceRepository(firestoreClient)
 	deviceController := controllers.NewDeviceController(deviceRepo)
 
-	authController := controllers.NewAuthController(authService, verificationService, passwordRecoveryService)
+	authController := controllers.NewAuthController(authService, verificationService, passwordRecoveryService, twofaService)
 	userController := controllers.NewUserController(userService)
 	roleController := controllers.NewRoleController(roleService)
 	companyController := controllers.NewCompanyController(companyService)
@@ -143,24 +136,12 @@ func main() {
 	participantDirectoryService := services.NewParticipantDirectoryService(participantDirectoryRepo)
 	directoryController := controllers.NewDirectoryController(participantDirectoryService)
 	grpcAuthController := controllers.NewGrpcAuthController(participantService, companyService, userService, participantDirectoryService, deviceRepo)
-	grpcAuthController.SetLinkIssuers(verificationService, passwordRecoveryService)
-	go func() {
-		lis, err := net.Listen("tcp", ":50051")
-		if err != nil {
-			slog.Error("failed to listen on gRPC port", "error", err)
-			return
-		}
-		grpcServer := grpc.NewServer()
-		authpb.RegisterAuthServiceServer(grpcServer, grpcAuthController)
-		slog.Info("Servicio Auth (gRPC) escuchando en el puerto 50051")
-		if err := grpcServer.Serve(lis); err != nil {
-			slog.Error("failed to serve gRPC", "error", err)
-		}
-	}()
+	grpcAuthController.SetLinkIssuers(verificationService, passwordRecoveryService, twofaService)
+	go startGRPCServer(grpcAuthController)
 
 	// 6. Setup Router and Middlewares
 	r := chi.NewRouter()
-	
+
 	// Middlewares (CORS and Security Headers must be handled here as API Gateway does not support allowCors)
 	middlewares.SetupMiddlewares(r)
 
@@ -169,23 +150,7 @@ func main() {
 	// (e.g., POST /auth/check-credentials) but not for the requested method (OPTIONS).
 	// This runs INSIDE chi's routing tree, so it's guaranteed to execute even if
 	// external wrappers like OptionsInterceptor are somehow bypassed.
-	r.MethodNotAllowed(http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
-		if req.Method == http.MethodOptions {
-			origin := req.Header.Get("Origin")
-			if origin != "" {
-				w.Header().Set("Access-Control-Allow-Origin", origin)
-				w.Header().Set("Vary", "Origin")
-				w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE, OPTIONS")
-				w.Header().Set("Access-Control-Allow-Headers", "Accept, Authorization, Content-Type, X-CSRF-Token, X-Requested-With, X-Skip-Global-Error, X-Redirect-On-404, X-Skip-500-Redirect")
-				w.Header().Set("Access-Control-Expose-Headers", "Link, Set-Cookie")
-				w.Header().Set("Access-Control-Allow-Credentials", "true")
-				w.Header().Set("Access-Control-Max-Age", "300")
-			}
-			w.WriteHeader(http.StatusOK)
-			return
-		}
-		http.Error(w, http.StatusText(http.StatusMethodNotAllowed), http.StatusMethodNotAllowed)
-	}))
+	r.MethodNotAllowed(http.HandlerFunc(handleMethodNotAllowed))
 
 	// DDoS Protection fallback (Global Rate Limiter)
 	r.Use(middlewares.RateLimiter())
@@ -195,7 +160,6 @@ func main() {
 	r.Get("/health", authController.HealthCheck)
 	r.Get("/internal/validate-token", tokenValidatorController.ValidateToken)
 
-	
 	r.Route("/api/v1", func(r chi.Router) {
 		r.Route("/auth", func(r chi.Router) {
 			r.With(middlewares.StrictRateLimiter()).Post("/register", authController.Register)
@@ -211,18 +175,24 @@ func main() {
 			r.With(middlewares.StrictRateLimiter()).Post("/resend-verification", authController.ResendVerification)
 			r.With(middlewares.StrictRateLimiter()).Post("/forgot-password", authController.ForgotPassword)
 			r.With(middlewares.StrictRateLimiter()).Post("/reset-password", authController.ResetPassword)
+			r.With(middlewares.StrictRateLimiter()).Post("/verify-2fa", authController.VerifyTwofa)
+			r.With(middlewares.StrictRateLimiter()).Post("/resend-2fa", authController.ResendTwofa)
 		})
-		
+
 		// Protected Routes
 		r.Group(func(r chi.Router) {
 			r.Use(middlewares.AuthMiddleware(jwtService))
-			
+
 			r.Get("/auth/me", authController.GetMe)
 			r.Get("/profile/me", authController.GetMyProfileDetails)
 			r.Put("/profile/me", authController.UpdateMyProfile)
 			r.Put("/profile/me/password", authController.UpdateMyPassword)
 			r.Post("/profile/me/link-google", authController.LinkGoogleAccount)
 			r.Post("/profile/me/unlink-google", authController.UnlinkGoogleAccount)
+			r.Post("/profile/me/2fa/setup", authController.SetupTwofa)
+			r.Post("/profile/me/2fa/enable", authController.EnableTwofa)
+			r.Post("/profile/me/2fa/disable", authController.DisableTwofa)
+			r.Post("/profile/me/2fa/revoke-device", authController.RevokeTrustedDevice)
 			// Users CRUD
 			r.Route("/users", func(r chi.Router) {
 				r.Post("/", userController.CreateUser)
@@ -279,7 +249,7 @@ func main() {
 				r.Get("/{id}", participantController.GetParticipant)
 				r.Put("/{id}", participantController.UpdateParticipant)
 				r.Delete("/{id}", participantController.DeleteParticipant)
-				
+
 				r.Route("/{id}/documents", func(r chi.Router) {
 					r.Post("/", participantController.UploadDocument)
 					r.Get("/", participantController.GetDocuments)
@@ -340,4 +310,50 @@ func main() {
 		slog.Error("Error al iniciar el servidor", "error", err)
 		os.Exit(1)
 	}
+}
+
+func startOutboxWorker(outboxRepo repositories.OutboxRepository) {
+	pubsubProject := os.Getenv("PUBSUB_PROJECT_ID")
+	if pubsubProject == "" {
+		return
+	}
+	pubPublisher, err := services.NewPubSubPublisher(context.Background(), pubsubProject)
+	if err != nil {
+		slog.Warn("PubSub publisher initialization failed for outbox worker", "error", err)
+		return
+	}
+	outboxWorker := services.NewOutboxWorker(outboxRepo, pubPublisher)
+	outboxWorker.Start(context.Background(), 5*time.Second)
+}
+
+func startGRPCServer(grpcAuthController authpb.AuthServiceServer) {
+	lis, err := net.Listen("tcp", ":50051")
+	if err != nil {
+		slog.Error("failed to listen on gRPC port", "error", err)
+		return
+	}
+	grpcServer := grpc.NewServer()
+	authpb.RegisterAuthServiceServer(grpcServer, grpcAuthController)
+	slog.Info("Servicio Auth (gRPC) escuchando en el puerto 50051")
+	if err := grpcServer.Serve(lis); err != nil {
+		slog.Error("failed to serve gRPC", "error", err)
+	}
+}
+
+func handleMethodNotAllowed(w http.ResponseWriter, req *http.Request) {
+	if req.Method == http.MethodOptions {
+		origin := req.Header.Get("Origin")
+		if origin != "" {
+			w.Header().Set("Access-Control-Allow-Origin", origin)
+			w.Header().Set("Vary", "Origin")
+			w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE, OPTIONS")
+			w.Header().Set("Access-Control-Allow-Headers", "Accept, Authorization, Content-Type, X-CSRF-Token, X-Requested-With, X-Skip-Global-Error, X-Redirect-On-404, X-Skip-500-Redirect")
+			w.Header().Set("Access-Control-Expose-Headers", "Link, Set-Cookie")
+			w.Header().Set("Access-Control-Allow-Credentials", "true")
+			w.Header().Set("Access-Control-Max-Age", "300")
+		}
+		w.WriteHeader(http.StatusOK)
+		return
+	}
+	http.Error(w, http.StatusText(http.StatusMethodNotAllowed), http.StatusMethodNotAllowed)
 }

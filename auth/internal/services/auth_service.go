@@ -46,6 +46,7 @@ type authService struct {
 	jwtService          JWTService
 	firebaseService     FirebaseService
 	verificationService VerificationService
+	twofaService        TwofaService
 	producer            producers.UsuariosProducer
 }
 
@@ -72,6 +73,9 @@ func NewAuthService(
 		}
 		if prod, ok := opt.(producers.UsuariosProducer); ok {
 			svc.producer = prod
+		}
+		if tfa, ok := opt.(TwofaService); ok {
+			svc.twofaService = tfa
 		}
 	}
 	return svc
@@ -190,31 +194,15 @@ func (s *authService) CheckCredentials(ctx context.Context, req *dto.CheckCreden
 		return nil, errors.New("la contraseña ingresada es incorrecta")
 	}
 
-	accounts := s.buildAvailableAccounts(ctx, users)
-
-	userIDs := make([]string, 0, len(accounts))
-	for _, a := range accounts {
-		userIDs = append(userIDs, a.UserID)
+	twofaResp, twofaErr := s.handleTwofaChallenge(ctx, req.Email, users, req.TrustedDevice, req.UserAgent)
+	if twofaErr != nil {
+		return nil, twofaErr
 	}
-	loginNonce, err := utils.GetNonceStore().Generate(userIDs, 2*time.Minute)
-	if err != nil {
-		return nil, errors.New("error generando sesión temporal, intente nuevamente")
+	if twofaResp != nil {
+		return twofaResp, nil
 	}
 
-	isEmailVerified := len(accounts) > 0
-	for _, a := range accounts {
-		if !a.IsEmailVerified {
-			isEmailVerified = false
-			break
-		}
-	}
-
-	return &dto.CheckCredentialsResponse{
-		Accounts:        accounts,
-		LoginNonce:      loginNonce,
-		IsEmailVerified: isEmailVerified,
-		Email:           req.Email,
-	}, nil
+	return s.buildCheckCredentialsResponse(ctx, req.Email, users)
 }
 
 // CheckGoogleCredentials validates a Firebase ID token and returns available accounts linked to the Google account.
@@ -241,43 +229,99 @@ func (s *authService) CheckGoogleCredentials(ctx context.Context, req *dto.Googl
 		googleAuthID = fbToken.UID
 	}
 
-	matchingUsers := s.findUsersForGoogleAuth(ctx, googleAuthID, fbToken.UID)
-
-	// 2. Si no se encuentra por google_auth_id, comprobar por correo electrónico para reportar error preciso
-	if len(matchingUsers) == 0 {
-		users, _ := s.userRepo.FindAllByEmail(ctx, email)
-		if len(users) == 0 {
-			return nil, errors.New("no existe ninguna cuenta registrada con este correo electrónico. Debe registrarse primero")
-		}
-		slog.Warn("security: google login denied — google_auth_id not linked", slog.String("event", "google_auth_not_linked"), slog.String("email_hash", utils.HashToken(email)))
-		return nil, errors.New("la cuenta de Google no está vinculada a este usuario. Debe vincularla desde la configuración de su cuenta")
+	matchingUsers, err := s.resolveGoogleUsers(ctx, email, googleAuthID, fbToken.UID)
+	if err != nil {
+		return nil, err
 	}
 
-	accounts := s.buildAvailableAccounts(ctx, matchingUsers)
-
-	googleUserIDs := make([]string, 0, len(matchingUsers))
-	for _, u := range matchingUsers {
-		googleUserIDs = append(googleUserIDs, u.UserID)
+	twofaResp, twofaErr := s.handleTwofaChallenge(ctx, email, matchingUsers, req.TrustedDevice, req.UserAgent)
+	if twofaErr != nil {
+		return nil, twofaErr
 	}
-	googleNonce, nonceErr := utils.GetNonceStore().Generate(googleUserIDs, 2*time.Minute)
-	if nonceErr != nil {
-		return nil, errors.New("error generando sesión temporal, intente nuevamente")
+	if twofaResp != nil {
+		return twofaResp, nil
 	}
 
-	isEmailVerified := len(accounts) > 0
+	return s.buildCheckCredentialsResponse(ctx, email, matchingUsers)
+}
+
+func (s *authService) resolveGoogleUsers(ctx context.Context, email, googleAuthID, fallbackUID string) ([]models.User, error) {
+	matchingUsers := s.findUsersForGoogleAuth(ctx, googleAuthID, fallbackUID)
+	if len(matchingUsers) > 0 {
+		return matchingUsers, nil
+	}
+
+	users, _ := s.userRepo.FindAllByEmail(ctx, email)
+	if len(users) == 0 {
+		return nil, errors.New("no existe ninguna cuenta registrada con este correo electrónico. Debe registrarse primero")
+	}
+	slog.Warn("security: google login denied — google_auth_id not linked", slog.String("event", "google_auth_not_linked"), slog.String("email_hash", utils.HashToken(email)))
+	return nil, errors.New("la cuenta de Google no está vinculada a este usuario. Debe vincularla desde la configuración de su cuenta")
+}
+
+func (s *authService) handleTwofaChallenge(ctx context.Context, email string, users []models.User, trustedDevice, userAgent string) (*dto.CheckCredentialsResponse, error) {
+	if len(users) == 0 || !users[0].TwofaEnabled || s.twofaService == nil {
+		return nil, nil
+	}
+
+	if trustedDevice != "" && s.twofaService.ValidateTrustedDeviceToken(trustedDevice, &users[0], userAgent) {
+		return nil, nil
+	}
+
+	userIDs := make([]string, 0, len(users))
+	for _, u := range users {
+		userIDs = append(userIDs, u.UserID)
+	}
+
+	twofaMethod := users[0].TwofaSeed
+	if twofaMethod == "" {
+		twofaMethod = "email"
+	}
+
+	nonce, err := s.twofaService.InitiateLoginChallenge(ctx, email, userIDs, twofaMethod)
+	if err != nil {
+		return nil, errors.New("error al iniciar el segundo factor de autenticación")
+	}
+
+	return &dto.CheckCredentialsResponse{
+		RequiresTwofa:   true,
+		TwofaMethod:     twofaMethod,
+		TwofaNonce:      nonce,
+		Email:           email,
+		IsEmailVerified: users[0].IsEmailVerified,
+	}, nil
+}
+
+func (s *authService) buildCheckCredentialsResponse(ctx context.Context, email string, users []models.User) (*dto.CheckCredentialsResponse, error) {
+	accounts := s.buildAvailableAccounts(ctx, users)
+
+	userIDs := make([]string, 0, len(accounts))
 	for _, a := range accounts {
-		if !a.IsEmailVerified {
-			isEmailVerified = false
-			break
-		}
+		userIDs = append(userIDs, a.UserID)
+	}
+	loginNonce, err := utils.GetNonceStore().Generate(userIDs, 2*time.Minute)
+	if err != nil {
+		return nil, errors.New("error generando sesión temporal, intente nuevamente")
 	}
 
 	return &dto.CheckCredentialsResponse{
 		Accounts:        accounts,
-		LoginNonce:      googleNonce,
-		IsEmailVerified: isEmailVerified,
+		LoginNonce:      loginNonce,
+		IsEmailVerified: areAllEmailsVerified(accounts),
 		Email:           email,
 	}, nil
+}
+
+func areAllEmailsVerified(accounts []dto.AvailableAccount) bool {
+	if len(accounts) == 0 {
+		return false
+	}
+	for _, a := range accounts {
+		if !a.IsEmailVerified {
+			return false
+		}
+	}
+	return true
 }
 
 func (s *authService) findUsersForGoogleAuth(ctx context.Context, googleAuthID, fallbackUID string) []models.User {
@@ -489,16 +533,19 @@ func (s *authService) GetUserProfile(ctx context.Context, userID string) (map[st
 
 	profile := map[string]interface{}{
 		"user": map[string]interface{}{
-			"user_id":        user.UserID,
-			"first_name":     user.FirstName,
-			"last_name":      user.LastName,
-			"email":          user.Email,
-			"phone":          user.Phone,
-			"created_at":     user.CreatedAt,
-			"role_id":        user.RoleID,
-			"status":         user.Status,
-			"google_auth_id": user.GoogleAuthID,
-			"image_url":      user.ImageURL,
+			"user_id":           user.UserID,
+			"first_name":        user.FirstName,
+			"last_name":         user.LastName,
+			"email":             user.Email,
+			"phone":             user.Phone,
+			"created_at":        user.CreatedAt,
+			"role_id":           user.RoleID,
+			"status":            user.Status,
+			"google_auth_id":    user.GoogleAuthID,
+			"image_url":         user.ImageURL,
+			"is_email_verified": user.IsEmailVerified,
+			"twofa_enabled":     user.TwofaEnabled,
+			"twofa_method":      user.TwofaSeed,
 		},
 	}
 

@@ -145,6 +145,42 @@ export class AuthService {
       );
   }
 
+  /**
+   * Completes 2FA verification during login challenge.
+   */
+  verifyTwoFactor(
+    twofaNonce: string,
+    code: string,
+    trustDevice = false,
+  ): Observable<CheckCredentialsResponse> {
+    return this.http
+      .post<CheckCredentialsResponse>(
+        `${this.apiUrl}/api/v1/auth/verify-2fa`,
+        { twofa_nonce: twofaNonce, code, trust_device: trustDevice },
+        {
+          withCredentials: true,
+          headers: { [SKIP_GLOBAL_ERROR_HEADER]: "true" },
+        },
+      )
+      .pipe(catchError(this.handleError));
+  }
+
+  /**
+   * Resends email OTP code for an active 2FA challenge.
+   */
+  resendTwoFactorCode(twofaNonce: string): Observable<{ message: string }> {
+    return this.http
+      .post<{ message: string }>(
+        `${this.apiUrl}/api/v1/auth/resend-2fa`,
+        { twofa_nonce: twofaNonce },
+        {
+          withCredentials: true,
+          headers: { [SKIP_GLOBAL_ERROR_HEADER]: "true" },
+        },
+      )
+      .pipe(catchError(this.handleError));
+  }
+
   refreshToken(): Observable<LoginResponse> {
     return this.http
       .post<LoginResponse>(

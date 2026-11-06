@@ -5,9 +5,10 @@ import (
 	"errors"
 	"net/http"
 	"strings"
+	"time"
 
-	"github.com/go-playground/validator/v10"
 	"github.com/go-chi/chi/v5"
+	"github.com/go-playground/validator/v10"
 
 	"auth/internal/dto"
 	"auth/internal/middlewares"
@@ -16,13 +17,15 @@ import (
 )
 
 const (
-	contentTypeHeader = "Content-Type"
-	contentTypeJSON   = "application/json"
-	errUnauthorized   = "unauthorized"
-	cookieHostAccess  = "__Host-access_token"
-	cookieHostRefresh = "__Host-refresh_token"
+	contentTypeHeader   = "Content-Type"
+	contentTypeJSON     = "application/json"
+	errUnauthorized     = "unauthorized"
+	cookieHostAccess    = "__Host-access_token"
+	cookieHostRefresh   = "__Host-refresh_token"
+	cookieTrustedDevice = "__Host-trusted_device"
 	msgInvalidReqBody   = "Cuerpo de solicitud inválido"
 	msgInvalidReqFormat = "El formato de la solicitud es inválido."
+	msgTwofaUnavailable = "Servicio de 2FA no disponible."
 )
 
 func writeJSONResponse(w http.ResponseWriter, status int, data any) {
@@ -40,6 +43,7 @@ type AuthController struct {
 	authService             services.AuthService
 	verificationService     services.VerificationService
 	passwordRecoveryService services.PasswordRecoveryService
+	twofaService            services.TwofaService
 	validate                *validator.Validate
 }
 
@@ -54,6 +58,9 @@ func NewAuthController(authService services.AuthService, opts ...any) *AuthContr
 		}
 		if prs, ok := opt.(services.PasswordRecoveryService); ok {
 			ctrl.passwordRecoveryService = prs
+		}
+		if tfa, ok := opt.(services.TwofaService); ok {
+			ctrl.twofaService = tfa
 		}
 	}
 	return ctrl
@@ -96,6 +103,36 @@ func (c *AuthController) clearAuthCookies(w http.ResponseWriter) {
 	// #nosec G124 -- SameSiteNoneMode is required for cross-origin requests
 	http.SetCookie(w, &http.Cookie{
 		Name:     cookieHostRefresh,
+		Value:    "",
+		Path:     "/",
+		HttpOnly: true,
+		Secure:   true,
+		SameSite: http.SameSiteNoneMode,
+		MaxAge:   -1,
+	})
+}
+
+func (c *AuthController) setTrustedDeviceCookie(w http.ResponseWriter, token string, expiresAt time.Time) {
+	maxAge := int(time.Until(expiresAt).Seconds())
+	if maxAge < 0 {
+		maxAge = 0
+	}
+	// #nosec G124 -- SameSiteNoneMode is required for cross-origin requests
+	http.SetCookie(w, &http.Cookie{
+		Name:     cookieTrustedDevice,
+		Value:    token,
+		Path:     "/",
+		HttpOnly: true,
+		Secure:   true,
+		SameSite: http.SameSiteNoneMode,
+		MaxAge:   maxAge,
+	})
+}
+
+func (c *AuthController) clearTrustedDeviceCookie(w http.ResponseWriter) {
+	// #nosec G124 -- SameSiteNoneMode is required for cross-origin requests
+	http.SetCookie(w, &http.Cookie{
+		Name:     cookieTrustedDevice,
 		Value:    "",
 		Path:     "/",
 		HttpOnly: true,
@@ -161,6 +198,10 @@ func (c *AuthController) CheckCredentials(w http.ResponseWriter, r *http.Request
 	}
 
 	req.Email = strings.TrimSpace(req.Email)
+	if cookie, err := r.Cookie(cookieTrustedDevice); err == nil {
+		req.TrustedDevice = cookie.Value
+	}
+	req.UserAgent = r.UserAgent()
 
 	if err := c.validate.Struct(req); err != nil {
 		writeJSONError(w, http.StatusBadRequest, "Debe ingresar un correo electrónico válido y su contraseña.")
@@ -184,6 +225,11 @@ func (c *AuthController) CheckGoogleCredentials(w http.ResponseWriter, r *http.R
 		writeJSONError(w, http.StatusBadRequest, "El formato de la solicitud de Google es inválido.")
 		return
 	}
+
+	if cookie, err := r.Cookie(cookieTrustedDevice); err == nil {
+		req.TrustedDevice = cookie.Value
+	}
+	req.UserAgent = r.UserAgent()
 
 	resp, err := c.authService.CheckGoogleCredentials(r.Context(), &req)
 	if err != nil {
@@ -522,3 +568,181 @@ func (c *AuthController) ResetPassword(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+// VerifyTwofa verifies 2FA code during login and sets trusted device cookie if requested
+func (c *AuthController) VerifyTwofa(w http.ResponseWriter, r *http.Request) {
+	r.Body = http.MaxBytesReader(w, r.Body, 1<<20)
+	var req dto.VerifyTwofaRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		writeJSONError(w, http.StatusBadRequest, msgInvalidReqFormat)
+		return
+	}
+
+	req.TwofaNonce = strings.TrimSpace(req.TwofaNonce)
+	req.Code = strings.TrimSpace(req.Code)
+
+	if err := c.validate.Struct(req); err != nil {
+		writeJSONError(w, http.StatusBadRequest, "Debe ingresar un código de 6 dígitos válido.")
+		return
+	}
+
+	if c.twofaService == nil {
+		writeJSONError(w, http.StatusInternalServerError, msgTwofaUnavailable)
+		return
+	}
+
+	resp, user, err := c.twofaService.VerifyLoginChallenge(r.Context(), req.TwofaNonce, req.Code)
+	if err != nil {
+		writeJSONError(w, http.StatusUnauthorized, err.Error())
+		return
+	}
+
+	if req.TrustDevice && user != nil {
+		if token, exp, tokenErr := c.twofaService.CreateTrustedDeviceToken(user, r.UserAgent()); tokenErr == nil {
+			c.setTrustedDeviceCookie(w, token, exp)
+		}
+	}
+
+	writeJSONResponse(w, http.StatusOK, resp)
+}
+
+// ResendTwofa sends a new OTP code for an active email 2FA login challenge
+func (c *AuthController) ResendTwofa(w http.ResponseWriter, r *http.Request) {
+	r.Body = http.MaxBytesReader(w, r.Body, 1<<20)
+	var req dto.ResendTwofaRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		writeJSONError(w, http.StatusBadRequest, msgInvalidReqFormat)
+		return
+	}
+
+	req.TwofaNonce = strings.TrimSpace(req.TwofaNonce)
+	if req.TwofaNonce == "" {
+		writeJSONError(w, http.StatusBadRequest, "Identificador de sesión de 2FA requerido.")
+		return
+	}
+
+	if c.twofaService == nil {
+		writeJSONError(w, http.StatusInternalServerError, msgTwofaUnavailable)
+		return
+	}
+
+	if err := c.twofaService.ResendLoginOTP(r.Context(), req.TwofaNonce); err != nil {
+		writeJSONError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	writeJSONResponse(w, http.StatusOK, map[string]string{
+		"message": "Se ha reenviado el código de seguridad a tu correo electrónico.",
+	})
+}
+
+// SetupTwofa initiates the 2FA configuration in user profile
+func (c *AuthController) SetupTwofa(w http.ResponseWriter, r *http.Request) {
+	userID, ok := r.Context().Value(middlewares.UserIDKey).(string)
+	if !ok {
+		http.Error(w, errUnauthorized, http.StatusUnauthorized)
+		return
+	}
+
+	r.Body = http.MaxBytesReader(w, r.Body, 1<<20)
+	var req dto.SetupTwofaRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		writeJSONError(w, http.StatusBadRequest, msgInvalidReqFormat)
+		return
+	}
+
+	req.Method = strings.TrimSpace(req.Method)
+	if err := c.validate.Struct(req); err != nil {
+		writeJSONError(w, http.StatusBadRequest, "El método de 2FA debe ser 'email' o 'totp'.")
+		return
+	}
+
+	if c.twofaService == nil {
+		writeJSONError(w, http.StatusInternalServerError, msgTwofaUnavailable)
+		return
+	}
+
+	resp, err := c.twofaService.InitiateSetup(r.Context(), userID, req.Method)
+	if err != nil {
+		writeJSONError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	writeJSONResponse(w, http.StatusOK, resp)
+}
+
+// EnableTwofa validates the confirmation code and turns on 2FA
+func (c *AuthController) EnableTwofa(w http.ResponseWriter, r *http.Request) {
+	userID, ok := r.Context().Value(middlewares.UserIDKey).(string)
+	if !ok {
+		http.Error(w, errUnauthorized, http.StatusUnauthorized)
+		return
+	}
+
+	r.Body = http.MaxBytesReader(w, r.Body, 1<<20)
+	var req dto.EnableTwofaRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		writeJSONError(w, http.StatusBadRequest, msgInvalidReqFormat)
+		return
+	}
+
+	req.Method = strings.TrimSpace(req.Method)
+	req.Code = strings.TrimSpace(req.Code)
+	if err := c.validate.Struct(req); err != nil {
+		writeJSONError(w, http.StatusBadRequest, "Datos inválidos: ingrese un método válido y el código de 6 dígitos.")
+		return
+	}
+
+	if c.twofaService == nil {
+		writeJSONError(w, http.StatusInternalServerError, msgTwofaUnavailable)
+		return
+	}
+
+	if err := c.twofaService.ConfirmEnable(r.Context(), userID, req.Method, req.Code); err != nil {
+		writeJSONError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	writeJSONResponse(w, http.StatusOK, map[string]string{
+		"message": "Autenticación de dos factores activada exitosamente.",
+	})
+}
+
+// DisableTwofa disables 2FA after password or verification code check
+func (c *AuthController) DisableTwofa(w http.ResponseWriter, r *http.Request) {
+	userID, ok := r.Context().Value(middlewares.UserIDKey).(string)
+	if !ok {
+		http.Error(w, errUnauthorized, http.StatusUnauthorized)
+		return
+	}
+
+	r.Body = http.MaxBytesReader(w, r.Body, 1<<20)
+	var req dto.DisableTwofaRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		writeJSONError(w, http.StatusBadRequest, msgInvalidReqFormat)
+		return
+	}
+
+	if c.twofaService == nil {
+		writeJSONError(w, http.StatusInternalServerError, msgTwofaUnavailable)
+		return
+	}
+
+	if err := c.twofaService.Disable(r.Context(), userID, req.Password, req.Code); err != nil {
+		writeJSONError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	c.clearTrustedDeviceCookie(w)
+
+	writeJSONResponse(w, http.StatusOK, map[string]string{
+		"message": "Autenticación de dos factores desactivada exitosamente.",
+	})
+}
+
+// RevokeTrustedDevice clears the trusted device cookie
+func (c *AuthController) RevokeTrustedDevice(w http.ResponseWriter, r *http.Request) {
+	c.clearTrustedDeviceCookie(w)
+	writeJSONResponse(w, http.StatusOK, map[string]string{
+		"message": "Dispositivo de confianza olvidado exitosamente.",
+	})
+}

@@ -3,7 +3,7 @@ import { HttpClient, HttpErrorResponse } from "@angular/common/http";
 import { environment } from "../../environments/environment";
 import { Observable, throwError } from "rxjs";
 import { catchError } from "rxjs/operators";
-import { User, ProfileResponse } from "../core/models/auth.model";
+import { User, ProfileResponse, SetupTwofaResponse } from "../core/models/auth.model";
 
 interface PasswordUpdateRequest {
   old_password: string;
@@ -68,6 +68,52 @@ export class ProfileService {
       .put<User>(`${this.apiUrl}/api/v1/profile/me`, data, {
         withCredentials: true,
       })
+      .pipe(catchError(this.handleError));
+  }
+
+  setupTwoFactor(method: "email" | "totp"): Observable<SetupTwofaResponse> {
+    return this.http
+      .post<SetupTwofaResponse>(
+        `${this.apiUrl}/api/v1/profile/me/2fa/setup`,
+        { method },
+        { withCredentials: true },
+      )
+      .pipe(catchError(this.handleError));
+  }
+
+  enableTwoFactor(
+    method: "email" | "totp",
+    code: string,
+  ): Observable<{ message: string }> {
+    return this.http
+      .post<{ message: string }>(
+        `${this.apiUrl}/api/v1/profile/me/2fa/enable`,
+        { method, code },
+        { withCredentials: true },
+      )
+      .pipe(catchError(this.handleError));
+  }
+
+  disableTwoFactor(
+    password?: string,
+    code?: string,
+  ): Observable<{ message: string }> {
+    return this.http
+      .post<{ message: string }>(
+        `${this.apiUrl}/api/v1/profile/me/2fa/disable`,
+        { password, code },
+        { withCredentials: true },
+      )
+      .pipe(catchError(this.handleError));
+  }
+
+  revokeTrustedDevice(): Observable<{ message: string }> {
+    return this.http
+      .post<{ message: string }>(
+        `${this.apiUrl}/api/v1/profile/me/2fa/revoke-device`,
+        {},
+        { withCredentials: true },
+      )
       .pipe(catchError(this.handleError));
   }
 
