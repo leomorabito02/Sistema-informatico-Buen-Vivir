@@ -514,21 +514,39 @@
       <div *ngIf="profileData?.user as user" class="privacy-cards-grid">
         <div class="privacy-card">
           <div class="privacy-card-header">
-            <div class="privacy-icon-badge" [ngClass]="user.twofa_enabled ? 'bg-primary-subtle' : ''">
-              <lucide-icon [img]="user.twofa_enabled ? ShieldCheckIcon : ShieldIcon" size="20"></lucide-icon>
+            <div
+              class="privacy-icon-badge"
+              [ngClass]="user.twofa_enabled ? 'bg-primary-subtle' : ''"
+            >
+              <lucide-icon
+                [img]="user.twofa_enabled ? ShieldCheckIcon : ShieldIcon"
+                size="20"
+              ></lucide-icon>
             </div>
             <div>
               <h3>
                 Estado:
-                <span class="status-badge" [ngClass]="{ active: user.twofa_enabled }">
-                  {{ user.twofa_enabled ? 'Activado' : 'Desactivado' }}
+                <span
+                  class="status-badge"
+                  [ngClass]="{ active: user.twofa_enabled }"
+                >
+                  {{ user.twofa_enabled ? "Activado" : "Desactivado" }}
                 </span>
-                <span *ngIf="user.twofa_enabled" class="ml-2 text-xs text-muted-foreground">
-                  ({{ user.twofa_method === 'totp' ? 'App Autenticadora' : 'Correo Electrónico' }})
+                <span
+                  *ngIf="user.twofa_enabled"
+                  class="ml-2 text-xs text-muted-foreground"
+                >
+                  ({{
+                    user.twofa_method === "totp"
+                      ? "App Autenticadora"
+                      : "Correo Electrónico"
+                  }})
                 </span>
               </h3>
               <p class="mt-2 text-sm text-muted-foreground">
-                Añade una capa adicional de seguridad a tu cuenta solicitando un código temporal de 6 dígitos cada vez que iniciás sesión desde un nuevo dispositivo o navegador.
+                Añade una capa adicional de seguridad a tu cuenta solicitando un
+                código temporal de 6 dígitos cada vez que iniciás sesión desde
+                un nuevo dispositivo o navegador.
               </p>
             </div>
           </div>
@@ -577,7 +595,8 @@
       <!-- Paso 1: Selección de Método -->
       <div *ngIf="twofaStep === 'select'" class="space-y-4 pt-2">
         <p class="text-sm text-gray-600">
-          Elegí el método que preferís para recibir o generar tus códigos de verificación:
+          Elegí el método que preferís para recibir o generar tus códigos de
+          verificación:
         </p>
 
         <div class="grid gap-3">
@@ -592,11 +611,17 @@
             </div>
             <div class="flex-1">
               <div class="flex items-center justify-between">
-                <span class="font-semibold text-gray-900">App Autenticadora</span>
-                <span class="text-xs bg-emerald-100 text-emerald-800 font-medium px-2 py-0.5 rounded">Recomendado</span>
+                <span class="font-semibold text-gray-900"
+                  >App Autenticadora</span
+                >
+                <span
+                  class="text-xs bg-emerald-100 text-emerald-800 font-medium px-2 py-0.5 rounded"
+                  >Recomendado</span
+                >
               </div>
               <p class="text-xs text-gray-500 mt-1">
-                Generá códigos dinámicos cada 30 segundos con Google Authenticator, Authy o Microsoft Authenticator.
+                Generá códigos dinámicos cada 30 segundos con Google
+                Authenticator, Authy o Microsoft Authenticator.
               </p>
             </div>
           </button>
@@ -612,12 +637,19 @@
             </div>
             <div class="flex-1" *ngIf="profileData?.user as user">
               <div class="flex items-center justify-between">
-                <span class="font-semibold text-gray-900">Correo Electrónico</span>
+                <span class="font-semibold text-gray-900"
+                  >Correo Electrónico</span
+                >
               </div>
               <p class="text-xs text-gray-500 mt-1">
-                Recibí un código de 6 dígitos en tu correo verificado (<strong>{{ user.email }}</strong>).
+                Recibí un código de 6 dígitos en tu correo verificado (<strong
+                  >{{ user.email }}</strong
+                >).
               </p>
-              <p *ngIf="!user.is_email_verified" class="text-xs text-amber-600 font-medium mt-1">
+              <p
+                *ngIf="!user.is_email_verified"
+                class="text-xs text-amber-600 font-medium mt-1"
+              >
                 ⚠️ Debes verificar tu correo para usar este método.
               </p>
             </div>
@@ -635,36 +667,63 @@
         <!-- TOTP QR y Clave -->
         <div *ngIf="twofaMethod === 'totp'" class="text-center">
           <p class="text-sm text-gray-600 mb-3">
-            Escaneá este código QR con tu aplicación autenticadora (Google Authenticator, Authy, etc.):
+            Escaneá este código QR con tu aplicación autenticadora (Google
+            Authenticator, Authy, etc.):
           </p>
-          <div class="inline-block p-3 bg-white border border-gray-200 rounded-xl shadow-sm mb-3">
-            <img *ngIf="twofaQrDataUrl" [src]="twofaQrDataUrl" alt="Código QR para autenticación" width="180" height="180" />
+          <div
+            class="inline-block p-3 bg-white border border-gray-200 rounded-xl shadow-sm mb-3"
+          >
+            <img
+              *ngIf="twofaQrDataUrl"
+              [src]="twofaQrDataUrl"
+              alt="Código QR para autenticación"
+              width="180"
+              height="180"
+            />
           </div>
 
-          <div class="text-xs text-gray-500 mb-1">¿No podés escanear el código? Ingresá esta clave manual:</div>
-          <div class="flex items-center justify-center gap-2 font-mono bg-gray-100 py-1.5 px-3 rounded-lg text-sm text-gray-800">
+          <div class="text-xs text-gray-500 mb-1">
+            ¿No podés escanear el código? Ingresá esta clave manual:
+          </div>
+          <div
+            class="flex items-center justify-center gap-2 font-mono bg-gray-100 py-1.5 px-3 rounded-lg text-sm text-gray-800"
+          >
             <span>{{ twofaSecret }}</span>
-            <button type="button" (click)="copySecret()" class="text-xs text-emerald-600 hover:text-emerald-700 cursor-pointer border-0 bg-transparent flex items-center gap-1">
+            <button
+              type="button"
+              (click)="copySecret()"
+              class="text-xs text-emerald-600 hover:text-emerald-700 cursor-pointer border-0 bg-transparent flex items-center gap-1"
+            >
               <lucide-icon [img]="CopyIcon" size="14"></lucide-icon>
-              {{ copiedSecret ? '¡Copiado!' : 'Copiar' }}
+              {{ copiedSecret ? "¡Copiado!" : "Copiar" }}
             </button>
           </div>
         </div>
 
         <!-- Email Mensaje -->
         <div *ngIf="twofaMethod === 'email'" class="text-center py-2">
-          <div class="inline-flex p-3 bg-blue-50 text-blue-600 rounded-full mb-2">
+          <div
+            class="inline-flex p-3 bg-blue-50 text-blue-600 rounded-full mb-2"
+          >
             <lucide-icon [img]="MailIcon" size="28"></lucide-icon>
           </div>
           <p class="text-sm text-gray-700">
-            Enviamos un código de verificación de 6 dígitos a tu casilla de correo:
+            Enviamos un código de verificación de 6 dígitos a tu casilla de
+            correo:
           </p>
-          <strong class="text-sm text-gray-900" *ngIf="profileData?.user as user">{{ user.email }}</strong>
+          <strong
+            class="text-sm text-gray-900"
+            *ngIf="profileData?.user as user"
+            >{{ user.email }}</strong
+          >
         </div>
 
         <!-- Input del Código -->
         <div class="form-group text-center mt-4">
-          <label class="block text-xs font-semibold uppercase tracking-wider text-gray-500 mb-2" for="confirm2faCode">
+          <label
+            class="block text-xs font-semibold uppercase tracking-wider text-gray-500 mb-2"
+            for="confirm2faCode"
+          >
             Ingresá el código de 6 dígitos
           </label>
           <input
@@ -682,17 +741,25 @@
           {{ twofaError }}
         </div>
 
-        <div class="flex items-center justify-end gap-2 pt-3 border-t border-gray-100">
-          <button type="button" class="btn-secondary" (click)="twofaStep = 'select'">
+        <div
+          class="flex items-center justify-end gap-2 pt-3 border-t border-gray-100"
+        >
+          <button
+            type="button"
+            class="btn-secondary"
+            (click)="twofaStep = 'select'"
+          >
             Atrás
           </button>
           <button
             type="button"
             class="btn-primary"
-            [disabled]="twofaLoading || !twofaCode || twofaCode.trim().length !== 6"
+            [disabled]="
+              twofaLoading || !twofaCode || twofaCode.trim().length !== 6
+            "
             (click)="confirmEnableTwofa()"
           >
-            {{ twofaLoading ? 'Verificando...' : 'Confirmar y Activar' }}
+            {{ twofaLoading ? "Verificando..." : "Confirmar y Activar" }}
           </button>
         </div>
       </div>
@@ -709,11 +776,16 @@
     >
       <div class="space-y-4 pt-2">
         <p class="text-sm text-gray-600">
-          Para desactivar el segundo factor de autenticación, por favor confirmá con tu contraseña actual o un código de verificación:
+          Para desactivar el segundo factor de autenticación, por favor confirmá
+          con tu contraseña actual o un código de verificación:
         </p>
 
         <div class="form-group">
-          <label class="block text-xs font-medium text-gray-700 mb-1" for="disablePass">Contraseña actual</label>
+          <label
+            class="block text-xs font-medium text-gray-700 mb-1"
+            for="disablePass"
+            >Contraseña actual</label
+          >
           <input
             id="disablePass"
             type="password"
@@ -723,10 +795,18 @@
           />
         </div>
 
-        <div class="text-center text-xs text-gray-400 font-semibold uppercase tracking-wider">o mediante código</div>
+        <div
+          class="text-center text-xs text-gray-400 font-semibold uppercase tracking-wider"
+        >
+          o mediante código
+        </div>
 
         <div class="form-group">
-          <label class="block text-xs font-medium text-gray-700 mb-1" for="disableCode">Código de 6 dígitos</label>
+          <label
+            class="block text-xs font-medium text-gray-700 mb-1"
+            for="disableCode"
+            >Código de 6 dígitos</label
+          >
           <input
             id="disableCode"
             type="text"
@@ -742,17 +822,27 @@
           {{ twofaError }}
         </div>
 
-        <div class="flex items-center justify-end gap-2 pt-3 border-t border-gray-100">
-          <button type="button" class="btn-secondary" (click)="closeTwofaDisable()">
+        <div
+          class="flex items-center justify-end gap-2 pt-3 border-t border-gray-100"
+        >
+          <button
+            type="button"
+            class="btn-secondary"
+            (click)="closeTwofaDisable()"
+          >
             Cancelar
           </button>
           <button
             type="button"
             class="btn-danger"
-            [disabled]="twofaLoading || (!twofaDisablePassword && (!twofaDisableCode || twofaDisableCode.length !== 6))"
+            [disabled]="
+              twofaLoading ||
+              (!twofaDisablePassword &&
+                (!twofaDisableCode || twofaDisableCode.length !== 6))
+            "
             (click)="confirmDisableTwofa()"
           >
-            {{ twofaLoading ? 'Desactivando...' : 'Confirmar Desactivación' }}
+            {{ twofaLoading ? "Desactivando..." : "Confirmar Desactivación" }}
           </button>
         </div>
       </div>

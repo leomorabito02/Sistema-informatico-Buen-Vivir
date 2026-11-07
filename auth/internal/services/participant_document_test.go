@@ -5,9 +5,11 @@ import (
 	"context"
 	"errors"
 	"io"
+	"strings"
 	"testing"
 	"time"
 
+	"auth/internal/middlewares"
 	"auth/internal/models"
 	"auth/internal/services"
 
@@ -259,4 +261,141 @@ func TestParticipantDocument_DeleteDocument_SafeOrdering(t *testing.T) {
 	assert.NoError(t, err)
 	mockDocRepo.AssertCalled(t, "Delete", ctx, "pdoc-1")
 	mockStorage.AssertCalled(t, "DeleteFile", ctx, "documents/part-1/file.pdf")
+}
+
+func TestParticipantDocument_GetDocuments_Access(t *testing.T) {
+	mockPartRepo := new(MockParticipantRepository)
+	mockDocRepo := new(MockParticipantDocRepo)
+	svc := services.NewParticipantService(mockPartRepo, mockDocRepo, nil, nil)
+
+	// Participant not found
+	mockPartRepo.On("FindByID", mock.Anything, "p-missing").Return(nil, errors.New("not found"))
+	_, err := svc.GetDocuments(context.Background(), "p-missing")
+	assert.Error(t, err)
+
+	// Forbidden: participant tries to read another participant's docs
+	part := &models.Participant{ParticipantID: "p-other", UserID: "usr-other"}
+	mockPartRepo.On("FindByID", mock.Anything, "p-other").Return(part, nil)
+	ctxPart := context.WithValue(context.Background(), middlewares.RoleIDKey, "role_participant")
+	ctxPart = context.WithValue(ctxPart, middlewares.UserIDKey, "usr-me")
+	_, err = svc.GetDocuments(ctxPart, "p-other")
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "forbidden")
+
+	// Success: participant reads their own docs
+	ctxOwn := context.WithValue(context.Background(), middlewares.RoleIDKey, "role_participant")
+	ctxOwn = context.WithValue(ctxOwn, middlewares.UserIDKey, "usr-other")
+	mockDocRepo.On("GetByParticipantID", ctxOwn, "p-other").Return([]models.ParticipantDocument{{ID: "doc-1"}}, nil)
+	docs, err := svc.GetDocuments(ctxOwn, "p-other")
+	assert.NoError(t, err)
+	assert.Len(t, docs, 1)
+}
+
+func TestParticipantDocument_UploadDocument_Errors(t *testing.T) {
+	mockPartRepo := new(MockParticipantRepository)
+	mockDocRepo := new(MockParticipantDocRepo)
+	mockStorage := new(MockObjectStorageService)
+	mockCleanup := new(MockStorageCleanupRepo)
+	svc := services.NewParticipantService(mockPartRepo, mockDocRepo, mockStorage, mockCleanup)
+
+	ctx := context.Background()
+	part := &models.Participant{ParticipantID: "p-1"}
+	mockPartRepo.On("FindByID", ctx, "p-1").Return(part, nil)
+
+	// Storage upload error
+	mockStorage.On("UploadFile", ctx, mock.Anything, mock.Anything, "application/pdf").
+		Return("", errors.New("gcs down")).Once()
+	_, err := svc.UploadDocument(ctx, "p-1", "DNI", bytes.NewReader([]byte("data")), "application/pdf", "dni.pdf")
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "error uploading document")
+
+	// DB Create error triggers rollback
+	mockStorage.On("UploadFile", ctx, mock.Anything, mock.Anything, "application/pdf").
+		Return("https://storage/documents/p-1/1_dni.pdf", nil).Once()
+	mockDocRepo.On("Create", ctx, mock.AnythingOfType("*models.ParticipantDocument")).
+		Return(errors.New("db insert fail")).Once()
+	mockStorage.On("DeleteFile", mock.Anything, mock.Anything).
+		Return(errors.New("delete failed too")).Once()
+	mockCleanup.On("Enqueue", mock.Anything, mock.AnythingOfType("*models.StorageCleanupTask")).Return(nil).Once()
+
+	_, err = svc.UploadDocument(ctx, "p-1", "DNI", bytes.NewReader([]byte("data")), "application/pdf", "dni.pdf")
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "failed to save document in database")
+}
+
+func TestParticipantDocument_UpdateAndDelete_Errors(t *testing.T) {
+	mockPartRepo := new(MockParticipantRepository)
+	mockDocRepo := new(MockParticipantDocRepo)
+	mockStorage := new(MockObjectStorageService)
+	svc := services.NewParticipantService(mockPartRepo, mockDocRepo, mockStorage, nil)
+
+	ctx := context.Background()
+	part := &models.Participant{ParticipantID: "p-1"}
+	mockPartRepo.On("FindByID", ctx, "p-1").Return(part, nil)
+
+	// Update: doc does not belong to participant
+	wrongDoc := &models.ParticipantDocument{ID: "d-wrong", ParticipantID: "p-other"}
+	mockDocRepo.On("GetByID", ctx, "d-wrong").Return(wrongDoc, nil)
+	_, err := svc.UpdateDocument(ctx, "p-1", "d-wrong", "Name", nil, "", "")
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "does not belong to participant")
+
+	// Update: name only, no new file
+	goodDoc := &models.ParticipantDocument{ID: "d-good", ParticipantID: "p-1", Name: "Old"}
+	mockDocRepo.On("GetByID", ctx, "d-good").Return(goodDoc, nil)
+	mockDocRepo.On("Update", ctx, mock.MatchedBy(func(d *models.ParticipantDocument) bool {
+		return d.Name == "NewName"
+	})).Return(nil)
+	updated, err := svc.UpdateDocument(ctx, "p-1", "d-good", "NewName", nil, "", "")
+	assert.NoError(t, err)
+	assert.Equal(t, "NewName", updated.Name)
+
+	// Delete: doc does not belong to participant
+	err = svc.DeleteDocument(ctx, "p-1", "d-wrong")
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "does not belong to participant")
+
+	// Delete: db delete error
+	mockDocRepo.On("Delete", ctx, "d-good").Return(errors.New("db delete error"))
+	err = svc.DeleteDocument(ctx, "p-1", "d-good")
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "failed to delete document from database")
+}
+
+func TestParticipantDocument_DownloadDocument(t *testing.T) {
+	mockPartRepo := new(MockParticipantRepository)
+	mockDocRepo := new(MockParticipantDocRepo)
+	mockStorage := new(MockObjectStorageService)
+	svc := services.NewParticipantService(mockPartRepo, mockDocRepo, mockStorage, nil)
+
+	ctx := context.Background()
+	part := &models.Participant{ParticipantID: "p-1"}
+	mockPartRepo.On("FindByID", ctx, "p-1").Return(part, nil)
+
+	// Invalid doc URL (missing documents/ prefix)
+	badURLDoc := &models.ParticipantDocument{ID: "d-bad", ParticipantID: "p-1", DocURL: "https://badurl/file.pdf"}
+	mockDocRepo.On("GetByID", ctx, "d-bad").Return(badURLDoc, nil)
+	_, _, _, err := svc.DownloadDocument(ctx, "p-1", "d-bad")
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "invalid document url")
+
+	// Success
+	goodDoc := &models.ParticipantDocument{
+		ID:            "d-ok",
+		ParticipantID: "p-1",
+		DocURL:        "https://storage/documents/p-1/file.pdf?query=1",
+		FileType:      "application/pdf",
+		Name:          "DNI",
+	}
+	mockDocRepo.On("GetByID", ctx, "d-ok").Return(goodDoc, nil)
+	rc := io.NopCloser(strings.NewReader("pdf-bytes"))
+	mockStorage.On("DownloadFile", ctx, "documents/p-1/file.pdf").Return(rc, nil)
+
+	reader, cType, name, err := svc.DownloadDocument(ctx, "p-1", "d-ok")
+	assert.NoError(t, err)
+	assert.Equal(t, "application/pdf", cType)
+	assert.Equal(t, "DNI", name)
+	buf := new(bytes.Buffer)
+	_, _ = buf.ReadFrom(reader)
+	assert.Equal(t, "pdf-bytes", buf.String())
 }

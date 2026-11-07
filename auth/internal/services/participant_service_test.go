@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"testing"
+	"time"
 
 	"auth/internal/middlewares"
 
@@ -261,4 +262,55 @@ func TestParticipantService_DeleteParticipant_DBError(t *testing.T) {
 
 	err := svc.DeleteParticipant(context.Background(), "part-1")
 	assert.Error(t, err)
+}
+
+func TestParticipantService_EdgeCases(t *testing.T) {
+	mockRepo := new(MockParticipantRepository)
+	mockUserRepo := new(MockUserRepository)
+	producer := &mockUsuariosProducer{}
+	svc := services.NewParticipantService(mockRepo, nil, nil, mockUserRepo, producer)
+
+	// CreateParticipant with producer & status != approved
+	mockUserRepo.On("CountActiveParticipants", mock.Anything).Return(int64(5), nil).Maybe()
+	mockRepo.On("Create", mock.Anything, mock.MatchedBy(func(p *models.Participant) bool {
+		return p.ApprovalStatus == "pending"
+	})).Return(nil)
+
+	req := &dto.CreateParticipantRequest{
+		UserID:    "u-1",
+		Birthdate: time.Date(2000, 1, 1, 0, 0, 0, 0, time.UTC),
+		DNI:       "12345678",
+		Gender:    "otro",
+	}
+	res, err := svc.CreateParticipant(context.Background(), req)
+	assert.NoError(t, err)
+	assert.NotNil(t, res)
+	assert.Equal(t, "pending", res.ApprovalStatus)
+
+	// GetParticipantByID - forbidden for participant
+	part := &models.Participant{ParticipantID: "part-1", UserID: "u-owner"}
+	mockRepo.On("FindByID", mock.Anything, "part-1").Return(part, nil)
+	ctxOther := context.WithValue(context.Background(), middlewares.RoleIDKey, "role_participant")
+	ctxOther = context.WithValue(ctxOther, middlewares.UserIDKey, "u-someone-else")
+	_, err = svc.GetParticipantByID(ctxOther, "part-1")
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "forbidden")
+
+	// GetParticipantByID - success for owner
+	ctxOwner := context.WithValue(context.Background(), middlewares.RoleIDKey, "role_participant")
+	ctxOwner = context.WithValue(ctxOwner, middlewares.UserIDKey, "u-owner")
+	res, err = svc.GetParticipantByID(ctxOwner, "part-1")
+	assert.NoError(t, err)
+	assert.Equal(t, "part-1", res.ParticipantID)
+
+	// GetAllParticipants - forbidden for participant
+	_, err = svc.GetAllParticipants(ctxOther)
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "forbidden")
+
+	// DeleteParticipant - success with producer
+	mockRepo.On("Delete", mock.Anything, "part-1").Return(nil)
+	ctxAdmin := context.WithValue(context.Background(), middlewares.RoleIDKey, "role_admin")
+	err = svc.DeleteParticipant(ctxAdmin, "part-1")
+	assert.NoError(t, err)
 }

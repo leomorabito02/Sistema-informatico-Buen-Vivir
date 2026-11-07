@@ -8,7 +8,14 @@ import {
   Validators,
 } from "@angular/forms";
 import { Router, RouterLink } from "@angular/router";
-import { LucideAngularModule, Mail, Lock, Eye, EyeOff, ShieldCheck } from "lucide-angular";
+import {
+  LucideAngularModule,
+  Mail,
+  Lock,
+  Eye,
+  EyeOff,
+  ShieldCheck,
+} from "lucide-angular";
 import { AuthService } from "../../services/auth.service";
 import { AvailableAccount } from "../../core/models/auth.model";
 
@@ -223,7 +230,8 @@ export class LoginComponent implements OnInit {
     this.authService.resendTwoFactorCode(this.twofaNonce).subscribe({
       next: (res) => {
         this.resendingCode = false;
-        this.resendSuccess = res.message || "Se ha reenviado el código a tu correo electrónico.";
+        this.resendSuccess =
+          res.message || "Se ha reenviado el código a tu correo electrónico.";
       },
       error: (err) => {
         this.resendingCode = false;

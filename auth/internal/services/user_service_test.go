@@ -519,3 +519,132 @@ func TestUserService_CreateUser_Success_SendsVerification(t *testing.T) {
 	assert.Equal(t, "newuser@example.com", mockVerif.calledWithUser.Email)
 	assert.False(t, mockVerif.calledWithUser.IsEmailVerified)
 }
+
+func TestUserService_GetAllUsers(t *testing.T) {
+	mockRepo := new(MockUserRepository)
+	svc := services.NewUserService(mockRepo)
+
+	// Forbidden role
+	ctxGuest := context.WithValue(context.Background(), middlewares.RoleIDKey, "role_company")
+	_, err := svc.GetAllUsers(ctxGuest)
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "forbidden")
+
+	// Volunteer role filters only participants
+	ctxVol := context.WithValue(context.Background(), middlewares.RoleIDKey, "role_volunteer")
+	allUsers := []models.User{
+		{UserID: "u1", RoleID: "role_participant"},
+		{UserID: "u2", RoleID: "role_teacher"},
+	}
+	mockRepo.On("FindAll", mock.Anything).Return(allUsers, nil)
+	volResp, err := svc.GetAllUsers(ctxVol)
+	assert.NoError(t, err)
+	assert.Len(t, volResp, 1)
+	assert.Equal(t, "u1", volResp[0].UserID)
+
+	// Admin role returns all
+	ctxAdmin := context.WithValue(context.Background(), middlewares.RoleIDKey, "role_admin")
+	adminResp, err := svc.GetAllUsers(ctxAdmin)
+	assert.NoError(t, err)
+	assert.Len(t, adminResp, 2)
+}
+
+func TestUserService_ApproveUser(t *testing.T) {
+	mockRepo := new(MockUserRepository)
+	mockQuerier := new(MockRoleProfileQuerier)
+	producer := &mockUsuariosProducer{}
+	svc := services.NewUserService(mockRepo, mockQuerier, producer)
+
+	// FindByID error
+	mockRepo.On("FindByID", mock.Anything, "u-err").Return(nil, errors.New("db error"))
+	_, err := svc.ApproveUser(context.Background(), "u-err")
+	assert.Error(t, err)
+
+	// Forbidden to approve
+	userTeacher := &models.User{UserID: "u-teach", RoleID: "role_teacher"}
+	mockRepo.On("FindByID", mock.Anything, "u-teach").Return(userTeacher, nil)
+	ctxVol := context.WithValue(context.Background(), middlewares.RoleIDKey, "role_volunteer")
+	_, err = svc.ApproveUser(ctxVol, "u-teach")
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "forbidden")
+
+	// Role not compatible for approval (e.g. role_admin)
+	userAdmin := &models.User{UserID: "u-adm", RoleID: "role_admin"}
+	mockRepo.On("FindByID", mock.Anything, "u-adm").Return(userAdmin, nil)
+	ctxAdmin := context.WithValue(context.Background(), middlewares.RoleIDKey, "role_admin")
+	_, err = svc.ApproveUser(ctxAdmin, "u-adm")
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "rol no compatible")
+
+	// Querier error
+	userPart := &models.User{UserID: "u-part", RoleID: "role_participant"}
+	mockRepo.On("FindByID", mock.Anything, "u-part").Return(userPart, nil)
+	mockQuerier.On("UpdateRoleData", mock.Anything, "participants", "u-part", mock.Anything).Return(errors.New("update err"))
+	_, err = svc.ApproveUser(ctxAdmin, "u-part")
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "error al actualizar")
+
+	// Success with approverID and producer
+	ctxAdminWithID := context.WithValue(ctxAdmin, middlewares.UserIDKey, "admin-123")
+	userComp := &models.User{UserID: "u-comp", RoleID: "role_company"}
+	mockRepo.On("FindByID", mock.Anything, "u-comp").Return(userComp, nil)
+	mockQuerier.On("UpdateRoleData", mock.Anything, "companies", "u-comp", mock.MatchedBy(func(data map[string]any) bool {
+		return data["approved_by"] == "admin-123" && data["approval_status"] == "approved"
+	})).Return(nil)
+
+	res, err := svc.ApproveUser(ctxAdminWithID, "u-comp")
+	assert.NoError(t, err)
+	assert.NotNil(t, res)
+	assert.Equal(t, "approved", res.RoleApprovalStatus)
+	assert.NotEmpty(t, producer.emailSolicitadoCalls)
+}
+
+func TestUserService_GetCampaignEligibleUsers(t *testing.T) {
+	mockRepo := new(MockUserRepository)
+	svc := services.NewUserService(mockRepo)
+
+	mockRepo.On("FindCampaignEligibleUsers", mock.Anything).Return([]repositories.CampaignEligibleUser{
+		{UserID: "u1", Email: "e1@test.com"},
+	}, nil)
+
+	res, err := svc.GetCampaignEligibleUsers(context.Background())
+	assert.NoError(t, err)
+	assert.Len(t, res, 1)
+}
+
+func TestUserService_IsEmailVerified(t *testing.T) {
+	mockRepo := new(MockUserRepository)
+	svc := services.NewUserService(mockRepo)
+
+	// Empty identifier
+	_, err := svc.IsEmailVerified(context.Background(), "   ")
+	assert.Error(t, err)
+
+	// By Email
+	mockRepo.On("FindByEmail", mock.Anything, "test@example.com").Return(&models.User{IsEmailVerified: true}, nil)
+	verified, err := svc.IsEmailVerified(context.Background(), "test@example.com")
+	assert.NoError(t, err)
+	assert.True(t, verified)
+
+	// By UserID
+	mockRepo.On("FindByID", mock.Anything, "u-id-123").Return(&models.User{IsEmailVerified: false}, nil)
+	verified, err = svc.IsEmailVerified(context.Background(), "u-id-123")
+	assert.NoError(t, err)
+	assert.False(t, verified)
+}
+
+func TestUserService_GetActiveUserIDsByRoles(t *testing.T) {
+	mockRepo := new(MockUserRepository)
+	svc := services.NewUserService(mockRepo)
+
+	// Empty / invalid roles
+	res, err := svc.GetActiveUserIDsByRoles(context.Background(), []string{"unknown_role"})
+	assert.NoError(t, err)
+	assert.Empty(t, res)
+
+	// Valid roles
+	mockRepo.On("FindActiveUserIDsByRoles", mock.Anything, []string{"role_admin", "role_volunteer"}).Return([]string{"u1", "u2"}, nil)
+	res, err = svc.GetActiveUserIDsByRoles(context.Background(), []string{"role_admin", "role_volunteer"})
+	assert.NoError(t, err)
+	assert.Equal(t, []string{"u1", "u2"}, res)
+}
