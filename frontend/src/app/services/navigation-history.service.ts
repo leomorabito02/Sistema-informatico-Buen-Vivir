@@ -23,7 +23,9 @@ export class NavigationHistoryService {
     this.loadFromStorage();
     this.router.events
       .pipe(
-        filter((event): event is NavigationEnd => event instanceof NavigationEnd),
+        filter(
+          (event): event is NavigationEnd => event instanceof NavigationEnd,
+        ),
       )
       .subscribe((event: NavigationEnd) => {
         const url = event.urlAfterRedirects || event.url;
@@ -59,7 +61,8 @@ export class NavigationHistoryService {
     }
 
     if (typeof window !== "undefined" && window.history?.state) {
-      const historyStateUrl = (window.history.state as { returnUrl?: string })?.returnUrl;
+      const historyStateUrl = (window.history.state as { returnUrl?: string })
+        ?.returnUrl;
       if (historyStateUrl && !this.isErrorUrl(historyStateUrl)) {
         return historyStateUrl;
       }

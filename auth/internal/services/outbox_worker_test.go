@@ -127,5 +127,57 @@ func TestOutboxWorker_ProcessDueEvents(t *testing.T) {
 		repo.AssertExpectations(t)
 		pub.AssertExpectations(t)
 	})
+
+	t.Run("Start and Edge Cases", func(t *testing.T) {
+		// Nil worker
+		nilWorker := services.NewOutboxWorker(nil, nil)
+		nilWorker.Start(context.Background(), time.Second)
+		processed, err := nilWorker.ProcessDueEvents(context.Background())
+		assert.NoError(t, err)
+		assert.Equal(t, 0, processed)
+
+		// Start with cancellation
+		repo := new(mockOutboxRepository)
+		pub := new(mockPublisher)
+		w := services.NewOutboxWorker(repo, pub)
+		ctx, cancel := context.WithCancel(context.Background())
+		repo.On("GetDueEvents", mock.Anything, mock.Anything).Return([]models.OutboxEvent{}, nil)
+		w.Start(ctx, 10*time.Millisecond)
+		time.Sleep(25 * time.Millisecond)
+		cancel()
+
+		// GetDueEvents error on separate worker
+		repoErr := new(mockOutboxRepository)
+		wErr := services.NewOutboxWorker(repoErr, pub)
+		repoErr.On("GetDueEvents", mock.Anything, 50).Return(nil, errors.New("db error"))
+		_, err = wErr.ProcessDueEvents(context.Background())
+		assert.Error(t, err)
+
+		// MarkProcessing error
+		repoProc := new(mockOutboxRepository)
+		wProc := services.NewOutboxWorker(repoProc, pub)
+		event := models.OutboxEvent{ID: "e-fail", Attempts: 15, MaxAttempts: 5}
+		repoProc.On("GetDueEvents", mock.Anything, 50).Return([]models.OutboxEvent{event}, nil)
+		repoProc.On("MarkProcessing", mock.Anything, "e-fail").Return(errors.New("lock error"))
+		processed, err = wProc.ProcessDueEvents(context.Background())
+		assert.NoError(t, err)
+		assert.Equal(t, 0, processed)
+
+		// Corrupted payload
+		repoCorrupt := new(mockOutboxRepository)
+		wCorrupt := services.NewOutboxWorker(repoCorrupt, pub)
+		corruptEvent := models.OutboxEvent{
+			ID:          "e-corrupt",
+			Payload:     []byte("invalid json"),
+			Attempts:    15,
+			MaxAttempts: 5,
+		}
+		repoCorrupt.On("GetDueEvents", mock.Anything, 50).Return([]models.OutboxEvent{corruptEvent}, nil)
+		repoCorrupt.On("MarkProcessing", mock.Anything, "e-corrupt").Return(nil)
+		repoCorrupt.On("MarkFailed", mock.Anything, "e-corrupt", mock.Anything, mock.AnythingOfType("time.Time"), true).Return(nil)
+		processed, err = wCorrupt.ProcessDueEvents(context.Background())
+		assert.NoError(t, err)
+		assert.Equal(t, 0, processed)
+	})
 }
 

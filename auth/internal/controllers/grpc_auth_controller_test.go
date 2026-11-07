@@ -15,6 +15,7 @@ import (
 	"auth/internal/dto"
 	"auth/internal/middlewares"
 	"auth/internal/repositories"
+	"auth/internal/services"
 )
 
 func TestGrpcGetCompany_LeeElUsuarioConPermisosDeSistema(t *testing.T) {
@@ -229,6 +230,203 @@ func TestGrpcGetActiveUserIDsByRoles_ServiceError(t *testing.T) {
 	assert.Error(t, err)
 	assert.Equal(t, codes.Internal, status.Code(err))
 	userSvc.AssertExpectations(t)
+}
+
+func TestGrpcGetParticipant(t *testing.T) {
+	partSvc := new(MockParticipantService)
+	ctrl := controllers.NewGrpcAuthController(partSvc, nil, nil, nil)
+
+	// Missing participant_id
+	_, err := ctrl.GetParticipant(context.Background(), &authpb.GetParticipantRequest{})
+	assert.Equal(t, codes.InvalidArgument, status.Code(err))
+
+	// Internal error
+	partSvc.On("GetParticipantByID", mock.Anything, "p-err").Return(nil, errors.New("db fail"))
+	_, err = ctrl.GetParticipant(context.Background(), &authpb.GetParticipantRequest{ParticipantId: "p-err"})
+	assert.Equal(t, codes.Internal, status.Code(err))
+
+	// Not found (nil)
+	partSvc.On("GetParticipantByID", mock.Anything, "p-nil").Return(nil, nil)
+	_, err = ctrl.GetParticipant(context.Background(), &authpb.GetParticipantRequest{ParticipantId: "p-nil"})
+	assert.Equal(t, codes.NotFound, status.Code(err))
+
+	// Success
+	partSvc.On("GetParticipantByID", mock.Anything, "p-ok").Return(&dto.ParticipantResponse{
+		ParticipantID:  "p-ok",
+		UserID:         "u-1",
+		ApprovalStatus: "approved",
+	}, nil)
+	resp, err := ctrl.GetParticipant(context.Background(), &authpb.GetParticipantRequest{ParticipantId: "p-ok"})
+	assert.NoError(t, err)
+	assert.Equal(t, "p-ok", resp.Id)
+	assert.Equal(t, "u-1", resp.UserId)
+	assert.Equal(t, "approved", resp.ApprovalStatus)
+}
+
+func TestGrpcGetParticipantProfile(t *testing.T) {
+	fakeDir := &fakeDirectoryService{}
+	ctrl := controllers.NewGrpcAuthController(nil, nil, nil, fakeDir)
+
+	// Missing lookup
+	_, err := ctrl.GetParticipantProfile(context.Background(), &authpb.GetParticipantProfileRequest{})
+	assert.Equal(t, codes.InvalidArgument, status.Code(err))
+
+	// Success with ParticipantId
+	resp, err := ctrl.GetParticipantProfile(context.Background(), &authpb.GetParticipantProfileRequest{
+		Lookup: &authpb.GetParticipantProfileRequest_ParticipantId{ParticipantId: "part-123"},
+	})
+	assert.NoError(t, err)
+	assert.Equal(t, "part-123", resp.ParticipantId)
+	assert.Equal(t, "Ana", resp.FirstName)
+	assert.Equal(t, "2000-05-03", resp.Birthdate)
+
+	// Success with UserId
+	resp, err = ctrl.GetParticipantProfile(context.Background(), &authpb.GetParticipantProfileRequest{
+		Lookup: &authpb.GetParticipantProfileRequest_UserId{UserId: "usr-123"},
+	})
+	assert.NoError(t, err)
+	assert.Equal(t, "usr-123", resp.UserId)
+
+	// Directory errors
+	fakeDir.err = services.ErrInvalidDirectoryRequest
+	_, err = ctrl.GetParticipantProfile(context.Background(), &authpb.GetParticipantProfileRequest{
+		Lookup: &authpb.GetParticipantProfileRequest_ParticipantId{ParticipantId: "err"},
+	})
+	assert.Equal(t, codes.InvalidArgument, status.Code(err))
+
+	fakeDir.err = repositories.ErrParticipantProfileNotFound
+	_, err = ctrl.GetParticipantProfile(context.Background(), &authpb.GetParticipantProfileRequest{
+		Lookup: &authpb.GetParticipantProfileRequest_ParticipantId{ParticipantId: "err"},
+	})
+	assert.Equal(t, codes.NotFound, status.Code(err))
+
+	fakeDir.err = errors.New("unexpected error")
+	_, err = ctrl.GetParticipantProfile(context.Background(), &authpb.GetParticipantProfileRequest{
+		Lookup: &authpb.GetParticipantProfileRequest_ParticipantId{ParticipantId: "err"},
+	})
+	assert.Equal(t, codes.Internal, status.Code(err))
+}
+
+func TestGrpcSearchParticipants(t *testing.T) {
+	fakeDir := &fakeDirectoryService{}
+	ctrl := controllers.NewGrpcAuthController(nil, nil, nil, fakeDir)
+
+	// Success
+	resp, err := ctrl.SearchParticipants(context.Background(), &authpb.SearchParticipantsRequest{Query: "test", Limit: 10})
+	assert.NoError(t, err)
+	assert.Len(t, resp.Participants, 2)
+
+	// Error
+	fakeDir.err = errors.New("fail")
+	_, err = ctrl.SearchParticipants(context.Background(), &authpb.SearchParticipantsRequest{})
+	assert.Equal(t, codes.Internal, status.Code(err))
+}
+
+func TestGrpcGetUsersByIDs(t *testing.T) {
+	fakeDir := &fakeDirectoryService{}
+	ctrl := controllers.NewGrpcAuthController(nil, nil, nil, fakeDir)
+
+	// Success
+	resp, err := ctrl.GetUsersByIDs(context.Background(), &authpb.GetUsersByIDsRequest{UserIds: []string{"usr-1", "usr-2"}})
+	assert.NoError(t, err)
+	assert.Len(t, resp.Users, 2)
+	assert.Equal(t, "Ana", resp.Users[0].FirstName)
+
+	// Error
+	fakeDir.err = errors.New("fail")
+	_, err = ctrl.GetUsersByIDs(context.Background(), &authpb.GetUsersByIDsRequest{})
+	assert.Equal(t, codes.Internal, status.Code(err))
+}
+
+func TestGrpcIssueActionLink(t *testing.T) {
+	userSvc := new(MockUserService)
+	verifSvc := new(MockVerificationService)
+	recovSvc := new(MockPasswordRecoveryService)
+	twofaSvc := new(MockTwofaService)
+
+	ctrl := controllers.NewGrpcAuthController(nil, nil, userSvc, nil)
+
+	// Nil request
+	_, err := ctrl.IssueActionLink(context.Background(), nil)
+	assert.Equal(t, codes.InvalidArgument, status.Code(err))
+
+	// Unsupported type
+	_, err = ctrl.IssueActionLink(context.Background(), &authpb.IssueActionLinkRequest{Type: "unknown"})
+	assert.Equal(t, codes.InvalidArgument, status.Code(err))
+
+	// cuenta_aprobada
+	resp, err := ctrl.IssueActionLink(context.Background(), &authpb.IssueActionLinkRequest{Type: "cuenta_aprobada"})
+	assert.NoError(t, err)
+	assert.Contains(t, resp.ActionUrl, "/login")
+
+	// verificacion before SetLinkIssuers -> Unimplemented
+	_, err = ctrl.IssueActionLink(context.Background(), &authpb.IssueActionLinkRequest{Type: "verificacion"})
+	assert.Equal(t, codes.Unimplemented, status.Code(err))
+
+	// recuperacion_password before SetLinkIssuers -> Unimplemented
+	_, err = ctrl.IssueActionLink(context.Background(), &authpb.IssueActionLinkRequest{Type: "recuperacion_password"})
+	assert.Equal(t, codes.Unimplemented, status.Code(err))
+
+	// two_factor_code before SetLinkIssuers -> Unimplemented
+	_, err = ctrl.IssueActionLink(context.Background(), &authpb.IssueActionLinkRequest{Type: "two_factor_code"})
+	assert.Equal(t, codes.Unimplemented, status.Code(err))
+
+	// Now set link issuers
+	ctrl.SetLinkIssuers(verifSvc, recovSvc, twofaSvc)
+
+	// verificacion error
+	verifSvc.On("IssueActionLink", mock.Anything, "req-1", "u-1").Return("", errors.New("err"))
+	_, err = ctrl.IssueActionLink(context.Background(), &authpb.IssueActionLinkRequest{
+		Type: "verificacion", RequestId: "req-1", UserId: "u-1",
+	})
+	assert.Equal(t, codes.Internal, status.Code(err))
+
+	// verificacion success
+	verifSvc.On("IssueActionLink", mock.Anything, "req-2", "u-2").Return("https://app/verify", nil)
+	resp, err = ctrl.IssueActionLink(context.Background(), &authpb.IssueActionLinkRequest{
+		Type: "verificacion", RequestId: "req-2", UserId: "u-2",
+	})
+	assert.NoError(t, err)
+	assert.Equal(t, "https://app/verify", resp.ActionUrl)
+
+	// recuperacion_password error
+	recovSvc.On("IssueActionLink", mock.Anything, "req-3", "u-3").Return("", errors.New("err"))
+	_, err = ctrl.IssueActionLink(context.Background(), &authpb.IssueActionLinkRequest{
+		Type: "recuperacion_password", RequestId: "req-3", UserId: "u-3",
+	})
+	assert.Equal(t, codes.Internal, status.Code(err))
+
+	// recuperacion_password success
+	recovSvc.On("IssueActionLink", mock.Anything, "req-4", "u-4").Return("https://app/recover", nil)
+	resp, err = ctrl.IssueActionLink(context.Background(), &authpb.IssueActionLinkRequest{
+		Type: "recuperacion_password", RequestId: "req-4", UserId: "u-4",
+	})
+	assert.NoError(t, err)
+	assert.Equal(t, "https://app/recover", resp.ActionUrl)
+
+	// two_factor_code user not found
+	userSvc.On("GetUserByID", mock.Anything, "u-404").Return(nil, errors.New("not found"))
+	_, err = ctrl.IssueActionLink(context.Background(), &authpb.IssueActionLinkRequest{
+		Type: "two_factor_code", UserId: "u-404",
+	})
+	assert.Equal(t, codes.NotFound, status.Code(err))
+
+	// two_factor_code empty code
+	userSvc.On("GetUserByID", mock.Anything, "u-nocode").Return(&dto.UserResponse{Email: "nocode@example.com"}, nil)
+	twofaSvc.On("GetActiveCodeForEmail", "nocode@example.com").Return("")
+	_, err = ctrl.IssueActionLink(context.Background(), &authpb.IssueActionLinkRequest{
+		Type: "two_factor_code", UserId: "u-nocode",
+	})
+	assert.Equal(t, codes.NotFound, status.Code(err))
+
+	// two_factor_code success
+	userSvc.On("GetUserByID", mock.Anything, "u-good").Return(&dto.UserResponse{Email: "good@example.com"}, nil)
+	twofaSvc.On("GetActiveCodeForEmail", "good@example.com").Return("123456")
+	resp, err = ctrl.IssueActionLink(context.Background(), &authpb.IssueActionLinkRequest{
+		Type: "two_factor_code", UserId: "u-good",
+	})
+	assert.NoError(t, err)
+	assert.Equal(t, "123456", resp.ActionUrl)
 }
 
 

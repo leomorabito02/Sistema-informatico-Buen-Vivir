@@ -44,7 +44,13 @@ import { ImageService } from "../../../services/image.service";
 @Component({
   selector: "app-mi-perfil",
   standalone: true,
-  imports: [CommonModule, FormsModule, ReactiveFormsModule, LucideAngularModule, DialogModule],
+  imports: [
+    CommonModule,
+    FormsModule,
+    ReactiveFormsModule,
+    LucideAngularModule,
+    DialogModule,
+  ],
   templateUrl: "./mi-perfil.component.html",
   styleUrls: ["./mi-perfil.component.css"],
 })
@@ -1148,7 +1154,8 @@ export class MiPerfilComponent implements OnInit {
       },
       error: (err) => {
         this.twofaLoading = false;
-        this.twofaError = err.message || "Error al iniciar la configuración de 2FA.";
+        this.twofaError =
+          err.message || "Error al iniciar la configuración de 2FA.";
       },
     });
   }
@@ -1164,7 +1171,8 @@ export class MiPerfilComponent implements OnInit {
         next: () => {
           this.twofaLoading = false;
           this.showTwofaSetupModal = false;
-          this.twofaSuccess = "Autenticación de dos factores activada con éxito.";
+          this.twofaSuccess =
+            "Autenticación de dos factores activada con éxito.";
           if (this.profileData?.user) {
             this.profileData.user.twofa_enabled = true;
             this.profileData.user.twofa_method = this.twofaMethod;
@@ -1175,21 +1183,25 @@ export class MiPerfilComponent implements OnInit {
         },
         error: (err) => {
           this.twofaLoading = false;
-          this.twofaError = err.message || "Código incorrecto. Verificá e intentá nuevamente.";
+          this.twofaError =
+            err.message || "Código incorrecto. Verificá e intentá nuevamente.";
         },
       });
   }
 
   copySecret(): void {
     if (!this.twofaSecret) return;
-    void navigator.clipboard.writeText(this.twofaSecret).then(() => {
-      this.copiedSecret = true;
-      setTimeout(() => {
-        this.copiedSecret = false;
-      }, 2500);
-    }).catch(() => {
-      // Ignore clipboard write failure
-    });
+    void navigator.clipboard
+      .writeText(this.twofaSecret)
+      .then(() => {
+        this.copiedSecret = true;
+        setTimeout(() => {
+          this.copiedSecret = false;
+        }, 2500);
+      })
+      .catch(() => {
+        // Ignore clipboard write failure
+      });
   }
 
   openTwofaDisable(): void {
@@ -1215,7 +1227,8 @@ export class MiPerfilComponent implements OnInit {
         next: () => {
           this.twofaLoading = false;
           this.showTwofaDisableModal = false;
-          this.twofaSuccess = "Autenticación de dos factores desactivada exitosamente.";
+          this.twofaSuccess =
+            "Autenticación de dos factores desactivada exitosamente.";
           if (this.profileData?.user) {
             this.profileData.user.twofa_enabled = false;
             this.profileData.user.twofa_method = undefined;
@@ -1226,7 +1239,9 @@ export class MiPerfilComponent implements OnInit {
         },
         error: (err) => {
           this.twofaLoading = false;
-          this.twofaError = err.message || "Error al desactivar 2FA. Verificá tu contraseña o código.";
+          this.twofaError =
+            err.message ||
+            "Error al desactivar 2FA. Verificá tu contraseña o código.";
         },
       });
   }
@@ -1234,7 +1249,8 @@ export class MiPerfilComponent implements OnInit {
   revokeTrustedDevice(): void {
     this.profileService.revokeTrustedDevice().subscribe({
       next: (res) => {
-        this.deviceRevokedMessage = res.message || "Dispositivo de confianza olvidado exitosamente.";
+        this.deviceRevokedMessage =
+          res.message || "Dispositivo de confianza olvidado exitosamente.";
         setTimeout(() => {
           this.deviceRevokedMessage = "";
         }, 4000);

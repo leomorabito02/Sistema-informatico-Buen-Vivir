@@ -15,21 +15,39 @@
         <!-- 2FA Challenge Step -->
         <div *ngIf="is2faStep" class="twofa-challenge-container">
           <div class="text-center mb-4">
-            <div class="inline-flex items-center justify-center w-12 h-12 rounded-full bg-emerald-50 text-emerald-600 mb-2">
-              <lucide-angular [img]="ShieldIcon" class="w-6 h-6"></lucide-angular>
+            <div
+              class="inline-flex items-center justify-center w-12 h-12 rounded-full bg-emerald-50 text-emerald-600 mb-2"
+            >
+              <lucide-angular
+                [img]="ShieldIcon"
+                class="w-6 h-6"
+              ></lucide-angular>
             </div>
-            <h2 class="auth-card-title text-xl font-bold">Verificación de dos pasos</h2>
-            <p *ngIf="twofaMethod === 'totp'" class="text-sm text-muted-foreground mt-1">
-              Ingresá el código de 6 dígitos generado por tu aplicación autenticadora (Google Authenticator, Authy, etc.).
+            <h2 class="auth-card-title text-xl font-bold">
+              Verificación de dos pasos
+            </h2>
+            <p
+              *ngIf="twofaMethod === 'totp'"
+              class="text-sm text-muted-foreground mt-1"
+            >
+              Ingresá el código de 6 dígitos generado por tu aplicación
+              autenticadora (Google Authenticator, Authy, etc.).
             </p>
-            <p *ngIf="twofaMethod === 'email'" class="text-sm text-muted-foreground mt-1">
-              Enviamos un código de seguridad de 6 dígitos a <strong class="text-foreground">{{ twofaEmail }}</strong>.
+            <p
+              *ngIf="twofaMethod === 'email'"
+              class="text-sm text-muted-foreground mt-1"
+            >
+              Enviamos un código de seguridad de 6 dígitos a
+              <strong class="text-foreground">{{ twofaEmail }}</strong
+              >.
             </p>
           </div>
 
           <form (ngSubmit)="onVerifyTwofa()" class="auth-form">
             <div class="form-group">
-              <label class="form-label" for="twofaCode">Código de verificación</label>
+              <label class="form-label" for="twofaCode"
+                >Código de verificación</label
+              >
               <div class="input-wrapper">
                 <input
                   id="twofaCode"
@@ -60,20 +78,32 @@
             </div>
 
             <div *ngIf="loginError" class="error-msg my-2">
-              <p-message severity="error" [text]="loginError" styleClass="w-full"></p-message>
+              <p-message
+                severity="error"
+                [text]="loginError"
+                styleClass="w-full"
+              ></p-message>
             </div>
 
             <div *ngIf="resendSuccess" class="success-msg my-2">
-              <p-message severity="success" [text]="resendSuccess" styleClass="w-full"></p-message>
+              <p-message
+                severity="success"
+                [text]="resendSuccess"
+                styleClass="w-full"
+              ></p-message>
             </div>
 
             <button
               type="submit"
-              [disabled]="loading || !twofaCode || twofaCode.trim().length !== 6"
+              [disabled]="
+                loading || !twofaCode || twofaCode.trim().length !== 6
+              "
               class="btn-submit"
             >
               <i *ngIf="loading" class="pi pi-spin pi-spinner"></i>
-              <span>{{ loading ? "Verificando..." : "Verificar e Ingresar" }}</span>
+              <span>{{
+                loading ? "Verificando..." : "Verificar e Ingresar"
+              }}</span>
             </button>
 
             <div *ngIf="twofaMethod === 'email'" class="text-center mt-3">
@@ -83,7 +113,11 @@
                 [disabled]="resendingCode"
                 class="text-sm text-emerald-600 hover:text-emerald-700 underline bg-transparent border-0 cursor-pointer"
               >
-                {{ resendingCode ? "Reenviando..." : "¿No recibiste el código? Reenviar" }}
+                {{
+                  resendingCode
+                    ? "Reenviando..."
+                    : "¿No recibiste el código? Reenviar"
+                }}
               </button>
             </div>
 
@@ -101,146 +135,152 @@
         <div *ngIf="!is2faStep">
           <h2 class="auth-card-title">Iniciar Sesión</h2>
 
-          <form [formGroup]="loginForm" (ngSubmit)="onSubmit()" class="auth-form">
-          <div class="form-group">
-            <label class="form-label" for="email">Email</label>
-            <div class="input-wrapper p-input-icon-left">
-              <i class="pi pi-envelope input-icon-pi"></i>
-              <input
-                id="email"
-                pInputText
-                type="email"
-                formControlName="email"
-                class="form-input p-inputtext-sm"
-                [ngClass]="{
-                  invalid:
-                    loginForm.get('email')?.invalid &&
-                    loginForm.get('email')?.touched,
-                }"
-                placeholder="tu@email.com"
-                required
-              />
+          <form
+            [formGroup]="loginForm"
+            (ngSubmit)="onSubmit()"
+            class="auth-form"
+          >
+            <div class="form-group">
+              <label class="form-label" for="email">Email</label>
+              <div class="input-wrapper p-input-icon-left">
+                <i class="pi pi-envelope input-icon-pi"></i>
+                <input
+                  id="email"
+                  pInputText
+                  type="email"
+                  formControlName="email"
+                  class="form-input p-inputtext-sm"
+                  [ngClass]="{
+                    invalid:
+                      loginForm.get('email')?.invalid &&
+                      loginForm.get('email')?.touched,
+                  }"
+                  placeholder="tu@email.com"
+                  required
+                />
+              </div>
             </div>
-          </div>
 
-          <div class="form-group">
-            <label class="form-label" for="password">Contraseña</label>
-            <div class="input-wrapper p-input-icon-left">
-              <i class="pi pi-lock input-icon-pi"></i>
-              <input
-                id="password"
-                pInputText
-                formControlName="password"
-                class="form-input p-inputtext-sm"
-                [ngClass]="{
-                  invalid:
-                    loginForm.get('password')?.invalid &&
-                    loginForm.get('password')?.touched,
-                }"
-                placeholder="••••••••"
-                required
-                [type]="showPassword ? 'text' : 'password'"
-              />
-              <button
-                class="password-toggle-btn"
-                type="button"
-                [attr.aria-label]="
-                  showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'
-                "
-                [attr.aria-pressed]="showPassword"
-                (click)="togglePasswordVisibility()"
-              >
-                <lucide-angular
-                  [img]="showPassword ? EyeOffIcon : EyeIcon"
-                  class="w-5 h-5 text-muted-foreground"
-                ></lucide-angular>
-              </button>
+            <div class="form-group">
+              <label class="form-label" for="password">Contraseña</label>
+              <div class="input-wrapper p-input-icon-left">
+                <i class="pi pi-lock input-icon-pi"></i>
+                <input
+                  id="password"
+                  pInputText
+                  formControlName="password"
+                  class="form-input p-inputtext-sm"
+                  [ngClass]="{
+                    invalid:
+                      loginForm.get('password')?.invalid &&
+                      loginForm.get('password')?.touched,
+                  }"
+                  placeholder="••••••••"
+                  required
+                  [type]="showPassword ? 'text' : 'password'"
+                />
+                <button
+                  class="password-toggle-btn"
+                  type="button"
+                  [attr.aria-label]="
+                    showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'
+                  "
+                  [attr.aria-pressed]="showPassword"
+                  (click)="togglePasswordVisibility()"
+                >
+                  <lucide-angular
+                    [img]="showPassword ? EyeOffIcon : EyeIcon"
+                    class="w-5 h-5 text-muted-foreground"
+                  ></lucide-angular>
+                </button>
+              </div>
             </div>
-          </div>
 
-          <div class="flex-between">
-            <label class="checkbox-label" for="rememberMe">
-              <input
-                type="checkbox"
-                id="rememberMe"
-                class="checkbox-input"
-                formControlName="rememberMe"
-              />
-              <span>Recordarme</span>
-            </label>
-            <a routerLink="/change-password" class="auth-link">
-              ¿Olvidaste tu contraseña?
-            </a>
-          </div>
+            <div class="flex-between">
+              <label class="checkbox-label" for="rememberMe">
+                <input
+                  type="checkbox"
+                  id="rememberMe"
+                  class="checkbox-input"
+                  formControlName="rememberMe"
+                />
+                <span>Recordarme</span>
+              </label>
+              <a routerLink="/change-password" class="auth-link">
+                ¿Olvidaste tu contraseña?
+              </a>
+            </div>
 
-          <div *ngIf="loginError" class="error-msg my-2">
-            <p-message
-              severity="error"
-              [text]="loginError"
-              styleClass="w-full"
-            ></p-message>
+            <div *ngIf="loginError" class="error-msg my-2">
+              <p-message
+                severity="error"
+                [text]="loginError"
+                styleClass="w-full"
+              ></p-message>
+            </div>
+
+            <button
+              type="submit"
+              [disabled]="
+                loading || googleLoading || locked || loginForm.invalid
+              "
+              class="btn-submit"
+            >
+              <i *ngIf="loading" class="pi pi-spin pi-spinner"></i>
+              <span>{{
+                loading
+                  ? "Iniciando sesión..."
+                  : locked
+                    ? "Cuenta bloqueada"
+                    : "Continuar"
+              }}</span>
+            </button>
+          </form>
+
+          <div class="auth-divider">
+            <div class="auth-divider-line"></div>
+            <div class="auth-divider-text">
+              <span>O continúa con</span>
+            </div>
           </div>
 
           <button
-            type="submit"
-            [disabled]="loading || googleLoading || locked || loginForm.invalid"
-            class="btn-submit"
+            type="button"
+            (click)="handleGoogleLogin()"
+            [disabled]="loading || googleLoading"
+            class="btn-google"
           >
-            <i *ngIf="loading" class="pi pi-spin pi-spinner"></i>
+            <i *ngIf="googleLoading" class="pi pi-spin pi-spinner"></i>
+            <svg
+              *ngIf="!googleLoading"
+              class="google-icon"
+              viewBox="0 0 24 24"
+              width="20"
+              height="20"
+            >
+              <path
+                fill="#4285F4"
+                d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+              />
+              <path
+                fill="#34A853"
+                d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+              />
+              <path
+                fill="#FBBC05"
+                d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
+              />
+              <path
+                fill="#EA4335"
+                d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
+              />
+            </svg>
             <span>{{
-              loading
-                ? "Iniciando sesión..."
-                : locked
-                  ? "Cuenta bloqueada"
-                  : "Continuar"
+              googleLoading
+                ? "Conectando con Google..."
+                : "Iniciar sesión con Google"
             }}</span>
           </button>
-        </form>
-
-        <div class="auth-divider">
-          <div class="auth-divider-line"></div>
-          <div class="auth-divider-text">
-            <span>O continúa con</span>
-          </div>
-        </div>
-
-        <button
-          type="button"
-          (click)="handleGoogleLogin()"
-          [disabled]="loading || googleLoading"
-          class="btn-google"
-        >
-          <i *ngIf="googleLoading" class="pi pi-spin pi-spinner"></i>
-          <svg
-            *ngIf="!googleLoading"
-            class="google-icon"
-            viewBox="0 0 24 24"
-            width="20"
-            height="20"
-          >
-            <path
-              fill="#4285F4"
-              d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
-            />
-            <path
-              fill="#34A853"
-              d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-            />
-            <path
-              fill="#FBBC05"
-              d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
-            />
-            <path
-              fill="#EA4335"
-              d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
-            />
-          </svg>
-          <span>{{
-            googleLoading
-              ? "Conectando con Google..."
-              : "Iniciar sesión con Google"
-          }}</span>
-        </button>
         </div>
       </p-card>
 

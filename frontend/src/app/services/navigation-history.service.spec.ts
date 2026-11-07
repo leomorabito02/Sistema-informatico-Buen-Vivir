@@ -12,10 +12,7 @@ describe("NavigationHistoryService", () => {
     routerEvents$ = new Subject<unknown>();
 
     TestBed.configureTestingModule({
-      providers: [
-        provideRouter([]),
-        NavigationHistoryService,
-      ],
+      providers: [provideRouter([]), NavigationHistoryService],
     });
 
     router = TestBed.inject(Router);
@@ -47,7 +44,9 @@ describe("NavigationHistoryService", () => {
 
   it("should record valid navigation events and ignore error URLs", () => {
     routerEvents$.next(new NavigationEnd(1, "/dashboard", "/dashboard"));
-    routerEvents$.next(new NavigationEnd(2, "/dashboard/cursos", "/dashboard/cursos"));
+    routerEvents$.next(
+      new NavigationEnd(2, "/dashboard/cursos", "/dashboard/cursos"),
+    );
     routerEvents$.next(new NavigationEnd(3, "/500", "/500"));
 
     expect(service.getPreviousUrl()).toBe("/dashboard/cursos");

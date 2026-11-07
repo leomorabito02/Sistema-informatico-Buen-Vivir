@@ -119,8 +119,7 @@ export class OfertasComponent implements OnInit {
           this.isCompany = role === "role_company";
           this.isParticipant = role === "role_participant";
           this.isAdmin = role === "role_admin" || role === "role_dev";
-          this.isAdminOrVolunteer =
-            this.isAdmin || role === "role_volunteer";
+          this.isAdminOrVolunteer = this.isAdmin || role === "role_volunteer";
         }
         const r = res as any;
         const uid = r.user_id || res?.user?.user_id;

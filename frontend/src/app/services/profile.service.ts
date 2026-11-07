@@ -3,7 +3,11 @@ import { HttpClient, HttpErrorResponse } from "@angular/common/http";
 import { environment } from "../../environments/environment";
 import { Observable, throwError } from "rxjs";
 import { catchError } from "rxjs/operators";
-import { User, ProfileResponse, SetupTwofaResponse } from "../core/models/auth.model";
+import {
+  User,
+  ProfileResponse,
+  SetupTwofaResponse,
+} from "../core/models/auth.model";
 
 interface PasswordUpdateRequest {
   old_password: string;

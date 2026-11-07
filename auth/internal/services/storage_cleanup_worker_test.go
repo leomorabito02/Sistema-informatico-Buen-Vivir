@@ -109,4 +109,40 @@ func TestStorageCleanupWorker_ProcessDueTasks(t *testing.T) {
 		assert.Equal(t, 0, processed)
 		mockRepo.AssertCalled(t, "MarkFailed", ctx, "task-exhausted", "permanent storage error", mock.AnythingOfType("time.Time"), true)
 	})
+
+	t.Run("Start and Edge Cases", func(t *testing.T) {
+		// Nil worker
+		nilWorker := services.NewStorageCleanupWorker(nil, nil)
+		nilWorker.Start(context.Background(), time.Second)
+		processed, err := nilWorker.ProcessDueTasks(context.Background())
+		assert.NoError(t, err)
+		assert.Equal(t, 0, processed)
+
+		// Start with cancellation
+		mockRepo := new(MockStorageCleanupRepo)
+		mockStorage := new(MockObjectStorageService)
+		worker := services.NewStorageCleanupWorker(mockRepo, mockStorage)
+		ctx, cancel := context.WithCancel(context.Background())
+		mockRepo.On("GetDueTasks", mock.Anything, mock.Anything).Return([]models.StorageCleanupTask{}, nil)
+		worker.Start(ctx, 10*time.Millisecond)
+		time.Sleep(25 * time.Millisecond)
+		cancel()
+
+		// GetDueTasks error on separate worker
+		mockRepoErr := new(MockStorageCleanupRepo)
+		workerErr := services.NewStorageCleanupWorker(mockRepoErr, mockStorage)
+		mockRepoErr.On("GetDueTasks", mock.Anything, 50).Return(nil, errors.New("db fail"))
+		_, err = workerErr.ProcessDueTasks(context.Background())
+		assert.Error(t, err)
+
+		// MarkProcessing error
+		mockRepoProc := new(MockStorageCleanupRepo)
+		workerProc := services.NewStorageCleanupWorker(mockRepoProc, mockStorage)
+		task := models.StorageCleanupTask{ID: "t-fail", Attempts: 15, MaxAttempts: 5}
+		mockRepoProc.On("GetDueTasks", mock.Anything, 50).Return([]models.StorageCleanupTask{task}, nil)
+		mockRepoProc.On("MarkProcessing", mock.Anything, "t-fail").Return(errors.New("lock error"))
+		processed, err = workerProc.ProcessDueTasks(context.Background())
+		assert.NoError(t, err)
+		assert.Equal(t, 0, processed)
+	})
 }

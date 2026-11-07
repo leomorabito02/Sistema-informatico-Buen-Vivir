@@ -56,12 +56,48 @@ interface VersionConfig {
 }
 
 const VERSIONS: VersionConfig[] = [
-  { version: 1, totalCodewords: 26, dataCodewords: 16, eccCodewords: 10, alignments: [] },
-  { version: 2, totalCodewords: 44, dataCodewords: 28, eccCodewords: 16, alignments: [6, 18] },
-  { version: 3, totalCodewords: 70, dataCodewords: 44, eccCodewords: 26, alignments: [6, 22] },
-  { version: 4, totalCodewords: 100, dataCodewords: 64, eccCodewords: 36, alignments: [6, 26] },
-  { version: 5, totalCodewords: 134, dataCodewords: 86, eccCodewords: 48, alignments: [6, 30] },
-  { version: 6, totalCodewords: 172, dataCodewords: 108, eccCodewords: 64, alignments: [6, 34] },
+  {
+    version: 1,
+    totalCodewords: 26,
+    dataCodewords: 16,
+    eccCodewords: 10,
+    alignments: [],
+  },
+  {
+    version: 2,
+    totalCodewords: 44,
+    dataCodewords: 28,
+    eccCodewords: 16,
+    alignments: [6, 18],
+  },
+  {
+    version: 3,
+    totalCodewords: 70,
+    dataCodewords: 44,
+    eccCodewords: 26,
+    alignments: [6, 22],
+  },
+  {
+    version: 4,
+    totalCodewords: 100,
+    dataCodewords: 64,
+    eccCodewords: 36,
+    alignments: [6, 26],
+  },
+  {
+    version: 5,
+    totalCodewords: 134,
+    dataCodewords: 86,
+    eccCodewords: 48,
+    alignments: [6, 30],
+  },
+  {
+    version: 6,
+    totalCodewords: 172,
+    dataCodewords: 108,
+    eccCodewords: 64,
+    alignments: [6, 34],
+  },
 ];
 
 function selectVersion(textLen: number): VersionConfig {
@@ -135,7 +171,11 @@ function drawFinders(matrix: (boolean | null)[][], dim: number): void {
         if (nr >= 0 && nr < dim && nc >= 0 && nc < dim) {
           const inFinder = dr >= 0 && dr <= 6 && dc >= 0 && dc <= 6;
           matrix[nr][nc] = inFinder
-            ? dr === 0 || dr === 6 || dc === 0 || dc === 6 || (dr >= 2 && dr <= 4 && dc >= 2 && dc <= 4)
+            ? dr === 0 ||
+              dr === 6 ||
+              dc === 0 ||
+              dc === 6 ||
+              (dr >= 2 && dr <= 4 && dc >= 2 && dc <= 4)
             : false;
         }
       }
@@ -160,7 +200,11 @@ function drawAlignments(matrix: (boolean | null)[][], coords: number[]): void {
   }
 }
 
-function drawPatternsAndStructure(matrix: (boolean | null)[][], chosen: VersionConfig, dim: number): void {
+function drawPatternsAndStructure(
+  matrix: (boolean | null)[][],
+  chosen: VersionConfig,
+  dim: number,
+): void {
   drawFinders(matrix, dim);
 
   for (let i = 8; i < dim - 8; i++) {
@@ -199,7 +243,7 @@ function placeColumnPair(
   cols: number[],
   rows: number[],
   allBits: number[],
-  state: { bitIdx: number }
+  state: { bitIdx: number },
 ): void {
   for (const r of rows) {
     for (const c of cols) {
@@ -212,7 +256,11 @@ function placeColumnPair(
   }
 }
 
-function placeDataBits(matrix: (boolean | null)[][], fullCodewords: Uint8Array, dim: number): void {
+function placeDataBits(
+  matrix: (boolean | null)[][],
+  fullCodewords: Uint8Array,
+  dim: number,
+): void {
   const allBits = codewordsToBits(fullCodewords);
   const state = { bitIdx: 0 };
   let upwards = true;
@@ -243,7 +291,11 @@ function applyFormatInfo(matrix: (boolean | null)[][], dim: number): void {
   }
 }
 
-function renderSVG(matrix: (boolean | null)[][], dim: number, size: number): string {
+function renderSVG(
+  matrix: (boolean | null)[][],
+  dim: number,
+  size: number,
+): string {
   let pathD = "";
   const quietZone = 2;
   const viewBoxSize = dim + quietZone * 2;
