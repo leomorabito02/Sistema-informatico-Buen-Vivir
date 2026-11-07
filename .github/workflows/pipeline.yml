@@ -247,7 +247,7 @@ jobs:
         run: docker build -t auth:${{ github.sha }} -f auth/Dockerfile ./auth
 
       - name: Trivy image scan (block CRITICAL/HIGH)
-        uses: aquasecurity/trivy-action@v0.28.0
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
           image-ref: 'auth:${{ github.sha }}'
           format: 'table'
@@ -393,7 +393,7 @@ jobs:
         run: docker build -t education:${{ github.sha }} -f education/Dockerfile ./education
 
       - name: Trivy image scan (block CRITICAL/HIGH)
-        uses: aquasecurity/trivy-action@v0.28.0
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
           image-ref: 'education:${{ github.sha }}'
           format: 'table'
@@ -481,7 +481,7 @@ jobs:
         run: docker build -t rxresume:${{ github.sha }} -f rxresume/Dockerfile ./rxresume
 
       - name: Trivy image scan (block CRITICAL/HIGH)
-        uses: aquasecurity/trivy-action@v0.28.0
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
           image-ref: 'rxresume:${{ github.sha }}'
           format: 'table'
@@ -579,7 +579,7 @@ jobs:
         run: docker build -t human-promotion:${{ github.sha }} -f human-promotion/Dockerfile ./human-promotion
 
       - name: Trivy image scan (block CRITICAL/HIGH)
-        uses: aquasecurity/trivy-action@v0.28.0
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
           image-ref: 'human-promotion:${{ github.sha }}'
           format: 'table'
@@ -685,7 +685,7 @@ jobs:
         run: docker build -t campaigns:${{ github.sha }} -f campaigns/Dockerfile ./campaigns
 
       - name: Trivy image scan (block CRITICAL/HIGH)
-        uses: aquasecurity/trivy-action@v0.28.0
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
           image-ref: 'campaigns:${{ github.sha }}'
           format: 'table'
@@ -766,7 +766,7 @@ jobs:
         run: docker build -t notifications:${{ github.sha }} -f notifications/Dockerfile ./notifications
 
       - name: Trivy image scan (block CRITICAL/HIGH)
-        uses: aquasecurity/trivy-action@v0.28.0
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
           image-ref: 'notifications:${{ github.sha }}'
           format: 'table'
@@ -870,7 +870,7 @@ jobs:
         run: docker build -t dashboard:${{ github.sha }} -f dashboard/Dockerfile ./dashboard
 
       - name: Trivy image scan (block CRITICAL/HIGH)
-        uses: aquasecurity/trivy-action@v0.28.0
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
           image-ref: 'dashboard:${{ github.sha }}'
           format: 'table'
@@ -975,7 +975,7 @@ jobs:
         run: docker build -t labor-integration:${{ github.sha }} -f labor-integration/Dockerfile ./labor-integration
 
       - name: Trivy image scan (block CRITICAL/HIGH)
-        uses: aquasecurity/trivy-action@v0.28.0
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
           image-ref: 'labor-integration:${{ github.sha }}'
           format: 'table'
