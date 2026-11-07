@@ -363,6 +363,7 @@ describe("HeaderComponent", () => {
     });
 
     it("resolves relative and localhost api urls correctly", () => {
+      create({});
       expect(component.resolveImageUrl(null)).toBe("");
       expect(component.resolveImageUrl("")).toBe("");
       expect(
