@@ -7,20 +7,23 @@ import (
 )
 
 type Config struct {
-	Port                    string
-	GRPCPort                string
-	AuthGRPCURL             string
-	ResendAPIKey            string
-	ResendFrom              string
-	ResendFromNotifications string
-	ResendFromAlerts        string
-	DatabaseURL             string
-	InternalHMACSecret      string
-	PubSubPushAudience      string
+	Port                      string
+	GRPCPort                  string
+	AuthGRPCURL               string
+	AuthServiceURL            string
+	UpstreamIDToken           bool
+	JWTSecret                 string
+	ResendAPIKey              string
+	ResendFrom                string
+	ResendFromNotifications   string
+	ResendFromAlerts          string
+	DatabaseURL               string
+	InternalHMACSecret        string
+	PubSubPushAudience        string
 	PubSubPushServiceAccounts []string
-	PubSubPushAuth          string
-	FrontendURL             string
-	Environment             string
+	PubSubPushAuth            string
+	FrontendURL               string
+	Environment               string
 }
 
 func LoadConfig() *Config {
@@ -36,8 +39,14 @@ func LoadConfig() *Config {
 		grpcPort = "50052"
 	}
 
-	authGRPCURL := os.Getenv("AUTH_GRPC_URL")
-	if authGRPCURL == "" {
+	env := strings.TrimSpace(os.Getenv("ENV"))
+	if env == "" {
+		env = strings.TrimSpace(os.Getenv("APP_ENV"))
+	}
+
+	authServiceURL := strings.TrimRight(strings.TrimSpace(os.Getenv("AUTH_SERVICE_URL")), "/")
+	authGRPCURL := strings.TrimSpace(os.Getenv("AUTH_GRPC_URL"))
+	if authGRPCURL == "" && authServiceURL == "" && env != "production" && env != "testing" {
 		authGRPCURL = "localhost:50051"
 	}
 
@@ -62,20 +71,23 @@ func LoadConfig() *Config {
 	}
 
 	return &Config{
-		Port:                    port,
-		GRPCPort:                grpcPort,
-		AuthGRPCURL:             authGRPCURL,
-		ResendAPIKey:            os.Getenv("RESEND_API_KEY"),
-		ResendFrom:              resendFrom,
-		ResendFromNotifications: resendFromNotifications,
-		ResendFromAlerts:        resendFromAlerts,
-		DatabaseURL:             os.Getenv("DATABASE_URL_NOTIFICATIONS"),
-		InternalHMACSecret:      os.Getenv("INTERNAL_HMAC_SECRET"),
-		PubSubPushAudience:      strings.TrimSpace(os.Getenv("PUBSUB_PUSH_AUDIENCE")),
+		Port:                      port,
+		GRPCPort:                  grpcPort,
+		AuthGRPCURL:               authGRPCURL,
+		AuthServiceURL:            authServiceURL,
+		UpstreamIDToken:           strings.EqualFold(strings.TrimSpace(os.Getenv("UPSTREAM_ID_TOKEN")), "true"),
+		JWTSecret:                 strings.TrimSpace(os.Getenv("JWT_SECRET")),
+		ResendAPIKey:              os.Getenv("RESEND_API_KEY"),
+		ResendFrom:                resendFrom,
+		ResendFromNotifications:   resendFromNotifications,
+		ResendFromAlerts:          resendFromAlerts,
+		DatabaseURL:               os.Getenv("DATABASE_URL_NOTIFICATIONS"),
+		InternalHMACSecret:        os.Getenv("INTERNAL_HMAC_SECRET"),
+		PubSubPushAudience:        strings.TrimSpace(os.Getenv("PUBSUB_PUSH_AUDIENCE")),
 		PubSubPushServiceAccounts: splitCommaList(os.Getenv("PUBSUB_PUSH_SERVICE_ACCOUNTS")),
-		PubSubPushAuth:          strings.TrimSpace(os.Getenv("PUBSUB_PUSH_AUTH")),
-		FrontendURL:             frontendURL,
-		Environment:             strings.TrimSpace(os.Getenv("ENV")),
+		PubSubPushAuth:            strings.TrimSpace(os.Getenv("PUBSUB_PUSH_AUTH")),
+		FrontendURL:               frontendURL,
+		Environment:               env,
 	}
 }
 

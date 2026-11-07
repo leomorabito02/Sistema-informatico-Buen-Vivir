@@ -1,0 +1,46 @@
+version: 2
+updates:
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+  - package-ecosystem: "npm"
+    directory: "/frontend"
+    schedule:
+      interval: "weekly"
+  - package-ecosystem: "gomod"
+    directory: "/auth"
+    schedule:
+      interval: "weekly"
+  - package-ecosystem: "gomod"
+    directory: "/education"
+    schedule:
+      interval: "weekly"
+  - package-ecosystem: "gomod"
+    directory: "/notifications"
+    schedule:
+      interval: "weekly"
+  - package-ecosystem: "gomod"
+    directory: "/human-promotion"
+    schedule:
+      interval: "weekly"
+  - package-ecosystem: "gomod"
+    directory: "/campaigns"
+    schedule:
+      interval: "weekly"
+  - package-ecosystem: "gomod"
+    directory: "/dashboard"
+    schedule:
+      interval: "weekly"
+  - package-ecosystem: "gomod"
+    directory: "/labor-integration"
+    schedule:
+      interval: "weekly"
+  - package-ecosystem: "gomod"
+    directory: "/rxresume"
+    schedule:
+      interval: "weekly"
+  - package-ecosystem: "gomod"
+    directory: "/pkg"
+    schedule:
+      interval: "weekly"

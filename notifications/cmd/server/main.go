@@ -5,6 +5,7 @@ import (
 	"log"
 	"net"
 	"net/http"
+	"sync"
 
 	"buenvivir/notifications/api/proto/notificationpb"
 	"buenvivir/notifications/internal/audience"
@@ -22,6 +23,8 @@ import (
 	"buenvivir/notifications/internal/store"
 	"buenvivir/notifications/internal/templates"
 
+	"golang.org/x/oauth2"
+	"google.golang.org/api/idtoken"
 	"google.golang.org/grpc"
 	"gorm.io/gorm"
 )
@@ -66,14 +69,28 @@ func main() {
 		serviceOpts = append(serviceOpts, services.WithPushService(fcmSvc))
 	}
 
-	// 3. Auth gRPC Client for Device Tokens
-	authCl, err := clients.NewAuthClient(cfg.AuthGRPCURL)
-	if err != nil {
-		log.Printf("Warning: failed to initialize Auth gRPC client for %s: %v", cfg.AuthGRPCURL, err)
-	} else {
-		log.Printf("Auth gRPC client connected to %s", cfg.AuthGRPCURL)
-		authClient = authCl
-		serviceOpts = append(serviceOpts, services.WithAuthClient(authCl))
+	// 3. Auth Client (HTTP in Cloud Run via AUTH_SERVICE_URL, gRPC in local Docker)
+	authTarget := cfg.AuthServiceURL
+	if authTarget == "" {
+		authTarget = cfg.AuthGRPCURL
+	}
+	if authTarget != "" {
+		var authIDToken func(context.Context) (string, error)
+		if cfg.UpstreamIDToken && cfg.AuthServiceURL != "" {
+			authIDToken = idTokenPara(context.Background(), cfg.AuthServiceURL)
+		}
+		authCl, err := clients.NewAuthClient(
+			authTarget,
+			clients.WithIDToken(authIDToken),
+			clients.WithJWTSecret(cfg.JWTSecret),
+		)
+		if err != nil {
+			log.Printf("Warning: failed to initialize Auth client for %s: %v", authTarget, err)
+		} else {
+			log.Printf("Auth client connected to %s", authTarget)
+			authClient = authCl
+			serviceOpts = append(serviceOpts, services.WithAuthClient(authCl))
+		}
 	}
 
 	// 4. HTML Template Engine (//go:embed)
@@ -184,4 +201,27 @@ func setupDatabase(dbURL string) *gorm.DB {
 
 	log.Println("Database connection pool initialized successfully.")
 	return db
+}
+
+func idTokenPara(ctx context.Context, audiencia string) func(context.Context) (string, error) {
+	var (
+		mu sync.Mutex
+		ts oauth2.TokenSource
+	)
+	return func(context.Context) (string, error) {
+		mu.Lock()
+		defer mu.Unlock()
+		if ts == nil {
+			s, err := idtoken.NewTokenSource(ctx, audiencia)
+			if err != nil {
+				return "", err
+			}
+			ts = s
+		}
+		tok, err := ts.Token()
+		if err != nil {
+			return "", err
+		}
+		return tok.AccessToken, nil
+	}
 }

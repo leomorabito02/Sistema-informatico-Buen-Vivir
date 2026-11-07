@@ -2,10 +2,15 @@ package middlewares
 
 import (
 	"context"
+	"crypto/hmac"
+	"crypto/sha256"
+	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"net/http"
+	"os"
 	"strings"
+	"time"
 )
 
 type contextKey string
@@ -17,22 +22,25 @@ const (
 
 var ErrUnauthorized = errors.New("unauthorized: missing user context")
 
-// AuthHeaders inspects identity headers injected by the API Gateway or Bearer token fallback.
+// AuthHeaders inspects identity headers injected by the API Gateway or validates a JWT token / Bearer fallback.
 func AuthHeaders(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		userID := strings.TrimSpace(r.Header.Get("X-User-ID"))
 		roleID := strings.TrimSpace(r.Header.Get("X-User-Role"))
 
-		// Development / fallback: allow query param user_id only in test/direct calls if explicitly passed,
-		// or allow Authorization / Cookie if X-User-ID is not yet set by an external proxy.
-		if userID == "" {
-			if authHeader := r.Header.Get("Authorization"); strings.HasPrefix(authHeader, "Bearer ") {
-				token := strings.TrimPrefix(authHeader, "Bearer ")
-				// If a raw user id is passed in local tests as token
-				if token != "" {
-					userID = token
-				}
+		rawToken := extractRequestToken(r)
+		jwtSecret := strings.TrimSpace(os.Getenv("JWT_SECRET"))
+
+		if rawToken != "" && jwtSecret != "" {
+			if sub, role, ok := parseHS256AccessToken(rawToken, jwtSecret); ok {
+				userID = sub
+				roleID = role
 			}
+		}
+
+		// Development / test fallback: allow raw Bearer token if X-User-ID is not set and JWT_SECRET is not enforced.
+		if userID == "" && jwtSecret == "" && rawToken != "" {
+			userID = rawToken
 		}
 
 		if userID == "" {
@@ -52,6 +60,51 @@ func AuthHeaders(next http.Handler) http.Handler {
 
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
+}
+
+func extractRequestToken(r *http.Request) string {
+	for _, cookieName := range []string{"__Host-access_token", "access_token"} {
+		if c, err := r.Cookie(cookieName); err == nil && strings.TrimSpace(c.Value) != "" {
+			return strings.TrimSpace(c.Value)
+		}
+	}
+	if authHeader := r.Header.Get("Authorization"); strings.HasPrefix(authHeader, "Bearer ") {
+		return strings.TrimSpace(strings.TrimPrefix(authHeader, "Bearer "))
+	}
+	return ""
+}
+
+func parseHS256AccessToken(token, secret string) (string, string, bool) {
+	parts := strings.Split(token, ".")
+	if len(parts) != 3 {
+		return "", "", false
+	}
+	mac := hmac.New(sha256.New, []byte(secret))
+	_, _ = mac.Write([]byte(parts[0] + "." + parts[1]))
+	sig, err := base64.RawURLEncoding.DecodeString(parts[2])
+	if err != nil || !hmac.Equal(sig, mac.Sum(nil)) {
+		return "", "", false
+	}
+	payloadBytes, err := base64.RawURLEncoding.DecodeString(parts[1])
+	if err != nil {
+		return "", "", false
+	}
+	var claims struct {
+		Sub  string  `json:"sub"`
+		Role string  `json:"role"`
+		Type string  `json:"type"`
+		Exp  float64 `json:"exp"`
+	}
+	if err := json.Unmarshal(payloadBytes, &claims); err != nil {
+		return "", "", false
+	}
+	if claims.Type != "access" || claims.Sub == "" {
+		return "", "", false
+	}
+	if claims.Exp > 0 && time.Now().Unix() > int64(claims.Exp) {
+		return "", "", false
+	}
+	return claims.Sub, claims.Role, true
 }
 
 // GetUserID retrieves the authenticated user ID from context.

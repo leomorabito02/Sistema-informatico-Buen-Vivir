@@ -9,7 +9,7 @@ COPY . .
 
 RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-s -w" -o server ./cmd/server/main.go
 
-FROM alpine:latest
+FROM alpine:3.21
 
 # Mismo criterio que human-promotion/Dockerfile: parches de seguridad de
 # la capa OS en cada build y usuario sin privilegios.

@@ -289,6 +289,10 @@ func main() {
 					r.Get("/participants/search", directoryController.SearchParticipants)
 					r.Post("/users/summaries", directoryController.GetUserSummaries)
 				})
+				r.Route("/internal", func(r chi.Router) {
+					r.Use(middlewares.RequireRole("role_admin", "role_dev"))
+					grpcAuthController.RegisterInternalRoutes(r)
+				})
 			})
 		})
 	})
