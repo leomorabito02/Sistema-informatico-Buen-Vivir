@@ -4205,6 +4205,362 @@ paths:
               type: boolean
             Access-Control-Max-Age:
               type: integer
+  /api/v1/labor-integration/offers:
+    get:
+      summary: GET /api/v1/labor-integration/offers
+      operationId: get__api_v1_labor_integration_offers
+      x-google-backend:
+        address: ${LABOR_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+        jwt_audience: ${LABOR_SERVICE_URL}
+      responses:
+        '200':
+          description: OK
+    post:
+      summary: POST /api/v1/labor-integration/offers
+      operationId: post__api_v1_labor_integration_offers
+      x-google-backend:
+        address: ${LABOR_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+        jwt_audience: ${LABOR_SERVICE_URL}
+      responses:
+        '200':
+          description: OK
+    options:
+      summary: CORS preflight for /api/v1/labor-integration/offers
+      operationId: options__api_v1_labor_integration_offers
+      x-google-backend:
+        address: ${LABOR_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+        jwt_audience: ${LABOR_SERVICE_URL}
+      responses:
+        '200':
+          description: OK
+          headers:
+            Access-Control-Allow-Origin:
+              type: string
+            Access-Control-Allow-Methods:
+              type: string
+            Access-Control-Allow-Headers:
+              type: string
+            Access-Control-Expose-Headers:
+              type: string
+            Access-Control-Allow-Credentials:
+              type: boolean
+            Access-Control-Max-Age:
+              type: integer
+  /api/v1/labor-integration/offers/{id}:
+    parameters:
+    - name: id
+      in: path
+      required: true
+      type: string
+    put:
+      summary: PUT /api/v1/labor-integration/offers/{id}
+      operationId: put__api_v1_labor_integration_offers_id
+      x-google-backend:
+        address: ${LABOR_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+        jwt_audience: ${LABOR_SERVICE_URL}
+      responses:
+        '200':
+          description: OK
+    delete:
+      summary: DELETE /api/v1/labor-integration/offers/{id}
+      operationId: delete__api_v1_labor_integration_offers_id
+      x-google-backend:
+        address: ${LABOR_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+        jwt_audience: ${LABOR_SERVICE_URL}
+      responses:
+        '200':
+          description: OK
+    options:
+      summary: CORS preflight for /api/v1/labor-integration/offers/{id}
+      operationId: options__api_v1_labor_integration_offers_id
+      x-google-backend:
+        address: ${LABOR_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+        jwt_audience: ${LABOR_SERVICE_URL}
+      responses:
+        '200':
+          description: OK
+          headers:
+            Access-Control-Allow-Origin:
+              type: string
+            Access-Control-Allow-Methods:
+              type: string
+            Access-Control-Allow-Headers:
+              type: string
+            Access-Control-Expose-Headers:
+              type: string
+            Access-Control-Allow-Credentials:
+              type: boolean
+            Access-Control-Max-Age:
+              type: integer
+  /api/v1/labor-integration/offers/{id}/approve:
+    parameters:
+    - name: id
+      in: path
+      required: true
+      type: string
+    put:
+      summary: PUT /api/v1/labor-integration/offers/{id}/approve
+      operationId: put__api_v1_labor_integration_offers_id_approve
+      x-google-backend:
+        address: ${LABOR_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+        jwt_audience: ${LABOR_SERVICE_URL}
+      responses:
+        '200':
+          description: OK
+    options:
+      summary: CORS preflight for /api/v1/labor-integration/offers/{id}/approve
+      operationId: options__api_v1_labor_integration_offers_id_approve
+      x-google-backend:
+        address: ${LABOR_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+        jwt_audience: ${LABOR_SERVICE_URL}
+      responses:
+        '200':
+          description: OK
+          headers:
+            Access-Control-Allow-Origin:
+              type: string
+            Access-Control-Allow-Methods:
+              type: string
+            Access-Control-Allow-Headers:
+              type: string
+            Access-Control-Expose-Headers:
+              type: string
+            Access-Control-Allow-Credentials:
+              type: boolean
+            Access-Control-Max-Age:
+              type: integer
+  /api/v1/labor-integration/offers/{id}/reject:
+    parameters:
+    - name: id
+      in: path
+      required: true
+      type: string
+    put:
+      summary: PUT /api/v1/labor-integration/offers/{id}/reject
+      operationId: put__api_v1_labor_integration_offers_id_reject
+      x-google-backend:
+        address: ${LABOR_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+        jwt_audience: ${LABOR_SERVICE_URL}
+      responses:
+        '200':
+          description: OK
+    options:
+      summary: CORS preflight for /api/v1/labor-integration/offers/{id}/reject
+      operationId: options__api_v1_labor_integration_offers_id_reject
+      x-google-backend:
+        address: ${LABOR_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+        jwt_audience: ${LABOR_SERVICE_URL}
+      responses:
+        '200':
+          description: OK
+          headers:
+            Access-Control-Allow-Origin:
+              type: string
+            Access-Control-Allow-Methods:
+              type: string
+            Access-Control-Allow-Headers:
+              type: string
+            Access-Control-Expose-Headers:
+              type: string
+            Access-Control-Allow-Credentials:
+              type: boolean
+            Access-Control-Max-Age:
+              type: integer
+  /api/v1/labor-integration/offers/{id}/applications:
+    parameters:
+    - name: id
+      in: path
+      required: true
+      type: string
+    get:
+      summary: GET /api/v1/labor-integration/offers/{id}/applications
+      operationId: get__api_v1_labor_integration_offers_id_applications
+      x-google-backend:
+        address: ${LABOR_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+        jwt_audience: ${LABOR_SERVICE_URL}
+      responses:
+        '200':
+          description: OK
+    options:
+      summary: CORS preflight for /api/v1/labor-integration/offers/{id}/applications
+      operationId: options__api_v1_labor_integration_offers_id_applications
+      x-google-backend:
+        address: ${LABOR_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+        jwt_audience: ${LABOR_SERVICE_URL}
+      responses:
+        '200':
+          description: OK
+          headers:
+            Access-Control-Allow-Origin:
+              type: string
+            Access-Control-Allow-Methods:
+              type: string
+            Access-Control-Allow-Headers:
+              type: string
+            Access-Control-Expose-Headers:
+              type: string
+            Access-Control-Allow-Credentials:
+              type: boolean
+            Access-Control-Max-Age:
+              type: integer
+  /api/v1/labor-integration/applications/me:
+    get:
+      summary: GET /api/v1/labor-integration/applications/me
+      operationId: get__api_v1_labor_integration_applications_me
+      x-google-backend:
+        address: ${LABOR_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+        jwt_audience: ${LABOR_SERVICE_URL}
+      responses:
+        '200':
+          description: OK
+    options:
+      summary: CORS preflight for /api/v1/labor-integration/applications/me
+      operationId: options__api_v1_labor_integration_applications_me
+      x-google-backend:
+        address: ${LABOR_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+        jwt_audience: ${LABOR_SERVICE_URL}
+      responses:
+        '200':
+          description: OK
+          headers:
+            Access-Control-Allow-Origin:
+              type: string
+            Access-Control-Allow-Methods:
+              type: string
+            Access-Control-Allow-Headers:
+              type: string
+            Access-Control-Expose-Headers:
+              type: string
+            Access-Control-Allow-Credentials:
+              type: boolean
+            Access-Control-Max-Age:
+              type: integer
+  /api/v1/labor-integration/applications:
+    post:
+      summary: POST /api/v1/labor-integration/applications
+      operationId: post__api_v1_labor_integration_applications
+      x-google-backend:
+        address: ${LABOR_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+        jwt_audience: ${LABOR_SERVICE_URL}
+      responses:
+        '200':
+          description: OK
+    options:
+      summary: CORS preflight for /api/v1/labor-integration/applications
+      operationId: options__api_v1_labor_integration_applications
+      x-google-backend:
+        address: ${LABOR_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+        jwt_audience: ${LABOR_SERVICE_URL}
+      responses:
+        '200':
+          description: OK
+          headers:
+            Access-Control-Allow-Origin:
+              type: string
+            Access-Control-Allow-Methods:
+              type: string
+            Access-Control-Allow-Headers:
+              type: string
+            Access-Control-Expose-Headers:
+              type: string
+            Access-Control-Allow-Credentials:
+              type: boolean
+            Access-Control-Max-Age:
+              type: integer
+  /api/v1/labor-integration/applications/{id}:
+    parameters:
+    - name: id
+      in: path
+      required: true
+      type: string
+    delete:
+      summary: DELETE /api/v1/labor-integration/applications/{id}
+      operationId: delete__api_v1_labor_integration_applications_id
+      x-google-backend:
+        address: ${LABOR_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+        jwt_audience: ${LABOR_SERVICE_URL}
+      responses:
+        '200':
+          description: OK
+    options:
+      summary: CORS preflight for /api/v1/labor-integration/applications/{id}
+      operationId: options__api_v1_labor_integration_applications_id
+      x-google-backend:
+        address: ${LABOR_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+        jwt_audience: ${LABOR_SERVICE_URL}
+      responses:
+        '200':
+          description: OK
+          headers:
+            Access-Control-Allow-Origin:
+              type: string
+            Access-Control-Allow-Methods:
+              type: string
+            Access-Control-Allow-Headers:
+              type: string
+            Access-Control-Expose-Headers:
+              type: string
+            Access-Control-Allow-Credentials:
+              type: boolean
+            Access-Control-Max-Age:
+              type: integer
+  /api/v1/labor-integration/applications/{id}/status:
+    parameters:
+    - name: id
+      in: path
+      required: true
+      type: string
+    put:
+      summary: PUT /api/v1/labor-integration/applications/{id}/status
+      operationId: put__api_v1_labor_integration_applications_id_status
+      x-google-backend:
+        address: ${LABOR_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+        jwt_audience: ${LABOR_SERVICE_URL}
+      responses:
+        '200':
+          description: OK
+    options:
+      summary: CORS preflight for /api/v1/labor-integration/applications/{id}/status
+      operationId: options__api_v1_labor_integration_applications_id_status
+      x-google-backend:
+        address: ${LABOR_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+        jwt_audience: ${LABOR_SERVICE_URL}
+      responses:
+        '200':
+          description: OK
+          headers:
+            Access-Control-Allow-Origin:
+              type: string
+            Access-Control-Allow-Methods:
+              type: string
+            Access-Control-Allow-Headers:
+              type: string
+            Access-Control-Expose-Headers:
+              type: string
+            Access-Control-Allow-Credentials:
+              type: boolean
+            Access-Control-Max-Age:
+              type: integer
 securityDefinitions:
   jwt:
     type: apiKey

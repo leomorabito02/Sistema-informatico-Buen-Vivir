@@ -9,7 +9,7 @@ COPY . .
 
 RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-s -w" -o server ./cmd/server/main.go
 
-FROM alpine:latest
+FROM alpine:3.21
 
 # apk upgrade trae los parches de seguridad más recientes de los paquetes
 # base (ej. openssl) en cada build — el mismo criterio que auth/Dockerfile,

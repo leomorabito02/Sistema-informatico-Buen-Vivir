@@ -5,11 +5,14 @@ import (
 	"log"
 	"log/slog"
 	"net/http"
-	"os"
+	"sync"
 
 	"cloud.google.com/go/firestore"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
+	"golang.org/x/oauth2"
+	"google.golang.org/api/idtoken"
+	"google.golang.org/api/option"
 
 	"buenvivir/labor-integration/internal/config"
 	"buenvivir/labor-integration/internal/controllers"
@@ -23,32 +26,47 @@ import (
 
 func main() {
 	ctx := context.Background()
+	cfg := config.LoadConfig()
+
+	googleCredentials, err := config.GoogleCredentialsJSON()
+	if err != nil {
+		log.Fatalf("invalid Google credentials: %v", err)
+	}
 
 	firestoreClient, err := config.NewFirestoreClient(ctx)
 	if err != nil {
 		log.Fatalf("failed to initialize Firestore: %v", err)
 	}
-	defer firestoreClient.Close()
+	defer func() { _ = firestoreClient.Close() }()
 
-	// gRPC Client
-	authTarget := os.Getenv("AUTH_SERVICE_GRPC_TARGET")
+	// Auth Client (HTTP in Cloud Run via AUTH_SERVICE_URL, gRPC in local Docker)
+	authTarget := cfg.AuthServiceURL
 	if authTarget == "" {
-		authTarget = "auth-service:50051" // Default
+		authTarget = cfg.AuthServiceGRPCTarget
 	}
-	authServiceClient, err := repositories.NewAuthServiceClient(authTarget)
+	if authTarget == "" {
+		log.Fatalf("invalid configuration: missing AUTH_SERVICE_URL or AUTH_SERVICE_GRPC_TARGET")
+	}
+	var authIDToken func(context.Context) (string, error)
+	if cfg.UpstreamIDToken && cfg.AuthServiceURL != "" {
+		authIDToken = idTokenPara(ctx, cfg.AuthServiceURL)
+	}
+	authServiceClient, err := repositories.NewAuthServiceClient(
+		authTarget,
+		repositories.WithAuthIDToken(authIDToken),
+		repositories.WithAuthJWTSecret(cfg.JWTSecret),
+	)
 	if err != nil {
 		log.Fatalf("failed to initialize auth service client: %v", err)
 	}
+	defer func() { _ = authServiceClient.Close() }()
 
 	// Repositories
 	jobOfferRepo := repositories.NewJobOfferRepository(firestoreClient)
 	jobApplicationRepo := repositories.NewJobApplicationRepository(firestoreClient)
 
-	// Configuration
-	cfg := config.LoadConfig()
-
 	// Mensajería asíncrona (docs/eventos/README.md).
-	relay := startRelay(ctx, cfg, firestoreClient)
+	relay := startRelay(ctx, cfg, firestoreClient, googleCredentials)
 	var writer *outbox.Writer
 	if relay != nil {
 		writer = outbox.NewWriter(firestoreClient, events.ProducerInsercionLaboral, relay.Notify)
@@ -82,27 +100,49 @@ func main() {
 		JobApplication: jobApplicationController,
 	})
 
-	port := os.Getenv("PORT")
-	if port == "" {
-		port = "8080"
-	}
-
-	log.Printf("Labor Integration Service listening on port %s", port)
-	if err := http.ListenAndServe(":"+port, r); err != nil {
+	log.Printf("Labor Integration Service listening on port %s", cfg.Port)
+	if err := http.ListenAndServe(":"+cfg.Port, r); err != nil {
 		log.Fatalf("failed to start server: %v", err)
 	}
 }
 
-func startRelay(ctx context.Context, cfg *config.Config, client *firestore.Client) *outbox.Relay {
+func startRelay(ctx context.Context, cfg *config.Config, client *firestore.Client, googleCredentials []byte) *outbox.Relay {
 	if !cfg.Events.PublishEnabled() {
 		log.Println("PUBSUB_PROJECT_ID vacío: labor-integration no publica eventos")
 		return nil
 	}
-	publisher, err := outbox.NewPubSubPublisher(ctx, cfg.Events.ProjectID)
+	var opts []option.ClientOption
+	if googleCredentials != nil {
+		opts = append(opts, option.WithCredentialsJSON(googleCredentials)) //nolint:staticcheck // inline credentials injected in Cloud Run CD
+	}
+	publisher, err := outbox.NewPubSubPublisher(ctx, cfg.Events.ProjectID, opts...)
 	if err != nil {
 		log.Fatalf("no se pudo inicializar Pub/Sub: %v", err)
 	}
 	relay := outbox.NewRelay(client, publisher, slog.Default())
 	go relay.Run(ctx)
 	return relay
+}
+
+func idTokenPara(ctx context.Context, audiencia string) func(context.Context) (string, error) {
+	var (
+		mu sync.Mutex
+		ts oauth2.TokenSource
+	)
+	return func(context.Context) (string, error) {
+		mu.Lock()
+		defer mu.Unlock()
+		if ts == nil {
+			s, err := idtoken.NewTokenSource(ctx, audiencia)
+			if err != nil {
+				return "", err
+			}
+			ts = s
+		}
+		tok, err := ts.Token()
+		if err != nil {
+			return "", err
+		}
+		return tok.AccessToken, nil
+	}
 }

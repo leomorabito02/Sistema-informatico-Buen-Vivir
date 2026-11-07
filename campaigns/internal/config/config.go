@@ -45,9 +45,6 @@ func LoadConfig() *Config {
 		port = DefaultPort
 	}
 	notifURL := strings.TrimSpace(os.Getenv("NOTIFICATIONS_SERVICE_URL"))
-	if notifURL == "" {
-		notifURL = "http://notifications-service:8080"
-	}
 	topic := strings.TrimSpace(os.Getenv("PUBSUB_TOPIC_CAMPANAS"))
 	if topic == "" {
 		topic = "campanas-eventos"
