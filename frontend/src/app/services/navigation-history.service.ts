@@ -95,8 +95,6 @@ export class NavigationHistoryService {
           window.location.href = target;
         }
       });
-    } else if (typeof window !== "undefined" && window.history.length > 1) {
-      window.history.back();
     } else {
       void this.router.navigate(["/"]);
     }
