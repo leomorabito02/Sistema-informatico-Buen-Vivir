@@ -3,13 +3,11 @@ package middlewares
 import (
 	"log/slog"
 	"net/http"
-	"strings"
 	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/httprate"
-	"github.com/rs/cors"
 )
 
 // SetupMiddlewares configura los middlewares globales con el mismo
@@ -17,20 +15,7 @@ import (
 // id, recoverer, log JSON por request, headers de seguridad y límite de
 // pedidos por IP.
 func SetupMiddlewares(r *chi.Mux, allowedOriginsEnv string) {
-	var allowedOrigins []string
-	for _, o := range strings.Split(allowedOriginsEnv, ",") {
-		if trimmed := strings.TrimSpace(o); trimmed != "" {
-			allowedOrigins = append(allowedOrigins, trimmed)
-		}
-	}
-
-	r.Use(cors.New(cors.Options{
-		AllowedOrigins:   allowedOrigins,
-		AllowedMethods:   []string{"GET", "POST", "PUT", "OPTIONS"},
-		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-CSRF-Token", "X-Requested-With", "X-Skip-Global-Error", "X-Redirect-On-404", "X-Skip-500-Redirect"},
-		AllowCredentials: true,
-		MaxAge:           300,
-	}).Handler)
+	r.Use(CORS(ParseOrigins(allowedOriginsEnv)))
 
 	r.Use(middleware.RequestID)
 	r.Use(middleware.RealIP) //nolint:staticcheck // RealIP se usa solo para logging; el gateway ya sanea X-Forwarded-For

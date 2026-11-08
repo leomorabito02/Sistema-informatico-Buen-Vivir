@@ -4,35 +4,15 @@ import (
 	"log/slog"
 	"net/http"
 	"os"
-	"strings"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
-	"github.com/rs/cors"
 )
 
 // SetupMiddlewares configures global middlewares for the application
 func SetupMiddlewares(r *chi.Mux) {
-	// CORS Configuration (Must be registered first to process OPTIONS preflight requests)
-	allowedOriginsEnv := os.Getenv("CORS_ALLOWED_ORIGINS")
-	var allowedOrigins []string
-	if allowedOriginsEnv != "" {
-		for _, o := range strings.Split(allowedOriginsEnv, ",") {
-			if trimmed := strings.TrimSpace(o); trimmed != "" {
-				allowedOrigins = append(allowedOrigins, trimmed)
-			}
-		}
-	}
-
-	corsMiddleware := cors.New(cors.Options{
-		AllowedOrigins:   allowedOrigins,
-		AllowedMethods:   []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
-		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-CSRF-Token", "X-Requested-With", "X-Skip-Global-Error", "X-Redirect-On-404", "X-Skip-500-Redirect"},
-		ExposedHeaders:   []string{"Link", "Set-Cookie"},
-		AllowCredentials: true,
-		MaxAge:           300,
-	})
-	r.Use(corsMiddleware.Handler)
+	// CORS primero: contesta el preflight (OPTIONS) antes que el resto.
+	r.Use(CORS(ParseOrigins(os.Getenv("CORS_ALLOWED_ORIGINS"))))
 
 	// Standard chi middlewares
 	r.Use(middleware.RequestID)
