@@ -7,7 +7,6 @@ require (
 	github.com/go-chi/chi/v5 v5.3.1
 	github.com/go-chi/httprate v0.16.0
 	github.com/golang-jwt/jwt/v5 v5.3.1
-	github.com/rs/cors v1.11.1
 	google.golang.org/api v0.287.1
 	google.golang.org/grpc v1.83.2
 )
