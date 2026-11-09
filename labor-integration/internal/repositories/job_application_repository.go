@@ -111,7 +111,7 @@ func (r *jobApplicationRepository) ListByParticipant(ctx context.Context, partic
 func (r *jobApplicationRepository) GetByID(ctx context.Context, applicationID string) (*models.JobApplication, error) {
 	doc, err := r.client.Collection("job_applications").Doc(applicationID).Get(ctx)
 	if err != nil {
-		return nil, err
+		return nil, notFoundAs(err, ErrApplicationNotFound)
 	}
 	var app models.JobApplication
 	if err := doc.DataTo(&app); err != nil {

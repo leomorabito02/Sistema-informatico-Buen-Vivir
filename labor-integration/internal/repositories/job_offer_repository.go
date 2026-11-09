@@ -88,7 +88,7 @@ func (r *jobOfferRepository) UpdateStatusAndApprover(ctx context.Context, id str
 func (r *jobOfferRepository) GetByID(ctx context.Context, id string) (*models.JobOffer, error) {
 	doc, err := r.client.Collection("job_offers").Doc(id).Get(ctx)
 	if err != nil {
-		return nil, err
+		return nil, notFoundAs(err, ErrOfferNotFound)
 	}
 	var offer models.JobOffer
 	if err := doc.DataTo(&offer); err != nil {

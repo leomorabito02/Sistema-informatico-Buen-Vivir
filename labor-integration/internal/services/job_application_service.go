@@ -114,10 +114,16 @@ func (s *JobApplicationService) UpdateStatus(ctx context.Context, applicationID 
 	if err != nil {
 		return err
 	}
-	
+	if app == nil {
+		return repositories.ErrApplicationNotFound
+	}
+
 	offer, err := s.offerRepo.GetByID(ctx, app.OfferID)
 	if err != nil {
 		return err
+	}
+	if offer == nil {
+		return repositories.ErrOfferNotFound
 	}
 	
 	if offer.CompanyID != companyID {
@@ -176,6 +182,9 @@ func (s *JobApplicationService) DeleteApplication(ctx context.Context, appID str
 	app, err := s.repo.GetByID(ctx, appID)
 	if err != nil {
 		return err
+	}
+	if app == nil {
+		return repositories.ErrApplicationNotFound
 	}
 
 	if role != "role_admin" && role != "role_volunteer" {
