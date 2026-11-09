@@ -1,0 +1,72 @@
+{
+  "aprobado": true,
+  "curso": "2JZGXIRiem6pKyTSzyLCuh",
+  "pasos": [
+    {
+      "paso": "Hay área formativa y material en Contentful testing",
+      "ok": true,
+      "detalle": ""
+    },
+    {
+      "paso": "1. El admin crea el curso en Contentful (borrador)",
+      "ok": true,
+      "detalle": "201, id 2JZGXIRiem6pKyTSzyLCuh"
+    },
+    {
+      "paso": "2. El admin publica el curso",
+      "ok": true,
+      "detalle": "200"
+    },
+    {
+      "paso": "2. El curso publicado se lee desde la CDA",
+      "ok": true,
+      "detalle": ""
+    },
+    {
+      "paso": "3. El admin crea una actividad",
+      "ok": true,
+      "detalle": "201"
+    },
+    {
+      "paso": "3. Le asigna una habilidad",
+      "ok": true,
+      "detalle": "200"
+    },
+    {
+      "paso": "4. El admin inscribe al participante (HU-18)",
+      "ok": true,
+      "detalle": ""
+    },
+    {
+      "paso": "5. El participante ve el curso entre los suyos",
+      "ok": true,
+      "detalle": ""
+    },
+    {
+      "paso": "5. El participante entrega la actividad (HU-19bis)",
+      "ok": true,
+      "detalle": "201"
+    },
+    {
+      "paso": "6. La entrega registró la asistencia (HU-19)",
+      "ok": true,
+      "detalle": ""
+    },
+    {
+      "paso": "6. La entrega otorgó la habilidad",
+      "ok": true,
+      "detalle": ""
+    },
+    {
+      "paso": "7. El docente responsable ve el progreso (HU-20)",
+      "ok": true,
+      "detalle": "200"
+    },
+    {
+      "paso": "8. El admin da de baja el curso (HU-16)",
+      "ok": true,
+      "detalle": "204"
+    }
+  ],
+  "fecha": "2026-10-26T02:45:11Z"
+}

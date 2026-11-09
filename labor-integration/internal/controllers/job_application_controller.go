@@ -2,10 +2,13 @@ package controllers
 
 import (
 	"encoding/json"
+	"errors"
+	"log/slog"
 	"net/http"
 
 	"buenvivir/labor-integration/internal/dto"
 	"buenvivir/labor-integration/internal/models"
+	"buenvivir/labor-integration/internal/repositories"
 	"buenvivir/labor-integration/internal/services"
 
 	"github.com/go-chi/chi/v5"
@@ -80,7 +83,7 @@ func (c *JobApplicationController) ListMine(w http.ResponseWriter, r *http.Reque
 
 	applications, err := c.service.ListByParticipant(r.Context(), userID)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		writeApplicationError(w, r, "list my applications", err)
 		return
 	}
 
@@ -108,7 +111,7 @@ func (c *JobApplicationController) UpdateStatus(w http.ResponseWriter, r *http.R
 			http.Error(w, err.Error(), http.StatusForbidden)
 			return
 		}
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		writeApplicationError(w, r, "update application status", err)
 		return
 	}
 
@@ -126,10 +129,27 @@ func (c *JobApplicationController) Delete(w http.ResponseWriter, r *http.Request
 			http.Error(w, err.Error(), http.StatusForbidden)
 			return
 		}
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		writeApplicationError(w, r, "delete application", err)
 		return
 	}
 
 	w.WriteHeader(http.StatusNoContent)
+}
+
+// writeApplicationError responde 404 si la postulación (o su oferta) no
+// existe y, ante cualquier otro error, 500 con un mensaje genérico: el
+// detalle queda solo en el log para no exponer información interna
+// (alerta 90022 de ZAP, "Application Error Disclosure").
+func writeApplicationError(w http.ResponseWriter, r *http.Request, op string, err error) {
+	switch {
+	case errors.Is(err, repositories.ErrApplicationNotFound):
+		http.Error(w, "application not found", http.StatusNotFound)
+	case errors.Is(err, repositories.ErrOfferNotFound):
+		http.Error(w, "offer not found", http.StatusNotFound)
+	default:
+		slog.ErrorContext(r.Context(), "job application request failed",
+			slog.String("operation", op), slog.String("error", err.Error()))
+		http.Error(w, "internal server error", http.StatusInternalServerError)
+	}
 }
 
