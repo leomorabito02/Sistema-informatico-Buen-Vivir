@@ -1,0 +1,259 @@
+{
+    "root_group": {
+        "name": "",
+        "path": "",
+        "id": "d41d8cd98f00b204e9800998ecf8427e",
+        "groups": {},
+        "checks": {
+                "gateway /api/salud -> 200": {
+                    "id": "45d58b1235a2faf5e60410ee6e750a2b",
+                    "passes": 2,
+                    "fails": 71,
+                    "name": "gateway /api/salud -> 200",
+                    "path": "::gateway /api/salud -> 200"
+                },
+                "gateway /api/cursos -> 401": {
+                    "name": "gateway /api/cursos -> 401",
+                    "path": "::gateway /api/cursos -> 401",
+                    "id": "fa8a7467291647246f9d9e8eda27c8d8",
+                    "passes": 1,
+                    "fails": 57
+                },
+                "biblioteca 200": {
+                    "passes": 2,
+                    "fails": 119,
+                    "name": "biblioteca 200",
+                    "path": "::biblioteca 200",
+                    "id": "62fbd9c287dba5d282baf5a5c6e14bf0"
+                },
+                "edu cursos sin token -> 401 (o 429)": {
+                    "fails": 0,
+                    "name": "edu cursos sin token -> 401 (o 429)",
+                    "path": "::edu cursos sin token -> 401 (o 429)",
+                    "id": "6129550749e870fefc12fc56f3e3273d",
+                    "passes": 69902
+                },
+                "edu salud -> 200 (o 429)": {
+                    "fails": 0,
+                    "name": "edu salud -> 200 (o 429)",
+                    "path": "::edu salud -> 200 (o 429)",
+                    "id": "6e13a89142a1e975e53e1aad46f34722",
+                    "passes": 70440
+                },
+                "ph health -> 200 (o 429)": {
+                    "passes": 69900,
+                    "fails": 0,
+                    "name": "ph health -> 200 (o 429)",
+                    "path": "::ph health -> 200 (o 429)",
+                    "id": "3ef985220dce3c2d76debcefb95de472"
+                },
+                "edu participante sin token -> 401 (o 429)": {
+                    "name": "edu participante sin token -> 401 (o 429)",
+                    "path": "::edu participante sin token -> 401 (o 429)",
+                    "id": "ec59a8aa15a86b0b48de66c24689f659",
+                    "passes": 70053,
+                    "fails": 0
+                },
+                "ph fichas sin token -> 401 (o 429)": {
+                    "id": "a02d1b7ed6efd1ef5b396bc59f823fb6",
+                    "passes": 69903,
+                    "fails": 0,
+                    "name": "ph fichas sin token -> 401 (o 429)",
+                    "path": "::ph fichas sin token -> 401 (o 429)"
+                },
+                "gateway /api/v1/users -> 401": {
+                    "name": "gateway /api/v1/users -> 401",
+                    "path": "::gateway /api/v1/users -> 401",
+                    "id": "6a0c2147c0ac8b90fe7aa362e07c127c",
+                    "passes": 62,
+                    "fails": 0
+                },
+                "gateway /api/v1/campaigns/publicas -> 200": {
+                    "id": "ccc83f14b5dd04de5f77d1ab6ff9e198",
+                    "passes": 63,
+                    "fails": 0,
+                    "name": "gateway /api/v1/campaigns/publicas -> 200",
+                    "path": "::gateway /api/v1/campaigns/publicas -> 200"
+                },
+                "gateway /health -> 200": {
+                    "name": "gateway /health -> 200",
+                    "path": "::gateway /health -> 200",
+                    "id": "636c713923c9adf38671221fbe5ed450",
+                    "passes": 64,
+                    "fails": 0
+                }
+            }
+    },
+    "metrics": {
+        "http_req_duration{scenario:gateway}": {
+            "avg": 93.020611271875,
+            "min": 1.256262,
+            "med": 6.043752,
+            "max": 787.423256,
+            "p(90)": 376.20634950000016,
+            "p(95)": 709.27078725,
+            "thresholds": {
+                "p(95)<1500": false
+            }
+        },
+        "vus_max": {
+            "value": 60,
+            "min": 60,
+            "max": 60
+        },
+        "http_req_failed": {
+            "passes": 350305,
+            "fails": 334,
+            "value": 0.9990474533637159
+        },
+        "iteration_duration": {
+            "min": 1.068354,
+            "med": 5.208989,
+            "max": 787.633593,
+            "p(90)": 9.521728,
+            "p(95)": 12.55095669999999,
+            "avg": 6.124456275328583
+        },
+        "http_req_duration": {
+            "p(90)": 9.2594072,
+            "p(95)": 12.2855652,
+            "avg": 7.867590299145342,
+            "min": -4578.335773,
+            "med": 5.021683,
+            "max": 7932.431118
+        },
+        "errores_5xx": {
+            "passes": 0,
+            "fails": 350639,
+            "value": 0
+        },
+        "errores_5xx{scenario:publico}": {
+            "passes": 0,
+            "fails": 121,
+            "thresholds": {
+                "rate<0.01": false
+            },
+            "value": 0
+        },
+        "http_req_duration{expected_response:true}": {
+            "avg": 256.9463477844313,
+            "min": 0.057023,
+            "med": 5.002883,
+            "max": 7932.431118,
+            "p(90)": 488.32677149999995,
+            "p(95)": 724.6503255499999
+        },
+        "data_received": {
+            "rate": 3997639.511451388,
+            "count": 246540619
+        },
+        "data_sent": {
+            "count": 38562823,
+            "rate": 625293.5744349143
+        },
+        "http_req_connecting": {
+            "avg": 0.0012193656495712115,
+            "min": 0,
+            "med": 0,
+            "max": 32.032581,
+            "p(90)": 0,
+            "p(95)": 0
+        },
+        "errores_5xx{scenario:servicios}": {
+            "passes": 0,
+            "fails": 350198,
+            "thresholds": {
+                "rate<0.01": false
+            },
+            "value": 0
+        },
+        "http_req_sending": {
+            "med": 0.01065,
+            "max": 14.291233,
+            "p(90)": 0.015791200000000012,
+            "p(95)": 0.0368,
+            "avg": 0.023062729006185903,
+            "min": 0.003692
+        },
+        "vus": {
+            "value": 1,
+            "min": 1,
+            "max": 53
+        },
+        "http_req_duration{scenario:servicios}": {
+            "p(90)": 9.2530264,
+            "p(95)": 12.265362449999987,
+            "avg": 7.788612540757015,
+            "min": -4578.335773,
+            "med": 5.021222,
+            "max": 7932.431118,
+            "thresholds": {
+                "p(95)<500": false
+            }
+        },
+        "http_reqs": {
+            "count": 350639,
+            "rate": 5685.587739421564
+        },
+        "iterations": {
+            "count": 350639,
+            "rate": 5685.587739421564
+        },
+        "http_req_duration{scenario:publico}": {
+            "avg": 11.246816090909096,
+            "min": 1.458423,
+            "med": 4.649744,
+            "max": 536.00363,
+            "p(90)": 7.966554,
+            "p(95)": 11.281168,
+            "thresholds": {
+                "p(95)<2000": false
+            }
+        },
+        "http_req_blocked": {
+            "p(90)": 0.005321,
+            "p(95)": 0.006221,
+            "avg": 0.006950498760833856,
+            "min": 0.001151,
+            "med": 0.003706,
+            "max": 32.229645
+        },
+        "http_req_tls_handshaking": {
+            "avg": 0,
+            "min": 0,
+            "med": 0,
+            "max": 0,
+            "p(90)": 0,
+            "p(95)": 0
+        },
+        "http_req_receiving": {
+            "min": -4584.026148,
+            "med": 0.045431,
+            "max": 7919.723809,
+            "p(90)": 0.1055872,
+            "p(95)": 0.194986,
+            "avg": 0.08629562590014113
+        },
+        "http_req_waiting": {
+            "avg": 7.758231944239011,
+            "min": 0,
+            "med": 4.918096,
+            "max": 7932.167906,
+            "p(90)": 9.0831684,
+            "p(95)": 12.073683899999997
+        },
+        "errores_5xx{scenario:gateway}": {
+            "fails": 320,
+            "passes": 0,
+            "thresholds": {
+                "rate<0.01": false
+            },
+            "value": 0
+        },
+        "checks": {
+            "passes": 350392,
+            "fails": 247,
+            "value": 0.9992955717989157
+        }
+    }
+}

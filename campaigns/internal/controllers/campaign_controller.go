@@ -102,6 +102,18 @@ func (c *CampaignController) Publish(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, respuestaConMensaje{Mensaje: services.MsgCampanaPublicada, Campana: campaign})
 }
 
+// Delete: DELETE /api/v1/campaigns/{id} — baja lógica (auditoría
+// 2026-11-11, Problema 5). Responde el mensaje de éxito; 404 si no
+// existe o ya estaba dada de baja.
+func (c *CampaignController) Delete(w http.ResponseWriter, r *http.Request) {
+	err := c.service.Delete(r.Context(), chi.URLParam(r, "id"), middlewares.UserIDFromContext(r.Context()))
+	if err != nil {
+		writeError(w, r, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]string{"mensaje": services.MsgCampanaEliminada})
+}
+
 // HealthCheck: GET /health.
 func (c *CampaignController) HealthCheck(w http.ResponseWriter, _ *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]string{"status": "UP", "service": "campaigns-service"})

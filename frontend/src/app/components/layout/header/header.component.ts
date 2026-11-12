@@ -2,6 +2,7 @@ import {
   Component,
   DestroyRef,
   HostListener,
+  NgZone,
   OnInit,
   ViewEncapsulation,
   inject,
@@ -44,6 +45,7 @@ import {
 import { AuthService } from "../../../services/auth.service";
 import { ProfileService } from "../../../services/profile.service";
 import { ImageService } from "../../../services/image.service";
+import { NotificationsService } from "../../../services/notifications.service";
 import { MeResponse } from "../../../core/models/auth.model";
 
 /**
@@ -210,6 +212,13 @@ export class HeaderComponent implements OnInit {
   private readonly imageService = inject(ImageService);
   private readonly router = inject(Router);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly zone = inject(NgZone);
+  private readonly notifications = inject(NotificationsService, {
+    optional: true,
+  });
+  /** No leídas de la campana (Problema 3 de la auditoría). */
+  readonly unread = () => this.notifications?.unread() ?? 0;
+  private unreadTimer: ReturnType<typeof setInterval> | null = null;
 
   roleId = "";
   roleName = "";
@@ -239,6 +248,24 @@ export class HeaderComponent implements OnInit {
   readonly Menu = Menu;
   readonly X = X;
 
+  /**
+   * Contador de no leídas: al entrar y cada minuto (si la pestaña está
+   * visible), así una notificación nueva aparece sin recargar la página.
+   */
+  private startUnreadPolling(): void {
+    if (!this.notifications || this.unreadTimer) return;
+    void this.notifications.refreshUnread();
+    // Fuera de la zona de Angular para no dejar la app siempre inestable;
+    // el contador es un signal, así que la vista se actualiza igual.
+    this.zone.runOutsideAngular(() => {
+      this.unreadTimer = setInterval(() => {
+        if (typeof document === "undefined" || !document.hidden) {
+          void this.notifications?.refreshUnread();
+        }
+      }, 60_000);
+    });
+  }
+
   ngOnInit(): void {
     // Al cambiar de pantalla: se cierra el panel en celular y se despliega
     // el grupo de la sección actual.
@@ -250,7 +277,13 @@ export class HeaderComponent implements OnInit {
       .subscribe(() => {
         this.sidebarOpen = false;
         this.expandActiveGroup();
+        if (this.roleId) {
+          void this.notifications?.refreshUnread();
+        }
       });
+    this.destroyRef.onDestroy(() => {
+      if (this.unreadTimer) clearInterval(this.unreadTimer);
+    });
 
     this.authService.isAuthenticated().subscribe({
       next: (response: MeResponse) => {
@@ -276,6 +309,7 @@ export class HeaderComponent implements OnInit {
             : (NAV_BY_ROLE[this.roleId.toLowerCase()] ?? []);
         this.expandActiveGroup();
         this.loadProfileAvatar();
+        this.startUnreadPolling();
       },
       error: () => {
         this.roleId = "";

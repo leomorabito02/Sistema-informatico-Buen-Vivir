@@ -3,10 +3,22 @@ package rules
 import (
 	"context"
 	"fmt"
+	"net/url"
 
 	"buenvivir/notifications/internal/events"
 	"buenvivir/notifications/internal/models"
 )
+
+// fichaURL es la pantalla de la ficha de un participante en el frontend
+// (/dashboard/promocion-humana/participantes/:participanteId, solo admin
+// y voluntario). Antes las reglas apuntaban a /dashboard/acompanamiento,
+// que no existe (auditoría 2026-11-11, Problema 3).
+func fichaURL(participanteID string) string {
+	if participanteID == "" {
+		return "/dashboard/promocion-humana"
+	}
+	return "/dashboard/promocion-humana/participantes/" + url.PathEscape(participanteID)
+}
 
 // ── P1: FichaCreadaRule ───────────────────────────────────────────────────
 
@@ -22,9 +34,8 @@ func (r *FichaCreadaRule) Build(_ context.Context, env events.Envelope) ([]Notif
 		return nil, err
 	}
 
-	_ = p.FichaID
 	adminRole := "role_admin"
-	actionURL := "/dashboard/acompanamiento"
+	actionURL := fichaURL(p.ParticipanteID)
 	return []NotificationPlan{
 		{
 			SourceService: "human-promotion",
@@ -58,7 +69,7 @@ func (r *FichaActualizadaRule) Build(_ context.Context, env events.Envelope) ([]
 
 	// Si fue actualizada por alguien distinto del creador original, avisarle al creador
 	if p.CreadoPor != "" && env.ActorID != "" && p.CreadoPor != env.ActorID {
-		actionURL := "/dashboard/acompanamiento"
+		actionURL := fichaURL(p.ParticipanteID)
 		return []NotificationPlan{
 			{
 				SourceService:    "human-promotion",
@@ -116,7 +127,7 @@ func (r *HitoRegistradoRule) Build(_ context.Context, env events.Envelope) ([]No
 
 	// P4: Notificación al voluntario responsable asignado (si es distinto del actor que lo creó)
 	if p.ResponsableID != "" && p.ResponsableID != env.ActorID {
-		actionURL := "/dashboard/acompanamiento"
+		actionURL := fichaURL(p.ParticipanteID)
 		plans = append(plans, NotificationPlan{
 			SourceService:    "human-promotion",
 			EventType:        env.EventType,

@@ -282,7 +282,10 @@ func TestParticipantService_EdgeCases(t *testing.T) {
 		DNI:       "12345678",
 		Gender:    "otro",
 	}
-	res, err := svc.CreateParticipant(context.Background(), req)
+	// Lo crea el propio usuario (los pedidos siempre llegan autenticados).
+	ownerCtx := context.WithValue(context.Background(), middlewares.RoleIDKey, "role_participant")
+	ownerCtx = context.WithValue(ownerCtx, middlewares.UserIDKey, "u-1")
+	res, err := svc.CreateParticipant(ownerCtx, req)
 	assert.NoError(t, err)
 	assert.NotNil(t, res)
 	assert.Equal(t, "pending", res.ApprovalStatus)
@@ -313,4 +316,38 @@ func TestParticipantService_EdgeCases(t *testing.T) {
 	ctxAdmin := context.WithValue(context.Background(), middlewares.RoleIDKey, "role_admin")
 	err = svc.DeleteParticipant(ctxAdmin, "part-1")
 	assert.NoError(t, err)
+}
+
+// Auditoría 2026-11-11 (Problema 4): nadie sin rol de gestión crea un
+// perfil a nombre de otra cuenta, y el participante no da de baja perfiles
+// de participante (HU-09).
+func TestParticipantService_PermisosDeAltaYBaja(t *testing.T) {
+	mockRepo := new(MockParticipantRepository)
+	mockUserRepo := new(MockUserRepository)
+	svc := services.NewParticipantService(mockRepo, nil, nil, mockUserRepo, nil)
+	mockUserRepo.On("CountActiveParticipants", mock.Anything).Return(int64(1), nil).Maybe()
+	mockRepo.On("Create", mock.Anything, mock.Anything).Return(nil)
+
+	req := &dto.CreateParticipantRequest{UserID: "usr-victima", Birthdate: time.Date(2000, 1, 1, 0, 0, 0, 0, time.UTC), Gender: "otro"}
+	ctxDe := func(rol, uid string) context.Context {
+		ctx := context.WithValue(context.Background(), middlewares.RoleIDKey, rol)
+		return context.WithValue(ctx, middlewares.UserIDKey, uid)
+	}
+
+	for _, rol := range []string{"role_participant", "role_company", "role_teacher"} {
+		_, err := svc.CreateParticipant(ctxDe(rol, "usr-atacante"), req)
+		assert.ErrorContains(t, err, "forbidden", rol)
+	}
+	for _, rol := range []string{"role_admin", "role_dev", "role_volunteer"} {
+		_, err := svc.CreateParticipant(ctxDe(rol, "usr-staff"), req)
+		assert.NoError(t, err, rol)
+	}
+	_, err := svc.CreateParticipant(context.Background(), req)
+	assert.ErrorContains(t, err, "forbidden", "sin usuario autenticado")
+
+	part := &models.Participant{ParticipantID: "part-propio", UserID: "usr-1"}
+	mockRepo.On("FindByID", mock.Anything, "part-propio").Return(part, nil)
+	err = svc.DeleteParticipant(ctxDe("role_participant", "usr-1"), "part-propio")
+	assert.ErrorContains(t, err, "forbidden")
+	mockRepo.AssertNotCalled(t, "Delete", mock.Anything, mock.Anything)
 }

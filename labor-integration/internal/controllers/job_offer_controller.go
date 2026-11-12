@@ -2,10 +2,13 @@ package controllers
 
 import (
 	"encoding/json"
+	"errors"
+	"log/slog"
 	"net/http"
 
 	"buenvivir/labor-integration/internal/dto"
 	"buenvivir/labor-integration/internal/models"
+	"buenvivir/labor-integration/internal/repositories"
 	"buenvivir/labor-integration/internal/services"
 
 	"github.com/go-chi/chi/v5"
@@ -49,6 +52,10 @@ func (c *JobOfferController) Create(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := c.service.CreateOffer(r.Context(), &offer, role, userID); err != nil {
+		if errors.Is(err, services.ErrOfferForbidden) {
+			http.Error(w, "forbidden", http.StatusForbidden)
+			return
+		}
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
@@ -105,8 +112,8 @@ func (c *JobOfferController) Update(w http.ResponseWriter, r *http.Request) {
 	}
 
 
-	if err := c.service.UpdateOffer(r.Context(), id, &offer); err != nil {
-		http.Error(w, "failed to update offer", http.StatusInternalServerError)
+	if err := c.service.UpdateOffer(r.Context(), id, &offer, r.Header.Get(headerUserRole), r.Header.Get(headerUserID)); err != nil {
+		writeOfferError(w, err, "failed to update offer")
 		return
 	}
 
@@ -117,8 +124,8 @@ func (c *JobOfferController) Update(w http.ResponseWriter, r *http.Request) {
 func (c *JobOfferController) Delete(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
 
-	if err := c.service.DeleteOffer(r.Context(), id); err != nil {
-		http.Error(w, "failed to delete offer", http.StatusInternalServerError)
+	if err := c.service.DeleteOffer(r.Context(), id, r.Header.Get(headerUserRole), r.Header.Get(headerUserID)); err != nil {
+		writeOfferError(w, err, "failed to delete offer")
 		return
 	}
 
@@ -161,4 +168,18 @@ func (c *JobOfferController) Reject(w http.ResponseWriter, r *http.Request) {
 	}
 	
 	w.WriteHeader(http.StatusOK)
+}
+
+// writeOfferError: 403 sin permisos, 404 si la oferta no existe y 500 sin
+// exponer el detalle para lo demás.
+func writeOfferError(w http.ResponseWriter, err error, msg string) {
+	switch {
+	case errors.Is(err, services.ErrOfferForbidden):
+		http.Error(w, "forbidden", http.StatusForbidden)
+	case errors.Is(err, repositories.ErrOfferNotFound):
+		http.Error(w, "offer not found", http.StatusNotFound)
+	default:
+		slog.Error(msg, slog.String("error", err.Error()))
+		http.Error(w, msg, http.StatusInternalServerError)
+	}
 }

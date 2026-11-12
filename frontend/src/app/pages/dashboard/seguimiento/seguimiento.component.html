@@ -55,7 +55,10 @@
         <ng-template pTemplate="body" let-r>
           <tr>
             <td>
-              <code>{{ r.participanteId }}</code>
+              <span *ngIf="r.nombre; else soloId">{{ r.nombre }}</span>
+              <ng-template #soloId
+                ><code>{{ r.participanteId }}</code></ng-template
+              >
             </td>
             <td>{{ r.estado }}</td>
             <td style="min-width: 160px">

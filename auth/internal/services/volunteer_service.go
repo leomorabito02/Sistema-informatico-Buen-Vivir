@@ -41,6 +41,9 @@ func (s *volunteerService) CreateVolunteer(ctx context.Context, req *dto.CreateV
 	if err := val.Struct(req); err != nil {
 		return nil, err
 	}
+	if err := checkCreateProfileOwnership(ctx, req.UserID); err != nil {
+		return nil, err
+	}
 
 	status := req.ApprovalStatus
 	if status == "" || !canApprove(ctx, "role_volunteer") {

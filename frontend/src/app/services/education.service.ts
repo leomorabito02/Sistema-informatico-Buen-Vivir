@@ -352,6 +352,19 @@ export class EducationService {
       .pipe(catchError(this.handleError));
   }
 
+  /**
+   * Progreso formativo de cualquier curso (HU-20), para admin y
+   * voluntario: `GET /api/cursos/{id}/progreso` (auditoría 2026-11-11).
+   */
+  getCourseProgressGestion(cursoId: string): Observable<ParticipantProgress[]> {
+    return this.http
+      .get<ParticipantProgress[]>(
+        `${this.base}/api/cursos/${encodeURIComponent(cursoId)}/progreso`,
+        { withCredentials: true },
+      )
+      .pipe(catchError(this.handleError));
+  }
+
   // ---- Inscripción, asistencia por actividad y asistencia general ------
   // (role_admin / role_volunteer, sin scope de "mis cursos" — agregado
   // 2026-09-17 junto con las pantallas nuevas del frontend. Ver

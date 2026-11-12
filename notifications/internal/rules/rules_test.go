@@ -266,8 +266,8 @@ func TestAccountRules(t *testing.T) {
 		if len(plans) != 2 {
 			t.Fatalf("expected 2 plans (welcome + admin review), got %d", len(plans))
 		}
-		if *plans[0].ActionURL != "/dashboard/perfil" {
-			t.Errorf("expected /dashboard/perfil, got %s", *plans[0].ActionURL)
+		if *plans[0].ActionURL != "/dashboard/mi-perfil" {
+			t.Errorf("expected /dashboard/mi-perfil, got %s", *plans[0].ActionURL)
 		}
 		if plans[1].TargetRole == nil || *plans[1].TargetRole != "role_admin" || *plans[1].ActionURL != "/dashboard/usuarios" {
 			t.Errorf("unexpected admin review plan: %+v", plans[1])

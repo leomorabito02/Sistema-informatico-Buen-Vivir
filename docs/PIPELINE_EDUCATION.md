@@ -25,7 +25,7 @@ education.
 
 **API Gateway de GCP:** `api-gateway/openapi.yaml` ahora incluye las 18
 rutas de education apuntando a `${EDUCATION_SERVICE_URL}` (generadas con
-`add_education_routes.py`, idempotente). `cd-api-gateway` resuelve esa
+`scripts/historico-openapi/add_education_routes.py`, idempotente). `cd-api-gateway` resuelve esa
 URL desde Cloud Run igual que la de auth. Ver §4.
 
 **Dependencia bumpeada:** `google.golang.org/grpc` `v1.82.1 → v1.83.2`
@@ -128,7 +128,7 @@ apuntando a `${EDUCATION_SERVICE_URL}` (mismo patrón que auth:
 `options` por path para el preflight CORS; el gateway **no** valida el
 JWT, cada servicio valida el suyo).
 
-Se generaron con **`add_education_routes.py`** (raíz del repo,
+Se generaron con **`scripts/historico-openapi/add_education_routes.py`** (raíz del repo,
 idempotente — volver a correrlo reemplaza las rutas de education, no las
 duplica). Rutas cubiertas: `/api/salud`, `/api/cursos` (+`/borradores`,
 `/{id}`, `/{id}/publicar`, `/{id}/despublicar`), `/api/areas-formativas`

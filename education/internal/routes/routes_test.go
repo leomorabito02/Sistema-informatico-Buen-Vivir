@@ -40,6 +40,7 @@ func newTestControllers(cfg *config.Config) Controllers {
 		Activity:          controllers.NewActivityController(nil, nil, nil),
 		Submission:        controllers.NewSubmissionController(nil, nil, nil),
 		Skill:             controllers.NewSkillController(nil, nil, nil, nil, nil),
+		Progress:          controllers.NewProgressController(nil, nil),
 	}
 }
 
@@ -117,6 +118,29 @@ func TestRegisterRoutes_RBAC_DecisionTable(t *testing.T) {
 			path:         "/api/docente/cursos",
 			role:         "role_teacher",
 			isExternal:   true,
+			expectedCode: http.StatusForbidden,
+		},
+		// Auditoría 2026-11-11 (HU-20): progreso de cualquier curso, solo
+		// admin y voluntario.
+		{
+			name:         "Course progress: role_participant denied with 403",
+			method:       http.MethodGet,
+			path:         "/api/cursos/c1/progreso",
+			role:         "role_participant",
+			expectedCode: http.StatusForbidden,
+		},
+		{
+			name:         "Course progress: role_teacher denied with 403 (usa /api/docente)",
+			method:       http.MethodGet,
+			path:         "/api/cursos/c1/progreso",
+			role:         "role_teacher",
+			expectedCode: http.StatusForbidden,
+		},
+		{
+			name:         "Course progress: role_company denied with 403",
+			method:       http.MethodGet,
+			path:         "/api/cursos/c1/progreso",
+			role:         "role_company",
 			expectedCode: http.StatusForbidden,
 		},
 		{

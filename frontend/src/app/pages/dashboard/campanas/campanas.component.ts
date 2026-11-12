@@ -8,7 +8,8 @@ import { SelectModule } from "primeng/select";
 import { InputTextModule } from "primeng/inputtext";
 import { TextareaModule } from "primeng/textarea";
 import { ToastModule } from "primeng/toast";
-import { MessageService } from "primeng/api";
+import { ConfirmDialogModule } from "primeng/confirmdialog";
+import { ConfirmationService, MessageService } from "primeng/api";
 import { EmptyStateComponent } from "../../../shared/components/empty-state.component";
 import { CampaignsService } from "../../../services/campaigns.service";
 import {
@@ -20,7 +21,8 @@ import {
 
 /**
  * Gestión de campañas (HU-47 a HU-49), para administración y voluntariado:
- * crear (quedan en borrador), editar en cualquier estado y publicar.
+ * crear (quedan en borrador), editar en cualquier estado, publicar y dar
+ * de baja (baja lógica, con confirmación).
  */
 @Component({
   selector: "app-campanas",
@@ -35,15 +37,19 @@ import {
     InputTextModule,
     TextareaModule,
     ToastModule,
+    ConfirmDialogModule,
     EmptyStateComponent,
   ],
-  providers: [MessageService],
+  providers: [MessageService, ConfirmationService],
   templateUrl: "./campanas.component.html",
   styleUrls: ["./campanas.component.css"],
 })
 export class CampanasComponent implements OnInit {
   private readonly service = inject(CampaignsService);
   private readonly toast = inject(MessageService);
+  private readonly confirm = inject(ConfirmationService);
+  /** id de la campaña que se está eliminando (evita doble clic). */
+  eliminandoId: string | null = null;
 
   campaigns: Campana[] = [];
   cargando = true;
@@ -154,6 +160,45 @@ export class CampanasComponent implements OnInit {
           summary: "No se pudo publicar",
           detail: e.message,
         }),
+    });
+  }
+
+  /**
+   * Baja lógica con confirmación (Problema 5 de la auditoría): pide
+   * confirmar, llama al backend y saca la campaña de la lista sin recargar
+   * la página.
+   */
+  eliminar(c: Campana): void {
+    if (this.eliminandoId) return;
+    this.confirm.confirm({
+      header: "Eliminar campaña",
+      message: `¿Eliminar "${c.titulo}"? Deja de verse en la gestión y en la página pública. Los datos quedan guardados como baja.`,
+      acceptLabel: "Eliminar",
+      rejectLabel: "Cancelar",
+      acceptButtonStyleClass: "p-button-danger",
+      accept: () => {
+        this.eliminandoId = c.id;
+        this.service.eliminar(c.id).subscribe({
+          next: (r) => {
+            this.eliminandoId = null;
+            this.campaigns = this.campaigns.filter((x) => x.id !== c.id);
+            this.toast.add({
+              severity: "success",
+              summary: "Eliminada",
+              detail: r.mensaje,
+            });
+          },
+          error: (e: Error) => {
+            this.eliminandoId = null;
+            this.toast.add({
+              severity: "error",
+              summary: "No se pudo eliminar",
+              detail: e.message,
+            });
+            this.cargar();
+          },
+        });
+      },
     });
   }
 

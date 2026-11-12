@@ -1,3 +1,38 @@
+# Arquitectura de Buen Vivir App
+
+> Actualizado en la auditoría del 11/11/2026. La primera parte es la vista
+> general; desde "Arquitectura de Servicios" sigue el documento original de
+> capas (agosto de 2026), que sigue vigente.
+
+## Vista general
+
+```
+                 Cloudflare Pages (PWA Angular)
+                              │  HTTPS (cookie access_token / Bearer)
+           ┌──────────────────┴──────────────────┐
+     Local: nginx :8080              Nube: Google Cloud API Gateway (openapi.yaml)
+           └──────────────────┬──────────────────┘
+   ┌─────────┬──────────┬─────┴──────┬───────────┬──────────┬───────────┬──────────┐
+  auth   education  human-promotion campaigns  labor-int.  dashboard  notifications rxresume
+ Postgres Contentful+   Firestore    Firestore  Firestore  (agrega)    Postgres    Postgres
+ (Neon)  Firestore+GCS                                                 +Resend+FCM  +cv-renderer
+           └────────── eventos de dominio por Pub/Sub (outbox, DLQ, push con OIDC) ──────────┘
+```
+
+- **Lenguajes y frameworks:** Go 1.26 (chi, GORM en los servicios con
+  Postgres, gRPC entre auth y notifications/labor), Angular 20 + PrimeNG,
+  Node para Reactive Resume (cv-renderer).
+- **Despliegue:** Cloud Run (escala a cero), una imagen por servicio,
+  pipeline único en `.github/workflows/pipeline.yml` (ver
+  `CONFIGURACION_Y_DESPLIEGUE.md`).
+- **Comunicación:** REST hacia el front; HTTP/gRPC síncrono entre servicios
+  (reenviando el JWT del usuario o con ID token de Cloud Run); Pub/Sub para
+  eventos (detalle en `eventos/README.md` y `adr/`).
+- **Autenticación:** auth emite JWT HS256 (`type=access`) y refresh tokens;
+  cada servicio valida el JWT con el mismo `JWT_SECRET` y aplica su RBAC
+  (`RequireRole` + controles por dueño). Ver `ROLES_Y_PERMISOS.md`.
+- **Datos:** ver `BASE_DE_DATOS.md`.
+
 # Arquitectura de Servicios — Sistema Buen Vivir
 
 > **Flujo de una request:**

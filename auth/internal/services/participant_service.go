@@ -75,6 +75,9 @@ func (s *participantService) CreateParticipant(ctx context.Context, req *dto.Cre
 	if err := val.Struct(req); err != nil {
 		return nil, err
 	}
+	if err := checkCreateProfileOwnership(ctx, req.UserID, "role_volunteer"); err != nil {
+		return nil, err
+	}
 
 	status := req.ApprovalStatus
 	if status == "" || !canApprove(ctx, "role_participant") {
@@ -234,12 +237,13 @@ func (s *participantService) DeleteParticipant(ctx context.Context, id string) e
 		return err
 	}
 
+	// HU-09: dar de baja un perfil de participante es de administración y
+	// voluntariado. Antes el propio participante podía borrar su perfil
+	// (auditoría 2026-11-11, Problema 4). Su cuenta la sigue pudiendo
+	// borrar con DELETE /users/{id}.
 	reqRole, _ := ctx.Value(middlewares.RoleIDKey).(string)
 	if reqRole == "role_participant" {
-		reqUserID, _ := ctx.Value(middlewares.UserIDKey).(string)
-		if participant.UserID != reqUserID {
-			return errors.New("forbidden: access denied to delete other participant profiles")
-		}
+		return errors.New("forbidden: only administrators and volunteers can delete participant profiles")
 	}
 
 	if err := s.participantRepo.Delete(ctx, id); err != nil {

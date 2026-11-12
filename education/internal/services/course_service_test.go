@@ -168,7 +168,7 @@ func TestCourseService_CreateCourse_ValidationErrors(t *testing.T) {
 		{"missing responsibleTeacher", func() models.CourseInput { i := validCourseInput(); i.ResponsibleTeacher = ""; return i }()},
 		{"missing duration", func() models.CourseInput { i := validCourseInput(); i.Duration = ""; return i }()},
 		{"missing trainingAreaId", func() models.CourseInput { i := validCourseInput(); i.TrainingAreaID = ""; return i }()},
-		{"missing materialIds", func() models.CourseInput { i := validCourseInput(); i.MaterialIDs = nil; return i }()},
+		{"empty material id", func() models.CourseInput { i := validCourseInput(); i.MaterialIDs = []string{" "}; return i }()},
 		{"invalid mode", func() models.CourseInput { i := validCourseInput(); i.Mode = "Remota"; return i }()},
 	}
 
@@ -192,6 +192,44 @@ func TestCourseService_CreateCourse_Success(t *testing.T) {
 	course, err := svc.CreateCourse(context.Background(), input)
 	assert.NoError(t, err)
 	assert.Equal(t, "c1", course.ID)
+}
+
+// Problema 1 (auditoría 2026-11-11): un curso se crea sin materiales y
+// los materiales se agregan después con un PUT.
+func TestCourseService_CreateCourse_SinMateriales(t *testing.T) {
+	repo := new(MockCourseRepository)
+	svc := services.NewCourseService(repo)
+
+	input := validCourseInput()
+	input.MaterialIDs = nil
+	repo.On("Create", mock.Anything, input).Return(&models.Course{ID: "c1"}, nil)
+
+	course, err := svc.CreateCourse(context.Background(), input)
+	assert.NoError(t, err)
+	assert.Equal(t, "c1", course.ID)
+
+	conMaterial := input
+	conMaterial.MaterialIDs = []string{"mat-1"}
+	repo.On("Update", mock.Anything, "c1", conMaterial).
+		Return(&models.Course{ID: "c1", Material: []models.Material{{ID: "mat-1"}}}, nil)
+
+	updated, err := svc.UpdateCourse(context.Background(), "c1", conMaterial)
+	assert.NoError(t, err)
+	assert.Len(t, updated.Material, 1)
+}
+
+func TestCourseService_CreateCourseAsTeacher_SinMateriales(t *testing.T) {
+	repo := new(MockCourseRepository)
+	svc := services.NewCourseService(repo)
+
+	input := validCourseInput()
+	input.MaterialIDs = nil
+	input.ResponsibleTeacher = "teacher-1"
+	repo.On("Create", mock.Anything, input).Return(&models.Course{ID: "c2"}, nil)
+
+	course, err := svc.CreateCourseAsTeacher(context.Background(), "teacher-1", input)
+	assert.NoError(t, err)
+	assert.Equal(t, "c2", course.ID)
 }
 
 func TestCourseService_UpdateCourse_EmptyID(t *testing.T) {

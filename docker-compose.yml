@@ -70,8 +70,11 @@ services:
       - PUBSUB_PROJECT_ID=ceibuenvivir
       - PUBSUB_EMULATOR_HOST=pubsub-emulator:8086
       - PUBSUB_PUSH_AUTH=disabled
+    # Solo desde esta máquina: labor confía en los headers X-User-* que
+    # pone el gateway si no tiene JWT_SECRET; publicado en 0.0.0.0 se podía
+    # saltear el gateway desde la red local (auditoría 2026-11-11).
     ports:
-      - "8310:8080"
+      - "127.0.0.1:8310:8080"
     depends_on:
       auth-service:
         condition: service_started
@@ -301,11 +304,31 @@ services:
   pubsub-emulator:
     image: gcr.io/google.com/cloudsdktool/google-cloud-cli:emulators
     container_name: buenvivir-pubsub-emulator
-    command: gcloud beta emulators pubsub start --host-port=0.0.0.0:8086 --project=ceibuenvivir
+    # Auditoría 2026-11-11 (Problema 3): el emulador guarda todo en
+    # memoria. Si Docker lo reiniciaba solo (restart: on-failure o al
+    # reabrir Docker Desktop), arrancaba vacío y pubsub-init no volvía a
+    # correr: sin suscripciones, ningún evento llegaba a notifications.
+    # Ahora el propio contenedor vuelve a crear topics y suscripciones
+    # cada vez que arranca, y el healthcheck espera a que existan.
+    command:
+      - bash
+      - -c
+      - |
+        gcloud beta emulators pubsub start --host-port=0.0.0.0:8086 --project=ceibuenvivir &
+        until curl -sf http://localhost:8086/ >/dev/null; do sleep 1; done
+        tr -d '\r' < /pubsub/emulator.sh | PUBSUB_EMULATOR_HOST=localhost:8086 bash
+        wait
+    environment:
+      - EDUCATION_URL=http://education-service:8210
+      - HUMAN_PROMOTION_URL=http://human-promotion:8085
+      - DASHBOARD_URL=http://dashboard-service:8090
+      - NOTIFICATIONS_URL=http://notifications-service:8080
+    volumes:
+      - ./infra/pubsub:/pubsub:ro
     ports:
       - "127.0.0.1:8086:8086"
     healthcheck:
-      test: ["CMD", "curl", "-sf", "http://localhost:8086/"]
+      test: ["CMD", "curl", "-sf", "http://localhost:8086/v1/projects/ceibuenvivir/subscriptions/notificaciones-promocion-humana"]
       interval: 3s
       timeout: 3s
       retries: 40

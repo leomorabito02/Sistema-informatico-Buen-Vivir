@@ -1,6 +1,7 @@
 import { ComponentFixture, TestBed } from "@angular/core/testing";
 import { BrowserAnimationsModule } from "@angular/platform-browser/animations";
 import { of, throwError } from "rxjs";
+import { ConfirmationService } from "primeng/api";
 import { CampanasComponent } from "./campanas.component";
 import { CampaignsService } from "../../../services/campaigns.service";
 import { Campana } from "../../../core/models/campaign.model";
@@ -38,6 +39,7 @@ describe("CampanasComponent", () => {
       "crear",
       "editar",
       "publicar",
+      "eliminar",
     ]);
     await TestBed.configureTestingModule({
       imports: [CampanasComponent, BrowserAnimationsModule],
@@ -180,5 +182,65 @@ describe("CampanasComponent", () => {
     img.src = "https://broken.example.com/fail.jpg";
     component.onImageError({ target: img } as unknown as Event);
     expect(img.src).toContain("data:image/svg+xml");
+  });
+
+  // Problema 5 de la auditoría (2026-11-11): baja lógica con confirmación.
+  describe("eliminar", () => {
+    function confirmar(aceptar: boolean) {
+      const conf = fixture.debugElement.injector.get(ConfirmationService);
+      return spyOn(conf, "confirm").and.callFake((args: any) => {
+        if (aceptar && args.accept) args.accept();
+        return conf;
+      });
+    }
+
+    it("cada tarjeta tiene el botón Eliminar", () => {
+      crear();
+      const tarjetas = (fixture.nativeElement as HTMLElement).querySelectorAll(
+        ".campana-card",
+      );
+      tarjetas.forEach((t) => expect(t.textContent).toContain("Eliminar"));
+    });
+
+    it("pide confirmación y, si se cancela, no llama al backend", () => {
+      crear();
+      const spy = confirmar(false);
+      component.eliminar(borrador);
+      expect(spy).toHaveBeenCalled();
+      expect(service.eliminar).not.toHaveBeenCalled();
+      expect(component.campaigns).toHaveSize(2);
+    });
+
+    it("al confirmar, la saca de la lista sin recargar y muestra el mensaje", () => {
+      crear();
+      confirmar(true);
+      service.eliminar.and.returnValue(
+        of({ mensaje: "Campaña eliminada correctamente" }),
+      );
+      service.listar.calls.reset();
+
+      component.eliminar(publicada);
+
+      expect(service.eliminar).toHaveBeenCalledWith("c2");
+      expect(component.campaigns.map((c) => c.id)).toEqual(["c1"]);
+      expect(service.listar).not.toHaveBeenCalled();
+      expect(component.eliminandoId).toBeNull();
+    });
+
+    it("si el backend falla (por ejemplo 403), muestra el error y recarga", () => {
+      crear();
+      confirmar(true);
+      service.eliminar.and.returnValue(
+        throwError(
+          () => new Error("No tenés permisos para gestionar campañas."),
+        ),
+      );
+      service.listar.calls.reset();
+
+      component.eliminar(borrador);
+
+      expect(service.listar).toHaveBeenCalled();
+      expect(component.eliminandoId).toBeNull();
+    });
   });
 });

@@ -244,27 +244,35 @@ func (r *notificationRepository) CreateNotificationAndRecipients(ctx context.Con
 		return errors.New("notification cannot be nil")
 	}
 	return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		// Primero se descartan los destinatarios que ya la recibieron
+		// (mismo dedupe_key: un reintento de Pub/Sub del mismo evento). Si
+		// no queda ninguno, tampoco se guarda la notificación: antes
+		// quedaba una fila huérfana por cada reintento (auditoría
+		// 2026-11-11, Problema 3).
+		toInsert := make([]models.NotificationRecipient, 0, len(recipients))
+		for _, rec := range recipients {
+			if rec.DedupeKey != "" {
+				var exists int64
+				if err := tx.Model(&models.NotificationRecipient{}).
+					Where("user_id = ? AND dedupe_key = ?", rec.UserID, rec.DedupeKey).
+					Count(&exists).Error; err != nil {
+					return fmt.Errorf("failed to check dedupe key: %w", err)
+				}
+				if exists > 0 {
+					continue
+				}
+			}
+			toInsert = append(toInsert, rec)
+		}
+		if len(recipients) > 0 && len(toInsert) == 0 {
+			return nil
+		}
 		if err := tx.Create(notification).Error; err != nil {
 			return fmt.Errorf("failed to create notification: %w", err)
 		}
-		if len(recipients) > 0 {
-			toInsert := make([]models.NotificationRecipient, 0, len(recipients))
-			for _, rec := range recipients {
-				if rec.DedupeKey != "" {
-					var exists int64
-					_ = tx.Model(&models.NotificationRecipient{}).
-						Where("user_id = ? AND dedupe_key = ?", rec.UserID, rec.DedupeKey).
-						Count(&exists).Error
-					if exists > 0 {
-						continue
-					}
-				}
-				toInsert = append(toInsert, rec)
-			}
-			if len(toInsert) > 0 {
-				if err := tx.Create(&toInsert).Error; err != nil {
-					return fmt.Errorf("failed to create recipients: %w", err)
-				}
+		if len(toInsert) > 0 {
+			if err := tx.Create(&toInsert).Error; err != nil {
+				return fmt.Errorf("failed to create recipients: %w", err)
 			}
 		}
 		return nil
@@ -571,7 +579,7 @@ func (m *memoryNotificationRepository) CreateNotificationAndRecipients(ctx conte
 	}
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	m.notifications[notification.ID] = notification
+	toInsert := make([]models.NotificationRecipient, 0, len(recipients))
 	for _, rec := range recipients {
 		if rec.DedupeKey != "" {
 			exists := false
@@ -585,8 +593,15 @@ func (m *memoryNotificationRepository) CreateNotificationAndRecipients(ctx conte
 				continue
 			}
 		}
-		m.recipients = append(m.recipients, rec)
+		toInsert = append(toInsert, rec)
 	}
+	// Mismo criterio que la versión de Postgres: sin destinatarios nuevos
+	// no se guarda la notificación.
+	if len(recipients) > 0 && len(toInsert) == 0 {
+		return nil
+	}
+	m.notifications[notification.ID] = notification
+	m.recipients = append(m.recipients, toInsert...)
 	return nil
 }
 

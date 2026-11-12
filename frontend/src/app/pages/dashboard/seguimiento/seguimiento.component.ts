@@ -6,12 +6,17 @@ import { TagModule } from "primeng/tag";
 import { CardModule } from "primeng/card";
 import { SelectModule } from "primeng/select";
 import { ProgressBarModule } from "primeng/progressbar";
-import { forkJoin } from "rxjs";
+import { Observable, forkJoin } from "rxjs";
 import { EducationService } from "../../../services/education.service";
+import { AuthService } from "../../../services/auth.service";
 import { LoadingStateComponent } from "../../../shared/components/loading-state.component";
 import { ErrorStateComponent } from "../../../shared/components/error-state.component";
 import { EmptyStateComponent } from "../../../shared/components/empty-state.component";
-import { Course } from "../../../core/models/education.model";
+import {
+  Course,
+  Enrollment,
+  ParticipantProgress,
+} from "../../../core/models/education.model";
 
 interface Option {
   label: string;
@@ -19,6 +24,8 @@ interface Option {
 }
 interface SeguimientoRow {
   participanteId: string;
+  /** Nombre y apellido (solo en la vista de admin/voluntario). */
+  nombre?: string;
   estado: string;
   porcentajeAsistencia: number;
   actividadesAsistidas: number;
@@ -46,6 +53,15 @@ interface SeguimientoRow {
 })
 export class SeguimientoComponent implements OnInit {
   private education = inject(EducationService);
+  private auth = inject(AuthService);
+
+  /**
+   * Admin y voluntario ven cualquier curso del catálogo (HU-20, HU-06);
+   * el docente, solo los suyos (/api/docente). Antes la pantalla usaba
+   * siempre /api/docente: al voluntario le daba 403 y al admin una lista
+   * vacía (auditoría 2026-11-11, Problema 4).
+   */
+  gestion = false;
 
   loadingCourses = true;
   loadingData = false;
@@ -55,7 +71,26 @@ export class SeguimientoComponent implements OnInit {
   rows: SeguimientoRow[] = [];
 
   ngOnInit() {
-    this.education.listMyCourses().subscribe({
+    this.auth.isAuthenticated().subscribe({
+      next: (res) => {
+        const rol = res.role_id ?? res.user?.role_id ?? "";
+        this.gestion = ["role_admin", "role_dev", "role_volunteer"].includes(
+          rol,
+        );
+        this.cargarCursos();
+      },
+      error: () => {
+        this.error = "No se pudo verificar tu sesión. Volvé a iniciar sesión.";
+        this.loadingCourses = false;
+      },
+    });
+  }
+
+  private cargarCursos() {
+    const cursos$: Observable<Course[]> = this.gestion
+      ? this.education.listCourses()
+      : this.education.listMyCourses();
+    cursos$.subscribe({
       next: (courses: Course[]) => {
         this.courseOptions = courses.map((c) => ({
           label: c.title || c.id,
@@ -80,17 +115,25 @@ export class SeguimientoComponent implements OnInit {
     this.error = "";
     this.rows = [];
     const id = this.selectedCourseId;
+    const enrollments$: Observable<Enrollment[]> = this.gestion
+      ? this.education.listCourseEnrollments(id)
+      : this.education.listEnrollments(id);
+    const progress$: Observable<ParticipantProgress[]> = this.gestion
+      ? this.education.getCourseProgressGestion(id)
+      : this.education.getCourseProgress(id);
     forkJoin({
-      enrollments: this.education.listEnrollments(id),
-      progress: this.education.getCourseProgress(id),
+      enrollments: enrollments$,
+      progress: progress$,
     }).subscribe({
       next: ({ enrollments, progress }) => {
         const byId = new Map(progress.map((p) => [p.participanteId, p]));
         this.rows = enrollments.map((e) => {
           const p = byId.get(e.participanteId);
           const pct = p?.porcentajeAsistencia ?? 0;
+          const nombre = `${e.nombre ?? ""} ${e.apellido ?? ""}`.trim();
           return {
             participanteId: e.participanteId,
+            nombre: nombre || undefined,
             estado: e.estado,
             porcentajeAsistencia: pct,
             actividadesAsistidas: p?.actividadesAsistidas ?? 0,

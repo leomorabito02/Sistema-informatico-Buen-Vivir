@@ -2,6 +2,7 @@ import { ComponentFixture, TestBed } from "@angular/core/testing";
 import { SeguimientoComponent } from "./seguimiento.component";
 import { BrowserAnimationsModule } from "@angular/platform-browser/animations";
 import { EducationService } from "../../../services/education.service";
+import { AuthService } from "../../../services/auth.service";
 import { of, throwError } from "rxjs";
 import {
   Course,
@@ -13,6 +14,7 @@ describe("SeguimientoComponent", () => {
   let component: SeguimientoComponent;
   let fixture: ComponentFixture<SeguimientoComponent>;
   let educationServiceSpy: jasmine.SpyObj<EducationService>;
+  let authSpy: jasmine.SpyObj<AuthService>;
 
   const mockCourses: Course[] = [
     { id: "c1", title: "Course 1", description: null, mode: "Virtual" },
@@ -76,7 +78,14 @@ describe("SeguimientoComponent", () => {
       "listMyCourses",
       "listEnrollments",
       "getCourseProgress",
+      "listCourses",
+      "listCourseEnrollments",
+      "getCourseProgressGestion",
     ]);
+    authSpy = jasmine.createSpyObj("AuthService", ["isAuthenticated"]);
+    authSpy.isAuthenticated.and.returnValue(
+      of({ role_id: "role_teacher", user: { user_id: "t1" } } as any),
+    );
 
     educationServiceSpy.listMyCourses.and.returnValue(of(mockCourses));
     educationServiceSpy.listEnrollments.and.returnValue(of(mockEnrollments));
@@ -84,7 +93,10 @@ describe("SeguimientoComponent", () => {
 
     await TestBed.configureTestingModule({
       imports: [SeguimientoComponent, BrowserAnimationsModule],
-      providers: [{ provide: EducationService, useValue: educationServiceSpy }],
+      providers: [
+        { provide: EducationService, useValue: educationServiceSpy },
+        { provide: AuthService, useValue: authSpy },
+      ],
     }).compileComponents();
 
     fixture = TestBed.createComponent(SeguimientoComponent);
@@ -164,5 +176,38 @@ describe("SeguimientoComponent", () => {
     expect(component.riesgoSeverity("En riesgo")).toBe("danger");
     expect(component.riesgoSeverity("Sin datos")).toBe("secondary");
     expect(component.riesgoSeverity("Otro")).toBe("secondary");
+  });
+
+  // Auditoría 2026-11-11 (Problema 4 / HU-20): admin y voluntario usan el
+  // catálogo y los endpoints de gestión, no /api/docente.
+  for (const rol of ["role_volunteer", "role_admin"]) {
+    it(`${rol}: usa el catálogo y el progreso de gestión, con nombres`, () => {
+      authSpy.isAuthenticated.and.returnValue(of({ role_id: rol } as any));
+      educationServiceSpy.listCourses.and.returnValue(of([mockCourses[0]]));
+      educationServiceSpy.listCourseEnrollments.and.returnValue(
+        of([{ ...mockEnrollments[0], nombre: "Ana", apellido: "Pérez" }]),
+      );
+      educationServiceSpy.getCourseProgressGestion.and.returnValue(
+        of([mockProgress[0]]),
+      );
+
+      fixture.detectChanges();
+
+      expect(component.gestion).toBeTrue();
+      expect(educationServiceSpy.listMyCourses).not.toHaveBeenCalled();
+      expect(educationServiceSpy.listEnrollments).not.toHaveBeenCalled();
+      expect(educationServiceSpy.getCourseProgressGestion).toHaveBeenCalledWith(
+        "c1",
+      );
+      expect(component.rows[0].nombre).toBe("Ana Pérez");
+      expect(component.rows[0].riesgo).toBe("En riesgo");
+    });
+  }
+
+  it("docente: sigue usando sus cursos (/api/docente)", () => {
+    fixture.detectChanges();
+    expect(component.gestion).toBeFalse();
+    expect(educationServiceSpy.listMyCourses).toHaveBeenCalled();
+    expect(educationServiceSpy.listCourses).not.toHaveBeenCalled();
   });
 });

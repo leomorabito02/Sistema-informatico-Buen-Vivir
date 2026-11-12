@@ -80,7 +80,7 @@ Capas sin cambios: `repositories` (HTTP/Firestore crudo) → `services`
 - `api-gateway/nginx.conf` — la regex de ruteo a education-service ahora
   incluye `actividades` y `asistencia-general`.
 - `api-gateway/openapi.yaml` (gateway de GCP) — 3 rutas nuevas,
-  regeneradas con `add_education_routes.py` (raíz del repo, idempotente).
+  regeneradas con `scripts/historico-openapi/add_education_routes.py` (raíz del repo, idempotente).
 
 ### Frontend
 

@@ -376,8 +376,13 @@ func validateCourseInput(input models.CourseInput) error {
 	if strings.TrimSpace(input.TrainingAreaID) == "" {
 		return NewValidationError("el campo 'trainingAreaId' es requerido")
 	}
-	if len(input.MaterialIDs) == 0 {
-		return NewValidationError("el campo 'materialIds' es requerido (al menos un material)")
+	// Los materiales son opcionales (HU-14: "debe permitir adjuntar",
+	// no obligar): un curso se puede crear sin materiales y sumarlos
+	// después. Lo que sí se valida es que no vengan ids vacíos.
+	for _, id := range input.MaterialIDs {
+		if strings.TrimSpace(id) == "" {
+			return NewValidationError("el campo 'materialIds' tiene un id vacío")
+		}
 	}
 	mode := models.CourseMode(input.Mode)
 	if input.Mode == "" || !mode.IsValid() {

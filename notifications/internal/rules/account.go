@@ -28,7 +28,7 @@ func (r *UsuarioCreadoRule) Build(_ context.Context, env events.Envelope) ([]Not
 	}
 
 	// Inicializa las preferencias del usuario creando un aviso de bienvenida
-	actionURL := "/dashboard/perfil"
+	actionURL := "/dashboard/mi-perfil"
 	plans := []NotificationPlan{
 		{
 			SourceService:    "auth",

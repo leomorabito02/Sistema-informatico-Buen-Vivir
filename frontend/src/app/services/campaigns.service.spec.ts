@@ -87,6 +87,18 @@ describe("CampaignsService", () => {
     publicar.flush(respuesta);
   });
 
+  it("elimina con DELETE y cookie (baja lógica, Problema 5)", () => {
+    service
+      .eliminar("c1")
+      .subscribe((r) =>
+        expect(r.mensaje).toBe("Campaña eliminada correctamente"),
+      );
+    const req = http.expectOne((r) => r.url.endsWith(`${base}/c1`));
+    expect(req.request.method).toBe("DELETE");
+    expect(req.request.withCredentials).toBeTrue();
+    req.flush({ mensaje: "Campaña eliminada correctamente" });
+  });
+
   it("usa el mensaje de error del backend", (done) => {
     service.crear(input).subscribe({
       error: (e: Error) => {

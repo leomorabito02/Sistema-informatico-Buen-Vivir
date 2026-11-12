@@ -21,6 +21,25 @@ type JobOfferService struct {
 
 type JobOfferServiceOption func(*JobOfferService)
 
+// ErrOfferForbidden: el rol no puede hacer esa operación sobre la oferta.
+// Antes editar y borrar no controlaban rol ni dueño (auditoría
+// 2026-11-11, Problema 4).
+var ErrOfferForbidden = errors.New("forbidden: no tenés permisos sobre esta oferta")
+
+// Roles de gestión de ofertas. role_dev pasa como admin.
+func esAdminOferta(role string) bool { return role == "role_admin" || role == "role_dev" }
+func esStaffOferta(role string) bool  { return esAdminOferta(role) || role == "role_volunteer" }
+
+// puedeGestionarOferta: admin y voluntario sobre cualquiera (así lo ofrece
+// hoy la pantalla de ofertas); la empresa solo sobre las suyas; el resto,
+// ninguna.
+func puedeGestionarOferta(offer *models.JobOffer, role, userID string) bool {
+	if esStaffOferta(role) {
+		return true
+	}
+	return role == "role_company" && userID != "" && offer.CompanyID == userID
+}
+
 // WithOfferProducer sets an InsercionLaboralProducer for JobOfferService.
 func WithOfferProducer(producer producers.InsercionLaboralProducer) JobOfferServiceOption {
 	return func(s *JobOfferService) {
@@ -41,6 +60,10 @@ func NewJobOfferService(repo repositories.JobOfferRepository, appRepo repositori
 }
 
 func (s *JobOfferService) CreateOffer(ctx context.Context, offer *models.JobOffer, role string, userID string) error {
+	// HU-39: publican ofertas las empresas (y la gestión del centro).
+	if !esStaffOferta(role) && role != "role_company" {
+		return ErrOfferForbidden
+	}
 	if role == "role_company" {
 		company, err := s.authClient.GetCompany(ctx, offer.CompanyID)
 		if err != nil {
@@ -120,18 +143,27 @@ func (s *JobOfferService) populateMissingCreatorName(ctx context.Context, offer 
 	}
 }
 
+// isOfferVisibleForRole: pendientes, rechazadas y eliminadas solo las ve
+// la gestión (admin, voluntario) y la empresa dueña (el controller ya le
+// filtra las suyas). El resto ve solo las publicadas (HU-40). Antes
+// cualquier rol que no fuera participante (docente, por ejemplo) veía
+// también las pendientes de todas las empresas.
 func (s *JobOfferService) isOfferVisibleForRole(offer *models.JobOffer, role string) bool {
-	if role == "role_participant" {
-		return offer.Status == "Activa" || offer.Status == "Vencida"
+	if esStaffOferta(role) || role == "role_company" {
+		return true
 	}
-	return true
+	return offer.Status == "Activa" || offer.Status == "Vencida"
 }
 
-func (s *JobOfferService) UpdateOffer(ctx context.Context, id string, offer *models.JobOffer) error {
+func (s *JobOfferService) UpdateOffer(ctx context.Context, id string, offer *models.JobOffer, role, userID string) error {
 	existing, err := s.repo.GetByID(ctx, id)
 	if err != nil {
 		return err
 	}
+	if !puedeGestionarOferta(existing, role, userID) {
+		return ErrOfferForbidden
+	}
+	offer.Status = estadoPermitido(existing.Status, offer.Status, role)
 
 	existing.Title = offer.Title
 	existing.Description = offer.Description
@@ -148,7 +180,31 @@ func (s *JobOfferService) UpdateOffer(ctx context.Context, id string, offer *mod
 	return s.repo.Update(ctx, id, existing)
 }
 
-func (s *JobOfferService) DeleteOffer(ctx context.Context, id string) error {
+// estadoPermitido decide el estado después de editar. Solo el admin lo
+// cambia libremente (aprobar es suyo, HU-40/41). Empresa y voluntario
+// solo pueden renovar una oferta vencida ("Vencida" -> "Activa"); otro
+// cambio se ignora. Un estado vacío deja el que estaba (antes lo borraba).
+func estadoPermitido(actual, pedido, role string) string {
+	if pedido == "" {
+		return actual
+	}
+	if esAdminOferta(role) {
+		return pedido
+	}
+	if actual == "Vencida" && pedido == "Activa" {
+		return pedido
+	}
+	return actual
+}
+
+func (s *JobOfferService) DeleteOffer(ctx context.Context, id, role, userID string) error {
+	existing, err := s.repo.GetByID(ctx, id)
+	if err != nil {
+		return err
+	}
+	if !puedeGestionarOferta(existing, role, userID) {
+		return ErrOfferForbidden
+	}
 	hasApps, err := s.appRepo.HasApplicationsForOffer(ctx, id)
 	if err != nil {
 		return err
