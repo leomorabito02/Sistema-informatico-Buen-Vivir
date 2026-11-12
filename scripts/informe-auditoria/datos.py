@@ -66,7 +66,7 @@ HUS = [
          estado="PARCIAL", front="guards (admin, adminOrVolunteer, teacher, participant), menú por rol (header)",
          back="RequireRole en cada servicio + controles por dueño en servicios",
          endpoints="Todos", persistencia="roles, permissions (auth)",
-         tests="routes_test RBAC por servicio; sonda de seguridad 38/39; tests nuevos de permisos (auth, labor, campaigns, education)",
+         tests="routes_test RBAC por servicio; sonda de seguridad 39/39; tests nuevos de permisos (auth, labor, campaigns, education)",
          faltan="E2E por rol en el navegador",
          errores="(1) No hay panel de configuración de permisos por rol en el front (solo la API /roles y /permissions). (2) No se registran los intentos no autorizados en auditoría. (3) El docente puede crear cursos en borrador por /api/docente/cursos, y la HU dice que no.",
          correcciones="Se corrigieron 6 problemas de permisos (ver Problema 4): labor confiaba en headers del cliente, editar y borrar ofertas sin control, perfiles creados a nombre de otro usuario, baja de perfil por el propio participante, Seguimiento roto para admin y voluntario.",
@@ -270,7 +270,7 @@ HUS = [
          front="notificaciones", back="notifications: reglas por evento + delivery worker + Resend", endpoints="/eventos/*, /internal/delivery/flush",
          persistencia="Postgres notifications", tests="rules_test, worker_test, consumers_test", faltan="Test de punta a punta con Pub/Sub",
          errores="Localmente el emulador no tenía suscripciones y el contenedor de notifications corre sin AUTH_GRPC_URL (stack viejo). En testing no hay variables PUBSUB_PUSH_* en el CD.",
-         correcciones="Emulador autoinicializado; enlaces rotos de las notificaciones; sin notificaciones huérfanas por reintento.", pendiente="Recrear el stack local; verificar suscripciones push en GCP."),
+         correcciones="Emulador autoinicializado; enlaces rotos de las notificaciones; sin notificaciones huérfanas por reintento. Stack reconstruido el 12/11.", pendiente="Verificar suscripciones push en GCP."),
     dict(id="HU-61", modulo="Notificaciones", titulo="Notificaciones push (PWA)", actor="Usuario con la PWA", estado="PARCIAL",
          front="push-notification.service (FCM)", back="FirebasePushService", endpoints="POST /api/v1/users/me/devices", persistencia="devices",
          tests="push_service_test", faltan="",
@@ -299,7 +299,7 @@ PROBLEMAS = [
          archivos="tests/carga/k6_carga_local.js (nuevo); tests/seguridad/sonda/main.go (nuevo); campaigns/internal/routes/carga_test.go (nuevo); api-gateway/nginx.conf; docs/evidencias/*.json",
          correccion="Se crearon y ejecutaron: (a) carga k6 contra el stack Docker local, solo con rutas sin base o lectura a ritmo bajo; (b) sonda de seguridad de 39 casos (tokens falsificados, roles, CORS, entradas, headers); (c) carga en proceso de Campañas con emulador y 500/2000 registros. nginx ahora responde 429 en lugar de 503 al superar el límite.",
          tests="k6 0.54.0 (Docker), Go net/http, emulador de Firestore.",
-         resultado="k6: 350.639 pedidos a 5.686/s, 0 errores 5xx, p95 12 ms (servicios) y 709 ms (gateway a 8/s). Sonda: 38/39 OK; la falla es la vulnerabilidad de labor (corregida en código, el contenedor corre código viejo). Campañas con 50 clientes: 500 registros p95 485 ms; 2000 registros p95 8,8 s.",
+         resultado="k6: 350.639 pedidos a 5.686/s, 0 errores 5xx, p95 12 ms (servicios) y 709 ms (gateway a 8/s). Sonda: 38/39 con el stack viejo (la falla era la vulnerabilidad de labor) y 39/39 tras reconstruir el stack y darle JWT_SECRET a labor (12/11). Campañas con 50 clientes: 500 registros p95 485 ms; 2000 registros p95 8,8 s.",
          pendiente="Paginación del listado de campañas; límite por IP que se puede esquivar con X-Forwarded-For; límite de 100/min por IP puede afectar a un centro con una sola IP pública; correr ZAP local."),
     dict(n=3, titulo="Promoción Humana: notificaciones",
          descripcion="Problemas en las notificaciones del módulo de Promoción Humana.",
@@ -310,7 +310,7 @@ PROBLEMAS = [
          correccion="Emulador que recrea topics y suscripciones al arrancar (y healthcheck que lo espera); se reinicializó el emulador actual. creado_por en ficha.actualizada. Enlaces a /dashboard/promocion-humana/participantes/{id} y demás rutas reales. Sin notificación huérfana si todos los destinatarios ya la tenían. Contador de no leídas en la campana (cada minuto y al navegar) y refresco de la pantalla cada minuto. Campaña avisa solo al publicar. En producción notifications no arranca sin verificar los push.",
          tests="TestFichaActualizada_LlevaCreadoPor (emulador); TestPromocionHumana_EnlacesALaFichaDelParticipante; TestTodasLasReglas_EnlacesExistenEnElFront; TestCreateNotificationAndRecipients_ReintentoNoDuplica; TestCampanaCreada_SoloAlPublicarYUnaVez; specs de notificaciones (contador, refresco, falla del contador no deshace la acción).",
          resultado="notifications 14 paquetes OK; human-promotion 11 OK; front 694/694 OK.",
-         pendiente="Recrear el stack Docker (notifications sin AUTH_GRPC_URL) y probar el flujo completo en el navegador; verificar en GCP las suscripciones push y agregar PUBSUB_PUSH_AUDIENCE / PUBSUB_PUSH_SERVICE_ACCOUNTS al CD."),
+         pendiente="Probar el flujo completo en el navegador (el stack ya se reconstruyó el 12/11); verificar en GCP las suscripciones push y agregar PUBSUB_PUSH_AUDIENCE / PUBSUB_PUSH_SERVICE_ACCOUNTS al CD."),
     dict(n=4, titulo="Permisos y acciones según el rol",
          descripcion="Auditar qué ve y qué puede hacer cada rol, en front y back.",
          esperado="Que el backend valide siempre, más allá de lo que muestre la interfaz, y que front y back coincidan con HU-06.",
@@ -319,7 +319,7 @@ PROBLEMAS = [
          archivos="labor-integration/internal/{routes,services,controllers}, cmd/server/main.go; auth/internal/services/{approval_helper,participant,company,teacher,volunteer}_service.go; education (progress_controller, routes); frontend seguimiento; docker-compose.yml; api-gateway/openapi.yaml",
          correccion="Labor: con JWT_SECRET se descartan siempre los headers del cliente y la identidad sale del JWT; en producción no arranca sin JWT_SECRET; puerto solo en 127.0.0.1. Ofertas: crear (empresa/gestión), editar y borrar (gestión o empresa dueña), estado solo por admin (renovar vencida permitido), pendientes solo para gestión y empresa dueña. Auth: checkCreateProfileOwnership en los cuatro perfiles; el participante no da de baja perfiles. Education: GET /api/cursos/{id}/progreso y Seguimiento por rol.",
          tests="TestIdentidad_NoSeConfiaEnHeadersDelCliente (4 casos); TestUpdateOffer_PermisosYEstado; TestDeleteOffer_Permisos; TestCreateOffer_SoloEmpresaYGestion; TestListOffers_PendientesSoloParaGestion; TestParticipantService_PermisosDeAltaYBaja; progreso (controller + 3 casos RBAC); seguimiento.spec (+3); sonda de seguridad (22 casos por rol, todos OK).",
-         resultado="auth 11, labor 7, education 15 paquetes OK; sonda 38/39 (la falla es el contenedor viejo de labor).",
+         resultado="auth 11, labor 7, education 15 paquetes OK; sonda 39/39 contra el stack reconstruido (12/11); el uso legítimo de labor con token válido sigue respondiendo 200.",
          pendiente="Panel RBAC; auditoría de accesos denegados; guards en usuarios/cv/ofertas/seguimiento; decisión sobre cursos creados por el docente y ofertas creadas por el voluntario; volunteers y teachers internos pueden listar perfiles de su mismo tipo."),
     dict(n=5, titulo="Campañas: eliminación",
          descripcion="No se podían eliminar campañas.",
@@ -329,8 +329,8 @@ PROBLEMAS = [
          archivos="campaigns/internal/{models,repositories,services,controllers,routes}; frontend campaigns.service.ts, campanas.component.{ts,html}; api-gateway/openapi.yaml",
          correccion="Baja lógica (decisión de la usuaria): eliminada, eliminada_en y eliminada_por en el documento; no se lista en la gestión ni en la landing, no se puede editar ni publicar, y un segundo DELETE da 404. La pueden usar admin y voluntario (los mismos roles que gestionan campañas). Los comentarios de la campaña (education) se conservan. Front: botón Eliminar con confirmación, quita la tarjeta sin recargar y muestra 'Campaña eliminada correctamente'; ante un error lo muestra y recarga.",
          tests="TestDelete_SacaLaCampanaDeGestionYPublico, TestDelete_Validaciones, TestCampaignRepository_BajaLogica (emulador), TestEliminarCampana_PermisosYEfecto (401/403/200/404), campanas.spec (+4), campaigns.service.spec (+1).",
-         resultado="campaigns 8 paquetes OK (90,2 %); front 694/694 OK. En el contenedor viejo DELETE da 405 (falta reconstruir).",
-         pendiente="Reconstruir campaigns-service y frontend en Docker y desplegar el openapi.yaml con el DELETE."),
+         resultado="campaigns 8 paquetes OK (90,2 %); front 694/694 OK. Contra el stack reconstruido: participante -> DELETE da 403 (antes 405 porque la ruta no existía).",
+         pendiente="Desplegar a testing el openapi.yaml con el DELETE (en local ya funciona)."),
 ]
 
 # Matriz de roles (resumen por módulo).
@@ -361,7 +361,7 @@ TESTS_INVENTARIO = [
     ("Carga local (nuevo)", "Carga", "tests/carga/k6_carga_local.js", "k6 0.54.0 en Docker", 1, 3, "Ejecutado: 0 % de 5xx", "-", "Ver sección de resultados"),
     ("Carga en proceso (nuevo)", "Carga / volumen", "campaigns/internal/routes/carga_test.go", "go test + emulador (CARGA=1)", 1, 1, "Ejecutado: 0 errores", "-", "500 y 2000 campañas"),
     ("Seguridad DAST (CD)", "Seguridad", "zaproxy/action-api-scan en pipeline.yml", "OWASP ZAP", "-", "-", "No ejecutado (solo CD)", "-", ""),
-    ("Sonda de seguridad (nuevo)", "Seguridad / roles", "tests/seguridad/sonda/main.go", "Go net/http", 1, 39, "Ejecutado: 38/39 OK", "-", "La falla es labor sin desplegar"),
+    ("Sonda de seguridad (nuevo)", "Seguridad / roles", "tests/seguridad/sonda/main.go", "Go net/http", 1, 39, "Ejecutado: 39/39 OK", "-", "38/39 antes de reconstruir el stack"),
     ("Reportes con valores fijos", "No son pruebas", "tests/{security,performance,e2e_a11y}/generate_*.go -> reports/", "Go", 3, "-", "No miden nada", "-", "No se tocaron por pedido previo de la usuaria"),
     ("Mutación", "Mutación", "stryker.conf.json, run_mutation_tests.sh", "Stryker / go-mutesting", "-", "-", "No ejecutado (if: false en CI)", "-", ""),
 ]
@@ -388,7 +388,7 @@ TESTS_FALTANTES = [
 
 PENDIENTES = [
     # (descripción, HU, módulo, archivos, trabajo, dependencias, prioridad, criterio de aceptación)
-    ("Reconstruir el stack Docker local", "Problemas 3 y 5", "Infra local", "docker-compose.yml", "docker compose up -d --build (recrea notifications con AUTH_GRPC_URL, campaigns con DELETE, labor con el arreglo, emulador autoinicializado, gateway con 429)", "La usuaria", "Alta", "La sonda de seguridad da 39/39 y una ficha nueva genera notificación en la campana del admin."),
+    ("Probar en el navegador el flujo de notificaciones de PH", "Problema 3", "PH / Notificaciones", "-", "Con el stack ya reconstruido (12/11): crear una ficha y un hito visible y ver la notificación en la campana", "-", "Alta", "Una ficha nueva genera notificación en la campana del admin y el hito visible le llega al participante."),
     ("Desplegar a testing los arreglos de seguridad de labor", "HU-06, Problema 4", "Inserción Laboral", "labor-integration/*", "Commit + pase a testing", "OK del equipo (código de otro integrante)", "Alta", "PUT /offers/x/approve sin token con X-User-Role: role_admin responde 401/403 en testing."),
     ("Bloqueo de cuenta tras 5 intentos fallidos", "HU-02", "Autenticación", "auth/internal/services/auth_service.go", "Contador por cuenta + bloqueo temporal + mensaje", "-", "Alta", "Al 6.º intento la cuenta queda bloqueada N minutos y se desbloquea sola."),
     ("Log de auditoría en auth", "HU-03, HU-06, HU-07 a HU-11", "Autenticación", "auth (nuevo repositorio de auditoría)", "Registrar en la misma transacción usuario, acción, recurso y fecha; endpoint de lectura para admin; sumar a /dashboard/auditoria", "-", "Alta", "Cada alta/baja/edición de perfil aparece en la pantalla de auditoría y no se puede editar."),
@@ -411,7 +411,7 @@ PENDIENTES = [
 RECOMENDACIONES = [
     ("Seguridad", "No confiar nunca en headers de identidad: validar el JWT en cada servicio (labor ya lo hace con JWT_SECRET). Agregar JWT_SECRET al .env local de labor."),
     ("Seguridad", "Agregar PUBSUB_PUSH_AUDIENCE y PUBSUB_PUSH_SERVICE_ACCOUNTS al CD de cada consumidor y hacer que fallen cerrado también en testing."),
-    ("Seguridad", "Rotar el JWT_SECRET local si alguna vez se compartió: los contenedores corren con un secreto distinto al del .env actual (señal de configuración desincronizada)."),
+    ("Seguridad", "Los .env guardan JWT_SECRET entre comillas simples (Docker Compose las quita): al copiar la clave a otro servicio o a GCP, copiar la línea completa con el mismo formato."),
     ("Rendimiento", "Paginación y límites en listados (campañas, biblioteca, ofertas); hoy se lee toda la colección en cada pedido."),
     ("Rendimiento", "Revisar el límite de 10/s (nginx) y 100/min (servicios) por IP: un centro barrial con una sola IP pública puede quedarse corto en uso normal."),
     ("Arquitectura", "Unificar el modelo de autorización (RequireRole + dueño) en una librería compartida como se hizo con pkg/events, para que labor y auth no diverjan."),
@@ -419,7 +419,7 @@ RECOMENDACIONES = [
     ("Mantenibilidad", "Reemplazar los reportes con valores fijos de tests/{security,performance,e2e_a11y} por los resultados reales (k6, sonda, ZAP)."),
     ("Testing", "Instalar Cypress o Playwright y correr E2E por rol en el CI con el stack Docker."),
     ("Testing", "Subir cobertura de rxresume, labor y notifications; specs de la ficha de PH."),
-    ("Organización", "Recrear el stack Docker después de cada cambio de docker-compose.yml o .env (los contenedores actuales son del 29/10)."),
+    ("Organización", "Recrear el stack Docker después de cada cambio de docker-compose.yml o .env (al momento de la auditoría eran del 29/10 y notifications no tenía AUTH_GRPC_URL)."),
     ("Documentación", "Mantener docs/HISTORIAS_DE_USUARIO.md y este informe desde scripts/informe-auditoria/datos.py."),
     ("Experiencia de usuario", "Avisar en el front cuando el backend responde 429 (hoy aparece como error genérico)."),
 ]

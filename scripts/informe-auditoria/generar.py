@@ -278,7 +278,7 @@ def generar_pdf():
                 "Problema 3 (corregido en código y en el emulador): eventos que no llegaban, enlaces rotos, aviso al creador que nunca salía, duplicados de campañas.",
                 "Problema 5 (implementado): la eliminación de campañas no existía.",
                 "Pendientes funcionales: bloqueo por intentos de login, auditoría en auth, notificación de ofertas compatibles, panel RBAC, observabilidad propia.",
-                "Entorno: el stack Docker local corre contenedores del 29/10, con configuración y secretos distintos a los actuales.",
+                "Entorno: el stack Docker local corría contenedores del 29/10 (notifications sin AUTH_GRPC_URL y labor sin JWT_SECRET); se reconstruyó el 12/11.",
             ]) + [P(f"<b>Estado general.</b> El sistema está funcionalmente avanzado: {c.get('IMPLEMENTADO', 0)} de {len(D.HUS)} HU quedan implementadas y no hay errores abiertos "
                     "conocidos en las implementadas. Lo que falta se concentra en Autenticación (auditoría, bloqueo, sesiones), en la verificación "
                     "de punta a punta de notificaciones y emails en testing, y en algunas HU de Inserción Laboral. Todas las suites de tests pasan "
@@ -418,7 +418,7 @@ def generar_pdf():
                            [(x["grupo"], x["nombre"], ",".join(map(str, x["espera"])), x["obtuvo"], x["resultado"]) for x in sonda["casos"]],
                            [2.2, 9.3, 1.8, 1.7, 2]))
     story += [Spacer(1, 4), P("<b>Limitaciones.</b> El stack local comparte bases con testing, por lo que no hubo pruebas de carga con escritura ni con tokens de "
-                              "usuarios reales. Los contenedores corren código del 29/10: las correcciones se verificaron con tests, no en el stack. ZAP no se ejecutó.")]
+                              "usuarios reales. La carga se midió con el stack del 29/10; la sonda se repitió el 12/11 contra el stack reconstruido (39/39). ZAP no se ejecutó.")]
 
     # 13. Pendientes
     story += [PageBreak(), P("12. Pendientes de implementación", "h1"),

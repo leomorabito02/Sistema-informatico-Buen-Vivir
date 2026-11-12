@@ -4,7 +4,7 @@ Estado al 11/11/2026. Generado por `scripts/informe-auditoria/generar.py` desde 
 
 | Prioridad | Pendiente | HU | Módulo | Trabajo necesario | Dependencias | Criterio de aceptación |
 |---|---|---|---|---|---|---|
-| Alta | Reconstruir el stack Docker local | Problemas 3 y 5 | Infra local | docker compose up -d --build (recrea notifications con AUTH_GRPC_URL, campaigns con DELETE, labor con el arreglo, emulador autoinicializado, gateway con 429) | La usuaria | La sonda de seguridad da 39/39 y una ficha nueva genera notificación en la campana del admin. |
+| Alta | Probar en el navegador el flujo de notificaciones de PH | Problema 3 | PH / Notificaciones | Con el stack ya reconstruido (12/11): crear una ficha y un hito visible y ver la notificación en la campana | - | Una ficha nueva genera notificación en la campana del admin y el hito visible le llega al participante. |
 | Alta | Desplegar a testing los arreglos de seguridad de labor | HU-06, Problema 4 | Inserción Laboral | Commit + pase a testing | OK del equipo (código de otro integrante) | PUT /offers/x/approve sin token con X-User-Role: role_admin responde 401/403 en testing. |
 | Alta | Bloqueo de cuenta tras 5 intentos fallidos | HU-02 | Autenticación | Contador por cuenta + bloqueo temporal + mensaje | - | Al 6.º intento la cuenta queda bloqueada N minutos y se desbloquea sola. |
 | Alta | Log de auditoría en auth | HU-03, HU-06, HU-07 a HU-11 | Autenticación | Registrar en la misma transacción usuario, acción, recurso y fecha; endpoint de lectura para admin; sumar a /dashboard/auditoria | - | Cada alta/baja/edición de perfil aparece en la pantalla de auditoría y no se puede editar. |
@@ -48,14 +48,14 @@ Estado al 11/11/2026. Generado por `scripts/informe-auditoria/generar.py` desde 
 | HU-42 | Parcialmente implementado | Auditoría de eliminaciones. |
 | HU-44 | No implementado | Definir 'compatible' (habilidades / CV) y la regla de notificación. |
 | HU-56 | Parcialmente implementado | Dashboard de Cloud Monitoring (errores, latencia, CPU/memoria por servicio) con alertas, o Grafana. |
-| HU-60 | Pendiente de verificación | Recrear el stack local; verificar suscripciones push en GCP. |
+| HU-60 | Pendiente de verificación | Verificar suscripciones push en GCP. |
 | HU-61 | Parcialmente implementado | Configurar credenciales de FCM en testing y probar en un dispositivo. |
 
 ## Recomendaciones (no son requisitos de las HU)
 
 - **Seguridad:** No confiar nunca en headers de identidad: validar el JWT en cada servicio (labor ya lo hace con JWT_SECRET). Agregar JWT_SECRET al .env local de labor.
 - **Seguridad:** Agregar PUBSUB_PUSH_AUDIENCE y PUBSUB_PUSH_SERVICE_ACCOUNTS al CD de cada consumidor y hacer que fallen cerrado también en testing.
-- **Seguridad:** Rotar el JWT_SECRET local si alguna vez se compartió: los contenedores corren con un secreto distinto al del .env actual (señal de configuración desincronizada).
+- **Seguridad:** Los .env guardan JWT_SECRET entre comillas simples (Docker Compose las quita): al copiar la clave a otro servicio o a GCP, copiar la línea completa con el mismo formato.
 - **Rendimiento:** Paginación y límites en listados (campañas, biblioteca, ofertas); hoy se lee toda la colección en cada pedido.
 - **Rendimiento:** Revisar el límite de 10/s (nginx) y 100/min (servicios) por IP: un centro barrial con una sola IP pública puede quedarse corto en uso normal.
 - **Arquitectura:** Unificar el modelo de autorización (RequireRole + dueño) en una librería compartida como se hizo con pkg/events, para que labor y auth no diverjan.
@@ -63,6 +63,6 @@ Estado al 11/11/2026. Generado por `scripts/informe-auditoria/generar.py` desde 
 - **Mantenibilidad:** Reemplazar los reportes con valores fijos de tests/{security,performance,e2e_a11y} por los resultados reales (k6, sonda, ZAP).
 - **Testing:** Instalar Cypress o Playwright y correr E2E por rol en el CI con el stack Docker.
 - **Testing:** Subir cobertura de rxresume, labor y notifications; specs de la ficha de PH.
-- **Organización:** Recrear el stack Docker después de cada cambio de docker-compose.yml o .env (los contenedores actuales son del 29/10).
+- **Organización:** Recrear el stack Docker después de cada cambio de docker-compose.yml o .env (al momento de la auditoría eran del 29/10 y notifications no tenía AUTH_GRPC_URL).
 - **Documentación:** Mantener docs/HISTORIAS_DE_USUARIO.md y este informe desde scripts/informe-auditoria/datos.py.
 - **Experiencia de usuario:** Avisar en el front cuando el backend responde 429 (hoy aparece como error genérico).
