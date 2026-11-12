@@ -156,8 +156,8 @@
         401,
         403
       ],
-      "obtuvo": 500,
-      "resultado": "FALLA",
+      "obtuvo": 403,
+      "resultado": "OK",
       "nota": "Debe rechazar. Si responde 404/500, el rol falsificado pasó el control (vulnerabilidad)."
     },
     {
@@ -468,11 +468,11 @@
     }
   ],
   "con_tokens_rol": true,
-  "fecha": "2026-11-12T00:46:13-03:00",
+  "fecha": "2026-11-12T00:50:36-03:00",
   "resumen": {
     "casos": 39,
     "error": 0,
-    "falla": 1,
-    "ok": 38
+    "falla": 0,
+    "ok": 39
   }
 }

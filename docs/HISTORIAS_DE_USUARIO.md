@@ -178,7 +178,7 @@ El estado es el final, después de las correcciones de la auditoría. Detalle co
 - **Backend:** RequireRole en cada servicio + controles por dueño en servicios
 - **Endpoints:** Todos
 - **Persistencia:** roles, permissions (auth)
-- **Tests existentes:** routes_test RBAC por servicio; sonda de seguridad 38/39; tests nuevos de permisos (auth, labor, campaigns, education)
+- **Tests existentes:** routes_test RBAC por servicio; sonda de seguridad 39/39; tests nuevos de permisos (auth, labor, campaigns, education)
 - **Tests que faltan:** E2E por rol en el navegador
 - **Problemas detectados:** (1) No hay panel de configuración de permisos por rol en el front (solo la API /roles y /permissions). (2) No se registran los intentos no autorizados en auditoría. (3) El docente puede crear cursos en borrador por /api/docente/cursos, y la HU dice que no.
 - **Correcciones (11/11/2026):** Se corrigieron 6 problemas de permisos (ver Problema 4): labor confiaba en headers del cliente, editar y borrar ofertas sin control, perfiles creados a nombre de otro usuario, baja de perfil por el propio participante, Seguimiento roto para admin y voluntario.
@@ -951,8 +951,8 @@ El estado es el final, después de las correcciones de la auditoría. Detalle co
 - **Tests existentes:** rules_test, worker_test, consumers_test
 - **Tests que faltan:** Test de punta a punta con Pub/Sub
 - **Problemas detectados:** Localmente el emulador no tenía suscripciones y el contenedor de notifications corre sin AUTH_GRPC_URL (stack viejo). En testing no hay variables PUBSUB_PUSH_* en el CD.
-- **Correcciones (11/11/2026):** Emulador autoinicializado; enlaces rotos de las notificaciones; sin notificaciones huérfanas por reintento.
-- **Pendiente:** Recrear el stack local; verificar suscripciones push en GCP.
+- **Correcciones (11/11/2026):** Emulador autoinicializado; enlaces rotos de las notificaciones; sin notificaciones huérfanas por reintento. Stack reconstruido el 12/11.
+- **Pendiente:** Verificar suscripciones push en GCP.
 
 ### HU-61: Notificaciones push (PWA)
 
