@@ -245,8 +245,7 @@ export class AdminCursosComponent implements OnInit {
       f.mode &&
       f.duration.trim() &&
       f.trainingAreaId &&
-      f.responsibleTeacher &&
-      f.materialIds.length > 0
+      f.responsibleTeacher
     );
   }
 
@@ -286,7 +285,9 @@ export class AdminCursosComponent implements OnInit {
         if (f.publicar) {
           this.education.publishCourse(created.id).subscribe({
             next: () => this.afterCourseCreate(true),
-            error: (err: Error) => this.saveError(err),
+            // el curso YA se creó (queda en borrador): no es un error de
+            // guardado, es que Contentful no lo dejó publicar todavía
+            error: (err: Error) => this.afterCourseCreate(false, err.message),
           });
         } else {
           this.afterCourseCreate(false);
@@ -296,16 +297,25 @@ export class AdminCursosComponent implements OnInit {
     });
   }
 
-  private afterCourseCreate(published: boolean) {
+  private afterCourseCreate(published: boolean, publishError?: string) {
     this.savingCourse = false;
     this.courseDialog = false;
-    this.toast.add({
-      severity: "success",
-      summary: "Curso creado",
-      detail: published
-        ? "Se creó el curso correctamente y quedó visible en el catálogo"
-        : "Se creó el curso en borrador. Publicalo para que aparezca en el catálogo",
-    });
+    this.toast.add(
+      publishError
+        ? {
+            severity: "warn",
+            summary: "Curso creado en borrador",
+            detail: `El curso se guardó, pero no se pudo publicar: ${publishError}`,
+            life: 8000,
+          }
+        : {
+            severity: "success",
+            summary: "Curso creado",
+            detail: published
+              ? "Se creó el curso correctamente y quedó visible en el catálogo"
+              : "Se creó el curso en borrador. Publicalo para que aparezca en el catálogo",
+          },
+    );
     this.reloadAll();
   }
 
@@ -448,7 +458,36 @@ export class AdminCursosComponent implements OnInit {
   }
 
   // ==================== MATERIALES ====================
+  /**
+   * true cuando el diálogo de material se abrió desde el formulario de
+   * curso: el material nuevo queda adjuntado a ese curso (Problema 1 de
+   * la auditoría: subir materiales mientras se crea el curso).
+   */
+  materialForCourse = false;
+
+  /** Abre el alta de material desde el diálogo de curso. */
+  newMaterialForCourse() {
+    this.newMaterial();
+    this.materialForCourse = true;
+  }
+
+  /**
+   * Después de crear un material: lo suma a la lista y, si se abrió
+   * desde el curso, lo deja seleccionado en el formulario. No recarga
+   * todo para no perder lo que se está escribiendo en el curso.
+   */
+  private materialCreado(m: Material) {
+    if (!this.materials.some((x) => x.id === m.id)) {
+      this.materials = [...this.materials, m];
+    }
+    if (this.materialForCourse && !this.courseForm.materialIds.includes(m.id)) {
+      this.courseForm.materialIds = [...this.courseForm.materialIds, m.id];
+    }
+    this.materialForCourse = false;
+  }
+
   newMaterial() {
+    this.materialForCourse = false;
     this.editingMaterialId = null;
     this.materialForm = { title: "", type: "PDF", fileAssetId: "", url: "" };
     this.materialFile = null;
@@ -456,6 +495,7 @@ export class AdminCursosComponent implements OnInit {
     this.materialDialog = true;
   }
   editMaterial(m: Material) {
+    this.materialForCourse = false;
     this.editingMaterialId = m.id;
     this.materialForm = {
       title: m.title,
@@ -520,7 +560,7 @@ export class AdminCursosComponent implements OnInit {
           this.materialForm.type,
         )
         .subscribe({
-          next: () => {
+          next: (m) => {
             this.savingMaterial = false;
             this.materialDialog = false;
             this.toast.add({
@@ -528,7 +568,7 @@ export class AdminCursosComponent implements OnInit {
               summary: "Material subido",
               detail: this.materialForm.title,
             });
-            this.reloadAll();
+            this.materialCreado(m);
           },
           error: (err: Error) => {
             this.savingMaterial = false;
@@ -552,18 +592,21 @@ export class AdminCursosComponent implements OnInit {
     const call = this.editingMaterialId
       ? this.education.updateMaterial(this.editingMaterialId, input)
       : this.education.createMaterial(input);
+    const editing = !!this.editingMaterialId;
     call.subscribe({
-      next: () => {
+      next: (m) => {
         this.savingMaterial = false;
         this.materialDialog = false;
         this.toast.add({
           severity: "success",
-          summary: this.editingMaterialId
-            ? "Material actualizado"
-            : "Material creado",
+          summary: editing ? "Material actualizado" : "Material creado",
           detail: input.title,
         });
-        this.reloadAll();
+        if (editing) {
+          this.reloadAll();
+        } else {
+          this.materialCreado(m);
+        }
       },
       error: (err: Error) => {
         this.savingMaterial = false;

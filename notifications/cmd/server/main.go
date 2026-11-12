@@ -118,7 +118,15 @@ func main() {
 	isProd := cfg.Environment == "production"
 	pushVerifier, err := events.NewPushVerifier(cfg.PubSubPushAuth, cfg.PubSubPushAudience, cfg.PubSubPushServiceAccounts, isProd)
 	if err != nil {
-		log.Printf("Warning: push verifier initialization: %v", err)
+		// En producción no se acepta ningún push sin verificar: antes se
+		// caía a NoVerifier y cualquiera que llegara a /eventos/* podía
+		// fabricar notificaciones (auditoría 2026-11-11). Es la regla de
+		// docs/eventos: "PUBSUB_PUSH_AUTH=disabled solo en local; en
+		// producción no arranca".
+		if isProd {
+			log.Fatalf("push verifier: %v", err)
+		}
+		log.Printf("Warning: push verifier initialization: %v (se aceptan push sin verificar: solo válido fuera de producción)", err)
 		pushVerifier = events.NoVerifier{}
 	}
 	processedStore := store.NewProcessedStore(db)

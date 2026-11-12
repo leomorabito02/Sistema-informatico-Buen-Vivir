@@ -76,6 +76,14 @@ func (m *memRepo) List(_ context.Context, estado string) ([]models.Campaign, err
 	return out, nil
 }
 
+func (m *memRepo) Delete(_ context.Context, id, _ string) error {
+	if _, ok := m.datos[id]; !ok {
+		return repositories.ErrNotFound
+	}
+	delete(m.datos, id)
+	return nil
+}
+
 func nuevoServidor(t *testing.T) *httptest.Server {
 	t.Helper()
 	r := chi.NewRouter()
@@ -275,5 +283,56 @@ func TestHealthYHeadersDeSeguridad(t *testing.T) {
 	defer func() { _ = res.Body.Close() }()
 	if res.StatusCode != http.StatusOK || res.Header.Get("X-Content-Type-Options") != "nosniff" {
 		t.Fatalf("health: %d, headers %v", res.StatusCode, res.Header)
+	}
+}
+
+// Problema 5 de la auditoría (2026-11-11): admin y voluntario dan de baja;
+// la campaña sale de la gestión y de la landing; participante, empresa,
+// docente y sin sesión no pueden.
+func TestEliminarCampana_PermisosYEfecto(t *testing.T) {
+	srv := nuevoServidor(t)
+	vol := token(t, "role_volunteer", "voluntario-1")
+	admin := token(t, "role_admin", "admin-1")
+
+	crear := func() string {
+		var r respuesta
+		if code := pedir(t, srv, http.MethodPost, "/api/v1/campaigns", vol, cuerpoValido, &r); code != http.StatusCreated {
+			t.Fatalf("crear: %d", code)
+		}
+		if code := pedir(t, srv, http.MethodPost, "/api/v1/campaigns/"+r.Campana.ID+"/publicar", vol, "", nil); code != http.StatusOK {
+			t.Fatalf("publicar: %d", code)
+		}
+		return r.Campana.ID
+	}
+
+	id := crear()
+	for _, rol := range []string{"role_participant", "role_company", "role_teacher"} {
+		if code := pedir(t, srv, http.MethodDelete, "/api/v1/campaigns/"+id, token(t, rol, "u"), "", nil); code != http.StatusForbidden {
+			t.Errorf("%s: esperaba 403, dio %d", rol, code)
+		}
+	}
+	if code := pedir(t, srv, http.MethodDelete, "/api/v1/campaigns/"+id, "", "", nil); code != http.StatusUnauthorized {
+		t.Errorf("sin sesión: esperaba 401, dio %d", code)
+	}
+
+	var r respuesta
+	if code := pedir(t, srv, http.MethodDelete, "/api/v1/campaigns/"+id, vol, "", &r); code != http.StatusOK {
+		t.Fatalf("voluntario elimina: esperaba 200, dio %d", code)
+	}
+	if r.Mensaje != services.MsgCampanaEliminada {
+		t.Errorf("mensaje: %q", r.Mensaje)
+	}
+	var publicas []models.Campaign
+	pedir(t, srv, http.MethodGet, "/api/v1/campaigns/publicas", "", "", &publicas)
+	if len(publicas) != 0 {
+		t.Errorf("la landing sigue mostrando la campaña eliminada: %v", publicas)
+	}
+	if code := pedir(t, srv, http.MethodDelete, "/api/v1/campaigns/"+id, vol, "", nil); code != http.StatusNotFound {
+		t.Errorf("segunda baja: esperaba 404, dio %d", code)
+	}
+
+	id2 := crear()
+	if code := pedir(t, srv, http.MethodDelete, "/api/v1/campaigns/"+id2, admin, "", nil); code != http.StatusOK {
+		t.Errorf("admin elimina: esperaba 200, dio %d", code)
 	}
 }

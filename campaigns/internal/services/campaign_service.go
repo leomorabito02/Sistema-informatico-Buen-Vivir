@@ -41,6 +41,9 @@ type CampaignService interface {
 	// cambia nada.
 	Publish(ctx context.Context, id string) (models.Campaign, error)
 	Get(ctx context.Context, id string) (models.Campaign, error)
+	// Delete da de baja (baja lógica) una campaña, esté en borrador o
+	// publicada: deja de verse en la gestión y en la sección pública.
+	Delete(ctx context.Context, id, usuarioID string) error
 	// List devuelve todas las campañas para la gestión, opcionalmente
 	// filtradas por estado y por título.
 	List(ctx context.Context, busqueda, estado string) ([]models.Campaign, error)
@@ -90,15 +93,11 @@ func (s *campaignService) Create(ctx context.Context, in models.CampaignInput, c
 	if err != nil {
 		return models.Campaign{}, err
 	}
-
-	if s.producer != nil {
-		if err := s.producer.CampanaCreada(ctx, created.ID, creadoPor); err != nil {
-			slog.Warn("failed to emit campana.creada to outbox", slog.String("error", err.Error()), slog.String("campaign_id", created.ID))
-		} else {
-			s.producer.Notify()
-		}
-	}
-
+	// No se emite campana.creada acá: la campaña nace en borrador y no es
+	// pública. El evento (que dispara los avisos a participantes y
+	// voluntariado) sale una sola vez, al publicarla. Antes salía también
+	// acá y cada campaña generaba dos avisos, el primero de una campaña
+	// que todavía no se veía (auditoría 2026-11-11, Problema 3).
 	return created, nil
 }
 
@@ -110,7 +109,21 @@ func (s *campaignService) Update(ctx context.Context, id string, in models.Campa
 	if err != nil {
 		return models.Campaign{}, err
 	}
+	// Una campaña dada de baja no se edita (Get da ErrNotFound).
+	if _, err := s.repo.Get(ctx, id); err != nil {
+		return models.Campaign{}, err
+	}
 	return s.repo.Update(ctx, id, in)
+}
+
+func (s *campaignService) Delete(ctx context.Context, id, usuarioID string) error {
+	if !validID(id) {
+		return repositories.ErrNotFound
+	}
+	if strings.TrimSpace(usuarioID) == "" {
+		return NewValidationError("No se pudo identificar al usuario que elimina la campaña")
+	}
+	return s.repo.Delete(ctx, id, usuarioID)
 }
 
 func (s *campaignService) Publish(ctx context.Context, id string) (models.Campaign, error) {

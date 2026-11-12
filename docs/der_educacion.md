@@ -1,8 +1,8 @@
 # DER — Servicio Educación (actualización: entidad Entrega)
 
 Actualización del DER de Buen Vivir App para el **Servicio Educación | DB
-Educación — NoSQL Documental**. Complementa a `DER Buen Vivir-App.jpg` y a
-`Expliacion der buen vivir app.pdf` (raíz del repo). Esos dos archivos son la
+Educación — NoSQL Documental**. Complementa a `referencias/DER Buen Vivir-App.jpg` y a
+`referencias/Expliacion der buen vivir app.pdf` (en `docs/`). Esos dos archivos son la
 versión anterior; este documento describe **solo lo que cambia** en Educación y
 está redactado con el mismo formato que el PDF, para poder copiarlo ahí.
 

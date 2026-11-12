@@ -213,3 +213,35 @@ func TestLineaTiempoIdempotente(t *testing.T) {
 func containsFold(s, sub string) bool {
 	return strings.Contains(strings.ToLower(s), strings.ToLower(sub))
 }
+
+// Problema 3 de la auditoría (2026-11-11): ficha.actualizada lleva quién
+// creó la ficha, para que Notificaciones le avise cuando otra persona la
+// edita. Antes viajaba vacío y esa notificación no salía nunca.
+func TestFichaActualizada_LlevaCreadoPor(t *testing.T) {
+	client := newTestFirestore(t)
+	fichas := NewFichaRepository(client, producer(client))
+	ctx := requestCtx()
+
+	fichaID, err := fichas.Create(ctx, models.FichaDocument{ParticipanteID: "part-2", CreadoPor: "voluntario-creador", SituacionActual: "c1", Avances: "c2", UpdatedAt: time.Now()})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := fichas.UpdateContenido(events.WithActor(ctx, "admin-editor"), fichaID, "c3", "c4", time.Now()); err != nil {
+		t.Fatal(err)
+	}
+	evs := outboxByType(t, client)
+	if len(evs[events.FichaActualizada]) != 1 {
+		t.Fatalf("ficha.actualizada: %d eventos", len(evs[events.FichaActualizada]))
+	}
+	env, err := events.Decode([]byte(evs[events.FichaActualizada][0].Data))
+	if err != nil {
+		t.Fatal(err)
+	}
+	p, err := events.DecodePayload[events.FichaPayload](env)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if p.CreadoPor != "voluntario-creador" || p.FichaID != fichaID || p.ParticipanteID != "part-2" {
+		t.Fatalf("payload de ficha.actualizada: %+v", p)
+	}
+}

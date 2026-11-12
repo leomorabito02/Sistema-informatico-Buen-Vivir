@@ -5,6 +5,7 @@ const (
 	MsgCampanaCreada    = "Campaña creada correctamente"    // HU-47
 	MsgCampanaEditada   = "Campaña editada correctamente"   // HU-48
 	MsgCampanaPublicada = "Campaña publicada correctamente" // HU-49 (la HU no fija texto)
+	MsgCampanaEliminada = "Campaña eliminada correctamente" // Problema 5 de la auditoría (sin HU)
 )
 
 // ValidationError señala que el payload no cumple las reglas de negocio

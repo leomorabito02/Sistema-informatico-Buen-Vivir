@@ -38,6 +38,7 @@ type Controllers struct {
 	TeacherContent    *controllers.TeacherContentController
 	Participante      *controllers.ParticipanteController
 	Auditoria         *controllers.AuditoriaController
+	Progress          *controllers.ProgressController
 }
 
 func RegisterRoutes(
@@ -179,6 +180,11 @@ func RegisterRoutes(
 
 			r.Post("/api/cursos/{id}/inscripciones", ctrls.Enrollment.Enroll)
 			r.Get("/api/cursos/{id}/inscripciones", ctrls.Enrollment.List)
+			// progreso formativo de cualquier curso (HU-20), para la
+			// pantalla Seguimiento de admin y voluntario
+			if ctrls.Progress != nil {
+				r.Get("/api/cursos/{id}/progreso", ctrls.Progress.CourseProgress)
+			}
 
 			r.Get("/api/cursos/{id}/actividades", ctrls.Activity.List)
 			r.Post("/api/cursos/{id}/actividades", ctrls.Activity.Create)

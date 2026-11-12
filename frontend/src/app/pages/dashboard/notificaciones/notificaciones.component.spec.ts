@@ -1,4 +1,10 @@
-import { ComponentFixture, TestBed } from "@angular/core/testing";
+import {
+  ComponentFixture,
+  TestBed,
+  fakeAsync,
+  flushMicrotasks,
+  tick,
+} from "@angular/core/testing";
 import { NotificacionesComponent } from "./notificaciones.component";
 import { BrowserAnimationsModule } from "@angular/platform-browser/animations";
 import {
@@ -50,6 +56,7 @@ describe("NotificacionesComponent", () => {
         "markAllAsRead",
         "deleteNotification",
         "getUnreadCount",
+        "refreshUnread",
         "getPreferences",
         "patchPreference",
         "savePreferences",
@@ -67,6 +74,7 @@ describe("NotificacionesComponent", () => {
       sender_id: "system",
       data: { test: true },
     }));
+    mockNotificationsService.refreshUnread.and.resolveTo(0);
     mockNotificationsService.markAsRead.and.resolveTo();
     mockNotificationsService.markAllAsRead.and.resolveTo();
     mockNotificationsService.deleteNotification.and.resolveTo();
@@ -260,5 +268,42 @@ describe("NotificacionesComponent", () => {
     expect(component.preferencesSuccessMessage).toContain(
       "restablecieron a su configuración predeterminada",
     );
+  });
+
+  // Problema 3 de la auditoría (2026-11-11): la pantalla se entera sola de
+  // las notificaciones nuevas y mantiene al día el contador de la campana.
+  describe("actualización automática", () => {
+    it("después de marcar como leída refresca el contador", async () => {
+      await component.loadNotifications();
+      mockNotificationsService.refreshUnread.calls.reset();
+      const item = component.notifications.find((n) => !n.is_read)!;
+      await component.markAsRead(item);
+      await Promise.resolve();
+      expect(mockNotificationsService.refreshUnread).toHaveBeenCalled();
+    });
+
+    it("si el contador falla, la notificación igual queda leída", async () => {
+      mockNotificationsService.refreshUnread.and.rejectWith(new Error("red"));
+      await component.loadNotifications();
+      const item = component.notifications.find((n) => !n.is_read)!;
+      await component.markAsRead(item);
+      expect(item.is_read).toBeTrue();
+    });
+
+    it("cada minuto vuelve a pedir la lista y al salir deja de hacerlo", fakeAsync(() => {
+      component.ngOnDestroy(); // corta el timer real que arrancó el beforeEach
+      component.ngOnInit();
+      flushMicrotasks();
+      mockNotificationsService.getNotifications.calls.reset();
+      tick(60_000);
+      expect(mockNotificationsService.getNotifications).toHaveBeenCalledTimes(
+        1,
+      );
+      component.ngOnDestroy();
+      tick(120_000);
+      expect(mockNotificationsService.getNotifications).toHaveBeenCalledTimes(
+        1,
+      );
+    }));
   });
 });

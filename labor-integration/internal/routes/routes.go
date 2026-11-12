@@ -77,11 +77,21 @@ func applyCORS(w http.ResponseWriter, r *http.Request) bool {
 	return false
 }
 
+// hydrateJWTHeaders decide quién hace el pedido. Con JWT_SECRET, la
+// identidad sale SOLO del JWT verificado: primero se descartan los
+// X-User-ID / X-User-Role que haya mandado el cliente. Antes solo se
+// pisaban si había un token válido, así que un pedido sin token con
+// "X-User-Role: role_admin" podía aprobar o borrar ofertas (auditoría
+// 2026-11-11, Problema 4). Sin JWT_SECRET (Docker local) se sigue
+// confiando en los headers que pone el gateway nginx tras validar el
+// token; en producción el servicio no arranca sin JWT_SECRET (main.go).
 func hydrateJWTHeaders(r *http.Request) {
 	secret := strings.TrimSpace(os.Getenv("JWT_SECRET"))
 	if secret == "" {
 		return
 	}
+	r.Header.Del("X-User-ID")
+	r.Header.Del("X-User-Role")
 	tok := extractToken(r)
 	if tok == "" {
 		return

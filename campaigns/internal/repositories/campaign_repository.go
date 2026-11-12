@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"sort"
+	"time"
 
 	"cloud.google.com/go/firestore"
 	"google.golang.org/grpc/codes"
@@ -24,6 +25,9 @@ type CampaignRepository interface {
 	Update(ctx context.Context, id string, in models.CampaignInput) (models.Campaign, error)
 	// SetEstado cambia el estado de la campaña (publicar, HU-49).
 	SetEstado(ctx context.Context, id, estado string) (models.Campaign, error)
+	// Delete es la baja lógica: marca la campaña como eliminada (fecha y
+	// usuario). Una campaña ya eliminada da ErrNotFound.
+	Delete(ctx context.Context, id, usuarioID string) error
 	// List devuelve las campañas, de la más reciente a la más vieja (por
 	// fecha). Con estado vacío devuelve todas.
 	List(ctx context.Context, estado string) ([]models.Campaign, error)
@@ -54,7 +58,11 @@ func (r *campaignRepository) Get(ctx context.Context, id string) (models.Campaig
 		}
 		return models.Campaign{}, fmt.Errorf("error leyendo la campaña: %w", err)
 	}
-	return campaignFromDoc(doc)
+	c, err := campaignFromDoc(doc)
+	if err == nil && c.Eliminada {
+		return models.Campaign{}, ErrNotFound
+	}
+	return c, err
 }
 
 func (r *campaignRepository) Update(ctx context.Context, id string, in models.CampaignInput) (models.Campaign, error) {
@@ -84,6 +92,27 @@ func (r *campaignRepository) update(ctx context.Context, id string, cambios []fi
 	return r.Get(ctx, id)
 }
 
+func (r *campaignRepository) Delete(ctx context.Context, id, usuarioID string) error {
+	ref := r.client.Collection(CampaignsCollection).Doc(id)
+	return r.client.RunTransaction(ctx, func(ctx context.Context, tx *firestore.Transaction) error {
+		doc, err := tx.Get(ref)
+		if status.Code(err) == codes.NotFound {
+			return ErrNotFound
+		}
+		if err != nil {
+			return fmt.Errorf("error leyendo la campaña: %w", err)
+		}
+		if eliminada, _ := doc.Data()["eliminada"].(bool); eliminada {
+			return ErrNotFound
+		}
+		return tx.Update(ref, []firestore.Update{
+			{Path: "eliminada", Value: true},
+			{Path: "eliminada_en", Value: time.Now().UTC()},
+			{Path: "eliminada_por", Value: usuarioID},
+		})
+	})
+}
+
 func (r *campaignRepository) List(ctx context.Context, estado string) ([]models.Campaign, error) {
 	q := r.client.Collection(CampaignsCollection).Query
 	if estado != "" {
@@ -98,6 +127,11 @@ func (r *campaignRepository) List(ctx context.Context, estado string) ([]models.
 		c, err := campaignFromDoc(d)
 		if err != nil {
 			return nil, err
+		}
+		// Las dadas de baja no se listan. Se filtra acá y no con Where:
+		// las campañas viejas no tienen el campo "eliminada".
+		if c.Eliminada {
+			continue
 		}
 		campaigns = append(campaigns, c)
 	}

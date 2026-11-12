@@ -114,3 +114,50 @@ func TestCampaignRepository_ListFiltraYOrdenaPorFecha(t *testing.T) {
 		t.Fatalf("publicadas: %+v, %v", publicadas, err)
 	}
 }
+
+// Problema 5 de la auditoría (2026-11-11): la baja es lógica. El
+// documento sigue en Firestore, con fecha y usuario, pero no se lista ni
+// se lee.
+func TestCampaignRepository_BajaLogica(t *testing.T) {
+	client := newTestFirestore(t)
+	repo := NewCampaignRepository(client)
+	ctx := context.Background()
+
+	pub, err := repo.Create(ctx, campana("Publicada", "2026-11-05", models.EstadoPublicada))
+	if err != nil {
+		t.Fatal(err)
+	}
+	otra, err := repo.Create(ctx, campana("Otra", "2026-11-06", models.EstadoPublicada))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := repo.Delete(ctx, pub.ID, "admin-1"); err != nil {
+		t.Fatalf("delete: %v", err)
+	}
+
+	snap, err := client.Collection(CampaignsCollection).Doc(pub.ID).Get(ctx)
+	if err != nil {
+		t.Fatalf("el documento debería seguir en Firestore: %v", err)
+	}
+	if snap.Data()["eliminada"] != true || snap.Data()["eliminada_por"] != "admin-1" || snap.Data()["eliminada_en"] == nil {
+		t.Fatalf("marca de baja incompleta: %v", snap.Data())
+	}
+	if _, err := repo.Get(ctx, pub.ID); !errors.Is(err, ErrNotFound) {
+		t.Fatalf("get de una dada de baja: esperaba ErrNotFound, dio %v", err)
+	}
+	for _, estado := range []string{"", models.EstadoPublicada} {
+		lista, err := repo.List(ctx, estado)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if len(lista) != 1 || lista[0].ID != otra.ID {
+			t.Fatalf("List(%q) debería traer solo la no eliminada: %+v", estado, lista)
+		}
+	}
+	if err := repo.Delete(ctx, pub.ID, "admin-1"); !errors.Is(err, ErrNotFound) {
+		t.Fatalf("segunda baja: esperaba ErrNotFound, dio %v", err)
+	}
+	if err := repo.Delete(ctx, "no-existe", "admin-1"); !errors.Is(err, ErrNotFound) {
+		t.Fatalf("baja de inexistente: esperaba ErrNotFound, dio %v", err)
+	}
+}

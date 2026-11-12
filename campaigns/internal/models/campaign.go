@@ -1,5 +1,7 @@
 package models
 
+import "time"
+
 // Estados de una campaña (DER, tabla Campaña: "Borrador / publicada").
 const (
 	EstadoBorrador  = "borrador"
@@ -23,6 +25,12 @@ type Campaign struct {
 	Fecha     string `json:"fecha" firestore:"fecha"`
 	Estado    string `json:"estado" firestore:"estado"`
 	CreadoPor string `json:"creado_por,omitempty" firestore:"creado_por"`
+	// Baja lógica (auditoría 2026-11-11, Problema 5): la campaña no se
+	// borra de Firestore; queda marcada y sale de la gestión y de la
+	// sección pública. Los comentarios que tenga (education) se conservan.
+	Eliminada    bool       `json:"-" firestore:"eliminada,omitempty"`
+	EliminadaEn  *time.Time `json:"-" firestore:"eliminada_en,omitempty"`
+	EliminadaPor string     `json:"-" firestore:"eliminada_por,omitempty"`
 }
 
 // CampaignInput es el cuerpo de POST y PUT /api/v1/campaigns. El estado y

@@ -1,4 +1,5 @@
 <p-toast></p-toast>
+<p-confirmDialog></p-confirmDialog>
 
 <div class="page-container">
   <div class="header-section">
@@ -105,6 +106,16 @@
           size="small"
           [ariaLabel]="'Publicar ' + c.titulo"
           (onClick)="publicar(c)"
+        ></p-button>
+        <p-button
+          label="Eliminar"
+          icon="pi pi-trash"
+          size="small"
+          severity="danger"
+          [outlined]="true"
+          [loading]="eliminandoId === c.id"
+          [ariaLabel]="'Eliminar ' + c.titulo"
+          (onClick)="eliminar(c)"
         ></p-button>
       </div>
     </article>

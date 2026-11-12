@@ -11,7 +11,7 @@ import (
 //
 //   - Públicas, sin token: el listado de campañas publicadas, con búsqueda
 //     por título (HU-50, HU-51).
-//   - Gestión: crear, editar, publicar y consultar, para administración y
+//   - Gestión: crear, editar, publicar, dar de baja y consultar, para administración y
 //     voluntariado (HU-06, HU-47 a HU-49). role_admin y role_dev pasan
 //     por el bypass global de RequireRole.
 func RegisterRoutes(r chi.Router, jwtService middlewares.JWTService, ctrl *controllers.CampaignController) {
@@ -29,6 +29,8 @@ func RegisterRoutes(r chi.Router, jwtService middlewares.JWTService, ctrl *contr
 			r.Get("/{id}", ctrl.Get)
 			r.Put("/{id}", ctrl.Update)
 			r.Post("/{id}/publicar", ctrl.Publish)
+			// baja lógica (Problema 5 de la auditoría 2026-11-11)
+			r.Delete("/{id}", ctrl.Delete)
 		})
 	})
 }

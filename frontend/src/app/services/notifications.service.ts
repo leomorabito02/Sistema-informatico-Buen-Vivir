@@ -1,4 +1,4 @@
-import { Injectable } from "@angular/core";
+import { Injectable, signal } from "@angular/core";
 import { environment } from "../../environments/environment";
 
 export interface NotificationItem {
@@ -151,6 +151,21 @@ export class NotificationsService {
       );
       throw err;
     }
+  }
+
+  /**
+   * Cantidad de no leídas que muestra la campana del encabezado. La
+   * refrescan el encabezado (cada minuto y al cambiar de pantalla) y la
+   * pantalla de notificaciones después de cada acción (auditoría
+   * 2026-11-11, Problema 3: antes no había contador y la interfaz no se
+   * enteraba de las notificaciones nuevas).
+   */
+  readonly unread = signal(0);
+
+  async refreshUnread(): Promise<number> {
+    const n = await this.getUnreadCount();
+    this.unread.set(n);
+    return n;
   }
 
   async getUnreadCount(): Promise<number> {

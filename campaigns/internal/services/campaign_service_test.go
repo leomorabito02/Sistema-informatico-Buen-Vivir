@@ -74,6 +74,15 @@ func (f *fakeRepo) List(_ context.Context, estado string) ([]models.Campaign, er
 	return out, nil
 }
 
+// Delete simula la baja lógica: la campaña deja de existir para Get y List.
+func (f *fakeRepo) Delete(_ context.Context, id, _ string) error {
+	if _, ok := f.datos[id]; !ok {
+		return repositories.ErrNotFound
+	}
+	delete(f.datos, id)
+	return nil
+}
+
 func entradaValida() models.CampaignInput {
 	return models.CampaignInput{
 		Titulo:    "Jornada de reciclaje",
@@ -266,6 +275,7 @@ type mockCampanasProducer struct {
 	createdID    string
 	authorID     string
 	notifyCalled bool
+	llamadas     int
 }
 
 func (m *mockCampanasProducer) Enabled() bool {
@@ -275,6 +285,7 @@ func (m *mockCampanasProducer) Enabled() bool {
 func (m *mockCampanasProducer) CampanaCreada(_ context.Context, campanaID, autorID string) error {
 	m.createdID = campanaID
 	m.authorID = autorID
+	m.llamadas++
 	return nil
 }
 
@@ -282,20 +293,83 @@ func (m *mockCampanasProducer) Notify() {
 	m.notifyCalled = true
 }
 
-func TestCreate_EmitsCampanaCreada(t *testing.T) {
+// El aviso de campaña nueva sale una sola vez, al publicar: crear el
+// borrador no avisa y publicar de nuevo tampoco (Problema 3 de la
+// auditoría: antes avisaba dos veces, la primera de un borrador).
+func TestCampanaCreada_SoloAlPublicarYUnaVez(t *testing.T) {
 	prod := &mockCampanasProducer{}
 	svc := NewCampaignService(
 		newFakeRepo(),
 		WithCampanasProducer(prod),
 	)
-	c, err := svc.Create(context.Background(), entradaValida(), "usuario-admin")
+	ctx := context.Background()
+	c, err := svc.Create(ctx, entradaValida(), "usuario-admin")
 	if err != nil {
 		t.Fatalf("error inesperado: %v", err)
+	}
+	if prod.llamadas != 0 {
+		t.Fatalf("crear el borrador no debería avisar: %d eventos", prod.llamadas)
+	}
+	if _, err := svc.Publish(ctx, c.ID); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := svc.Publish(ctx, c.ID); err != nil {
+		t.Fatal(err)
+	}
+	if prod.llamadas != 1 {
+		t.Fatalf("publicar debería avisar exactamente una vez: %d eventos", prod.llamadas)
 	}
 	if prod.createdID != c.ID || prod.authorID != "usuario-admin" {
 		t.Errorf("evento campana.creada incorrecto: id=%s, author=%s", prod.createdID, prod.authorID)
 	}
 	if !prod.notifyCalled {
 		t.Errorf("esperaba llamada a Notify()")
+	}
+}
+
+// ── Baja lógica (Problema 5 de la auditoría 2026-11-11) ──
+
+func TestDelete_SacaLaCampanaDeGestionYPublico(t *testing.T) {
+	ctx := context.Background()
+	svc := NewCampaignService(newFakeRepo())
+	c, _ := svc.Create(ctx, entradaValida(), "usuario-1")
+	if _, err := svc.Publish(ctx, c.ID); err != nil {
+		t.Fatal(err)
+	}
+	if err := svc.Delete(ctx, c.ID, "admin-1"); err != nil {
+		t.Fatalf("error inesperado: %v", err)
+	}
+	if lista, _ := svc.List(ctx, "", ""); len(lista) != 0 {
+		t.Fatalf("la gestión no debería listar la campaña dada de baja: %v", lista)
+	}
+	if pub, _ := svc.ListPublished(ctx, ""); len(pub) != 0 {
+		t.Fatalf("la landing no debería mostrar la campaña dada de baja: %v", pub)
+	}
+	if _, err := svc.Update(ctx, c.ID, entradaValida()); !errors.Is(err, repositories.ErrNotFound) {
+		t.Fatalf("editar una campaña dada de baja debería dar ErrNotFound, dio %v", err)
+	}
+	if _, err := svc.Publish(ctx, c.ID); !errors.Is(err, repositories.ErrNotFound) {
+		t.Fatalf("publicar una campaña dada de baja debería dar ErrNotFound, dio %v", err)
+	}
+}
+
+func TestDelete_Validaciones(t *testing.T) {
+	ctx := context.Background()
+	svc := NewCampaignService(newFakeRepo())
+	if err := svc.Delete(ctx, "../otra", "admin-1"); !errors.Is(err, repositories.ErrNotFound) {
+		t.Fatalf("id inválido debería dar ErrNotFound, dio %v", err)
+	}
+	if err := svc.Delete(ctx, "noexiste", "admin-1"); !errors.Is(err, repositories.ErrNotFound) {
+		t.Fatalf("id inexistente debería dar ErrNotFound, dio %v", err)
+	}
+	c, _ := svc.Create(ctx, entradaValida(), "usuario-1")
+	if err := svc.Delete(ctx, c.ID, " "); !IsValidationError(err) {
+		t.Fatalf("sin usuario debería ser error de validación, dio %v", err)
+	}
+	if err := svc.Delete(ctx, c.ID, "admin-1"); err != nil {
+		t.Fatal(err)
+	}
+	if err := svc.Delete(ctx, c.ID, "admin-1"); !errors.Is(err, repositories.ErrNotFound) {
+		t.Fatalf("dar de baja dos veces debería dar ErrNotFound, dio %v", err)
 	}
 }

@@ -53,6 +53,27 @@ describe("NotificationsService", () => {
     );
   });
 
+  // Problema 3 de la auditoría: contador de no leídas para la campana.
+  it("refreshUnread actualiza el contador con el valor del backend", async () => {
+    spyOn(window, "fetch").and.resolveTo(
+      new Response(JSON.stringify({ unread_count: 3 }), { status: 200 }),
+    );
+    expect(service.unread()).toBe(0);
+    const n = await service.refreshUnread();
+    expect(n).toBe(3);
+    expect(service.unread()).toBe(3);
+    expect(window.fetch).toHaveBeenCalledWith(
+      jasmine.stringMatching(/\/api\/v1\/notifications\/unread-count/),
+      jasmine.objectContaining({ credentials: "include" }),
+    );
+  });
+
+  it("refreshUnread deja 0 si el backend falla", async () => {
+    spyOn(window, "fetch").and.resolveTo(new Response(null, { status: 500 }));
+    expect(await service.refreshUnread()).toBe(0);
+    expect(service.unread()).toBe(0);
+  });
+
   it("should mark notification as read using fetch PATCH", async () => {
     spyOn(window, "fetch").and.resolveTo(
       new Response(JSON.stringify({ success: true }), {

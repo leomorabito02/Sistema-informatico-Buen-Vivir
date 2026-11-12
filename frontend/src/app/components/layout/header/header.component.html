@@ -131,11 +131,18 @@
       </a>
       <a
         routerLink="/dashboard/notificaciones"
-        class="icon-btn"
-        aria-label="Notificaciones"
+        [attr.aria-label]="
+          unread() > 0
+            ? 'Notificaciones: ' + unread() + ' sin leer'
+            : 'Notificaciones'
+        "
         title="Notificaciones"
+        class="icon-btn notif-btn"
       >
         <lucide-icon [img]="Bell" [size]="20" aria-hidden="true"></lucide-icon>
+        <span *ngIf="unread() > 0" class="notif-badge" aria-hidden="true">{{
+          unread() > 99 ? "99+" : unread()
+        }}</span>
       </a>
 
       <button

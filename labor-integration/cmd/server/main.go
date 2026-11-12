@@ -5,6 +5,7 @@ import (
 	"log"
 	"log/slog"
 	"net/http"
+	"strings"
 	"sync"
 
 	"cloud.google.com/go/firestore"
@@ -27,6 +28,15 @@ import (
 func main() {
 	ctx := context.Background()
 	cfg := config.LoadConfig()
+	// Sin JWT_SECRET el servicio confía en los headers X-User-* (los pone
+	// el gateway nginx en local). En producción eso no es seguro: el API
+	// Gateway de GCP no los pisa (auditoría 2026-11-11).
+	if cfg.JWTSecret == "" && strings.EqualFold(cfg.AppEnv, "production") {
+		log.Fatalf("invalid configuration: JWT_SECRET es obligatorio en producción")
+	}
+	if cfg.JWTSecret == "" {
+		log.Printf("Warning: JWT_SECRET vacío: la identidad sale de los headers X-User-* del gateway (solo válido en local)")
+	}
 
 	googleCredentials, err := config.GoogleCredentialsJSON()
 	if err != nil {

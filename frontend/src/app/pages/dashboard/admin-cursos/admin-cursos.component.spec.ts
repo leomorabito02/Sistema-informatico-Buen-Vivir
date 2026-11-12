@@ -137,12 +137,115 @@ describe("AdminCursosComponent", () => {
       component.courseForm.trainingAreaId = "area1";
       component.courseForm.responsibleTeacher = "teacher1";
       component.courseForm.duration = "4 semanas";
+      // Problema 1 de la auditoría: los materiales son opcionales.
       expect(component.courseFormValid)
-        .withContext("sin materiales")
-        .toBeFalse();
+        .withContext("sin materiales también es válido")
+        .toBeTrue();
 
       component.courseForm.materialIds = ["m1"];
       expect(component.courseFormValid).toBeTrue();
+    });
+
+    it("crea un curso sin materiales y lo publica", () => {
+      educationServiceSpy.createCourse.and.returnValue(
+        of({ id: "c-nuevo" } as any),
+      );
+      educationServiceSpy.publishCourse.and.returnValue(of(undefined as any));
+      component.newCourse();
+      Object.assign(component.courseForm, {
+        title: "Huerta",
+        description: "Curso",
+        mode: "Presencial",
+        duration: "4 semanas",
+        trainingAreaId: "area1",
+        responsibleTeacher: "teacher1",
+        publicar: true,
+      });
+
+      component.saveCourse();
+
+      expect(educationServiceSpy.createCourse).toHaveBeenCalledWith(
+        jasmine.objectContaining({ materialIds: [] }),
+      );
+      expect(educationServiceSpy.publishCourse).toHaveBeenCalledWith("c-nuevo");
+      expect(messageServiceSpy.add).toHaveBeenCalledWith(
+        jasmine.objectContaining({ severity: "success" }),
+      );
+    });
+
+    it("si el curso se crea pero no se puede publicar, avisa que quedó en borrador", () => {
+      educationServiceSpy.createCourse.and.returnValue(
+        of({ id: "c-nuevo" } as any),
+      );
+      educationServiceSpy.publishCourse.and.returnValue(
+        throwError(() => new Error("faltan campos")),
+      );
+      component.newCourse();
+      Object.assign(component.courseForm, {
+        title: "Huerta",
+        mode: "Presencial",
+        duration: "4 semanas",
+        trainingAreaId: "area1",
+        responsibleTeacher: "teacher1",
+        publicar: true,
+      });
+
+      component.saveCourse();
+
+      expect(component.courseDialog).toBeFalse();
+      expect(component.savingCourse).toBeFalse();
+      expect(messageServiceSpy.add).toHaveBeenCalledWith(
+        jasmine.objectContaining({
+          severity: "warn",
+          summary: "Curso creado en borrador",
+        }),
+      );
+    });
+
+    it("sube un material desde el formulario del curso y lo deja adjuntado", () => {
+      educationServiceSpy.uploadMaterial.and.returnValue(
+        of({ id: "mat-9", title: "Guía", type: "PDF" } as any),
+      );
+      component.newCourse();
+      component.courseForm.title = "Huerta";
+      educationServiceSpy.listCourses.calls.reset();
+
+      component.newMaterialForCourse();
+      expect(component.materialDialog).toBeTrue();
+      component.materialForm.title = "Guía";
+      component.materialFile = new File(["%PDF"], "guia.pdf", {
+        type: "application/pdf",
+      });
+      component.saveMaterial();
+
+      expect(component.materialDialog).toBeFalse();
+      expect(component.courseDialog)
+        .withContext("el curso sigue abierto")
+        .toBeTrue();
+      expect(component.courseForm.title).toBe("Huerta");
+      expect(component.courseForm.materialIds).toEqual(["mat-9"]);
+      expect(component.materials.map((m) => m.id)).toContain("mat-9");
+      expect(educationServiceSpy.listCourses)
+        .withContext("no recarga todo (perdería lo escrito)")
+        .not.toHaveBeenCalled();
+    });
+
+    it("un material creado desde la pestaña Materiales no se adjunta a ningún curso", () => {
+      educationServiceSpy.createMaterial.and.returnValue(
+        of({ id: "mat-10", title: "Video", type: "Video" } as any),
+      );
+      component.newCourse();
+      component.newMaterial();
+      component.materialForm = {
+        title: "Video",
+        type: "Video",
+        fileAssetId: "",
+        url: "https://example.org/v",
+      };
+      component.saveMaterial();
+
+      expect(component.courseForm.materialIds).toEqual([]);
+      expect(component.materials.map((m) => m.id)).toContain("mat-10");
     });
 
     it("should delete a course", () => {

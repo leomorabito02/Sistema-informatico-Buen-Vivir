@@ -68,6 +68,20 @@ export class CampaignsService {
       .pipe(catchError(this.handleError));
   }
 
+  /**
+   * Baja lógica (Problema 5 de la auditoría): la campaña deja de verse en
+   * la gestión y en la landing. Solo admin y voluntariado (el backend
+   * responde 403 al resto).
+   */
+  eliminar(id: string): Observable<{ mensaje: string }> {
+    return this.http
+      .delete<{ mensaje: string }>(
+        `${this.base}/${encodeURIComponent(id)}`,
+        this.opts,
+      )
+      .pipe(catchError(this.handleError));
+  }
+
   private readonly handleError = (error: HttpErrorResponse) => {
     const body = error.error as { error?: string } | string | null;
     let message =

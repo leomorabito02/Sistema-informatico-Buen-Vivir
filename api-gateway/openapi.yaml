@@ -2389,6 +2389,45 @@ paths:
               type: boolean
             Access-Control-Max-Age:
               type: integer
+  /api/cursos/{id}/progreso:
+    get:
+      summary: GET /api/cursos/{id}/progreso
+      operationId: get__api_cursos_id_progreso
+      x-google-backend:
+        address: ${EDUCATION_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+        jwt_audience: ${EDUCATION_SERVICE_URL}
+      responses:
+        '200':
+          description: OK
+    parameters:
+    - name: id
+      in: path
+      required: true
+      type: string
+    options:
+      summary: CORS preflight for /api/cursos/{id}/progreso
+      operationId: options__api_cursos_id_progreso
+      x-google-backend:
+        address: ${EDUCATION_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+        jwt_audience: ${EDUCATION_SERVICE_URL}
+      responses:
+        '200':
+          description: OK
+          headers:
+            Access-Control-Allow-Origin:
+              type: string
+            Access-Control-Allow-Methods:
+              type: string
+            Access-Control-Allow-Headers:
+              type: string
+            Access-Control-Expose-Headers:
+              type: string
+            Access-Control-Allow-Credentials:
+              type: boolean
+            Access-Control-Max-Age:
+              type: integer
   /api/participantes:
     get:
       summary: GET /api/participantes
@@ -3951,6 +3990,16 @@ paths:
     put:
       summary: PUT /api/v1/campaigns/{id}
       operationId: put__api_v1_campaigns_id
+      x-google-backend:
+        address: ${CAMPAIGNS_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+        jwt_audience: ${CAMPAIGNS_SERVICE_URL}
+      responses:
+        '200':
+          description: OK
+    delete:
+      summary: DELETE /api/v1/campaigns/{id} (baja lógica)
+      operationId: delete__api_v1_campaigns_id
       x-google-backend:
         address: ${CAMPAIGNS_SERVICE_URL}
         path_translation: APPEND_PATH_TO_ADDRESS

@@ -154,6 +154,7 @@ func main() {
 			TeacherContent:    teacherContentController,
 			Participante:      participanteController,
 			Auditoria:         auditoriaController,
+			Progress:          controllers.NewProgressController(courseService, progressService),
 		},
 	)
 

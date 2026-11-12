@@ -1,4 +1,4 @@
-import { Component, OnInit } from "@angular/core";
+import { Component, NgZone, OnDestroy, OnInit, inject } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { FormsModule } from "@angular/forms";
 import { CardModule } from "primeng/card";
@@ -30,7 +30,7 @@ import {
   templateUrl: "./notificaciones.component.html",
   styleUrls: ["./notificaciones.component.css"],
 })
-export class NotificacionesComponent implements OnInit {
+export class NotificacionesComponent implements OnInit, OnDestroy {
   notifications: NotificationItem[] = [];
   loading = false;
   error: string | null = null;
@@ -53,9 +53,41 @@ export class NotificacionesComponent implements OnInit {
 
   constructor(private readonly notificationsService: NotificationsService) {}
 
+  /** Refresco periódico de la lista (notificaciones nuevas sin recargar). */
+  private refreshTimer: ReturnType<typeof setInterval> | null = null;
+  private readonly zone = inject(NgZone);
+  static readonly REFRESH_MS = 60_000;
+
   ngOnInit(): void {
     void this.loadNotifications();
     void this.loadPreferences();
+    // Fuera de la zona de Angular: un intervalo dentro de la zona deja la
+    // app siempre "inestable" (whenStable nunca termina). Se vuelve a
+    // entrar solo para cargar los datos.
+    this.zone.runOutsideAngular(() => {
+      this.refreshTimer = setInterval(() => {
+        if (typeof document === "undefined" || !document.hidden) {
+          this.zone.run(() => void this.loadNotifications(true));
+        }
+      }, NotificacionesComponent.REFRESH_MS);
+    });
+  }
+
+  /**
+   * Refresca el contador de la campana. Va aparte de la acción principal:
+   * si falla, no deshace lo que el usuario ya hizo (marcar, borrar).
+   */
+  private refreshBadge(): void {
+    Promise.resolve()
+      .then(() => this.notificationsService.refreshUnread())
+      .catch(() => undefined);
+  }
+
+  ngOnDestroy(): void {
+    if (this.refreshTimer) {
+      clearInterval(this.refreshTimer);
+      this.refreshTimer = null;
+    }
   }
 
   get unreadCount(): number {
@@ -69,12 +101,17 @@ export class NotificacionesComponent implements OnInit {
     return this.notifications;
   }
 
-  async loadNotifications(): Promise<void> {
-    this.loading = true;
-    this.error = null;
+  /** silent: refresco de fondo, sin spinner ni cartel de error. */
+  async loadNotifications(silent = false): Promise<void> {
+    if (!silent) {
+      this.loading = true;
+      this.error = null;
+    }
     try {
       this.notifications = await this.notificationsService.getNotifications();
+      this.refreshBadge();
     } catch (err) {
+      if (silent) return;
       console.error(
         "[NotificacionesComponent] Error loading notifications:",
         err,
@@ -102,6 +139,7 @@ export class NotificacionesComponent implements OnInit {
 
     try {
       await this.notificationsService.markAsRead(item.recipient_id);
+      this.refreshBadge();
     } catch (err) {
       console.error(
         "[NotificacionesComponent] Error marking notification as read:",
@@ -122,6 +160,7 @@ export class NotificacionesComponent implements OnInit {
 
     try {
       await this.notificationsService.markAllAsRead();
+      this.refreshBadge();
     } catch (err) {
       console.error(
         "[NotificacionesComponent] Error marking all as read:",
@@ -146,6 +185,7 @@ export class NotificacionesComponent implements OnInit {
 
     try {
       await this.notificationsService.deleteNotification(item.recipient_id);
+      this.refreshBadge();
       if (this.selectedDetail?.recipient_id === item.recipient_id) {
         this.displayDetailModal = false;
         this.selectedDetail = null;

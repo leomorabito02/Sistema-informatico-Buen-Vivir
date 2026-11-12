@@ -352,8 +352,22 @@
         [(ngModel)]="courseForm.materialIds"
         placeholder="Adjuntar materiales (opcional)"
         display="chip"
+        [showClear]="true"
       ></p-multiSelect>
+      <small class="muted">
+        Opcional: podés crear el curso sin materiales y agregarlos después.
+      </small>
     </label>
+    <div>
+      <p-button
+        label="Subir material nuevo"
+        icon="pi pi-upload"
+        [text]="true"
+        size="small"
+        data-testid="material-desde-curso"
+        (onClick)="newMaterialForCourse()"
+      ></p-button>
+    </div>
 
     <label *ngIf="!editingCourseId" class="checkbox-row">
       <p-checkbox

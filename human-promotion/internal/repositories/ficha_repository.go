@@ -137,6 +137,7 @@ func (r *fichaRepository) UpdateContenido(ctx context.Context, id, situacionActu
 			return err
 		}
 		participanteID, _ := snap.Data()["participante_id"].(string)
+		creadoPor, _ := snap.Data()["creado_por"].(string)
 		if err := tx.Update(ref, []firestore.Update{
 			{Path: "situacion_actual", Value: situacionActual},
 			{Path: "avances", Value: avances},
@@ -144,7 +145,7 @@ func (r *fichaRepository) UpdateContenido(ctx context.Context, id, situacionActu
 		}); err != nil {
 			return err
 		}
-		if err := r.events.FichaActualizada(ctx, tx, id, participanteID); err != nil {
+		if err := r.events.FichaActualizada(ctx, tx, id, participanteID, creadoPor); err != nil {
 			return err
 		}
 		return audit.RecordTx(ctx, r.client, tx, audit.AccionActualizar, audit.RecursoFicha, id)
