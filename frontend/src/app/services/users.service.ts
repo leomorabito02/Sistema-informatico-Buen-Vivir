@@ -153,7 +153,10 @@ export class UsersService {
   }
 
   /** Aprueba o rechaza una cuenta pendiente; Auth avisa por email (HU-12, HU-38). */
-  setApproval(userId: string, status: "approved" | "rejected"): Observable<any> {
+  setApproval(
+    userId: string,
+    status: "approved" | "rejected",
+  ): Observable<any> {
     return this.http
       .patch(
         `${this.apiUrl}/api/v1/users/${userId}/approval`,

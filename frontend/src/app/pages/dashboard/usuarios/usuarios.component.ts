@@ -73,6 +73,8 @@ export class UsuariosComponent implements OnInit {
   private readonly imageService = inject(ImageService);
 
   searchTerm: string = "";
+  /** Mostrar solo las cuentas pendientes de aprobación (HU-12, HU-38). */
+  soloPendientes = false;
   private busquedaTimer?: ReturnType<typeof setTimeout>;
   selectedRole: string = "Todos los roles";
   currentUserRoleId: string = "";
@@ -265,7 +267,12 @@ export class UsuariosComponent implements OnInit {
         return false;
       }
 
-      // 2. Dropdown role filter
+      // 2. Solo pendientes de aprobación
+      if (this.soloPendientes && !this.isRolePending(u.roleApprovalStatus)) {
+        return false;
+      }
+
+      // 3. Dropdown role filter
       return roleFilter === "Todos los roles" || u.role === roleFilter;
     });
   }
@@ -507,6 +514,70 @@ export class UsuariosComponent implements OnInit {
    * el backend solo deja borrar cuentas ajenas a role_admin / role_dev,
    * por eso el botón se muestra solo a quien no es voluntario.
    */
+  /**
+   * Cuentas pendientes que quien está mirando puede aprobar o rechazar:
+   * admin, cualquiera; voluntario, solo participantes (igual que el
+   * backend, canApprove).
+   */
+  get pendientes(): DashboardUser[] {
+    return this.users.filter((u) => this.puedeAprobar(u));
+  }
+
+  puedeAprobar(user: DashboardUser): boolean {
+    if (!this.isRolePending(user.roleApprovalStatus)) return false;
+    if (user.originalUser?.role_id === "role_admin") return false;
+    return !this.isVolunteerOnly || user.role === "Participante";
+  }
+
+  togglePendientes() {
+    this.soloPendientes = !this.soloPendientes;
+    this.filterUsers();
+  }
+
+  /** HU-12 y HU-38: aprobar o rechazar una cuenta desde la lista. */
+  decidirAprobacion(
+    user: DashboardUser,
+    decision: "approved" | "rejected",
+    event: Event,
+  ) {
+    event.stopPropagation();
+    const userId = user.originalUser?.user_id;
+    if (!userId) return;
+    const aprobar = decision === "approved";
+    this.confirmation.confirm({
+      header: aprobar ? "Aprobar cuenta" : "Rechazar cuenta",
+      message: aprobar
+        ? `¿Aprobar la cuenta de ${user.name} (${user.role})? Va a poder iniciar sesión y recibe un email de aviso.`
+        : `¿Rechazar la cuenta de ${user.name} (${user.role})? No va a poder iniciar sesión y recibe un email de aviso.`,
+      icon: aprobar ? "pi pi-check-circle" : "pi pi-exclamation-triangle",
+      acceptLabel: aprobar ? "Aprobar" : "Rechazar",
+      rejectLabel: "Cancelar",
+      acceptButtonStyleClass: aprobar ? "p-button-success" : "p-button-danger",
+      rejectButtonStyleClass: "p-button-text",
+      defaultFocus: "reject",
+      accept: () => {
+        this.usersService.setApproval(userId, decision).subscribe({
+          next: () => {
+            this.messages.add({
+              severity: "success",
+              summary: aprobar ? "Cuenta aprobada" : "Cuenta rechazada",
+              detail: `${user.name} recibe un email con la novedad.`,
+            });
+            this.loadUsers();
+          },
+          error: (err: Error) =>
+            this.messages.add({
+              severity: "error",
+              summary: aprobar
+                ? "No se pudo aprobar la cuenta"
+                : "No se pudo rechazar la cuenta",
+              detail: err.message,
+            }),
+        });
+      },
+    });
+  }
+
   deleteUser(user: DashboardUser, event: Event) {
     event.stopPropagation();
     const userId = user.originalUser?.user_id;
@@ -984,7 +1055,9 @@ export function validateNewParticipant(form: {
   phone?: string;
 }): string {
   if (form.role_id !== "role_participant") return "";
-  const email = String(form.email ?? "").trim().toLowerCase();
+  const email = String(form.email ?? "")
+    .trim()
+    .toLowerCase();
   if (!email.endsWith("@gmail.com")) {
     return "El correo del participante tiene que ser una cuenta de Gmail (@gmail.com).";
   }

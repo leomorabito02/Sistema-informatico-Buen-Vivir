@@ -32,7 +32,9 @@ export function participantGmailValidator(
   control: AbstractControl,
 ): ValidationErrors | null {
   const role = control.get("role")?.value;
-  const email = String(control.get("email")?.value ?? "").trim().toLowerCase();
+  const email = String(control.get("email")?.value ?? "")
+    .trim()
+    .toLowerCase();
   if (role !== "participant" || !email) return null;
   return email.endsWith("@gmail.com") ? null : { participantGmail: true };
 }

@@ -160,7 +160,8 @@ describe("LoginComponent", () => {
           status: 423,
           error: {
             code: "ACCOUNT_LOCKED",
-            error: "Tu cuenta quedó bloqueada por demasiados intentos fallidos. Probá de nuevo en 15 minuto(s).",
+            error:
+              "Tu cuenta quedó bloqueada por demasiados intentos fallidos. Probá de nuevo en 15 minuto(s).",
           },
         })),
       );

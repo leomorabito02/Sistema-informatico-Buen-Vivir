@@ -53,7 +53,12 @@ describe("adminOrVolunteerGuard / teacherGuard", () => {
     ],
     [
       "rolesGuard (ofertas, HU-06)",
-      rolesGuard("role_admin", "role_volunteer", "role_participant", "role_company"),
+      rolesGuard(
+        "role_admin",
+        "role_volunteer",
+        "role_participant",
+        "role_company",
+      ),
       ["role_participant", "role_company", "role_dev"],
       ["role_teacher"],
     ],

@@ -237,7 +237,9 @@ export class EducationService {
   }
 
   /** HU-14: cursos que tienen adjunto el material (aviso antes de borrar). */
-  coursesUsingMaterial(id: string): Observable<{ id: string; titulo: string }[]> {
+  coursesUsingMaterial(
+    id: string,
+  ): Observable<{ id: string; titulo: string }[]> {
     return this.http
       .get<{ id: string; titulo: string }[]>(
         `${this.base}/api/materiales/${id}/cursos`,
