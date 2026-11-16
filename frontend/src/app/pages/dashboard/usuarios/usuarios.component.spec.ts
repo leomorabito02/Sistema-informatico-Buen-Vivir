@@ -757,12 +757,23 @@ describe("validateNewParticipant (HU-07, HU-01)", () => {
   };
   it("acepta un participante completo y no valida otros roles", () => {
     expect(validateNewParticipant(ok)).toBe("");
-    expect(validateNewParticipant({ role_id: "role_company", email: "x@empresa.com" })).toBe("");
+    expect(
+      validateNewParticipant({
+        role_id: "role_company",
+        email: "x@empresa.com",
+      }),
+    ).toBe("");
   });
   it("pide Gmail, DNI de 7 u 8 números y dirección", () => {
-    expect(validateNewParticipant({ ...ok, email: "a@hotmail.com" })).toContain("Gmail");
-    expect(validateNewParticipant({ ...ok, dni: "30.111.222" })).toContain("DNI");
-    expect(validateNewParticipant({ ...ok, address: "" })).toContain("dirección");
+    expect(validateNewParticipant({ ...ok, email: "a@hotmail.com" })).toContain(
+      "Gmail",
+    );
+    expect(validateNewParticipant({ ...ok, dni: "30.111.222" })).toContain(
+      "DNI",
+    );
+    expect(validateNewParticipant({ ...ok, address: "" })).toContain(
+      "dirección",
+    );
   });
 });
 
@@ -776,5 +787,64 @@ describe("UsuariosComponent.approvalDecision (HU-12)", () => {
     expect(c.approvalDecision()).toBe("approved");
     c.originalApprovalStatus = "approved";
     expect(c.approvalDecision()).toBeNull();
+  });
+});
+
+describe("UsuariosComponent: aprobar desde la lista (HU-12, HU-38)", () => {
+  const pendiente = (role: string, role_id: string) =>
+    ({
+      id: "u1",
+      name: "Ana Paz",
+      email: "a@gmail.com",
+      phone: "",
+      role,
+      status: "Activo",
+      roleApprovalStatus: "pending",
+      coursesStatus: "",
+      originalUser: { user_id: "u1", role_id },
+    }) as unknown as DashboardUser;
+
+  function crear(voluntario = false) {
+    const c = Object.create(UsuariosComponent.prototype) as UsuariosComponent;
+    c.users = [
+      pendiente("Voluntario", "role_volunteer"),
+      pendiente("Participante", "role_participant"),
+    ];
+    c.isVolunteerOnly = voluntario;
+    c.selectedRole = "Todos los roles";
+    return c;
+  }
+
+  it("el admin ve todas las pendientes; el voluntario solo participantes", () => {
+    expect(crear().pendientes.length).toBe(2);
+    expect(crear(true).pendientes.length).toBe(1);
+  });
+
+  it("el filtro deja solo las pendientes", () => {
+    const c = crear();
+    c.users.push({
+      ...pendiente("Docente", "role_teacher"),
+      roleApprovalStatus: "approved",
+    });
+    c.togglePendientes();
+    expect(c.filteredUsers.length).toBe(2);
+    c.togglePendientes();
+    expect(c.filteredUsers.length).toBe(3);
+  });
+
+  it("aprobar pide confirmación y llama a setApproval", () => {
+    const c = crear();
+    const usersService = jasmine.createSpyObj("UsersService", ["setApproval"]);
+    usersService.setApproval.and.returnValue(of({}));
+    const recarga = spyOn(c as any, "loadUsers");
+    const confirmation = { confirm: (o: { accept: () => void }) => o.accept() };
+    const messages = jasmine.createSpyObj("MessageService", ["add"]);
+    Object.assign(c, { usersService, confirmation, messages });
+    c.decidirAprobacion(c.users[0], "approved", new Event("click"));
+    expect(usersService.setApproval).toHaveBeenCalledWith("u1", "approved");
+    expect(messages.add).toHaveBeenCalledWith(
+      jasmine.objectContaining({ summary: "Cuenta aprobada" }),
+    );
+    expect(recarga).toHaveBeenCalled();
   });
 });

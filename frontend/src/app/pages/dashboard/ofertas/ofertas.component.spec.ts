@@ -98,14 +98,24 @@ describe("camposFaltantesOferta (HU-39)", () => {
 
   it("lista los campos que faltan", () => {
     expect(
-      camposFaltantesOferta({ ...completa, salario: " ", requisitos: [], fecha_limite: "" }),
+      camposFaltantesOferta({
+        ...completa,
+        salario: " ",
+        requisitos: [],
+        fecha_limite: "",
+      }),
     ).toEqual(["salario", "al menos un requisito", "fecha límite"]);
   });
 
   it("muestra el mensaje del backend en un 400", () => {
-    expect(mensajeErrorOferta({ status: 400, error: "falta el campo obligatorio: horario\n" }, "x")).toBe(
-      "falta el campo obligatorio: horario",
+    expect(
+      mensajeErrorOferta(
+        { status: 400, error: "falta el campo obligatorio: horario\n" },
+        "x",
+      ),
+    ).toBe("falta el campo obligatorio: horario");
+    expect(mensajeErrorOferta({ status: 500, error: "boom" }, "fallback")).toBe(
+      "fallback",
     );
-    expect(mensajeErrorOferta({ status: 500, error: "boom" }, "fallback")).toBe("fallback");
   });
 });

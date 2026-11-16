@@ -346,7 +346,9 @@ describe("AdminCursosComponent", () => {
       component.deleteMaterial(m);
 
       expect(confirmationServiceSpy.confirm).toHaveBeenCalledWith(
-        jasmine.objectContaining({ message: jasmine.stringContaining("Huerta") }),
+        jasmine.objectContaining({
+          message: jasmine.stringContaining("Huerta"),
+        }),
       );
 
       expect(educationServiceSpy.deleteMaterial).toHaveBeenCalledWith("1");
@@ -361,10 +363,16 @@ describe("AdminCursosComponent", () => {
 
 describe("mensajeBorrarMaterial (HU-14)", () => {
   it("nombra los cursos que usan el material", () => {
-    expect(mensajeBorrarMaterial("Guía", ["Huerta", "Cocina"])).toContain("está en 2 curso(s): Huerta, Cocina");
+    expect(mensajeBorrarMaterial("Guía", ["Huerta", "Cocina"])).toContain(
+      "está en 2 curso(s): Huerta, Cocina",
+    );
   });
   it("avisa cuando no está en cursos o no se pudo comprobar", () => {
-    expect(mensajeBorrarMaterial("Guía", [])).toContain("No está en ningún curso");
-    expect(mensajeBorrarMaterial("Guía", null)).toContain("No se pudo comprobar");
+    expect(mensajeBorrarMaterial("Guía", [])).toContain(
+      "No está en ningún curso",
+    );
+    expect(mensajeBorrarMaterial("Guía", null)).toContain(
+      "No se pudo comprobar",
+    );
   });
 });

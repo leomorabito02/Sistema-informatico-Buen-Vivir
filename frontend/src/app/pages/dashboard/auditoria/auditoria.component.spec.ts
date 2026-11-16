@@ -6,7 +6,10 @@ import { AuditoriaComponent } from "./auditoria.component";
 import { EducationService } from "../../../services/education.service";
 import { HumanPromotionService } from "../../../services/human-promotion.service";
 import { RegistroAuditoria } from "../../../core/models/education.model";
-import { AuditoriaService, aRegistro } from "../../../services/auditoria.service";
+import {
+  AuditoriaService,
+  aRegistro,
+} from "../../../services/auditoria.service";
 
 describe("AuditoriaComponent", () => {
   let fixture: ComponentFixture<AuditoriaComponent>;
@@ -49,7 +52,9 @@ describe("AuditoriaComponent", () => {
       ]),
     );
     auditoria.listarLaboral.and.returnValue(
-      of([{ ...fila, accion: "aprobar", recurso: "oferta", recursoId: "of-1" }]),
+      of([
+        { ...fila, accion: "aprobar", recurso: "oferta", recursoId: "of-1" },
+      ]),
     );
     education.listAuditoria.and.returnValue(
       of([{ ...fila, accion: "baja", recurso: "curso", recursoId: "c1" }]),

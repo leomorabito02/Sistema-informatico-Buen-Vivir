@@ -105,7 +105,12 @@
       </article>
     </div>
     <div class="ver-mas" *ngIf="!cargando && hayMas">
-      <button type="button" class="btn-ver-mas" (click)="verMas()" [disabled]="cargandoMas">
+      <button
+        type="button"
+        class="btn-ver-mas"
+        (click)="verMas()"
+        [disabled]="cargandoMas"
+      >
         {{ cargandoMas ? "Cargando…" : "Ver más campañas" }}
       </button>
     </div>

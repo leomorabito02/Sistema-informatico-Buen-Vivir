@@ -32,7 +32,8 @@ export const MATRIZ_PERMISOS: FilaPermisos[] = [
     roleId: "role_volunteer",
     puede:
       "Alta, edición y baja de participantes (y aprobarlos); inscribir y ver asistencia; fichas, hitos y PDF; campañas; ver ofertas, postular participantes, editar y borrar ofertas.",
-    noPuede: "Crear cursos, aprobar ofertas, dashboard, auditoría, roles y permisos.",
+    noPuede:
+      "Crear cursos, aprobar ofertas, dashboard, auditoría, roles y permisos.",
     pantallas:
       "Cursos (catálogo, inscripciones), Asistencia, Participantes, Seguimiento, Campañas, Inserción laboral",
   },
@@ -49,7 +50,8 @@ export const MATRIZ_PERMISOS: FilaPermisos[] = [
     roleId: "role_company",
     puede:
       "Publicar ofertas (nacen pendientes), ver, editar y borrar las suyas, ver sus postulantes, renovar una oferta vencida.",
-    noPuede: "Aprobar ofertas, ver pendientes de otras empresas, perfiles y fichas.",
+    noPuede:
+      "Aprobar ofertas, ver pendientes de otras empresas, perfiles y fichas.",
     pantallas: "Ofertas laborales, Contacto",
   },
   {
@@ -71,7 +73,8 @@ export const MATRIZ_PERMISOS: FilaPermisos[] = [
   {
     rol: "Visitante (sin sesión)",
     roleId: "-",
-    puede: "Campañas publicadas, biblioteca (dejando sus datos), comentarios, mapa.",
+    puede:
+      "Campañas publicadas, biblioteca (dejando sus datos), comentarios, mapa.",
     noPuede: "Todo lo que requiere sesión.",
     pantallas: "Landing, campañas públicas, contacto",
   },
@@ -95,7 +98,11 @@ export const MATRIZ_PERMISOS: FilaPermisos[] = [
         </div>
       </div>
 
-      <p-table [value]="filas" class="p-datatable-striped" [responsiveLayout]="'stack'">
+      <p-table
+        [value]="filas"
+        class="p-datatable-striped"
+        [responsiveLayout]="'stack'"
+      >
         <ng-template pTemplate="header">
           <tr>
             <th>Rol</th>
@@ -108,7 +115,9 @@ export const MATRIZ_PERMISOS: FilaPermisos[] = [
           <tr>
             <td>
               <strong>{{ f.rol }}</strong>
-              <div><code class="role-id">{{ f.roleId }}</code></div>
+              <div>
+                <code class="role-id">{{ f.roleId }}</code>
+              </div>
             </td>
             <td>{{ f.puede }}</td>
             <td>{{ f.noPuede }}</td>

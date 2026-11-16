@@ -44,7 +44,9 @@ describe("CampanasPublicoComponent", () => {
   }
 
   it("muestra las campañas publicadas con su fecha en DD/MM/AAAA", fakeAsync(() => {
-    service.publicasPagina.and.returnValue(of({ items: [campana], total: [campana].length }));
+    service.publicasPagina.and.returnValue(
+      of({ items: [campana], total: [campana].length }),
+    );
     crear();
     tick(300);
     fixture.detectChanges();
@@ -56,7 +58,9 @@ describe("CampanasPublicoComponent", () => {
   }));
 
   it("abre los comentarios de una campaña recién al pedirlos (HU-24)", fakeAsync(() => {
-    service.publicasPagina.and.returnValue(of({ items: [campana], total: [campana].length }));
+    service.publicasPagina.and.returnValue(
+      of({ items: [campana], total: [campana].length }),
+    );
     crear();
     tick(300);
     fixture.detectChanges();

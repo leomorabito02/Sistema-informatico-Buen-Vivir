@@ -216,7 +216,12 @@ export const routes: Routes = [
         // HU-06: guards por rol (el backend igual valida cada pedido).
         path: "ofertas",
         canActivate: [
-          rolesGuard("role_admin", "role_volunteer", "role_participant", "role_company"),
+          rolesGuard(
+            "role_admin",
+            "role_volunteer",
+            "role_participant",
+            "role_company",
+          ),
         ],
         loadComponent: () =>
           import("./pages/dashboard/ofertas/ofertas.component").then(
@@ -225,7 +230,9 @@ export const routes: Routes = [
       },
       {
         path: "cv",
-        canActivate: [rolesGuard("role_participant", "role_admin", "role_volunteer")],
+        canActivate: [
+          rolesGuard("role_participant", "role_admin", "role_volunteer"),
+        ],
         loadComponent: () =>
           import("./pages/dashboard/cv/cv.component").then(
             (m) => m.CvComponent,
@@ -241,7 +248,9 @@ export const routes: Routes = [
       },
       {
         path: "seguimiento",
-        canActivate: [rolesGuard("role_admin", "role_volunteer", "role_teacher")],
+        canActivate: [
+          rolesGuard("role_admin", "role_volunteer", "role_teacher"),
+        ],
         loadComponent: () =>
           import("./pages/dashboard/seguimiento/seguimiento.component").then(
             (m) => m.SeguimientoComponent,

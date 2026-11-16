@@ -2,18 +2,7 @@ import { Component, OnInit, inject } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { FormsModule } from "@angular/forms";
 import { RouterLink } from "@angular/router";
-import {
-  LucideAngularModule,
-  UtensilsCrossed,
-  Hammer,
-  Sprout,
-  Laptop,
-  Scissors,
-  HeartPulse,
-  Briefcase,
-  Mic,
-  FileText,
-} from "lucide-angular";
+import { LucideAngularModule, FileText } from "lucide-angular";
 import {
   ContenidoPublico,
   ContenidosService,
@@ -30,8 +19,8 @@ import {
   styleUrl: "./library.component.css",
 })
 /**
- * Biblioteca de la portada: categorías y los recursos que aprobó la
- * administración (HU-23). Para descargar se piden nombre, apellido, email
+ * Biblioteca de la portada: los recursos que aprobó la administración
+ * (HU-23). Para descargar se piden nombre, apellido, email
  * y teléfono (HU-25); el backend los registra y devuelve el archivo.
  */
 export class LibraryComponent implements OnInit {
@@ -115,13 +104,4 @@ export class LibraryComponent implements OnInit {
       },
     });
   }
-
-  readonly UtensilsCrossedIcon = UtensilsCrossed;
-  readonly HammerIcon = Hammer;
-  readonly SproutIcon = Sprout;
-  readonly LaptopIcon = Laptop;
-  readonly ScissorsIcon = Scissors;
-  readonly HeartPulseIcon = HeartPulse;
-  readonly BriefcaseIcon = Briefcase;
-  readonly MicIcon = Mic;
 }

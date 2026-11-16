@@ -377,7 +377,10 @@ export class OfertasComponent implements OnInit {
           this.messageService.add({
             severity: "error",
             summary: "Error",
-            detail: mensajeErrorOferta(err, "Hubo un problema al crear la oferta."),
+            detail: mensajeErrorOferta(
+              err,
+              "Hubo un problema al crear la oferta.",
+            ),
           }),
       });
     }
@@ -646,7 +649,8 @@ export function camposFaltantesOferta(job: {
   if (vacio(job.tipo_empleo)) faltan.push("tipo de empleo");
   if (vacio(job.salario)) faltan.push("salario");
   if (vacio(job.horario)) faltan.push("horario");
-  if (!(job.requisitos ?? []).some((r) => !vacio(r))) faltan.push("al menos un requisito");
+  if (!(job.requisitos ?? []).some((r) => !vacio(r)))
+    faltan.push("al menos un requisito");
   if (vacio(job.fecha_limite)) faltan.push("fecha límite");
   return faltan;
 }

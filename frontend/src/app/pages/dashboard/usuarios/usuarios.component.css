@@ -560,3 +560,54 @@
 .btn-save:hover {
   background-color: #3e5038;
 }
+
+/* ── Cuentas pendientes de aprobación (HU-12, HU-38) ── */
+.pending-banner {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  margin: 0 0 1rem;
+  padding: 0.75rem 1rem;
+  border-radius: 0.6rem;
+  background: #fff8e1;
+  border: 1px solid #f5c542;
+  color: #6b4e00;
+  font-size: var(--font-size-sm);
+}
+
+.pending-banner span {
+  flex: 1 1 16rem;
+}
+
+.btn-pending-toggle {
+  border: 1px solid #b38600;
+  background: transparent;
+  color: #6b4e00;
+  border-radius: 999px;
+  padding: 0.3rem 0.9rem;
+  cursor: pointer;
+  font: inherit;
+}
+
+.btn-pending-toggle:hover {
+  background: #ffeeb3;
+}
+
+.btn-approve {
+  color: #2e7d32;
+}
+
+.btn-approve:hover {
+  color: #1b5e20;
+  background-color: #e8f5e9;
+}
+
+.btn-reject {
+  color: #c62828;
+}
+
+.btn-reject:hover {
+  color: #8e0000;
+  background-color: #ffebee;
+}

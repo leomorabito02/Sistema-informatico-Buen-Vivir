@@ -34,7 +34,9 @@ export class AuditoriaService {
   private readonly http = inject(HttpClient);
   private readonly base = environment.apiUrl;
 
-  listarUsuarios(filtro: FiltroAuditoria = {}): Observable<RegistroAuditoria[]> {
+  listarUsuarios(
+    filtro: FiltroAuditoria = {},
+  ): Observable<RegistroAuditoria[]> {
     return this.listar(`${this.base}/api/v1/auth/auditoria`, filtro);
   }
 
