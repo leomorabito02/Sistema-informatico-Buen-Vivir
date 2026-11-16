@@ -86,12 +86,52 @@
     </button>
   </div>
 
-  <app-loading-state
+  <div
+    class="table-card table-skeleton"
     *ngIf="loading"
-    variant="table"
-    [rows]="6"
-    label="Cargando usuarios…"
-  ></app-loading-state>
+    role="status"
+    aria-live="polite"
+  >
+    <span class="sr-only">Cargando usuarios…</span>
+    <table class="custom-user-table" aria-hidden="true">
+      <thead>
+        <tr>
+          <th>Nombre</th>
+          <th>Email</th>
+          <th>Teléfono</th>
+          <th>Rol</th>
+          <th>Estado</th>
+          <th>Cursos</th>
+          <th class="text-center">Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let row of skeletonRows">
+          <td>
+            <div class="user-profile-cell">
+              <p-skeleton shape="circle" size="32px" />
+              <p-skeleton width="8.5rem" height="0.95rem" />
+            </div>
+          </td>
+          <td><p-skeleton width="11rem" height="0.9rem" /></td>
+          <td><p-skeleton width="6.5rem" height="0.9rem" /></td>
+          <td>
+            <p-skeleton width="5.5rem" height="1.6rem" borderRadius="12px" />
+          </td>
+          <td>
+            <p-skeleton width="4.5rem" height="1.6rem" borderRadius="12px" />
+          </td>
+          <td><p-skeleton width="7.5rem" height="0.9rem" /></td>
+          <td class="actions-cell">
+            <div class="action-buttons">
+              <p-skeleton shape="circle" size="1.4rem" />
+              <p-skeleton shape="circle" size="1.4rem" />
+            </div>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
 
   <app-error-state
     *ngIf="!loading && loadError"
