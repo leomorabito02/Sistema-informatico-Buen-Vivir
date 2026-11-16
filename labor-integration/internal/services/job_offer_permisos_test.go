@@ -20,7 +20,7 @@ func svcConOferta(estado string) (*JobOfferService, *mockOfferRepo) {
 
 func TestUpdateOffer_PermisosYEstado(t *testing.T) {
 	ctx := context.Background()
-	cambio := func() *models.JobOffer { return &models.JobOffer{Title: "Pintor (editado)", Status: "Activa"} }
+	cambio := func() *models.JobOffer { o := ofertaCompleta("Pintor (editado)"); o.Status = "Activa"; return o }
 
 	for _, c := range []struct{ rol, uid string }{
 		{"role_participant", "usr-p"}, {"role_teacher", "usr-t"}, {"", ""},
@@ -67,7 +67,7 @@ func TestUpdateOffer_PermisosYEstado(t *testing.T) {
 	if err := svc.UpdateOffer(ctx, "off-1", cambio(), "role_admin", "usr-a"); err != nil || repo.offers["off-1"].Status != "Activa" {
 		t.Errorf("admin: %v %q", err, repo.offers["off-1"].Status)
 	}
-	if err := svc.UpdateOffer(ctx, "off-1", &models.JobOffer{Title: "x"}, "role_admin", "usr-a"); err != nil || repo.offers["off-1"].Status != "Activa" {
+	if err := svc.UpdateOffer(ctx, "off-1", ofertaCompleta("x"), "role_admin", "usr-a"); err != nil || repo.offers["off-1"].Status != "Activa" {
 		t.Errorf("estado vacío borró el estado: %v %q", err, repo.offers["off-1"].Status)
 	}
 }

@@ -134,7 +134,23 @@ func (c *UserController) ApproveUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	user, err := c.userService.ApproveUser(r.Context(), id)
+	// PATCH /users/{id}/approval acepta {"approval_status":"approved"|"rejected"};
+	// POST /users/{id}/approve sin cuerpo aprueba (compatibilidad).
+	var req dto.ApproveUserRequest
+	if r.Body != nil {
+		_ = json.NewDecoder(http.MaxBytesReader(w, r.Body, 1<<16)).Decode(&req)
+	}
+	var user *dto.UserResponse
+	var err error
+	switch req.ApprovalStatus {
+	case "", "approved":
+		user, err = c.userService.ApproveUser(r.Context(), id)
+	case "rejected":
+		user, err = c.userService.RejectUser(r.Context(), id)
+	default:
+		utils.JSONResponse(w, http.StatusBadRequest, false, nil, "approval_status debe ser approved o rejected")
+		return
+	}
 	if err != nil {
 		utils.JSONResponse(w, errorStatus(err, http.StatusInternalServerError), false, nil, err.Error())
 		return

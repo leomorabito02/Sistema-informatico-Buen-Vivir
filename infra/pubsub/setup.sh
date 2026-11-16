@@ -138,7 +138,7 @@ ensure_push_sub notificaciones-promocion-humana promocion-humana-eventos "$NOTIF
 ensure_push_sub notificaciones-usuarios usuarios-eventos "$NOTIFICATIONS_URL/eventos/usuarios" "$SA_NOTIF_USUARIOS" "$NOTIFICATIONS_URL" \
   "$(filter usuarios.email.solicitado usuarios.participante.eliminado usuarios.usuario.creado)" true
 ensure_push_sub notificaciones-insercion-laboral insercion-laboral-eventos "$NOTIFICATIONS_URL/eventos/insercion-laboral" "$SA_NOTIF_LABOR" "$NOTIFICATIONS_URL" \
-  "$(filter insercion_laboral.oferta.creada insercion_laboral.oferta.revisada insercion_laboral.postulacion.creada insercion_laboral.postulacion.decidida)" true
+  "$(filter insercion_laboral.oferta.compatible insercion_laboral.oferta.creada insercion_laboral.oferta.eliminada insercion_laboral.oferta.revisada insercion_laboral.postulacion.creada insercion_laboral.postulacion.decidida)" true
 ensure_push_sub notificaciones-campanas campanas-eventos "$NOTIFICATIONS_URL/eventos/campanas" "$SA_NOTIF_CAMPANAS" "$NOTIFICATIONS_URL" \
   "$(filter campanas.campana.creada)" false
 

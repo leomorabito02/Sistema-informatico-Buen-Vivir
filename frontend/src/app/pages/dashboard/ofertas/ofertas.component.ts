@@ -317,17 +317,19 @@ export class OfertasComponent implements OnInit {
           this.messageService.add({
             severity: "error",
             summary: "Error",
-            detail: "Hubo un problema al renovar la oferta.",
+            detail:
+              "Hubo un problema al renovar la oferta. Si le faltan datos obligatorios (ubicación, salario, horario, requisitos…), editala y completalos.",
           }),
       });
   }
 
   saveJob() {
-    if (!this.newJob.titulo) {
+    const faltan = camposFaltantesOferta(this.newJob);
+    if (faltan.length) {
       this.messageService.add({
         severity: "warn",
-        summary: "Aviso",
-        detail: "El título es obligatorio.",
+        summary: "Faltan datos obligatorios",
+        detail: `Completá: ${faltan.join(", ")}.`,
       });
       return;
     }
@@ -350,11 +352,14 @@ export class OfertasComponent implements OnInit {
           this.showDialog = false;
           this.loadJobs();
         },
-        error: () =>
+        error: (err) =>
           this.messageService.add({
             severity: "error",
             summary: "Error",
-            detail: "Hubo un problema al actualizar la oferta.",
+            detail: mensajeErrorOferta(
+              err,
+              "Hubo un problema al actualizar la oferta.",
+            ),
           }),
       });
     } else {
@@ -368,11 +373,11 @@ export class OfertasComponent implements OnInit {
           this.showDialog = false;
           this.loadJobs();
         },
-        error: () =>
+        error: (err) =>
           this.messageService.add({
             severity: "error",
             summary: "Error",
-            detail: "Hubo un problema al crear la oferta.",
+            detail: mensajeErrorOferta(err, "Hubo un problema al crear la oferta."),
           }),
       });
     }
@@ -615,4 +620,42 @@ export class OfertasComponent implements OnInit {
         }),
     });
   }
+}
+
+/**
+ * HU-39: campos obligatorios de una oferta (el backend valida lo mismo).
+ * Devuelve los nombres de los que faltan, en el orden del formulario.
+ */
+export function camposFaltantesOferta(job: {
+  titulo?: string;
+  descripcion?: string;
+  ubicacion?: string;
+  modalidad?: string;
+  tipo_empleo?: string;
+  salario?: string;
+  horario?: string;
+  requisitos?: string[];
+  fecha_limite?: string;
+}): string[] {
+  const vacio = (v?: string) => !v || !String(v).trim();
+  const faltan: string[] = [];
+  if (vacio(job.titulo)) faltan.push("título");
+  if (vacio(job.descripcion)) faltan.push("descripción");
+  if (vacio(job.ubicacion)) faltan.push("ubicación");
+  if (vacio(job.modalidad)) faltan.push("modalidad");
+  if (vacio(job.tipo_empleo)) faltan.push("tipo de empleo");
+  if (vacio(job.salario)) faltan.push("salario");
+  if (vacio(job.horario)) faltan.push("horario");
+  if (!(job.requisitos ?? []).some((r) => !vacio(r))) faltan.push("al menos un requisito");
+  if (vacio(job.fecha_limite)) faltan.push("fecha límite");
+  return faltan;
+}
+
+/** Usa el texto que devuelve el backend (400 con el campo faltante). */
+export function mensajeErrorOferta(err: unknown, fallback: string): string {
+  const e = err as { status?: number; error?: unknown };
+  if (e?.status === 400 && typeof e.error === "string" && e.error.trim()) {
+    return e.error.trim();
+  }
+  return fallback;
 }

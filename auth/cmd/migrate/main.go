@@ -6,6 +6,7 @@ import (
 
 	"auth/config"
 	"auth/internal/models"
+	"auth/internal/repositories"
 )
 
 func main() {
@@ -34,8 +35,14 @@ func main() {
 		&models.RefreshToken{},
 		&models.StorageCleanupTask{},
 		&models.OutboxEvent{},
+		&models.LoginAttempt{},
+		&models.AuditLog{},
 	)
-	
+	if err == nil {
+		// HU-10: la auditoría no se puede editar ni borrar.
+		err = db.Exec(repositories.AuditImmutabilitySQL).Error
+	}
+
 	if err != nil {
 		slog.Error("Error durante la auto-migración", "error", err)
 		os.Exit(1)

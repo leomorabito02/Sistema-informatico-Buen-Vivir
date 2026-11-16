@@ -111,7 +111,8 @@ func main() {
 
 	courseController := controllers.NewCourseController(courseService)
 	trainingAreaController := controllers.NewTrainingAreaController(trainingAreaService)
-	materialController := controllers.NewMaterialController(materialService)
+	materialController := controllers.NewMaterialController(materialService).
+		WithCourseListers(courseService.ListCourses, courseService.ListAllDraftCourses)
 	healthController := controllers.NewHealthController(cfg)
 	docenteController := controllers.NewDocenteController(
 		courseService,

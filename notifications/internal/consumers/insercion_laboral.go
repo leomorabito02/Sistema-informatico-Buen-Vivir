@@ -42,6 +42,8 @@ func NewInsercionLaboralConsumer(
 		events.OfertaRevisada,
 		events.PostulacionCreada,
 		events.PostulacionDecidida,
+		events.OfertaEliminada,
+		events.OfertaCompatible,
 	}
 
 	for _, et := range eventTypes {

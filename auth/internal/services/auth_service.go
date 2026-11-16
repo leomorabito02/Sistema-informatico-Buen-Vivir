@@ -21,6 +21,7 @@ var (
 	ErrEmailNotVerified       = errors.New("EMAIL_NOT_VERIFIED")
 	ErrAccountPendingApproval = errors.New("ACCOUNT_PENDING_APPROVAL")
 	ErrAccountBlocked         = errors.New("ACCOUNT_BLOCKED")
+	ErrRefreshTokenReused     = errors.New("REFRESH_TOKEN_REUSED")
 )
 
 type AuthService interface {
@@ -48,6 +49,7 @@ type authService struct {
 	verificationService VerificationService
 	twofaService        TwofaService
 	producer            producers.UsuariosProducer
+	loginAttempts       repositories.LoginAttemptRepository
 }
 
 func NewAuthService(
@@ -76,6 +78,9 @@ func NewAuthService(
 		}
 		if tfa, ok := opt.(TwofaService); ok {
 			svc.twofaService = tfa
+		}
+		if la, ok := opt.(repositories.LoginAttemptRepository); ok {
+			svc.loginAttempts = la
 		}
 	}
 	return svc
@@ -114,6 +119,9 @@ func (s *authService) Register(ctx context.Context, req *dto.RegisterRequest) (r
 	roleID := req.Role
 	if !strings.HasPrefix(roleID, "role_") {
 		roleID = "role_" + roleID
+	}
+	if roleID == "role_participant" && !IsGmail(req.Email) {
+		return nil, ErrParticipantGmail
 	}
 	if !rolesDeRegistro[roleID] {
 		slog.Warn("security: register with a non public role", slog.String("event", "register_role_denied"), slog.String("role_id", roleID))
@@ -188,11 +196,17 @@ func (s *authService) CheckCredentials(ctx context.Context, req *dto.CheckCreden
 		return nil, errors.New("no existe ninguna cuenta registrada con este correo electrónico")
 	}
 
+	attemptKey := loginAttemptKey(req.Email)
+	if err := s.checkLoginLock(ctx, attemptKey); err != nil {
+		return nil, err
+	}
+
 	// Validate password against the first account (all accounts with the same email share the same password hash)
 	if !utils.CheckPasswordHash(req.Password, users[0].PasswordHash) {
 		slog.Warn("security: failed login attempt", slog.String("event", "invalid_password"), slog.String("email_hash", utils.HashToken(req.Email)))
-		return nil, errors.New("la contraseña ingresada es incorrecta")
+		return nil, s.registerLoginFailure(ctx, attemptKey)
 	}
+	s.resetLoginFailures(ctx, attemptKey)
 
 	twofaResp, twofaErr := s.handleTwofaChallenge(ctx, req.Email, users, req.TrustedDevice, req.UserAgent)
 	if twofaErr != nil {

@@ -44,6 +44,8 @@ const (
 	PostulacionCreada       = "insercion_laboral.postulacion.creada"
 	PostulacionSeleccionada = "insercion_laboral.postulacion.seleccionada"
 	PostulacionDecidida     = "insercion_laboral.postulacion.decidida"
+	OfertaEliminada         = "insercion_laboral.oferta.eliminada"  // HU-41
+	OfertaCompatible        = "insercion_laboral.oferta.compatible" // HU-44
 
 	// Campañas.
 	CampanaCreada = "campanas.campana.creada"
@@ -119,6 +121,23 @@ type OfertaRevisadaPayload struct {
 	OfertaID  string `json:"oferta_id"`
 	EmpresaID string `json:"empresa_id"`
 	Aprobada  bool   `json:"aprobada"`
+}
+
+// OfertaEliminadaPayload es el payload de insercion_laboral.oferta.eliminada
+// (HU-41): la gestión del centro borró una oferta y se avisa a la empresa.
+// PorGestion es true cuando la borró admin o voluntario (no la empresa).
+type OfertaEliminadaPayload struct {
+	OfertaID   string `json:"oferta_id"`
+	EmpresaID  string `json:"empresa_id"`
+	PorGestion bool   `json:"por_gestion"`
+}
+
+// OfertaCompatiblePayload es el payload de insercion_laboral.oferta.compatible
+// (HU-44): la oferta publicada pide habilidades que estos participantes ya
+// tienen. Solo ids (participante_id de Educación).
+type OfertaCompatiblePayload struct {
+	OfertaID        string   `json:"oferta_id"`
+	ParticipanteIDs []string `json:"participante_ids"`
 }
 
 // PostulacionCreadaPayload es el payload de insercion_laboral.postulacion.creada.

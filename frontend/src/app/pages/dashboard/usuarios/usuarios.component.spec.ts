@@ -7,7 +7,11 @@ import {
 import { NoopAnimationsModule } from "@angular/platform-browser/animations";
 import { of, throwError } from "rxjs";
 import { ConfirmationService, MessageService } from "primeng/api";
-import { DashboardUser, UsuariosComponent } from "./usuarios.component";
+import {
+  DashboardUser,
+  UsuariosComponent,
+  validateNewParticipant,
+} from "./usuarios.component";
 import { AuthService } from "../../../services/auth.service";
 import { UsersService } from "../../../services/users.service";
 import { EducationService } from "../../../services/education.service";
@@ -329,6 +333,7 @@ describe("UsuariosComponent", () => {
       }),
     );
 
+    // HU-07 y HU-01: participante sin Gmail, DNI ni dirección no se crea.
     component.newUserForm = {
       first_name: "N",
       last_name: "U",
@@ -337,13 +342,24 @@ describe("UsuariosComponent", () => {
       password: "Clave123!",
       role_id: "role_participant",
     };
+    component.createUser();
+    expect(usersService.createUser).not.toHaveBeenCalled();
+
+    component.newUserForm = {
+      ...component.newUserForm,
+      email: "n@gmail.com",
+      dni: "30111222",
+      address: "San Martín 100",
+    };
     component.showNewUserModal = true;
     component.createUser();
 
     expect(usersService.createUser).toHaveBeenCalledWith(
       jasmine.objectContaining({
-        email: "n@u.com",
+        email: "n@gmail.com",
         role_id: "role_participant",
+        dni: "30111222",
+        address: "San Martín 100",
       }),
     );
     expect(component.showNewUserModal).toBeFalse();
@@ -728,5 +744,37 @@ describe("UsuariosComponent", () => {
     );
     expect(component.participantDocuments).toHaveSize(1);
     expect(component.participantDocuments[0].id).toBe("pdoc-2");
+  });
+});
+
+describe("validateNewParticipant (HU-07, HU-01)", () => {
+  const ok = {
+    role_id: "role_participant",
+    email: "ana@gmail.com",
+    dni: "30111222",
+    address: "Calle 1",
+    phone: "351",
+  };
+  it("acepta un participante completo y no valida otros roles", () => {
+    expect(validateNewParticipant(ok)).toBe("");
+    expect(validateNewParticipant({ role_id: "role_company", email: "x@empresa.com" })).toBe("");
+  });
+  it("pide Gmail, DNI de 7 u 8 números y dirección", () => {
+    expect(validateNewParticipant({ ...ok, email: "a@hotmail.com" })).toContain("Gmail");
+    expect(validateNewParticipant({ ...ok, dni: "30.111.222" })).toContain("DNI");
+    expect(validateNewParticipant({ ...ok, address: "" })).toContain("dirección");
+  });
+});
+
+describe("UsuariosComponent.approvalDecision (HU-12)", () => {
+  it("solo decide cuando la cuenta estaba pendiente", () => {
+    const c = Object.create(UsuariosComponent.prototype) as UsuariosComponent;
+    c.originalApprovalStatus = "pending";
+    c.editForm = { approval_status: "rejected" };
+    expect(c.approvalDecision()).toBe("rejected");
+    c.editForm = { approval_status: "approved" };
+    expect(c.approvalDecision()).toBe("approved");
+    c.originalApprovalStatus = "approved";
+    expect(c.approvalDecision()).toBeNull();
   });
 });

@@ -34,3 +34,11 @@ code {
     width: 100%;
   }
 }
+
+.detalle {
+  display: block;
+  margin-top: 0.15rem;
+  font-size: 0.78rem;
+  color: var(--text-color-secondary, #64748b);
+  word-break: break-word;
+}

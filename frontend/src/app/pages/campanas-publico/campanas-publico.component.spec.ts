@@ -26,7 +26,7 @@ describe("CampanasPublicoComponent", () => {
 
   beforeEach(async () => {
     service = jasmine.createSpyObj<CampaignsService>("CampaignsService", [
-      "publicas",
+      "publicasPagina",
     ]);
     await TestBed.configureTestingModule({
       imports: [CampanasPublicoComponent],
@@ -44,19 +44,19 @@ describe("CampanasPublicoComponent", () => {
   }
 
   it("muestra las campañas publicadas con su fecha en DD/MM/AAAA", fakeAsync(() => {
-    service.publicas.and.returnValue(of([campana]));
+    service.publicasPagina.and.returnValue(of({ items: [campana], total: [campana].length }));
     crear();
     tick(300);
     fixture.detectChanges();
     const el: HTMLElement = fixture.nativeElement;
-    expect(service.publicas).toHaveBeenCalledWith("");
+    expect(service.publicasPagina).toHaveBeenCalledWith("", 0);
     expect(el.querySelectorAll(".tarjeta")).toHaveSize(1);
     expect(el.textContent).toContain("Campaña del árbol");
     expect(el.textContent).toContain("21/09/2026");
   }));
 
   it("abre los comentarios de una campaña recién al pedirlos (HU-24)", fakeAsync(() => {
-    service.publicas.and.returnValue(of([campana]));
+    service.publicasPagina.and.returnValue(of({ items: [campana], total: [campana].length }));
     crear();
     tick(300);
     fixture.detectChanges();
@@ -70,7 +70,7 @@ describe("CampanasPublicoComponent", () => {
   }));
 
   it("busca por título esperando a que se deje de escribir", fakeAsync(() => {
-    service.publicas.and.returnValue(of([]));
+    service.publicasPagina.and.returnValue(of({ items: [], total: [].length }));
     crear();
     tick(300);
     const component = fixture.componentInstance;
@@ -78,12 +78,12 @@ describe("CampanasPublicoComponent", () => {
     component.buscar("arb");
     component.buscar(" arbol ");
     tick(300);
-    expect(service.publicas).toHaveBeenCalledTimes(2);
-    expect(service.publicas.calls.mostRecent().args[0]).toBe("arbol");
+    expect(service.publicasPagina).toHaveBeenCalledTimes(2);
+    expect(service.publicasPagina.calls.mostRecent().args[0]).toBe("arbol");
   }));
 
   it("avisa cuando no hay coincidencias", fakeAsync(() => {
-    service.publicas.and.returnValue(of([]));
+    service.publicasPagina.and.returnValue(of({ items: [], total: [].length }));
     crear();
     tick(300);
     fixture.componentInstance.busqueda = "zzz";
@@ -94,7 +94,7 @@ describe("CampanasPublicoComponent", () => {
   }));
 
   it("muestra el error sin romper la página", fakeAsync(() => {
-    service.publicas.and.returnValue(
+    service.publicasPagina.and.returnValue(
       throwError(() => new Error("No se pudieron cargar las campañas.")),
     );
     crear();
@@ -106,12 +106,29 @@ describe("CampanasPublicoComponent", () => {
   }));
 
   it("reemplaza la imagen por el placeholder ante error de carga", fakeAsync(() => {
-    service.publicas.and.returnValue(of([]));
+    service.publicasPagina.and.returnValue(of({ items: [], total: [].length }));
     crear();
     tick(300);
     const img = document.createElement("img");
     img.src = "https://broken.example.com/fail.jpg";
     fixture.componentInstance.onImageError({ target: img } as unknown as Event);
     expect(img.src).toContain("data:image/svg+xml");
+  }));
+
+  it("trae la página siguiente con Ver más (HU-50)", fakeAsync(() => {
+    service.publicasPagina.and.returnValues(
+      of({ items: [campana], total: 2 }),
+      of({ items: [{ ...campana, id: "c2" }], total: 2 }),
+    );
+    crear();
+    tick(300);
+    const component = fixture.componentInstance;
+    expect(component.hayMas).toBeTrue();
+
+    component.verMas();
+
+    expect(service.publicasPagina.calls.mostRecent().args[1]).toBe(1);
+    expect(component.campanas.length).toBe(2);
+    expect(component.hayMas).toBeFalse();
   }));
 });

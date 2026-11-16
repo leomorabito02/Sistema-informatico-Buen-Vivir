@@ -141,14 +141,14 @@ func TestAuthService_Register_Success(t *testing.T) {
 	svc := services.NewAuthService(mockTransactor, mockQuerier, mockUserRepo, mockRtRepo, mockJWT, mockFB)
 
 	req := &dto.RegisterRequest{
-		Email: "test@example.com",
+		Email: "test@gmail.com",
 		Password: "Password123!",
 		Role: "role_participant",
 		FirstName: "John",
 		LastName: "Doe",
 	}
 
-	mockUserRepo.On("FindByEmail", mock.Anything, "test@example.com").Return(nil, errors.New("not found"))
+	mockUserRepo.On("FindByEmail", mock.Anything, "test@gmail.com").Return(nil, errors.New("not found"))
 	mockTransactor.On("RunInTx", mock.Anything, mock.Anything).Return(nil)
 
 	res, err := svc.Register(context.Background(), req)

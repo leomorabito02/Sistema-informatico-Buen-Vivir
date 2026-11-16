@@ -33,6 +33,8 @@ func (m *mockProducer) PostulacionSeleccionada(_ context.Context, postID, offerI
 	return nil
 }
 
+func (m *mockProducer) OfertaEliminada(context.Context, string, string, bool) error { return nil }
+func (m *mockProducer) OfertaCompatible(context.Context, string, []string) error  { return nil }
 func (m *mockProducer) Enabled() bool { return true }
 func (m *mockProducer) Notify()       { m.notified = true }
 

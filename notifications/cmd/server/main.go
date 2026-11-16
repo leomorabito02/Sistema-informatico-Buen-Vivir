@@ -150,6 +150,8 @@ func main() {
 	registry.Register(&rules.OfertaRevisadaRule{})
 	registry.Register(&rules.PostulacionCreadaRule{})
 	registry.Register(&rules.PostulacionDecididaRule{})
+	registry.Register(&rules.OfertaEliminadaRule{})
+	registry.Register(&rules.OfertaCompatibleRule{})
 	registry.Register(&rules.CampanaCreadaRule{})
 	registry.Register(&rules.UsuarioCreadoRule{})
 	registry.Register(&rules.EmailSolicitadoRule{})

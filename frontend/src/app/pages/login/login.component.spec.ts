@@ -154,6 +154,28 @@ describe("LoginComponent", () => {
       expect(routerSpy.navigate).toHaveBeenCalledWith(["/account-notice"]);
     });
 
+    it("should lock when the backend answers 423 ACCOUNT_LOCKED (HU-02)", () => {
+      authServiceSpy.checkCredentials.and.returnValue(
+        throwError(() => ({
+          status: 423,
+          error: {
+            code: "ACCOUNT_LOCKED",
+            error: "Tu cuenta quedó bloqueada por demasiados intentos fallidos. Probá de nuevo en 15 minuto(s).",
+          },
+        })),
+      );
+      component.loginForm.setValue({
+        email: "test@gmail.com",
+        password: "password",
+        rememberMe: false,
+      });
+
+      component.onSubmit();
+
+      expect(component.locked).toBeTrue();
+      expect(component.loginError).toContain("15 minuto");
+    });
+
     it("should lock out after max attempts", () => {
       authServiceSpy.checkCredentials.and.returnValue(
         throwError(() => ({ error: { error: "Invalid" } })),

@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"net/http"
+	"strconv"
 
 	"github.com/go-chi/chi/v5"
 
@@ -37,7 +38,46 @@ func (c *CampaignController) ListPublished(w http.ResponseWriter, r *http.Reques
 	for i := range campaigns {
 		campaigns[i].CreadoPor = ""
 	}
+	// HU-50: con ?limit= se devuelve una página {items, total}; sin
+	// limit, la lista completa como antes (compatibilidad).
+	if raw := r.URL.Query().Get("limit"); raw != "" {
+		page, ok := paginar(campaigns, raw, r.URL.Query().Get("offset"))
+		if !ok {
+			writeErrorJSON(w, http.StatusBadRequest, "limit y offset deben ser números (limit entre 1 y 100)")
+			return
+		}
+		writeJSON(w, http.StatusOK, page)
+		return
+	}
 	writeJSON(w, http.StatusOK, campaigns)
+}
+
+// PaginaCampanas es la respuesta paginada del listado público (HU-50).
+type PaginaCampanas struct {
+	Items []models.Campaign `json:"items"`
+	Total int               `json:"total"`
+}
+
+func paginar(all []models.Campaign, rawLimit, rawOffset string) (PaginaCampanas, bool) {
+	limit, err := strconv.Atoi(rawLimit)
+	if err != nil || limit < 1 || limit > 100 {
+		return PaginaCampanas{}, false
+	}
+	offset := 0
+	if rawOffset != "" {
+		if offset, err = strconv.Atoi(rawOffset); err != nil || offset < 0 {
+			return PaginaCampanas{}, false
+		}
+	}
+	page := PaginaCampanas{Items: []models.Campaign{}, Total: len(all)}
+	if offset < len(all) {
+		end := offset + limit
+		if end > len(all) {
+			end = len(all)
+		}
+		page.Items = all[offset:end]
+	}
+	return page, true
 }
 
 // List: GET /api/v1/campaigns?q=&estado= — gestión (borradores y

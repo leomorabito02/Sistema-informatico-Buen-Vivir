@@ -210,6 +210,11 @@ func (c *AuthController) CheckCredentials(w http.ResponseWriter, r *http.Request
 
 	resp, err := c.authService.CheckCredentials(r.Context(), &req)
 	if err != nil {
+		if errors.Is(err, services.ErrLoginLocked) {
+			// HU-02: 423 Locked con un código que el front reconoce.
+			writeJSONResponse(w, http.StatusLocked, map[string]string{"error": err.Error(), "code": "ACCOUNT_LOCKED"})
+			return
+		}
 		writeJSONError(w, http.StatusUnauthorized, err.Error())
 		return
 	}

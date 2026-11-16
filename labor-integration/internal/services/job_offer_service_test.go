@@ -71,6 +71,18 @@ type mockLaborProducer struct {
 	decidedPostID   string
 	decidedResult   string
 	notified        bool
+	deletedOfferID  string
+	deletedGestion  bool
+	compatibleIDs   []string
+}
+
+func (m *mockLaborProducer) OfertaEliminada(_ context.Context, ofertaID, _ string, porGestion bool) error {
+	m.deletedOfferID, m.deletedGestion = ofertaID, porGestion
+	return nil
+}
+func (m *mockLaborProducer) OfertaCompatible(_ context.Context, _ string, ids []string) error {
+	m.compatibleIDs = ids
+	return nil
 }
 
 func (m *mockLaborProducer) Enabled() bool { return true }
@@ -114,10 +126,8 @@ func TestJobOfferService_NotificationDispatching(t *testing.T) {
 	)
 
 	// Act 1: Create offer as admin
-	offer := &models.JobOffer{
-		ID:    "off-1",
-		Title: "Recepcionista",
-	}
+	offer := ofertaCompleta("Recepcionista")
+	offer.ID = "off-1"
 	err := svc.CreateOffer(context.Background(), offer, "role_admin", "usr-admin-1")
 	if err != nil {
 		t.Fatalf("unexpected error creating offer: %v", err)

@@ -1,9 +1,9 @@
 import { ComponentFixture, TestBed } from "@angular/core/testing";
-import { RegisterComponent } from "./register.component";
+import { RegisterComponent, participantGmailValidator } from "./register.component";
 import { AuthService } from "../../services/auth.service";
 import { ActivatedRoute } from "@angular/router";
 import { of, throwError } from "rxjs";
-import { ReactiveFormsModule } from "@angular/forms";
+import { FormControl, FormGroup, ReactiveFormsModule } from "@angular/forms";
 
 describe("RegisterComponent", () => {
   let component: RegisterComponent;
@@ -184,5 +184,19 @@ describe("RegisterComponent", () => {
       expect(component.registered).toBeFalse();
       expect(component.loading).toBeFalse();
     });
+  });
+});
+
+describe("participantGmailValidator (HU-01, decisión 15/11)", () => {
+  const form = (role: string, email: string) =>
+    new FormGroup({ role: new FormControl(role), email: new FormControl(email) });
+
+  it("rechaza un participante sin Gmail", () => {
+    expect(participantGmailValidator(form("participant", "ana@hotmail.com"))).toEqual({ participantGmail: true });
+  });
+
+  it("acepta Gmail para participantes y cualquier dominio para otros roles", () => {
+    expect(participantGmailValidator(form("participant", "Ana@Gmail.com "))).toBeNull();
+    expect(participantGmailValidator(form("company", "rrhh@empresa.com.ar"))).toBeNull();
   });
 });

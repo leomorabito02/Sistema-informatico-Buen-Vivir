@@ -68,23 +68,29 @@ func TestAuthService_RefreshToken_NotFound(t *testing.T) {
 	assert.EqualError(t, err, "refresh token not found")
 }
 
-func TestAuthService_RefreshToken_RevokedOrExpired(t *testing.T) {
+func TestAuthService_RefreshToken_Expired(t *testing.T) {
+	f := newRefreshFixture()
+	f.givenToken(&models.RefreshToken{RefreshTokenID: "rt-1", UserID: "usr-1", ExpiresAt: time.Now().Add(-time.Minute)})
+
+	_, err := f.svc.RefreshToken(context.Background(), "old-refresh")
+
+	assert.EqualError(t, err, "refresh token expired or revoked")
+	f.jwt.AssertNotCalled(t, "GenerateTokenPair", mock.Anything, mock.Anything, mock.Anything)
+	f.tokens.AssertNotCalled(t, "RevokeAllForUser", mock.Anything, mock.Anything)
+}
+
+// HU-04: reutilizar un refresh ya usado cierra todas las sesiones del usuario.
+func TestAuthService_RefreshToken_ReuseRevokesAllSessions(t *testing.T) {
 	revokedAt := time.Now().Add(-time.Minute)
-	cases := map[string]*models.RefreshToken{
-		"revocado": {RefreshTokenID: "rt-1", UserID: "usr-1", ExpiresAt: time.Now().Add(time.Hour), RevokedAt: &revokedAt},
-		"vencido":  {RefreshTokenID: "rt-1", UserID: "usr-1", ExpiresAt: time.Now().Add(-time.Minute)},
-	}
-	for name, rt := range cases {
-		t.Run(name, func(t *testing.T) {
-			f := newRefreshFixture()
-			f.givenToken(rt)
+	f := newRefreshFixture()
+	f.givenToken(&models.RefreshToken{RefreshTokenID: "rt-1", UserID: "usr-1", ExpiresAt: time.Now().Add(time.Hour), RevokedAt: &revokedAt})
+	f.tokens.On("RevokeAllForUser", mock.Anything, "usr-1").Return(nil)
 
-			_, err := f.svc.RefreshToken(context.Background(), "old-refresh")
+	_, err := f.svc.RefreshToken(context.Background(), "old-refresh")
 
-			assert.EqualError(t, err, "refresh token expired or revoked")
-			f.jwt.AssertNotCalled(t, "GenerateTokenPair", mock.Anything, mock.Anything, mock.Anything)
-		})
-	}
+	assert.ErrorIs(t, err, services.ErrRefreshTokenReused)
+	f.tokens.AssertCalled(t, "RevokeAllForUser", mock.Anything, "usr-1")
+	f.jwt.AssertNotCalled(t, "GenerateTokenPair", mock.Anything, mock.Anything, mock.Anything)
 }
 
 func TestAuthService_RefreshToken_UserNotFound(t *testing.T) {

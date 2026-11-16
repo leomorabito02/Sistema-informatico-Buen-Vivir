@@ -9,8 +9,8 @@ import (
 type CreateParticipantRequest struct {
 	UserID         string    `json:"user_id" validate:"required"`
 	Birthdate      time.Time `json:"birthdate" validate:"required"`
-	DNI            string    `json:"dni" validate:"omitempty"`
-	Address        string    `json:"address" validate:"omitempty"`
+	DNI            string    `json:"dni" validate:"required,dni"`
+	Address        string    `json:"address" validate:"required,min=3"`
 	Gender         string    `json:"gender" validate:"required"`
 	EmergencyContactName string `json:"emergency_contact_name" validate:"omitempty"`
 	EmergencyContactPhone string `json:"emergency_contact_phone" validate:"omitempty"`

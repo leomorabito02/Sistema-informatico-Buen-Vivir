@@ -31,7 +31,13 @@ func NewParticipantController(participantService services.ParticipantService) *P
 	return &ParticipantController{participantService: participantService}
 }
 
+// MaxUploadBytes es el tamaño máximo de foto o documento (HU-11: 5 MB).
+const MaxUploadBytes = 5 << 20
+
 func validateUploadedFile(file multipart.File, header *multipart.FileHeader) (string, error) {
+	if header.Size > MaxUploadBytes {
+		return "", errors.New("el archivo supera el máximo de 5 MB")
+	}
 	ext := strings.ToLower(filepath.Ext(header.Filename))
 	switch ext {
 	case ".pdf", ".jpg", ".jpeg", ".png", ".webp":

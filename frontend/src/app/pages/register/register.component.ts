@@ -23,6 +23,20 @@ import {
 } from "lucide-angular";
 import { AuthService } from "../../services/auth.service";
 
+/**
+ * HU-01 (decisión del 15/11/2026): los participantes se registran con una
+ * cuenta de Gmail; el resto de los roles puede usar cualquier dominio. El
+ * backend valida lo mismo.
+ */
+export function participantGmailValidator(
+  control: AbstractControl,
+): ValidationErrors | null {
+  const role = control.get("role")?.value;
+  const email = String(control.get("email")?.value ?? "").trim().toLowerCase();
+  if (role !== "participant" || !email) return null;
+  return email.endsWith("@gmail.com") ? null : { participantGmail: true };
+}
+
 function passwordMatchValidator(
   control: AbstractControl,
 ): ValidationErrors | null {
@@ -120,7 +134,7 @@ export class RegisterComponent {
         confirmPassword: ["", [Validators.required]],
         terms: [false, [Validators.requiredTrue]],
       },
-      { validators: passwordMatchValidator },
+      { validators: [passwordMatchValidator, participantGmailValidator] },
     );
   }
 
@@ -151,6 +165,9 @@ export class RegisterComponent {
     }
     if (c["email"].hasError("email")) {
       return "Por favor, ingresá una dirección de correo electrónico válida.";
+    }
+    if (this.registerForm.hasError("participantGmail")) {
+      return "Los participantes se registran con una cuenta de Gmail (@gmail.com).";
     }
     if (c["password"].hasError("minlength")) {
       return "La contraseña debe tener al menos 8 caracteres.";

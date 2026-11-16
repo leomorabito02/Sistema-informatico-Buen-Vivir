@@ -499,16 +499,18 @@ func TestUserService_CreateUser_Success_SendsVerification(t *testing.T) {
 	ctx = context.WithValue(ctx, middlewares.UserIDKey, "admin-1")
 
 	req := &dto.CreateUserRequest{
-		Email:     "newuser@example.com",
+		Email:     "newuser@gmail.com",
 		FirstName: "Nuevo",
 		LastName:  "Usuario",
 		Password:  "Password123!",
 		RoleID:    "role_participant",
 		Phone:     "123456789",
+		DNI:       "30111222",
+		Address:   "San Martín 100",
 	}
 
 	mockRepo.On("CreateWithRoleProfile", mock.Anything, mock.MatchedBy(func(u *models.User) bool {
-		return u.Email == "newuser@example.com" && !u.IsEmailVerified
+		return u.Email == "newuser@gmail.com" && !u.IsEmailVerified
 	}), "role_participant", "admin-1").Return(nil)
 
 	res, err := svc.CreateUser(ctx, req)
@@ -516,7 +518,7 @@ func TestUserService_CreateUser_Success_SendsVerification(t *testing.T) {
 	assert.NotNil(t, res)
 	assert.False(t, res.IsEmailVerified)
 	assert.NotNil(t, mockVerif.calledWithUser)
-	assert.Equal(t, "newuser@example.com", mockVerif.calledWithUser.Email)
+	assert.Equal(t, "newuser@gmail.com", mockVerif.calledWithUser.Email)
 	assert.False(t, mockVerif.calledWithUser.IsEmailVerified)
 }
 
@@ -647,4 +649,23 @@ func TestUserService_GetActiveUserIDsByRoles(t *testing.T) {
 	res, err = svc.GetActiveUserIDsByRoles(context.Background(), []string{"role_admin", "role_volunteer"})
 	assert.NoError(t, err)
 	assert.Equal(t, []string{"u1", "u2"}, res)
+}
+
+// HU-07 y HU-01: el alta de participante desde Usuarios exige Gmail, DNI
+// y dirección; y guarda DNI y dirección en el perfil.
+func TestUserService_CreateUser_ParticipantRequiredFields(t *testing.T) {
+	ctx := context.WithValue(context.WithValue(context.Background(), middlewares.RoleIDKey, "role_admin"), middlewares.UserIDKey, "admin-1")
+	casos := map[string]*dto.CreateUserRequest{
+		"no gmail":      {Email: "a@hotmail.com", DNI: "30111222", Address: "Calle 1"},
+		"sin DNI":       {Email: "a@gmail.com", Address: "Calle 1"},
+		"sin direccion": {Email: "a@gmail.com", DNI: "30111222"},
+	}
+	for name, req := range casos {
+		req.FirstName, req.LastName, req.Password, req.Phone, req.RoleID = "Ana", "Paz", "Password123!", "351", "role_participant"
+		mockRepo := new(MockUserRepository)
+		svc := services.NewUserService(mockRepo)
+		_, err := svc.CreateUser(ctx, req)
+		assert.Error(t, err, name)
+		mockRepo.AssertNotCalled(t, "CreateWithRoleProfile", mock.Anything, mock.Anything, mock.Anything, mock.Anything)
+	}
 }

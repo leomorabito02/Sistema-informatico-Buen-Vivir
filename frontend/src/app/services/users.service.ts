@@ -152,6 +152,28 @@ export class UsersService {
       );
   }
 
+  /** Aprueba o rechaza una cuenta pendiente; Auth avisa por email (HU-12, HU-38). */
+  setApproval(userId: string, status: "approved" | "rejected"): Observable<any> {
+    return this.http
+      .patch(
+        `${this.apiUrl}/api/v1/users/${userId}/approval`,
+        { approval_status: status },
+        { withCredentials: true },
+      )
+      .pipe(
+        catchError((err) =>
+          throwError(
+            () =>
+              new Error(
+                err.error?.error ||
+                  err.error?.message ||
+                  "No se pudo cambiar la aprobación",
+              ),
+          ),
+        ),
+      );
+  }
+
   updateRoleData(tableName: string, id: string, data: any): Observable<any> {
     return this.http
       .put(`${this.apiUrl}/api/v1/${tableName}/${id}`, data, {

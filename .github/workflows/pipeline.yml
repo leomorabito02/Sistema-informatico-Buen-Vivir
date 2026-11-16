@@ -1823,6 +1823,7 @@ jobs:
             CORS_ALLOWED_ORIGINS=${{ env.CORS_ALLOWED_ORIGINS_ESCAPED }}
             AUTH_SERVICE_URL=${{ needs.cd-auth.outputs.service_url }}
             UPSTREAM_ID_TOKEN=true
+            EDUCATION_API_URL=${{ vars.EDUCATION_API_URL }}
 
       - name: Ensure 100% traffic routed to latest Cloud Run revision
         run: |

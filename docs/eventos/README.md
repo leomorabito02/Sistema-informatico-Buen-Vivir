@@ -94,7 +94,7 @@ atributo `event_type`. Solo le llegan los eventos que procesa.
 | `notificaciones-educacion` | educacion-eventos | `notifications /eventos/educacion` | actividad.recordatorio, contenido_docente.moderado, contenido_docente.subido, curso.completado_por_participante, curso.creado, curso.eliminado, habilidad.otorgada, inscripcion.creada |
 | `notificaciones-promocion-humana` | promocion-humana-eventos | `notifications /eventos/promocion-humana` | ficha.actualizada, ficha.creada, hito.actualizado, hito.registrado |
 | `notificaciones-usuarios` | usuarios-eventos | `notifications /eventos/usuarios` | email.solicitado, participante.eliminado, usuario.creado |
-| `notificaciones-insercion-laboral` | insercion-laboral-eventos | `notifications /eventos/insercion-laboral` | oferta.creada, oferta.revisada, postulacion.creada, postulacion.decidida |
+| `notificaciones-insercion-laboral` | insercion-laboral-eventos | `notifications /eventos/insercion-laboral` | oferta.creada, oferta.revisada, oferta.eliminada, oferta.compatible, postulacion.creada, postulacion.decidida |
 | `notificaciones-campanas` | campanas-eventos | `notifications /eventos/campanas` | campana.creada |
 
 Un test de cada servicio (`TestFiltrosDeInfraCoincidenConLosConsumidores`)
@@ -151,6 +151,8 @@ tarea; **pendiente** = falta coordinarlo con quien mantiene ese servicio.
 | `usuarios.usuario.actualizado` | Autenticación | Educación | HU-09 | `user_id`, `role_id`, `participante_id?`, `status`, `approval_status?` | nuevo |
 | `insercion_laboral.oferta.creada` | Inserción Laboral | Notificaciones | HU-38 | `oferta_id`, `titulo`, `empresa_id` | nuevo |
 | `insercion_laboral.oferta.revisada` | Inserción Laboral | Notificaciones | HU-39 | `oferta_id`, `estado`, `observaciones` | nuevo |
+| `insercion_laboral.oferta.eliminada` | Inserción Laboral | Notificaciones | HU-41 | `oferta_id`, `empresa_id`, `por_gestion` | nuevo (15/11/2026) |
+| `insercion_laboral.oferta.compatible` | Inserción Laboral | Notificaciones | HU-44 | `oferta_id`, `participante_ids` | nuevo (15/11/2026) |
 | `insercion_laboral.postulacion.creada` | Inserción Laboral | Notificaciones | HU-41 | `postulacion_id`, `oferta_id`, `participante_id` | nuevo |
 | `insercion_laboral.postulacion.decidida` | Inserción Laboral | Notificaciones | HU-42 | `postulacion_id`, `oferta_id`, `participante_id`, `estado`, `observaciones` | nuevo |
 | `insercion_laboral.postulacion.seleccionada` | Inserción Laboral | Dashboard | HU-52 | `postulacion_id`, `oferta_id`, `participante_id`, `empresa_id` | nuevo |

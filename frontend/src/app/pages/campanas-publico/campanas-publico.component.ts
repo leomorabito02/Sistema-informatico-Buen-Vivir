@@ -57,6 +57,10 @@ export class CampanasPublicoComponent implements OnInit {
   private readonly busqueda$ = new Subject<string>();
 
   campanas: Campana[] = [];
+  /** Total de publicadas que coinciden con la búsqueda (HU-50). */
+  total = 0;
+  cargandoMas = false;
+  private ultimaBusqueda = "";
   /** Campañas con los comentarios abiertos: se piden recién al abrirlos. */
   readonly comentariosAbiertos = new Set<string>();
   busqueda = "";
@@ -73,21 +77,47 @@ export class CampanasPublicoComponent implements OnInit {
           this.error = "";
         }),
         // switchMap: si se sigue escribiendo, gana la última búsqueda.
-        switchMap((q) =>
-          this.service.publicas(q).pipe(
+        switchMap((q) => {
+          this.ultimaBusqueda = q;
+          return this.service.publicasPagina(q, 0).pipe(
             catchError((e: Error) => {
               this.error = e.message;
-              return of([] as Campana[]);
+              return of({ items: [] as Campana[], total: 0 });
             }),
-          ),
-        ),
+          );
+        }),
         takeUntilDestroyed(this.destroyRef),
       )
-      .subscribe((c) => {
-        this.campanas = c;
+      .subscribe((p) => {
+        this.campanas = p.items;
+        this.total = p.total;
         this.cargando = false;
       });
     this.busqueda$.next("");
+  }
+
+  get hayMas(): boolean {
+    return this.campanas.length < this.total;
+  }
+
+  /** HU-50: trae la página siguiente y la suma a la lista. */
+  verMas(): void {
+    if (this.cargandoMas || !this.hayMas) return;
+    this.cargandoMas = true;
+    this.service
+      .publicasPagina(this.ultimaBusqueda, this.campanas.length)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (p) => {
+          this.campanas = [...this.campanas, ...p.items];
+          this.total = p.total;
+          this.cargandoMas = false;
+        },
+        error: (e: Error) => {
+          this.error = e.message;
+          this.cargandoMas = false;
+        },
+      });
   }
 
   buscar(texto: string): void {

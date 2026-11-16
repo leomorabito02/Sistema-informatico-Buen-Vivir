@@ -519,7 +519,7 @@
             *ngIf="
               selectedUser.originalUser?.role_id !== 'role_admin' &&
               selectedUser.originalUser?.role_id !== 'admin' &&
-              isRolePending(editForm.approval_status)
+              isRolePending(originalApprovalStatus)
             "
           >
             <label for="editRoleStatus">Estado de Rol</label>
@@ -531,7 +531,11 @@
             >
               <option value="approved">Aprobado</option>
               <option value="pending">Pendiente</option>
+              <option value="rejected">Rechazado</option>
             </select>
+            <small class="input-hint"
+              >Al aprobar o rechazar, el usuario recibe un email.</small
+            >
           </div>
         </div>
 
@@ -961,6 +965,38 @@
             />
           </div>
         </div>
+        <ng-container *ngIf="newUserForm.role_id === 'role_participant'">
+          <div class="form-group">
+            <label for="newUserDni">DNI</label>
+            <input
+              id="newUserDni"
+              type="text"
+              inputmode="numeric"
+              maxlength="8"
+              [(ngModel)]="newUserForm.dni"
+              pInputText
+              placeholder="Sin puntos, ej: 30111222"
+              class="w-full"
+              style="width: 100%"
+            />
+          </div>
+          <div class="form-group">
+            <label for="newUserAddress">Dirección</label>
+            <input
+              id="newUserAddress"
+              type="text"
+              [(ngModel)]="newUserForm.address"
+              pInputText
+              placeholder="Calle, número y barrio"
+              class="w-full"
+              style="width: 100%"
+            />
+          </div>
+          <p class="input-hint">
+            El participante usa una cuenta de Gmail. DNI, dirección y teléfono
+            son obligatorios.
+          </p>
+        </ng-container>
         <div class="form-group">
           <label for="newUserPassword">Contraseña</label>
           <div class="p-input-icon-left w-full" style="width: 100%">

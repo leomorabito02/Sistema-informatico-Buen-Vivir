@@ -36,6 +36,7 @@ func RegisterRoutes(r chi.Router, ctrls Controllers) {
 		r.Delete("/offers/{id}", ctrls.JobOffer.Delete)
 		r.Put("/offers/{id}/approve", ctrls.JobOffer.Approve)
 		r.Put("/offers/{id}/reject", ctrls.JobOffer.Reject)
+		r.Get("/auditoria", ctrls.JobOffer.Auditoria)
 		r.Get("/offers/{id}/applications", ctrls.JobApplication.ListByOffer)
 		r.Get("/applications/me", ctrls.JobApplication.ListMine)
 		r.Post("/applications", ctrls.JobApplication.Apply)

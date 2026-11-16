@@ -5,6 +5,7 @@ import { adminGuard } from "./core/guards/admin.guard";
 import { adminOrVolunteerGuard } from "./core/guards/admin-volunteer.guard";
 import { anyTeacherGuard, teacherGuard } from "./core/guards/teacher.guard";
 import { participantGuard } from "./core/guards/participant.guard";
+import { rolesGuard } from "./core/guards/roles.guard";
 
 export const routes: Routes = [
   {
@@ -212,7 +213,11 @@ export const routes: Routes = [
           ),
       },
       {
+        // HU-06: guards por rol (el backend igual valida cada pedido).
         path: "ofertas",
+        canActivate: [
+          rolesGuard("role_admin", "role_volunteer", "role_participant", "role_company"),
+        ],
         loadComponent: () =>
           import("./pages/dashboard/ofertas/ofertas.component").then(
             (m) => m.OfertasComponent,
@@ -220,6 +225,7 @@ export const routes: Routes = [
       },
       {
         path: "cv",
+        canActivate: [rolesGuard("role_participant", "role_admin", "role_volunteer")],
         loadComponent: () =>
           import("./pages/dashboard/cv/cv.component").then(
             (m) => m.CvComponent,
@@ -227,6 +233,7 @@ export const routes: Routes = [
       },
       {
         path: "usuarios",
+        canActivate: [adminOrVolunteerGuard],
         loadComponent: () =>
           import("./pages/dashboard/usuarios/usuarios.component").then(
             (m) => m.UsuariosComponent,
@@ -234,6 +241,7 @@ export const routes: Routes = [
       },
       {
         path: "seguimiento",
+        canActivate: [rolesGuard("role_admin", "role_volunteer", "role_teacher")],
         loadComponent: () =>
           import("./pages/dashboard/seguimiento/seguimiento.component").then(
             (m) => m.SeguimientoComponent,
@@ -326,6 +334,15 @@ export const routes: Routes = [
         loadComponent: () =>
           import("./pages/dashboard/auditoria/auditoria.component").then(
             (m) => m.AuditoriaComponent,
+          ),
+      },
+      {
+        // HU-06: matriz de roles y permisos (solo lectura, solo admin).
+        path: "permisos",
+        canActivate: [adminGuard],
+        loadComponent: () =>
+          import("./pages/dashboard/permisos/permisos.component").then(
+            (m) => m.PermisosComponent,
           ),
       },
       {
