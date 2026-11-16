@@ -85,11 +85,15 @@ func main() {
 	hitoRepo := repositories.NewHitoRepository(firestoreClient, eventProducer)
 
 	jwtService := services.NewJWTService()
+	eduTarget := cfg.EducationServiceURL
+	if eduTarget == "" {
+		eduTarget = cfg.EducationServiceGRPCTarget
+	}
 	var eduIDToken func(context.Context) (string, error)
 	if cfg.UpstreamIDToken && cfg.EducationServiceURL != "" {
 		eduIDToken = idTokenPara(ctx, cfg.EducationServiceURL)
 	}
-	fichaService := services.NewFichaService(fichaRepo, fieldCipher, authDirectory, repositories.NewEducationClient(cfg.EducationServiceURL, eduIDToken))
+	fichaService := services.NewFichaService(fichaRepo, fieldCipher, authDirectory, repositories.NewEducationClient(eduTarget, eduIDToken))
 	hitoService := services.NewHitoService(hitoRepo, fichaRepo, fieldCipher, authDirectory)
 	actividadService := services.NewActividadService(repositories.NewLineaTiempoRepository(firestoreClient), fichaRepo)
 	participanteService := services.NewParticipanteService(authDirectory, fichaRepo, hitoRepo, fieldCipher, actividadService)

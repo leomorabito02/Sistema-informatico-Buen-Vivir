@@ -77,6 +77,14 @@ func (m *mockAuthServiceClient) GetUsersByIDs(ctx context.Context, in *authpb.Ge
 	return nil, nil
 }
 
+func (m *mockAuthServiceClient) ListParticipants(ctx context.Context, in *authpb.ListParticipantsRequest, opts ...grpc.CallOption) (*authpb.ListParticipantsResponse, error) {
+	return nil, nil
+}
+
+func (m *mockAuthServiceClient) ListUsers(ctx context.Context, in *authpb.ListUsersRequest, opts ...grpc.CallOption) (*authpb.GetUsersByIDsResponse, error) {
+	return nil, nil
+}
+
 func (m *mockAuthServiceClient) GetCompany(ctx context.Context, in *authpb.GetCompanyRequest, opts ...grpc.CallOption) (*authpb.GetCompanyResponse, error) {
 	return nil, nil
 }
@@ -376,5 +384,3 @@ func TestAuthClient_IssueActionLink(t *testing.T) {
 		}
 	})
 }
-
-

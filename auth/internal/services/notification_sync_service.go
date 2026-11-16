@@ -9,6 +9,12 @@ import (
 	"os"
 	"strings"
 	"time"
+
+	"auth/api/proto/notificationpb"
+
+	"google.golang.org/api/idtoken"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 )
 
 type NotificationSyncService interface {
@@ -30,18 +36,44 @@ func (s *notificationSyncService) InitUserPreferencesAsync(userID string) {
 		return
 	}
 
-	rawURL := strings.TrimSpace(os.Getenv("NOTIFICATIONS_SERVICE_URL"))
-	if rawURL == "" {
+	target := strings.TrimSpace(os.Getenv("NOTIFICATIONS_GRPC_TARGET"))
+	if target == "" {
+		target = strings.TrimSpace(os.Getenv("NOTIFICATIONS_SERVICE_URL"))
+	}
+	if target == "" {
 		return
 	}
 
-	baseURL := strings.TrimRight(rawURL, "/")
-	initURL := baseURL + "/api/v1/notifications/preferences/init"
+	if strings.HasPrefix(target, "http://") || strings.HasPrefix(target, "https://") {
+		baseURL := strings.TrimRight(target, "/")
+		go s.performInitHTTP(baseURL, userID)
+		return
+	}
 
-	go s.performInit(initURL, userID)
+	go s.performInitGRPC(target, userID)
 }
 
-func (s *notificationSyncService) performInit(targetURL, userID string) {
+func (s *notificationSyncService) performInitGRPC(target, userID string) {
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	defer cancel()
+
+	conn, err := grpc.NewClient(target, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		slog.Warn("notification_sync: failed to connect gRPC client", "error", err, "target", target, "user_id", userID)
+		return
+	}
+	defer func() { _ = conn.Close() }()
+
+	client := notificationpb.NewNotificationIngestionServiceClient(conn)
+	if _, err := client.InitDefaultPreferences(ctx, &notificationpb.InitDefaultPreferencesRequest{UserId: userID}); err != nil {
+		slog.Warn("notification_sync: gRPC InitDefaultPreferences failed", "error", err, "user_id", userID)
+		return
+	}
+
+	slog.Info("notification_sync: default preferences successfully initiated via gRPC", "user_id", userID)
+}
+
+func (s *notificationSyncService) performInitHTTP(baseURL, userID string) {
 	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
 
@@ -54,6 +86,7 @@ func (s *notificationSyncService) performInit(targetURL, userID string) {
 		return
 	}
 
+	targetURL := baseURL + "/api/v1/notifications/preferences/init"
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, targetURL, bytes.NewBuffer(body))
 	if err != nil {
 		slog.Warn("notification_sync: failed to construct request", "error", err, "user_id", userID)
@@ -62,6 +95,13 @@ func (s *notificationSyncService) performInit(targetURL, userID string) {
 
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("X-User-ID", userID)
+	if strings.EqualFold(strings.TrimSpace(os.Getenv("UPSTREAM_ID_TOKEN")), "true") {
+		if ts, err := idtoken.NewTokenSource(ctx, baseURL); err == nil {
+			if tok, err := ts.Token(); err == nil && tok.AccessToken != "" {
+				req.Header.Set("X-Serverless-Authorization", "Bearer "+tok.AccessToken)
+			}
+		}
+	}
 
 	resp, err := s.client.Do(req)
 	if err != nil {

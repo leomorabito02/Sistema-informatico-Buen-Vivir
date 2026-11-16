@@ -19,10 +19,20 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	AuthService_GetParticipant_FullMethodName        = "/auth.AuthService/GetParticipant"
-	AuthService_GetParticipantProfile_FullMethodName = "/auth.AuthService/GetParticipantProfile"
-	AuthService_SearchParticipants_FullMethodName    = "/auth.AuthService/SearchParticipants"
-	AuthService_GetUsersByIDs_FullMethodName         = "/auth.AuthService/GetUsersByIDs"
+	AuthService_GetParticipant_FullMethodName          = "/auth.AuthService/GetParticipant"
+	AuthService_GetParticipantProfile_FullMethodName   = "/auth.AuthService/GetParticipantProfile"
+	AuthService_SearchParticipants_FullMethodName      = "/auth.AuthService/SearchParticipants"
+	AuthService_GetUsersByIDs_FullMethodName           = "/auth.AuthService/GetUsersByIDs"
+	AuthService_GetCompany_FullMethodName              = "/auth.AuthService/GetCompany"
+	AuthService_GetUserDeviceTokens_FullMethodName     = "/auth.AuthService/GetUserDeviceTokens"
+	AuthService_RevokeDeviceTokens_FullMethodName      = "/auth.AuthService/RevokeDeviceTokens"
+	AuthService_GetCampaignRecipients_FullMethodName   = "/auth.AuthService/GetCampaignRecipients"
+	AuthService_CheckUserEmailVerified_FullMethodName  = "/auth.AuthService/CheckUserEmailVerified"
+	AuthService_GetUserContact_FullMethodName          = "/auth.AuthService/GetUserContact"
+	AuthService_GetActiveUserIDsByRoles_FullMethodName = "/auth.AuthService/GetActiveUserIDsByRoles"
+	AuthService_IssueActionLink_FullMethodName         = "/auth.AuthService/IssueActionLink"
+	AuthService_ListParticipants_FullMethodName        = "/auth.AuthService/ListParticipants"
+	AuthService_ListUsers_FullMethodName               = "/auth.AuthService/ListUsers"
 )
 
 // AuthServiceClient is the client API for AuthService service.
@@ -39,6 +49,16 @@ type AuthServiceClient interface {
 	// Promoción Humana (HU-33, HU-37): nombre y apellido de los usuarios
 	// responsables de hitos y creadores de fichas.
 	GetUsersByIDs(ctx context.Context, in *GetUsersByIDsRequest, opts ...grpc.CallOption) (*GetUsersByIDsResponse, error)
+	GetCompany(ctx context.Context, in *GetCompanyRequest, opts ...grpc.CallOption) (*GetCompanyResponse, error)
+	GetUserDeviceTokens(ctx context.Context, in *GetUserDeviceTokensRequest, opts ...grpc.CallOption) (*GetUserDeviceTokensResponse, error)
+	RevokeDeviceTokens(ctx context.Context, in *RevokeDeviceTokensRequest, opts ...grpc.CallOption) (*RevokeDeviceTokensResponse, error)
+	GetCampaignRecipients(ctx context.Context, in *GetCampaignRecipientsRequest, opts ...grpc.CallOption) (*GetCampaignRecipientsResponse, error)
+	CheckUserEmailVerified(ctx context.Context, in *CheckUserEmailVerifiedRequest, opts ...grpc.CallOption) (*CheckUserEmailVerifiedResponse, error)
+	GetUserContact(ctx context.Context, in *GetUserContactRequest, opts ...grpc.CallOption) (*GetUserContactResponse, error)
+	GetActiveUserIDsByRoles(ctx context.Context, in *GetActiveUserIDsByRolesRequest, opts ...grpc.CallOption) (*GetActiveUserIDsByRolesResponse, error)
+	IssueActionLink(ctx context.Context, in *IssueActionLinkRequest, opts ...grpc.CallOption) (*IssueActionLinkResponse, error)
+	ListParticipants(ctx context.Context, in *ListParticipantsRequest, opts ...grpc.CallOption) (*ListParticipantsResponse, error)
+	ListUsers(ctx context.Context, in *ListUsersRequest, opts ...grpc.CallOption) (*GetUsersByIDsResponse, error)
 }
 
 type authServiceClient struct {
@@ -89,6 +109,106 @@ func (c *authServiceClient) GetUsersByIDs(ctx context.Context, in *GetUsersByIDs
 	return out, nil
 }
 
+func (c *authServiceClient) GetCompany(ctx context.Context, in *GetCompanyRequest, opts ...grpc.CallOption) (*GetCompanyResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetCompanyResponse)
+	err := c.cc.Invoke(ctx, AuthService_GetCompany_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *authServiceClient) GetUserDeviceTokens(ctx context.Context, in *GetUserDeviceTokensRequest, opts ...grpc.CallOption) (*GetUserDeviceTokensResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetUserDeviceTokensResponse)
+	err := c.cc.Invoke(ctx, AuthService_GetUserDeviceTokens_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *authServiceClient) RevokeDeviceTokens(ctx context.Context, in *RevokeDeviceTokensRequest, opts ...grpc.CallOption) (*RevokeDeviceTokensResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(RevokeDeviceTokensResponse)
+	err := c.cc.Invoke(ctx, AuthService_RevokeDeviceTokens_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *authServiceClient) GetCampaignRecipients(ctx context.Context, in *GetCampaignRecipientsRequest, opts ...grpc.CallOption) (*GetCampaignRecipientsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetCampaignRecipientsResponse)
+	err := c.cc.Invoke(ctx, AuthService_GetCampaignRecipients_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *authServiceClient) CheckUserEmailVerified(ctx context.Context, in *CheckUserEmailVerifiedRequest, opts ...grpc.CallOption) (*CheckUserEmailVerifiedResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(CheckUserEmailVerifiedResponse)
+	err := c.cc.Invoke(ctx, AuthService_CheckUserEmailVerified_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *authServiceClient) GetUserContact(ctx context.Context, in *GetUserContactRequest, opts ...grpc.CallOption) (*GetUserContactResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetUserContactResponse)
+	err := c.cc.Invoke(ctx, AuthService_GetUserContact_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *authServiceClient) GetActiveUserIDsByRoles(ctx context.Context, in *GetActiveUserIDsByRolesRequest, opts ...grpc.CallOption) (*GetActiveUserIDsByRolesResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetActiveUserIDsByRolesResponse)
+	err := c.cc.Invoke(ctx, AuthService_GetActiveUserIDsByRoles_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *authServiceClient) IssueActionLink(ctx context.Context, in *IssueActionLinkRequest, opts ...grpc.CallOption) (*IssueActionLinkResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(IssueActionLinkResponse)
+	err := c.cc.Invoke(ctx, AuthService_IssueActionLink_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *authServiceClient) ListParticipants(ctx context.Context, in *ListParticipantsRequest, opts ...grpc.CallOption) (*ListParticipantsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListParticipantsResponse)
+	err := c.cc.Invoke(ctx, AuthService_ListParticipants_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *authServiceClient) ListUsers(ctx context.Context, in *ListUsersRequest, opts ...grpc.CallOption) (*GetUsersByIDsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetUsersByIDsResponse)
+	err := c.cc.Invoke(ctx, AuthService_ListUsers_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // AuthServiceServer is the server API for AuthService service.
 // All implementations must embed UnimplementedAuthServiceServer
 // for forward compatibility.
@@ -103,6 +223,16 @@ type AuthServiceServer interface {
 	// Promoción Humana (HU-33, HU-37): nombre y apellido de los usuarios
 	// responsables de hitos y creadores de fichas.
 	GetUsersByIDs(context.Context, *GetUsersByIDsRequest) (*GetUsersByIDsResponse, error)
+	GetCompany(context.Context, *GetCompanyRequest) (*GetCompanyResponse, error)
+	GetUserDeviceTokens(context.Context, *GetUserDeviceTokensRequest) (*GetUserDeviceTokensResponse, error)
+	RevokeDeviceTokens(context.Context, *RevokeDeviceTokensRequest) (*RevokeDeviceTokensResponse, error)
+	GetCampaignRecipients(context.Context, *GetCampaignRecipientsRequest) (*GetCampaignRecipientsResponse, error)
+	CheckUserEmailVerified(context.Context, *CheckUserEmailVerifiedRequest) (*CheckUserEmailVerifiedResponse, error)
+	GetUserContact(context.Context, *GetUserContactRequest) (*GetUserContactResponse, error)
+	GetActiveUserIDsByRoles(context.Context, *GetActiveUserIDsByRolesRequest) (*GetActiveUserIDsByRolesResponse, error)
+	IssueActionLink(context.Context, *IssueActionLinkRequest) (*IssueActionLinkResponse, error)
+	ListParticipants(context.Context, *ListParticipantsRequest) (*ListParticipantsResponse, error)
+	ListUsers(context.Context, *ListUsersRequest) (*GetUsersByIDsResponse, error)
 	mustEmbedUnimplementedAuthServiceServer()
 }
 
@@ -124,6 +254,36 @@ func (UnimplementedAuthServiceServer) SearchParticipants(context.Context, *Searc
 }
 func (UnimplementedAuthServiceServer) GetUsersByIDs(context.Context, *GetUsersByIDsRequest) (*GetUsersByIDsResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method GetUsersByIDs not implemented")
+}
+func (UnimplementedAuthServiceServer) GetCompany(context.Context, *GetCompanyRequest) (*GetCompanyResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetCompany not implemented")
+}
+func (UnimplementedAuthServiceServer) GetUserDeviceTokens(context.Context, *GetUserDeviceTokensRequest) (*GetUserDeviceTokensResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetUserDeviceTokens not implemented")
+}
+func (UnimplementedAuthServiceServer) RevokeDeviceTokens(context.Context, *RevokeDeviceTokensRequest) (*RevokeDeviceTokensResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method RevokeDeviceTokens not implemented")
+}
+func (UnimplementedAuthServiceServer) GetCampaignRecipients(context.Context, *GetCampaignRecipientsRequest) (*GetCampaignRecipientsResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetCampaignRecipients not implemented")
+}
+func (UnimplementedAuthServiceServer) CheckUserEmailVerified(context.Context, *CheckUserEmailVerifiedRequest) (*CheckUserEmailVerifiedResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method CheckUserEmailVerified not implemented")
+}
+func (UnimplementedAuthServiceServer) GetUserContact(context.Context, *GetUserContactRequest) (*GetUserContactResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetUserContact not implemented")
+}
+func (UnimplementedAuthServiceServer) GetActiveUserIDsByRoles(context.Context, *GetActiveUserIDsByRolesRequest) (*GetActiveUserIDsByRolesResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetActiveUserIDsByRoles not implemented")
+}
+func (UnimplementedAuthServiceServer) IssueActionLink(context.Context, *IssueActionLinkRequest) (*IssueActionLinkResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method IssueActionLink not implemented")
+}
+func (UnimplementedAuthServiceServer) ListParticipants(context.Context, *ListParticipantsRequest) (*ListParticipantsResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ListParticipants not implemented")
+}
+func (UnimplementedAuthServiceServer) ListUsers(context.Context, *ListUsersRequest) (*GetUsersByIDsResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ListUsers not implemented")
 }
 func (UnimplementedAuthServiceServer) mustEmbedUnimplementedAuthServiceServer() {}
 func (UnimplementedAuthServiceServer) testEmbeddedByValue()                     {}
@@ -218,6 +378,186 @@ func _AuthService_GetUsersByIDs_Handler(srv interface{}, ctx context.Context, de
 	return interceptor(ctx, in, info, handler)
 }
 
+func _AuthService_GetCompany_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetCompanyRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AuthServiceServer).GetCompany(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AuthService_GetCompany_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AuthServiceServer).GetCompany(ctx, req.(*GetCompanyRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AuthService_GetUserDeviceTokens_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetUserDeviceTokensRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AuthServiceServer).GetUserDeviceTokens(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AuthService_GetUserDeviceTokens_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AuthServiceServer).GetUserDeviceTokens(ctx, req.(*GetUserDeviceTokensRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AuthService_RevokeDeviceTokens_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RevokeDeviceTokensRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AuthServiceServer).RevokeDeviceTokens(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AuthService_RevokeDeviceTokens_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AuthServiceServer).RevokeDeviceTokens(ctx, req.(*RevokeDeviceTokensRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AuthService_GetCampaignRecipients_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetCampaignRecipientsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AuthServiceServer).GetCampaignRecipients(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AuthService_GetCampaignRecipients_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AuthServiceServer).GetCampaignRecipients(ctx, req.(*GetCampaignRecipientsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AuthService_CheckUserEmailVerified_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CheckUserEmailVerifiedRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AuthServiceServer).CheckUserEmailVerified(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AuthService_CheckUserEmailVerified_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AuthServiceServer).CheckUserEmailVerified(ctx, req.(*CheckUserEmailVerifiedRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AuthService_GetUserContact_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetUserContactRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AuthServiceServer).GetUserContact(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AuthService_GetUserContact_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AuthServiceServer).GetUserContact(ctx, req.(*GetUserContactRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AuthService_GetActiveUserIDsByRoles_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetActiveUserIDsByRolesRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AuthServiceServer).GetActiveUserIDsByRoles(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AuthService_GetActiveUserIDsByRoles_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AuthServiceServer).GetActiveUserIDsByRoles(ctx, req.(*GetActiveUserIDsByRolesRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AuthService_IssueActionLink_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(IssueActionLinkRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AuthServiceServer).IssueActionLink(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AuthService_IssueActionLink_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AuthServiceServer).IssueActionLink(ctx, req.(*IssueActionLinkRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AuthService_ListParticipants_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListParticipantsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AuthServiceServer).ListParticipants(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AuthService_ListParticipants_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AuthServiceServer).ListParticipants(ctx, req.(*ListParticipantsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AuthService_ListUsers_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListUsersRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AuthServiceServer).ListUsers(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AuthService_ListUsers_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AuthServiceServer).ListUsers(ctx, req.(*ListUsersRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // AuthService_ServiceDesc is the grpc.ServiceDesc for AuthService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -240,6 +580,46 @@ var AuthService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetUsersByIDs",
 			Handler:    _AuthService_GetUsersByIDs_Handler,
+		},
+		{
+			MethodName: "GetCompany",
+			Handler:    _AuthService_GetCompany_Handler,
+		},
+		{
+			MethodName: "GetUserDeviceTokens",
+			Handler:    _AuthService_GetUserDeviceTokens_Handler,
+		},
+		{
+			MethodName: "RevokeDeviceTokens",
+			Handler:    _AuthService_RevokeDeviceTokens_Handler,
+		},
+		{
+			MethodName: "GetCampaignRecipients",
+			Handler:    _AuthService_GetCampaignRecipients_Handler,
+		},
+		{
+			MethodName: "CheckUserEmailVerified",
+			Handler:    _AuthService_CheckUserEmailVerified_Handler,
+		},
+		{
+			MethodName: "GetUserContact",
+			Handler:    _AuthService_GetUserContact_Handler,
+		},
+		{
+			MethodName: "GetActiveUserIDsByRoles",
+			Handler:    _AuthService_GetActiveUserIDsByRoles_Handler,
+		},
+		{
+			MethodName: "IssueActionLink",
+			Handler:    _AuthService_IssueActionLink_Handler,
+		},
+		{
+			MethodName: "ListParticipants",
+			Handler:    _AuthService_ListParticipants_Handler,
+		},
+		{
+			MethodName: "ListUsers",
+			Handler:    _AuthService_ListUsers_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

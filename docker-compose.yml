@@ -6,6 +6,7 @@ services:
     env_file:
       - ./auth/.env
     environment:
+      - NOTIFICATIONS_GRPC_TARGET=notifications-service:50052
       - PUBSUB_PROJECT_ID=ceibuenvivir
       - PUBSUB_EMULATOR_HOST=pubsub-emulator:8086
     depends_on:
@@ -35,12 +36,14 @@ services:
       - ./education/.env
     # Eventos con el emulador de Pub/Sub (ver pubsub-emulator más abajo).
     environment:
-      - AUTH_SERVICE_URL=http://auth-service:8080
+      - GRPC_PORT=50053
+      - AUTH_SERVICE_GRPC_TARGET=auth-service:50051
       - PUBSUB_PROJECT_ID=ceibuenvivir
       - PUBSUB_EMULATOR_HOST=pubsub-emulator:8086
       - PUBSUB_PUSH_AUTH=disabled
     ports:
       - "8210:8210"
+      - "50053:50053"
     depends_on:
       auth-service:
         condition: service_started
@@ -71,7 +74,7 @@ services:
       - PUBSUB_EMULATOR_HOST=pubsub-emulator:8086
       - PUBSUB_PUSH_AUTH=disabled
       # HU-44: cruce de ofertas con habilidades (Educación es la dueña).
-      - EDUCATION_API_URL=http://education-service:8210
+      - EDUCATION_SERVICE_GRPC_TARGET=education-service:50053
     # Solo desde esta máquina: labor confía en los headers X-User-* que
     # pone el gateway si no tiene JWT_SECRET; publicado en 0.0.0.0 se podía
     # saltear el gateway desde la red local (auditoría 2026-11-11).
@@ -79,6 +82,8 @@ services:
       - "127.0.0.1:8310:8080"
     depends_on:
       auth-service:
+        condition: service_started
+      education-service:
         condition: service_started
       pubsub-init:
         condition: service_completed_successfully
@@ -103,7 +108,7 @@ services:
       - ./human-promotion/.env
     environment:
       - AUTH_SERVICE_GRPC_TARGET=auth-service:50051
-      - EDUCATION_SERVICE_URL=http://education-service:8210
+      - EDUCATION_SERVICE_GRPC_TARGET=education-service:50053
       - PUBSUB_PROJECT_ID=ceibuenvivir
       - PUBSUB_EMULATOR_HOST=pubsub-emulator:8086
       - PUBSUB_PUSH_AUTH=disabled
@@ -111,6 +116,8 @@ services:
       - "8085:8085"
     depends_on:
       auth-service:
+        condition: service_started
+      education-service:
         condition: service_started
       pubsub-init:
         condition: service_completed_successfully
@@ -144,6 +151,14 @@ services:
       - PUBSUB_EMULATOR_HOST=pubsub-emulator:8086
       - PUBSUB_PUSH_AUTH=disabled
     depends_on:
+      auth-service:
+        condition: service_started
+      education-service:
+        condition: service_started
+      labor-integration:
+        condition: service_started
+      human-promotion:
+        condition: service_started
       pubsub-init:
         condition: service_completed_successfully
     restart: on-failure
@@ -233,6 +248,10 @@ services:
       - education-service
       - rxresume-service
       - labor-integration
+      - human-promotion
+      - campaigns-service
+      - dashboard-service
+      - notifications-service
     restart: on-failure
     networks:
       - buenvivir-net

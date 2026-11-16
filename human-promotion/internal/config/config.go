@@ -42,7 +42,8 @@ type Config struct {
 	// "http://education-service:8210" en Docker. De ahí salen las
 	// habilidades del participante que se muestran en la ficha y en su
 	// PDF. Opcional: vacía, la ficha se muestra sin habilidades.
-	EducationServiceURL string
+	EducationServiceURL        string
+	EducationServiceGRPCTarget string
 
 	// Events es la mensajería asíncrona con Pub/Sub (ver
 	// docs/eventos/README.md). Desactivada si falta PUBSUB_PROJECT_ID.
@@ -105,10 +106,11 @@ func LoadConfig() *Config {
 		EncryptionKeySecret: strings.TrimSpace(os.Getenv("ENCRYPTION_KEY_SECRET")),
 		EncryptionKeyBase64: strings.TrimSpace(os.Getenv("ENCRYPTION_KEY")),
 
-		AuthServiceURL:        strings.TrimRight(strings.TrimSpace(os.Getenv("AUTH_SERVICE_URL")), "/"),
-		AuthServiceGRPCTarget: strings.TrimSpace(os.Getenv("AUTH_SERVICE_GRPC_TARGET")),
-		EducationServiceURL:   strings.TrimSpace(os.Getenv("EDUCATION_SERVICE_URL")),
-		UpstreamIDToken:       strings.EqualFold(strings.TrimSpace(os.Getenv("UPSTREAM_ID_TOKEN")), "true"),
-		Events:                loadEventsConfig(),
+		AuthServiceURL:             strings.TrimRight(strings.TrimSpace(os.Getenv("AUTH_SERVICE_URL")), "/"),
+		AuthServiceGRPCTarget:      strings.TrimSpace(os.Getenv("AUTH_SERVICE_GRPC_TARGET")),
+		EducationServiceURL:        strings.TrimSpace(os.Getenv("EDUCATION_SERVICE_URL")),
+		EducationServiceGRPCTarget: strings.TrimSpace(os.Getenv("EDUCATION_SERVICE_GRPC_TARGET")),
+		UpstreamIDToken:            strings.EqualFold(strings.TrimSpace(os.Getenv("UPSTREAM_ID_TOKEN")), "true"),
+		Events:                     loadEventsConfig(),
 	}
 }

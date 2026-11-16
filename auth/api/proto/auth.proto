@@ -29,6 +29,8 @@ service AuthService {
   rpc GetUserContact(GetUserContactRequest) returns (GetUserContactResponse);
   rpc GetActiveUserIDsByRoles(GetActiveUserIDsByRolesRequest) returns (GetActiveUserIDsByRolesResponse);
   rpc IssueActionLink(IssueActionLinkRequest) returns (IssueActionLinkResponse);
+  rpc ListParticipants(ListParticipantsRequest) returns (ListParticipantsResponse);
+  rpc ListUsers(ListUsersRequest) returns (GetUsersByIDsResponse);
 }
 
 message GetParticipantRequest {
@@ -39,6 +41,7 @@ message GetParticipantResponse {
   string id = 1;
   string user_id = 2;
   string approval_status = 3;
+  string dni = 4;
 }
 
 message GetParticipantProfileRequest {
@@ -166,4 +169,13 @@ message IssueActionLinkRequest {
 message IssueActionLinkResponse {
   string action_url = 1;
 }
+
+message ListParticipantsRequest {}
+
+message ListParticipantsResponse {
+  repeated GetParticipantResponse participants = 1;
+}
+
+message ListUsersRequest {}
+
 
