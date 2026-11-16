@@ -16,7 +16,6 @@ type Participant struct {
 	Address        string    `json:"address"`
 	Gender         string    `json:"gender"`
 	ImageURL       string    `json:"image_url"`
-	DocURL         string    `json:"doc_url"`
 	Documents      []ParticipantDocument `json:"documents,omitempty" gorm:"foreignKey:ParticipantID;references:ParticipantID"`
 	EmergencyContactName string `json:"emergency_contact_name"`
 	EmergencyContactPhone string `json:"emergency_contact_phone"`

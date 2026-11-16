@@ -384,7 +384,6 @@ export class MiPerfilComponent implements OnInit {
       address: "Dirección",
       gender: "Género",
       image_url: "Imagen de Perfil",
-      doc_url: "Documentación",
       emergency_contact_name: "Contacto de Emergencia",
       emergency_contact_phone: "Teléfono de Emergencia",
     };

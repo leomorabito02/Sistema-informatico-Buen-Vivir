@@ -94,7 +94,6 @@ func (s *participantService) CreateParticipant(ctx context.Context, req *dto.Cre
 		EmergencyContactName: req.EmergencyContactName,
 		EmergencyContactPhone: req.EmergencyContactPhone,
 		ImageURL:       req.ImageURL,
-		DocURL:         req.DocURL,
 		ApprovalStatus: status,
 	}
 
@@ -177,9 +176,6 @@ func applyUpdates(ctx context.Context, participant *models.Participant, req *dto
 	}
 	if req.ImageURL != "" {
 		participant.ImageURL = req.ImageURL
-	}
-	if req.DocURL != "" {
-		participant.DocURL = req.DocURL
 	}
 
 	if req.ApprovalStatus != "" && canApprove(ctx, "role_participant") {

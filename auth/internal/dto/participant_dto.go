@@ -15,7 +15,6 @@ type CreateParticipantRequest struct {
 	EmergencyContactName string `json:"emergency_contact_name" validate:"omitempty"`
 	EmergencyContactPhone string `json:"emergency_contact_phone" validate:"omitempty"`
 	ImageURL       string    `json:"image_url" validate:"omitempty,url_or_relative"`
-	DocURL         string    `json:"doc_url" validate:"omitempty,url_or_relative"`
 	ApprovalStatus string    `json:"approval_status" validate:"omitempty,oneof=pending approved"`
 }
 
@@ -27,7 +26,6 @@ type UpdateParticipantRequest struct {
 	EmergencyContactName string `json:"emergency_contact_name" validate:"omitempty"`
 	EmergencyContactPhone string `json:"emergency_contact_phone" validate:"omitempty"`
 	ImageURL       string     `json:"image_url" validate:"omitempty,url_or_relative"`
-	DocURL         string     `json:"doc_url" validate:"omitempty,url_or_relative"`
 	ApprovalStatus string `json:"approval_status" validate:"omitempty,oneof=pending approved"`
 	ApprovedBy     string     `json:"approved_by" validate:"omitempty"`
 }
@@ -42,7 +40,6 @@ type ParticipantResponse struct {
 	EmergencyContactName string `json:"emergency_contact_name,omitempty"`
 	EmergencyContactPhone string `json:"emergency_contact_phone,omitempty"`
 	ImageURL       string     `json:"image_url"`
-	DocURL         string     `json:"doc_url"`
 	Documents      []ParticipantDocumentResponse `json:"documents,omitempty"`
 	ApprovalStatus string     `json:"approval_status"`
 	ApprovalDate   *time.Time `json:"approval_date,omitempty"`
@@ -85,7 +82,6 @@ func ToParticipantResponse(p *models.Participant) *ParticipantResponse {
 		EmergencyContactName: p.EmergencyContactName,
 		EmergencyContactPhone: p.EmergencyContactPhone,
 		ImageURL:       p.ImageURL,
-		DocURL:         p.DocURL,
 		Documents:      docs,
 		ApprovalStatus: p.ApprovalStatus,
 		ApprovalDate:   p.ApprovalDate,

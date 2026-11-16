@@ -38,6 +38,9 @@ func main() {
 		&models.LoginAttempt{},
 		&models.AuditLog{},
 	)
+	if err == nil && db.Migrator().HasColumn(&models.Participant{}, "doc_url") {
+		err = db.Migrator().DropColumn(&models.Participant{}, "doc_url")
+	}
 	if err == nil {
 		// HU-10: la auditoría no se puede editar ni borrar.
 		err = db.Exec(repositories.AuditImmutabilitySQL).Error

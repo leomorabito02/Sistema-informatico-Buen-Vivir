@@ -785,7 +785,6 @@ export class UsuariosComponent implements OnInit {
       emergency_contact_name: raw.emergency_contact_name || "",
       emergency_contact_phone: raw.emergency_contact_phone || "",
       image_url: raw.image_url || "",
-      doc_url: raw.doc_url || "",
     };
 
     if (raw.approval_status) {

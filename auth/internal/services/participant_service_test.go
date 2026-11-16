@@ -111,7 +111,6 @@ func TestParticipantService_UpdateParticipant_EmptyFields(t *testing.T) {
 		EmergencyContactName:  "old-name",
 		EmergencyContactPhone: "old-phone",
 		ImageURL:              "old-image",
-		DocURL:                "old-doc",
 	}
 	mockRepo.On("FindByID", mock.Anything, "part-1").Return(existing, nil)
 	mockRepo.On("Update", mock.Anything, mock.AnythingOfType("*models.Participant")).Return(nil)
@@ -128,7 +127,6 @@ func TestParticipantService_UpdateParticipant_EmptyFields(t *testing.T) {
 	assert.Equal(t, "old-name", res.EmergencyContactName)
 	assert.Equal(t, "old-phone", res.EmergencyContactPhone)
 	assert.Equal(t, "old-image", res.ImageURL)
-	assert.Equal(t, "old-doc", res.DocURL)
 
 	mockRepo.AssertExpectations(t)
 }

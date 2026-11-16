@@ -142,7 +142,7 @@ describe("CampanasPublicoComponent", () => {
     component.verMas();
 
     expect(service.publicasPagina.calls.mostRecent().args[1]).toBe(1);
-    expect(component.campanas.length).toBe(2);
+    expect(component.campanas).toHaveSize(2);
     expect(component.hayMas).toBeFalse();
   }));
 });
