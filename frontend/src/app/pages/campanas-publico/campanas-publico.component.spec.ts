@@ -10,6 +10,8 @@ import { CampanasPublicoComponent } from "./campanas-publico.component";
 import { CampaignsService } from "../../services/campaigns.service";
 import { Campana } from "../../core/models/campaign.model";
 import { ComentariosService } from "../../services/comentarios.service";
+import { AuthService } from "../../services/auth.service";
+import { ProfileService } from "../../services/profile.service";
 
 const campana: Campana = {
   id: "c1",
@@ -34,6 +36,14 @@ describe("CampanasPublicoComponent", () => {
         provideRouter([]),
         { provide: CampaignsService, useValue: service },
         { provide: ComentariosService, useValue: { listar: () => of([]) } },
+        {
+          provide: AuthService,
+          useValue: { isLocallyAuthenticated: () => false },
+        },
+        {
+          provide: ProfileService,
+          useValue: { getMyProfile: () => of({ user: {} }) },
+        },
       ],
     }).compileComponents();
   });

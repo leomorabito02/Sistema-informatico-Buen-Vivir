@@ -10,6 +10,7 @@ import { of, throwError } from "rxjs";
 
 import { CursoDetalleComponent } from "./curso-detalle.component";
 import { AuthService } from "../../../services/auth.service";
+import { ProfileService } from "../../../services/profile.service";
 import { EducationService } from "../../../services/education.service";
 import { UsersService } from "../../../services/users.service";
 import { SkillsService } from "../../../services/skills.service";
@@ -113,6 +114,13 @@ describe("CursoDetalleComponent", () => {
         provideRouter([]),
         { provide: EducationService, useValue: education },
         { provide: AuthService, useValue: auth },
+        {
+          provide: ProfileService,
+          useValue: {
+            getMyProfile: () =>
+              of({ user: { first_name: "Ana", last_name: "Gómez" } }),
+          },
+        },
         { provide: UsersService, useValue: users },
         { provide: SkillsService, useValue: skills },
         {

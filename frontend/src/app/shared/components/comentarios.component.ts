@@ -1,4 +1,4 @@
-import { Component, Input, OnChanges, inject } from "@angular/core";
+import { Component, Input, OnChanges, OnInit, inject } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { FormsModule } from "@angular/forms";
 import {
@@ -6,6 +6,13 @@ import {
   ComentariosService,
   EntidadComentable,
 } from "../../services/comentarios.service";
+import { AuthService } from "../../services/auth.service";
+import { ProfileService } from "../../services/profile.service";
+
+interface AutorSesion {
+  nombre: string;
+  apellido: string;
+}
 
 /**
  * Comentarios de un curso o una campaña (HU-24): la lista, del más nuevo
@@ -58,28 +65,30 @@ import {
       </ul>
 
       <form class="comentarios-form" (ngSubmit)="enviar()" novalidate>
-        <div class="comentarios-nombre">
-          <label>
-            Nombre
-            <input
-              name="nombre"
-              [(ngModel)]="nombre"
-              maxlength="50"
-              autocomplete="given-name"
-              required
-            />
-          </label>
-          <label>
-            Apellido
-            <input
-              name="apellido"
-              [(ngModel)]="apellido"
-              maxlength="50"
-              autocomplete="family-name"
-              required
-            />
-          </label>
-        </div>
+        @if (!sesionUsuario) {
+          <div class="comentarios-nombre">
+            <label>
+              Nombre
+              <input
+                name="nombre"
+                [(ngModel)]="nombre"
+                maxlength="50"
+                autocomplete="given-name"
+                required
+              />
+            </label>
+            <label>
+              Apellido
+              <input
+                name="apellido"
+                [(ngModel)]="apellido"
+                maxlength="50"
+                autocomplete="family-name"
+                required
+              />
+            </label>
+          </div>
+        }
         <label>
           Comentario
           <textarea
@@ -208,18 +217,21 @@ import {
     `,
   ],
 })
-export class ComentariosComponent implements OnChanges {
+export class ComentariosComponent implements OnInit, OnChanges {
   @Input({ required: true }) entidadTipo!: EntidadComentable;
   @Input({ required: true }) entidadId!: string;
   @Input() puedeModerar = false;
 
   private readonly service = inject(ComentariosService);
+  private readonly auth = inject(AuthService, { optional: true });
+  private readonly profile = inject(ProfileService, { optional: true });
   private static siguienteId = 0;
   readonly tituloId = `comentarios-titulo-${ComentariosComponent.siguienteId++}`;
 
   comentarios: Comentario[] = [];
   cargando = false;
   errorLista = "";
+  sesionUsuario: AutorSesion | null = null;
   nombre = "";
   apellido = "";
   texto = "";
@@ -227,8 +239,59 @@ export class ComentariosComponent implements OnChanges {
   enviado = false;
   errorForm = "";
 
+  ngOnInit(): void {
+    this.cargarSesion();
+  }
+
   ngOnChanges(): void {
     if (this.entidadId) this.cargar();
+  }
+
+  private cargarSesion(): void {
+    if (!this.auth) return;
+    if (
+      typeof this.auth.isLocallyAuthenticated === "function" &&
+      !this.auth.isLocallyAuthenticated()
+    ) {
+      return;
+    }
+    this.auth.isAuthenticated().subscribe({
+      next: (me) => {
+        const autor = this.normalizarAutor(
+          me.user?.first_name,
+          me.user?.last_name,
+        );
+        if (autor) {
+          this.sesionUsuario = autor;
+          return;
+        }
+        if (typeof this.profile?.getMyProfile !== "function") return;
+        this.profile.getMyProfile().subscribe({
+          next: (res) => {
+            this.sesionUsuario = this.normalizarAutor(
+              res.user?.first_name,
+              res.user?.last_name,
+            );
+          },
+          error: () => {
+            this.sesionUsuario = null;
+          },
+        });
+      },
+      error: () => {
+        this.sesionUsuario = null;
+      },
+    });
+  }
+
+  private normalizarAutor(first?: string, last?: string): AutorSesion | null {
+    const nombre = (first ?? "").trim();
+    const apellido = (last ?? "").trim();
+    if (!nombre && !apellido) return null;
+    return {
+      nombre: nombre || apellido,
+      apellido: apellido || "Buen Vivir",
+    };
   }
 
   cargar(): void {
@@ -248,7 +311,11 @@ export class ComentariosComponent implements OnChanges {
 
   enviar(): void {
     this.enviado = false;
-    if (!this.nombre.trim() || !this.apellido.trim()) {
+    const autor = this.sesionUsuario ?? {
+      nombre: this.nombre.trim(),
+      apellido: this.apellido.trim(),
+    };
+    if (!autor.nombre || !autor.apellido) {
       this.errorForm = "Completá tu nombre y apellido para comentar";
       return;
     }
@@ -262,8 +329,8 @@ export class ComentariosComponent implements OnChanges {
       .crear({
         entidadTipo: this.entidadTipo,
         entidadId: this.entidadId,
-        nombre: this.nombre,
-        apellido: this.apellido,
+        nombre: autor.nombre,
+        apellido: autor.apellido,
         texto: this.texto,
       })
       .subscribe({
