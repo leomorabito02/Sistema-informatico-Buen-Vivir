@@ -101,7 +101,6 @@ describe("UsuariosComponent", () => {
     ]);
     usersService = jasmine.createSpyObj<UsersService>("UsersService", [
       "listUsers",
-      "listParticipants",
       "createUser",
       "getUserProfile",
       "updateUser",
@@ -113,7 +112,6 @@ describe("UsuariosComponent", () => {
       "deleteParticipantDocument",
       "downloadParticipantDocument",
     ]);
-    usersService.listParticipants.and.returnValue(of([]));
     usersService.getParticipantDocuments.and.returnValue(of([]));
     usersService.uploadParticipantDocument.and.returnValue(
       of({ id: "pdoc-1", name: "doc1.pdf" }),
@@ -128,7 +126,6 @@ describe("UsuariosComponent", () => {
       "getBulkUserCourses",
       "getParticipantEnrollments",
       "getTeacherCourses",
-      "listCourses",
     ]);
     rxResumeService = jasmine.createSpyObj<RxResumeService>("RxResumeService", [
       "getUserResumeByAdmin",
@@ -153,7 +150,6 @@ describe("UsuariosComponent", () => {
     );
     education.getParticipantEnrollments.and.returnValue(of([]));
     education.getTeacherCourses.and.returnValue(of([]));
-    education.listCourses.and.returnValue(of([]));
     spyOn(console, "error");
 
     TestBed.configureTestingModule({
@@ -238,7 +234,7 @@ describe("UsuariosComponent", () => {
     expect(component.filteredUsers).toHaveSize(5);
   });
 
-  it("maps participant enrolled courses using participant_id alongside teacher courses", () => {
+  it("maps participant enrolled courses directly by user_id alongside teacher courses", () => {
     setup(admin, []);
     usersService.listUsers.and.returnValue(
       of([
@@ -256,12 +252,9 @@ describe("UsuariosComponent", () => {
         }),
       ]),
     );
-    usersService.listParticipants.and.returnValue(
-      of([{ participant_id: "part-10", user_id: "u-part" }]),
-    );
     education.getBulkUserCourses.and.returnValue(
       of([
-        { user_id: "part-10", courses: ["Panadería", "Costura"] },
+        { user_id: "u-part", courses: ["Panadería", "Costura"] },
         { user_id: "u-teach", courses: ["Huerta"] },
       ]),
     );
@@ -271,9 +264,7 @@ describe("UsuariosComponent", () => {
     expect(education.getBulkUserCourses).toHaveBeenCalledWith([
       "u-part",
       "u-teach",
-      "part-10",
     ]);
-    expect(component.users[0].participantId).toBe("part-10");
     expect(component.users[0].coursesStatus).toBe("Panadería, Costura");
     expect(component.users[1].coursesStatus).toBe("Huerta");
   });
@@ -445,12 +436,14 @@ describe("UsuariosComponent", () => {
     );
     education.getParticipantEnrollments.and.returnValue(
       of([
-        { id: "e1", cursoId: "c1", estado: "activa" } as never,
+        {
+          id: "e1",
+          cursoId: "c1",
+          courseTitle: "Panadería",
+          estado: "activa",
+        } as never,
         { id: "e2", cursoId: "c2", estado: "baja" } as never,
       ]),
-    );
-    education.listCourses.and.returnValue(
-      of([{ id: "c1", title: "Panadería" } as never]),
     );
     const user = row({
       id: "u1",
@@ -873,8 +866,8 @@ describe("UsuariosComponent: aprobar desde la lista (HU-12, HU-38)", () => {
   }
 
   it("el admin ve todas las pendientes; el voluntario solo participantes", () => {
-    expect(crear().pendientes.length).toBe(2);
-    expect(crear(true).pendientes.length).toBe(1);
+    expect(crear().pendientes).toHaveSize(2);
+    expect(crear(true).pendientes).toHaveSize(1);
   });
 
   it("el filtro deja solo las pendientes", () => {
@@ -884,9 +877,9 @@ describe("UsuariosComponent: aprobar desde la lista (HU-12, HU-38)", () => {
       roleApprovalStatus: "approved",
     });
     c.togglePendientes();
-    expect(c.filteredUsers.length).toBe(2);
+    expect(c.filteredUsers).toHaveSize(2);
     c.togglePendientes();
-    expect(c.filteredUsers.length).toBe(3);
+    expect(c.filteredUsers).toHaveSize(3);
   });
 
   it("aprobar pide confirmación y llama a setApproval", () => {

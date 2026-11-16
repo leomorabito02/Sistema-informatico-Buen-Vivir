@@ -4,6 +4,7 @@ import (
 	"context"
 	"strings"
 
+	"buenvivir/education/internal/middlewares"
 	"buenvivir/education/internal/models"
 	"buenvivir/education/internal/repositories"
 )
@@ -91,7 +92,43 @@ func (s *enrollmentService) CountActive(ctx context.Context, cursoID string) (in
 }
 
 func (s *enrollmentService) ListByParticipant(ctx context.Context, participantID string) ([]models.Enrollment, error) {
-	return s.repo.ListByParticipant(ctx, participantID)
+	enrollments, err := s.repo.ListByParticipant(ctx, participantID)
+	if err != nil {
+		return nil, err
+	}
+	if len(enrollments) == 0 {
+		enrollments = s.resolveEnrollmentsByUserID(ctx, participantID)
+	}
+	s.populateEnrollmentTitles(ctx, enrollments)
+	return enrollments, nil
+}
+
+func (s *enrollmentService) resolveEnrollmentsByUserID(ctx context.Context, id string) []models.Enrollment {
+	if s.authClient == nil {
+		return nil
+	}
+	bearerToken, _ := ctx.Value(middlewares.TokenKey).(string)
+	participant, err := s.authClient.GetParticipant(ctx, id, bearerToken)
+	if err != nil || participant == nil || participant.ParticipantID == "" || participant.ParticipantID == id {
+		return nil
+	}
+	resolved, err := s.repo.ListByParticipant(ctx, participant.ParticipantID)
+	if err != nil {
+		return nil
+	}
+	return resolved
+}
+
+func (s *enrollmentService) populateEnrollmentTitles(ctx context.Context, enrollments []models.Enrollment) {
+	if len(enrollments) == 0 || s.courseRepo == nil {
+		return
+	}
+	courseTitles := make(map[string]string)
+	for i := range enrollments {
+		if enrollments[i].CourseTitle == "" && enrollments[i].CursoID != "" {
+			enrollments[i].CourseTitle = resolveCourseTitle(ctx, s.courseRepo, courseTitles, enrollments[i].CursoID)
+		}
+	}
 }
 
 func (s *enrollmentService) GetBulkUserCourses(ctx context.Context, userIDs []string) ([]models.UserCourseSummary, error) {
@@ -99,52 +136,130 @@ func (s *enrollmentService) GetBulkUserCourses(ctx context.Context, userIDs []st
 		return []models.UserCourseSummary{}, nil
 	}
 
-	summaryMap := make(map[string][]string)
+	summaryMap := make(map[string][]string, len(userIDs))
+	requestedUsers := make(map[string]bool, len(userIDs))
 	for _, id := range userIDs {
 		summaryMap[id] = make([]string, 0)
+		requestedUsers[id] = true
 	}
 
-	// 1. Get enrollments for all these users
-	enrollments, err := s.repo.ListByParticipants(ctx, userIDs)
-	if err == nil {
-		// fetch course titles for these enrollments
-		// cache course titles
-		courseTitles := make(map[string]string)
-		for _, e := range enrollments {
-			if e.Estado != models.EnrollmentEstadoActiva {
-				continue
-			}
-			title, ok := courseTitles[e.CursoID]
-			if !ok {
-				course, cerr := s.courseRepo.Get(ctx, e.CursoID)
-				if cerr == nil && course != nil {
-					title = course.Title
-					courseTitles[e.CursoID] = title
-				} else {
-					title = "Curso " + e.CursoID
-				}
-			}
-			summaryMap[e.ParticipanteID] = append(summaryMap[e.ParticipanteID], title)
-		}
-	}
+	lookupIDs, participantToUser := s.buildBulkLookup(ctx, userIDs, requestedUsers)
+	s.addEnrollmentCourses(ctx, lookupIDs, requestedUsers, participantToUser, summaryMap)
+	s.addTeacherCourses(ctx, userIDs, requestedUsers, summaryMap)
 
-	// 2. Get courses for these teachers
-	teacherCourses, err := s.courseRepo.ListByResponsibleTeachers(ctx, userIDs)
-	if err == nil {
-		for _, c := range teacherCourses {
-			summaryMap[c.ResponsibleTeacher] = append(summaryMap[c.ResponsibleTeacher], c.Title)
-		}
-	}
-
-	var result []models.UserCourseSummary
+	result := make([]models.UserCourseSummary, 0, len(summaryMap))
 	for id, courses := range summaryMap {
 		result = append(result, models.UserCourseSummary{
 			UserID:  id,
 			Courses: courses,
 		})
 	}
-
 	return result, nil
+}
+
+func (s *enrollmentService) buildBulkLookup(ctx context.Context, userIDs []string, requestedUsers map[string]bool) ([]string, map[string]string) {
+	lookupIDs := append([]string(nil), userIDs...)
+	participantToUser := make(map[string]string)
+	if s.authClient == nil {
+		return lookupIDs, participantToUser
+	}
+
+	bearerToken, _ := ctx.Value(middlewares.TokenKey).(string)
+	participants, err := s.authClient.ListParticipants(ctx, bearerToken)
+	if err != nil {
+		return lookupIDs, participantToUser
+	}
+
+	seen := make(map[string]bool, len(lookupIDs))
+	for _, id := range lookupIDs {
+		seen[id] = true
+	}
+	for _, p := range participants {
+		if !requestedUsers[p.UserID] || p.ParticipantID == "" {
+			continue
+		}
+		participantToUser[p.ParticipantID] = p.UserID
+		if !seen[p.ParticipantID] {
+			seen[p.ParticipantID] = true
+			lookupIDs = append(lookupIDs, p.ParticipantID)
+		}
+	}
+	return lookupIDs, participantToUser
+}
+
+func (s *enrollmentService) addEnrollmentCourses(
+	ctx context.Context,
+	lookupIDs []string,
+	requestedUsers map[string]bool,
+	participantToUser map[string]string,
+	summaryMap map[string][]string,
+) {
+	enrollments, err := s.repo.ListByParticipants(ctx, lookupIDs)
+	if err != nil {
+		return
+	}
+	courseTitles := make(map[string]string)
+	for _, e := range enrollments {
+		if e.Estado != models.EnrollmentEstadoActiva {
+			continue
+		}
+		targetUserID := resolveTargetUserID(e.ParticipanteID, participantToUser)
+		if !requestedUsers[targetUserID] {
+			continue
+		}
+		title := resolveCourseTitle(ctx, s.courseRepo, courseTitles, e.CursoID)
+		summaryMap[targetUserID] = appendUnique(summaryMap[targetUserID], title)
+	}
+}
+
+func (s *enrollmentService) addTeacherCourses(
+	ctx context.Context,
+	userIDs []string,
+	requestedUsers map[string]bool,
+	summaryMap map[string][]string,
+) {
+	if s.courseRepo == nil {
+		return
+	}
+	teacherCourses, err := s.courseRepo.ListByResponsibleTeachers(ctx, userIDs)
+	if err != nil {
+		return
+	}
+	for _, c := range teacherCourses {
+		if requestedUsers[c.ResponsibleTeacher] {
+			summaryMap[c.ResponsibleTeacher] = appendUnique(summaryMap[c.ResponsibleTeacher], c.Title)
+		}
+	}
+}
+
+func resolveTargetUserID(participanteID string, participantToUser map[string]string) string {
+	if mappedUserID, ok := participantToUser[participanteID]; ok {
+		return mappedUserID
+	}
+	return participanteID
+}
+
+func resolveCourseTitle(ctx context.Context, courseRepo repositories.CourseRepository, cache map[string]string, cursoID string) string {
+	if title, ok := cache[cursoID]; ok {
+		return title
+	}
+	title := "Curso " + cursoID
+	if courseRepo != nil {
+		if course, err := courseRepo.Get(ctx, cursoID); err == nil && course != nil && course.Title != "" {
+			title = course.Title
+		}
+	}
+	cache[cursoID] = title
+	return title
+}
+
+func appendUnique(items []string, value string) []string {
+	for _, item := range items {
+		if item == value {
+			return items
+		}
+	}
+	return append(items, value)
 }
 
 func (s *enrollmentService) Enroll(ctx context.Context, participanteID, cursoID, bearerToken string) (*models.Enrollment, error) {
@@ -156,8 +271,26 @@ func (s *enrollmentService) Enroll(ctx context.Context, participanteID, cursoID,
 		return nil, NewValidationError("cursoId es obligatorio")
 	}
 
-	// 1. Curso: solo se puede inscribir a uno publicado y visible en el
-	// catálogo (la CDA, a diferencia de la CMA, no devuelve borradores).
+	course, err := s.validateEnrollableCourse(ctx, cursoID)
+	if err != nil {
+		return nil, err
+	}
+	if err := s.validateApprovedParticipant(ctx, participanteID, bearerToken); err != nil {
+		return nil, err
+	}
+	if err := s.ensureEnrollCapacity(ctx, course, participanteID); err != nil {
+		return nil, err
+	}
+
+	return s.repo.Create(ctx, models.Enrollment{
+		ParticipanteID: participanteID,
+		CursoID:        cursoID,
+		Estado:         models.EnrollmentEstadoActiva,
+		CourseTitle:    course.Title,
+	})
+}
+
+func (s *enrollmentService) validateEnrollableCourse(ctx context.Context, cursoID string) (*models.Course, error) {
 	course, err := s.courseRepo.Get(ctx, cursoID)
 	if err != nil {
 		if !repositories.IsNotFound(err) {
@@ -172,33 +305,37 @@ func (s *enrollmentService) Enroll(ctx context.Context, participanteID, cursoID,
 		}
 		return nil, NewValidationError("El curso no existe")
 	}
-	if s.bajas != nil {
-		dadoDeBaja, err := s.bajas.EstaDadoDeBaja(ctx, cursoID)
-		if err != nil {
-			return nil, err
-		}
-		if dadoDeBaja {
-			return nil, NewValidationError("El curso fue dado de baja y no acepta inscripciones")
-		}
+	if s.bajas == nil {
+		return course, nil
 	}
+	dadoDeBaja, err := s.bajas.EstaDadoDeBaja(ctx, cursoID)
+	if err != nil {
+		return nil, err
+	}
+	if dadoDeBaja {
+		return nil, NewValidationError("El curso fue dado de baja y no acepta inscripciones")
+	}
+	return course, nil
+}
 
-	// 2. Participante: tiene que existir en auth-service y estar
-	// aprobado.
+func (s *enrollmentService) validateApprovedParticipant(ctx context.Context, participanteID, bearerToken string) error {
 	participant, err := s.authClient.GetParticipant(ctx, participanteID, bearerToken)
 	if err != nil {
-		return nil, err
+		return err
 	}
 	if participant == nil {
-		return nil, NewValidationError("El participante no existe")
+		return NewValidationError("El participante no existe")
 	}
 	if !isParticipantApproved(participant.ApprovalStatus) {
-		return nil, NewValidationError("El participante no está activo")
+		return NewValidationError("El participante no está activo")
 	}
+	return nil
+}
 
-	// 3-4. Duplicado y cupo.
-	existing, err := s.repo.ListByCourse(ctx, cursoID)
+func (s *enrollmentService) ensureEnrollCapacity(ctx context.Context, course *models.Course, participanteID string) error {
+	existing, err := s.repo.ListByCourse(ctx, course.ID)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	activeCount := 0
@@ -208,18 +345,12 @@ func (s *enrollmentService) Enroll(ctx context.Context, participanteID, cursoID,
 		}
 		activeCount++
 		if e.ParticipanteID == participanteID {
-			return nil, NewValidationError("El participante ya se encuentra inscripto en el curso")
+			return NewValidationError("El participante ya se encuentra inscripto en el curso")
 		}
 	}
 
 	if course.Capacity != nil && activeCount >= *course.Capacity {
-		return nil, NewValidationError("El curso no tiene cupo disponible")
+		return NewValidationError("El curso no tiene cupo disponible")
 	}
-
-	return s.repo.Create(ctx, models.Enrollment{
-		ParticipanteID: participanteID,
-		CursoID:        cursoID,
-		Estado:         models.EnrollmentEstadoActiva,
-		CourseTitle:    course.Title,
-	})
+	return nil
 }
