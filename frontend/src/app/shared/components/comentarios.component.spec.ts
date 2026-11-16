@@ -5,11 +5,15 @@ import {
   Comentario,
   ComentariosService,
 } from "../../services/comentarios.service";
+import { AuthService } from "../../services/auth.service";
+import { ProfileService } from "../../services/profile.service";
 
 describe("ComentariosComponent", () => {
   let fixture: ComponentFixture<ComentariosComponent>;
   let component: ComentariosComponent;
   let service: jasmine.SpyObj<ComentariosService>;
+  let auth: jasmine.SpyObj<AuthService>;
+  let profile: jasmine.SpyObj<ProfileService>;
 
   const existente: Comentario = {
     id: "com-1",
@@ -21,16 +25,44 @@ describe("ComentariosComponent", () => {
     fecha: "2026-10-22T15:00:00Z",
   };
 
-  function setup(lista: Comentario[] = [existente], puedeModerar = false) {
+  function setup(
+    lista: Comentario[] = [existente],
+    puedeModerar = false,
+    loggedIn = false,
+  ) {
     service = jasmine.createSpyObj("ComentariosService", [
       "listar",
       "crear",
       "eliminar",
     ]);
     service.listar.and.returnValue(of(lista));
+    auth = jasmine.createSpyObj("AuthService", [
+      "isLocallyAuthenticated",
+      "isAuthenticated",
+    ]);
+    auth.isLocallyAuthenticated.and.returnValue(loggedIn);
+    auth.isAuthenticated.and.returnValue(
+      loggedIn
+        ? of({ role_id: "role_participant", user: { user_id: "u1" } } as any)
+        : throwError(() => new Error("401")),
+    );
+    profile = jasmine.createSpyObj("ProfileService", ["getMyProfile"]);
+    profile.getMyProfile.and.returnValue(
+      of({
+        user: {
+          user_id: "u1",
+          first_name: "María",
+          last_name: "Pérez",
+        } as any,
+      }),
+    );
     TestBed.configureTestingModule({
       imports: [ComentariosComponent],
-      providers: [{ provide: ComentariosService, useValue: service }],
+      providers: [
+        { provide: ComentariosService, useValue: service },
+        { provide: AuthService, useValue: auth },
+        { provide: ProfileService, useValue: profile },
+      ],
     });
     fixture = TestBed.createComponent(ComentariosComponent);
     component = fixture.componentInstance;
@@ -57,12 +89,51 @@ describe("ComentariosComponent", () => {
     expect(texto()).toContain("Todavía no hay comentarios");
   });
 
-  it("asks for name and surname before sending", () => {
+  it("asks for name and surname before sending when not logged in", () => {
     setup([]);
+    expect(
+      fixture.nativeElement.querySelector('input[name="nombre"]'),
+    ).not.toBeNull();
+    expect(
+      fixture.nativeElement.querySelector('input[name="apellido"]'),
+    ).not.toBeNull();
+
     component.texto = "Hola";
     component.enviar();
     expect(service.crear).not.toHaveBeenCalled();
     expect(component.errorForm).toContain("nombre y apellido");
+  });
+
+  it("hides personal data inputs and uses session user when logged in", () => {
+    setup([], false, true);
+    expect(
+      fixture.nativeElement.querySelector('input[name="nombre"]'),
+    ).toBeNull();
+    expect(
+      fixture.nativeElement.querySelector('input[name="apellido"]'),
+    ).toBeNull();
+
+    const nuevo = {
+      ...existente,
+      id: "com-3",
+      nombre: "María",
+      apellido: "Pérez",
+      texto: "Excelente curso",
+    };
+    service.crear.and.returnValue(of(nuevo));
+    component.texto = "Excelente curso";
+    component.enviar();
+
+    expect(service.crear).toHaveBeenCalledWith({
+      entidadTipo: "campana",
+      entidadId: "camp-1",
+      nombre: "María",
+      apellido: "Pérez",
+      texto: "Excelente curso",
+    });
+    expect(component.comentarios[0].id).toBe("com-3");
+    expect(component.texto).toBe("");
+    expect(component.enviado).toBeTrue();
   });
 
   it("publishes the comment and puts it first", () => {
