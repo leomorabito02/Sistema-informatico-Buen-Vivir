@@ -36,7 +36,7 @@ func TestHTTPAuthDirectory_AllMethodsAndHeaders(t *testing.T) {
 	if err != nil {
 		t.Fatalf("NewAuthDirectory falló: %v", err)
 	}
-	defer dir.Close()
+	defer func() { _ = dir.Close() }()
 
 	ctx := ContextWithToken(context.Background(), "user-token-123")
 

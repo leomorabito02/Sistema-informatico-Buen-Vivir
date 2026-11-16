@@ -114,7 +114,7 @@ func (c *JobOfferController) Create(w http.ResponseWriter, r *http.Request) {
 	c.record(r, "crear", offer.ID)
 
 	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(offer)
+	_ = json.NewEncoder(w).Encode(offer)
 }
 
 func (c *JobOfferController) List(w http.ResponseWriter, r *http.Request) {
@@ -140,7 +140,7 @@ func (c *JobOfferController) List(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(services.FiltrarOfertas(offers, q, empresa))
+	_ = json.NewEncoder(w).Encode(services.FiltrarOfertas(offers, q, empresa))
 }
 
 func (c *JobOfferController) Update(w http.ResponseWriter, r *http.Request) {
@@ -172,7 +172,7 @@ func (c *JobOfferController) Update(w http.ResponseWriter, r *http.Request) {
 	c.record(r, "actualizar", id)
 
 	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(offer)
+	_ = json.NewEncoder(w).Encode(offer)
 }
 
 func (c *JobOfferController) Delete(w http.ResponseWriter, r *http.Request) {

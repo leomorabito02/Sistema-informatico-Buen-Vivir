@@ -52,7 +52,7 @@ func (c *JobApplicationController) Apply(w http.ResponseWriter, r *http.Request)
 	}
 
 	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(application)
+	_ = json.NewEncoder(w).Encode(application)
 }
 
 func (c *JobApplicationController) ListByOffer(w http.ResponseWriter, r *http.Request) {
@@ -71,7 +71,7 @@ func (c *JobApplicationController) ListByOffer(w http.ResponseWriter, r *http.Re
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(applications)
+	_ = json.NewEncoder(w).Encode(applications)
 }
 
 func (c *JobApplicationController) ListMine(w http.ResponseWriter, r *http.Request) {
@@ -88,7 +88,7 @@ func (c *JobApplicationController) ListMine(w http.ResponseWriter, r *http.Reque
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(applications)
+	_ = json.NewEncoder(w).Encode(applications)
 }
 
 func (c *JobApplicationController) UpdateStatus(w http.ResponseWriter, r *http.Request) {
@@ -116,7 +116,7 @@ func (c *JobApplicationController) UpdateStatus(w http.ResponseWriter, r *http.R
 	}
 
 	w.WriteHeader(http.StatusOK)
-	w.Write([]byte(`{"message":"status updated"}`))
+	_, _ = w.Write([]byte(`{"message":"status updated"}`))
 }
 
 func (c *JobApplicationController) Delete(w http.ResponseWriter, r *http.Request) {

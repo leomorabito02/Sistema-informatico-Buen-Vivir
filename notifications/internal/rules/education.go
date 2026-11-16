@@ -8,11 +8,6 @@ import (
 	"buenvivir/notifications/internal/models"
 )
 
-// stringPtr is a helper to return pointer to string.
-func stringPtr(s string) *string {
-	return &s
-}
-
 // ── E1 & E2: InscripcionCreadaRule ──────────────────────────────────────────
 
 type InscripcionCreadaRule struct{}
