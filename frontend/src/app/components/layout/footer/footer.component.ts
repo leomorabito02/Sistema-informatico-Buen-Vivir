@@ -7,7 +7,6 @@ import {
   Phone,
   MapPin,
   Heart,
-  Linkedin,
 } from "lucide-angular";
 
 @Component({
@@ -22,5 +21,4 @@ export class FooterComponent {
   readonly PhoneIcon = Phone;
   readonly MapPinIcon = MapPin;
   readonly HeartIcon = Heart;
-  readonly LinkedinIcon = Linkedin;
 }
