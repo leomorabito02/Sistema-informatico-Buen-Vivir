@@ -2,14 +2,19 @@ package repositories
 
 import (
 	"context"
+	"net"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
+	"buenvivir/education/api/proto/authpb"
 	"buenvivir/education/internal/models"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 // fakeAuthService responde como auth-service y exige que education
@@ -172,6 +177,89 @@ func TestAuthServiceClient_ServerlessAuthHeader(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, "Bearer google-id-token-123", receivedServerlessAuth)
 	assert.Equal(t, "Bearer user-jwt-456", receivedAuth)
+}
+
+type fakeAuthGRPCServer struct {
+	authpb.UnimplementedAuthServiceServer
+}
+
+func (f *fakeAuthGRPCServer) GetParticipant(_ context.Context, req *authpb.GetParticipantRequest) (*authpb.GetParticipantResponse, error) {
+	if req.GetParticipantId() == "p1" {
+		return &authpb.GetParticipantResponse{Id: "p1", UserId: "u1", ApprovalStatus: "accepted", Dni: "12345678"}, nil
+	}
+	return nil, status.Error(codes.NotFound, "not found")
+}
+
+func (f *fakeAuthGRPCServer) ListParticipants(context.Context, *authpb.ListParticipantsRequest) (*authpb.ListParticipantsResponse, error) {
+	return &authpb.ListParticipantsResponse{
+		Participants: []*authpb.GetParticipantResponse{
+			{Id: "p1", UserId: "u1", ApprovalStatus: "accepted", Dni: "12345678"},
+		},
+	}, nil
+}
+
+func (f *fakeAuthGRPCServer) ListUsers(context.Context, *authpb.ListUsersRequest) (*authpb.GetUsersByIDsResponse, error) {
+	return &authpb.GetUsersByIDsResponse{
+		Users: []*authpb.UserSummary{
+			{UserId: "u1", FirstName: "Ana", LastName: "Pérez"},
+		},
+	}, nil
+}
+
+func (f *fakeAuthGRPCServer) GetParticipantProfile(_ context.Context, req *authpb.GetParticipantProfileRequest) (*authpb.ParticipantProfile, error) {
+	switch l := req.GetLookup().(type) {
+	case *authpb.GetParticipantProfileRequest_ParticipantId:
+		if l.ParticipantId == "p1" {
+			return &authpb.ParticipantProfile{ParticipantId: "p1", UserId: "u1", FirstName: "Ana", LastName: "Pérez"}, nil
+		}
+	case *authpb.GetParticipantProfileRequest_UserId:
+		if l.UserId == "u1" {
+			return &authpb.ParticipantProfile{ParticipantId: "p1", UserId: "u1", FirstName: "Ana", LastName: "Pérez"}, nil
+		}
+	}
+	return nil, status.Error(codes.NotFound, "not found")
+}
+
+func TestAuthServiceClient_GRPC(t *testing.T) {
+	// Arrange
+	lis, err := net.Listen("tcp", "127.0.0.1:0")
+	require.NoError(t, err)
+	srv := grpc.NewServer()
+	authpb.RegisterAuthServiceServer(srv, &fakeAuthGRPCServer{})
+	go func() { _ = srv.Serve(lis) }()
+	t.Cleanup(srv.Stop)
+
+	c := NewAuthServiceClient(lis.Addr().String())
+	t.Cleanup(func() { _ = c.Close() })
+
+	// Act & Assert
+	p, err := c.GetParticipant(t.Context(), "p1", "u1")
+	require.NoError(t, err)
+	require.NotNil(t, p)
+	assert.Equal(t, "u1", p.UserID)
+	assert.Equal(t, "12345678", p.DNI)
+
+	missing, err := c.GetParticipant(t.Context(), "no-existe", "u1")
+	require.NoError(t, err)
+	assert.Nil(t, missing)
+
+	participants, err := c.ListParticipants(t.Context(), "u1")
+	require.NoError(t, err)
+	require.Len(t, participants, 1)
+	assert.Equal(t, "p1", participants[0].ParticipantID)
+
+	users, err := c.ListUsers(t.Context(), "u1")
+	require.NoError(t, err)
+	require.Len(t, users, 1)
+	assert.Equal(t, "Ana", users[0].FirstName)
+
+	u, err := c.GetParticipantName(t.Context(), "p1", "u1")
+	require.NoError(t, err)
+	assert.Equal(t, "Ana", u.FirstName)
+
+	pid, err := c.GetMyParticipantID(t.Context(), "u1")
+	require.NoError(t, err)
+	assert.Equal(t, "p1", pid)
 }
 
 func TestGeneralAttendanceRepository_RegisterAndList(t *testing.T) {

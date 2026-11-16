@@ -8,7 +8,14 @@ import (
 	"net/url"
 	"strings"
 	"time"
+
+	"buenvivir/human-promotion/api/proto/educationpb"
+
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 )
+
+const educationCallTimeout = 5 * time.Second
 
 // SkillDirectory devuelve las habilidades que ganó un participante. Las
 // habilidades son datos de Educación (HU-21 / HU-58): este servicio no
@@ -21,10 +28,7 @@ type SkillDirectory interface {
 type tokenContextKey struct{}
 
 // ContextWithToken guarda el JWT del usuario que hizo el pedido, para
-// reenviarlo a education-service. Así Educación aplica su propio control
-// de permisos sobre la misma persona (solo admin y voluntario pueden ver
-// habilidades de otro participante, igual que las fichas) y no hace falta
-// un secreto compartido entre servicios. Lo llama AuthMiddleware.
+// reenviarlo a education-service.
 func ContextWithToken(ctx context.Context, token string) context.Context {
 	return context.WithValue(ctx, tokenContextKey{}, token)
 }
@@ -34,31 +38,63 @@ func tokenFromContext(ctx context.Context) string {
 	return token
 }
 
+type grpcEducationClient struct {
+	conn   *grpc.ClientConn
+	client educationpb.EducationServiceClient
+}
+
 type educationClient struct {
 	baseURL    string
 	httpClient *http.Client
 	idToken    func(ctx context.Context) (string, error)
 }
 
-// NewEducationClient devuelve el cliente de education-service, o nil si
-// EDUCATION_SERVICE_URL no está configurada: en ese caso la ficha se
-// muestra sin habilidades, como antes de esta funcionalidad.
-func NewEducationClient(baseURL string, idTokenFn ...func(ctx context.Context) (string, error)) SkillDirectory {
-	baseURL = strings.TrimRight(strings.TrimSpace(baseURL), "/")
-	if baseURL == "" {
+// NewEducationClient devuelve el cliente gRPC (Docker local) o HTTP (Cloud Run)
+// de education-service, o nil si target está vacío.
+func NewEducationClient(target string, idTokenFn ...func(ctx context.Context) (string, error)) SkillDirectory {
+	target = strings.TrimRight(strings.TrimSpace(target), "/")
+	if target == "" {
 		return nil
 	}
 	var idToken func(ctx context.Context) (string, error)
 	if len(idTokenFn) > 0 {
 		idToken = idTokenFn[0]
 	}
-	// Timeout corto: las habilidades son un dato secundario de la ficha y
-	// no pueden demorar la apertura del contenido confidencial.
-	return &educationClient{
-		baseURL:    baseURL,
-		httpClient: &http.Client{Timeout: 5 * time.Second},
-		idToken:    idToken,
+	if strings.HasPrefix(target, "http://") || strings.HasPrefix(target, "https://") {
+		return &educationClient{
+			baseURL:    target,
+			httpClient: &http.Client{Timeout: educationCallTimeout},
+			idToken:    idToken,
+		}
 	}
+
+	conn, err := grpc.NewClient(target, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		return nil
+	}
+	return &grpcEducationClient{
+		conn:   conn,
+		client: educationpb.NewEducationServiceClient(conn),
+	}
+}
+
+func (c *grpcEducationClient) HabilidadesDe(ctx context.Context, participanteID string) ([]string, error) {
+	callCtx, cancel := context.WithTimeout(ctx, educationCallTimeout)
+	defer cancel()
+
+	resp, err := c.client.GetParticipantSkills(callCtx, &educationpb.GetParticipantSkillsRequest{
+		ParticipanteId: participanteID,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("education-service (gRPC) no respondió: %w", err)
+	}
+	nombres := make([]string, 0, len(resp.GetNombres()))
+	for _, n := range resp.GetNombres() {
+		if n != "" {
+			nombres = append(nombres, n)
+		}
+	}
+	return nombres, nil
 }
 
 func (c *educationClient) HabilidadesDe(ctx context.Context, participanteID string) ([]string, error) {

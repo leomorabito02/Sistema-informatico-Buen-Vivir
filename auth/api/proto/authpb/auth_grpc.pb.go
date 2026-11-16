@@ -31,6 +31,8 @@ const (
 	AuthService_GetUserContact_FullMethodName          = "/auth.AuthService/GetUserContact"
 	AuthService_GetActiveUserIDsByRoles_FullMethodName = "/auth.AuthService/GetActiveUserIDsByRoles"
 	AuthService_IssueActionLink_FullMethodName         = "/auth.AuthService/IssueActionLink"
+	AuthService_ListParticipants_FullMethodName        = "/auth.AuthService/ListParticipants"
+	AuthService_ListUsers_FullMethodName               = "/auth.AuthService/ListUsers"
 )
 
 // AuthServiceClient is the client API for AuthService service.
@@ -55,6 +57,8 @@ type AuthServiceClient interface {
 	GetUserContact(ctx context.Context, in *GetUserContactRequest, opts ...grpc.CallOption) (*GetUserContactResponse, error)
 	GetActiveUserIDsByRoles(ctx context.Context, in *GetActiveUserIDsByRolesRequest, opts ...grpc.CallOption) (*GetActiveUserIDsByRolesResponse, error)
 	IssueActionLink(ctx context.Context, in *IssueActionLinkRequest, opts ...grpc.CallOption) (*IssueActionLinkResponse, error)
+	ListParticipants(ctx context.Context, in *ListParticipantsRequest, opts ...grpc.CallOption) (*ListParticipantsResponse, error)
+	ListUsers(ctx context.Context, in *ListUsersRequest, opts ...grpc.CallOption) (*GetUsersByIDsResponse, error)
 }
 
 type authServiceClient struct {
@@ -185,6 +189,26 @@ func (c *authServiceClient) IssueActionLink(ctx context.Context, in *IssueAction
 	return out, nil
 }
 
+func (c *authServiceClient) ListParticipants(ctx context.Context, in *ListParticipantsRequest, opts ...grpc.CallOption) (*ListParticipantsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListParticipantsResponse)
+	err := c.cc.Invoke(ctx, AuthService_ListParticipants_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *authServiceClient) ListUsers(ctx context.Context, in *ListUsersRequest, opts ...grpc.CallOption) (*GetUsersByIDsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetUsersByIDsResponse)
+	err := c.cc.Invoke(ctx, AuthService_ListUsers_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // AuthServiceServer is the server API for AuthService service.
 // All implementations must embed UnimplementedAuthServiceServer
 // for forward compatibility.
@@ -207,6 +231,8 @@ type AuthServiceServer interface {
 	GetUserContact(context.Context, *GetUserContactRequest) (*GetUserContactResponse, error)
 	GetActiveUserIDsByRoles(context.Context, *GetActiveUserIDsByRolesRequest) (*GetActiveUserIDsByRolesResponse, error)
 	IssueActionLink(context.Context, *IssueActionLinkRequest) (*IssueActionLinkResponse, error)
+	ListParticipants(context.Context, *ListParticipantsRequest) (*ListParticipantsResponse, error)
+	ListUsers(context.Context, *ListUsersRequest) (*GetUsersByIDsResponse, error)
 	mustEmbedUnimplementedAuthServiceServer()
 }
 
@@ -252,6 +278,12 @@ func (UnimplementedAuthServiceServer) GetActiveUserIDsByRoles(context.Context, *
 }
 func (UnimplementedAuthServiceServer) IssueActionLink(context.Context, *IssueActionLinkRequest) (*IssueActionLinkResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method IssueActionLink not implemented")
+}
+func (UnimplementedAuthServiceServer) ListParticipants(context.Context, *ListParticipantsRequest) (*ListParticipantsResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ListParticipants not implemented")
+}
+func (UnimplementedAuthServiceServer) ListUsers(context.Context, *ListUsersRequest) (*GetUsersByIDsResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ListUsers not implemented")
 }
 func (UnimplementedAuthServiceServer) mustEmbedUnimplementedAuthServiceServer() {}
 func (UnimplementedAuthServiceServer) testEmbeddedByValue()                     {}
@@ -490,6 +522,42 @@ func _AuthService_IssueActionLink_Handler(srv interface{}, ctx context.Context, 
 	return interceptor(ctx, in, info, handler)
 }
 
+func _AuthService_ListParticipants_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListParticipantsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AuthServiceServer).ListParticipants(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AuthService_ListParticipants_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AuthServiceServer).ListParticipants(ctx, req.(*ListParticipantsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AuthService_ListUsers_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListUsersRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AuthServiceServer).ListUsers(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AuthService_ListUsers_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AuthServiceServer).ListUsers(ctx, req.(*ListUsersRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // AuthService_ServiceDesc is the grpc.ServiceDesc for AuthService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -544,6 +612,14 @@ var AuthService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "IssueActionLink",
 			Handler:    _AuthService_IssueActionLink_Handler,
+		},
+		{
+			MethodName: "ListParticipants",
+			Handler:    _AuthService_ListParticipants_Handler,
+		},
+		{
+			MethodName: "ListUsers",
+			Handler:    _AuthService_ListUsers_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

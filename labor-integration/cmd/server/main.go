@@ -5,7 +5,6 @@ import (
 	"log"
 	"log/slog"
 	"net/http"
-	"os"
 	"strings"
 	"sync"
 
@@ -84,13 +83,23 @@ func main() {
 	}
 	insercionLaboralProducer := producers.NewInsercionLaboral(writer, cfg.Events.TopicInsercionLaboral)
 
+	// Education Client (HTTP in Cloud Run via EDUCATION_SERVICE_URL, gRPC in local Docker)
+	eduTarget := cfg.EducationServiceURL
+	if eduTarget == "" {
+		eduTarget = cfg.EducationServiceGRPCTarget
+	}
+	var eduIDToken func(context.Context) (string, error)
+	if cfg.UpstreamIDToken && cfg.EducationServiceURL != "" {
+		eduIDToken = idTokenPara(ctx, cfg.EducationServiceURL)
+	}
+
 	// Services
 	jobOfferService := services.NewJobOfferService(
 		jobOfferRepo,
 		jobApplicationRepo,
 		authServiceClient,
 		services.WithOfferProducer(insercionLaboralProducer),
-		services.WithSkillsClient(repositories.NewSkillsClient(os.Getenv("EDUCATION_API_URL"))),
+		services.WithSkillsClient(repositories.NewSkillsClient(eduTarget, eduIDToken)),
 	)
 	jobApplicationService := services.NewJobApplicationService(
 		jobApplicationRepo,

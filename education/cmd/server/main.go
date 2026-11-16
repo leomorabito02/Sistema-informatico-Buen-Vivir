@@ -4,6 +4,7 @@ import (
 	"context"
 	"log"
 	"log/slog"
+	"net"
 	"net/http"
 	"os"
 	"time"
@@ -13,8 +14,10 @@ import (
 	"golang.org/x/oauth2"
 	"google.golang.org/api/idtoken"
 	"google.golang.org/api/option"
+	"google.golang.org/grpc"
 	"sync"
 
+	"buenvivir/education/api/proto/educationpb"
 	"buenvivir/education/internal/config"
 	"buenvivir/education/internal/controllers"
 	"buenvivir/education/internal/events"
@@ -83,13 +86,18 @@ func main() {
 	skillRepo := repositories.NewSkillRepository(firestoreClient, eventProducer)
 	commentRepo := repositories.NewCommentRepository(firestoreClient)
 	teacherContentRepo := repositories.NewTeacherContentRepository(firestoreClient, eventProducer)
+	authTarget := cfg.AuthServiceURL
+	if authTarget == "" {
+		authTarget = cfg.AuthServiceGRPCTarget
+	}
 	var authIDToken func(context.Context) (string, error)
-	if cfg.AuthServiceURL == "" {
-		slog.Warn("AUTH_SERVICE_URL no está configurado: endpoints de participantes/asistencia responderán 502")
-	} else if cfg.UpstreamIDToken {
+	if authTarget == "" {
+		slog.Warn("AUTH_SERVICE_URL / AUTH_SERVICE_GRPC_TARGET no está configurado: endpoints de participantes/asistencia responderán 502")
+	} else if cfg.UpstreamIDToken && cfg.AuthServiceURL != "" {
 		authIDToken = idTokenPara(ctx, cfg.AuthServiceURL)
 	}
-	authServiceClient := repositories.NewAuthServiceClient(cfg.AuthServiceURL, authIDToken)
+	authServiceClient := repositories.NewAuthServiceClient(authTarget, authIDToken)
+	defer func() { _ = authServiceClient.Close() }()
 	cursoBajaRepo := repositories.NewCursoBajaRepository(firestoreClient)
 	auditRepo := repositories.NewAuditRepository(firestoreClient)
 
@@ -132,6 +140,8 @@ func main() {
 	participanteController := controllers.NewParticipanteController(services.NewParticipanteService(authServiceClient, enrollmentRepo, activityRepo, attendanceRepo, courseRepo))
 	auditoriaController := controllers.NewAuditoriaController(services.NewAuditoriaService(auditRepo, authServiceClient))
 	skillController := controllers.NewSkillController(courseService, activityService, skillService, skillSuggestionService, submissionService)
+	grpcEducationController := controllers.NewGrpcEducationController(skillService)
+	startGRPCServer(cfg.GRPCPort, grpcEducationController)
 
 	r := chi.NewRouter()
 	middlewares.SetupMiddlewares(r)
@@ -173,6 +183,25 @@ func main() {
 	if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 		log.Fatalf("error al iniciar el servidor: %v", err)
 	}
+}
+
+func startGRPCServer(port string, grpcCtrl educationpb.EducationServiceServer) {
+	if port == "" {
+		return
+	}
+	go func() {
+		lis, err := net.Listen("tcp", ":"+port)
+		if err != nil {
+			log.Printf("error al escuchar en puerto gRPC %s: %v", port, err)
+			return
+		}
+		grpcServer := grpc.NewServer()
+		educationpb.RegisterEducationServiceServer(grpcServer, grpcCtrl)
+		log.Printf("Servicio Education (gRPC) escuchando en :%s", port)
+		if err := grpcServer.Serve(lis); err != nil {
+			log.Printf("error en servidor gRPC Education: %v", err)
+		}
+	}()
 }
 
 // skillProviders arma la lista de proveedores de IA para sugerir
@@ -275,4 +304,3 @@ func idTokenPara(ctx context.Context, audiencia string) func(context.Context) (s
 		return tok.AccessToken, nil
 	}
 }
-

@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package auth;
 
-option go_package = "buenvivir/human-promotion/api/proto/authpb";
+option go_package = "buenvivir/labor-integration/api/proto/authpb";
 
 service AuthService {
   rpc GetParticipant(GetParticipantRequest) returns (GetParticipantResponse);
@@ -18,6 +18,19 @@ service AuthService {
   // Promoción Humana (HU-33, HU-37): nombre y apellido de los usuarios
   // responsables de hitos y creadores de fichas.
   rpc GetUsersByIDs(GetUsersByIDsRequest) returns (GetUsersByIDsResponse);
+
+  rpc GetCompany(GetCompanyRequest) returns (GetCompanyResponse);
+
+  rpc GetUserDeviceTokens(GetUserDeviceTokensRequest) returns (GetUserDeviceTokensResponse);
+  rpc RevokeDeviceTokens(RevokeDeviceTokensRequest) returns (RevokeDeviceTokensResponse);
+
+  rpc GetCampaignRecipients(GetCampaignRecipientsRequest) returns (GetCampaignRecipientsResponse);
+  rpc CheckUserEmailVerified(CheckUserEmailVerifiedRequest) returns (CheckUserEmailVerifiedResponse);
+  rpc GetUserContact(GetUserContactRequest) returns (GetUserContactResponse);
+  rpc GetActiveUserIDsByRoles(GetActiveUserIDsByRolesRequest) returns (GetActiveUserIDsByRolesResponse);
+  rpc IssueActionLink(IssueActionLinkRequest) returns (IssueActionLinkResponse);
+  rpc ListParticipants(ListParticipantsRequest) returns (ListParticipantsResponse);
+  rpc ListUsers(ListUsersRequest) returns (GetUsersByIDsResponse);
 }
 
 message GetParticipantRequest {
@@ -28,6 +41,7 @@ message GetParticipantResponse {
   string id = 1;
   string user_id = 2;
   string approval_status = 3;
+  string dni = 4;
 }
 
 message GetParticipantProfileRequest {
@@ -71,3 +85,97 @@ message UserSummary {
 message GetUsersByIDsResponse {
   repeated UserSummary users = 1;
 }
+
+message GetCompanyRequest {
+  string company_id = 1;
+}
+
+message GetCompanyResponse {
+  string company_id = 1;
+  string user_id = 2;
+  string business_name = 3;
+  string cuit = 4;
+  string approval_status = 5;
+  string user_email = 6;
+  string user_phone = 7;
+  string user_status = 8;
+}
+
+message GetUserDeviceTokensRequest {
+  string user_id = 1;
+}
+
+message GetUserDeviceTokensResponse {
+  repeated string tokens = 1;
+}
+
+message RevokeDeviceTokensRequest {
+  string user_id = 1;
+  repeated string tokens = 2;
+}
+
+message RevokeDeviceTokensResponse {
+  int32 revoked_count = 1;
+}
+
+message GetCampaignRecipientsRequest {}
+
+message CampaignRecipient {
+  string user_id = 1;
+  string email = 2;
+  string first_name = 3;
+  string last_name = 4;
+  bool is_email_verified = 5;
+}
+
+message GetCampaignRecipientsResponse {
+  repeated CampaignRecipient recipients = 1;
+}
+
+message CheckUserEmailVerifiedRequest {
+  string user_id = 1;
+}
+
+message CheckUserEmailVerifiedResponse {
+  bool is_verified = 1;
+}
+
+message GetUserContactRequest {
+  string user_id = 1;
+}
+
+message GetUserContactResponse {
+  string user_id = 1;
+  string email = 2;
+  string first_name = 3;
+  string last_name = 4;
+  bool is_email_verified = 5;
+}
+
+message GetActiveUserIDsByRolesRequest {
+  repeated string role_ids = 1;
+}
+
+message GetActiveUserIDsByRolesResponse {
+  repeated string user_ids = 1;
+}
+
+message IssueActionLinkRequest {
+  string request_id = 1;
+  string user_id = 2;
+  string type = 3;
+}
+
+message IssueActionLinkResponse {
+  string action_url = 1;
+}
+
+message ListParticipantsRequest {}
+
+message ListParticipantsResponse {
+  repeated GetParticipantResponse participants = 1;
+}
+
+message ListUsersRequest {}
+
+

@@ -345,6 +345,8 @@ jobs:
         working-directory: education
         run: |
           go test -v -race -coverprofile=coverage.out -covermode=atomic ./...
+          grep -v '/api/proto/' coverage.out > coverage.filtered.out
+          mv coverage.filtered.out coverage.out
           go tool cover -func=coverage.out
 
       - name: Enforce coverage threshold (70%)
@@ -559,6 +561,8 @@ jobs:
         working-directory: human-promotion
         run: |
           go test -v -race -coverprofile=coverage.out ./...
+          grep -v '/api/proto/' coverage.out > coverage.filtered.out
+          mv coverage.filtered.out coverage.out
           COVERAGE=$(go tool cover -func=coverage.out | grep total | awk '{print $3}')
           echo "### Human Promotion Service Coverage: ${COVERAGE}" >> $GITHUB_STEP_SUMMARY
 
@@ -1513,6 +1517,7 @@ jobs:
             WORKER_IMPACT_URL=${{ secrets.WORKER_IMPACT_URL }}
             WORKER_SYNC_TOKEN=${{ secrets.WORKER_SYNC_TOKEN }}
             NOTIFICATIONS_SERVICE_URL=${{ steps.notif.outputs.url }}
+            UPSTREAM_ID_TOKEN=true
 
       - name: Ensure 100% traffic routed to latest Cloud Run revision
         run: |
@@ -1550,6 +1555,13 @@ jobs:
           echo "prev_revision=$PREV" >> $GITHUB_OUTPUT
           echo "Previous revision: ${PREV:-none}"
 
+      - name: Validate dependencies (auth-service URL)
+        run: |
+          if [ -z "${{ needs.cd-auth.outputs.service_url }}" ]; then
+            echo "::error::cd-auth output service_url is empty. Cannot deploy notifications-service without AUTH_SERVICE_URL."
+            exit 1
+          fi
+
       - name: Deploy Notifications to Cloud Run
         id: deploy
         uses: google-github-actions/deploy-cloudrun@v2
@@ -1575,6 +1587,18 @@ jobs:
           SERVICE="notifications-${{ needs.cd-setup.outputs.service_suffix }}"
           REGION="${{ secrets.GCP_REGION }}"
           gcloud run services update-traffic "$SERVICE" --region="$REGION" --to-latest --project="${{ secrets.GCP_PROJECT_ID }}"
+
+      - name: Sync NOTIFICATIONS_SERVICE_URL into Auth Service if missing
+        run: |
+          AUTH_SVC="auth-${{ needs.cd-setup.outputs.service_suffix }}"
+          REGION="${{ secrets.GCP_REGION }}"
+          NOTIF_URL="${{ steps.deploy.outputs.url }}"
+          CURRENT_URL=$(gcloud run services describe "$AUTH_SVC" --region="$REGION" --project="${{ secrets.GCP_PROJECT_ID }}" --format=json \
+            | jq -r '.spec.template.spec.containers[0].env[]? | select(.name == "NOTIFICATIONS_SERVICE_URL") | .value')
+          if [ "$CURRENT_URL" != "$NOTIF_URL" ] && [ -n "$NOTIF_URL" ]; then
+            gcloud run services update "$AUTH_SVC" --region="$REGION" --project="${{ secrets.GCP_PROJECT_ID }}" \
+              --update-env-vars="NOTIFICATIONS_SERVICE_URL=$NOTIF_URL"
+          fi
 
   cd-education:
     name: CD — Education Service (Cloud Run)
@@ -1735,6 +1759,10 @@ jobs:
             echo "::error::Falta la variable HUMAN_PROMOTION_ENCRYPTION_KEY_SECRET (environment ${{ needs.cd-setup.outputs.env_name }}). Sin ella el servicio no arranca."
             exit 1
           fi
+          if [ -z "${{ needs.cd-auth.outputs.service_url }}" ] || [ -z "${{ needs.cd-education.outputs.service_url }}" ]; then
+            echo "::error::Falta AUTH_SERVICE_URL o EDUCATION_SERVICE_URL para desplegar human-promotion."
+            exit 1
+          fi
 
       - name: Deploy Human Promotion to Cloud Run
         id: deploy
@@ -1763,7 +1791,7 @@ jobs:
   cd-labor-integration:
     name: CD — Labor Integration Service (Cloud Run)
     runs-on: ubuntu-latest
-    needs: [cd-setup, cd-auth]
+    needs: [cd-setup, cd-auth, cd-education]
     environment: ${{ needs.cd-setup.outputs.env_name }}
     timeout-minutes: 15
     permissions:
@@ -1806,6 +1834,13 @@ jobs:
         env:
           CORS_ALLOWED_ORIGINS: ${{ secrets.CORS_ALLOWED_ORIGINS }}
 
+      - name: Validate dependencies (auth-service and education-service URLs)
+        run: |
+          if [ -z "${{ needs.cd-auth.outputs.service_url }}" ] || [ -z "${{ needs.cd-education.outputs.service_url }}" ]; then
+            echo "::error::Falta AUTH_SERVICE_URL o EDUCATION_SERVICE_URL para desplegar labor-integration."
+            exit 1
+          fi
+
       - name: Deploy Labor Integration to Cloud Run
         id: deploy
         uses: google-github-actions/deploy-cloudrun@v2
@@ -1822,8 +1857,8 @@ jobs:
             GOOGLE_APPLICATION_CREDENTIALS_BASE64=${{ env.GOOGLE_APPLICATION_CREDENTIALS_BASE64 }}
             CORS_ALLOWED_ORIGINS=${{ env.CORS_ALLOWED_ORIGINS_ESCAPED }}
             AUTH_SERVICE_URL=${{ needs.cd-auth.outputs.service_url }}
+            EDUCATION_SERVICE_URL=${{ needs.cd-education.outputs.service_url }}
             UPSTREAM_ID_TOKEN=true
-            EDUCATION_API_URL=${{ vars.EDUCATION_API_URL }}
 
       - name: Ensure 100% traffic routed to latest Cloud Run revision
         run: |
@@ -1950,6 +1985,13 @@ jobs:
       # gateway no pasa el rol) y llama a los demás servicios con un token
       # de identidad de Google (UPSTREAM_ID_TOKEN): la service account
       # necesita roles/run.invoker sobre auth, education, human-promotion y labor-integration.
+      - name: Validate upstream service URLs for Dashboard
+        run: |
+          if [ -z "${{ needs.cd-auth.outputs.service_url }}" ] || [ -z "${{ needs.cd-education.outputs.service_url }}" ] || [ -z "${{ needs.cd-human-promotion.outputs.service_url }}" ] || [ -z "${{ needs.cd-labor-integration.outputs.service_url }}" ]; then
+            echo "::error::Falta alguna URL de servicio upstream (auth, education, human-promotion o labor-integration) para desplegar dashboard."
+            exit 1
+          fi
+
       - name: Deploy Dashboard to Cloud Run
         id: deploy
         uses: google-github-actions/deploy-cloudrun@v2
@@ -2055,6 +2097,13 @@ jobs:
           echo "prev_revision=$PREV" >> $GITHUB_OUTPUT
           echo "Previous revision: ${PREV:-none}"
 
+      - name: Validate dependencies (cv-renderer URL)
+        run: |
+          if [ -z "${{ needs.cd-cv-renderer.outputs.service_url }}" ]; then
+            echo "::error::cd-cv-renderer output service_url is empty. Cannot deploy rxresume without RENDERER_URL."
+            exit 1
+          fi
+
       - name: Deploy RxResume to Cloud Run
         id: deploy
         uses: google-github-actions/deploy-cloudrun@v2
@@ -2105,23 +2154,20 @@ jobs:
         working-directory: api-gateway
         run: |
           SUFFIX="${{ needs.cd-setup.outputs.service_suffix }}"
-          AUTH_URL=$(gcloud run services describe "auth-$SUFFIX" --region="${{ secrets.GCP_REGION }}" --format='value(status.url)')
-          EDU_URL=$(gcloud run services describe "education-$SUFFIX" --region="${{ secrets.GCP_REGION }}" --format='value(status.url)')
-          if [ -z "$AUTH_URL" ] || [ -z "$EDU_URL" ]; then
-            echo "::error::No se pudo resolver la URL de auth ($AUTH_URL) o education ($EDU_URL) en Cloud Run."
+          export AUTH_SERVICE_URL="${{ needs.cd-auth.outputs.service_url }}"
+          export EDUCATION_SERVICE_URL="${{ needs.cd-education.outputs.service_url }}"
+          export RXRESUME_SERVICE_URL="${{ needs.cd-rxresume.outputs.service_url }}"
+          export HUMAN_PROMOTION_SERVICE_URL="${{ needs.cd-human-promotion.outputs.service_url }}"
+          export LABOR_SERVICE_URL="${{ needs.cd-labor-integration.outputs.service_url }}"
+          export CAMPAIGNS_SERVICE_URL="${{ needs.cd-campaigns.outputs.service_url }}"
+          export DASHBOARD_SERVICE_URL="${{ needs.cd-dashboard.outputs.service_url }}"
+          if [ -z "$AUTH_SERVICE_URL" ] || [ -z "$EDUCATION_SERVICE_URL" ] || [ -z "$RXRESUME_SERVICE_URL" ] || [ -z "$HUMAN_PROMOTION_SERVICE_URL" ] || [ -z "$LABOR_SERVICE_URL" ] || [ -z "$CAMPAIGNS_SERVICE_URL" ] || [ -z "$DASHBOARD_SERVICE_URL" ]; then
+            echo "::error::Falta al menos una URL de microservicio para resolver openapi.yaml."
             exit 1
           fi
-          export AUTH_SERVICE_URL="$AUTH_URL"
-          export EDUCATION_SERVICE_URL="$EDU_URL"
-
-          export RXRESUME_SERVICE_URL=$(gcloud run services describe "rxresume-$SUFFIX" --region="${{ secrets.GCP_REGION }}" --format='value(status.url)')
-          export HUMAN_PROMOTION_SERVICE_URL=$(gcloud run services describe "human-promotion-$SUFFIX" --region="${{ secrets.GCP_REGION }}" --format='value(status.url)')
-          export LABOR_SERVICE_URL=$(gcloud run services describe "labor-integration-$SUFFIX" --region="${{ secrets.GCP_REGION }}" --format='value(status.url)')
-          export CAMPAIGNS_SERVICE_URL=$(gcloud run services describe "campaigns-$SUFFIX" --region="${{ secrets.GCP_REGION }}" --format='value(status.url)')
-          export DASHBOARD_SERVICE_URL=$(gcloud run services describe "dashboard-$SUFFIX" --region="${{ secrets.GCP_REGION }}" --format='value(status.url)')
           export FIREBASE_PROJECT_ID="${{ secrets.FIREBASE_PROJECT_ID }}"
           envsubst < openapi.yaml > openapi-resolved.yaml
-          echo "openapi.yaml resolved for env: $SUFFIX (auth=$AUTH_URL, education=$EDU_URL, labor=$LABOR_SERVICE_URL)"
+          echo "openapi.yaml resolved for env: $SUFFIX (auth=$AUTH_SERVICE_URL, education=$EDUCATION_SERVICE_URL, labor=$LABOR_SERVICE_URL)"
 
 
       - name: Create or update API Gateway config

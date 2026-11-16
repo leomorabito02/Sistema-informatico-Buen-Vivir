@@ -1,0 +1,29 @@
+syntax = "proto3";
+
+package education;
+
+option go_package = "buenvivir/education/api/proto/educationpb";
+
+service EducationService {
+  rpc GetGrantedSkills(GetGrantedSkillsRequest) returns (GetGrantedSkillsResponse);
+  rpc GetParticipantSkills(GetParticipantSkillsRequest) returns (GetParticipantSkillsResponse);
+}
+
+message GrantedSkillItem {
+  string participante_id = 1;
+  string nombre = 2;
+}
+
+message GetGrantedSkillsRequest {}
+
+message GetGrantedSkillsResponse {
+  repeated GrantedSkillItem skills = 1;
+}
+
+message GetParticipantSkillsRequest {
+  string participante_id = 1;
+}
+
+message GetParticipantSkillsResponse {
+  repeated string nombres = 1;
+}

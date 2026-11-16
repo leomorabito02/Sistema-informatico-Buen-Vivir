@@ -27,6 +27,6 @@ RUN chown appuser:appgroup /app/server && \
 
 USER appuser
 
-EXPOSE 8210
+EXPOSE 8210 50053
 
 CMD ["./server"]

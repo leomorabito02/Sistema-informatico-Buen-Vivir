@@ -25,7 +25,8 @@ const (
 
 // Config agrupa toda la configuración del servicio de Educación.
 type Config struct {
-	Port string
+	Port     string
+	GRPCPort string
 
 	AppEnv AppEnv
 
@@ -45,7 +46,8 @@ type Config struct {
 	// asistencia general, reenviando el JWT del usuario que llamó a
 	// education. Obligatoria en producción; en testing permite iniciar
 	// sin ella (emitiendo advertencia).
-	AuthServiceURL string
+	AuthServiceURL        string
+	AuthServiceGRPCTarget string
 	// UpstreamIDToken activa la generación de un token de identidad de Google
 	// en X-Serverless-Authorization para llamadas a servicios Cloud Run privados.
 	UpstreamIDToken bool
@@ -100,9 +102,14 @@ func LoadConfig() (*Config, error) {
 	if port == "" {
 		port = "8210"
 	}
+	grpcPort := strings.TrimSpace(os.Getenv("GRPC_PORT"))
+	if grpcPort == "" {
+		grpcPort = "50053"
+	}
 
 	cfg := &Config{
 		Port:                  port,
+		GRPCPort:              grpcPort,
 		AppEnv:                appEnv,
 		ContentfulSpaceID:     os.Getenv("CONTENTFUL_SPACE_ID"),
 		ContentfulEnvironment: ContentfulEnv(os.Getenv("CONTENTFUL_ENVIRONMENT")),
@@ -111,6 +118,7 @@ func LoadConfig() (*Config, error) {
 		ContentfulLocale:      os.Getenv("CONTENTFUL_LOCALE"),
 		CORSAllowedOrigins:    os.Getenv("CORS_ALLOWED_ORIGINS"),
 		AuthServiceURL:        strings.TrimRight(os.Getenv("AUTH_SERVICE_URL"), "/"),
+		AuthServiceGRPCTarget: strings.TrimSpace(os.Getenv("AUTH_SERVICE_GRPC_TARGET")),
 		UpstreamIDToken:       strings.EqualFold(strings.TrimSpace(os.Getenv("UPSTREAM_ID_TOKEN")), "true"),
 		EntregasBucket:        strings.TrimSpace(os.Getenv("ENTREGAS_BUCKET")),
 	}
@@ -129,7 +137,7 @@ func LoadConfig() (*Config, error) {
 		return nil, fmt.Errorf("faltan variables de Contentful: CONTENTFUL_SPACE_ID, CONTENTFUL_CDA_TOKEN y CONTENTFUL_CMA_TOKEN son obligatorias")
 	}
 
-	if cfg.AppEnv == AppEnvProduction && cfg.AuthServiceURL == "" {
+	if cfg.AppEnv == AppEnvProduction && cfg.AuthServiceURL == "" && cfg.AuthServiceGRPCTarget == "" {
 		return nil, fmt.Errorf("falta la variable AUTH_SERVICE_URL: obligatoria en producción")
 	}
 

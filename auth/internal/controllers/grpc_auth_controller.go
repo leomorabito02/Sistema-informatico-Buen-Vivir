@@ -82,6 +82,7 @@ func (c *GrpcAuthController) GetParticipant(ctx context.Context, req *authpb.Get
 		Id:             participant.ParticipantID,
 		UserId:         participant.UserID,
 		ApprovalStatus: participant.ApprovalStatus,
+		Dni:            participant.DNI,
 	}, nil
 }
 
@@ -346,4 +347,37 @@ func resolveAccountApprovedURL() string {
 		frontendURL = "https://ceibuenvivir.org"
 	}
 	return fmt.Sprintf("%s/login", strings.TrimRight(frontendURL, "/"))
+}
+
+func (c *GrpcAuthController) ListParticipants(ctx context.Context, _ *authpb.ListParticipantsRequest) (*authpb.ListParticipantsResponse, error) {
+	participants, err := c.participantService.GetAllParticipants(serviceCtx(ctx))
+	if err != nil {
+		return nil, status.Error(codes.Internal, err.Error())
+	}
+	out := make([]*authpb.GetParticipantResponse, 0, len(participants))
+	for _, p := range participants {
+		out = append(out, &authpb.GetParticipantResponse{
+			Id:             p.ParticipantID,
+			UserId:         p.UserID,
+			ApprovalStatus: p.ApprovalStatus,
+			Dni:            p.DNI,
+		})
+	}
+	return &authpb.ListParticipantsResponse{Participants: out}, nil
+}
+
+func (c *GrpcAuthController) ListUsers(ctx context.Context, _ *authpb.ListUsersRequest) (*authpb.GetUsersByIDsResponse, error) {
+	users, err := c.userService.GetAllUsers(serviceCtx(ctx))
+	if err != nil {
+		return nil, status.Error(codes.Internal, err.Error())
+	}
+	out := make([]*authpb.UserSummary, 0, len(users))
+	for _, u := range users {
+		out = append(out, &authpb.UserSummary{
+			UserId:    u.UserID,
+			FirstName: u.FirstName,
+			LastName:  u.LastName,
+		})
+	}
+	return &authpb.GetUsersByIDsResponse{Users: out}, nil
 }
