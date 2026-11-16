@@ -141,14 +141,14 @@ Se analizaron **64 historias de usuario** (HU-01 a HU-62, más HU-02bis y HU-19b
 
 |**Estado**|**Cantidad**|
 |---|---|
-|Implementado|44|
+|Implementado|56|
 |Parcialmente implementado|2|
 |No implementado|0|
 |Implementado con errores|0|
-|Pendiente de verificación|18|
+|Pendiente de verificación|6|
 |Total|64|
 
-**Actualización 15/11/2026.** Los números de la tabla son los nuevos (al 11/11 eran 41 implementadas, 17 parciales, 2 no implementadas y 4 pendientes de verificación). "Pendiente de verificación" ahora agrupa las HU con código y tests listos que falta probar desplegadas (IMPLEMENTADO - TESTING PENDIENTE en la sección 16). Las dos parciales son HU-31 y HU-61, bloqueadas por una decisión y por credenciales.
+**Actualización 15/11/2026.** Los números de la tabla son los nuevos (al 11/11 eran 41 implementadas, 17 parciales, 2 no implementadas y 4 pendientes de verificación). Lo implementado el 15/11 se verificó de punta a punta en el stack Docker (40 de 40 pruebas). Quedan pendientes de verificación HU-18, HU-23, HU-26 y HU-60, que dependen de Pub/Sub y Cloud Scheduler en GCP; HU-44, falta ver llegar el aviso a un participante de prueba con habilidades; y HU-56, que hay que correr en GCP. Las dos parciales son HU-31 (decisión del equipo) y HU-61 (credenciales de Firebase).
 
 
 
@@ -181,20 +181,20 @@ Página 6
 |**HU**|**Módulo**|**Historia**|**Estado**|**Nota principal**|
 |---|---|---|---|---|
 |HU-01|Autenticación y<br>usuarios|Registrar usuarios con nombre,<br>email, contraseña, teléfono y rol|IMPLEMENTADO|15/11: Gmail obligatorio solo para participantes (decisión de la usuaria).|
-|HU-02|Autenticación y<br>usuarios|Iniciar sesión con email y<br>contraseña|IMPLEMENTADO -<br>TESTING PENDIENTE|15/11: bloqueo 15 min tras 5 intentos (423). Falta migrar la tabla y probar en testing.|
+|HU-02|Autenticación y<br>usuarios|Iniciar sesión con email y<br>contraseña|IMPLEMENTADO|15/11: bloqueo 15 min tras 5 intentos (423). Verificado en Docker.|
 |HU-02bis|Autenticación y<br>usuarios|Recuperar contraseña por enlace<br>al email|Implementado|Verificar el envío real del email en testing<br>(Resend).|
-|HU-03|Autenticación y<br>usuarios|Validar el JWT en cada solicitud<br>protegida|IMPLEMENTADO -<br>TESTING PENDIENTE|15/11: tokens rechazados en la auditoría de auth.|
+|HU-03|Autenticación y<br>usuarios|Validar el JWT en cada solicitud<br>protegida|IMPLEMENTADO|15/11: tokens rechazados en la auditoría de auth.|
 |HU-04|Autenticación y<br>usuarios|Expiración configurable y refresh<br>tokens de uso único|IMPLEMENTADO|15/11: reutilizar un refresh cierra todas las sesiones.|
 |HU-05|Autenticación y<br>usuarios|Autenticación de doble factor (2FA)|Implementado|-|
-|HU-06|Autenticación y<br>usuarios|Control de acceso RBAC con<br>vistas por rol|IMPLEMENTADO -<br>TESTING PENDIENTE|15/11: matriz de permisos de solo lectura, 403 auditados y guards.|
-|HU-07|Autenticación y<br>usuarios|Crear perfiles de participantes|IMPLEMENTADO -<br>TESTING PENDIENTE|15/11: DNI, dirección y teléfono obligatorios; alta auditada.|
-|HU-08|Autenticación y<br>usuarios|Editar perfiles de participantes|IMPLEMENTADO -<br>TESTING PENDIENTE|15/11: ediciones auditadas con nombres de campos.|
-|HU-09|Autenticación y<br>usuarios|Eliminar perfiles de participantes<br>(baja lógica)|IMPLEMENTADO -<br>TESTING PENDIENTE|15/11: bajas auditadas.|
-|HU-10|Autenticación y<br>usuarios|Log de auditoría de acciones sobre<br>perfiles|IMPLEMENTADO -<br>TESTING PENDIENTE|15/11: tabla auditoria inmutable, endpoint y pantalla. Falta migrar y desplegar.|
+|HU-06|Autenticación y<br>usuarios|Control de acceso RBAC con<br>vistas por rol|IMPLEMENTADO|15/11: matriz de permisos de solo lectura, 403 auditados y guards.|
+|HU-07|Autenticación y<br>usuarios|Crear perfiles de participantes|IMPLEMENTADO|15/11: DNI, dirección y teléfono obligatorios; alta auditada.|
+|HU-08|Autenticación y<br>usuarios|Editar perfiles de participantes|IMPLEMENTADO|15/11: ediciones auditadas con nombres de campos.|
+|HU-09|Autenticación y<br>usuarios|Eliminar perfiles de participantes<br>(baja lógica)|IMPLEMENTADO|15/11: bajas auditadas.|
+|HU-10|Autenticación y<br>usuarios|Log de auditoría de acciones sobre<br>perfiles|IMPLEMENTADO|15/11: tabla auditoria inmutable, endpoint y pantalla. Verificado en Docker.|
 |HU-11|Autenticación y<br>usuarios|Foto y documentación del<br>participante|IMPLEMENTADO|15/11: límite de 5 MB en foto y documentos; cambios auditados.|
-|HU-12|Autenticación y<br>usuarios|Aprobar el registro de voluntarios|IMPLEMENTADO -<br>TESTING PENDIENTE|15/11: rechazo con email 'cuenta_rechazada'.|
+|HU-12|Autenticación y<br>usuarios|Aprobar el registro de voluntarios|IMPLEMENTADO|15/11: rechazo con email 'cuenta_rechazada'.|
 |HU-13|Autenticación y<br>usuarios|Iniciar sesión con Google|Implementado|-|
-|HU-14|Educación|Crear cursos (con materiales<br>opcionales)|IMPLEMENTADO -<br>TESTING PENDIENTE|15/11: aviso de los cursos que usan el material antes de borrarlo.|
+|HU-14|Educación|Crear cursos (con materiales<br>opcionales)|IMPLEMENTADO|15/11: aviso de los cursos que usan el material antes de borrarlo.|
 |HU-15|Educación|Editar cursos|Implementado|-|
 |HU-16|Educación|Eliminar cursos (baja lógica)|Implementado|-|
 |HU-17|Educación|Contenido de cursos gestionado<br>en Contentful|Implementado|-|
@@ -228,11 +228,11 @@ Página 7
 |HU-35|Promoción Humana|Auditoría de modificaciones de<br>fichas|Implementado|La HU menciona 'eliminar' fichas: no existe<br>eliminación de fichas (no hay nada que auditar).|
 |HU-36|Promoción Humana|Buscar participantes por nombre|Implementado|-|
 |HU-37|Promoción Humana|Exportar ficha en PDF|Implementado|-|
-|HU-38|Inserción Laboral|Cuenta de empresa con<br>aprobación|IMPLEMENTADO -<br>TESTING PENDIENTE|15/11: el rechazo de empresas manda email.|
+|HU-38|Inserción Laboral|Cuenta de empresa con<br>aprobación|IMPLEMENTADO|15/11: el rechazo de empresas manda email.|
 |HU-39|Inserción Laboral|Publicar ofertas laborales|IMPLEMENTADO|15/11: todos los campos de la HU obligatorios (backend y formulario).|
 |HU-40|Inserción Laboral|Ofertas pendientes hasta<br>aprobación|Implementado|Antes: cualquier rol distinto de participante veía<br>las pendientes, y la empresa podía<br>autoaprobarse editando el estado. Excepción<br>vigente: las ofertas creadas por admin o<br>voluntario nacen 'Activa'.|
-|HU-41|Inserción Laboral|Aprobar, rechazar o eliminar<br>ofertas|IMPLEMENTADO -<br>TESTING PENDIENTE|15/11: borrar avisa a la empresa (evento oferta.eliminada).|
-|HU-42|Inserción Laboral|Eliminar ofertas rechazadas o<br>publicadas|IMPLEMENTADO -<br>TESTING PENDIENTE|15/11: auditoría de ofertas con endpoint y pantalla.|
+|HU-41|Inserción Laboral|Aprobar, rechazar o eliminar<br>ofertas|IMPLEMENTADO|15/11: borrar avisa a la empresa (evento oferta.eliminada).|
+|HU-42|Inserción Laboral|Eliminar ofertas rechazadas o<br>publicadas|IMPLEMENTADO|15/11: auditoría de ofertas con endpoint y pantalla.|
 |HU-43|Inserción Laboral|Generar CV desde el perfil|Implementado|-|
 |HU-44|Inserción Laboral|Notificación de oferta compatible|IMPLEMENTADO -<br>TESTING PENDIENTE|15/11: cruce requisito = habilidad y aviso a participantes.|
 |HU-45|Inserción Laboral|Buscar ofertas por título|Implementado|-|
@@ -289,7 +289,7 @@ Página 8
 
 ##### **HU-02: Iniciar sesión con email y contraseña** 
 
-**Actualización 15/11/2026: IMPLEMENTADO - TESTING PENDIENTE.** bloqueo 15 min tras 5 intentos (423). Falta migrar la tabla y probar en testing. Detalle en la sección 16.
+**Actualización 15/11/2026: IMPLEMENTADO (verificado de punta a punta en Docker).** bloqueo 15 min tras 5 intentos (423). Falta migrar la tabla y probar en testing. Detalle en la sección 16.
 
 |**Campo**|**Detalle**|
 |---|---|
@@ -331,7 +331,7 @@ Página 9
 
 ##### **HU-03: Validar el JWT en cada solicitud protegida** 
 
-**Actualización 15/11/2026: IMPLEMENTADO - TESTING PENDIENTE.** tokens rechazados en la auditoría de auth. Detalle en la sección 16.
+**Actualización 15/11/2026: IMPLEMENTADO (verificado de punta a punta en Docker).** tokens rechazados en la auditoría de auth. Detalle en la sección 16.
 
 |**Campo**|**Detalle**|
 |---|---|
@@ -393,7 +393,7 @@ Página 10
 
 ##### **HU-06: Control de acceso RBAC con vistas por rol** 
 
-**Actualización 15/11/2026: IMPLEMENTADO - TESTING PENDIENTE.** matriz de permisos de solo lectura, 403 auditados y guards. Detalle en la sección 16.
+**Actualización 15/11/2026: IMPLEMENTADO (verificado de punta a punta en Docker).** matriz de permisos de solo lectura, 403 auditados y guards. Detalle en la sección 16.
 
 |**Campo**|**Detalle**|
 |---|---|
@@ -413,7 +413,7 @@ Página 10
 
 ##### **HU-07: Crear perfiles de participantes** 
 
-**Actualización 15/11/2026: IMPLEMENTADO - TESTING PENDIENTE.** DNI, dirección y teléfono obligatorios; alta auditada. Detalle en la sección 16.
+**Actualización 15/11/2026: IMPLEMENTADO (verificado de punta a punta en Docker).** DNI, dirección y teléfono obligatorios; alta auditada. Detalle en la sección 16.
 
 |**Campo**|**Detalle**|
 |---|---|
@@ -437,7 +437,7 @@ Página 11
 
 ##### **HU-08: Editar perfiles de participantes** 
 
-**Actualización 15/11/2026: IMPLEMENTADO - TESTING PENDIENTE.** ediciones auditadas con nombres de campos. Detalle en la sección 16.
+**Actualización 15/11/2026: IMPLEMENTADO (verificado de punta a punta en Docker).** ediciones auditadas con nombres de campos. Detalle en la sección 16.
 
 |**Campo**|**Detalle**|
 |---|---|
@@ -457,7 +457,7 @@ Página 11
 
 ##### **HU-09: Eliminar perfiles de participantes (baja lógica)** 
 
-**Actualización 15/11/2026: IMPLEMENTADO - TESTING PENDIENTE.** bajas auditadas. Detalle en la sección 16.
+**Actualización 15/11/2026: IMPLEMENTADO (verificado de punta a punta en Docker).** bajas auditadas. Detalle en la sección 16.
 
 |**Campo**|**Detalle**|
 |---|---|
@@ -477,7 +477,7 @@ Página 11
 
 ##### **HU-10: Log de auditoría de acciones sobre perfiles** 
 
-**Actualización 15/11/2026: IMPLEMENTADO - TESTING PENDIENTE.** tabla auditoria inmutable, endpoint y pantalla. Falta migrar y desplegar. Detalle en la sección 16.
+**Actualización 15/11/2026: IMPLEMENTADO (verificado de punta a punta en Docker).** tabla auditoria inmutable, endpoint y pantalla. Falta migrar y desplegar. Detalle en la sección 16.
 
 |**Campo**|**Detalle**|
 |---|---|
@@ -521,7 +521,7 @@ Página 12
 
 ##### **HU-12: Aprobar el registro de voluntarios** 
 
-**Actualización 15/11/2026: IMPLEMENTADO - TESTING PENDIENTE.** rechazo con email 'cuenta_rechazada'. Detalle en la sección 16.
+**Actualización 15/11/2026: IMPLEMENTADO (verificado de punta a punta en Docker).** rechazo con email 'cuenta_rechazada'. Detalle en la sección 16.
 
 |**Campo**|**Detalle**|
 |---|---|
@@ -565,7 +565,7 @@ Página 13
 
 ##### **HU-14: Crear cursos (con materiales opcionales)** 
 
-**Actualización 15/11/2026: IMPLEMENTADO - TESTING PENDIENTE.** aviso de los cursos que usan el material antes de borrarlo. Detalle en la sección 16.
+**Actualización 15/11/2026: IMPLEMENTADO (verificado de punta a punta en Docker).** aviso de los cursos que usan el material antes de borrarlo. Detalle en la sección 16.
 
 |**Campo**|**Detalle**|
 |---|---|
@@ -1061,7 +1061,7 @@ Página 21
 
 ##### **HU-38: Cuenta de empresa con aprobación** 
 
-**Actualización 15/11/2026: IMPLEMENTADO - TESTING PENDIENTE.** el rechazo de empresas manda email. Detalle en la sección 16.
+**Actualización 15/11/2026: IMPLEMENTADO (verificado de punta a punta en Docker).** el rechazo de empresas manda email. Detalle en la sección 16.
 
 |**Campo**|**Detalle**|
 |---|---|
@@ -1123,7 +1123,7 @@ Página 22
 
 ##### **HU-41: Aprobar, rechazar o eliminar ofertas** 
 
-**Actualización 15/11/2026: IMPLEMENTADO - TESTING PENDIENTE.** borrar avisa a la empresa (evento oferta.eliminada). Detalle en la sección 16.
+**Actualización 15/11/2026: IMPLEMENTADO (verificado de punta a punta en Docker).** borrar avisa a la empresa (evento oferta.eliminada). Detalle en la sección 16.
 
 |**Campo**|**Detalle**|
 |---|---|
@@ -1143,7 +1143,7 @@ Página 22
 
 ##### **HU-42: Eliminar ofertas rechazadas o publicadas** 
 
-**Actualización 15/11/2026: IMPLEMENTADO - TESTING PENDIENTE.** auditoría de ofertas con endpoint y pantalla. Detalle en la sección 16.
+**Actualización 15/11/2026: IMPLEMENTADO (verificado de punta a punta en Docker).** auditoría de ofertas con endpoint y pantalla. Detalle en la sección 16.
 
 |**Campo**|**Detalle**|
 |---|---|
@@ -2108,7 +2108,7 @@ Página 43
 
 ### **16. Actualización del 15/11/2026: implementación de los pendientes**
 
-Trabajo hecho sobre `develop` (base `d42cdfd`), **sin commitear todavía**. Se modificó código de `auth/`, `labor-integration/` y `notifications/` con el OK de la usuaria (15/11/2026): **hay que avisarle a Leonardo** antes de pasarlo a testing.
+Trabajo hecho sobre `develop`: commit `6f1e6f7` (implementación) más las correcciones que salieron de la verificación de punta a punta del mismo día. Se modificó código de `auth/`, `labor-integration/` y `notifications/` con el OK de la usuaria (15/11/2026): **hay que avisarle a Leonardo** antes de pasarlo a testing.
 
 **Decisiones de la usuaria (15/11/2026).**
 
@@ -2117,30 +2117,30 @@ Trabajo hecho sobre `develop` (base `d42cdfd`), **sin commitear todavía**. Se m
 - HU-01, dominio Gmail: obligatorio **solo para participantes** (registro público y alta desde Usuarios). El resto de los roles puede usar cualquier dominio.
 - HU-06, panel RBAC: matriz **de solo lectura**. Los permisos siguen en el código de cada servicio; no se hizo una tabla editable.
 
-**Significado de los estados.** IMPLEMENTADO: corregido y verificado con tests automáticos que pasan. IMPLEMENTADO - TESTING PENDIENTE: el código y sus tests unitarios están, pero falta probarlo desplegado (necesita una migración, Pub/Sub, el API Gateway de GCP o un servicio externo). PENDIENTE: no implementado. BLOQUEADO: necesita una decisión, un acceso o una intervención externa.
+**Significado de los estados.** IMPLEMENTADO: corregido y verificado (tests automáticos y, para lo de esta actualización, prueba de punta a punta contra el stack Docker con el código nuevo). IMPLEMENTADO - TESTING PENDIENTE: el código y sus tests unitarios están, pero falta probarlo desplegado (necesita una migración, Pub/Sub, el API Gateway de GCP o un servicio externo). PENDIENTE: no implementado. BLOQUEADO: necesita una decisión, un acceso o una intervención externa.
 
 #### **Estado de cada historia observada**
 
 |**HU**|**Estado**|**Qué se hizo (15/11)**|**Qué falta**|
 |---|---|---|---|
 |HU-01|IMPLEMENTADO|Gmail obligatorio para participantes en `AuthService.Register`, `UserService.CreateUser`, el formulario de registro y el alta desde Usuarios.|-|
-|HU-02|IMPLEMENTADO - TESTING PENDIENTE|Bloqueo por email tras 5 intentos fallidos durante 15 minutos (`LOGIN_MAX_ATTEMPTS`, `LOGIN_LOCK_MINUTES`). Tabla `login_attempts` (guarda el hash del email, no el email). Respuesta 423 con `code: ACCOUNT_LOCKED`; antes del bloqueo avisa cuántos intentos quedan. El login lo muestra y deshabilita el botón. Se desbloquea solo al vencer el plazo; un login correcto reinicia el contador.|Crear la tabla en Neon y probarlo en testing (pasos 4 y 13).|
-|HU-03|IMPLEMENTADO - TESTING PENDIENTE|Un token presentado y rechazado (401) en una ruta protegida de auth queda en la auditoría como `token_rechazado`. Los pedidos sin sesión no se registran (para no llenar la tabla).|Migración. Los rechazos en los otros servicios siguen solo en el log técnico.|
+|HU-02|IMPLEMENTADO|Bloqueo por email tras 5 intentos fallidos durante 15 minutos (`LOGIN_MAX_ATTEMPTS`, `LOGIN_LOCK_MINUTES`). Tabla `login_attempts` (guarda el hash del email, no el email). Respuesta 423 con `code: ACCOUNT_LOCKED`; antes del bloqueo avisa cuántos intentos quedan. El login lo muestra y deshabilita el botón. Se desbloquea solo al vencer el plazo; un login correcto reinicia el contador.|Verificado de punta a punta en Docker el 15/11 (ver Testing). Falta solo desplegarlo a testing.|
+|HU-03|IMPLEMENTADO|Un token presentado y rechazado (401) en una ruta protegida de auth queda en la auditoría como `token_rechazado`. Los pedidos sin sesión no se registran (para no llenar la tabla).|Verificado de punta a punta en Docker el 15/11 (ver Testing). Falta solo desplegarlo a testing.|
 |HU-04|IMPLEMENTADO|Reutilizar un refresh token ya usado revoca todos los refresh tokens del usuario y responde 401.|-|
-|HU-06|IMPLEMENTADO - TESTING PENDIENTE|Pantalla "Roles y permisos" (`/dashboard/permisos`, solo admin, solo lectura). Los accesos denegados (403) quedan en la auditoría (`acceso_denegado`). Guards por rol en `usuarios`, `cv`, `ofertas` y `seguimiento`.|Migración de la auditoría. El docente sigue pudiendo crear cursos en borrador: se mantiene porque es la moderación de HU-23.|
-|HU-07|IMPLEMENTADO - TESTING PENDIENTE|DNI (7 u 8 números), dirección y teléfono obligatorios al crear un participante desde Usuarios y en `POST /participants`; DNI y dirección se guardan en el perfil en la misma transacción que la cuenta. El alta queda en la auditoría.|Probar en testing que el DNI y la dirección quedan guardados.|
-|HU-08|IMPLEMENTADO - TESTING PENDIENTE|Cada edición queda en la auditoría con los **nombres** de los campos modificados (nunca los valores).|Migración.|
-|HU-09|IMPLEMENTADO - TESTING PENDIENTE|Cada baja queda en la auditoría.|Migración.|
-|HU-10|IMPLEMENTADO - TESTING PENDIENTE|Tabla `auditoria` en auth (usuario, rol, acción, recurso, id, campos, resultado, IP, fecha), con un trigger de Postgres que impide editarla o borrarla. La escribe el middleware `AuditTrail`. `GET /api/v1/auth/auditoria` (solo admin) y módulo "Usuarios y perfiles (Autenticación)" en la pantalla Auditoría.|Migración y ruta en el API Gateway. Diferencia con la HU: el registro se escribe al terminar el pedido, no en la misma transacción del cambio (ver observación nueva 7).|
+|HU-06|IMPLEMENTADO|Pantalla "Roles y permisos" (`/dashboard/permisos`, solo admin, solo lectura). Los accesos denegados (403) quedan en la auditoría (`acceso_denegado`). Guards por rol en `usuarios`, `cv`, `ofertas` y `seguimiento`.|Verificado de punta a punta en Docker el 15/11 (ver Testing). Falta solo desplegarlo a testing.|
+|HU-07|IMPLEMENTADO|DNI (7 u 8 números), dirección y teléfono obligatorios al crear un participante desde Usuarios y en `POST /participants`; DNI y dirección se guardan en el perfil en la misma transacción que la cuenta. El alta queda en la auditoría.|Verificado de punta a punta en Docker el 15/11 (ver Testing). Falta solo desplegarlo a testing.|
+|HU-08|IMPLEMENTADO|Cada edición queda en la auditoría con los **nombres** de los campos modificados (nunca los valores).|Verificado de punta a punta en Docker el 15/11 (ver Testing). Falta solo desplegarlo a testing.|
+|HU-09|IMPLEMENTADO|Cada baja queda en la auditoría.|Verificado de punta a punta en Docker el 15/11 (ver Testing). Falta solo desplegarlo a testing.|
+|HU-10|IMPLEMENTADO|Tabla `auditoria` en auth (usuario, rol, acción, recurso, id, campos, resultado, IP, fecha), con un trigger de Postgres que impide editarla o borrarla. La escribe el middleware `AuditTrail`. `GET /api/v1/auth/auditoria` (solo admin) y módulo "Usuarios y perfiles (Autenticación)" en la pantalla Auditoría.|Verificado de punta a punta en Docker el 15/11 (ver Testing). Falta solo desplegarlo a testing.|
 |HU-11|IMPLEMENTADO|Límite de 5 MB para la foto (rxresume, 413) y para los documentos (auth, 400), y el mismo control en el front. Los cambios quedan en la auditoría.|-|
-|HU-12|IMPLEMENTADO - TESTING PENDIENTE|Rechazo de cuentas: `PATCH /api/v1/users/{id}/approval` con `rejected` pide el email `cuenta_rechazada`; Notificaciones lo envía. El panel de Usuarios tiene la opción "Rechazado" y aprueba o rechaza por ese endpoint.|Ruta en el API Gateway y verificar el email en testing.|
-|HU-14|IMPLEMENTADO - TESTING PENDIENTE|Antes de borrar un material se consulta `GET /api/materiales/{id}/cursos` y la confirmación nombra los cursos que lo usan.|Ruta en el API Gateway.|
+|HU-12|IMPLEMENTADO|Rechazo de cuentas: `PATCH /api/v1/users/{id}/approval` con `rejected` pide el email `cuenta_rechazada`; Notificaciones lo envía. El panel de Usuarios tiene la opción "Rechazado" y aprueba o rechaza por ese endpoint.|Verificado de punta a punta en Docker el 15/11 (ver Testing). Falta solo desplegarlo a testing.|
+|HU-14|IMPLEMENTADO|Antes de borrar un material se consulta `GET /api/materiales/{id}/cursos` y la confirmación nombra los cursos que lo usan.|Verificado de punta a punta en Docker el 15/11 (ver Testing). Falta solo desplegarlo a testing.|
 |HU-18, HU-23, HU-26, HU-60|BLOQUEADO|Sin cambios de código: dependen de Pub/Sub, Cloud Scheduler y Resend en testing.|Acceso a GCP (pasos 8 a 10).|
 |HU-31|BLOQUEADO|Sin cambios.|Decisión del equipo: mantener nombre, edad y habilidades leídos de Auth y Educación (recomendado, no duplica datos personales) o agregarlos como campos de la ficha.|
-|HU-38|IMPLEMENTADO - TESTING PENDIENTE|El rechazo de una empresa manda `cuenta_rechazada` (mismo flujo que HU-12).|Verificar el email en testing.|
+|HU-38|IMPLEMENTADO|El rechazo de una empresa manda `cuenta_rechazada` (mismo flujo que HU-12).|Verificado de punta a punta en Docker el 15/11 (ver Testing). Falta solo desplegarlo a testing.|
 |HU-39|IMPLEMENTADO|Título, descripción, ubicación, modalidad, tipo de empleo, salario, horario, al menos un requisito y fecha límite son obligatorios al crear y editar (400 con el campo que falta). El formulario los marca y muestra el mensaje del backend.|-|
-|HU-41|IMPLEMENTADO - TESTING PENDIENTE|Al borrar una oferta se emite `insercion_laboral.oferta.eliminada`; si la borró la gestión del centro, Notificaciones avisa a la empresa.|Filtros de Pub/Sub (paso 8).|
-|HU-42|IMPLEMENTADO - TESTING PENDIENTE|Auditoría de ofertas (crear, editar, aprobar, rechazar, borrar) en Firestore (`auditoria_insercion_laboral`), `GET /api/v1/labor-integration/auditoria` (solo admin) y módulo "Inserción laboral" en la pantalla Auditoría.|Ruta en el API Gateway.|
+|HU-41|IMPLEMENTADO|Al borrar una oferta se emite `insercion_laboral.oferta.eliminada`; si la borró la gestión del centro, Notificaciones avisa a la empresa.|Verificado de punta a punta en Docker el 15/11 (ver Testing). Falta solo desplegarlo a testing.|
+|HU-42|IMPLEMENTADO|Auditoría de ofertas (crear, editar, aprobar, rechazar, borrar) en Firestore (`auditoria_insercion_laboral`), `GET /api/v1/labor-integration/auditoria` (solo admin) y módulo "Inserción laboral" en la pantalla Auditoría.|Verificado de punta a punta en Docker el 15/11 (ver Testing). Falta solo desplegarlo a testing.|
 |HU-44|IMPLEMENTADO - TESTING PENDIENTE|Al aprobarse una oferta (o al crearla publicada la gestión), labor pide a Educación las habilidades otorgadas (`GET /api/habilidades/otorgadas`, reenviando el token del admin), cruza nombres con los requisitos y emite `insercion_laboral.oferta.compatible` con los ids de los participantes; Notificaciones avisa a cada uno. Si Educación no responde, la aprobación sigue igual (queda en el log).|`EDUCATION_API_URL` en testing y filtros de Pub/Sub (pasos 5 y 8).|
 |HU-50|IMPLEMENTADO|`GET /api/v1/campaigns/publicas` acepta `?limit=&offset=` y devuelve `{items, total}`; sin `limit` responde igual que antes. La página pública trae de a 12 con "Ver más campañas".|-|
 |HU-56|IMPLEMENTADO - TESTING PENDIENTE|`infra/monitoring/setup.sh` y `dashboard.json` crean en Cloud Monitoring el panel privado por servicio (pedidos, 5xx, latencia p95, instancias, CPU, memoria), uptime checks y tres alertas por email.|Correrlo en Cloud Shell (paso 11). No se pudo ejecutar: no hay gcloud local.|
@@ -2153,7 +2153,7 @@ Trabajo hecho sobre `develop` (base `d42cdfd`), **sin commitear todavía**. Se m
 |Problema 1 (cursos sin materiales)|IMPLEMENTADO|Corregido el 11/11; sin cambios.|
 |Problema 2 (rate limit por IP)|BLOQUEADO|Elegir el salto confiable de `X-Forwarded-For` sin ver cómo lo arma el API Gateway de GCP puede bloquear a usuarios legítimos o dejar el límite esquivable. Paso 12.|
 |Problema 3 (notificaciones de PH)|BLOQUEADO|Falta la prueba en el navegador; no se puede hacer contra el stack local con escritura (comparte bases con testing). Paso 13.|
-|Problema 4 (permisos de labor)|IMPLEMENTADO - TESTING PENDIENTE|Corregido el 11/11; falta desplegarlo a testing (paso 7).|
+|Problema 4 (permisos de labor)|IMPLEMENTADO|Corregido el 11/11 y verificado otra vez en Docker; falta desplegarlo a testing (paso 7).|
 |Problema 5 (eliminar campañas)|IMPLEMENTADO|Sin cambios.|
 |Guards de frontend faltantes|IMPLEMENTADO|Ver HU-06.|
 |Panel RBAC|IMPLEMENTADO|Solo lectura, por decisión de la usuaria.|
@@ -2174,6 +2174,8 @@ Trabajo hecho sobre `develop` (base `d42cdfd`), **sin commitear todavía**. Se m
 6. **El bloqueo de HU-02 se puede usar para molestar.** Quien conozca el email de otra persona puede bloquearle la cuenta 15 minutos con 5 intentos. Es propio de lo que pide la HU; se mitiga con el plazo corto y la recuperación de contraseña.
 7. **Auditoría fuera de la transacción.** En auth y labor el registro se escribe al terminar el pedido, antes de responder (Cloud Run corta la CPU al responder). Si la base falla justo ahí, el cambio queda sin registro (sí queda en el log técnico). Hacerlo en la misma transacción obligaría a reescribir todos los servicios de auth.
 8. **Detección de refresh reutilizado limitada.** La limpieza `DeleteExpired` borra los tokens revocados, así que un refresh reutilizado después de esa limpieza se rechaza como "no encontrado" sin cerrar las demás sesiones.
+9. **Errores de validación del alta respondían 500 (corregido en la verificación).** Crear un participante sin Gmail o sin DNI desde Usuarios devolvía 500 porque el controlador trataba cualquier error del servicio como error interno. Ahora responde 400 con el motivo (`ErrValidacion`), con su test.
+10. **El email de rechazo casi nunca iba a salir (corregido en la verificación).** Notificaciones no manda emails "no críticos" a direcciones sin verificar, y quien es rechazado casi nunca verificó todavía su email. El aviso de rechazo ahora es crítico, igual que el de verificación, que va a la misma dirección. Verificado: el email se envió (estado `sent`).
 
 #### **Testing ejecutado el 15/11/2026**
 
@@ -2186,7 +2188,13 @@ Trabajo hecho sobre `develop` (base `d42cdfd`), **sin commitear todavía**. Se m
 |Frontend: `ng build`|Compila sin errores (queda una advertencia previa de una clave duplicada `axisIndex`).|
 |Validación de `openapi.yaml` y `pipeline.yml`|YAML válido; sin `operationId` repetidos.|
 
-**No ejecutado (pendiente):** los tests que necesitan el emulador de Firestore se saltean localmente (no está corriendo y no hay gcloud); el CI los corre con el emulador. Tampoco se corrieron k6, la sonda de seguridad ni pruebas contra el stack Docker, porque el stack no se reconstruyó (los contenedores no tienen el código nuevo y recrearlo requiere tu pedido) y comparte bases con testing. No hay E2E. Nada se probó en testing.
+|Tests Go con emuladores (Firestore en un contenedor aparte y el Pub/Sub del stack)|pkg, education, human-promotion, dashboard, campaigns, labor-integration y notifications: todo pasa, sin tests salteados.|
+|Prueba de punta a punta contra el stack Docker reconstruido (`tests/e2e-hu`, resultado en `docs/evidencias/e2e-hu-resultado.json`)|**40 de 40 OK.** Cubre HU-01, 02, 03, 06, 07, 08, 09, 10, 11, 12, 14, 39, 41, 42, 44 (integración con Educación) y 50, más el trigger de inmutabilidad en Neon y la limpieza de los datos [PRUEBA].|
+|Envío real del email de rechazo (HU-12)|Cuenta [PRUEBA] registrada y rechazada: Notificaciones guardó "Tu solicitud de cuenta no fue aprobada" con `email=sent`. La cuenta se dio de baja después.|
+
+**Cómo se hizo la prueba de punta a punta.** Con tu autorización se reconstruyeron auth, labor, notifications, education, campaigns, rxresume, frontend y gateway, y se reinició el emulador de Pub/Sub, que recrea las suscripciones con los filtros nuevos. La prueba firma sus propios tokens con `JWT_SECRET`, así que no usa contraseñas. Escribe solo datos marcados [PRUEBA] en la Neon y el Firestore compartidos con testing y los da de baja al final; la auditoría queda, porque es inmutable. Como parte de HU-02, deja bloqueada 15 minutos la cuenta empresa de prueba. Las tablas `login_attempts` y `auditoria`, con su trigger, quedaron creadas en Neon.
+
+**No ejecutado:** k6 y la sonda de seguridad no se volvieron a correr. Tampoco hay E2E de navegador (necesitan una base aislada). Falta ver llegar a un participante el aviso de oferta compatible de HU-44: las únicas cuentas con habilidades son de otras personas y no se cruzaron ofertas con ellas para no mandarles emails reales. Nada se probó todavía en el ambiente de testing de GCP.
 
 **Archivos principales tocados:** `auth/internal/{middlewares/audit_middleware.go, repositories/security_repository.go, services/login_lock.go, services/participant_rules.go, controllers/audit_controller.go}`, `labor-integration/internal/{services/job_offer_hu.go, repositories/audit_repository.go, repositories/education_client.go}`, `notifications/internal/rules/{account.go, labor.go}`, `pkg/events/catalog.go` (+ copias), `infra/pubsub/{setup.sh, emulator.sh}`, `infra/monitoring/`, `api-gateway/{openapi.yaml, nginx.conf}`, `.github/workflows/pipeline.yml` (variable `EDUCATION_API_URL` de labor), y en el front `auditoria.service.ts`, `roles.guard.ts`, `pages/dashboard/permisos/` más los componentes de login, registro, usuarios, ofertas, auditoría, admin-cursos y campañas públicas. `docs/HISTORIAS_DE_USUARIO.md` y `docs/PENDIENTES.md` se regeneraron desde `datos.py` (el PDF no se regeneró porque lo borraste).
 
@@ -2208,14 +2216,13 @@ Ningún paso necesita secretos nuevos salvo el 10 (Firebase). Nunca pegues valor
 - **Resultado esperado:** visto bueno tuyo y aviso hecho.
 - **Verificación:** `git diff --stat -- campaigns` muestra solo `campaign_controller.go` y `events/catalog.go` con cambios reales.
 
-#### **Paso 2. Commit en develop** [Código, con tu OK]
+#### **Paso 2. Commit en develop** [Hecho: `6f1e6f7`; las correcciones de la verificación van en un commit aparte]
 
-- **Qué:** commitear todo en `develop` (sin ramas feature).
-- **Cómo:** pedímelo y lo hago, o `git add -A && git commit -m "Auditoría 15/11: bloqueo de login, auditoría en auth y labor, rechazos, ofertas compatibles, RBAC de solo lectura"`. Revisá antes los archivos sin seguimiento de `docs/` que ya estaban (PDF de referencia, tesis) por si no querés incluirlos.
-- **Resultado esperado:** commit nuevo sobre `d42cdfd`.
-- **Verificación:** `git log -1 --stat`.
+- **Qué:** commitear en `develop` (sin ramas feature) las correcciones que salieron de la verificación del 15/11 (400 en el alta, email de rechazo crítico, prueba `tests/e2e-hu`, informe y PDF).
+- **Cómo:** pedímelo y lo hago.
+- **Verificación:** `git log -2 --oneline`.
 
-#### **Paso 3. Tests con emuladores (opcional, recomendado)** [Manual]
+#### **Paso 3. Tests con emuladores** [Hecho el 15/11 en local; el CI los repite]
 
 - **Qué:** correr los tests que hoy se saltean sin emulador.
 - **Dónde:** tu máquina (con el emulador de Firestore y el de Pub/Sub levantados) o el CI.
@@ -2223,8 +2230,9 @@ Ningún paso necesita secretos nuevos salvo el 10 (Firebase). Nunca pegues valor
 - **Resultado esperado:** todo pasa.
 - **Verificación:** ningún `FAIL`; en el CI, los jobs `ci-*` en verde.
 
-#### **Paso 4. Migración de la base de auth en Neon** [Credenciales]
+#### **Paso 4. Migración de la base de auth en Neon** [Hecho el 15/11]
 
+- **Estado:** **ya está hecho.** El auth del stack local las creó al arrancar, y como la Neon es la misma que usa testing, testing ya las tiene. La prueba de punta a punta verificó las dos tablas y el trigger. Solo hay que repetir este paso si testing usara otra base.
 - **Qué:** crear las tablas `login_attempts` y `auditoria` y el trigger que impide editar la auditoría. Son cambios **solo de agregado** (no tocan datos existentes). Ojo: el stack local usa la misma base Neon que testing, así que esto vale para los dos.
 - **Dónde:** carpeta `auth/`, con la `DATABASE_URL` de testing en `auth/.env`.
 - **Cómo:** `cd auth && go run ./cmd/migrate`. (Si no lo corrés, el servicio crea las tablas y el trigger solo al arrancar en Cloud Run; la migración explícita es más segura porque muestra el error si falla.)
@@ -2304,7 +2312,7 @@ Con los usuarios de prueba (`docs/tesis`, datos `[PRUEBA]`) en `https://testing.
 |6|Entrar como participante a `/dashboard/usuarios` por URL (HU-06)|Vuelve al inicio; en Auditoría queda el 403 si llegó a pedir datos.|
 |7|Admin → Roles y permisos (HU-06)|Se ve la matriz de solo lectura.|
 |8|Empresa → publicar oferta sin salario (HU-39)|"Completá: salario"; completa, queda pendiente.|
-|9|Dar a un participante de prueba una habilidad (entregar una actividad que la desarrolle) y aprobar una oferta con ese requisito (HU-44)|El participante recibe la notificación "Hay una oferta laboral para vos".|
+|9|**(Pendiente también en local.)** Dar a un participante de prueba una habilidad (entregar una actividad que la desarrolle) y aprobar una oferta con ese requisito (HU-44)|El participante recibe la notificación "Hay una oferta laboral para vos".|
 |10|Admin borra una oferta de una empresa (HU-41)|La empresa recibe "Oferta laboral eliminada".|
 |11|Admin → Auditoría → "Inserción laboral" (HU-42)|Aparecen la aprobación y el borrado.|
 |12|Admin → Gestión de cursos → borrar un material usado (HU-14)|La confirmación nombra los cursos que lo usan.|

@@ -53,3 +53,14 @@ func TestAuthController_CheckCredentials_Locked(t *testing.T) {
 	assert.Equal(t, "ACCOUNT_LOCKED", resp["code"])
 	assert.Contains(t, resp["error"], "10 minuto")
 }
+
+// Los errores de validación del alta (Gmail, DNI) responden 400, no 500.
+func TestUserController_CreateUser_ValidacionEs400(t *testing.T) {
+	mockSvc := new(MockUserService)
+	mockSvc.On("CreateUser", mock.Anything, mock.Anything).Return(nil, services.ErrParticipantGmail)
+	body, _ := json.Marshal(dto.CreateUserRequest{FirstName: "Ana", LastName: "Paz", Email: "a@hotmail.com", Password: "Password123!", Phone: "351", RoleID: "role_participant"})
+	w := httptest.NewRecorder()
+	controllers.NewUserController(mockSvc).CreateUser(w, httptest.NewRequest("POST", "/users", bytes.NewReader(body)))
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+	assert.Contains(t, w.Body.String(), "Gmail")
+}

@@ -107,7 +107,10 @@ func (r *EmailSolicitadoRule) Build(_ context.Context, env events.Envelope) ([]N
 		message = "El equipo del centro revisó tu solicitud de cuenta y no fue aprobada. Si creés que es un error, comunicate con el Centro Barrial La Otra Orilla."
 		templateID = "general_alert"
 		category = models.CategorySystem
-		isCritical = false
+		// Crítico: quien es rechazado casi nunca verificó su email
+		// todavía, y los no críticos no se mandan a emails sin verificar
+		// (es la misma dirección a la que va el email de verificación).
+		isCritical = true
 	case "recuperacion_password":
 		title = "Recuperación de contraseña - Buen Vivir"
 		message = "Recibimos una solicitud para restablecer tu contraseña."
