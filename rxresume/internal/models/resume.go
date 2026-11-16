@@ -135,10 +135,9 @@ type Resume struct {
 	ID         string     `gorm:"primaryKey;column:id" json:"id"`
 	UserID     string     `gorm:"uniqueIndex;not null;column:user_id" json:"user_id"`
 	Title      string     `gorm:"not null;column:title" json:"title"`
-	PDFURL     string     `gorm:"column:pdf_url" json:"pdf_url"`
-	PublicURL  string     `gorm:"column:public_url" json:"public_url"`
-	RxResumeID string     `gorm:"column:rxresume_id" json:"rxresume_id"`
-	Data       ResumeData `gorm:"type:jsonb;column:data" json:"data"`
+	PDFURL    string     `gorm:"column:pdf_url" json:"pdf_url"`
+	PublicURL string     `gorm:"column:public_url" json:"public_url"`
+	Data      ResumeData `gorm:"type:jsonb;column:data" json:"data"`
 	CreatedAt  time.Time  `gorm:"column:created_at" json:"created_at"`
 	UpdatedAt  time.Time  `gorm:"column:updated_at" json:"updated_at"`
 }
