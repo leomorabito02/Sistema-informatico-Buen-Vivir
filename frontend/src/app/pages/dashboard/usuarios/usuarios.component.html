@@ -466,10 +466,12 @@
           "
         >
           <li *ngFor="let item of selectedUser.coursesList">
-            <!-- Si es inscripción (tiene curso_id), mostramos info de la inscripción -->
-            <span *ngIf="item.curso_id; else isCourse">
+            <!-- Si es inscripción (tiene cursoId), mostramos info de la inscripción -->
+            <span *ngIf="item.cursoId || item.curso_id; else isCourse">
               <strong>{{
-                item.titulo_curso || "Curso " + item.curso_id
+                item.courseTitle ||
+                  item.titulo_curso ||
+                  "Curso " + (item.cursoId || item.curso_id)
               }}</strong>
               <span class="course-role badge-participant">Participante</span>
             </span>

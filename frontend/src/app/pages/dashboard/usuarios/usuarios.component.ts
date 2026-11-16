@@ -1,6 +1,8 @@
 import { Component, OnInit, inject } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { FormsModule } from "@angular/forms";
+import { forkJoin, of } from "rxjs";
+import { catchError, map, switchMap } from "rxjs/operators";
 import { TableModule } from "primeng/table";
 import { ButtonModule } from "primeng/button";
 import { TagModule } from "primeng/tag";
@@ -31,6 +33,7 @@ export interface DashboardUser {
   roleApprovalStatus?: string; // 'approved' | 'pending' | 'rejected'
   image_url?: string;
   coursesStatus: string;
+  participantId?: string;
   originalUser?: any; // To store full backend data if needed
   profileData?: any; // Full profile data fetched on demand
   coursesList?: any[]; // Enrolled courses or taught courses
@@ -76,6 +79,7 @@ export class UsuariosComponent implements OnInit {
   /** Mostrar solo las cuentas pendientes de aprobación (HU-12, HU-38). */
   soloPendientes = false;
   private busquedaTimer?: ReturnType<typeof setTimeout>;
+  private courseTitleMap: Map<string, string> | null = null;
   selectedRole: string = "Todos los roles";
   currentUserRoleId: string = "";
   currentUserId: string = "";
@@ -189,26 +193,71 @@ export class UsuariosComponent implements OnInit {
     const userIds = this.users.map((u) => u.id);
     if (userIds.length === 0) return;
 
-    this.educationService.getBulkUserCourses(userIds).subscribe({
-      next: (data) => {
-        const courseMap = new Map<string, string[]>();
-        data.forEach((item) => courseMap.set(item.user_id, item.courses));
+    const userIdsSet = new Set(userIds);
+    const hasParticipants = this.users.some(
+      (u) =>
+        u.originalUser?.role_id === "role_participant" ||
+        u.role === "Participante",
+    );
+    const participants$ =
+      hasParticipants &&
+      typeof this.usersService.listParticipants === "function"
+        ? this.usersService.listParticipants().pipe(catchError(() => of([])))
+        : of([]);
 
-        this.users = this.users.map((u) => {
-          const courses = courseMap.get(u.id) || [];
-          return {
-            ...u,
-            coursesStatus:
-              courses.length > 0 ? courses.join(", ") : "Sin cursos",
-          };
-        });
-        this.filterUsers();
-      },
-      error: (err) => {
-        console.error("Error cargando cursos batch:", err);
-        this.filterUsers();
-      },
-    });
+    const userToParticipant = new Map<string, string>();
+    const participantToUser = new Map<string, string>();
+
+    participants$
+      .pipe(
+        switchMap((participants) => {
+          const participantIds: string[] = [];
+          for (const p of participants) {
+            if (!p.participant_id || !p.user_id || !userIdsSet.has(p.user_id)) {
+              continue;
+            }
+            userToParticipant.set(p.user_id, p.participant_id);
+            participantToUser.set(p.participant_id, p.user_id);
+            participantIds.push(p.participant_id);
+          }
+
+          // Enrollments in education-service are keyed by participant_id while
+          // teacher courses are keyed by user_id.
+          const queryIds = Array.from(new Set([...userIds, ...participantIds]));
+          return this.educationService.getBulkUserCourses(queryIds);
+        }),
+      )
+      .subscribe({
+        next: (data) => {
+          const courseMap = new Map<string, string[]>();
+          data.forEach((item) => {
+            const targetUserId =
+              participantToUser.get(item.user_id) ?? item.user_id;
+            const current = courseMap.get(targetUserId) ?? [];
+            for (const title of item.courses ?? []) {
+              if (title && !current.includes(title)) {
+                current.push(title);
+              }
+            }
+            courseMap.set(targetUserId, current);
+          });
+
+          this.users = this.users.map((u) => {
+            const courses = courseMap.get(u.id) || [];
+            return {
+              ...u,
+              participantId: u.participantId ?? userToParticipant.get(u.id),
+              coursesStatus:
+                courses.length > 0 ? courses.join(", ") : "Sin cursos",
+            };
+          });
+          this.filterUsers();
+        },
+        error: (err) => {
+          console.error("Error cargando cursos batch:", err);
+          this.filterUsers();
+        },
+      });
   }
 
   private mapUserToDashboardUser(u: User): DashboardUser {
@@ -423,6 +472,10 @@ export class UsuariosComponent implements OnInit {
       return;
     }
     const userId = user.originalUser.user_id;
+    const isParticipant =
+      user.originalUser.role_id === "role_participant" ||
+      user.role === "Participante";
+    let enrollmentsRequested = false;
 
     this.usersService.getUserProfile(userId).subscribe({
       next: (profile) => {
@@ -449,21 +502,25 @@ export class UsuariosComponent implements OnInit {
           }
         }
 
-        if (profile.role_data?.participant_id) {
-          this.usersService
-            .getParticipantDocuments(profile.role_data.participant_id)
-            .subscribe({
-              next: (docs) => (this.participantDocuments = docs || []),
-              error: (err) => console.error("Error fetching docs", err),
-            });
+        const participantId = profile.role_data?.participant_id;
+        if (participantId) {
+          if (isParticipant) {
+            user.participantId = participantId;
+            if (!enrollmentsRequested) {
+              enrollmentsRequested = true;
+              this.loadParticipantEnrollments(user, participantId);
+            }
+          }
+
+          this.usersService.getParticipantDocuments(participantId).subscribe({
+            next: (docs) => (this.participantDocuments = docs || []),
+            error: (err) => console.error("Error fetching docs", err),
+          });
         } else {
           this.participantDocuments = [];
         }
 
-        if (
-          user.originalUser.role_id === "role_participant" ||
-          user.role === "Participante"
-        ) {
+        if (isParticipant) {
           this.rxResumeService.getUserResumeByAdmin(userId).subscribe({
             next: (resume) => {
               const cvPic = resume?.data?.basics?.picture;
@@ -489,16 +546,9 @@ export class UsuariosComponent implements OnInit {
       },
     });
 
-    if (
-      user.originalUser.role_id === "role_participant" ||
-      user.originalUser.role_id === "role_volunteer"
-    ) {
-      this.educationService.getParticipantEnrollments(userId).subscribe({
-        next: (enrollments) => {
-          user.coursesList = enrollments || [];
-        },
-        error: (err) => console.error("Error fetching enrollments:", err),
-      });
+    if (isParticipant && user.participantId) {
+      enrollmentsRequested = true;
+      this.loadParticipantEnrollments(user, user.participantId);
     } else if (user.originalUser.role_id === "role_teacher") {
       this.educationService.getTeacherCourses(userId).subscribe({
         next: (courses) => {
@@ -507,6 +557,52 @@ export class UsuariosComponent implements OnInit {
         error: (err) => console.error("Error fetching teacher courses:", err),
       });
     }
+  }
+
+  private loadParticipantEnrollments(
+    user: DashboardUser,
+    participantId: string,
+  ) {
+    forkJoin({
+      enrollments:
+        this.educationService.getParticipantEnrollments(participantId),
+      titleMap: this.getCourseTitleMap(),
+    }).subscribe({
+      next: ({ enrollments, titleMap }) => {
+        user.coursesList = (enrollments || [])
+          .filter((e) => e.estado !== "baja")
+          .map((e) => ({
+            ...e,
+            courseTitle:
+              e.courseTitle ||
+              (e as { titulo_curso?: string }).titulo_curso ||
+              (e.cursoId ? titleMap.get(e.cursoId) : undefined),
+          }));
+      },
+      error: (err) => console.error("Error fetching enrollments:", err),
+    });
+  }
+
+  private getCourseTitleMap() {
+    if (this.courseTitleMap) {
+      return of(this.courseTitleMap);
+    }
+    if (typeof this.educationService.listCourses !== "function") {
+      return of(new Map<string, string>());
+    }
+    return this.educationService.listCourses().pipe(
+      map((courses) => {
+        const titles = new Map<string, string>();
+        for (const c of courses || []) {
+          if (c.id && c.title) {
+            titles.set(c.id, c.title);
+          }
+        }
+        this.courseTitleMap = titles;
+        return titles;
+      }),
+      catchError(() => of(new Map<string, string>())),
+    );
   }
 
   /**

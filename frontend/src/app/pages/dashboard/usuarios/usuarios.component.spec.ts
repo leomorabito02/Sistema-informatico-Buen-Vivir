@@ -101,6 +101,7 @@ describe("UsuariosComponent", () => {
     ]);
     usersService = jasmine.createSpyObj<UsersService>("UsersService", [
       "listUsers",
+      "listParticipants",
       "createUser",
       "getUserProfile",
       "updateUser",
@@ -112,6 +113,7 @@ describe("UsuariosComponent", () => {
       "deleteParticipantDocument",
       "downloadParticipantDocument",
     ]);
+    usersService.listParticipants.and.returnValue(of([]));
     usersService.getParticipantDocuments.and.returnValue(of([]));
     usersService.uploadParticipantDocument.and.returnValue(
       of({ id: "pdoc-1", name: "doc1.pdf" }),
@@ -126,6 +128,7 @@ describe("UsuariosComponent", () => {
       "getBulkUserCourses",
       "getParticipantEnrollments",
       "getTeacherCourses",
+      "listCourses",
     ]);
     rxResumeService = jasmine.createSpyObj<RxResumeService>("RxResumeService", [
       "getUserResumeByAdmin",
@@ -150,6 +153,7 @@ describe("UsuariosComponent", () => {
     );
     education.getParticipantEnrollments.and.returnValue(of([]));
     education.getTeacherCourses.and.returnValue(of([]));
+    education.listCourses.and.returnValue(of([]));
     spyOn(console, "error");
 
     TestBed.configureTestingModule({
@@ -232,6 +236,46 @@ describe("UsuariosComponent", () => {
     expect(component.users[1].coursesStatus).toBe("Sin cursos");
     expect(component.users[2].phone).toBe("-");
     expect(component.filteredUsers).toHaveSize(5);
+  });
+
+  it("maps participant enrolled courses using participant_id alongside teacher courses", () => {
+    setup(admin, []);
+    usersService.listUsers.and.returnValue(
+      of([
+        apiUser({
+          user_id: "u-part",
+          first_name: "Lucía",
+          last_name: "Gómez",
+          role_id: "role_participant",
+        }),
+        apiUser({
+          user_id: "u-teach",
+          first_name: "Carlos",
+          last_name: "Ruiz",
+          role_id: "role_teacher",
+        }),
+      ]),
+    );
+    usersService.listParticipants.and.returnValue(
+      of([{ participant_id: "part-10", user_id: "u-part" }]),
+    );
+    education.getBulkUserCourses.and.returnValue(
+      of([
+        { user_id: "part-10", courses: ["Panadería", "Costura"] },
+        { user_id: "u-teach", courses: ["Huerta"] },
+      ]),
+    );
+
+    component.reload();
+
+    expect(education.getBulkUserCourses).toHaveBeenCalledWith([
+      "u-part",
+      "u-teach",
+      "part-10",
+    ]);
+    expect(component.users[0].participantId).toBe("part-10");
+    expect(component.users[0].coursesStatus).toBe("Panadería, Costura");
+    expect(component.users[1].coursesStatus).toBe("Huerta");
   });
 
   it("keeps the list when the courses batch fails", () => {
@@ -400,7 +444,13 @@ describe("UsuariosComponent", () => {
       of({ user: {}, role_data: { participant_id: "part-1" } }),
     );
     education.getParticipantEnrollments.and.returnValue(
-      of([{ id: "e1" } as never]),
+      of([
+        { id: "e1", cursoId: "c1", estado: "activa" } as never,
+        { id: "e2", cursoId: "c2", estado: "baja" } as never,
+      ]),
+    );
+    education.listCourses.and.returnValue(
+      of([{ id: "c1", title: "Panadería" } as never]),
     );
     const user = row({
       id: "u1",
@@ -411,7 +461,14 @@ describe("UsuariosComponent", () => {
 
     expect(component.showDetailModal).toBeTrue();
     expect(user.profileData.role_data.participant_id).toBe("part-1");
-    expect(user.coursesList?.length).toBe(1);
+    expect(education.getParticipantEnrollments).toHaveBeenCalledWith("part-1");
+    expect(user.coursesList).toEqual([
+      jasmine.objectContaining({
+        id: "e1",
+        cursoId: "c1",
+        courseTitle: "Panadería",
+      }),
+    ]);
   });
 
   it("loads the courses of a teacher in the detail", () => {

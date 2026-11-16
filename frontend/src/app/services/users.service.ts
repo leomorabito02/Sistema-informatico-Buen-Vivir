@@ -14,6 +14,16 @@ interface UsersEnvelope {
   data: User[];
 }
 
+export interface ParticipantSummary {
+  participant_id: string;
+  user_id: string;
+}
+
+interface ParticipantsEnvelope {
+  success: boolean;
+  data: ParticipantSummary[];
+}
+
 interface UserProfileEnvelope {
   success: boolean;
   data: {
@@ -56,6 +66,18 @@ export class UsersService {
     return this.listUsers({ role: roleId }).pipe(
       map((users) => users.filter((u) => u.role_id === roleId)),
     );
+  }
+
+  /** Lists participant profiles so callers can map user_id to participant_id. */
+  listParticipants(): Observable<ParticipantSummary[]> {
+    return this.http
+      .get<ParticipantsEnvelope>(`${this.apiUrl}/api/v1/participants`, {
+        withCredentials: true,
+      })
+      .pipe(
+        map((res) => res.data ?? []),
+        catchError(this.handleError),
+      );
   }
 
   getUserProfile(id: string): Observable<{ user: any; role_data?: any }> {
