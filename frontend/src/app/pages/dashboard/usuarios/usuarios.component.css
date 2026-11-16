@@ -1,7 +1,8 @@
 .user-mgmt-container {
+  width: 100%;
+  max-width: 100%;
   padding: 1.5rem;
-  max-width: 1300px;
-  margin: 0 auto;
+  margin: 0;
   font-family: inherit;
 }
 
@@ -126,6 +127,11 @@
   overflow-x: auto;
 }
 
+.table-skeleton {
+  --p-skeleton-background: #ebeae5;
+  --p-skeleton-animation-background: rgba(255, 255, 255, 0.55);
+}
+
 .custom-user-table {
   width: 100%;
   border-collapse: collapse;
@@ -137,7 +143,7 @@
   color: #3b3b3b;
   font-weight: 600;
   font-size: var(--font-size-sm);
-  padding: 14px 20px;
+  padding: 12px 14px;
   border-bottom: 1px solid #deddd7;
   white-space: nowrap;
 }
@@ -156,7 +162,7 @@
 }
 
 .custom-user-table tbody td {
-  padding: 14px 20px;
+  padding: 12px 14px;
   font-size: var(--font-size-sm);
   color: #333333;
   vertical-align: middle;
@@ -189,6 +195,14 @@
 .user-email,
 .user-phone {
   color: #4a4a4a;
+}
+
+.user-email {
+  overflow-wrap: anywhere;
+}
+
+.courses-text {
+  overflow-wrap: break-word;
 }
 
 .badge-role {
@@ -246,7 +260,7 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 14px;
+  gap: 10px;
 }
 
 .btn-action {
@@ -378,6 +392,16 @@
 .btn-change-picture:disabled {
   opacity: 0.6;
   cursor: not-allowed;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .btn-change-picture {
+    transition: none;
+  }
+
+  .btn-change-picture:hover {
+    transform: none;
+  }
 }
 
 .picture-uploading-indicator {

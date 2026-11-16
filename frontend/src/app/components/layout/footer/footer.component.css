@@ -106,11 +106,19 @@
 }
 
 .contact-icon {
-  width: 1.1rem;
-  height: 1.1rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.5rem;
+  height: 1.5rem;
   color: var(--primary);
   flex-shrink: 0;
   margin-top: 0.15rem;
+}
+
+i.contact-icon {
+  font-size: 1.25rem;
+  line-height: 1;
 }
 
 .footer-contact-list a {

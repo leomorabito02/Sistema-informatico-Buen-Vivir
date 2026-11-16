@@ -11,12 +11,12 @@ import { ToastModule } from "primeng/toast";
 import { ConfirmDialogModule } from "primeng/confirmdialog";
 import { ConfirmationService, MessageService } from "primeng/api";
 import { ProgressSpinnerModule } from "primeng/progressspinner";
+import { SkeletonModule } from "primeng/skeleton";
 import { AuthService } from "../../../services/auth.service";
 import { UsersService } from "../../../services/users.service";
 import { EducationService } from "../../../services/education.service";
 import { User } from "../../../core/models/auth.model";
 import { Router } from "@angular/router";
-import { LoadingStateComponent } from "../../../shared/components/loading-state.component";
 import { ErrorStateComponent } from "../../../shared/components/error-state.component";
 import { RxResumeService } from "../../../services/rxresume.service";
 import { ImageService } from "../../../services/image.service";
@@ -50,9 +50,9 @@ export interface DashboardUser {
     DialogModule,
     ToastModule,
     ConfirmDialogModule,
-    LoadingStateComponent,
     ErrorStateComponent,
     ProgressSpinnerModule,
+    SkeletonModule,
   ],
   providers: [MessageService, ConfirmationService],
   templateUrl: "./usuarios.component.html",
@@ -65,6 +65,9 @@ export class UsuariosComponent implements OnInit {
   private readonly router = inject(Router);
   private readonly messages = inject(MessageService);
   private readonly confirmation = inject(ConfirmationService);
+
+  /** Filas de muestra para el skeleton de la tabla. */
+  readonly skeletonRows = [0, 1, 2, 3, 4, 5];
 
   /** Carga inicial de la lista (para skeleton y estado de error). */
   loading = true;
@@ -165,11 +168,11 @@ export class UsuariosComponent implements OnInit {
     this.loadError = "";
     this.usersService.listUsers({ q: this.searchTerm }).subscribe({
       next: (data: User[]) => {
-        this.loading = false;
         if (data && data.length > 0) {
           this.users = data.map((u) => this.mapUserToDashboardUser(u));
           this.loadUserCoursesBatch();
         } else {
+          this.loading = false;
           this.users = [];
           this.filterUsers();
         }
@@ -187,7 +190,10 @@ export class UsuariosComponent implements OnInit {
 
   private loadUserCoursesBatch() {
     const userIds = this.users.map((u) => u.id);
-    if (userIds.length === 0) return;
+    if (userIds.length === 0) {
+      this.loading = false;
+      return;
+    }
 
     this.educationService.getBulkUserCourses(userIds).subscribe({
       next: (data) => {
@@ -202,10 +208,12 @@ export class UsuariosComponent implements OnInit {
               courses.length > 0 ? courses.join(", ") : "Sin cursos",
           };
         });
+        this.loading = false;
         this.filterUsers();
       },
       error: (err) => {
         console.error("Error cargando cursos batch:", err);
+        this.loading = false;
         this.filterUsers();
       },
     });

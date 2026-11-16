@@ -5,7 +5,7 @@ import {
   tick,
 } from "@angular/core/testing";
 import { NoopAnimationsModule } from "@angular/platform-browser/animations";
-import { of, throwError } from "rxjs";
+import { Subject, of, throwError } from "rxjs";
 import { ConfirmationService, MessageService } from "primeng/api";
 import {
   DashboardUser,
@@ -267,6 +267,40 @@ describe("UsuariosComponent", () => {
     ]);
     expect(component.users[0].coursesStatus).toBe("Panadería, Costura");
     expect(component.users[1].coursesStatus).toBe("Huerta");
+  });
+
+  it("shows a table-styled skeleton while loading users and their courses", () => {
+    setup(admin, []);
+    const pendingUsers$ = new Subject<User[]>();
+    const pendingCourses$ = new Subject<
+      { user_id: string; courses: string[] }[]
+    >();
+    usersService.listUsers.and.returnValue(pendingUsers$);
+    education.getBulkUserCourses.and.returnValue(pendingCourses$);
+
+    component.reload();
+    fixture.detectChanges();
+
+    expect(component.loading).toBeTrue();
+    expect(
+      fixture.nativeElement.querySelectorAll(".table-skeleton tbody tr"),
+    ).toHaveSize(6);
+
+    pendingUsers$.next([apiUser({ user_id: "u1", first_name: "Ana" })]);
+    pendingUsers$.complete();
+    fixture.detectChanges();
+
+    expect(component.loading).toBeTrue();
+    expect(
+      fixture.nativeElement.querySelector(".table-skeleton"),
+    ).not.toBeNull();
+
+    pendingCourses$.next([{ user_id: "u1", courses: ["Huerta"] }]);
+    pendingCourses$.complete();
+    fixture.detectChanges();
+
+    expect(component.loading).toBeFalse();
+    expect(fixture.nativeElement.querySelector(".table-skeleton")).toBeNull();
   });
 
   it("keeps the list when the courses batch fails", () => {
