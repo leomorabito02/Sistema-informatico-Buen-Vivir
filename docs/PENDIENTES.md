@@ -5,7 +5,6 @@ Estado al 15/11/2026. Generado por `scripts/informe-auditoria/generar.py` desde 
 | Prioridad | Pendiente | HU | Módulo | Trabajo necesario | Dependencias | Criterio de aceptación |
 |---|---|---|---|---|---|---|
 | Alta | Commit y pase a testing de los cambios del 15/11 | Varias | Todos | Commit en develop, PR develop -> testing | OK de la usuaria; avisar a Leonardo (auth, labor, notifications) | El CD de testing termina en verde. |
-| Alta | Migrar tablas nuevas de auth en Neon | HU-02, HU-10 | Autenticación | go run ./cmd/migrate (crea login_attempts, auditoria y el trigger) | Acceso a Neon | Las tablas existen y un UPDATE sobre auditoria falla. |
 | Alta | Rutas nuevas en el API Gateway de GCP | HU-10, HU-12, HU-14, HU-42 | Gateway | Desplegar la nueva config del gateway | Acceso a GCP (lo hace el CD) | GET /api/v1/auth/auditoria responde 200 a un admin en testing. |
 | Alta | Verificar Pub/Sub y emails en testing | HU-18, HU-23, HU-26, HU-41, HU-44, HU-60 | Notificaciones | Correr setup.sh (filtros nuevos), agregar PUBSUB_PUSH_* al CD, Cloud Scheduler para recordatorios | Acceso a GCP | Una inscripción en testing genera el email y la notificación in-app. |
 | Alta | EDUCATION_API_URL en labor (testing) | HU-44 | Inserción Laboral | Variable con la URL del gateway de testing | Acceso a GCP | Aprobar una oferta con un requisito igual a una habilidad avisa al participante. |
@@ -20,23 +19,11 @@ Estado al 15/11/2026. Generado por `scripts/informe-auditoria/generar.py` desde 
 
 | HU | Estado | Qué falta |
 |---|---|---|
-| HU-02 | Pendiente de verificación | Migrar la tabla login_attempts en Neon (cmd/migrate o arranque) y probar el bloqueo en testing. |
-| HU-03 | Pendiente de verificación | Migrar la tabla auditoria. Los rechazos de token en los otros servicios siguen solo en el log técnico. |
-| HU-06 | Pendiente de verificación | Migrar la tabla auditoria. Docente creando cursos en borrador: se mantiene (es la moderación de HU-23). |
-| HU-07 | Pendiente de verificación | Probar en testing que el DNI y la dirección queden guardados en el perfil. |
-| HU-08 | Pendiente de verificación | Migrar la tabla auditoria. |
-| HU-09 | Pendiente de verificación | Migrar la tabla auditoria. |
-| HU-10 | Pendiente de verificación | Migrar la tabla y el trigger en Neon; agregar la ruta al API Gateway. Se escribe al terminar el pedido, no en la misma transacción del cambio. |
-| HU-11 | Pendiente de verificación | Migrar la tabla auditoria. |
-| HU-12 | Pendiente de verificación | Agregar la ruta al API Gateway y verificar el email en testing. |
 | HU-18 | Pendiente de verificación | Verificar en testing que llegue el email (eventos + suscripción push de notifications). |
 | HU-23 | Pendiente de verificación | Verificar la notificación en testing. |
 | HU-26 | Pendiente de verificación | Configurar el job de Scheduler y verificar envíos. |
 | HU-31 | Parcialmente implementado | Confirmar con el equipo y, si corresponde, actualizar la HU. |
-| HU-38 | Pendiente de verificación | Verificar el email en testing. |
-| HU-41 | Pendiente de verificación | Actualizar las suscripciones de Pub/Sub (setup.sh) y verificar en testing. |
-| HU-42 | Pendiente de verificación | Agregar la ruta al API Gateway y verificar en testing. |
-| HU-44 | Pendiente de verificación | Configurar EDUCATION_API_URL en labor (testing), actualizar Pub/Sub y verificar con un participante con habilidades. |
+| HU-44 | Pendiente de verificación | Falta ver llegar el aviso a un participante de prueba que tenga la habilidad (no se cruzó con habilidades de cuentas reales para no mandarles emails). |
 | HU-56 | Pendiente de verificación | Correr el script en Cloud Shell (requiere acceso a GCP) y probar una alerta. |
 | HU-60 | Pendiente de verificación | Verificar suscripciones push en GCP. |
 | HU-61 | Parcialmente implementado | Configurar credenciales de FCM en testing y probar en un dispositivo. |

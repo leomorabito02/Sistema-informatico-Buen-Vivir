@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"errors"
 	"encoding/json"
 	"net/http"
 	"strings"
@@ -164,6 +165,9 @@ func (c *UserController) ApproveUser(w http.ResponseWriter, r *http.Request) {
 func errorStatus(err error, fallback int) int {
 	if strings.HasPrefix(err.Error(), "forbidden") {
 		return http.StatusForbidden
+	}
+	if errors.Is(err, services.ErrValidacion) {
+		return http.StatusBadRequest
 	}
 	return fallback
 }

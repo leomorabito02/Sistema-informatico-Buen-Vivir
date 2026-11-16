@@ -1,16 +1,16 @@
 # Historias de usuario: estado de implementación
 
-Auditoría del 15/11/2026 (rama develop, commit base d42cdfd + cambios del 15/11/2026 (sin commitear)). Generado por `scripts/informe-auditoria/generar.py` desde `datos.py`: no editar a mano. La fuente de las HU es `docs/referencias/HU DE BUEN VIVIR APP.pdf`.
+Auditoría del 15/11/2026 (rama develop, commit 6f1e6f7 + correcciones de la verificación del 15/11/2026). Generado por `scripts/informe-auditoria/generar.py` desde `datos.py`: no editar a mano. La fuente de las HU es `docs/referencias/HU DE BUEN VIVIR APP.pdf`.
 
 ## Resumen
 
 | Estado | Cantidad |
 |---|---|
-| Implementado | 44 |
+| Implementado | 56 |
 | Parcialmente implementado | 2 |
 | No implementado | 0 |
 | Implementado con errores | 0 |
-| Pendiente de verificación | 18 |
+| Pendiente de verificación | 6 |
 | **Total** | **64** |
 
 El estado es el final, después de las correcciones de la auditoría. Detalle completo en el informe PDF.
@@ -20,18 +20,18 @@ El estado es el final, después de las correcciones de la auditoría. Detalle co
 | HU | Módulo | Historia | Estado | Problema o pendiente principal |
 |---|---|---|---|---|
 | HU-01 | Autenticación y usuarios | Registrar usuarios con nombre, email, contraseña, teléfono y rol | Implementado | - |
-| HU-02 | Autenticación y usuarios | Iniciar sesión con email y contraseña | Pendiente de verificación | Migrar la tabla login_attempts en Neon (cmd/migrate o arranque) y probar el bloqueo en testing. |
+| HU-02 | Autenticación y usuarios | Iniciar sesión con email y contraseña | Implementado | Desplegar a testing (paso a paso del informe). |
 | HU-02bis | Autenticación y usuarios | Recuperar contraseña por enlace al email | Implementado | Verificar el envío real del email en testing (Resend). |
-| HU-03 | Autenticación y usuarios | Validar el JWT en cada solicitud protegida | Pendiente de verificación | Migrar la tabla auditoria. Los rechazos de token en los otros servicios siguen solo en el log técnico. |
+| HU-03 | Autenticación y usuarios | Validar el JWT en cada solicitud protegida | Implementado | Desplegar a testing (paso a paso del informe). |
 | HU-04 | Autenticación y usuarios | Expiración configurable y refresh tokens de uso único | Implementado | - |
 | HU-05 | Autenticación y usuarios | Autenticación de doble factor (2FA) | Implementado | - |
-| HU-06 | Autenticación y usuarios | Control de acceso RBAC con vistas por rol | Pendiente de verificación | Migrar la tabla auditoria. Docente creando cursos en borrador: se mantiene (es la moderación de HU-23). |
-| HU-07 | Autenticación y usuarios | Crear perfiles de participantes | Pendiente de verificación | Probar en testing que el DNI y la dirección queden guardados en el perfil. |
-| HU-08 | Autenticación y usuarios | Editar perfiles de participantes | Pendiente de verificación | Migrar la tabla auditoria. |
-| HU-09 | Autenticación y usuarios | Eliminar perfiles de participantes (baja lógica) | Pendiente de verificación | Migrar la tabla auditoria. |
-| HU-10 | Autenticación y usuarios | Log de auditoría de acciones sobre perfiles | Pendiente de verificación | Migrar la tabla y el trigger en Neon; agregar la ruta al API Gateway. Se escribe al terminar el pedido, no en la misma transacción del cambio. |
-| HU-11 | Autenticación y usuarios | Foto y documentación del participante | Pendiente de verificación | Migrar la tabla auditoria. |
-| HU-12 | Autenticación y usuarios | Aprobar el registro de voluntarios | Pendiente de verificación | Agregar la ruta al API Gateway y verificar el email en testing. |
+| HU-06 | Autenticación y usuarios | Control de acceso RBAC con vistas por rol | Implementado | Desplegar a testing (paso a paso del informe). |
+| HU-07 | Autenticación y usuarios | Crear perfiles de participantes | Implementado | Desplegar a testing (paso a paso del informe). |
+| HU-08 | Autenticación y usuarios | Editar perfiles de participantes | Implementado | Desplegar a testing (paso a paso del informe). |
+| HU-09 | Autenticación y usuarios | Eliminar perfiles de participantes (baja lógica) | Implementado | Desplegar a testing (paso a paso del informe). |
+| HU-10 | Autenticación y usuarios | Log de auditoría de acciones sobre perfiles | Implementado | Desplegar a testing (paso a paso del informe). |
+| HU-11 | Autenticación y usuarios | Foto y documentación del participante | Implementado | Desplegar a testing (paso a paso del informe). |
+| HU-12 | Autenticación y usuarios | Aprobar el registro de voluntarios | Implementado | Desplegar a testing (paso a paso del informe). |
 | HU-13 | Autenticación y usuarios | Iniciar sesión con Google | Implementado | - |
 | HU-14 | Educación | Crear cursos (con materiales opcionales) | Implementado | Antes de la auditoría no se podía crear un curso sin materiales (formulario, backend y Contentful lo exigían) y no se podía subir material desde el formulario del curso. |
 | HU-15 | Educación | Editar cursos | Implementado | - |
@@ -58,13 +58,13 @@ El estado es el final, después de las correcciones de la auditoría. Detalle co
 | HU-35 | Promoción Humana | Auditoría de modificaciones de fichas | Implementado | La HU menciona 'eliminar' fichas: no existe eliminación de fichas (no hay nada que auditar). |
 | HU-36 | Promoción Humana | Buscar participantes por nombre | Implementado | - |
 | HU-37 | Promoción Humana | Exportar ficha en PDF | Implementado | - |
-| HU-38 | Inserción Laboral | Cuenta de empresa con aprobación | Pendiente de verificación | Verificar el email en testing. |
+| HU-38 | Inserción Laboral | Cuenta de empresa con aprobación | Implementado | Desplegar a testing (paso a paso del informe). |
 | HU-39 | Inserción Laboral | Publicar ofertas laborales | Implementado | - |
 | HU-40 | Inserción Laboral | Ofertas pendientes hasta aprobación | Implementado | Antes: cualquier rol distinto de participante veía las pendientes, y la empresa podía autoaprobarse editando el estado. Excepción vigente: las ofertas creadas por admin o voluntario nacen 'Activa'. |
-| HU-41 | Inserción Laboral | Aprobar, rechazar o eliminar ofertas | Pendiente de verificación | Actualizar las suscripciones de Pub/Sub (setup.sh) y verificar en testing. |
-| HU-42 | Inserción Laboral | Eliminar ofertas rechazadas o publicadas | Pendiente de verificación | Agregar la ruta al API Gateway y verificar en testing. |
+| HU-41 | Inserción Laboral | Aprobar, rechazar o eliminar ofertas | Implementado | Desplegar a testing (paso a paso del informe). |
+| HU-42 | Inserción Laboral | Eliminar ofertas rechazadas o publicadas | Implementado | Desplegar a testing (paso a paso del informe). |
 | HU-43 | Inserción Laboral | Generar CV desde el perfil | Implementado | - |
-| HU-44 | Inserción Laboral | Notificación de oferta compatible | Pendiente de verificación | Configurar EDUCATION_API_URL en labor (testing), actualizar Pub/Sub y verificar con un participante con habilidades. |
+| HU-44 | Inserción Laboral | Notificación de oferta compatible | Pendiente de verificación | Falta ver llegar el aviso a un participante de prueba que tenga la habilidad (no se cruzó con habilidades de cuentas reales para no mandarles emails). |
 | HU-45 | Inserción Laboral | Buscar ofertas por título | Implementado | - |
 | HU-46 | Inserción Laboral | Buscar ofertas por empresa | Implementado | - |
 | HU-47 | Campañas | Crear campañas | Implementado | La imagen es una URL, no se sube un archivo. |
@@ -103,7 +103,7 @@ El estado es el final, después de las correcciones de la auditoría. Detalle co
 ### HU-02: Iniciar sesión con email y contraseña
 
 - **Actor:** Usuario registrado
-- **Estado:** Pendiente de verificación
+- **Estado:** Implementado
 - **Frontend:** pages/login
 - **Backend:** auth: AuthService.Login
 - **Endpoints:** POST /api/v1/auth/login
@@ -111,8 +111,8 @@ El estado es el final, después de las correcciones de la auditoría. Detalle co
 - **Tests existentes:** auth_service_test, auth_controller_test, k6_auth_load_test.js (CD)
 - **Tests que faltan:** Test de bloqueo tras 5 intentos
 - **Problemas detectados:** Ninguno
-- **Correcciones (11/11/2026):** 15/11: bloqueo por email tras 5 intentos fallidos durante 15 min (LOGIN_MAX_ATTEMPTS, LOGIN_LOCK_MINUTES), tabla login_attempts, respuesta 423 ACCOUNT_LOCKED y aviso de intentos restantes; el login del front lo muestra.
-- **Pendiente:** Migrar la tabla login_attempts en Neon (cmd/migrate o arranque) y probar el bloqueo en testing.
+- **Correcciones (11/11/2026):** 15/11: bloqueo por email tras 5 intentos fallidos durante 15 min (LOGIN_MAX_ATTEMPTS, LOGIN_LOCK_MINUTES), tabla login_attempts, respuesta 423 ACCOUNT_LOCKED y aviso de intentos restantes; el login del front lo muestra. Verificado en Docker: 4 avisos de intentos restantes, 423 al 5.º y sigue bloqueada.
+- **Pendiente:** Desplegar a testing (paso a paso del informe).
 
 ### HU-02bis: Recuperar contraseña por enlace al email
 
@@ -131,7 +131,7 @@ El estado es el final, después de las correcciones de la auditoría. Detalle co
 ### HU-03: Validar el JWT en cada solicitud protegida
 
 - **Actor:** Sistema
-- **Estado:** Pendiente de verificación
+- **Estado:** Implementado
 - **Frontend:** interceptors (sesión expirada)
 - **Backend:** AuthMiddleware en cada servicio (HS256, type=access, vencimiento)
 - **Endpoints:** Todos los protegidos
@@ -139,8 +139,8 @@ El estado es el final, después de las correcciones de la auditoría. Detalle co
 - **Tests existentes:** middlewares_test por servicio; sonda de seguridad: alg=none, otra clave, vencido y refresh rechazados con 401
 - **Tests que faltan:** -
 - **Problemas detectados:** Ninguno
-- **Correcciones (11/11/2026):** 15/11: los tokens presentados y rechazados (401) en las rutas protegidas de auth quedan en la auditoría (token_rechazado).
-- **Pendiente:** Migrar la tabla auditoria. Los rechazos de token en los otros servicios siguen solo en el log técnico.
+- **Correcciones (11/11/2026):** 15/11: los tokens presentados y rechazados (401) en las rutas protegidas de auth quedan en la auditoría (token_rechazado). Verificado en Docker: el token inválido queda en la auditoría como token_rechazado.
+- **Pendiente:** Desplegar a testing (paso a paso del informe).
 
 ### HU-04: Expiración configurable y refresh tokens de uso único
 
@@ -173,7 +173,7 @@ El estado es el final, después de las correcciones de la auditoría. Detalle co
 ### HU-06: Control de acceso RBAC con vistas por rol
 
 - **Actor:** Administrador
-- **Estado:** Pendiente de verificación
+- **Estado:** Implementado
 - **Frontend:** guards (admin, adminOrVolunteer, teacher, participant), menú por rol (header)
 - **Backend:** RequireRole en cada servicio + controles por dueño en servicios
 - **Endpoints:** Todos
@@ -181,13 +181,13 @@ El estado es el final, después de las correcciones de la auditoría. Detalle co
 - **Tests existentes:** routes_test RBAC por servicio; sonda de seguridad 39/39; tests nuevos de permisos (auth, labor, campaigns, education)
 - **Tests que faltan:** E2E por rol en el navegador
 - **Problemas detectados:** Ninguno
-- **Correcciones (11/11/2026):** 15/11: matriz de roles y permisos de solo lectura (/dashboard/permisos, decisión de la usuaria); accesos denegados (403) en la auditoría; guards en usuarios, cv, ofertas y seguimiento.
-- **Pendiente:** Migrar la tabla auditoria. Docente creando cursos en borrador: se mantiene (es la moderación de HU-23).
+- **Correcciones (11/11/2026):** 15/11: matriz de roles y permisos de solo lectura (/dashboard/permisos, decisión de la usuaria); accesos denegados (403) en la auditoría; guards en usuarios, cv, ofertas y seguimiento. Verificado en Docker: el 403 queda como acceso_denegado; la matriz y los guards tienen tests de front.
+- **Pendiente:** Desplegar a testing (paso a paso del informe).
 
 ### HU-07: Crear perfiles de participantes
 
 - **Actor:** Administrador, voluntario
-- **Estado:** Pendiente de verificación
+- **Estado:** Implementado
 - **Frontend:** dashboard/usuarios
 - **Backend:** UserService.CreateUser (voluntario solo crea participantes), ParticipantService
 - **Endpoints:** POST /api/v1/users, POST /api/v1/participants
@@ -195,13 +195,13 @@ El estado es el final, después de las correcciones de la auditoría. Detalle co
 - **Tests existentes:** user_service_test, participant_service_test (+ TestParticipantService_PermisosDeAltaYBaja)
 - **Tests que faltan:** Test de campos obligatorios completos
 - **Problemas detectados:** Ninguno
-- **Correcciones (11/11/2026):** 15/11: DNI (7 u 8 dígitos), dirección y teléfono obligatorios al crear participantes (backend y formulario); alta auditada.
-- **Pendiente:** Probar en testing que el DNI y la dirección queden guardados en el perfil.
+- **Correcciones (11/11/2026):** 15/11: DNI (7 u 8 dígitos), dirección y teléfono obligatorios al crear participantes (backend y formulario); alta auditada. Verificado en Docker: sin DNI responde 400; el alta completa guarda DNI y dirección y queda auditada.
+- **Pendiente:** Desplegar a testing (paso a paso del informe).
 
 ### HU-08: Editar perfiles de participantes
 
 - **Actor:** Administrador, voluntario
-- **Estado:** Pendiente de verificación
+- **Estado:** Implementado
 - **Frontend:** dashboard/usuarios
 - **Backend:** UserService.UpdateUser, ParticipantService.UpdateParticipant
 - **Endpoints:** PUT /api/v1/users/{id}, PUT /api/v1/participants/{id}
@@ -209,13 +209,13 @@ El estado es el final, después de las correcciones de la auditoría. Detalle co
 - **Tests existentes:** user_service_test
 - **Tests que faltan:** Test de auditoría con campos modificados
 - **Problemas detectados:** Ninguno
-- **Correcciones (11/11/2026):** 15/11: cada edición queda en la auditoría con los nombres de los campos modificados.
-- **Pendiente:** Migrar la tabla auditoria.
+- **Correcciones (11/11/2026):** 15/11: cada edición queda en la auditoría con los nombres de los campos modificados. Verificado en Docker: la edición queda auditada con el nombre del campo y sin valores.
+- **Pendiente:** Desplegar a testing (paso a paso del informe).
 
 ### HU-09: Eliminar perfiles de participantes (baja lógica)
 
 - **Actor:** Administrador, voluntario
-- **Estado:** Pendiente de verificación
+- **Estado:** Implementado
 - **Frontend:** dashboard/usuarios (confirmación)
 - **Backend:** ParticipantService.DeleteParticipant (soft delete GORM)
 - **Endpoints:** DELETE /api/v1/participants/{id}, DELETE /api/v1/users/{id}
@@ -223,13 +223,13 @@ El estado es el final, después de las correcciones de la auditoría. Detalle co
 - **Tests existentes:** participant_service_test
 - **Tests que faltan:** -
 - **Problemas detectados:** Ninguno
-- **Correcciones (11/11/2026):** 15/11: cada baja queda en la auditoría.
-- **Pendiente:** Migrar la tabla auditoria.
+- **Correcciones (11/11/2026):** 15/11: cada baja queda en la auditoría. Verificado en Docker: la baja queda auditada.
+- **Pendiente:** Desplegar a testing (paso a paso del informe).
 
 ### HU-10: Log de auditoría de acciones sobre perfiles
 
 - **Actor:** Administrador
-- **Estado:** Pendiente de verificación
+- **Estado:** Implementado
 - **Frontend:** dashboard/auditoria (muestra Educación y Promoción Humana)
 - **Backend:** auth no tiene auditoría; Educación y PH sí (colección auditoria)
 - **Endpoints:** GET /api/auditoria, GET /api/v1/human-promotion/auditoria
@@ -237,13 +237,13 @@ El estado es el final, después de las correcciones de la auditoría. Detalle co
 - **Tests existentes:** audit tests de education y PH
 - **Tests que faltan:** Tests de auditoría en auth
 - **Problemas detectados:** Ninguno
-- **Correcciones (11/11/2026):** 15/11: tabla auditoria en auth (inmutable por trigger), escrita por el middleware AuditTrail; GET /api/v1/auth/auditoria (admin) y módulo 'Usuarios y perfiles' en la pantalla Auditoría.
-- **Pendiente:** Migrar la tabla y el trigger en Neon; agregar la ruta al API Gateway. Se escribe al terminar el pedido, no en la misma transacción del cambio.
+- **Correcciones (11/11/2026):** 15/11: tabla auditoria en auth (inmutable por trigger), escrita por el middleware AuditTrail; GET /api/v1/auth/auditoria (admin) y módulo 'Usuarios y perfiles' en la pantalla Auditoría. Verificado en Docker y Neon: tablas creadas, el trigger rechaza UPDATE y DELETE, endpoint y pantalla.
+- **Pendiente:** Desplegar a testing (paso a paso del informe).
 
 ### HU-11: Foto y documentación del participante
 
 - **Actor:** Voluntario
-- **Estado:** Pendiente de verificación
+- **Estado:** Implementado
 - **Frontend:** dashboard/usuarios (documentos)
 - **Backend:** ParticipantService.UploadDocument (PDF/JPG/PNG/WEBP, 10 MB, MIME real)
 - **Endpoints:** /api/v1/participants/{id}/documents
@@ -251,13 +251,13 @@ El estado es el final, después de las correcciones de la auditoría. Detalle co
 - **Tests existentes:** participant_document_test
 - **Tests que faltan:** -
 - **Problemas detectados:** Ninguno
-- **Correcciones (11/11/2026):** 15/11: límite de 5 MB para foto (rxresume) y documentos (auth) en backend y frontend; cambios auditados.
-- **Pendiente:** Migrar la tabla auditoria.
+- **Correcciones (11/11/2026):** 15/11: límite de 5 MB para foto (rxresume) y documentos (auth) en backend y frontend; cambios auditados. Verificado en Docker: un documento de 6 MB responde 400.
+- **Pendiente:** Desplegar a testing (paso a paso del informe).
 
 ### HU-12: Aprobar el registro de voluntarios
 
 - **Actor:** Coordinador / administrador
-- **Estado:** Pendiente de verificación
+- **Estado:** Implementado
 - **Frontend:** pages/pending-approval, dashboard/usuarios
 - **Backend:** approval_status + canApprove (solo admin/dev)
 - **Endpoints:** PUT /api/v1/volunteers/{id}, PUT /api/v1/users/{id}
@@ -265,8 +265,8 @@ El estado es el final, después de las correcciones de la auditoría. Detalle co
 - **Tests existentes:** approval_helper tests
 - **Tests que faltan:** -
 - **Problemas detectados:** Ninguno
-- **Correcciones (11/11/2026):** 15/11: rechazo de cuentas (PATCH /users/{id}/approval con rejected) con email 'cuenta_rechazada'; el panel de Usuarios ahora aprueba y rechaza por ese endpoint, que también manda el email de aprobación (antes no salía desde el panel).
-- **Pendiente:** Agregar la ruta al API Gateway y verificar el email en testing.
+- **Correcciones (11/11/2026):** 15/11: rechazo de cuentas (PATCH /users/{id}/approval con rejected) con email 'cuenta_rechazada'; el panel de Usuarios ahora aprueba y rechaza por ese endpoint, que también manda el email de aprobación (antes no salía desde el panel). Verificado en Docker: rechazo por PATCH, perfil rechazado, auditado y email enviado (Resend).
+- **Pendiente:** Desplegar a testing (paso a paso del informe).
 
 ### HU-13: Iniciar sesión con Google
 
@@ -635,7 +635,7 @@ El estado es el final, después de las correcciones de la auditoría. Detalle co
 ### HU-38: Cuenta de empresa con aprobación
 
 - **Actor:** Empresa
-- **Estado:** Pendiente de verificación
+- **Estado:** Implementado
 - **Frontend:** pending-approval, ofertas
 - **Backend:** approval_status de company; CreateOffer exige empresa aprobada
 - **Endpoints:** /api/v1/companies
@@ -643,8 +643,8 @@ El estado es el final, después de las correcciones de la auditoría. Detalle co
 - **Tests existentes:** company_service_test
 - **Tests que faltan:** -
 - **Problemas detectados:** Ninguno
-- **Correcciones (11/11/2026):** 15/11: el rechazo de empresas manda el email 'cuenta_rechazada' (mismo flujo que HU-12).
-- **Pendiente:** Verificar el email en testing.
+- **Correcciones (11/11/2026):** 15/11: el rechazo de empresas manda el email 'cuenta_rechazada' (mismo flujo que HU-12). Mismo flujo que HU-12, verificado en Docker.
+- **Pendiente:** Desplegar a testing (paso a paso del informe).
 
 ### HU-39: Publicar ofertas laborales
 
@@ -677,7 +677,7 @@ El estado es el final, después de las correcciones de la auditoría. Detalle co
 ### HU-41: Aprobar, rechazar o eliminar ofertas
 
 - **Actor:** Administrador
-- **Estado:** Pendiente de verificación
+- **Estado:** Implementado
 - **Frontend:** ofertas
 - **Backend:** Approve/Reject (solo admin), DeleteOffer
 - **Endpoints:** PUT /offers/{id}/approve|reject, DELETE /offers/{id}
@@ -685,13 +685,13 @@ El estado es el final, después de las correcciones de la auditoría. Detalle co
 - **Tests existentes:** job_offer_controller_test, job_offer_permisos_test
 - **Tests que faltan:** -
 - **Problemas detectados:** Ninguno
-- **Correcciones (11/11/2026):** 15/11: al borrar una oferta la gestión del centro se emite insercion_laboral.oferta.eliminada y Notificaciones avisa a la empresa.
-- **Pendiente:** Actualizar las suscripciones de Pub/Sub (setup.sh) y verificar en testing.
+- **Correcciones (11/11/2026):** 15/11: al borrar una oferta la gestión del centro se emite insercion_laboral.oferta.eliminada y Notificaciones avisa a la empresa. Verificado en Docker: la empresa recibe 'Oferta laboral eliminada' en la campana.
+- **Pendiente:** Desplegar a testing (paso a paso del informe).
 
 ### HU-42: Eliminar ofertas rechazadas o publicadas
 
 - **Actor:** Administrador
-- **Estado:** Pendiente de verificación
+- **Estado:** Implementado
 - **Frontend:** ofertas
 - **Backend:** DeleteOffer (baja lógica si tiene postulaciones)
 - **Endpoints:** DELETE /offers/{id}
@@ -699,8 +699,8 @@ El estado es el final, después de las correcciones de la auditoría. Detalle co
 - **Tests existentes:** job_offer_permisos_test
 - **Tests que faltan:** -
 - **Problemas detectados:** Ninguno
-- **Correcciones (11/11/2026):** 15/11: auditoría de ofertas (crear, editar, aprobar, rechazar, borrar) en Firestore y GET /api/v1/labor-integration/auditoria; módulo 'Inserción laboral' en la pantalla Auditoría.
-- **Pendiente:** Agregar la ruta al API Gateway y verificar en testing.
+- **Correcciones (11/11/2026):** 15/11: auditoría de ofertas (crear, editar, aprobar, rechazar, borrar) en Firestore y GET /api/v1/labor-integration/auditoria; módulo 'Inserción laboral' en la pantalla Auditoría. Verificado en Docker: crear, aprobar y baja auditados; la empresa recibe 403.
+- **Pendiente:** Desplegar a testing (paso a paso del informe).
 
 ### HU-43: Generar CV desde el perfil
 
@@ -727,8 +727,8 @@ El estado es el final, después de las correcciones de la auditoría. Detalle co
 - **Tests existentes:** rules_test
 - **Tests que faltan:** -
 - **Problemas detectados:** Ninguno
-- **Correcciones (11/11/2026):** 15/11: al publicarse una oferta, labor cruza sus requisitos con las habilidades de Educación (mismo nombre, sin mayúsculas ni acentos) y emite insercion_laboral.oferta.compatible; Notificaciones avisa a cada participante.
-- **Pendiente:** Configurar EDUCATION_API_URL en labor (testing), actualizar Pub/Sub y verificar con un participante con habilidades.
+- **Correcciones (11/11/2026):** 15/11: al publicarse una oferta, labor cruza sus requisitos con las habilidades de Educación (mismo nombre, sin mayúsculas ni acentos) y emite insercion_laboral.oferta.compatible; Notificaciones avisa a cada participante. Verificado en Docker: al aprobar, labor consulta a Educación y hace el cruce.
+- **Pendiente:** Falta ver llegar el aviso a un participante de prueba que tenga la habilidad (no se cruzó con habilidades de cuentas reales para no mandarles emails).
 
 ### HU-45: Buscar ofertas por título
 

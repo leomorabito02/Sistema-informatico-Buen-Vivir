@@ -29,6 +29,9 @@ func TestEmailSolicitadoRule_CuentaRechazada(t *testing.T) {
 	if _, ok := data["request_id"]; ok {
 		t.Errorf("no debe llevar request_id: %v", data)
 	}
+	if !plans[0].IsCritical {
+		t.Errorf("el rechazo tiene que ser crítico para llegar a emails sin verificar")
+	}
 	if data["template_id"] != "general_alert" {
 		t.Errorf("template inesperado: %v", data["template_id"])
 	}

@@ -503,3 +503,33 @@ PENDIENTES = [
 RECOMENDACIONES = [r for r in RECOMENDACIONES if not r[1].startswith("Avisar en el front cuando el backend responde 429")] + [
     ("Auditoría", "La auditoría de auth y labor se escribe al terminar el pedido (no en la misma transacción): si la base falla justo en ese momento puede quedar un cambio sin registro (queda en el log técnico)."),
 ]
+
+# ======================================================================
+# Verificación de punta a punta del 15/11/2026 (stack Docker local con el
+# código nuevo, tests/e2e-hu: 40 de 40 OK, más el envío real del email de
+# rechazo). Lo verificado pasa a Implementado; falta solo desplegarlo.
+# ======================================================================
+VERSION = "rama develop, commit 6f1e6f7 + correcciones de la verificación del 15/11/2026"
+_VERIFICADAS = {
+    "HU-02": "Verificado en Docker: 4 avisos de intentos restantes, 423 al 5.º y sigue bloqueada.",
+    "HU-03": "Verificado en Docker: el token inválido queda en la auditoría como token_rechazado.",
+    "HU-06": "Verificado en Docker: el 403 queda como acceso_denegado; la matriz y los guards tienen tests de front.",
+    "HU-07": "Verificado en Docker: sin DNI responde 400; el alta completa guarda DNI y dirección y queda auditada.",
+    "HU-08": "Verificado en Docker: la edición queda auditada con el nombre del campo y sin valores.",
+    "HU-09": "Verificado en Docker: la baja queda auditada.",
+    "HU-10": "Verificado en Docker y Neon: tablas creadas, el trigger rechaza UPDATE y DELETE, endpoint y pantalla.",
+    "HU-11": "Verificado en Docker: un documento de 6 MB responde 400.",
+    "HU-12": "Verificado en Docker: rechazo por PATCH, perfil rechazado, auditado y email enviado (Resend).",
+    "HU-38": "Mismo flujo que HU-12, verificado en Docker.",
+    "HU-41": "Verificado en Docker: la empresa recibe 'Oferta laboral eliminada' en la campana.",
+    "HU-42": "Verificado en Docker: crear, aprobar y baja auditados; la empresa recibe 403.",
+}
+for _h in HUS:
+    if _h["id"] in _VERIFICADAS:
+        _h["estado"] = "IMPLEMENTADO"
+        _h["correcciones"] = _h["correcciones"] + " " + _VERIFICADAS[_h["id"]]
+        _h["pendiente"] = "Desplegar a testing (paso a paso del informe)."
+    if _h["id"] == "HU-44":
+        _h["correcciones"] += " Verificado en Docker: al aprobar, labor consulta a Educación y hace el cruce."
+        _h["pendiente"] = "Falta ver llegar el aviso a un participante de prueba que tenga la habilidad (no se cruzó con habilidades de cuentas reales para no mandarles emails)."
+PENDIENTES = [p for p in PENDIENTES if not p[0].startswith("Migrar tablas nuevas de auth")]

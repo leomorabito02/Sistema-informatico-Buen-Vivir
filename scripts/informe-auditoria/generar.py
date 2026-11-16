@@ -105,6 +105,22 @@ def tabla(cab, filas, anchos, colores_fila=None):
     return t
 
 
+def tabla_celdas(data, anchos):
+    """Tabla con celdas ya armadas (las usa la actualización en Markdown)."""
+    t = LongTable(data, colWidths=[a * cm for a in anchos], repeatRows=1)
+    st = [
+        ("BACKGROUND", (0, 0), (-1, 0), VERDE),
+        ("VALIGN", (0, 0), (-1, -1), "TOP"),
+        ("GRID", (0, 0), (-1, -1), 0.3, colors.HexColor("#B8C4BD")),
+        ("LEFTPADDING", (0, 0), (-1, -1), 3), ("RIGHTPADDING", (0, 0), (-1, -1), 3),
+        ("TOPPADDING", (0, 0), (-1, -1), 2), ("BOTTOMPADDING", (0, 0), (-1, -1), 2),
+    ]
+    for i in range(2, len(data), 2):
+        st.append(("BACKGROUND", (0, i), (-1, i), colors.HexColor("#F6F8F7")))
+    t.setStyle(TableStyle(st))
+    return t
+
+
 class Doc(BaseDocTemplate):
     def __init__(self, path):
         super().__init__(path, pagesize=A4, leftMargin=2 * cm, rightMargin=2 * cm, topMargin=2 * cm, bottomMargin=2 * cm,
@@ -207,7 +223,7 @@ def generar_pdf():
     story += [Spacer(1, 5 * cm), P("Buen Vivir App", "portada1"), Spacer(1, 0.6 * cm),
               P("Informe de auditoría técnica y funcional", "portada2"), Spacer(1, 1.2 * cm),
               P("Centro de Ecología Integral · Centro Barrial “La Otra Orilla”, Alta Gracia", "portada3"),
-              Spacer(1, 0.4 * cm), P("Fecha de realización: " + D.FECHA, "portada3"),
+              Spacer(1, 0.4 * cm), P("Auditoría: 11/11/2026 · Actualización: " + D.FECHA, "portada3"),
               P("Versión auditada: " + E(D.VERSION), "portada3"), Spacer(1, 6 * cm),
               P("Documento técnico. No contiene secretos, tokens ni credenciales.", "portada3")]
     from reportlab.platypus.doctemplate import NextPageTemplate
@@ -441,7 +457,10 @@ def generar_pdf():
                 "resolvió los cinco problemas reportados y dejó pruebas de carga y de seguridad reutilizables."),
               P("Para considerar el proyecto terminado falta: (1) reconstruir el stack Docker y desplegar los arreglos; (2) completar Autenticación "
                 "(auditoría, bloqueo por intentos, invalidación de sesión); (3) verificar de punta a punta notificaciones, emails y push en testing; "
-                "(4) las HU de Inserción Laboral pendientes (validaciones, ofertas compatibles); (5) panel RBAC y observabilidad; (6) E2E por rol.")]
+                "(4) las HU de Inserción Laboral pendientes (validaciones, ofertas compatibles); (5) panel RBAC y observabilidad; (6) E2E por rol."),
+              P("<b>Actualización 15/11/2026.</b> Los puntos (2), (4) y (5) quedaron implementados y verificados de punta a punta en el stack Docker "
+                "(40 de 40 pruebas; ver sección 16). Siguen abiertos el (1) (despliegue a testing), el (3) (necesita acceso a GCP y Firebase) y el (6) "
+                "(necesita una base de datos de pruebas aislada). El paso a paso para testing está al final del documento.")]
 
     # 16. Anexo
     story += [PageBreak(), P("15. Anexo técnico", "h1"), P("Estructura del repositorio", "h2"),
@@ -481,6 +500,13 @@ def generar_pdf():
                 "docs/evidencias/k6-resultado-carga.json y sonda-seguridad-resultado.json",
                 "scripts/informe-auditoria/datos.py (fuente de este informe)",
             ])
+
+    # 16. Actualización del 15/11/2026 y paso a paso (misma fuente que el .md)
+    act = os.path.join(os.path.dirname(os.path.abspath(__file__)), "actualizacion.md")
+    if os.path.exists(act):
+        from md_a_pdf import convertir
+        with open(act, encoding="utf-8") as f:
+            story += [PageBreak()] + convertir(f.read(), S, tabla_celdas)
 
     doc = Doc(os.path.join(DOCS, "INFORME_AUDITORIA_BUEN_VIVIR.pdf"))
     doc.multiBuild(story)
