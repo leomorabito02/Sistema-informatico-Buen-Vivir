@@ -52,7 +52,6 @@ func (s *authService) UpdateMyProfile(ctx context.Context, roleID, userID string
 			"address":                 true,
 			"gender":                  true,
 			"image_url":               true,
-			"doc_url":                 true,
 			"emergency_contact_name":  true,
 			"emergency_contact_phone": true,
 		}
