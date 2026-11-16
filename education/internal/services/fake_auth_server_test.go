@@ -49,7 +49,7 @@ func (f *fakeAuthServer) handle(w http.ResponseWriter, r *http.Request) {
 		}
 		id := strings.TrimPrefix(r.URL.Path, "/api/v1/participants/")
 		for _, p := range f.participants {
-			if p.ParticipantID == id {
+			if p.ParticipantID == id || p.UserID == id {
 				writeAuthData(w, p)
 				return
 			}

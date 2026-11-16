@@ -5,6 +5,7 @@ import (
 	"errors"
 	"testing"
 
+	"buenvivir/education/internal/middlewares"
 	"buenvivir/education/internal/models"
 	"buenvivir/education/internal/repositories"
 	"buenvivir/education/internal/services"
@@ -232,14 +233,41 @@ func TestEnroll_AcceptsApprovedAndLegacyAccepted(t *testing.T) {
 }
 
 func TestEnrollmentService_ListByParticipant(t *testing.T) {
+	// Arrange
 	repo := new(MockEnrollmentRepository)
 	svc := services.NewEnrollmentService(repo, nil, nil)
 	repo.On("ListByParticipant", mock.Anything, "p1").Return([]models.Enrollment{{ID: "e1"}}, nil)
 
+	// Act
 	list, err := svc.ListByParticipant(context.Background(), "p1")
 
+	// Assert
 	require.NoError(t, err)
 	assert.Len(t, list, 1)
+}
+
+func TestEnrollmentService_ListByParticipant_ResolvesUserIDAndCourseTitle(t *testing.T) {
+	// Arrange
+	repo, courses := new(MockEnrollmentRepository), new(MockCourseRepository)
+	auth := &fakeAuthServer{
+		participants: []models.AuthParticipant{{ParticipantID: "part-1", UserID: "usr-1"}},
+	}
+	svc := services.NewEnrollmentService(repo, courses, auth.start(t))
+	ctx := context.WithValue(context.Background(), middlewares.TokenKey, "tok-abc")
+	repo.On("ListByParticipant", mock.Anything, "usr-1").Return([]models.Enrollment{}, nil)
+	repo.On("ListByParticipant", mock.Anything, "part-1").Return([]models.Enrollment{
+		{ID: "e1", ParticipanteID: "part-1", CursoID: "c1", Estado: models.EnrollmentEstadoActiva},
+	}, nil)
+	courses.On("Get", mock.Anything, "c1").Return(&models.Course{ID: "c1", Title: "Panadería"}, nil).Once()
+
+	// Act
+	list, err := svc.ListByParticipant(ctx, "usr-1")
+
+	// Assert
+	require.NoError(t, err)
+	require.Len(t, list, 1)
+	assert.Equal(t, "Panadería", list[0].CourseTitle)
+	assert.Equal(t, "tok-abc", auth.receivedToken)
 }
 
 func summariesByUser(list []models.UserCourseSummary) map[string][]string {
@@ -276,6 +304,39 @@ func TestEnrollmentService_GetBulkUserCourses(t *testing.T) {
 		"t1": {"Carpintería"},
 	}, summariesByUser(list))
 	courses.AssertNumberOfCalls(t, "Get", 2)
+}
+
+func TestEnrollmentService_GetBulkUserCourses_ResolvesUserIDToParticipantID(t *testing.T) {
+	// Arrange
+	repo, courses := new(MockEnrollmentRepository), new(MockCourseRepository)
+	auth := &fakeAuthServer{
+		participants: []models.AuthParticipant{
+			{ParticipantID: "part-1", UserID: "usr-part-1"},
+			{ParticipantID: "part-other", UserID: "usr-not-requested"},
+		},
+	}
+	svc := services.NewEnrollmentService(repo, courses, auth.start(t))
+	ctx := context.WithValue(context.Background(), middlewares.TokenKey, "tok-bulk")
+
+	repo.On("ListByParticipants", mock.Anything, []string{"usr-part-1", "usr-teach-1", "part-1"}).Return([]models.Enrollment{
+		{ParticipanteID: "part-1", CursoID: "c1", Estado: models.EnrollmentEstadoActiva},
+		{ParticipanteID: "part-1", CursoID: "c2", Estado: models.EnrollmentEstadoBaja},
+	}, nil)
+	courses.On("Get", mock.Anything, "c1").Return(&models.Course{ID: "c1", Title: "Panadería"}, nil).Once()
+	courses.On("ListByResponsibleTeachers", mock.Anything, []string{"usr-part-1", "usr-teach-1"}).Return([]models.Course{
+		{ID: "c9", Title: "Huerta", ResponsibleTeacher: "usr-teach-1"},
+	}, nil)
+
+	// Act
+	list, err := svc.GetBulkUserCourses(ctx, []string{"usr-part-1", "usr-teach-1"})
+
+	// Assert
+	require.NoError(t, err)
+	assert.Equal(t, map[string][]string{
+		"usr-part-1":  {"Panadería"},
+		"usr-teach-1": {"Huerta"},
+	}, summariesByUser(list))
+	assert.Equal(t, "tok-bulk", auth.receivedToken)
 }
 
 func TestEnrollmentService_GetBulkUserCourses_Empty(t *testing.T) {

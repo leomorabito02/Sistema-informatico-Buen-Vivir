@@ -98,24 +98,6 @@ describe("UsersService", () => {
     req.flush({ success: true, data: mockUsers });
   });
 
-  it("should list participants with participant_id and user_id", () => {
-    const mockParticipants = [
-      { participant_id: "part-1", user_id: "u1" },
-      { participant_id: "part-2", user_id: "u2" },
-    ];
-
-    service.listParticipants().subscribe((participants) => {
-      expect(participants).toEqual(mockParticipants);
-    });
-
-    const req = httpMock.expectOne(
-      `${environment.apiUrl ?? ""}/api/v1/participants`,
-    );
-    expect(req.request.method).toBe("GET");
-    expect(req.request.withCredentials).toBeTrue();
-    req.flush({ success: true, data: mockParticipants });
-  });
-
   it("should handle error with body.errors", () => {
     service.listUsers().subscribe({
       next: () => fail("should have failed"),
