@@ -17,6 +17,7 @@ type JobOfferService struct {
 	appRepo    repositories.JobApplicationRepository
 	authClient repositories.AuthServiceClient
 	producer   producers.InsercionLaboralProducer
+	skills     repositories.SkillsClient
 }
 
 type JobOfferServiceOption func(*JobOfferService)
@@ -64,6 +65,9 @@ func (s *JobOfferService) CreateOffer(ctx context.Context, offer *models.JobOffe
 	if !esStaffOferta(role) && role != "role_company" {
 		return ErrOfferForbidden
 	}
+	if err := validateOfferFields(offer, true); err != nil {
+		return err
+	}
 	if role == "role_company" {
 		company, err := s.authClient.GetCompany(ctx, offer.CompanyID)
 		if err != nil {
@@ -104,6 +108,8 @@ func (s *JobOfferService) CreateOffer(ctx context.Context, offer *models.JobOffe
 			s.producer.Notify()
 		}
 	}
+	// HU-44: si nace publicada (la creó la gestión), se busca a quién le sirve.
+	s.notifyCompatibles(ctx, offer)
 
 	return nil
 }
@@ -164,6 +170,9 @@ func (s *JobOfferService) UpdateOffer(ctx context.Context, id string, offer *mod
 		return ErrOfferForbidden
 	}
 	offer.Status = estadoPermitido(existing.Status, offer.Status, role)
+	if err := validateOfferFields(offer, false); err != nil {
+		return err
+	}
 
 	existing.Title = offer.Title
 	existing.Description = offer.Description
@@ -210,9 +219,22 @@ func (s *JobOfferService) DeleteOffer(ctx context.Context, id, role, userID stri
 		return err
 	}
 	if hasApps {
-		return s.repo.UpdateStatus(ctx, id, "Eliminada") // Soft delete
+		err = s.repo.UpdateStatus(ctx, id, "Eliminada") // Soft delete
+	} else {
+		err = s.repo.Delete(ctx, id) // Hard delete
 	}
-	return s.repo.Delete(ctx, id) // Hard delete
+	if err != nil {
+		return err
+	}
+	// HU-41: si la borró la gestión del centro, se avisa a la empresa.
+	if s.producer != nil {
+		if err := s.producer.OfertaEliminada(ctx, existing.ID, existing.CompanyID, esStaffOferta(role)); err != nil {
+			slog.Warn("failed to emit oferta.eliminada", slog.String("error", err.Error()), slog.String("offer_id", id))
+		} else {
+			s.producer.Notify()
+		}
+	}
+	return nil
 }
 
 func (s *JobOfferService) ApproveOffer(ctx context.Context, id string, approvedBy string) error {
@@ -226,6 +248,9 @@ func (s *JobOfferService) ApproveOffer(ctx context.Context, id string, approvedB
 		} else {
 			s.producer.Notify()
 		}
+	}
+	if err == nil && offer != nil {
+		s.notifyCompatibles(ctx, offer) // HU-44
 	}
 	return nil
 }

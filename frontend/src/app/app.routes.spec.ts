@@ -31,7 +31,7 @@ describe("App Routes", () => {
       dashboardRoute?.loadComponent || dashboardRoute?.component,
     ).toBeDefined();
     expect(dashboardRoute?.canActivate).toEqual([authGuard]);
-    expect(dashboardRoute?.children).toHaveSize(25);
+    expect(dashboardRoute?.children).toHaveSize(26); // + permisos (HU-06)
   });
 
   it("should lazy load pending-approval component", async () => {

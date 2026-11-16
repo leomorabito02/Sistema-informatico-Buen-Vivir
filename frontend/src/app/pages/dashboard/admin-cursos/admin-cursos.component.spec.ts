@@ -4,7 +4,10 @@ import {
   fakeAsync,
   tick,
 } from "@angular/core/testing";
-import { AdminCursosComponent } from "./admin-cursos.component";
+import {
+  AdminCursosComponent,
+  mensajeBorrarMaterial,
+} from "./admin-cursos.component";
 import { EducationService } from "../../../services/education.service";
 import { UsersService } from "../../../services/users.service";
 import { MessageService, ConfirmationService } from "primeng/api";
@@ -40,6 +43,7 @@ describe("AdminCursosComponent", () => {
       "updateMaterial",
       "deleteMaterial",
       "uploadMaterial",
+      "coursesUsingMaterial",
     ]);
     usersServiceSpy = jasmine.createSpyObj("UsersService", ["listByRole"]);
     messageServiceSpy = jasmine.createSpyObj("MessageService", ["add"]);
@@ -335,8 +339,15 @@ describe("AdminCursosComponent", () => {
         return confirmationServiceSpy;
       });
       educationServiceSpy.deleteMaterial.and.returnValue(of(undefined));
+      educationServiceSpy.coursesUsingMaterial.and.returnValue(
+        of([{ id: "c1", titulo: "Huerta" }]),
+      );
 
       component.deleteMaterial(m);
+
+      expect(confirmationServiceSpy.confirm).toHaveBeenCalledWith(
+        jasmine.objectContaining({ message: jasmine.stringContaining("Huerta") }),
+      );
 
       expect(educationServiceSpy.deleteMaterial).toHaveBeenCalledWith("1");
       expect(messageServiceSpy.add).toHaveBeenCalledWith(
@@ -345,5 +356,15 @@ describe("AdminCursosComponent", () => {
         }),
       );
     });
+  });
+});
+
+describe("mensajeBorrarMaterial (HU-14)", () => {
+  it("nombra los cursos que usan el material", () => {
+    expect(mensajeBorrarMaterial("Guía", ["Huerta", "Cocina"])).toContain("está en 2 curso(s): Huerta, Cocina");
+  });
+  it("avisa cuando no está en cursos o no se pudo comprobar", () => {
+    expect(mensajeBorrarMaterial("Guía", [])).toContain("No está en ningún curso");
+    expect(mensajeBorrarMaterial("Guía", null)).toContain("No se pudo comprobar");
   });
 });

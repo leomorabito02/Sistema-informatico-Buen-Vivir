@@ -50,6 +50,8 @@ func main() {
 	storageCleanupRepo := repositories.NewStorageCleanupRepository(db)
 	emailVerificationRepo := repositories.NewEmailVerificationRepository(db)
 	passwordRecoveryRepo := repositories.NewPasswordRecoveryRepository(db)
+	loginAttemptRepo := repositories.NewLoginAttemptRepository(db)
+	auditRepo := repositories.NewAuditRepository(db)
 
 	// Setup Storage
 	storageSvc, err := storage.NewObjectStorageService(
@@ -96,6 +98,7 @@ func main() {
 		verificationService,
 		usuariosProducer,
 		twofaService,
+		loginAttemptRepo,
 	)
 
 	userService := services.NewUserService(userRepo, querier, notificationSyncSvc, verificationService, usuariosProducer)
@@ -133,6 +136,7 @@ func main() {
 	permissionController := controllers.NewPermissionController(permissionService)
 	volunteerController := controllers.NewVolunteerController(volunteerService)
 	tokenValidatorController := controllers.NewTokenValidatorController(jwtService)
+	auditController := controllers.NewAuditController(auditRepo)
 	participantDirectoryService := services.NewParticipantDirectoryService(participantDirectoryRepo)
 	directoryController := controllers.NewDirectoryController(participantDirectoryService)
 	grpcAuthController := controllers.NewGrpcAuthController(participantService, companyService, userService, participantDirectoryService, deviceRepo)
@@ -181,7 +185,12 @@ func main() {
 
 		// Protected Routes
 		r.Group(func(r chi.Router) {
+			// Auditoría (HU-10, HU-03, HU-06): va por fuera de AuthMiddleware
+			// para registrar también los tokens rechazados.
+			r.Use(middlewares.AuditTrail(auditRepo))
 			r.Use(middlewares.AuthMiddleware(jwtService))
+
+			r.With(middlewares.RequireRole("role_admin")).Get("/auth/auditoria", auditController.List)
 
 			r.Get("/auth/me", authController.GetMe)
 			r.Get("/profile/me", authController.GetMyProfileDetails)

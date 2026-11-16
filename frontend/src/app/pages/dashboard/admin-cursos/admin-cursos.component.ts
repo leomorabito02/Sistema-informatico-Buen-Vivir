@@ -619,9 +619,17 @@ export class AdminCursosComponent implements OnInit {
     });
   }
   deleteMaterial(m: Material) {
+    // HU-14: primero se averigua en qué cursos está, para avisar.
+    this.education.coursesUsingMaterial(m.id).subscribe({
+      next: (cursos) => this.confirmDeleteMaterial(m, cursos.map((c) => c.titulo)),
+      error: () => this.confirmDeleteMaterial(m, null),
+    });
+  }
+
+  private confirmDeleteMaterial(m: Material, cursos: string[] | null) {
     this.confirm.confirm({
       header: "Eliminar material",
-      message: `¿Eliminar el material "${m.title}"?`,
+      message: mensajeBorrarMaterial(m.title, cursos),
       acceptLabel: "Eliminar",
       rejectLabel: "Cancelar",
       acceptButtonStyleClass: "p-button-danger",
@@ -654,4 +662,19 @@ export class AdminCursosComponent implements OnInit {
       detail: err.message,
     });
   }
+}
+
+/**
+ * HU-14: texto de confirmación al borrar un material. Si está en cursos,
+ * los nombra; si no se pudo averiguar (null), lo dice.
+ */
+export function mensajeBorrarMaterial(titulo: string, cursos: string[] | null): string {
+  if (cursos === null) {
+    return `¿Eliminar el material "${titulo}"? No se pudo comprobar si está en algún curso.`;
+  }
+  if (cursos.length === 0) {
+    return `¿Eliminar el material "${titulo}"? No está en ningún curso.`;
+  }
+  const lista = cursos.slice(0, 5).join(", ") + (cursos.length > 5 ? ` y ${cursos.length - 5} más` : "");
+  return `El material "${titulo}" está en ${cursos.length} curso(s): ${lista}. Si lo eliminás, desaparece de esos cursos. ¿Eliminar igual?`;
 }

@@ -104,6 +104,15 @@
                 placeholder="tu@email.com"
               />
             </div>
+            <small
+              class="field-hint"
+              *ngIf="registerForm.get('role')?.value === 'participant'"
+              [class.field-hint-error]="
+                registerForm.hasError('participantGmail') &&
+                registerForm.get('email')?.touched
+              "
+              >Los participantes se registran con una cuenta de Gmail.</small
+            >
           </div>
 
           <div class="form-group">

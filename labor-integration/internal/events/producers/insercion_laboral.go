@@ -14,6 +14,8 @@ type InsercionLaboralProducer interface {
 	PostulacionCreada(ctx context.Context, postulacionID, ofertaID, participanteID, empresaID string) error
 	PostulacionSeleccionada(ctx context.Context, postulacionID, ofertaID, participanteID, empresaID string) error
 	PostulacionDecidida(ctx context.Context, postulacionID, ofertaID, participanteID, empresaID, resultado string) error
+	OfertaEliminada(ctx context.Context, ofertaID, empresaID string, porGestion bool) error
+	OfertaCompatible(ctx context.Context, ofertaID string, participanteIDs []string) error
 	Enabled() bool
 	Notify()
 }
@@ -135,3 +137,30 @@ func (p *insercionLaboralProducer) PostulacionSeleccionada(ctx context.Context, 
 	return p.writer.Add(ctx, ev)
 }
 
+
+// OfertaEliminada avisa que se borró una oferta (HU-41).
+func (p *insercionLaboralProducer) OfertaEliminada(ctx context.Context, ofertaID, empresaID string, porGestion bool) error {
+	if !p.Enabled() {
+		return nil
+	}
+	return p.writer.Add(ctx, outbox.Event{
+		Topic:       p.topic,
+		Type:        events.OfertaEliminada,
+		Payload:     events.OfertaEliminadaPayload{OfertaID: ofertaID, EmpresaID: empresaID, PorGestion: porGestion},
+		OrderingKey: empresaID,
+	})
+}
+
+// OfertaCompatible avisa qué participantes tienen habilidades que pide
+// la oferta recién publicada (HU-44).
+func (p *insercionLaboralProducer) OfertaCompatible(ctx context.Context, ofertaID string, participanteIDs []string) error {
+	if !p.Enabled() || len(participanteIDs) == 0 {
+		return nil
+	}
+	return p.writer.Add(ctx, outbox.Event{
+		Topic:       p.topic,
+		Type:        events.OfertaCompatible,
+		Payload:     events.OfertaCompatiblePayload{OfertaID: ofertaID, ParticipanteIDs: participanteIDs},
+		OrderingKey: ofertaID,
+	})
+}

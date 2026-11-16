@@ -157,9 +157,12 @@ func (r *userRepository) CreateWithRoleProfile(ctx context.Context, user *models
 				ApprovedBy:     appByPtr,
 			}).Error
 		case "role_participant":
+			dni, address := participantProfileFrom(ctx)
 			return tx.Create(&models.Participant{
 				ParticipantID:  "part-" + utils.GenerateRandomString(10),
 				UserID:         user.UserID,
+				DNI:            dni,
+				Address:        address,
 				ApprovalStatus: status,
 				ApprovedBy:     appByPtr,
 			}).Error
@@ -324,3 +327,19 @@ func (r *userRepository) FindActiveUserIDsByRoles(ctx context.Context, roles []s
 	return userIDs, nil
 }
 
+
+type participantProfileKey struct{}
+
+type participantProfile struct{ dni, address string }
+
+// WithParticipantProfile pasa el DNI y la dirección del participante a
+// CreateWithRoleProfile, para guardarlos en la misma transacción que la
+// cuenta (HU-07) sin cambiar la firma del repositorio.
+func WithParticipantProfile(ctx context.Context, dni, address string) context.Context {
+	return context.WithValue(ctx, participantProfileKey{}, participantProfile{dni: dni, address: address})
+}
+
+func participantProfileFrom(ctx context.Context) (string, string) {
+	p, _ := ctx.Value(participantProfileKey{}).(participantProfile)
+	return p.dni, p.address
+}

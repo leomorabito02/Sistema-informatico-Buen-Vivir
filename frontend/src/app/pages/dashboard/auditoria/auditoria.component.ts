@@ -10,6 +10,7 @@ import { TagModule } from "primeng/tag";
 
 import { EducationService } from "../../../services/education.service";
 import { HumanPromotionService } from "../../../services/human-promotion.service";
+import { AuditoriaService } from "../../../services/auditoria.service";
 import {
   FiltroAuditoria,
   RegistroAuditoria,
@@ -18,7 +19,7 @@ import { formatYMD, todayYMD } from "../../../shared/utils/date-ymd";
 import { LoadingStateComponent } from "../../../shared/components/loading-state.component";
 import { ErrorStateComponent } from "../../../shared/components/error-state.component";
 
-type Modulo = "promocion" | "educacion";
+type Modulo = "promocion" | "educacion" | "usuarios" | "laboral";
 
 interface Option<T = string> {
   label: string;
@@ -31,12 +32,29 @@ const ACCIONES: Record<string, string> = {
   registrar: "Carga",
   actualizar: "Edición",
   baja: "Baja",
+  aprobar: "Aprobación",
+  rechazar: "Rechazo",
+  acceso_denegado: "Acceso denegado",
+  token_rechazado: "Sesión rechazada",
 };
 const RECURSOS: Record<string, string> = {
   ficha: "Ficha personal",
   hito: "Hito",
   curso: "Curso",
   asistencia_general: "Asistencia general",
+  usuario: "Cuenta de usuario",
+  perfil_participante: "Perfil de participante",
+  documento_participante: "Documento de participante",
+  perfil_propio: "Perfil propio",
+  password: "Contraseña",
+  seguridad_cuenta: "Seguridad de la cuenta",
+  empresa: "Empresa",
+  docente: "Docente",
+  voluntario: "Voluntario",
+  rol: "Rol",
+  permiso: "Permiso",
+  dispositivo: "Dispositivo",
+  oferta: "Oferta laboral",
 };
 
 /**
@@ -66,10 +84,13 @@ const RECURSOS: Record<string, string> = {
 export class AuditoriaComponent implements OnInit {
   private readonly education = inject(EducationService);
   private readonly promocion = inject(HumanPromotionService);
+  private readonly auditoria = inject(AuditoriaService);
 
   readonly modulos: Option<Modulo>[] = [
     { label: "Promoción Humana (fichas e hitos)", value: "promocion" },
     { label: "Educación (cursos y asistencia)", value: "educacion" },
+    { label: "Usuarios y perfiles (Autenticación)", value: "usuarios" },
+    { label: "Inserción laboral (ofertas)", value: "laboral" },
   ];
   modulo: Modulo = "promocion";
   desde = formatYMD(haceDias(29));
@@ -95,10 +116,13 @@ export class AuditoriaComponent implements OnInit {
       hasta: this.hasta,
       accion: this.accion,
     };
-    const consulta$: Observable<RegistroAuditoria[]> =
-      this.modulo === "educacion"
-        ? this.education.listAuditoria(filtro)
-        : this.promocion.listarAuditoria(filtro);
+    const consultas: Record<Modulo, () => Observable<RegistroAuditoria[]>> = {
+      educacion: () => this.education.listAuditoria(filtro),
+      promocion: () => this.promocion.listarAuditoria(filtro),
+      usuarios: () => this.auditoria.listarUsuarios(filtro),
+      laboral: () => this.auditoria.listarLaboral(filtro),
+    };
+    const consulta$ = consultas[this.modulo]();
     this.loading = true;
     this.error = "";
     consulta$.subscribe({
@@ -126,10 +150,14 @@ export class AuditoriaComponent implements OnInit {
     switch (a) {
       case "crear":
       case "registrar":
+      case "aprobar":
         return "success";
       case "actualizar":
         return "info";
       case "baja":
+      case "rechazar":
+      case "acceso_denegado":
+      case "token_rechazado":
         return "danger";
       default:
         return "secondary";

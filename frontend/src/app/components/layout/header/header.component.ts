@@ -102,6 +102,8 @@ export const NAV_BY_ROLE: Record<string, MenuItem[]> = {
     { label: "Inserción laboral", routerLink: "/dashboard/ofertas" },
     // HU-35: el log de auditoría lo consulta solo administración.
     { label: "Auditoría", routerLink: "/dashboard/auditoria" },
+    // HU-06: matriz de permisos por rol (solo lectura).
+    { label: "Roles y permisos", routerLink: "/dashboard/permisos" },
   ],
   role_volunteer: [
     {
@@ -170,6 +172,7 @@ const NAV_ICONS: Record<string, LucideIconData> = {
   Progreso: TrendingUp,
   Seguimiento: ClipboardList,
   Auditoría: ShieldCheck,
+  "Roles y permisos": ShieldCheck,
   "Contacto con el centro": MessageCircle,
 };
 

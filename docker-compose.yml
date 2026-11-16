@@ -70,6 +70,8 @@ services:
       - PUBSUB_PROJECT_ID=ceibuenvivir
       - PUBSUB_EMULATOR_HOST=pubsub-emulator:8086
       - PUBSUB_PUSH_AUTH=disabled
+      # HU-44: cruce de ofertas con habilidades (Educación es la dueña).
+      - EDUCATION_API_URL=http://education-service:8210
     # Solo desde esta máquina: labor confía en los headers X-User-* que
     # pone el gateway si no tiene JWT_SECRET; publicado en 0.0.0.0 se podía
     # saltear el gateway desde la red local (auditoría 2026-11-11).

@@ -356,7 +356,7 @@
       </div>
 
       <div class="col-12 md:col-6 field mb-3">
-        <label for="salario">Salario (Opcional)</label>
+        <label for="salario">Salario</label>
         <input
           pInputText
           id="salario"
@@ -415,6 +415,11 @@
             styleClass="p-button-secondary"
           ></p-button>
         </div>
+        <small class="text-color-secondary block mb-2"
+          >Al publicarse, se avisa a los participantes que tengan una habilidad
+          con el mismo nombre que un requisito (por ejemplo, "Atención al
+          cliente").</small
+        >
         <div class="flex flex-wrap gap-2">
           <p-tag
             *ngFor="let req of newJob.requisitos; let i = index"

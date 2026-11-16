@@ -346,13 +346,27 @@ export class AuthService {
       this.clearLocallyAuthenticated();
     }
 
-    if (error.error && (error.error as { message?: string }).message) {
-      errorMessage = (error.error as { message: string }).message;
+    const body = error.error as { message?: string; error?: string } | null;
+    if (body?.message) {
+      errorMessage = body.message;
+    } else if (typeof body?.error === "string" && body.error) {
+      // Auth responde {"error": "..."}: antes se perdía este mensaje.
+      errorMessage = body.error;
+    } else if (error.status === 429) {
+      errorMessage =
+        "Hiciste demasiados intentos seguidos. Esperá un minuto y probá de nuevo.";
     } else if (error.status === 401) {
       errorMessage = "No autorizado. Verifique sus credenciales.";
     } else if (error.status === 403) {
       errorMessage = "No tiene permisos para realizar esta acción.";
     }
-    return throwError(() => new Error(errorMessage));
+    // Se conservan status y cuerpo para que el login distinga el bloqueo
+    // (423), la cuenta suspendida y el resto.
+    return throwError(() =>
+      Object.assign(new Error(errorMessage), {
+        status: error.status,
+        error: error.error,
+      }),
+    );
   };
 }

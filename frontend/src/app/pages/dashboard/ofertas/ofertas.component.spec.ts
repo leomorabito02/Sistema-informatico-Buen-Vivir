@@ -6,7 +6,11 @@ import {
 } from "@angular/core/testing";
 import { of } from "rxjs";
 import { JobOfferService } from "../../../services/job-offer.service";
-import { OfertasComponent } from "./ofertas.component";
+import {
+  OfertasComponent,
+  camposFaltantesOferta,
+  mensajeErrorOferta,
+} from "./ofertas.component";
 import { provideHttpClientTesting } from "@angular/common/http/testing";
 import { provideHttpClient } from "@angular/common/http";
 import { provideRouter } from "@angular/router";
@@ -72,5 +76,36 @@ describe("OfertasComponent", () => {
     fixture.detectChanges();
     expect(labels()).toContain("Aprobar");
     expect(labels()).toContain("Rechazar");
+  });
+});
+
+describe("camposFaltantesOferta (HU-39)", () => {
+  const completa = {
+    titulo: "Cajero",
+    descripcion: "Atención al público",
+    ubicacion: "Alta Gracia",
+    modalidad: "Presencial",
+    tipo_empleo: "Medio tiempo",
+    salario: "A convenir",
+    horario: "9 a 13",
+    requisitos: ["Atención al cliente"],
+    fecha_limite: "2026-12-31",
+  };
+
+  it("no marca nada con la oferta completa", () => {
+    expect(camposFaltantesOferta(completa)).toEqual([]);
+  });
+
+  it("lista los campos que faltan", () => {
+    expect(
+      camposFaltantesOferta({ ...completa, salario: " ", requisitos: [], fecha_limite: "" }),
+    ).toEqual(["salario", "al menos un requisito", "fecha límite"]);
+  });
+
+  it("muestra el mensaje del backend en un 400", () => {
+    expect(mensajeErrorOferta({ status: 400, error: "falta el campo obligatorio: horario\n" }, "x")).toBe(
+      "falta el campo obligatorio: horario",
+    );
+    expect(mensajeErrorOferta({ status: 500, error: "boom" }, "fallback")).toBe("fallback");
   });
 });

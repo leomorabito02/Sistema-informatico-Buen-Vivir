@@ -150,6 +150,15 @@ export class LoginComponent implements OnInit {
       error: (err) => {
         this.loading = false;
         const errorMsg = err.error?.error || "";
+        // HU-02: el backend bloquea la cuenta tras 5 intentos fallidos
+        // (423 + code ACCOUNT_LOCKED) y dice cuántos minutos faltan.
+        if (err.status === 423 || err.error?.code === "ACCOUNT_LOCKED") {
+          this.locked = true;
+          this.loginError =
+            errorMsg ||
+            "Tu cuenta fue bloqueada temporalmente por demasiados intentos fallidos. Intentá nuevamente más tarde.";
+          return;
+        }
         if (
           err.error?.user_status === "blocked" ||
           errorMsg.includes("activa") ||

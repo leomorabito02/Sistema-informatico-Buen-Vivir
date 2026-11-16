@@ -12,6 +12,10 @@ type CreateUserRequest struct {
 	Password  string `json:"password" validate:"required,password"`
 	Phone     string `json:"phone" validate:"required"`
 	RoleID    string `json:"role_id" validate:"required"`
+	// DNI y Address son obligatorios cuando role_id es role_participant
+	// (HU-07); se validan en el servicio porque dependen del rol.
+	DNI     string `json:"dni" validate:"omitempty"`
+	Address string `json:"address" validate:"omitempty"`
 }
 
 type UpdateUserRequest struct {

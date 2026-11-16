@@ -5,6 +5,7 @@ import (
 	"log"
 	"log/slog"
 	"net/http"
+	"os"
 	"strings"
 	"sync"
 
@@ -89,6 +90,7 @@ func main() {
 		jobApplicationRepo,
 		authServiceClient,
 		services.WithOfferProducer(insercionLaboralProducer),
+		services.WithSkillsClient(repositories.NewSkillsClient(os.Getenv("EDUCATION_API_URL"))),
 	)
 	jobApplicationService := services.NewJobApplicationService(
 		jobApplicationRepo,
@@ -98,7 +100,8 @@ func main() {
 	)
 
 	// Controllers
-	jobOfferController := controllers.NewJobOfferController(jobOfferService)
+	jobOfferController := controllers.NewJobOfferController(jobOfferService).
+		WithAudit(repositories.NewAuditRepository(firestoreClient))
 	jobApplicationController := controllers.NewJobApplicationController(jobApplicationService)
 
 	r := chi.NewRouter()

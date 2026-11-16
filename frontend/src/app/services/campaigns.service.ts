@@ -15,6 +15,9 @@ import {
  * Mismo patrón que el resto: cookie de sesión con `withCredentials` y
  * errores normalizados al `{ "error": "..." }` del backend.
  */
+/** Tamaño de página del listado público de campañas (HU-50). */
+export const PAGINA_CAMPANAS = 12;
+
 @Injectable({ providedIn: "root" })
 export class CampaignsService {
   private readonly http = inject(HttpClient);
@@ -26,6 +29,24 @@ export class CampaignsService {
     const params = busqueda.trim() ? { q: busqueda.trim() } : undefined;
     return this.http
       .get<Campana[]>(`${this.base}/publicas`, { params })
+      .pipe(catchError(this.handleError));
+  }
+
+  /** Página del listado público (HU-50): {items, total}. */
+  publicasPagina(
+    busqueda = "",
+    offset = 0,
+    limit = PAGINA_CAMPANAS,
+  ): Observable<{ items: Campana[]; total: number }> {
+    const params: Record<string, string> = {
+      limit: String(limit),
+      offset: String(offset),
+    };
+    if (busqueda.trim()) params["q"] = busqueda.trim();
+    return this.http
+      .get<{ items: Campana[]; total: number }>(`${this.base}/publicas`, {
+        params,
+      })
       .pipe(catchError(this.handleError));
   }
 

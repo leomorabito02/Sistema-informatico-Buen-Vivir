@@ -96,8 +96,12 @@ export class UsuariosComponent implements OnInit {
     phone: "",
     password: "",
     role_id: "",
+    dni: "",
+    address: "",
   };
   availableNewRoles: string[] = [];
+  /** approval_status con el que se abrió la edición (para saber si cambió). */
+  originalApprovalStatus = "";
 
   users: DashboardUser[] = [];
   filteredUsers: DashboardUser[] = [];
@@ -114,6 +118,13 @@ export class UsuariosComponent implements OnInit {
 
   ngOnInit() {
     this.checkCurrentUserPermissions();
+  }
+
+  /** "approved" o "rejected" si la edición decide sobre una cuenta pendiente. */
+  approvalDecision(): "approved" | "rejected" | null {
+    const nuevo = this.editForm?.approval_status;
+    if (!this.isRolePending(this.originalApprovalStatus)) return null;
+    return nuevo === "approved" || nuevo === "rejected" ? nuevo : null;
   }
 
   isRolePending(status?: string): boolean {
@@ -267,6 +278,8 @@ export class UsuariosComponent implements OnInit {
       phone: "",
       password: "",
       role_id: "",
+      dni: "",
+      address: "",
     };
 
     if (this.isVolunteerOnly) {
@@ -303,7 +316,17 @@ export class UsuariosComponent implements OnInit {
       return;
     }
 
-    const payload = {
+    const participantError = validateNewParticipant(this.newUserForm);
+    if (participantError) {
+      this.messages.add({
+        severity: "warn",
+        summary: "Faltan datos del participante",
+        detail: participantError,
+      });
+      return;
+    }
+
+    const payload: Record<string, string> = {
       first_name: this.newUserForm.first_name,
       last_name: this.newUserForm.last_name,
       email: this.newUserForm.email,
@@ -311,6 +334,10 @@ export class UsuariosComponent implements OnInit {
       password: this.newUserForm.password,
       role_id: this.newUserForm.role_id,
     };
+    if (this.newUserForm.role_id === "role_participant") {
+      payload["dni"] = String(this.newUserForm.dni ?? "").trim();
+      payload["address"] = String(this.newUserForm.address ?? "").trim();
+    }
 
     this.usersService.createUser(payload).subscribe({
       next: () => {
@@ -405,6 +432,7 @@ export class UsuariosComponent implements OnInit {
           if (this.editForm.approval_status === "accepted") {
             this.editForm.approval_status = "approved";
           }
+          this.originalApprovalStatus = this.editForm.approval_status ?? "";
 
           // Formatear fechas si existen para input type="date"
           if (this.editForm.birthdate) {
@@ -537,8 +565,13 @@ export class UsuariosComponent implements OnInit {
   onDetailPictureSelected(event: any) {
     const file = event.target?.files?.[0];
     if (file && this.selectedUser?.originalUser?.user_id) {
-      if (file.size > 10 * 1024 * 1024) {
-        alert("La imagen no debe superar los 10MB.");
+      // HU-11: máximo 5 MB (el backend también lo controla).
+      if (file.size > 5 * 1024 * 1024) {
+        this.messages.add({
+          severity: "warn",
+          summary: "Imagen muy grande",
+          detail: "La imagen no debe superar los 5 MB.",
+        });
         return;
       }
       this.uploadingPicture = true;
@@ -719,12 +752,35 @@ export class UsuariosComponent implements OnInit {
         ? this.buildParticipantPayload()
         : this.buildGenericRolePayload();
 
+    // HU-12 y HU-38: aprobar o rechazar una cuenta pendiente va por
+    // PATCH /users/{id}/approval, que además manda el email al usuario.
+    const decision = this.approvalDecision();
+    if (decision) {
+      delete rolePayload["approval_status"];
+      delete rolePayload["approved_by"];
+    }
+
     // Enviar petición para actualizar el rol
     this.usersService
       .updateRoleData(tableName, targetRoleId, rolePayload)
       .subscribe({
         next: () => {
-          this.finishSave();
+          if (!decision) {
+            this.finishSave();
+            return;
+          }
+          this.usersService.setApproval(userId, decision).subscribe({
+            next: () => this.finishSave(),
+            error: (err: Error) =>
+              this.messages.add({
+                severity: "error",
+                summary:
+                  decision === "rejected"
+                    ? "No se pudo rechazar la cuenta"
+                    : "No se pudo aprobar la cuenta",
+                detail: err.message,
+              }),
+          });
         },
         error: (err) => {
           console.error("Error updating role data:", err);
@@ -759,6 +815,16 @@ export class UsuariosComponent implements OnInit {
     const file = event.target.files[0];
     const participantId =
       this.selectedUser?.profileData?.role_data?.participant_id;
+    if (file && file.size > 5 * 1024 * 1024) {
+      // HU-11: máximo 5 MB.
+      this.messages.add({
+        severity: "warn",
+        summary: "Archivo muy grande",
+        detail: "El documento no debe superar los 5 MB.",
+      });
+      event.target.value = "";
+      return;
+    }
     if (file && participantId) {
       this.uploadingDocument = true;
       this.usersService
@@ -904,4 +970,32 @@ export class UsuariosComponent implements OnInit {
         });
     }
   }
+}
+
+/**
+ * HU-07 y HU-01: el alta de un participante exige Gmail, DNI (7 u 8
+ * números), dirección y teléfono. Devuelve el mensaje de error o "".
+ */
+export function validateNewParticipant(form: {
+  role_id?: string;
+  email?: string;
+  dni?: string;
+  address?: string;
+  phone?: string;
+}): string {
+  if (form.role_id !== "role_participant") return "";
+  const email = String(form.email ?? "").trim().toLowerCase();
+  if (!email.endsWith("@gmail.com")) {
+    return "El correo del participante tiene que ser una cuenta de Gmail (@gmail.com).";
+  }
+  if (!/^\d{7,8}$/.test(String(form.dni ?? "").trim())) {
+    return "El DNI es obligatorio y debe tener 7 u 8 números, sin puntos.";
+  }
+  if (String(form.address ?? "").trim().length < 3) {
+    return "La dirección es obligatoria.";
+  }
+  if (!String(form.phone ?? "").trim()) {
+    return "El teléfono es obligatorio.";
+  }
+  return "";
 }

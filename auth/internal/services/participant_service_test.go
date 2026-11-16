@@ -280,6 +280,7 @@ func TestParticipantService_EdgeCases(t *testing.T) {
 		UserID:    "u-1",
 		Birthdate: time.Date(2000, 1, 1, 0, 0, 0, 0, time.UTC),
 		DNI:       "12345678",
+		Address:   "Calle 123",
 		Gender:    "otro",
 	}
 	// Lo crea el propio usuario (los pedidos siempre llegan autenticados).
@@ -328,7 +329,7 @@ func TestParticipantService_PermisosDeAltaYBaja(t *testing.T) {
 	mockUserRepo.On("CountActiveParticipants", mock.Anything).Return(int64(1), nil).Maybe()
 	mockRepo.On("Create", mock.Anything, mock.Anything).Return(nil)
 
-	req := &dto.CreateParticipantRequest{UserID: "usr-victima", Birthdate: time.Date(2000, 1, 1, 0, 0, 0, 0, time.UTC), Gender: "otro"}
+	req := &dto.CreateParticipantRequest{UserID: "usr-victima", Birthdate: time.Date(2000, 1, 1, 0, 0, 0, 0, time.UTC), Gender: "otro", DNI: "12345678", Address: "Calle 123"}
 	ctxDe := func(rol, uid string) context.Context {
 		ctx := context.WithValue(context.Background(), middlewares.RoleIDKey, rol)
 		return context.WithValue(ctx, middlewares.UserIDKey, uid)
@@ -350,4 +351,17 @@ func TestParticipantService_PermisosDeAltaYBaja(t *testing.T) {
 	err = svc.DeleteParticipant(ctxDe("role_participant", "usr-1"), "part-propio")
 	assert.ErrorContains(t, err, "forbidden")
 	mockRepo.AssertNotCalled(t, "Delete", mock.Anything, mock.Anything)
+}
+
+// HU-07: DNI (7 u 8 dígitos) y dirección son obligatorios al crear el perfil.
+func TestParticipantService_CreateParticipant_RequiredHUFields(t *testing.T) {
+	svc := services.NewParticipantService(nil, nil, nil)
+	base := dto.CreateParticipantRequest{UserID: "u-1", Birthdate: time.Date(2000, 1, 1, 0, 0, 0, 0, time.UTC), Gender: "otro", DNI: "12345678", Address: "Calle 123"}
+	sinDNI, dniMal, sinDir := base, base, base
+	sinDNI.DNI, dniMal.DNI, sinDir.Address = "", "12.345.678", ""
+	for name, req := range map[string]dto.CreateParticipantRequest{"sin DNI": sinDNI, "DNI con puntos": dniMal, "sin direccion": sinDir} {
+		r := req
+		_, err := svc.CreateParticipant(context.Background(), &r)
+		assert.Error(t, err, name)
+	}
 }

@@ -26,6 +26,8 @@ type UserService interface {
 	DeleteUser(ctx context.Context, id string) error
 	GetParticipantsHistory(ctx context.Context) ([]dto.ParticipantHistoryResponse, error)
 	ApproveUser(ctx context.Context, id string) (*dto.UserResponse, error)
+	// RejectUser rechaza la cuenta y avisa por email (HU-12, HU-38).
+	RejectUser(ctx context.Context, id string) (*dto.UserResponse, error)
 	GetCampaignEligibleUsers(ctx context.Context) ([]repositories.CampaignEligibleUser, error)
 	IsEmailVerified(ctx context.Context, identifier string) (bool, error)
 	GetActiveUserIDsByRoles(ctx context.Context, roles []string) ([]string, error)
@@ -67,6 +69,13 @@ func (s *userService) CreateUser(ctx context.Context, req *dto.CreateUserRequest
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
 	if err != nil {
 		return nil, fmt.Errorf("error encrypting password: %w", err)
+	}
+
+	if strings.TrimPrefix(req.RoleID, "role_") == "participant" {
+		if err := validateParticipantAccount(req.Email, req.DNI, req.Address); err != nil {
+			return nil, err
+		}
+		ctx = repositories.WithParticipantProfile(ctx, strings.TrimSpace(req.DNI), strings.TrimSpace(req.Address))
 	}
 
 	// 3. Crear modelo
@@ -283,6 +292,16 @@ func (s *userService) GetParticipantsHistory(ctx context.Context) ([]dto.Partici
 }
 
 func (s *userService) ApproveUser(ctx context.Context, id string) (*dto.UserResponse, error) {
+	return s.setApproval(ctx, id, "approved", "cuenta_aprobada")
+}
+
+func (s *userService) RejectUser(ctx context.Context, id string) (*dto.UserResponse, error) {
+	return s.setApproval(ctx, id, "rejected", "cuenta_rechazada")
+}
+
+// setApproval cambia approval_status en la tabla del rol y pide el email
+// correspondiente (cuenta_aprobada o cuenta_rechazada).
+func (s *userService) setApproval(ctx context.Context, id, status, emailTipo string) (*dto.UserResponse, error) {
 	user, err := s.userRepo.FindByID(ctx, id)
 	if err != nil {
 		return nil, err
@@ -300,7 +319,7 @@ func (s *userService) ApproveUser(ctx context.Context, id string) (*dto.UserResp
 	approverID, _ := ctx.Value(middlewares.UserIDKey).(string)
 	now := time.Now()
 	updateData := map[string]any{
-		"approval_status": "approved",
+		"approval_status": status,
 		"approval_date":   &now,
 	}
 	if approverID != "" {
@@ -313,10 +332,14 @@ func (s *userService) ApproveUser(ctx context.Context, id string) (*dto.UserResp
 		}
 	}
 
-	user.RoleApprovalStatus = "approved"
+	user.RoleApprovalStatus = status
 
 	if s.producer != nil {
-		_ = s.producer.EmailSolicitado(ctx, "app-"+user.UserID, user.UserID, "cuenta_aprobada")
+		prefix := "app-"
+		if status == "rejected" {
+			prefix = "rej-"
+		}
+		_ = s.producer.EmailSolicitado(ctx, prefix+user.UserID, user.UserID, emailTipo)
 	}
 
 	return dto.ToUserResponse(user), nil

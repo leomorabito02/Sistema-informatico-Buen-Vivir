@@ -176,3 +176,23 @@
   outline: 2px solid var(--primary);
   outline-offset: 2px;
 }
+
+.ver-mas {
+  display: flex;
+  justify-content: center;
+  margin: 1.5rem 0;
+}
+
+.btn-ver-mas {
+  padding: 0.6rem 1.4rem;
+  border-radius: 999px;
+  border: 1px solid currentColor;
+  background: transparent;
+  cursor: pointer;
+  font: inherit;
+}
+
+.btn-ver-mas:disabled {
+  opacity: 0.6;
+  cursor: default;
+}

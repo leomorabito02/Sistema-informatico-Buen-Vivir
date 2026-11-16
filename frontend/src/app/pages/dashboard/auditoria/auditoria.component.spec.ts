@@ -6,12 +6,14 @@ import { AuditoriaComponent } from "./auditoria.component";
 import { EducationService } from "../../../services/education.service";
 import { HumanPromotionService } from "../../../services/human-promotion.service";
 import { RegistroAuditoria } from "../../../core/models/education.model";
+import { AuditoriaService, aRegistro } from "../../../services/auditoria.service";
 
 describe("AuditoriaComponent", () => {
   let fixture: ComponentFixture<AuditoriaComponent>;
   let component: AuditoriaComponent;
   let education: jasmine.SpyObj<EducationService>;
   let promocion: jasmine.SpyObj<HumanPromotionService>;
+  let auditoria: jasmine.SpyObj<AuditoriaService>;
 
   const fila: RegistroAuditoria = {
     id: "1",
@@ -32,6 +34,23 @@ describe("AuditoriaComponent", () => {
       ["listarAuditoria"],
     );
     promocion.listarAuditoria.and.returnValue(of([fila]));
+    auditoria = jasmine.createSpyObj<AuditoriaService>("AuditoriaService", [
+      "listarUsuarios",
+      "listarLaboral",
+    ]);
+    auditoria.listarUsuarios.and.returnValue(
+      of([
+        {
+          ...fila,
+          accion: "acceso_denegado",
+          recurso: "perfil_participante",
+          detalle: "Denegado: PUT /api/v1/participants/{id}",
+        },
+      ]),
+    );
+    auditoria.listarLaboral.and.returnValue(
+      of([{ ...fila, accion: "aprobar", recurso: "oferta", recursoId: "of-1" }]),
+    );
     education.listAuditoria.and.returnValue(
       of([{ ...fila, accion: "baja", recurso: "curso", recursoId: "c1" }]),
     );
@@ -41,6 +60,7 @@ describe("AuditoriaComponent", () => {
       providers: [
         { provide: EducationService, useValue: education },
         { provide: HumanPromotionService, useValue: promocion },
+        { provide: AuditoriaService, useValue: auditoria },
       ],
     });
     fixture = TestBed.createComponent(AuditoriaComponent);
@@ -91,5 +111,46 @@ describe("AuditoriaComponent", () => {
     expect(component.accionSeverity("actualizar")).toBe("info");
     expect(component.accionSeverity("baja")).toBe("danger");
     expect(component.accionSeverity("x")).toBe("secondary");
+  });
+
+  it("switches to the Autenticación log (HU-10, HU-06)", () => {
+    component.modulo = "usuarios";
+    component.buscar();
+    fixture.detectChanges();
+
+    expect(auditoria.listarUsuarios).toHaveBeenCalled();
+    const text = fixture.nativeElement.textContent;
+    expect(text).toContain("Acceso denegado");
+    expect(text).toContain("Perfil de participante");
+    expect(text).toContain("Denegado: PUT");
+  });
+
+  it("switches to the Inserción Laboral log (HU-42)", () => {
+    component.modulo = "laboral";
+    component.buscar();
+    fixture.detectChanges();
+
+    expect(auditoria.listarLaboral).toHaveBeenCalled();
+    const text = fixture.nativeElement.textContent;
+    expect(text).toContain("Aprobación");
+    expect(text).toContain("Oferta laboral");
+  });
+});
+
+describe("aRegistro", () => {
+  it("maps the snake_case API row and the changed fields", () => {
+    const r = aRegistro({
+      id: 7,
+      usuario_id: "usr-1",
+      accion: "actualizar",
+      recurso: "perfil_participante",
+      recurso_id: "part-1",
+      campos: "address,dni",
+      resultado: "ok",
+      fecha: "2026-11-15T10:00:00Z",
+    });
+    expect(r.id).toBe("7");
+    expect(r.recursoId).toBe("part-1");
+    expect(r.detalle).toBe("Campos: address, dni");
   });
 });

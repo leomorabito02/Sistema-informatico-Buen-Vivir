@@ -15,7 +15,8 @@ import (
 const maxUploadBytes = 12 << 20
 
 type MaterialController struct {
-	service services.MaterialService
+	service       services.MaterialService
+	courseListers []CourseLister
 }
 
 func NewMaterialController(service services.MaterialService) *MaterialController {

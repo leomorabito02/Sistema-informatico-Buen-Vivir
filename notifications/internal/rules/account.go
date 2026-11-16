@@ -100,6 +100,14 @@ func (r *EmailSolicitadoRule) Build(_ context.Context, env events.Envelope) ([]N
 		templateID = "account_approved"
 		category = models.CategorySystem
 		isCritical = false
+	case "cuenta_rechazada":
+		// HU-12 y HU-38: aviso de rechazo. Sin enlace de acción, así
+		// que no se manda request_id (no hay link que pedirle a Auth).
+		title = "Tu solicitud de cuenta no fue aprobada - Buen Vivir"
+		message = "El equipo del centro revisó tu solicitud de cuenta y no fue aprobada. Si creés que es un error, comunicate con el Centro Barrial La Otra Orilla."
+		templateID = "general_alert"
+		category = models.CategorySystem
+		isCritical = false
 	case "recuperacion_password":
 		title = "Recuperación de contraseña - Buen Vivir"
 		message = "Recibimos una solicitud para restablecer tu contraseña."
@@ -114,12 +122,16 @@ func (r *EmailSolicitadoRule) Build(_ context.Context, env events.Envelope) ([]N
 		templateID = p.Tipo
 	}
 
-	dataBytes, _ := json.Marshal(map[string]interface{}{
+	data := map[string]interface{}{
 		"template_id": templateID,
 		"request_id":  p.RequestID,
 		"user_id":     p.UserID,
 		"tipo":        p.Tipo,
-	})
+	}
+	if p.Tipo == "cuenta_rechazada" {
+		delete(data, "request_id")
+	}
+	dataBytes, _ := json.Marshal(data)
 
 	return []NotificationPlan{
 		{

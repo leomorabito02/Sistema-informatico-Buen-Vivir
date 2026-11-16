@@ -423,3 +423,83 @@ RECOMENDACIONES = [
     ("Documentación", "Mantener docs/HISTORIAS_DE_USUARIO.md y este informe desde scripts/informe-auditoria/datos.py."),
     ("Experiencia de usuario", "Avisar en el front cuando el backend responde 429 (hoy aparece como error genérico)."),
 ]
+
+
+# ======================================================================
+# Actualización del 15/11/2026 (implementación de los pendientes de la
+# auditoría). Se pisa el estado de las HU tocadas; "VERIFICAR" = código y
+# tests unitarios listos, falta probarlo desplegado (migración, Pub/Sub,
+# gateway). El detalle está en docs/INFORME_AUDITORIA_BUEN_VIVIR.md.
+# ======================================================================
+FECHA = "15/11/2026"
+VERSION = "rama develop, commit base d42cdfd + cambios del 15/11/2026 (sin commitear)"
+
+_ACT = {
+    "HU-01": dict(estado="IMPLEMENTADO", errores="",
+                  correcciones="15/11: decisión de la usuaria, Gmail obligatorio solo para participantes (registro y alta desde Usuarios). Backend (ErrParticipantGmail) y formulario.",
+                  pendiente=""),
+    "HU-02": dict(estado="VERIFICAR", errores="",
+                  correcciones="15/11: bloqueo por email tras 5 intentos fallidos durante 15 min (LOGIN_MAX_ATTEMPTS, LOGIN_LOCK_MINUTES), tabla login_attempts, respuesta 423 ACCOUNT_LOCKED y aviso de intentos restantes; el login del front lo muestra.",
+                  pendiente="Migrar la tabla login_attempts en Neon (cmd/migrate o arranque) y probar el bloqueo en testing."),
+    "HU-03": dict(estado="VERIFICAR", errores="",
+                  correcciones="15/11: los tokens presentados y rechazados (401) en las rutas protegidas de auth quedan en la auditoría (token_rechazado).",
+                  pendiente="Migrar la tabla auditoria. Los rechazos de token en los otros servicios siguen solo en el log técnico."),
+    "HU-04": dict(estado="IMPLEMENTADO", errores="",
+                  correcciones="15/11: reutilizar un refresh ya usado revoca todas las sesiones del usuario (RevokeAllForUser) y responde 401.",
+                  pendiente=""),
+    "HU-06": dict(estado="VERIFICAR", errores="",
+                  correcciones="15/11: matriz de roles y permisos de solo lectura (/dashboard/permisos, decisión de la usuaria); accesos denegados (403) en la auditoría; guards en usuarios, cv, ofertas y seguimiento.",
+                  pendiente="Migrar la tabla auditoria. Docente creando cursos en borrador: se mantiene (es la moderación de HU-23)."),
+    "HU-07": dict(estado="VERIFICAR", errores="",
+                  correcciones="15/11: DNI (7 u 8 dígitos), dirección y teléfono obligatorios al crear participantes (backend y formulario); alta auditada.",
+                  pendiente="Probar en testing que el DNI y la dirección queden guardados en el perfil."),
+    "HU-08": dict(estado="VERIFICAR", errores="", correcciones="15/11: cada edición queda en la auditoría con los nombres de los campos modificados.", pendiente="Migrar la tabla auditoria."),
+    "HU-09": dict(estado="VERIFICAR", errores="", correcciones="15/11: cada baja queda en la auditoría.", pendiente="Migrar la tabla auditoria."),
+    "HU-10": dict(estado="VERIFICAR", errores="",
+                  correcciones="15/11: tabla auditoria en auth (inmutable por trigger), escrita por el middleware AuditTrail; GET /api/v1/auth/auditoria (admin) y módulo 'Usuarios y perfiles' en la pantalla Auditoría.",
+                  pendiente="Migrar la tabla y el trigger en Neon; agregar la ruta al API Gateway. Se escribe al terminar el pedido, no en la misma transacción del cambio."),
+    "HU-11": dict(estado="VERIFICAR", errores="",
+                  correcciones="15/11: límite de 5 MB para foto (rxresume) y documentos (auth) en backend y frontend; cambios auditados.",
+                  pendiente="Migrar la tabla auditoria."),
+    "HU-12": dict(estado="VERIFICAR", errores="",
+                  correcciones="15/11: rechazo de cuentas (PATCH /users/{id}/approval con rejected) con email 'cuenta_rechazada'; el panel de Usuarios ahora aprueba y rechaza por ese endpoint, que también manda el email de aprobación (antes no salía desde el panel).",
+                  pendiente="Agregar la ruta al API Gateway y verificar el email en testing."),
+    "HU-14": dict(correcciones="15/11: antes de borrar un material se muestra en qué cursos está (GET /api/materiales/{id}/cursos)."),
+    "HU-38": dict(estado="VERIFICAR", errores="", correcciones="15/11: el rechazo de empresas manda el email 'cuenta_rechazada' (mismo flujo que HU-12).", pendiente="Verificar el email en testing."),
+    "HU-39": dict(estado="IMPLEMENTADO", errores="",
+                  correcciones="15/11: todos los campos de la HU son obligatorios al crear y editar (400 con el campo faltante); el formulario los marca.",
+                  pendiente=""),
+    "HU-41": dict(estado="VERIFICAR", errores="",
+                  correcciones="15/11: al borrar una oferta la gestión del centro se emite insercion_laboral.oferta.eliminada y Notificaciones avisa a la empresa.",
+                  pendiente="Actualizar las suscripciones de Pub/Sub (setup.sh) y verificar en testing."),
+    "HU-42": dict(estado="VERIFICAR", errores="",
+                  correcciones="15/11: auditoría de ofertas (crear, editar, aprobar, rechazar, borrar) en Firestore y GET /api/v1/labor-integration/auditoria; módulo 'Inserción laboral' en la pantalla Auditoría.",
+                  pendiente="Agregar la ruta al API Gateway y verificar en testing."),
+    "HU-44": dict(estado="VERIFICAR", errores="",
+                  correcciones="15/11: al publicarse una oferta, labor cruza sus requisitos con las habilidades de Educación (mismo nombre, sin mayúsculas ni acentos) y emite insercion_laboral.oferta.compatible; Notificaciones avisa a cada participante.",
+                  pendiente="Configurar EDUCATION_API_URL en labor (testing), actualizar Pub/Sub y verificar con un participante con habilidades."),
+    "HU-50": dict(correcciones="15/11: el listado público acepta ?limit=&offset= y la página pública trae de a 12 con 'Ver más'."),
+    "HU-56": dict(estado="VERIFICAR", errores="",
+                  correcciones="15/11: infra/monitoring/setup.sh y dashboard.json crean en Cloud Monitoring el panel por servicio (pedidos, 5xx, latencia p95, instancias, CPU, memoria), uptime checks y tres alertas.",
+                  pendiente="Correr el script en Cloud Shell (requiere acceso a GCP) y probar una alerta."),
+}
+for _h in HUS:
+    _h.update(_ACT.get(_h["id"], {}))
+
+PENDIENTES = [
+    ("Commit y pase a testing de los cambios del 15/11", "Varias", "Todos", "-", "Commit en develop, PR develop -> testing", "OK de la usuaria; avisar a Leonardo (auth, labor, notifications)", "Alta", "El CD de testing termina en verde."),
+    ("Migrar tablas nuevas de auth en Neon", "HU-02, HU-10", "Autenticación", "auth/cmd/migrate", "go run ./cmd/migrate (crea login_attempts, auditoria y el trigger)", "Acceso a Neon", "Alta", "Las tablas existen y un UPDATE sobre auditoria falla."),
+    ("Rutas nuevas en el API Gateway de GCP", "HU-10, HU-12, HU-14, HU-42", "Gateway", "api-gateway/openapi.yaml", "Desplegar la nueva config del gateway", "Acceso a GCP (lo hace el CD)", "Alta", "GET /api/v1/auth/auditoria responde 200 a un admin en testing."),
+    ("Verificar Pub/Sub y emails en testing", "HU-18, HU-23, HU-26, HU-41, HU-44, HU-60", "Notificaciones", "infra/pubsub/setup.sh, pipeline.yml", "Correr setup.sh (filtros nuevos), agregar PUBSUB_PUSH_* al CD, Cloud Scheduler para recordatorios", "Acceso a GCP", "Alta", "Una inscripción en testing genera el email y la notificación in-app."),
+    ("EDUCATION_API_URL en labor (testing)", "HU-44", "Inserción Laboral", "pipeline.yml / Cloud Run", "Variable con la URL del gateway de testing", "Acceso a GCP", "Alta", "Aprobar una oferta con un requisito igual a una habilidad avisa al participante."),
+    ("Probar en el navegador el flujo de notificaciones de PH", "Problema 3", "PH / Notificaciones", "-", "Crear una ficha y un hito visible y ver la notificación en la campana", "Testing desplegado", "Alta", "Una ficha nueva genera notificación en la campana del admin y el hito visible le llega al participante."),
+    ("Instalar y correr E2E", "Varias", "Frontend", "frontend/cypress", "Cypress o Playwright, specs por rol", "Base de datos de pruebas aislada (hoy local y testing comparten Neon y Firestore)", "Media", "Los specs E2E pasan contra un entorno con datos propios."),
+    ("Push en testing", "HU-61", "Notificaciones", "pipeline.yml, push_service.go", "Credenciales de FCM y FIREBASE_PROJECT_ID", "Acceso a Firebase", "Media", "Con la PWA instalada llega un push al registrar un hito visible."),
+    ("Rate limit robusto", "Problema 2", "education, PH, campaigns", "middlewares", "Ver en los logs de testing cómo llega X-Forwarded-For y limitar por el último salto confiable o por usuario", "Logs de testing", "Media", "Rotar X-Forwarded-For no esquiva el límite y 15 usuarios de una misma IP usan la app sin 429."),
+    ("Observabilidad en GCP", "HU-56", "Infra", "infra/monitoring/setup.sh", "Correr el script", "Acceso a GCP", "Media", "URL privada con el panel y una alerta que se dispara ante caída."),
+    ("Campos estructurados de la ficha", "HU-31", "Promoción Humana", "-", "Decidir si se mantiene leer nombre, edad y habilidades desde Auth/Educación", "Decisión del equipo", "Baja", "La HU queda actualizada o se agregan los campos."),
+]
+
+RECOMENDACIONES = [r for r in RECOMENDACIONES if not r[1].startswith("Avisar en el front cuando el backend responde 429")] + [
+    ("Auditoría", "La auditoría de auth y labor se escribe al terminar el pedido (no en la misma transacción): si la base falla justo en ese momento puede quedar un cambio sin registro (queda en el log técnico)."),
+]

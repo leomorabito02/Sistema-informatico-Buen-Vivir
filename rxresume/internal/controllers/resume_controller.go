@@ -20,6 +20,7 @@ const (
 	errMissingUserID      = "missing user identity header X-User-ID"
 	errInvalidJSON        = "invalid JSON payload"
 	errParseMultipartForm = "failed to parse multipart form"
+	maxPictureBytes       = 5 << 20
 	errFileFieldRequired  = "file field is required"
 	errInsufficientPerms  = "insufficient permissions"
 	errMissingParamUserID = "parameter user_id is required"
@@ -141,6 +142,12 @@ func (c *ResumeController) UploadMyPicture(w http.ResponseWriter, r *http.Reques
 		return
 	}
 	defer file.Close()
+
+	// HU-11: la foto de perfil no puede superar 5 MB.
+	if header.Size > maxPictureBytes {
+		http.Error(w, "la imagen supera el máximo de 5 MB", http.StatusRequestEntityTooLarge)
+		return
+	}
 
 	resume, err := c.service.UploadPicture(r.Context(), userID, header.Filename, file)
 	if err != nil {
@@ -318,6 +325,12 @@ func (c *ResumeController) UploadUserPictureByAdmin(w http.ResponseWriter, r *ht
 		return
 	}
 	defer file.Close()
+
+	// HU-11: la foto de perfil no puede superar 5 MB.
+	if header.Size > maxPictureBytes {
+		http.Error(w, "la imagen supera el máximo de 5 MB", http.StatusRequestEntityTooLarge)
+		return
+	}
 
 	resume, err := c.service.UploadPicture(r.Context(), userID, header.Filename, file)
 	if err != nil {

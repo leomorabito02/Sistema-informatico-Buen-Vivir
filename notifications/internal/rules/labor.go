@@ -257,3 +257,80 @@ func (r *PostulacionDecididaRule) Build(_ context.Context, env events.Envelope) 
 	return plans, nil
 }
 
+
+// ── L5: OfertaEliminadaRule (HU-41) ───────────────────────────────────────
+
+type OfertaEliminadaRule struct{}
+
+func (r *OfertaEliminadaRule) EventType() string {
+	return events.OfertaEliminada
+}
+
+// Build avisa a la empresa cuando la gestión del centro borra su oferta.
+// Si la borró la propia empresa no hay aviso.
+func (r *OfertaEliminadaRule) Build(_ context.Context, env events.Envelope) ([]NotificationPlan, error) {
+	p, err := events.DecodePayload[events.OfertaEliminadaPayload](env)
+	if err != nil {
+		return nil, err
+	}
+	if p.EmpresaID == "" || !p.PorGestion {
+		return nil, nil
+	}
+	actionURL := "/dashboard/ofertas"
+	return []NotificationPlan{{
+		SourceService:    "labor-integration",
+		EventType:        env.EventType,
+		Category:         models.CategoryLabor,
+		Priority:         models.PriorityNormal,
+		AudienceType:     AudienceIndividual,
+		RecipientUserIDs: []string{p.EmpresaID},
+		Title:            "Oferta laboral eliminada",
+		Message:          "El equipo del centro eliminó una de tus ofertas laborales.",
+		ActionURL:        &actionURL,
+		SendInApp:        true,
+		SendEmail:        true,
+		SendPush:         true,
+		DedupeKey:        fmt.Sprintf("%s_company_%s", env.EventID, p.EmpresaID),
+	}}, nil
+}
+
+// ── L6: OfertaCompatibleRule (HU-44) ──────────────────────────────────────
+
+type OfertaCompatibleRule struct{}
+
+func (r *OfertaCompatibleRule) EventType() string {
+	return events.OfertaCompatible
+}
+
+// Build avisa a cada participante con habilidades que pide la oferta.
+func (r *OfertaCompatibleRule) Build(_ context.Context, env events.Envelope) ([]NotificationPlan, error) {
+	p, err := events.DecodePayload[events.OfertaCompatiblePayload](env)
+	if err != nil {
+		return nil, err
+	}
+	actionURL := "/dashboard/ofertas"
+	plans := make([]NotificationPlan, 0, len(p.ParticipanteIDs))
+	seen := map[string]bool{}
+	for _, id := range p.ParticipanteIDs {
+		if id == "" || seen[id] {
+			continue
+		}
+		seen[id] = true
+		plans = append(plans, NotificationPlan{
+			SourceService: "labor-integration",
+			EventType:     env.EventType,
+			Category:      models.CategoryLabor,
+			Priority:      models.PriorityNormal,
+			AudienceType:  AudienceParticipant,
+			ParticipantID: id,
+			Title:         "Hay una oferta laboral para vos",
+			Message:       "Se publicó una oferta laboral que pide habilidades que ya tenés. Mirala en Ofertas.",
+			ActionURL:     &actionURL,
+			SendInApp:     true,
+			SendEmail:     true,
+			SendPush:      true,
+			DedupeKey:     fmt.Sprintf("%s_part_%s", env.EventID, id),
+		})
+	}
+	return plans, nil
+}

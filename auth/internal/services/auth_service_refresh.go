@@ -3,6 +3,7 @@ package services
 import (
 	"context"
 	"errors"
+	"log/slog"
 	"strings"
 	"time"
 
@@ -17,7 +18,16 @@ func (s *authService) RefreshToken(ctx context.Context, refreshToken string) (*d
 		return nil, errors.New("refresh token not found")
 	}
 
-	if rt.RevokedAt != nil || rt.ExpiresAt.Before(time.Now()) {
+	if rt.RevokedAt != nil {
+		// HU-04: un refresh ya usado que vuelve a aparecer indica que
+		// pudo ser robado. Se cierran todas las sesiones del usuario: el
+		// atacante y el dueño quedan afuera y el dueño vuelve a iniciar
+		// sesión.
+		slog.Warn("security: refresh token reuse detected", slog.String("event", "refresh_token_reuse"), slog.String("user_id", rt.UserID))
+		_ = s.refreshTokenRepo.RevokeAllForUser(ctx, rt.UserID)
+		return nil, ErrRefreshTokenReused
+	}
+	if rt.ExpiresAt.Before(time.Now()) {
 		return nil, errors.New("refresh token expired or revoked")
 	}
 

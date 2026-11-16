@@ -3,6 +3,7 @@ import { CanActivateFn, Router, UrlTree } from "@angular/router";
 import { Observable, firstValueFrom, of, throwError } from "rxjs";
 import { adminOrVolunteerGuard } from "./admin-volunteer.guard";
 import { anyTeacherGuard, teacherGuard } from "./teacher.guard";
+import { rolesGuard } from "./roles.guard";
 import { AuthService } from "../../services/auth.service";
 import { MeResponse } from "../models/auth.model";
 
@@ -44,6 +45,18 @@ describe("adminOrVolunteerGuard / teacherGuard", () => {
   }
 
   const cases: [string, CanActivateFn, string[], string[]][] = [
+    [
+      "rolesGuard (seguimiento, HU-06)",
+      rolesGuard("role_admin", "role_volunteer", "role_teacher"),
+      ["role_admin", "role_volunteer", "role_teacher", "role_dev"],
+      ["role_participant", "role_company"],
+    ],
+    [
+      "rolesGuard (ofertas, HU-06)",
+      rolesGuard("role_admin", "role_volunteer", "role_participant", "role_company"),
+      ["role_participant", "role_company", "role_dev"],
+      ["role_teacher"],
+    ],
     [
       "adminOrVolunteerGuard",
       adminOrVolunteerGuard,

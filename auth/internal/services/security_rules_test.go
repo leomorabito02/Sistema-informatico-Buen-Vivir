@@ -67,7 +67,7 @@ func TestUserService_CreateUser_SoloAdminOVoluntarioConParticipantes(t *testing.
 
 			res, err := svc.CreateUser(ctxConRol(c.quien, "usr-quien"), &dto.CreateUserRequest{
 				FirstName: "Ana", LastName: "Pérez", Email: "ana@gmail.com",
-				Password: "Password123!", Phone: "3547000000", RoleID: c.rolNuevo,
+				Password: "Password123!", Phone: "3547000000", RoleID: c.rolNuevo, DNI: "30111222", Address: "San Martín 100",
 			})
 
 			if c.permitido {

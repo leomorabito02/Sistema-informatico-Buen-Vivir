@@ -3,6 +3,7 @@ package utils
 import (
 	"errors"
 	"net/url"
+	"regexp"
 	"strings"
 	"unicode"
 
@@ -70,6 +71,11 @@ func GetValidator() *validator.Validate {
 		_ = validate.RegisterValidation("url_or_relative", func(fl validator.FieldLevel) bool {
 			return ValidateURLOrRelative(fl.Field().String())
 		})
+
+		// dni: 7 u 8 dígitos sin puntos (HU-07).
+		_ = validate.RegisterValidation("dni", func(fl validator.FieldLevel) bool {
+			return dniPattern.MatchString(strings.TrimSpace(fl.Field().String()))
+		})
 	}
 	return validate
 }
@@ -84,3 +90,5 @@ func FormatValidationError(err error) map[string]string {
 	}
 	return nil
 }
+
+var dniPattern = regexp.MustCompile(`^\d{7,8}$`)

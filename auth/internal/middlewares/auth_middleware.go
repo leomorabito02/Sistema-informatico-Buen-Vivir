@@ -77,6 +77,10 @@ func AuthMiddleware(jwtService JWTService) func(http.Handler) http.Handler {
 			}
 
 			ctx := extractContextFromClaims(r.Context(), claims)
+			if h := auditActorFrom(r.Context()); h != nil {
+				h.userID, _ = claims["sub"].(string)
+				h.role, _ = claims["role"].(string)
+			}
 			next.ServeHTTP(w, r.WithContext(ctx))
 		})
 	}

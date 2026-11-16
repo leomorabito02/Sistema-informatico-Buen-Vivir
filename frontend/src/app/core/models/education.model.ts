@@ -217,6 +217,8 @@ export interface RegistroAuditoria {
   recursoId: string;
   fecha: string;
   ip?: string;
+  /** Campos tocados o motivo del rechazo (Autenticación). */
+  detalle?: string;
 }
 
 /** Filtros del registro de auditoría; fechas en `YYYY-MM-DD`. */

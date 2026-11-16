@@ -117,6 +117,8 @@ func RegisterRoutes(
 			// borrar material: solo admin (no hay modelo de ownership de
 			// materiales, un material puede estar linkeado a varios cursos).
 			r.Delete("/api/materiales/{id}", ctrls.Material.Delete)
+			// HU-14: en qué cursos está el material, para avisar antes de borrarlo.
+			r.Get("/api/materiales/{id}/cursos", ctrls.Material.CursosQueUsan)
 
 			// cuántos inscriptos activos tiene un curso: el aviso antes
 			// de darlo de baja (HU-16; el DELETE de arriba es la baja lógica)

@@ -91,7 +91,10 @@
             [severity]="accionSeverity(r.accion)"
           ></p-tag>
         </td>
-        <td>{{ recursoLabel(r.recurso) }}</td>
+        <td>
+          {{ recursoLabel(r.recurso) }}
+          <small *ngIf="r.detalle" class="detalle">{{ r.detalle }}</small>
+        </td>
         <td>
           <code>{{ r.recursoId }}</code>
         </td>

@@ -236,6 +236,16 @@ export class EducationService {
       .pipe(catchError(this.handleError));
   }
 
+  /** HU-14: cursos que tienen adjunto el material (aviso antes de borrar). */
+  coursesUsingMaterial(id: string): Observable<{ id: string; titulo: string }[]> {
+    return this.http
+      .get<{ id: string; titulo: string }[]>(
+        `${this.base}/api/materiales/${id}/cursos`,
+        { withCredentials: true },
+      )
+      .pipe(catchError(this.handleError));
+  }
+
   deleteMaterial(id: string): Observable<void> {
     return this.http
       .delete<void>(`${this.base}/api/materiales/${id}`, {
