@@ -173,6 +173,7 @@ export interface Enrollment {
   /** Los completa `GET /api/cursos/{id}/inscripciones` contra auth-service. */
   nombre?: string;
   apellido?: string;
+  courseTitle?: string;
 }
 
 /** Payload de `POST /api/cursos/{id}/inscripciones` (role_admin/role_volunteer). */
