@@ -22,6 +22,9 @@ import (
 
 type ResumeService interface {
 	GetResumeByUserID(ctx context.Context, userID string) (*models.Resume, error)
+	// GetPublicResume solo lee: si el CV no existe devuelve ErrResumeNotFound
+	// (no lo crea, a diferencia de GetResumeByUserID).
+	GetPublicResume(ctx context.Context, userID string) (*models.Resume, error)
 	GetAllResumes(ctx context.Context) ([]models.Resume, error)
 	UpdateResume(ctx context.Context, userID string, data *models.ResumeData) (*models.Resume, error)
 	ParseAndUploadPDF(ctx context.Context, userID string, filename string, reader io.Reader) (*models.Resume, error)
@@ -40,6 +43,12 @@ const (
 )
 
 var ErrPDFNotReady = errors.New("pdf not ready")
+
+// ErrResumeNotFound: el usuario no tiene CV. Las rutas públicas responden
+// 404; antes creaban un CV vacío para cualquier id que se pidiera (un
+// visitante sin sesión podía llenar la base) y, si fallaba, devolvían 500
+// con el error interno (escaneo ZAP del 17/11/2026).
+var ErrResumeNotFound = errors.New("resume not found")
 
 type resumeService struct {
 	repo     repositories.ResumeRepository
@@ -366,6 +375,20 @@ func (s *resumeService) GetPDFStatus(ctx context.Context, userID string) bool {
 	return err == nil && resume != nil
 }
 
+// GetPublicResume devuelve el CV sin crearlo si no existe.
+func (s *resumeService) GetPublicResume(ctx context.Context, userID string) (*models.Resume, error) {
+	resume, err := s.repo.FindByUserID(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+	if resume == nil {
+		return nil, ErrResumeNotFound
+	}
+	resume.PDFURL = fmt.Sprintf("/api/v1/rxresume/public/%s/pdf", userID)
+	resume.PublicURL = fmt.Sprintf("/cv-public/%s", userID)
+	return resume, nil
+}
+
 // ExportPDF returns the generated PDF, using GCS cache or rendering on-demand via cv-renderer.
 func (s *resumeService) ExportPDF(ctx context.Context, userID string) ([]byte, error) {
 	objectName := fmt.Sprintf("pdfs/%s.pdf", userID)
@@ -378,8 +401,8 @@ func (s *resumeService) ExportPDF(ctx context.Context, userID string) ([]byte, e
 		}
 	}
 
-	// 2. Fetch resume data
-	resume, err := s.GetResumeByUserID(ctx, userID)
+	// 2. Fetch resume data (ruta pública: solo lectura, no crea el CV)
+	resume, err := s.GetPublicResume(ctx, userID)
 	if err != nil {
 		return nil, err
 	}

@@ -3,6 +3,7 @@ package services
 import (
 	"bytes"
 	"context"
+	"errors"
 	"io"
 	"strings"
 	"testing"
@@ -263,5 +264,30 @@ func TestResumeService_GenerateResume_SetsPicture(t *testing.T) {
 	}
 	if res.Data.Basics.Name != "New Name" {
 		t.Errorf("expected name to be 'New Name', got %s", res.Data.Basics.Name)
+	}
+}
+
+// Las rutas públicas no crean CVs: un id inexistente da ErrResumeNotFound
+// y la base queda igual (escaneo ZAP del 17/11/2026).
+func TestResumeService_PublicoNoCreaCV(t *testing.T) {
+	ctx := context.Background()
+	repo := &mockRepo{resumes: make(map[string]*models.Resume)}
+	renderer := &mockRenderer{output: []byte("%PDF")}
+	service := NewResumeService(repo, &mockStorage{files: map[string][]byte{}}, renderer)
+
+	if _, err := service.GetPublicResume(ctx, "id-inventado"); !errors.Is(err, ErrResumeNotFound) {
+		t.Fatalf("esperaba ErrResumeNotFound, fue %v", err)
+	}
+	if _, err := service.ExportPDF(ctx, "id-inventado"); !errors.Is(err, ErrResumeNotFound) {
+		t.Fatalf("PDF: esperaba ErrResumeNotFound, fue %v", err)
+	}
+	if len(repo.resumes) != 0 || renderer.renderCount != 0 {
+		t.Fatalf("no debía crear CVs ni renderizar: %d CVs, %d renders", len(repo.resumes), renderer.renderCount)
+	}
+
+	repo.resumes["usr-9"] = &models.Resume{UserID: "usr-9"}
+	r, err := service.GetPublicResume(ctx, "usr-9")
+	if err != nil || r.PublicURL != "/cv-public/usr-9" {
+		t.Fatalf("CV existente: %+v, %v", r, err)
 	}
 }
