@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"io"
+	"log"
 	"net/http"
 	"path/filepath"
 	"strings"
@@ -13,8 +14,8 @@ import (
 )
 
 const (
-	headerXUserID     = "X-User-ID"
-	headerXUserRole   = "X-User-Role"
+	headerXUserID         = "X-User-ID"
+	headerXUserRole       = "X-User-Role"
 	headerContentType     = "Content-Type"
 	contentTypeJSON       = "application/json"
 	errMissingUserID      = "missing user identity header X-User-ID"
@@ -197,7 +198,7 @@ func (c *ResumeController) DownloadPublicMedia(w http.ResponseWriter, r *http.Re
 	w.Header().Set("Vary", "Origin")
 	w.Header().Set("Content-Type", contentType)
 	w.Header().Set("Cache-Control", "public, max-age=31536000") // Cache for 1 year
-	
+
 	_, err = io.Copy(w, rc)
 	if err != nil {
 		http.Error(w, "error streaming media", http.StatusInternalServerError)
@@ -390,14 +391,25 @@ func (c *ResumeController) GetPublicResume(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	resume, err := c.service.GetResumeByUserID(r.Context(), userID)
+	resume, err := c.service.GetPublicResume(r.Context(), userID)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		publicError(w, err, "error leyendo CV público")
 		return
 	}
 
 	w.Header().Set(headerContentType, contentTypeJSON)
 	_ = json.NewEncoder(w).Encode(resume)
+}
+
+// publicError responde 404 si el CV no existe y, ante cualquier otro error,
+// un 500 genérico: el detalle va al log y no a quien hizo el pedido.
+func publicError(w http.ResponseWriter, err error, msg string) {
+	if errors.Is(err, services.ErrResumeNotFound) {
+		http.Error(w, "CV no encontrado", http.StatusNotFound)
+		return
+	}
+	log.Printf("%s: %v", msg, err)
+	http.Error(w, "No se pudo obtener el CV", http.StatusInternalServerError)
 }
 
 // DownloadPublicPDF retrieves the PDF from Reactive Resume backend and serves it.
@@ -419,7 +431,7 @@ func (c *ResumeController) DownloadPublicPDF(w http.ResponseWriter, r *http.Requ
 			})
 			return
 		}
-		http.Error(w, "error generating PDF: "+err.Error(), http.StatusInternalServerError)
+		publicError(w, err, "error generando PDF público")
 		return
 	}
 
