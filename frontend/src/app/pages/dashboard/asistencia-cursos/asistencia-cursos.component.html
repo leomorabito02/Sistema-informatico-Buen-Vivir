@@ -3,140 +3,63 @@
     <div>
       <h1 class="page-title">Asistencia por curso</h1>
       <p class="page-subtitle">
-        Historial de asistencia de cada curso del centro. Se completa solo:
-        cuando un participante entrega una actividad, queda presente en esa
-        actividad.
+        La asistencia se registra cuando el participante entrega la actividad.
       </p>
     </div>
   </div>
 
-  <p-selectButton
-    [options]="vistas"
-    [(ngModel)]="vista"
-    optionLabel="label"
-    optionValue="value"
-    [allowEmpty]="false"
-    ariaLabel="Ver asistencia por curso o por participante"
-    styleClass="vista-toggle"
-  ></p-selectButton>
-
   <app-error-state *ngIf="error" [message]="error"></app-error-state>
 
-  <!-- Por curso: matriz participante × actividad -->
-  <ng-container *ngIf="vista === 'curso'">
-    <app-loading-state
-      *ngIf="loadingCourses"
-      variant="list"
-      [rows]="1"
-      label="Cargando cursos…"
-    ></app-loading-state>
+  <app-loading-state
+    *ngIf="loadingCourses"
+    variant="list"
+    [rows]="1"
+    label="Cargando cursos…"
+  ></app-loading-state>
 
-    <ng-container *ngIf="!loadingCourses">
-      <app-empty-state
-        *ngIf="courseOptions.length === 0 && !error"
-        [compact]="true"
-      >
-        No hay cursos publicados todavía.
-      </app-empty-state>
+  <ng-container *ngIf="!loadingCourses">
+    <app-empty-state
+      *ngIf="courseOptions.length === 0 && !error"
+      [compact]="true"
+    >
+      No hay cursos publicados todavía.
+    </app-empty-state>
 
-      <div *ngIf="courseOptions.length > 0" class="toolbar">
-        <div class="course-picker">
-          <label for="curso-asistencia">Curso</label>
-          <p-select
-            inputId="curso-asistencia"
-            [options]="courseOptions"
-            optionLabel="label"
-            optionValue="value"
-            [(ngModel)]="selectedCourseId"
-            (onChange)="onCourseChange()"
-            placeholder="Elegí un curso"
-            [filter]="true"
-            [style]="{ minWidth: '280px', width: '100%' }"
-          ></p-select>
-        </div>
-        <p-button
-          *ngIf="selectedCourseId"
-          label="Gestionar actividades"
-          icon="pi pi-list-check"
-          [outlined]="true"
-          [routerLink]="['/dashboard/cursos', selectedCourseId]"
-        ></p-button>
-      </div>
-
-      <app-loading-state
-        *ngIf="loadingMatrix"
-        variant="table"
-        label="Cargando asistencia…"
-      ></app-loading-state>
-
-      <app-attendance-matrix
-        *ngIf="selectedCourseId && !loadingMatrix"
-        [activities]="activities"
-        [rows]="rows"
-      ></app-attendance-matrix>
-    </ng-container>
-  </ng-container>
-
-  <!-- Por participante: sus cursos y qué actividades asistió (HU-19) -->
-  <ng-container *ngIf="vista === 'participante'">
-    <div class="toolbar">
+    <div *ngIf="courseOptions.length > 0" class="toolbar">
       <div class="course-picker">
-        <label for="participante-asistencia">Participante</label>
-        <app-participant-picker
-          inputId="participante-asistencia"
-          (seleccionado)="onParticipanteChange($event)"
-        ></app-participant-picker>
+        <label for="curso-asistencia">Curso</label>
+        <p-select
+          inputId="curso-asistencia"
+          [options]="courseOptions"
+          optionLabel="label"
+          optionValue="value"
+          [(ngModel)]="selectedCourseId"
+          (onChange)="onCourseChange()"
+          placeholder="Elegí un curso"
+          [filter]="true"
+          filterPlaceholder="Buscar curso"
+          appendTo="body"
+        ></p-select>
       </div>
+      <p-button
+        *ngIf="selectedCourseId"
+        label="Gestionar actividades"
+        icon="pi pi-list-check"
+        [outlined]="true"
+        [routerLink]="['/dashboard/cursos', selectedCourseId]"
+      ></p-button>
     </div>
 
     <app-loading-state
-      *ngIf="loadingHistorial"
-      variant="list"
-      label="Cargando historial…"
+      *ngIf="loadingMatrix"
+      variant="table"
+      label="Cargando asistencia…"
     ></app-loading-state>
 
-    <ng-container *ngIf="participante && !loadingHistorial">
-      <app-empty-state
-        *ngIf="historial.length === 0 && !error"
-        [compact]="true"
-      >
-        {{ nombreParticipante }} no está inscripto en ningún curso.
-      </app-empty-state>
-
-      <section *ngFor="let h of historial" class="historial-curso">
-        <header class="historial-header">
-          <div>
-            <h2>{{ h.cursoTitulo }}</h2>
-            <p class="hint">
-              Inscripto el {{ h.fechaInscripcion | date: "dd/MM/yyyy" }} ·
-              asistió a {{ h.actividadesAsistidas }} de
-              {{ h.actividadesTotal }}
-              {{ h.actividadesTotal === 1 ? "actividad" : "actividades" }}
-              ({{ h.porcentajeAsistencia | number: "1.0-0" }} %)
-            </p>
-          </div>
-          <p-tag
-            [value]="h.estadoInscripcion"
-            [severity]="estadoSeverity(h.estadoInscripcion)"
-          ></p-tag>
-        </header>
-
-        <p *ngIf="h.actividades.length === 0" class="hint">
-          El curso todavía no tiene actividades.
-        </p>
-        <ul *ngIf="h.actividades.length > 0" class="actividades">
-          <li *ngFor="let a of h.actividades">
-            <span class="fecha">{{
-              a.fecha | date: "dd/MM/yyyy" : "UTC"
-            }}</span>
-            <span class="titulo">{{ a.titulo }}</span>
-            <p-tag
-              [value]="a.presente ? 'Presente' : 'Sin entregar'"
-              [severity]="a.presente ? 'success' : 'secondary'"
-            ></p-tag>
-          </li>
-        </ul>
-      </section>
-    </ng-container>
+    <app-attendance-matrix
+      *ngIf="selectedCourseId && !loadingMatrix"
+      [activities]="activities"
+      [rows]="rows"
+    ></app-attendance-matrix>
   </ng-container>
 </div>

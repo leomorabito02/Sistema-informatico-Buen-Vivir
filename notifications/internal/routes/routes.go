@@ -59,3 +59,11 @@ func RegisterAsyncRoutes(mux *http.ServeMux, a AsyncEndpoints) {
 		mux.Handle("POST /internal/outbox/flush", a.DeliveryFlush)
 	}
 }
+
+// RegisterContactRoute registra el formulario público de contacto (sin
+// sesión: lo usan visitantes de la landing y empresas).
+func RegisterContactRoute(mux *http.ServeMux, ctrl *controllers.ContactController) {
+	if ctrl != nil {
+		mux.HandleFunc("POST /api/v1/notifications/contacto", ctrl.Enviar)
+	}
+}

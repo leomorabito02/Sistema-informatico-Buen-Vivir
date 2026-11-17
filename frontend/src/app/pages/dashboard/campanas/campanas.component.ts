@@ -116,8 +116,14 @@ export class CampanasComponent implements OnInit {
     );
   }
 
+  /** La imagen es una dirección web: mismo criterio que los enlaces de materiales. */
+  get imagenInvalida(): boolean {
+    const u = this.form.imagen_url.trim();
+    return !!u && !/^https?:\/\//i.test(u);
+  }
+
   guardar(): void {
-    if (!this.formCompleto || this.guardando) return;
+    if (!this.formCompleto || this.imagenInvalida || this.guardando) return;
     this.guardando = true;
     const pedido = this.editandoId
       ? this.service.editar(this.editandoId, this.form)

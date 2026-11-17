@@ -3,7 +3,6 @@ package services
 import (
 	"context"
 	"errors"
-	"fmt"
 	"log/slog"
 	"sort"
 	"strings"
@@ -32,9 +31,13 @@ func validateOfferFields(o *models.JobOffer, checkDeadline bool) error {
 		{o.Modality, "modalidad"}, {o.JobType, "tipo de empleo"}, {o.Salary, "salario"},
 		{o.Schedule, "horario"},
 	}
+	// Se juntan TODOS los faltantes en un solo mensaje (antes se cortaba
+	// en el primero y el formulario no podía marcar el resto; pedido del
+	// 17/11/2026). El frontend usa la misma lista (camposFaltantesOferta).
+	var faltan []string
 	for _, c := range campos {
 		if strings.TrimSpace(c.valor) == "" {
-			return &offerFieldError{msg: fmt.Sprintf("falta el campo obligatorio: %s", c.nombre)}
+			faltan = append(faltan, c.nombre)
 		}
 	}
 	tieneRequisito := false
@@ -45,10 +48,17 @@ func validateOfferFields(o *models.JobOffer, checkDeadline bool) error {
 		}
 	}
 	if !tieneRequisito {
-		return &offerFieldError{msg: "falta el campo obligatorio: requisitos (al menos uno)"}
+		faltan = append(faltan, "requisitos (al menos uno)")
 	}
 	if o.Deadline.IsZero() {
-		return &offerFieldError{msg: "falta el campo obligatorio: fecha límite"}
+		faltan = append(faltan, "fecha límite")
+	}
+	switch len(faltan) {
+	case 0:
+	case 1:
+		return &offerFieldError{msg: "falta el campo obligatorio: " + faltan[0]}
+	default:
+		return &offerFieldError{msg: "faltan los campos obligatorios: " + strings.Join(faltan, ", ")}
 	}
 	if checkDeadline && o.Deadline.Before(time.Now().Add(-24*time.Hour)) {
 		return &offerFieldError{msg: "la fecha límite ya pasó"}

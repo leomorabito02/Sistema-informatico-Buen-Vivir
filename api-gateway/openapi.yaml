@@ -4756,6 +4756,1140 @@ paths:
               type: boolean
             Access-Control-Max-Age:
               type: integer
+  /api/v1/auth/refresh:
+    post:
+      summary: POST /api/v1/auth/refresh
+      operationId: post__api_v1_auth_refresh
+      x-google-backend:
+        address: ${AUTH_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+        jwt_audience: ${AUTH_SERVICE_URL}
+      responses:
+        '200':
+          description: OK
+    options:
+      summary: CORS preflight for /api/v1/auth/refresh
+      operationId: options__api_v1_auth_refresh
+      x-google-backend:
+        address: ${AUTH_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+        jwt_audience: ${AUTH_SERVICE_URL}
+      responses:
+        '200':
+          description: OK
+          headers:
+            Access-Control-Allow-Origin:
+              type: string
+            Access-Control-Allow-Methods:
+              type: string
+            Access-Control-Allow-Headers:
+              type: string
+            Access-Control-Expose-Headers:
+              type: string
+            Access-Control-Allow-Credentials:
+              type: boolean
+            Access-Control-Max-Age:
+              type: integer
+  /api/v1/auth/verify-email:
+    post:
+      summary: POST /api/v1/auth/verify-email
+      operationId: post__api_v1_auth_verify_email
+      x-google-backend:
+        address: ${AUTH_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+        jwt_audience: ${AUTH_SERVICE_URL}
+      responses:
+        '200':
+          description: OK
+    patch:
+      summary: PATCH /api/v1/auth/verify-email
+      operationId: patch__api_v1_auth_verify_email
+      x-google-backend:
+        address: ${AUTH_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+        jwt_audience: ${AUTH_SERVICE_URL}
+      responses:
+        '200':
+          description: OK
+    options:
+      summary: CORS preflight for /api/v1/auth/verify-email
+      operationId: options__api_v1_auth_verify_email
+      x-google-backend:
+        address: ${AUTH_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+        jwt_audience: ${AUTH_SERVICE_URL}
+      responses:
+        '200':
+          description: OK
+          headers:
+            Access-Control-Allow-Origin:
+              type: string
+            Access-Control-Allow-Methods:
+              type: string
+            Access-Control-Allow-Headers:
+              type: string
+            Access-Control-Expose-Headers:
+              type: string
+            Access-Control-Allow-Credentials:
+              type: boolean
+            Access-Control-Max-Age:
+              type: integer
+  /api/v1/auth/resend-verification:
+    post:
+      summary: POST /api/v1/auth/resend-verification
+      operationId: post__api_v1_auth_resend_verification
+      x-google-backend:
+        address: ${AUTH_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+        jwt_audience: ${AUTH_SERVICE_URL}
+      responses:
+        '200':
+          description: OK
+    options:
+      summary: CORS preflight for /api/v1/auth/resend-verification
+      operationId: options__api_v1_auth_resend_verification
+      x-google-backend:
+        address: ${AUTH_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+        jwt_audience: ${AUTH_SERVICE_URL}
+      responses:
+        '200':
+          description: OK
+          headers:
+            Access-Control-Allow-Origin:
+              type: string
+            Access-Control-Allow-Methods:
+              type: string
+            Access-Control-Allow-Headers:
+              type: string
+            Access-Control-Expose-Headers:
+              type: string
+            Access-Control-Allow-Credentials:
+              type: boolean
+            Access-Control-Max-Age:
+              type: integer
+  /api/v1/auth/forgot-password:
+    post:
+      summary: POST /api/v1/auth/forgot-password
+      operationId: post__api_v1_auth_forgot_password
+      x-google-backend:
+        address: ${AUTH_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+        jwt_audience: ${AUTH_SERVICE_URL}
+      responses:
+        '200':
+          description: OK
+    options:
+      summary: CORS preflight for /api/v1/auth/forgot-password
+      operationId: options__api_v1_auth_forgot_password
+      x-google-backend:
+        address: ${AUTH_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+        jwt_audience: ${AUTH_SERVICE_URL}
+      responses:
+        '200':
+          description: OK
+          headers:
+            Access-Control-Allow-Origin:
+              type: string
+            Access-Control-Allow-Methods:
+              type: string
+            Access-Control-Allow-Headers:
+              type: string
+            Access-Control-Expose-Headers:
+              type: string
+            Access-Control-Allow-Credentials:
+              type: boolean
+            Access-Control-Max-Age:
+              type: integer
+  /api/v1/auth/reset-password:
+    post:
+      summary: POST /api/v1/auth/reset-password
+      operationId: post__api_v1_auth_reset_password
+      x-google-backend:
+        address: ${AUTH_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+        jwt_audience: ${AUTH_SERVICE_URL}
+      responses:
+        '200':
+          description: OK
+    options:
+      summary: CORS preflight for /api/v1/auth/reset-password
+      operationId: options__api_v1_auth_reset_password
+      x-google-backend:
+        address: ${AUTH_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+        jwt_audience: ${AUTH_SERVICE_URL}
+      responses:
+        '200':
+          description: OK
+          headers:
+            Access-Control-Allow-Origin:
+              type: string
+            Access-Control-Allow-Methods:
+              type: string
+            Access-Control-Allow-Headers:
+              type: string
+            Access-Control-Expose-Headers:
+              type: string
+            Access-Control-Allow-Credentials:
+              type: boolean
+            Access-Control-Max-Age:
+              type: integer
+  /api/v1/users/me/devices:
+    post:
+      summary: POST /api/v1/users/me/devices
+      operationId: post__api_v1_users_me_devices
+      x-google-backend:
+        address: ${AUTH_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+        jwt_audience: ${AUTH_SERVICE_URL}
+      responses:
+        '200':
+          description: OK
+    options:
+      summary: CORS preflight for /api/v1/users/me/devices
+      operationId: options__api_v1_users_me_devices
+      x-google-backend:
+        address: ${AUTH_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+        jwt_audience: ${AUTH_SERVICE_URL}
+      responses:
+        '200':
+          description: OK
+          headers:
+            Access-Control-Allow-Origin:
+              type: string
+            Access-Control-Allow-Methods:
+              type: string
+            Access-Control-Allow-Headers:
+              type: string
+            Access-Control-Expose-Headers:
+              type: string
+            Access-Control-Allow-Credentials:
+              type: boolean
+            Access-Control-Max-Age:
+              type: integer
+  /api/v1/users/{id}/profile:
+    get:
+      summary: GET /api/v1/users/{id}/profile
+      operationId: get__api_v1_users_id_profile
+      x-google-backend:
+        address: ${AUTH_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+        jwt_audience: ${AUTH_SERVICE_URL}
+      responses:
+        '200':
+          description: OK
+    options:
+      summary: CORS preflight for /api/v1/users/{id}/profile
+      operationId: options__api_v1_users_id_profile
+      x-google-backend:
+        address: ${AUTH_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+        jwt_audience: ${AUTH_SERVICE_URL}
+      responses:
+        '200':
+          description: OK
+          headers:
+            Access-Control-Allow-Origin:
+              type: string
+            Access-Control-Allow-Methods:
+              type: string
+            Access-Control-Allow-Headers:
+              type: string
+            Access-Control-Expose-Headers:
+              type: string
+            Access-Control-Allow-Credentials:
+              type: boolean
+            Access-Control-Max-Age:
+              type: integer
+  /api/v1/participants/{id}/documents:
+    get:
+      summary: GET /api/v1/participants/{id}/documents
+      operationId: get__api_v1_participants_id_documents
+      x-google-backend:
+        address: ${AUTH_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+        jwt_audience: ${AUTH_SERVICE_URL}
+      responses:
+        '200':
+          description: OK
+    post:
+      summary: POST /api/v1/participants/{id}/documents
+      operationId: post__api_v1_participants_id_documents
+      x-google-backend:
+        address: ${AUTH_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+        jwt_audience: ${AUTH_SERVICE_URL}
+      responses:
+        '200':
+          description: OK
+    options:
+      summary: CORS preflight for /api/v1/participants/{id}/documents
+      operationId: options__api_v1_participants_id_documents
+      x-google-backend:
+        address: ${AUTH_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+        jwt_audience: ${AUTH_SERVICE_URL}
+      responses:
+        '200':
+          description: OK
+          headers:
+            Access-Control-Allow-Origin:
+              type: string
+            Access-Control-Allow-Methods:
+              type: string
+            Access-Control-Allow-Headers:
+              type: string
+            Access-Control-Expose-Headers:
+              type: string
+            Access-Control-Allow-Credentials:
+              type: boolean
+            Access-Control-Max-Age:
+              type: integer
+  /api/v1/participants/{id}/documents/{docId}:
+    put:
+      summary: PUT /api/v1/participants/{id}/documents/{docId}
+      operationId: put__api_v1_participants_id_documents_docId
+      x-google-backend:
+        address: ${AUTH_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+        jwt_audience: ${AUTH_SERVICE_URL}
+      responses:
+        '200':
+          description: OK
+    delete:
+      summary: DELETE /api/v1/participants/{id}/documents/{docId}
+      operationId: delete__api_v1_participants_id_documents_docId
+      x-google-backend:
+        address: ${AUTH_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+        jwt_audience: ${AUTH_SERVICE_URL}
+      responses:
+        '200':
+          description: OK
+    options:
+      summary: CORS preflight for /api/v1/participants/{id}/documents/{docId}
+      operationId: options__api_v1_participants_id_documents_docId
+      x-google-backend:
+        address: ${AUTH_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+        jwt_audience: ${AUTH_SERVICE_URL}
+      responses:
+        '200':
+          description: OK
+          headers:
+            Access-Control-Allow-Origin:
+              type: string
+            Access-Control-Allow-Methods:
+              type: string
+            Access-Control-Allow-Headers:
+              type: string
+            Access-Control-Expose-Headers:
+              type: string
+            Access-Control-Allow-Credentials:
+              type: boolean
+            Access-Control-Max-Age:
+              type: integer
+  /api/v1/participants/{id}/documents/{docId}/download:
+    get:
+      summary: GET /api/v1/participants/{id}/documents/{docId}/download
+      operationId: get__api_v1_participants_id_documents_docId_download
+      x-google-backend:
+        address: ${AUTH_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+        jwt_audience: ${AUTH_SERVICE_URL}
+      responses:
+        '200':
+          description: OK
+    options:
+      summary: CORS preflight for /api/v1/participants/{id}/documents/{docId}/download
+      operationId: options__api_v1_participants_id_documents_docId_download
+      x-google-backend:
+        address: ${AUTH_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+        jwt_audience: ${AUTH_SERVICE_URL}
+      responses:
+        '200':
+          description: OK
+          headers:
+            Access-Control-Allow-Origin:
+              type: string
+            Access-Control-Allow-Methods:
+              type: string
+            Access-Control-Allow-Headers:
+              type: string
+            Access-Control-Expose-Headers:
+              type: string
+            Access-Control-Allow-Credentials:
+              type: boolean
+            Access-Control-Max-Age:
+              type: integer
+  /api/v1/notifications:
+    get:
+      summary: GET /api/v1/notifications
+      operationId: get__api_v1_notifications
+      x-google-backend:
+        address: ${NOTIFICATIONS_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+        jwt_audience: ${NOTIFICATIONS_SERVICE_URL}
+      responses:
+        '200':
+          description: OK
+    options:
+      summary: CORS preflight for /api/v1/notifications
+      operationId: options__api_v1_notifications
+      x-google-backend:
+        address: ${NOTIFICATIONS_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+        jwt_audience: ${NOTIFICATIONS_SERVICE_URL}
+      responses:
+        '200':
+          description: OK
+          headers:
+            Access-Control-Allow-Origin:
+              type: string
+            Access-Control-Allow-Methods:
+              type: string
+            Access-Control-Allow-Headers:
+              type: string
+            Access-Control-Expose-Headers:
+              type: string
+            Access-Control-Allow-Credentials:
+              type: boolean
+            Access-Control-Max-Age:
+              type: integer
+  /api/v1/notifications/unread-count:
+    get:
+      summary: GET /api/v1/notifications/unread-count
+      operationId: get__api_v1_notifications_unread_count
+      x-google-backend:
+        address: ${NOTIFICATIONS_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+        jwt_audience: ${NOTIFICATIONS_SERVICE_URL}
+      responses:
+        '200':
+          description: OK
+    options:
+      summary: CORS preflight for /api/v1/notifications/unread-count
+      operationId: options__api_v1_notifications_unread_count
+      x-google-backend:
+        address: ${NOTIFICATIONS_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+        jwt_audience: ${NOTIFICATIONS_SERVICE_URL}
+      responses:
+        '200':
+          description: OK
+          headers:
+            Access-Control-Allow-Origin:
+              type: string
+            Access-Control-Allow-Methods:
+              type: string
+            Access-Control-Allow-Headers:
+              type: string
+            Access-Control-Expose-Headers:
+              type: string
+            Access-Control-Allow-Credentials:
+              type: boolean
+            Access-Control-Max-Age:
+              type: integer
+  /api/v1/notifications/read-all:
+    patch:
+      summary: PATCH /api/v1/notifications/read-all
+      operationId: patch__api_v1_notifications_read_all
+      x-google-backend:
+        address: ${NOTIFICATIONS_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+        jwt_audience: ${NOTIFICATIONS_SERVICE_URL}
+      responses:
+        '200':
+          description: OK
+    options:
+      summary: CORS preflight for /api/v1/notifications/read-all
+      operationId: options__api_v1_notifications_read_all
+      x-google-backend:
+        address: ${NOTIFICATIONS_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+        jwt_audience: ${NOTIFICATIONS_SERVICE_URL}
+      responses:
+        '200':
+          description: OK
+          headers:
+            Access-Control-Allow-Origin:
+              type: string
+            Access-Control-Allow-Methods:
+              type: string
+            Access-Control-Allow-Headers:
+              type: string
+            Access-Control-Expose-Headers:
+              type: string
+            Access-Control-Allow-Credentials:
+              type: boolean
+            Access-Control-Max-Age:
+              type: integer
+  /api/v1/notifications/preferences:
+    get:
+      summary: GET /api/v1/notifications/preferences
+      operationId: get__api_v1_notifications_preferences
+      x-google-backend:
+        address: ${NOTIFICATIONS_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+        jwt_audience: ${NOTIFICATIONS_SERVICE_URL}
+      responses:
+        '200':
+          description: OK
+    post:
+      summary: POST /api/v1/notifications/preferences
+      operationId: post__api_v1_notifications_preferences
+      x-google-backend:
+        address: ${NOTIFICATIONS_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+        jwt_audience: ${NOTIFICATIONS_SERVICE_URL}
+      responses:
+        '200':
+          description: OK
+    patch:
+      summary: PATCH /api/v1/notifications/preferences
+      operationId: patch__api_v1_notifications_preferences
+      x-google-backend:
+        address: ${NOTIFICATIONS_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+        jwt_audience: ${NOTIFICATIONS_SERVICE_URL}
+      responses:
+        '200':
+          description: OK
+    options:
+      summary: CORS preflight for /api/v1/notifications/preferences
+      operationId: options__api_v1_notifications_preferences
+      x-google-backend:
+        address: ${NOTIFICATIONS_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+        jwt_audience: ${NOTIFICATIONS_SERVICE_URL}
+      responses:
+        '200':
+          description: OK
+          headers:
+            Access-Control-Allow-Origin:
+              type: string
+            Access-Control-Allow-Methods:
+              type: string
+            Access-Control-Allow-Headers:
+              type: string
+            Access-Control-Expose-Headers:
+              type: string
+            Access-Control-Allow-Credentials:
+              type: boolean
+            Access-Control-Max-Age:
+              type: integer
+  /api/v1/notifications/preferences/init:
+    post:
+      summary: POST /api/v1/notifications/preferences/init
+      operationId: post__api_v1_notifications_preferences_init
+      x-google-backend:
+        address: ${NOTIFICATIONS_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+        jwt_audience: ${NOTIFICATIONS_SERVICE_URL}
+      responses:
+        '200':
+          description: OK
+    options:
+      summary: CORS preflight for /api/v1/notifications/preferences/init
+      operationId: options__api_v1_notifications_preferences_init
+      x-google-backend:
+        address: ${NOTIFICATIONS_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+        jwt_audience: ${NOTIFICATIONS_SERVICE_URL}
+      responses:
+        '200':
+          description: OK
+          headers:
+            Access-Control-Allow-Origin:
+              type: string
+            Access-Control-Allow-Methods:
+              type: string
+            Access-Control-Allow-Headers:
+              type: string
+            Access-Control-Expose-Headers:
+              type: string
+            Access-Control-Allow-Credentials:
+              type: boolean
+            Access-Control-Max-Age:
+              type: integer
+  /api/v1/notifications/preferences/{category}:
+    get:
+      summary: GET /api/v1/notifications/preferences/{category}
+      operationId: get__api_v1_notifications_preferences_category
+      x-google-backend:
+        address: ${NOTIFICATIONS_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+        jwt_audience: ${NOTIFICATIONS_SERVICE_URL}
+      responses:
+        '200':
+          description: OK
+    options:
+      summary: CORS preflight for /api/v1/notifications/preferences/{category}
+      operationId: options__api_v1_notifications_preferences_category
+      x-google-backend:
+        address: ${NOTIFICATIONS_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+        jwt_audience: ${NOTIFICATIONS_SERVICE_URL}
+      responses:
+        '200':
+          description: OK
+          headers:
+            Access-Control-Allow-Origin:
+              type: string
+            Access-Control-Allow-Methods:
+              type: string
+            Access-Control-Allow-Headers:
+              type: string
+            Access-Control-Expose-Headers:
+              type: string
+            Access-Control-Allow-Credentials:
+              type: boolean
+            Access-Control-Max-Age:
+              type: integer
+  /api/v1/notifications/contacto:
+    post:
+      summary: POST /api/v1/notifications/contacto
+      operationId: post__api_v1_notifications_contacto
+      x-google-backend:
+        address: ${NOTIFICATIONS_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+        jwt_audience: ${NOTIFICATIONS_SERVICE_URL}
+      responses:
+        '200':
+          description: OK
+    options:
+      summary: CORS preflight for /api/v1/notifications/contacto
+      operationId: options__api_v1_notifications_contacto
+      x-google-backend:
+        address: ${NOTIFICATIONS_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+        jwt_audience: ${NOTIFICATIONS_SERVICE_URL}
+      responses:
+        '200':
+          description: OK
+          headers:
+            Access-Control-Allow-Origin:
+              type: string
+            Access-Control-Allow-Methods:
+              type: string
+            Access-Control-Allow-Headers:
+              type: string
+            Access-Control-Expose-Headers:
+              type: string
+            Access-Control-Allow-Credentials:
+              type: boolean
+            Access-Control-Max-Age:
+              type: integer
+  /api/v1/notifications/{id}:
+    get:
+      summary: GET /api/v1/notifications/{id}
+      operationId: get__api_v1_notifications_id
+      x-google-backend:
+        address: ${NOTIFICATIONS_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+        jwt_audience: ${NOTIFICATIONS_SERVICE_URL}
+      responses:
+        '200':
+          description: OK
+    delete:
+      summary: DELETE /api/v1/notifications/{id}
+      operationId: delete__api_v1_notifications_id
+      x-google-backend:
+        address: ${NOTIFICATIONS_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+        jwt_audience: ${NOTIFICATIONS_SERVICE_URL}
+      responses:
+        '200':
+          description: OK
+    options:
+      summary: CORS preflight for /api/v1/notifications/{id}
+      operationId: options__api_v1_notifications_id
+      x-google-backend:
+        address: ${NOTIFICATIONS_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+        jwt_audience: ${NOTIFICATIONS_SERVICE_URL}
+      responses:
+        '200':
+          description: OK
+          headers:
+            Access-Control-Allow-Origin:
+              type: string
+            Access-Control-Allow-Methods:
+              type: string
+            Access-Control-Allow-Headers:
+              type: string
+            Access-Control-Expose-Headers:
+              type: string
+            Access-Control-Allow-Credentials:
+              type: boolean
+            Access-Control-Max-Age:
+              type: integer
+  /api/v1/notifications/{id}/read:
+    patch:
+      summary: PATCH /api/v1/notifications/{id}/read
+      operationId: patch__api_v1_notifications_id_read
+      x-google-backend:
+        address: ${NOTIFICATIONS_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+        jwt_audience: ${NOTIFICATIONS_SERVICE_URL}
+      responses:
+        '200':
+          description: OK
+    options:
+      summary: CORS preflight for /api/v1/notifications/{id}/read
+      operationId: options__api_v1_notifications_id_read
+      x-google-backend:
+        address: ${NOTIFICATIONS_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+        jwt_audience: ${NOTIFICATIONS_SERVICE_URL}
+      responses:
+        '200':
+          description: OK
+          headers:
+            Access-Control-Allow-Origin:
+              type: string
+            Access-Control-Allow-Methods:
+              type: string
+            Access-Control-Allow-Headers:
+              type: string
+            Access-Control-Expose-Headers:
+              type: string
+            Access-Control-Allow-Credentials:
+              type: boolean
+            Access-Control-Max-Age:
+              type: integer
+  /api/v1/rxresume/me:
+    get:
+      summary: GET /api/v1/rxresume/me
+      operationId: get__api_v1_rxresume_me
+      x-google-backend:
+        address: ${RXRESUME_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+        jwt_audience: ${RXRESUME_SERVICE_URL}
+      responses:
+        '200':
+          description: OK
+    put:
+      summary: PUT /api/v1/rxresume/me
+      operationId: put__api_v1_rxresume_me
+      x-google-backend:
+        address: ${RXRESUME_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+        jwt_audience: ${RXRESUME_SERVICE_URL}
+      responses:
+        '200':
+          description: OK
+    options:
+      summary: CORS preflight for /api/v1/rxresume/me
+      operationId: options__api_v1_rxresume_me
+      x-google-backend:
+        address: ${RXRESUME_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+        jwt_audience: ${RXRESUME_SERVICE_URL}
+      responses:
+        '200':
+          description: OK
+          headers:
+            Access-Control-Allow-Origin:
+              type: string
+            Access-Control-Allow-Methods:
+              type: string
+            Access-Control-Allow-Headers:
+              type: string
+            Access-Control-Expose-Headers:
+              type: string
+            Access-Control-Allow-Credentials:
+              type: boolean
+            Access-Control-Max-Age:
+              type: integer
+  /api/v1/rxresume/me/pdf-status:
+    get:
+      summary: GET /api/v1/rxresume/me/pdf-status
+      operationId: get__api_v1_rxresume_me_pdf_status
+      x-google-backend:
+        address: ${RXRESUME_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+        jwt_audience: ${RXRESUME_SERVICE_URL}
+      responses:
+        '200':
+          description: OK
+    options:
+      summary: CORS preflight for /api/v1/rxresume/me/pdf-status
+      operationId: options__api_v1_rxresume_me_pdf_status
+      x-google-backend:
+        address: ${RXRESUME_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+        jwt_audience: ${RXRESUME_SERVICE_URL}
+      responses:
+        '200':
+          description: OK
+          headers:
+            Access-Control-Allow-Origin:
+              type: string
+            Access-Control-Allow-Methods:
+              type: string
+            Access-Control-Allow-Headers:
+              type: string
+            Access-Control-Expose-Headers:
+              type: string
+            Access-Control-Allow-Credentials:
+              type: boolean
+            Access-Control-Max-Age:
+              type: integer
+  /api/v1/rxresume/me/parse-pdf:
+    post:
+      summary: POST /api/v1/rxresume/me/parse-pdf
+      operationId: post__api_v1_rxresume_me_parse_pdf
+      x-google-backend:
+        address: ${RXRESUME_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+        jwt_audience: ${RXRESUME_SERVICE_URL}
+      responses:
+        '200':
+          description: OK
+    options:
+      summary: CORS preflight for /api/v1/rxresume/me/parse-pdf
+      operationId: options__api_v1_rxresume_me_parse_pdf
+      x-google-backend:
+        address: ${RXRESUME_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+        jwt_audience: ${RXRESUME_SERVICE_URL}
+      responses:
+        '200':
+          description: OK
+          headers:
+            Access-Control-Allow-Origin:
+              type: string
+            Access-Control-Allow-Methods:
+              type: string
+            Access-Control-Allow-Headers:
+              type: string
+            Access-Control-Expose-Headers:
+              type: string
+            Access-Control-Allow-Credentials:
+              type: boolean
+            Access-Control-Max-Age:
+              type: integer
+  /api/v1/rxresume/me/picture:
+    post:
+      summary: POST /api/v1/rxresume/me/picture
+      operationId: post__api_v1_rxresume_me_picture
+      x-google-backend:
+        address: ${RXRESUME_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+        jwt_audience: ${RXRESUME_SERVICE_URL}
+      responses:
+        '200':
+          description: OK
+    options:
+      summary: CORS preflight for /api/v1/rxresume/me/picture
+      operationId: options__api_v1_rxresume_me_picture
+      x-google-backend:
+        address: ${RXRESUME_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+        jwt_audience: ${RXRESUME_SERVICE_URL}
+      responses:
+        '200':
+          description: OK
+          headers:
+            Access-Control-Allow-Origin:
+              type: string
+            Access-Control-Allow-Methods:
+              type: string
+            Access-Control-Allow-Headers:
+              type: string
+            Access-Control-Expose-Headers:
+              type: string
+            Access-Control-Allow-Credentials:
+              type: boolean
+            Access-Control-Max-Age:
+              type: integer
+  /api/v1/rxresume/me/generate:
+    post:
+      summary: POST /api/v1/rxresume/me/generate
+      operationId: post__api_v1_rxresume_me_generate
+      x-google-backend:
+        address: ${RXRESUME_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+        jwt_audience: ${RXRESUME_SERVICE_URL}
+      responses:
+        '200':
+          description: OK
+    options:
+      summary: CORS preflight for /api/v1/rxresume/me/generate
+      operationId: options__api_v1_rxresume_me_generate
+      x-google-backend:
+        address: ${RXRESUME_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+        jwt_audience: ${RXRESUME_SERVICE_URL}
+      responses:
+        '200':
+          description: OK
+          headers:
+            Access-Control-Allow-Origin:
+              type: string
+            Access-Control-Allow-Methods:
+              type: string
+            Access-Control-Allow-Headers:
+              type: string
+            Access-Control-Expose-Headers:
+              type: string
+            Access-Control-Allow-Credentials:
+              type: boolean
+            Access-Control-Max-Age:
+              type: integer
+  /api/v1/rxresume/participants:
+    get:
+      summary: GET /api/v1/rxresume/participants
+      operationId: get__api_v1_rxresume_participants
+      x-google-backend:
+        address: ${RXRESUME_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+        jwt_audience: ${RXRESUME_SERVICE_URL}
+      responses:
+        '200':
+          description: OK
+    options:
+      summary: CORS preflight for /api/v1/rxresume/participants
+      operationId: options__api_v1_rxresume_participants
+      x-google-backend:
+        address: ${RXRESUME_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+        jwt_audience: ${RXRESUME_SERVICE_URL}
+      responses:
+        '200':
+          description: OK
+          headers:
+            Access-Control-Allow-Origin:
+              type: string
+            Access-Control-Allow-Methods:
+              type: string
+            Access-Control-Allow-Headers:
+              type: string
+            Access-Control-Expose-Headers:
+              type: string
+            Access-Control-Allow-Credentials:
+              type: boolean
+            Access-Control-Max-Age:
+              type: integer
+  /api/v1/rxresume/user:
+    get:
+      summary: GET /api/v1/rxresume/user
+      operationId: get__api_v1_rxresume_user
+      x-google-backend:
+        address: ${RXRESUME_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+        jwt_audience: ${RXRESUME_SERVICE_URL}
+      responses:
+        '200':
+          description: OK
+    put:
+      summary: PUT /api/v1/rxresume/user
+      operationId: put__api_v1_rxresume_user
+      x-google-backend:
+        address: ${RXRESUME_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+        jwt_audience: ${RXRESUME_SERVICE_URL}
+      responses:
+        '200':
+          description: OK
+    options:
+      summary: CORS preflight for /api/v1/rxresume/user
+      operationId: options__api_v1_rxresume_user
+      x-google-backend:
+        address: ${RXRESUME_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+        jwt_audience: ${RXRESUME_SERVICE_URL}
+      responses:
+        '200':
+          description: OK
+          headers:
+            Access-Control-Allow-Origin:
+              type: string
+            Access-Control-Allow-Methods:
+              type: string
+            Access-Control-Allow-Headers:
+              type: string
+            Access-Control-Expose-Headers:
+              type: string
+            Access-Control-Allow-Credentials:
+              type: boolean
+            Access-Control-Max-Age:
+              type: integer
+  /api/v1/rxresume/user/pdf-status:
+    get:
+      summary: GET /api/v1/rxresume/user/pdf-status
+      operationId: get__api_v1_rxresume_user_pdf_status
+      x-google-backend:
+        address: ${RXRESUME_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+        jwt_audience: ${RXRESUME_SERVICE_URL}
+      responses:
+        '200':
+          description: OK
+    options:
+      summary: CORS preflight for /api/v1/rxresume/user/pdf-status
+      operationId: options__api_v1_rxresume_user_pdf_status
+      x-google-backend:
+        address: ${RXRESUME_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+        jwt_audience: ${RXRESUME_SERVICE_URL}
+      responses:
+        '200':
+          description: OK
+          headers:
+            Access-Control-Allow-Origin:
+              type: string
+            Access-Control-Allow-Methods:
+              type: string
+            Access-Control-Allow-Headers:
+              type: string
+            Access-Control-Expose-Headers:
+              type: string
+            Access-Control-Allow-Credentials:
+              type: boolean
+            Access-Control-Max-Age:
+              type: integer
+  /api/v1/rxresume/user/picture:
+    post:
+      summary: POST /api/v1/rxresume/user/picture
+      operationId: post__api_v1_rxresume_user_picture
+      x-google-backend:
+        address: ${RXRESUME_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+        jwt_audience: ${RXRESUME_SERVICE_URL}
+      responses:
+        '200':
+          description: OK
+    options:
+      summary: CORS preflight for /api/v1/rxresume/user/picture
+      operationId: options__api_v1_rxresume_user_picture
+      x-google-backend:
+        address: ${RXRESUME_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+        jwt_audience: ${RXRESUME_SERVICE_URL}
+      responses:
+        '200':
+          description: OK
+          headers:
+            Access-Control-Allow-Origin:
+              type: string
+            Access-Control-Allow-Methods:
+              type: string
+            Access-Control-Allow-Headers:
+              type: string
+            Access-Control-Expose-Headers:
+              type: string
+            Access-Control-Allow-Credentials:
+              type: boolean
+            Access-Control-Max-Age:
+              type: integer
+  /api/v1/rxresume/public/media:
+    get:
+      summary: GET /api/v1/rxresume/public/media
+      operationId: get__api_v1_rxresume_public_media
+      x-google-backend:
+        address: ${RXRESUME_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+        jwt_audience: ${RXRESUME_SERVICE_URL}
+      responses:
+        '200':
+          description: OK
+    options:
+      summary: CORS preflight for /api/v1/rxresume/public/media
+      operationId: options__api_v1_rxresume_public_media
+      x-google-backend:
+        address: ${RXRESUME_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+        jwt_audience: ${RXRESUME_SERVICE_URL}
+      responses:
+        '200':
+          description: OK
+          headers:
+            Access-Control-Allow-Origin:
+              type: string
+            Access-Control-Allow-Methods:
+              type: string
+            Access-Control-Allow-Headers:
+              type: string
+            Access-Control-Expose-Headers:
+              type: string
+            Access-Control-Allow-Credentials:
+              type: boolean
+            Access-Control-Max-Age:
+              type: integer
+  /api/v1/rxresume/public/{id}:
+    get:
+      summary: GET /api/v1/rxresume/public/{id}
+      operationId: get__api_v1_rxresume_public_id
+      x-google-backend:
+        address: ${RXRESUME_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+        jwt_audience: ${RXRESUME_SERVICE_URL}
+      responses:
+        '200':
+          description: OK
+    options:
+      summary: CORS preflight for /api/v1/rxresume/public/{id}
+      operationId: options__api_v1_rxresume_public_id
+      x-google-backend:
+        address: ${RXRESUME_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+        jwt_audience: ${RXRESUME_SERVICE_URL}
+      responses:
+        '200':
+          description: OK
+          headers:
+            Access-Control-Allow-Origin:
+              type: string
+            Access-Control-Allow-Methods:
+              type: string
+            Access-Control-Allow-Headers:
+              type: string
+            Access-Control-Expose-Headers:
+              type: string
+            Access-Control-Allow-Credentials:
+              type: boolean
+            Access-Control-Max-Age:
+              type: integer
+  /api/v1/rxresume/public/{id}/pdf:
+    get:
+      summary: GET /api/v1/rxresume/public/{id}/pdf
+      operationId: get__api_v1_rxresume_public_id_pdf
+      x-google-backend:
+        address: ${RXRESUME_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+        jwt_audience: ${RXRESUME_SERVICE_URL}
+      responses:
+        '200':
+          description: OK
+    options:
+      summary: CORS preflight for /api/v1/rxresume/public/{id}/pdf
+      operationId: options__api_v1_rxresume_public_id_pdf
+      x-google-backend:
+        address: ${RXRESUME_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+        jwt_audience: ${RXRESUME_SERVICE_URL}
+      responses:
+        '200':
+          description: OK
+          headers:
+            Access-Control-Allow-Origin:
+              type: string
+            Access-Control-Allow-Methods:
+              type: string
+            Access-Control-Allow-Headers:
+              type: string
+            Access-Control-Expose-Headers:
+              type: string
+            Access-Control-Allow-Credentials:
+              type: boolean
+            Access-Control-Max-Age:
+              type: integer
 securityDefinitions:
   jwt:
     type: apiKey

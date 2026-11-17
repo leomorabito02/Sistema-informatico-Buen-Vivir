@@ -150,83 +150,15 @@ describe("AsistenciaCursosComponent", () => {
     expect(education.listCourseEnrollments).not.toHaveBeenCalled();
   });
 
-  describe("por participante (HU-19)", () => {
-    const historial = [
-      {
-        cursoId: "c1",
-        cursoTitulo: "Huerta",
-        estadoInscripcion: "activa",
-        fechaInscripcion: "2026-10-01T00:00:00Z",
-        actividadesTotal: 2,
-        actividadesAsistidas: 1,
-        porcentajeAsistencia: 50,
-        actividades: [
-          {
-            actividadId: "a1",
-            titulo: "TP 1",
-            fecha: "2026-10-01T00:00:00Z",
-            presente: true,
-          },
-          {
-            actividadId: "a2",
-            titulo: "TP 2",
-            fecha: "2026-10-08T00:00:00Z",
-            presente: false,
-          },
-        ],
-      },
-    ] as any;
-
-    it("loads the history of the chosen participant", () => {
-      create();
-      education.getParticipantAttendanceHistory.and.returnValue(of(historial));
-      component.vista = "participante";
-      component.onParticipanteChange({
-        participanteId: "p1",
-        nombre: "Ana",
-        apellido: "Paz",
-      });
-      fixture.detectChanges();
-
-      expect(education.getParticipantAttendanceHistory).toHaveBeenCalledWith(
-        "p1",
-      );
-      expect(component.loadingHistorial).toBeFalse();
-      expect(component.nombreParticipante).toBe("Paz, Ana");
-      const text = fixture.nativeElement.textContent;
-      expect(text).toContain("Huerta");
-      expect(text).toContain("asistió a 1 de");
-      expect(text).toContain("Sin entregar");
-    });
-
-    it("clears the history when the participant is cleared", () => {
-      create();
-      component.historial = historial;
-      component.onParticipanteChange(null);
-      expect(component.historial).toEqual([]);
-      expect(education.getParticipantAttendanceHistory).not.toHaveBeenCalled();
-    });
-
-    it("shows the error when the history fails", () => {
-      create();
-      education.getParticipantAttendanceHistory.and.returnValue(
-        throwError(() => new Error("firestore caído")),
-      );
-      component.onParticipanteChange({
-        participanteId: "p1",
-        nombre: "",
-        apellido: "",
-      });
-      expect(component.loadingHistorial).toBeFalse();
-      expect(component.error).toBe("firestore caído");
-    });
-
-    it("maps enrollment states to tag severities", () => {
-      create();
-      expect(component.estadoSeverity("activa")).toBe("success");
-      expect(component.estadoSeverity("finalizada")).toBe("info");
-      expect(component.estadoSeverity("baja")).toBe("danger");
-      expect(component.estadoSeverity("x")).toBe("secondary");
-    });
+  // Pedido del 17/11/2026: se quitó el botón "Por participante".
+  it("ya no ofrece la vista por participante", () => {
+    create();
+    fixture.detectChanges();
+    const text: string = fixture.nativeElement.textContent;
+    expect(text).not.toContain("Por participante");
+    expect(fixture.nativeElement.querySelector("p-selectbutton")).toBeNull();
+    expect(
+      fixture.nativeElement.querySelector("app-participant-picker"),
+    ).toBeNull();
   });
 });

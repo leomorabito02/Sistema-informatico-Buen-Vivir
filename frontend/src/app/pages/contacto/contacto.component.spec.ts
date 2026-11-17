@@ -1,35 +1,102 @@
 import { ComponentFixture, TestBed } from "@angular/core/testing";
-import { ContactoComponent } from "./contacto.component";
 import { provideRouter } from "@angular/router";
+import { provideHttpClient } from "@angular/common/http";
+import {
+  HttpTestingController,
+  provideHttpClientTesting,
+} from "@angular/common/http/testing";
+import { ContactoComponent } from "./contacto.component";
 
 describe("ContactoComponent", () => {
   let component: ContactoComponent;
   let fixture: ComponentFixture<ContactoComponent>;
+  let http: HttpTestingController;
+
+  function completar() {
+    component.contactForm.setValue({
+      name: "Ana Pérez",
+      email: "ana@example.com",
+      subject: "cursos",
+      message: "Quiero saber cuándo empieza el taller.",
+      privacyAccepted: true,
+    });
+  }
 
   beforeEach(async () => {
+    localStorage.removeItem("isAuthenticated");
     await TestBed.configureTestingModule({
       imports: [ContactoComponent],
-      providers: [provideRouter([])],
+      providers: [
+        provideRouter([]),
+        provideHttpClient(),
+        provideHttpClientTesting(),
+      ],
     }).compileComponents();
 
     fixture = TestBed.createComponent(ContactoComponent);
     component = fixture.componentInstance;
+    http = TestBed.inject(HttpTestingController);
     fixture.detectChanges();
   });
 
-  it("should create ContactoComponent", () => {
-    // Arrange & Act done in beforeEach
-    // Assert
-    expect(component).toBeTruthy();
+  afterEach(() => {
+    http.verify();
+    localStorage.removeItem("isAuthenticated");
   });
 
-  it("should render main title", () => {
-    // Arrange
+  it("muestra el título", () => {
     const compiled = fixture.nativeElement as HTMLElement;
-
-    // Act & Assert
     expect(compiled.querySelector(".legal-title")?.textContent).toContain(
-      "Contacto e Información Institucional",
+      "Contacto e información institucional",
     );
+  });
+
+  it("envía la consulta al backend y recién ahí muestra el éxito", () => {
+    completar();
+    component.onSubmit();
+    expect(component.isSubmitted).toBeFalse();
+    expect(component.enviando).toBeTrue();
+
+    const req = http.expectOne((r) =>
+      r.url.endsWith("/api/v1/notifications/contacto"),
+    );
+    expect(req.request.method).toBe("POST");
+    expect(req.request.body).toEqual({
+      nombre: "Ana Pérez",
+      email: "ana@example.com",
+      asunto: "Consulta sobre cursos",
+      mensaje: "Quiero saber cuándo empieza el taller.",
+      acepta_privacidad: true,
+    });
+    req.flush({ enviada: true }, { status: 202, statusText: "Accepted" });
+
+    expect(component.isSubmitted).toBeTrue();
+    expect(component.enviando).toBeFalse();
+  });
+
+  it("si el backend falla no muestra éxito y explica el error", () => {
+    completar();
+    component.onSubmit();
+    http
+      .expectOne((r) => r.url.endsWith("/api/v1/notifications/contacto"))
+      .flush(
+        { error: "Enviaste varias consultas seguidas." },
+        { status: 429, statusText: "Too Many Requests" },
+      );
+    expect(component.isSubmitted).toBeFalse();
+    expect(component.errorEnvio).toBe("Enviaste varias consultas seguidas.");
+  });
+
+  it("con datos inválidos no envía nada", () => {
+    component.onSubmit();
+    http.expectNone((r) => r.url.endsWith("/api/v1/notifications/contacto"));
+    expect(component.contactForm.touched).toBeTrue();
+  });
+
+  it("'Volver al inicio' lleva al panel si hay sesión y a la landing si no", () => {
+    expect(component.inicio).toBe("/");
+    localStorage.setItem("isAuthenticated", "true");
+    const otra = TestBed.createComponent(ContactoComponent).componentInstance;
+    expect(otra.inicio).toBe("/dashboard");
   });
 });

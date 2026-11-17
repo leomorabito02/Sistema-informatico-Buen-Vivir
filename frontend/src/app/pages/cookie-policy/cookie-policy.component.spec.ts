@@ -29,7 +29,7 @@ describe("CookiePolicyComponent", () => {
 
     // Act & Assert
     expect(compiled.querySelector(".legal-title")?.textContent).toContain(
-      "Política de Cookies",
+      "Política de cookies",
     );
   });
 });

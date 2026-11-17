@@ -4,11 +4,9 @@
 
   <div class="header-section">
     <div>
-      <h1 class="page-title">Gestión de Cursos (Administración)</h1>
+      <h1 class="page-title">Gestión de cursos</h1>
       <p class="page-subtitle">
-        Alta, edición y baja de cursos, áreas formativas y materiales. Al crear
-        un curso con un docente responsable y publicarlo, aparece en el catálogo
-        y en el panel de ese docente.
+        Cursos, áreas formativas y materiales del centro.
       </p>
     </div>
   </div>
@@ -271,8 +269,10 @@
   [(visible)]="courseDialog"
   [modal]="true"
   [style]="{ width: '640px' }"
+  [breakpoints]="{ '720px': '95vw' }"
   [header]="editingCourseId ? 'Editar curso' : 'Nuevo curso'"
 >
+  <p class="form-legend"><span class="req">*</span> Campo obligatorio</p>
   <div class="form-grid">
     <label>
       Título <span class="req">*</span>
@@ -323,7 +323,7 @@
         placeholder="Elegí un área"
         [filter]="true"
       ></p-select>
-      <small *ngIf="areaOptions.length === 0" class="muted">
+      <small *ngIf="areaOptions.length === 0" class="field-hint">
         No hay áreas. Creá una en la pestaña "Áreas formativas".
       </small>
     </label>
@@ -338,7 +338,7 @@
         placeholder="Elegí un docente"
         [filter]="true"
       ></p-select>
-      <small *ngIf="teacherOptions.length === 0" class="muted">
+      <small *ngIf="teacherOptions.length === 0" class="field-hint">
         {{ teachersError || "Cargando docentes…" }}
       </small>
     </label>
@@ -354,8 +354,8 @@
         display="chip"
         [showClear]="true"
       ></p-multiSelect>
-      <small class="muted">
-        Opcional: podés crear el curso sin materiales y agregarlos después.
+      <small class="field-hint">
+        Podés crear el curso sin materiales y agregarlos después.
       </small>
     </label>
     <div>
@@ -398,9 +398,11 @@
 <p-dialog
   [(visible)]="areaDialog"
   [modal]="true"
-  [style]="{ width: '480px' }"
+  [style]="{ width: '520px' }"
+  [breakpoints]="{ '640px': '95vw' }"
   [header]="editingAreaId ? 'Editar área formativa' : 'Nueva área formativa'"
 >
+  <p class="form-legend"><span class="req">*</span> Campo obligatorio</p>
   <div class="form-grid">
     <label>
       Nombre <span class="req">*</span>
@@ -435,15 +437,33 @@
 <p-dialog
   [(visible)]="materialDialog"
   [modal]="true"
-  [style]="{ width: '480px' }"
+  [style]="{ width: '520px' }"
+  [breakpoints]="{ '640px': '95vw' }"
   [header]="editingMaterialId ? 'Editar material' : 'Nuevo material'"
 >
+  <p class="form-legend"><span class="req">*</span> Campo obligatorio</p>
   <div class="form-grid">
     <label>
       Título <span class="req">*</span>
-      <input pInputText [(ngModel)]="materialForm.title" />
+      <input
+        pInputText
+        [(ngModel)]="materialForm.title"
+        placeholder="Nombre del material"
+      />
     </label>
-    <label>
+
+    <!-- Desde el curso: solo PDF, DOC/DOCX o video -->
+    <label *ngIf="materialForCourse && !editingMaterialId">
+      Formato <span class="req">*</span>
+      <p-select
+        [options]="formatoCursoOptions"
+        optionLabel="label"
+        optionValue="value"
+        [(ngModel)]="materialFormato"
+        (ngModelChange)="onFormatoChange()"
+      ></p-select>
+    </label>
+    <label *ngIf="!materialForCourse || editingMaterialId">
       Tipo
       <p-select
         [options]="materialTypeOptions"
@@ -453,52 +473,40 @@
         (ngModelChange)="onMaterialTypeChange()"
       ></p-select>
     </label>
+
     <label *ngIf="materialForm.type !== 'PDF'">
-      URL ({{
-        materialForm.type === "Video" ? "link de video" : "recurso externo"
-      }})
+      {{ materialForm.type === "Video" ? "Enlace del video" : "Enlace" }}
+      <span *ngIf="materialForCourse" class="req">*</span>
       <input
         pInputText
         [(ngModel)]="materialForm.url"
         placeholder="https://www.youtube.com/watch?v=…"
         [class.p-invalid]="materialUrlInvalid"
       />
-      <small class="muted" [class.err]="materialUrlInvalid">
+      <small class="field-hint" [class.err]="materialUrlInvalid">
         {{
           materialUrlInvalid
             ? "Debe empezar con http:// o https://"
-            : "Pegá acá el enlace."
+            : "Pegá el enlace (YouTube, Drive, etc.)."
         }}
       </small>
     </label>
 
     <label *ngIf="materialForm.type === 'PDF' && !editingMaterialId">
-      Subir archivo (JPG/PNG/WEBP ≤ 5 MB · PDF/DOC ≤ 10 MB)
+      Archivo
+      <span *ngIf="materialForCourse" class="req">*</span>
       <input
         type="file"
-        accept=".jpg,.jpeg,.png,.webp,.pdf,.doc,.docx"
+        [accept]="materialAccept"
         (change)="onMaterialFile($event)"
       />
-      <small class="muted" [class.err]="materialFileError">
+      <small class="field-hint" [class.err]="materialFileError">
         {{
           materialFileError ||
             (materialFile
               ? materialFile.name + " listo para subir"
-              : "Se sube al guardar el material.")
+              : materialAcceptHint)
         }}
-      </small>
-    </label>
-
-    <label *ngIf="materialForm.type === 'PDF'">
-      Archivo ya cargado en el gestor de contenidos (opcional)
-      <input
-        pInputText
-        [(ngModel)]="materialForm.fileAssetId"
-        placeholder="ej. 3xAmPl3AssetId"
-      />
-      <small class="muted">
-        En lugar de subir el archivo, pegá el identificador (Asset ID) de un
-        archivo que ya esté en Contentful.
       </small>
     </label>
   </div>
@@ -513,7 +521,7 @@
       icon="pi pi-check"
       [loading]="savingMaterial"
       [disabled]="
-        !materialForm.title.trim() || materialUrlInvalid || !!materialFileError
+        materialIncompleto || materialUrlInvalid || !!materialFileError
       "
       (onClick)="saveMaterial()"
     ></p-button>

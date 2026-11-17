@@ -1,89 +1,134 @@
 <div class="page-container">
   <div class="header-section">
     <div>
-      <h1 class="page-title">Seguimiento Pedagógico</h1>
-      <p class="page-subtitle">
-        Cruce de inscripciones y asistencia por participante para detectar
-        riesgo de deserción.
-      </p>
+      <h1 class="page-title">Seguimiento</h1>
     </div>
   </div>
 
   <app-error-state *ngIf="error" [message]="error"></app-error-state>
 
   <app-loading-state
-    *ngIf="loadingCourses"
-    variant="list"
-    [rows]="1"
-    label="Cargando tus cursos…"
+    *ngIf="loading"
+    variant="table"
+    label="Cargando participantes…"
   ></app-loading-state>
 
-  <ng-container *ngIf="!loadingCourses">
-    <app-empty-state
-      *ngIf="courseOptions.length === 0 && !error"
-      [compact]="true"
-    >
-      No tenés cursos asignados como docente responsable.
+  <ng-container *ngIf="!loading && !error">
+    <app-empty-state *ngIf="cursos.length === 0" [compact]="true">
+      {{
+        gestion
+          ? "No hay cursos publicados todavía."
+          : "No tenés cursos asignados como docente responsable."
+      }}
     </app-empty-state>
 
-    <div *ngIf="courseOptions.length > 0" class="course-picker">
-      <label>Curso</label>
-      <p-select
-        [options]="courseOptions"
-        optionLabel="label"
-        optionValue="value"
-        [(ngModel)]="selectedCourseId"
-        (onChange)="onCourseChange()"
-        placeholder="Elegí un curso"
-        [style]="{ minWidth: '280px' }"
-      ></p-select>
-    </div>
+    <ng-container *ngIf="cursos.length > 0">
+      <!-- Filtros: primero se elige (opcionalmente) el curso y se busca -->
+      <section class="filtros" aria-label="Filtros del listado">
+        <div class="course-picker">
+          <label for="curso-seguimiento">Curso</label>
+          <p-select
+            inputId="curso-seguimiento"
+            [options]="courseOptions"
+            optionLabel="label"
+            optionValue="value"
+            [(ngModel)]="selectedCourseId"
+            [filter]="true"
+            filterPlaceholder="Buscar curso"
+            appendTo="body"
+          ></p-select>
+        </div>
 
-    <app-loading-state *ngIf="loadingData" variant="list"></app-loading-state>
+        <div class="buscador">
+          <label for="busqueda-seguimiento">Buscar participante</label>
+          <p-iconfield styleClass="buscador-campo">
+            <p-inputicon styleClass="pi pi-search" aria-hidden="true" />
+            <input
+              id="busqueda-seguimiento"
+              type="search"
+              pInputText
+              autocomplete="off"
+              maxlength="100"
+              placeholder="Nombre o apellido"
+              [(ngModel)]="busqueda"
+            />
+          </p-iconfield>
+        </div>
+      </section>
 
-    <p-card *ngIf="selectedCourseId && !loadingData" styleClass="p-card-shadow">
-      <p-table [value]="rows" class="p-datatable-striped">
-        <ng-template pTemplate="header">
-          <tr>
-            <th>Participante (id)</th>
-            <th>Inscripción</th>
-            <th>Asistencia</th>
-            <th>Actividades</th>
-            <th>Estado de seguimiento</th>
-          </tr>
-        </ng-template>
-        <ng-template pTemplate="body" let-r>
-          <tr>
-            <td>
-              <span *ngIf="r.nombre; else soloId">{{ r.nombre }}</span>
-              <ng-template #soloId
-                ><code>{{ r.participanteId }}</code></ng-template
-              >
-            </td>
-            <td>{{ r.estado }}</td>
-            <td style="min-width: 160px">
-              <p-progressBar
-                [value]="r.porcentajeAsistencia"
-                [showValue]="true"
-              ></p-progressBar>
-            </td>
-            <td>{{ r.actividadesAsistidas }} / {{ r.actividadesTotal }}</td>
-            <td>
-              <p-tag
-                [value]="r.riesgo"
-                [severity]="riesgoSeverity(r.riesgo)"
-              ></p-tag>
-            </td>
-          </tr>
-        </ng-template>
-        <ng-template pTemplate="emptymessage">
-          <tr>
-            <td colspan="5" class="empty-state">
-              Este curso no tiene participantes inscriptos todavía.
-            </td>
-          </tr>
-        </ng-template>
-      </p-table>
-    </p-card>
+      <p *ngIf="cursosConError.length" class="aviso" role="status">
+        No se pudo cargar: {{ cursosConError.join(", ") }}.
+      </p>
+
+      <p class="conteo" aria-live="polite">
+        {{ filasFiltradas.length }}
+        {{ filasFiltradas.length === 1 ? "inscripción" : "inscripciones" }}
+        <button
+          *ngIf="hayFiltros"
+          type="button"
+          class="link-button"
+          (click)="limpiarFiltros()"
+        >
+          Ver todas
+        </button>
+      </p>
+
+      <p-card styleClass="p-card-shadow">
+        <p-table
+          [value]="filasFiltradas"
+          dataKey="key"
+          class="p-datatable-striped"
+          [paginator]="filasFiltradas.length > 20"
+          [rows]="20"
+        >
+          <ng-template pTemplate="header">
+            <tr>
+              <th>Participante</th>
+              <th>Curso</th>
+              <th>Inscripción</th>
+              <th>Asistencia</th>
+              <th>Actividades</th>
+              <th>Estado</th>
+            </tr>
+          </ng-template>
+          <ng-template pTemplate="body" let-r>
+            <tr>
+              <td>
+                <span *ngIf="r.nombre; else soloId">{{ r.nombre }}</span>
+                <ng-template #soloId
+                  ><code>{{ r.participanteId }}</code></ng-template
+                >
+              </td>
+              <td>{{ r.curso }}</td>
+              <td>{{ r.estado }}</td>
+              <td class="col-asistencia">
+                <p-progressBar
+                  [value]="r.porcentajeAsistencia"
+                  [showValue]="true"
+                ></p-progressBar>
+              </td>
+              <td>{{ r.actividadesAsistidas }} / {{ r.actividadesTotal }}</td>
+              <td>
+                <p-tag
+                  [value]="r.riesgo"
+                  [severity]="riesgoSeverity(r.riesgo)"
+                ></p-tag>
+              </td>
+            </tr>
+          </ng-template>
+          <ng-template pTemplate="emptymessage">
+            <tr>
+              <td colspan="6" class="empty-state">
+                {{
+                  hayFiltros
+                    ? "Ningún participante coincide con la búsqueda."
+                    : "Todavía no hay participantes inscriptos."
+                }}
+              </td>
+            </tr>
+          </ng-template>
+        </p-table>
+      </p-card>
+    </ng-container>
   </ng-container>
 </div>

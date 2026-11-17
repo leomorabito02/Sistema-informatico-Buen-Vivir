@@ -29,7 +29,7 @@ describe("PrivacyPolicyComponent", () => {
 
     // Act & Assert
     expect(compiled.querySelector(".legal-title")?.textContent).toContain(
-      "Política de Privacidad",
+      "Política de privacidad",
     );
   });
 });

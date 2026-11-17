@@ -1,5 +1,4 @@
-import { Component, DestroyRef, OnInit, inject } from "@angular/core";
-import { takeUntilDestroyed } from "@angular/core/rxjs-interop";
+import { Component, OnInit, inject } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { FormsModule } from "@angular/forms";
 import { RouterLink } from "@angular/router";
@@ -9,31 +8,21 @@ import { IconFieldModule } from "primeng/iconfield";
 import { InputIconModule } from "primeng/inputicon";
 import { ButtonModule } from "primeng/button";
 import { TagModule } from "primeng/tag";
-import { Subject, of } from "rxjs";
-import {
-  catchError,
-  debounceTime,
-  distinctUntilChanged,
-  map,
-  switchMap,
-  tap,
-} from "rxjs/operators";
 
 import { HumanPromotionService } from "../../../services/human-promotion.service";
 import { LoadingStateComponent } from "../../../shared/components/loading-state.component";
 import { ErrorStateComponent } from "../../../shared/components/error-state.component";
 import { EmptyStateComponent } from "../../../shared/components/empty-state.component";
 import { ResultadoBusqueda } from "../../../core/models/human-promotion.model";
-
-/** Tiempo de espera antes de consultar mientras se escribe. */
-const DEBOUNCE_MS = 400;
-const MIN_CARACTERES = 2;
+import { coincideBusqueda } from "../../../shared/utils/busqueda";
 
 /**
- * Promoción Humana: búsqueda de participantes por nombre (HU-36) y acceso
- * a su ficha de proceso personal. Solo admin y voluntario (guard + backend).
- * La búsqueda espera a que se deje de escribir (debounce) y cancela la
- * consulta anterior si llega una nueva (switchMap).
+ * Promoción Humana: listado de participantes (HU-36) y acceso a su ficha de
+ * proceso personal. Solo admin y voluntario (guard + backend).
+ *
+ * Al entrar se ve el listado completo; el buscador filtra ese listado
+ * por nombre o apellido sin reemplazar la vista (pedido del 17/11/2026).
+ * El backend devuelve el listado con `GET /participantes` sin texto.
  */
 @Component({
   selector: "app-promocion-humana",
@@ -57,52 +46,40 @@ const MIN_CARACTERES = 2;
 })
 export class PromocionHumanaComponent implements OnInit {
   private readonly service = inject(HumanPromotionService);
-  private readonly destroyRef = inject(DestroyRef);
-  private readonly busqueda$ = new Subject<string>();
 
-  readonly minCaracteres = MIN_CARACTERES;
   texto = "";
-  buscando = false;
-  buscado = false;
+  cargando = true;
   error = "";
-  resultados: ResultadoBusqueda[] = [];
+  participantes: ResultadoBusqueda[] = [];
 
   ngOnInit() {
-    this.busqueda$
-      .pipe(
-        map((t) => t.trim()),
-        debounceTime(DEBOUNCE_MS),
-        distinctUntilChanged(),
-        tap((t) => {
-          this.error = "";
-          this.buscando = t.length >= MIN_CARACTERES;
-          if (t.length < MIN_CARACTERES) {
-            this.resultados = [];
-            this.buscado = false;
-          }
-        }),
-        switchMap((t) =>
-          t.length < MIN_CARACTERES
-            ? of(null)
-            : this.service.buscarParticipantes(t).pipe(
-                catchError((err: Error) => {
-                  this.error = err.message;
-                  return of([] as ResultadoBusqueda[]);
-                }),
-              ),
-        ),
-        takeUntilDestroyed(this.destroyRef),
-      )
-      .subscribe((res) => {
-        this.buscando = false;
-        if (res === null) return;
-        this.resultados = res;
-        this.buscado = true;
-      });
+    this.cargar();
   }
 
-  onTextoChange(valor: string) {
-    this.busqueda$.next(valor);
+  cargar() {
+    this.cargando = true;
+    this.error = "";
+    this.service.listarParticipantes().subscribe({
+      next: (lista) => {
+        this.participantes = lista;
+        this.cargando = false;
+      },
+      error: (err: Error) => {
+        this.error = err.message;
+        this.cargando = false;
+      },
+    });
+  }
+
+  /** Participantes que coinciden con el buscador (todos si está vacío). */
+  get filtrados(): ResultadoBusqueda[] {
+    return this.participantes.filter((p) =>
+      coincideBusqueda(this.texto, p.nombre, p.apellido),
+    );
+  }
+
+  trackById(_: number, r: ResultadoBusqueda) {
+    return r.participante_id;
   }
 
   nombreCompleto(r: ResultadoBusqueda): string {

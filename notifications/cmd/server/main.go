@@ -5,6 +5,7 @@ import (
 	"log"
 	"net"
 	"net/http"
+	"os"
 	"sync"
 
 	"buenvivir/notifications/api/proto/notificationpb"
@@ -16,6 +17,7 @@ import (
 	"buenvivir/notifications/internal/database"
 	"buenvivir/notifications/internal/delivery"
 	"buenvivir/notifications/internal/events"
+	"buenvivir/notifications/internal/middlewares"
 	"buenvivir/notifications/internal/repositories"
 	"buenvivir/notifications/internal/routes"
 	"buenvivir/notifications/internal/rules"
@@ -175,8 +177,14 @@ func main() {
 		DeliveryFlush:    deliveryWorker.FlushHandler(pushVerifier),
 	})
 
+	// Formulario público de contacto: la consulta va por email al centro.
+	routes.RegisterContactRoute(mux, controllers.NewContactController(emailSvc, os.Getenv("CONTACT_EMAIL")))
+
+	// CORS en el propio servicio: en GCP no hay nginx que lo agregue.
+	handler := middlewares.CORS(middlewares.ParseOrigins(os.Getenv("CORS_ALLOWED_ORIGINS")))(mux)
+
 	log.Printf("Servicio Notifications escuchando en :%s", cfg.Port)
-	if err := http.ListenAndServe(":"+cfg.Port, mux); err != nil {
+	if err := http.ListenAndServe(":"+cfg.Port, handler); err != nil {
 		log.Fatalf("Error al iniciar el servidor HTTP: %v", err)
 	}
 }

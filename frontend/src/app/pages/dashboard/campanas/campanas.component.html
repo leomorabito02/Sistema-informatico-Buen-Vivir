@@ -6,8 +6,7 @@
     <div>
       <h1 class="page-title">Gestión de campañas</h1>
       <p class="page-subtitle">
-        Campañas de concientización del centro. Se crean como borrador y se ven
-        en la página pública recién cuando se publican.
+        Las campañas se ven en la página pública cuando se publican.
       </p>
     </div>
     <p-button
@@ -125,9 +124,11 @@
 <p-dialog
   [(visible)]="dialogo"
   [modal]="true"
-  [style]="{ width: '560px' }"
+  [style]="{ width: '640px' }"
+  [breakpoints]="{ '720px': '95vw' }"
   [header]="editandoId ? 'Editar campaña' : 'Nueva campaña'"
 >
+  <p class="form-legend"><span class="req">*</span> Campo obligatorio</p>
   <div class="form-grid">
     <label>
       Título <span class="req">*</span>
@@ -155,7 +156,15 @@
         [(ngModel)]="form.imagen_url"
         type="url"
         placeholder="https://…"
+        [class.p-invalid]="imagenInvalida"
       />
+      <small class="field-hint" [class.err]="imagenInvalida">
+        {{
+          imagenInvalida
+            ? "Debe empezar con http:// o https://"
+            : "Pegá el enlace de la imagen."
+        }}
+      </small>
     </label>
     <label>
       Fecha <span class="req">*</span>
@@ -170,7 +179,8 @@
     ></p-button>
     <p-button
       [label]="editandoId ? 'Guardar cambios' : 'Crear campaña'"
-      [disabled]="!formCompleto || guardando"
+      icon="pi pi-check"
+      [disabled]="!formCompleto || imagenInvalida || guardando"
       [loading]="guardando"
       (onClick)="guardar()"
     ></p-button>

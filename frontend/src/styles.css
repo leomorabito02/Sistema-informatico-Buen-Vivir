@@ -364,6 +364,125 @@ video {
   color: var(--color-text-muted);
 }
 
+/* ==========================================================================
+   Formularios en diálogo (alta y edición de cursos, campañas, materiales,
+   áreas, ofertas). Una sola definición para que todos compartan
+   distribución, tamaños, etiquetas, asterisco y mensajes (17/11/2026).
+   ========================================================================== */
+.form-grid {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  padding-top: var(--space-2);
+}
+
+/* La etiqueta es un bloque: el texto y el asterisco quedan en la misma
+   línea y cada control, ayuda o error va debajo. */
+.form-grid label,
+.form-grid .field {
+  display: block;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text);
+}
+
+.form-grid label:not(.checkbox-row) > :where(:not(.req)) {
+  display: block;
+  margin-top: var(--space-1);
+}
+
+/* Los selectores de PrimeNG son flex por dentro (texto + flecha). */
+.form-grid label:not(.checkbox-row) > p-select,
+.form-grid label:not(.checkbox-row) > p-multiselect,
+.form-grid label:not(.checkbox-row) > p-datepicker {
+  display: flex;
+}
+
+.form-grid .row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-4);
+}
+
+.form-grid input:not([type="checkbox"]):not([type="radio"]),
+.form-grid textarea,
+.form-grid p-select,
+.form-grid p-multiselect,
+.form-grid p-datepicker {
+  width: 100%;
+}
+
+.form-grid .checkbox-row {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: var(--space-2);
+  font-weight: var(--font-weight-medium, 500);
+}
+
+/* Asterisco de campo obligatorio y su referencia */
+.req {
+  color: var(--color-danger);
+}
+
+.form-legend {
+  margin: var(--space-2) 0 var(--space-2);
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+}
+
+/* Ayuda y error debajo de un campo */
+.field-hint {
+  font-size: var(--font-size-sm);
+  font-weight: normal;
+  color: var(--color-text-muted);
+}
+
+.field-hint.err,
+.field-error {
+  font-size: var(--font-size-sm);
+  font-weight: normal;
+  color: var(--color-danger);
+}
+
+@media (max-width: 576px) {
+  .form-grid .row {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Selector principal de curso (Inscripciones, Seguimiento, Asistencia):
+   ancho, alto y legible, separado del contenido que filtra (17/11/2026). */
+.course-picker {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  width: 100%;
+  max-width: 560px;
+  margin-bottom: var(--space-6);
+}
+
+.toolbar .course-picker {
+  margin-bottom: 0;
+}
+
+.course-picker label {
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text);
+}
+
+.course-picker .p-select {
+  width: 100%;
+  min-height: 3rem;
+}
+
+.course-picker .p-select-label {
+  display: flex;
+  align-items: center;
+  padding: var(--space-3) var(--space-4);
+  font-size: var(--font-size-base, 1rem);
+}
+
 /* En celular, título y acciones del encabezado van uno debajo del otro */
 @media (max-width: 767px) {
   .header-section {

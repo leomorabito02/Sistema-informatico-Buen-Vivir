@@ -3,17 +3,13 @@
   <div class="header-section">
     <div>
       <h1 class="page-title">
-        {{
-          userId
-            ? "Edición de Currículum (Admin)"
-            : "Generador de Currículum Vitae"
-        }}
+        {{ userId ? "Editar currículum" : "Mi CV" }}
       </h1>
       <p class="page-subtitle">
         {{
           userId
-            ? "Estás editando el CV de otro participante."
-            : "Creá y exportá tu CV profesional integrado con RxResume."
+            ? "Estás editando el currículum de un participante."
+            : "Completá tu currículum y descargalo en PDF."
         }}
       </p>
     </div>
@@ -59,11 +55,11 @@
   >
     <!-- Formulario de edición -->
     <div class="cv-form-section flex-1 max-w-full md:max-w-[60%]">
-      <p-card header="Completá tu Perfil" styleClass="p-card-shadow mb-4">
+      <p-card header="Completá tu perfil" styleClass="p-card-shadow mb-4">
         <form #resumeForm="ngForm">
           <div class="form-section-group mb-6">
             <h3 class="text-xl font-bold mb-3 border-b pb-2 text-primary">
-              Información Básica
+              Información básica
             </h3>
 
             <div class="field mb-4">
@@ -103,7 +99,7 @@
             </div>
 
             <div class="field mb-4">
-              <span class="block font-medium mb-2">Color de la Plantilla</span>
+              <span class="block font-medium mb-2">Color de la plantilla</span>
               <div class="flex items-center gap-3 flex-wrap">
                 <div class="flex items-center gap-2">
                   <button
@@ -132,12 +128,12 @@
             </div>
 
             <div class="field mb-3">
-              <span class="block font-medium mb-1">Foto de Perfil</span>
+              <span class="block font-medium mb-1">Foto de perfil</span>
               <div class="flex items-center gap-3">
                 <img
                   *ngIf="cv.basics.picture"
                   [src]="resolveImageUrl(cv.basics.picture)"
-                  alt="Foto de Perfil"
+                  alt="Foto de perfil"
                   class="w-16 h-16 rounded-full object-cover border border-gray-300 shrink-0"
                   style="
                     width: 64px;
@@ -160,7 +156,7 @@
             </div>
 
             <div class="field mb-3">
-              <label for="name">Nombre y Apellido</label>
+              <label for="name">Nombre y apellido</label>
               <input
                 id="name"
                 name="name"
@@ -181,20 +177,20 @@
             </div>
 
             <div class="field mb-3">
-              <label for="headline">Titular / Ocupación (Headline)</label>
+              <label for="headline">Titular u ocupación</label>
               <input
                 id="headline"
                 pInputText
                 name="headline"
                 [(ngModel)]="cv.basics.headline"
-                placeholder="Ej: Estudiante de Informática"
+                placeholder="Ej: Estudiante de informática"
                 class="w-full"
               />
             </div>
 
             <div class="field-grid grid grid-cols-1 md:grid-cols-2 gap-4 mb-3">
               <div class="field">
-                <label for="email">Correo Electrónico</label>
+                <label for="email">Correo electrónico</label>
                 <input
                   id="email"
                   name="email"
@@ -245,7 +241,7 @@
             </div>
 
             <div class="field mb-3">
-              <label for="summary">Resumen Profesional</label>
+              <label for="summary">Resumen profesional</label>
               <textarea
                 id="summary"
                 pInputTextarea
@@ -260,7 +256,7 @@
           <div class="form-section-group mb-6">
             <div class="flex justify-between items-center mb-3 border-b pb-2">
               <h3 class="text-xl font-bold text-primary m-0">
-                Experiencia Laboral
+                Experiencia laboral
               </h3>
               <p-button
                 icon="pi pi-plus"
@@ -288,7 +284,7 @@
               ></p-button>
               <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mt-4">
                 <div class="field">
-                  <label [for]="'company-' + i">Empresa / Organización</label>
+                  <label [for]="'company-' + i">Empresa u organización</label>
                   <input
                     [id]="'company-' + i"
                     pInputText
@@ -308,7 +304,7 @@
                   />
                 </div>
                 <div class="field">
-                  <label [for]="'start-date-' + i">Fecha de Inicio</label>
+                  <label [for]="'start-date-' + i">Fecha de inicio</label>
                   <input
                     type="month"
                     [id]="'start-date-' + i"
@@ -318,7 +314,7 @@
                   />
                 </div>
                 <div class="field">
-                  <label [for]="'end-date-' + i">Fecha de Fin</label>
+                  <label [for]="'end-date-' + i">Fecha de fin</label>
                   <div class="flex flex-col gap-2">
                     <div class="flex items-center gap-2">
                       <p-checkbox
@@ -364,7 +360,7 @@
           <div class="form-section-group mb-6">
             <div class="flex justify-between items-center mb-3 border-b pb-2">
               <h3 class="text-xl font-bold text-primary m-0">
-                Formación y Cursos
+                Formación y cursos
               </h3>
               <p-button
                 icon="pi pi-plus"
@@ -392,7 +388,7 @@
               ></p-button>
               <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mt-4">
                 <div class="field">
-                  <label [for]="'inst-' + i">Institución Educativa</label>
+                  <label [for]="'inst-' + i">Institución educativa</label>
                   <input
                     [id]="'inst-' + i"
                     pInputText
@@ -402,7 +398,7 @@
                   />
                 </div>
                 <div class="field">
-                  <label [for]="'deg-' + i">Título / Curso</label>
+                  <label [for]="'deg-' + i">Título o curso</label>
                   <input
                     [id]="'deg-' + i"
                     pInputText
@@ -412,7 +408,7 @@
                   />
                 </div>
                 <div class="field">
-                  <label [for]="'edu-date-' + i">Fecha de Inicio</label>
+                  <label [for]="'edu-date-' + i">Fecha de inicio</label>
                   <input
                     type="month"
                     [id]="'edu-start-' + i"
@@ -422,7 +418,7 @@
                   />
                 </div>
                 <div class="field">
-                  <label [for]="'edu-end-' + i">Fecha de Fin</label>
+                  <label [for]="'edu-end-' + i">Fecha de fin</label>
                   <div class="flex flex-col gap-2">
                     <div class="flex items-center gap-2">
                       <p-checkbox
@@ -492,19 +488,19 @@
               >
                 <div class="flex-1 flex flex-col gap-1">
                   <label class="sr-only" [for]="'skill-name-' + i"
-                    >Nombre de Habilidad</label
+                    >Nombre de la habilidad</label
                   >
                   <input
                     [id]="'skill-name-' + i"
                     pInputText
                     name="skill-name--{{ i }}"
                     [(ngModel)]="skill.name"
-                    placeholder="Ej: Trabajo en Equipo"
+                    placeholder="Ej: Trabajo en equipo"
                     class="w-full p-inputtext-sm"
                   />
 
                   <label class="sr-only" [for]="'skill-level-' + i"
-                    >Nivel de Habilidad</label
+                    >Nivel de la habilidad</label
                   >
                   <p-dropdown
                     [id]="'skill-level-' + i"
@@ -560,7 +556,7 @@
                   />
 
                   <label class="sr-only" [for]="'lang-level-' + i"
-                    >Nivel de Idioma</label
+                    >Nivel del idioma</label
                   >
                   <p-dropdown
                     [id]="'lang-level-' + i"
@@ -610,7 +606,7 @@
                       class="block text-xs font-medium text-gray-700 mb-1"
                       [for]="'ref-name-' + i"
                     >
-                      Nombre / Empresa / Cargo
+                      Nombre, empresa y cargo
                     </label>
                     <input
                       [id]="'ref-name-' + i"
@@ -626,7 +622,7 @@
                       class="block text-xs font-medium text-gray-700 mb-1"
                       [for]="'ref-desc-' + i"
                     >
-                      Contacto / Relación
+                      Contacto o relación
                     </label>
                     <input
                       [id]="'ref-desc-' + i"
@@ -649,7 +645,7 @@
 
           <div class="flex justify-end mt-6 pt-4 border-t">
             <p-button
-              label="Guardar / Generar Currículum"
+              label="Guardar y generar currículum"
               icon="pi pi-cog"
               [loading]="generating"
               (onClick)="generateResume(resumeForm)"
@@ -660,11 +656,11 @@
       </p-card>
     </div>
 
-    <!-- Vista Previa -->
+    <!-- Vista previa -->
     <div class="cv-preview-section flex-1 max-w-full md:max-w-[40%]">
       <div class="sticky top-4">
         <p-card
-          header="Vista Previa"
+          header="Vista previa"
           styleClass="p-card-shadow preview-card relative"
         >
           <div
@@ -736,7 +732,7 @@
                 <h4
                   class="font-semibold text-primary uppercase text-sm mb-1 border-b pb-1"
                 >
-                  Experiencia Laboral
+                  Experiencia laboral
                 </h4>
                 <div *ngIf="cv.work?.length; else noWork">
                   <div *ngFor="let job of cv.work" class="mb-2">
@@ -769,7 +765,7 @@
                 <h4
                   class="font-semibold text-primary uppercase text-sm mb-1 border-b pb-1"
                 >
-                  Formación y Cursos
+                  Formación y cursos
                 </h4>
                 <div *ngIf="cv.education?.length; else noEdu">
                   <div *ngFor="let edu of cv.education" class="mb-2">
@@ -908,9 +904,7 @@
       class="text-center p-6 text-gray-500 bg-white rounded-lg shadow-sm border border-gray-200"
     >
       <i class="pi pi-file-pdf text-4xl mb-3 opacity-50"></i>
-      <p>
-        Ocurrió un error al cargar tu currículum. Por favor recarga la página.
-      </p>
+      <p>No se pudo cargar tu currículum. Recargá la página.</p>
     </div>
   </div>
 

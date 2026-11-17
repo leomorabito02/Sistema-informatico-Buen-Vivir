@@ -14,11 +14,10 @@
   width: 100%;
 }
 
-.hint {
-  display: block;
-  color: var(--text-muted);
+.conteo {
+  margin: 0.75rem 0 0;
+  color: var(--color-text-muted);
   font-size: var(--font-size-sm);
-  margin-top: 0.4rem;
 }
 
 .result-list {

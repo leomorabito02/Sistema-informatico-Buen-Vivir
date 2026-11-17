@@ -11,6 +11,7 @@ import {
   ArrowLeft,
 } from "lucide-angular";
 import { FooterComponent } from "../../components/layout/footer/footer.component";
+import { rutaInicio } from "../../shared/utils/ruta-inicio";
 
 @Component({
   selector: "app-cookie-policy",
@@ -20,6 +21,8 @@ import { FooterComponent } from "../../components/layout/footer/footer.component
   styleUrl: "./cookie-policy.component.css",
 })
 export class CookiePolicyComponent implements OnInit {
+  /** "Volver al inicio": panel si hay sesión, landing si no. */
+  readonly inicio = rutaInicio();
   readonly CookieIcon = Cookie;
   readonly ShieldCheckIcon = ShieldCheck;
   readonly CheckCircleIcon = CircleCheck;

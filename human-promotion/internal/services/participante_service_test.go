@@ -124,3 +124,57 @@ func TestLineaDeTiempoPropia_AuthCaido(t *testing.T) {
 		t.Fatal("esperaba el error de Auth")
 	}
 }
+
+// authBusqueda registra lo que se le pide a Auth en la búsqueda.
+type authBusqueda struct {
+	fakeAuth
+	query  *string
+	limite *int
+}
+
+func (a authBusqueda) SearchParticipantes(_ context.Context, q string, limit int) ([]models.ParticipanteInfo, error) {
+	*a.query, *a.limite = q, limit
+	return []models.ParticipanteInfo{
+		{ParticipanteID: "p1", Nombre: "Ana", Apellido: "Pérez"},
+		{ParticipanteID: "p9", Nombre: "Luis", Apellido: "Gómez"},
+	}, nil
+}
+
+// Sin texto, Buscar devuelve el listado completo (pedido del 17/11/2026)
+// con el tope del listado; con 1 letra sigue siendo error de validación.
+func TestBuscar_SinTextoListaTodosConFicha(t *testing.T) {
+	var q string
+	var limite int
+	fichas := fichasFalsas{porParticipante: map[string]string{"p1": "f1"}}
+	svc := NewParticipanteService(authBusqueda{query: &q, limite: &limite}, fichas, hitosFalsos{}, cifradoFalso{}, nil)
+
+	res, err := svc.Buscar(context.Background(), "   ")
+	if err != nil {
+		t.Fatalf("error inesperado: %v", err)
+	}
+	if q != "" || limite != maxListadoParticipantes {
+		t.Fatalf("a Auth le llegó q=%q limit=%d", q, limite)
+	}
+	if len(res) != 2 || res[0].FichaID == nil || *res[0].FichaID != "f1" || res[1].FichaID != nil {
+		t.Fatalf("resultado inesperado: %+v", res)
+	}
+
+	if _, err := svc.Buscar(context.Background(), "ana"); err != nil || limite != maxResultadosBusqueda {
+		t.Fatalf("búsqueda con texto: err=%v limit=%d", err, limite)
+	}
+
+	var ve *ValidationError
+	if _, err := svc.Buscar(context.Background(), "a"); !errors.As(err, &ve) {
+		t.Fatalf("1 letra debería ser error de validación, fue %v", err)
+	}
+}
+
+func (f fichasFalsas) FindIDsByParticipantes(_ context.Context, ids []string) (map[string]string, error) {
+	out := map[string]string{}
+	for _, id := range ids {
+		if fid, ok := f.porParticipante[id]; ok {
+			out[id] = fid
+		}
+	}
+	return out, nil
+}

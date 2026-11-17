@@ -130,7 +130,7 @@ describe("AuditoriaComponent", () => {
     expect(text).toContain("Denegado: PUT");
   });
 
-  it("switches to the Inserción Laboral log (HU-42)", () => {
+  it("switches to the Inserción laboral log (HU-42)", () => {
     component.modulo = "laboral";
     component.buscar();
     fixture.detectChanges();

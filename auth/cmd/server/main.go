@@ -292,9 +292,12 @@ func main() {
 				// sin DNI ni contacto): Educación lo usa para mostrarle los
 				// nombres de sus alumnos en las entregas.
 				r.With(middlewares.RequireRole("role_admin", "role_dev", "role_volunteer", "role_teacher")).Get("/participants/{id}", directoryController.GetParticipantProfile)
+				// by-user: además del staff, el propio usuario puede pedir su
+				// perfil (Promoción Humana lo usa con el token del
+				// participante para "Mi proceso").
+				r.With(middlewares.RequireRoleOrSelf("userId", "role_admin", "role_dev", "role_volunteer")).Get("/participants/by-user/{userId}", directoryController.GetProfileByUserID)
 				r.Group(func(r chi.Router) {
 					r.Use(middlewares.RequireRole("role_admin", "role_dev", "role_volunteer"))
-					r.Get("/participants/by-user/{userId}", directoryController.GetProfileByUserID)
 					r.Get("/participants/search", directoryController.SearchParticipants)
 					r.Post("/users/summaries", directoryController.GetUserSummaries)
 				})

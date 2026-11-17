@@ -34,6 +34,8 @@ import {
 } from "../../../core/models/education.model";
 
 type Section = "cursos" | "areas" | "materiales";
+/** Formato elegido al cargar un material desde el formulario de curso. */
+type FormatoMaterial = "pdf" | "doc" | "video";
 interface Option {
   label: string;
   value: string;
@@ -93,6 +95,18 @@ export class AdminCursosComponent implements OnInit {
     { label: "Video", value: "Video" },
     { label: "Link", value: "Link" },
   ];
+  /**
+   * Formatos que se ofrecen al cargar un material desde el formulario de
+   * curso (pedido del 17/11/2026): solo PDF, DOC/DOCX y video. PDF y DOC
+   * se guardan como tipo "PDF" de Contentful (documento con archivo; el
+   * backend acepta PDF, DOC y DOCX) y el video como "Video" con su URL.
+   */
+  readonly formatoCursoOptions: { label: string; value: FormatoMaterial }[] = [
+    { label: "PDF", value: "pdf" },
+    { label: "DOC / DOCX", value: "doc" },
+    { label: "Video", value: "video" },
+  ];
+  materialFormato: FormatoMaterial = "pdf";
 
   // ---- diálogo curso ----
   courseDialog = false;
@@ -469,6 +483,40 @@ export class AdminCursosComponent implements OnInit {
   newMaterialForCourse() {
     this.newMaterial();
     this.materialForCourse = true;
+    this.materialFormato = "pdf";
+  }
+
+  /** Cambio de formato en el alta desde el curso (PDF, DOC/DOCX o video). */
+  onFormatoChange() {
+    this.materialForm.type = this.materialFormato === "video" ? "Video" : "PDF";
+    this.onMaterialTypeChange();
+  }
+
+  /** Extensiones que acepta el selector de archivo según el contexto. */
+  get materialAccept(): string {
+    if (!this.materialForCourse) return ".jpg,.jpeg,.png,.webp,.pdf,.doc,.docx";
+    return this.materialFormato === "doc" ? ".doc,.docx" : ".pdf";
+  }
+
+  /** Texto de ayuda del selector de archivo. */
+  get materialAcceptHint(): string {
+    if (!this.materialForCourse)
+      return "JPG/PNG/WEBP hasta 5 MB · PDF/DOC hasta 10 MB";
+    return this.materialFormato === "doc"
+      ? "DOC o DOCX hasta 10 MB"
+      : "PDF hasta 10 MB";
+  }
+
+  /**
+   * Desde el curso, un material de archivo necesita el archivo (ya no hay
+   * opción de pegar un Asset ID de Contentful) y uno de video, su URL.
+   */
+  get materialIncompleto(): boolean {
+    if (!this.materialForm.title.trim()) return true;
+    if (!this.materialForCourse || this.editingMaterialId) return false;
+    return this.materialFormato === "video"
+      ? !this.materialForm.url.trim()
+      : !this.materialFile;
   }
 
   /**
@@ -530,6 +578,14 @@ export class AdminCursosComponent implements OnInit {
       return;
     }
     const limitMb = this.uploadLimits[f.type];
+    if (this.materialForCourse && limitMb && !this.formatoAceptado(f.type)) {
+      this.materialFileError =
+        this.materialFormato === "doc"
+          ? "Elegiste DOC / DOCX: subí un archivo .doc o .docx."
+          : "Elegiste PDF: subí un archivo .pdf.";
+      this.materialFile = null;
+      return;
+    }
     if (!limitMb) {
       this.materialFileError =
         "Tipo no permitido. Se aceptan JPG, PNG, WEBP, PDF, DOC/DOCX. Para video usá el campo URL.";
@@ -547,8 +603,19 @@ export class AdminCursosComponent implements OnInit {
     }
   }
 
+  private formatoAceptado(mime: string): boolean {
+    if (this.materialFormato === "doc") {
+      return (
+        mime === "application/msword" ||
+        mime ===
+          "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+      );
+    }
+    return mime === "application/pdf";
+  }
+
   saveMaterial() {
-    if (!this.materialForm.title.trim() || this.materialUrlInvalid) return;
+    if (this.materialIncompleto || this.materialUrlInvalid) return;
 
     // camino subida de archivo (solo alta)
     if (this.materialFile && !this.editingMaterialId) {

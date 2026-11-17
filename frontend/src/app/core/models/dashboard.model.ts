@@ -2,7 +2,7 @@
  * Modelos del módulo "Dashboard y Reportes" (HU-52 a HU-55).
  *
  * El microservicio de Dashboard (dashboard/, Go) consulta en vivo a
- * Autenticación, Educación, Promoción Humana e Inserción Laboral, calcula
+ * Autenticación, Educación, Promoción Humana e Inserción laboral, calcula
  * los indicadores y las series por mes, y devuelve el resultado listo
  * (GET /api/v1/dashboard/resumen). Solo guarda el historial de reportes
  * exportados.

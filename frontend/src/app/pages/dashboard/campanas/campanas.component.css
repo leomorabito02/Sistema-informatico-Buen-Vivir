@@ -13,23 +13,12 @@
 }
 
 .filtros label,
-.filtros .campo,
-.form-grid label {
+.filtros .campo {
   display: flex;
   flex-direction: column;
   gap: 0.35rem;
   font-size: var(--font-size-sm);
   font-weight: 500;
-}
-
-.form-grid {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-}
-
-.req {
-  color: var(--destructive, #b91c1c);
 }
 
 .campana-card {

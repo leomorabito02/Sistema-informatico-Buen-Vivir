@@ -29,7 +29,7 @@ describe("TermsConditionsComponent", () => {
 
     // Act & Assert
     expect(compiled.querySelector(".legal-title")?.textContent).toContain(
-      "Términos y Condiciones de Uso",
+      "Términos y condiciones de uso",
     );
   });
 });

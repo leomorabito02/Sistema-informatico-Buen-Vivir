@@ -301,7 +301,15 @@ func (c *NotificationController) InitDefaultPreferences(w http.ResponseWriter, r
 			Reset  bool   `json:"reset"`
 		}
 		if err := json.NewDecoder(r.Body).Decode(&body); err == nil {
-			if body.UserID != "" {
+			// Solo un servicio interno (auth al crear la cuenta, con token
+			// de servicio role_dev) puede inicializar las preferencias de
+			// otro usuario. Antes cualquier usuario podía resetear las de
+			// otro mandando su user_id (auditoría 17/11/2026).
+			if body.UserID != "" && body.UserID != userID {
+				if middlewares.GetUserRole(r.Context()) != "role_dev" {
+					c.respondError(w, http.StatusForbidden, "no podés modificar las preferencias de otro usuario")
+					return
+				}
 				userID = body.UserID
 			}
 			if body.Reset {

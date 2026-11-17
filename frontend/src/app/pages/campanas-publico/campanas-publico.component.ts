@@ -26,6 +26,7 @@ import {
   DEFAULT_CAMPAIGN_PLACEHOLDER,
 } from "../../core/models/campaign.model";
 import { ComentariosComponent } from "../../shared/components/comentarios.component";
+import { rutaInicio } from "../../shared/utils/ruta-inicio";
 
 /**
  * Campañas publicadas, para cualquier visitante sin iniciar sesión
@@ -47,6 +48,8 @@ import { ComentariosComponent } from "../../shared/components/comentarios.compon
   styleUrl: "./campanas-publico.component.css",
 })
 export class CampanasPublicoComponent implements OnInit {
+  /** "Volver al inicio": panel si hay sesión, landing si no. */
+  readonly inicio = rutaInicio();
   readonly ArrowLeftIcon = ArrowLeft;
   readonly MegaphoneIcon = Megaphone;
   readonly SearchIcon = Search;

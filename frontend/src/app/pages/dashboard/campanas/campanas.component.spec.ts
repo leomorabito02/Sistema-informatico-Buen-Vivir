@@ -153,7 +153,7 @@ describe("CampanasComponent", () => {
     component.form = {
       titulo: "N",
       texto: "T",
-      imagen_url: "ftp://x",
+      imagen_url: "https://x",
       fecha: "2026-12-01",
     };
     component.guardar();
@@ -161,6 +161,22 @@ describe("CampanasComponent", () => {
     expect(toast).toHaveBeenCalledWith(
       jasmine.objectContaining({ severity: "error" }),
     );
+  });
+
+  // 17/11/2026: el formulario aplica el mismo criterio que el backend y no
+  // envía una imagen que no sea http/https.
+  it("no envía una imagen que no sea una dirección web", () => {
+    crear();
+    component.nueva();
+    component.form = {
+      titulo: "N",
+      texto: "T",
+      imagen_url: "ftp://x",
+      fecha: "2026-12-01",
+    };
+    expect(component.imagenInvalida).toBeTrue();
+    component.guardar();
+    expect(service.crear).not.toHaveBeenCalled();
   });
 
   it("publica y recarga", () => {
