@@ -2,7 +2,7 @@
   <header class="legal-header">
     <div class="container">
       <div class="legal-nav-top">
-        <a routerLink="/" class="btn-back">
+        <a [routerLink]="inicio" class="btn-back">
           <lucide-angular
             [img]="ArrowLeftIcon"
             class="icon-sm icon-mr"
@@ -20,9 +20,9 @@
             [img]="MailIcon"
             class="icon-sm icon-mr"
           ></lucide-angular>
-          Canales de Atención & Consultas
+          Canales de atención y consultas
         </div>
-        <h1 class="legal-title">Contacto e Información Institucional</h1>
+        <h1 class="legal-title">Contacto e información institucional</h1>
         <p class="legal-subtitle">
           Centro de Ecología Integral "La Otra Orilla" — Alta Gracia, Provincia
           de Córdoba
@@ -43,7 +43,7 @@
             ></lucide-angular>
           </div>
           <div>
-            <h3>Sede Institucional</h3>
+            <h3>Sede institucional</h3>
             <p>Centro Barrial "La Otra Orilla"</p>
             <p>Alta Gracia, Provincia de Córdoba, Argentina</p>
           </div>
@@ -54,7 +54,7 @@
             <lucide-angular [img]="MailIcon" class="info-icon"></lucide-angular>
           </div>
           <div>
-            <h3>Correo Electrónico</h3>
+            <h3>Correo electrónico</h3>
             <p>
               <a href="mailto:ceibuenvivir7@gmail.com"
                 >ceibuenvivir7&#64;gmail.com</a
@@ -74,7 +74,7 @@
             ></lucide-angular>
           </div>
           <div>
-            <h3>Teléfonos de Contacto</h3>
+            <h3>Teléfonos de contacto</h3>
             <p><a href="tel:+5493547612118">+54 9 3547 61 2118</a></p>
             <p><a href="tel:+5493547456184">+54 9 3547 45 6184</a></p>
           </div>
@@ -88,7 +88,7 @@
             ></lucide-angular>
           </div>
           <div>
-            <h3>Horarios de Atención</h3>
+            <h3>Horarios de atención</h3>
             <p>Lunes a Viernes: 09:00 - 18:00 hs</p>
           </div>
         </div>
@@ -98,11 +98,8 @@
       <section class="contact-form-column">
         <div class="form-card">
           @if (!isSubmitted) {
-            <h2>Enviar una Consulta</h2>
-            <p class="form-desc">
-              Completá el formulario a continuación y nos pondremos en contacto
-              a la brevedad.
-            </p>
+            <h2>Enviar una consulta</h2>
+            <p class="form-desc">Te respondemos por correo electrónico.</p>
 
             <form
               [formGroup]="contactForm"
@@ -110,7 +107,7 @@
               class="contact-form"
             >
               <div class="form-group">
-                <label for="name">Nombre Completo *</label>
+                <label for="name">Nombre completo *</label>
                 <input
                   id="name"
                   type="text"
@@ -131,7 +128,7 @@
               </div>
 
               <div class="form-group">
-                <label for="email">Correo Electrónico *</label>
+                <label for="email">Correo electrónico *</label>
                 <input
                   id="email"
                   type="email"
@@ -154,7 +151,7 @@
               </div>
 
               <div class="form-group">
-                <label for="subject">Asunto *</label>
+                <label for="subject">Motivo *</label>
                 <select
                   id="subject"
                   formControlName="subject"
@@ -164,24 +161,16 @@
                     contactForm.get('subject')?.touched
                   "
                 >
-                  <option value="">Seleccioná un asunto...</option>
-                  <option value="cursos">Consulta sobre Cursos</option>
-                  <option value="empleo">
-                    Bolsa de Empleo / Inserción Laboral
-                  </option>
-                  <option value="voluntariado">
-                    Voluntariado y Acompañamiento
-                  </option>
-                  <option value="datos">
-                    Ejercicio de Derechos ARCO (Datos Personales)
-                  </option>
-                  <option value="otro">Otro motivo</option>
+                  <option value="">Elegí un motivo</option>
+                  @for (a of asuntos; track a.value) {
+                    <option [value]="a.value">{{ a.label }}</option>
+                  }
                 </select>
                 @if (
                   contactForm.get("subject")?.invalid &&
                   contactForm.get("subject")?.touched
                 ) {
-                  <span class="error-msg">Seleccioná un asunto.</span>
+                  <span class="error-msg">Elegí el motivo de la consulta.</span>
                 }
               </div>
 
@@ -191,7 +180,7 @@
                   id="message"
                   rows="4"
                   formControlName="message"
-                  placeholder="Escribí tu mensaje o consulta..."
+                  placeholder="Escribí tu consulta"
                   class="form-control"
                   [class.is-invalid]="
                     contactForm.get('message')?.invalid &&
@@ -203,7 +192,7 @@
                   contactForm.get("message")?.touched
                 ) {
                   <span class="error-msg"
-                    >El mensaje debe tener al menos 10 caracteres.</span
+                    >El mensaje debe tener entre 10 y 3000 caracteres.</span
                   >
                 }
               </div>
@@ -214,7 +203,7 @@
                   <span>
                     Acepto la
                     <a routerLink="/privacidad" target="_blank"
-                      >Política de Privacidad</a
+                      >política de privacidad</a
                     >
                     y el tratamiento de mis datos según Ley 25.326. *
                   </span>
@@ -229,12 +218,23 @@
                 }
               </div>
 
-              <button type="submit" class="btn btn-primary btn-submit">
+              @if (errorEnvio) {
+                <p class="error-msg envio-error" role="alert">
+                  {{ errorEnvio }}
+                </p>
+              }
+
+              <button
+                type="submit"
+                class="btn btn-primary btn-submit"
+                [disabled]="enviando"
+                [attr.aria-busy]="enviando"
+              >
                 <lucide-angular
                   [img]="SendIcon"
                   class="icon-sm icon-mr"
                 ></lucide-angular>
-                Enviar Consulta
+                {{ enviando ? "Enviando…" : "Enviar consulta" }}
               </button>
             </form>
           } @else {
@@ -243,11 +243,10 @@
                 [img]="CheckCircleIcon"
                 class="success-icon"
               ></lucide-angular>
-              <h2>¡Mensaje Enviado con Éxito!</h2>
+              <h2>Consulta enviada</h2>
               <p>
-                Gracias por comunicarte con el Centro de Ecología Integral Buen
-                Vivir. Responderemos a tu consulta a la brevedad al correo
-                ingresado.
+                Gracias por escribirnos. Te vamos a responder al correo que
+                ingresaste.
               </p>
               <button
                 (click)="resetForm()"

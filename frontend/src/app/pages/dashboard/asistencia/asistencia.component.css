@@ -6,15 +6,3 @@
   gap: 1rem;
   margin-bottom: 1.5rem;
 }
-
-.course-picker {
-  display: flex;
-  flex-direction: column;
-  gap: 0.4rem;
-  width: 100%;
-  max-width: 360px;
-}
-
-.course-picker label {
-  font-weight: 600;
-}

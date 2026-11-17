@@ -12,7 +12,12 @@ import (
 	"buenvivir/human-promotion/internal/repositories"
 )
 
-const maxResultadosBusqueda = 20
+const (
+	maxResultadosBusqueda = 20
+	// maxListadoParticipantes: tope del listado completo que se muestra al
+	// entrar a Promoción Humana (sin texto de búsqueda).
+	maxListadoParticipantes = 500
+)
 
 // ParticipanteService reúne lo que se consulta a partir del
 // participante: la búsqueda por nombre (HU-36) y su propia línea de
@@ -38,13 +43,20 @@ func NewParticipanteService(auth repositories.AuthDirectory, fichas repositories
 }
 
 // Buscar consulta Auth por nombre y después trae las fichas asociadas.
+// Sin texto devuelve el listado completo de participantes (hasta
+// maxListadoParticipantes), que es lo primero que se ve al entrar al
+// módulo; con texto exige al menos 2 caracteres, como antes.
 func (s *participanteService) Buscar(ctx context.Context, query string) ([]models.ResultadoBusqueda, error) {
 	query = sanitizeText(query)
-	if len([]rune(query)) < 2 {
+	limite := maxResultadosBusqueda
+	switch n := len([]rune(query)); {
+	case n == 0:
+		limite = maxListadoParticipantes
+	case n < 2:
 		return nil, NewValidationError("Ingresá al menos 2 caracteres para buscar")
 	}
 
-	encontrados, err := s.auth.SearchParticipantes(ctx, query, maxResultadosBusqueda)
+	encontrados, err := s.auth.SearchParticipantes(ctx, query, limite)
 	if errors.Is(err, repositories.ErrInvalidSearch) {
 		return nil, NewValidationError("La búsqueda debe tener entre 2 y 100 caracteres")
 	}

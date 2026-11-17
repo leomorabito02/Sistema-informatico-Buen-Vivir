@@ -2,7 +2,7 @@
   <header class="legal-header">
     <div class="container">
       <div class="legal-nav-top">
-        <a routerLink="/" class="btn-back">
+        <a [routerLink]="inicio" class="btn-back">
           <lucide-angular
             [img]="ArrowLeftIcon"
             class="icon-sm icon-mr"
@@ -20,10 +20,10 @@
             [img]="ShieldIcon"
             class="icon-sm icon-mr"
           ></lucide-angular>
-          Cumplimiento Ley 25.326 & Directrices OWASP
+          Cumplimiento de la Ley 25.326 y directrices OWASP
         </div>
         <h1 class="legal-title">
-          Política de Privacidad y Protección de Datos Personales
+          Política de privacidad y protección de datos personales
         </h1>
         <p class="legal-subtitle">
           Centro de Ecología Integral "La Otra Orilla" — Alta Gracia, Provincia
@@ -40,22 +40,22 @@
         <h3>Contenido</h3>
         <nav>
           <a [routerLink]="[]" fragment="responsable"
-            >1. Responsable del Tratamiento</a
+            >1. Responsable del tratamiento</a
           >
           <a [routerLink]="[]" fragment="marco-legal"
-            >2. Marco Legal Aplicable</a
+            >2. Marco legal aplicable</a
           >
           <a [routerLink]="[]" fragment="datos-recolectados"
-            >3. Datos Recolectados y Finalidad</a
+            >3. Datos recolectados y finalidad</a
           >
           <a [routerLink]="[]" fragment="derechos-arco">4. Derechos ARCO</a>
           <a [routerLink]="[]" fragment="organo-control"
-            >5. Órgano de Control (AAIP)</a
+            >5. Órgano de control (AAIP)</a
           >
           <a [routerLink]="[]" fragment="seguridad-owasp"
-            >6. Seguridad de la Información (OWASP)</a
+            >6. Seguridad de la información (OWASP)</a
           >
-          <a [routerLink]="[]" fragment="contacto">7. Contacto y Consultas</a>
+          <a [routerLink]="[]" fragment="contacto">7. Contacto y consultas</a>
         </nav>
       </aside>
 
@@ -66,7 +66,7 @@
               [img]="BuildingIcon"
               class="section-icon"
             ></lucide-angular>
-            1. Responsable del Tratamiento de Datos
+            1. Responsable del tratamiento de datos
           </h2>
           <p>
             El responsable del tratamiento de los datos personales recolectados
@@ -91,7 +91,7 @@
               [img]="FileTextIcon"
               class="section-icon"
             ></lucide-angular>
-            2. Marco Legal Aplicable
+            2. Marco legal aplicable
           </h2>
           <p>
             La presente política se rige por la
@@ -109,7 +109,7 @@
               [img]="UserCheckIcon"
               class="section-icon"
             ></lucide-angular>
-            3. Datos Recolectados y Finalidades del Tratamiento
+            3. Datos recolectados y finalidades del tratamiento
           </h2>
           <p>
             En cumplimiento del principio de minimización de datos de la Ley
@@ -118,16 +118,16 @@
           </p>
           <ul>
             <li>
-              <strong>Datos de Identificación:</strong> Nombre, apellido, DNI,
+              <strong>Datos de identificación:</strong> Nombre, apellido, DNI,
               correo electrónico y teléfono de contacto.
             </li>
             <li>
-              <strong>Datos de Formación y Empleo:</strong> Información
+              <strong>Datos de formación y empleo:</strong> Información
               académica, experiencia laboral y postulaciones a cursos o bolsas
               de trabajo comunitarias.
             </li>
           </ul>
-          <p><strong>Finalidades del Tratamiento:</strong></p>
+          <p><strong>Finalidades del tratamiento:</strong></p>
           <ul>
             <li>
               Gestión de inscripciones y seguimiento pedagógico en cursos de
@@ -150,7 +150,7 @@
               [img]="ShieldIcon"
               class="section-icon"
             ></lucide-angular>
-            4. Derechos ARCO (Acceso, Rectificación, Cancelación y Oposición)
+            4. Derechos ARCO (acceso, rectificación, cancelación y oposición)
           </h2>
           <p>
             Conforme a lo dispuesto por el Artículo 14 de la Ley N° 25.326, el
@@ -171,7 +171,7 @@
         </section>
 
         <section id="organo-control" class="legal-section highlight-box">
-          <h2>5. Órgano de Control de la Ley 25.326 (AAIP)</h2>
+          <h2>5. Órgano de control de la Ley 25.326 (AAIP)</h2>
           <p>Se informa formalmente a los usuarios de la plataforma que:</p>
           <blockquote>
             "La
@@ -183,7 +183,7 @@
           </blockquote>
           <div class="aaip-info">
             <p>
-              <strong>Sitio Web Oficial:</strong>
+              <strong>Sitio web oficial:</strong>
               <a
                 href="https://www.argentina.gob.ar/aaip"
                 target="_blank"
@@ -196,7 +196,7 @@
               Buenos Aires
             </p>
             <p>
-              <strong>Correo Electrónico:</strong>
+              <strong>Correo electrónico:</strong>
               datospersonales&#64;aaip.gob.ar
             </p>
           </div>
@@ -208,7 +208,7 @@
               [img]="LockIcon"
               class="section-icon"
             ></lucide-angular>
-            6. Medidas de Seguridad de la Información (OWASP)
+            6. Medidas de seguridad de la información (OWASP)
           </h2>
           <p>
             Implementamos estrictas medidas de seguridad técnicas y
@@ -218,20 +218,20 @@
           </p>
           <ul>
             <li>
-              <strong>Cifrado en Tránsito:</strong> Transmisión de información
+              <strong>Cifrado en tránsito:</strong> Transmisión de información
               protegida mediante protocolo HTTPS y TLS.
             </li>
             <li>
-              <strong>Almacenamiento Seguro:</strong> Contraseñas procesadas
+              <strong>Almacenamiento seguro:</strong> Contraseñas procesadas
               mediante funciones hash criptográficas y salado (*salted password
               hashing*).
             </li>
             <li>
-              <strong>Control de Acceso (RBAC):</strong> Restricción de acceso a
+              <strong>Control de acceso (RBAC):</strong> Restricción de acceso a
               datos según roles de usuario verificados.
             </li>
             <li>
-              <strong>Sanitización e Inmunización de Entradas:</strong>
+              <strong>Sanitización de entradas:</strong>
               Consultas parametrizadas para prevenir vulnerabilidades OWASP Top
               10 (SQLi, XSS, CSRF).
             </li>
@@ -244,7 +244,7 @@
               [img]="MailIcon"
               class="section-icon"
             ></lucide-angular>
-            7. Contacto y Consultas Legales
+            7. Contacto y consultas legales
           </h2>
           <p>
             Para consultas relacionadas con esta Política de Privacidad o el

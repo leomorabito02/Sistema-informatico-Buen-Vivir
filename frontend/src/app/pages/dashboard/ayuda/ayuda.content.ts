@@ -33,16 +33,16 @@ const PARTICIPANTE: AyudaTema[] = [
     pregunta: "¿Cómo me postulo a una oferta de trabajo?",
     pasos: [
       "Antes, revisá que tu CV esté al día en Mi CV.",
-      "Abrí Ofertas laborales, pestaña Ofertas Disponibles.",
+      "Abrí Ofertas laborales, pestaña Ofertas disponibles.",
       "En la oferta, tocá Postularme y confirmá.",
-      "Tus postulaciones quedan en la pestaña Mis Postulaciones.",
+      "Tus postulaciones quedan en la pestaña Mis postulaciones.",
     ],
   },
   {
     pregunta: "¿Cómo armo mi CV?",
     pasos: [
       "Abrí Mi CV y completá tus datos, habilidades e idiomas.",
-      "Tocá Guardar / Generar Currículum.",
+      "Tocá Guardar y generar currículum.",
       "Con Descargar PDF lo bajás; con Compartir CV obtenés un link.",
     ],
   },
@@ -117,7 +117,7 @@ const GESTION_COMUN: AyudaTema[] = [
     pasos: [
       "Abrí Inserción laboral.",
       "Las ofertas que publica una empresa quedan Pendientes: revisalas y tocá Aprobar.",
-      "Con Postular Participante postulás a alguien; con Ver Postulados ves quiénes se postularon.",
+      "Con Postular participante postulás a alguien; con Ver postulados ves quiénes se postularon.",
     ],
   },
 ];
@@ -157,14 +157,14 @@ const EMPRESA: AyudaTema[] = [
   {
     pregunta: "¿Cómo publico una oferta?",
     pasos: [
-      "Abrí Ofertas laborales y tocá Publicar Oferta.",
+      "Abrí Ofertas laborales y tocá Publicar oferta.",
       "Completá los datos y guardá.",
       "La oferta queda Pendiente hasta que el centro la aprueba.",
     ],
   },
   {
     pregunta: "¿Cómo veo quién se postuló?",
-    pasos: ["En la oferta, tocá Ver Postulados."],
+    pasos: ["En la oferta, tocá Ver postulados."],
   },
   {
     pregunta: "¿Cómo me comunico con el centro?",

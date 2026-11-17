@@ -12,6 +12,8 @@ import (
 
 	"auth/api/proto/notificationpb"
 
+	"github.com/golang-jwt/jwt/v5"
+
 	"google.golang.org/api/idtoken"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
@@ -95,6 +97,12 @@ func (s *notificationSyncService) performInitHTTP(baseURL, userID string) {
 
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("X-User-ID", userID)
+	// Con JWT_SECRET, Notificaciones ya no confía en X-User-ID: se
+	// identifica como servicio interno (role_dev) y el user_id va en el
+	// body (auditoría 17/11/2026).
+	if tok, err := serviceToken(os.Getenv("JWT_SECRET")); err == nil && tok != "" {
+		req.Header.Set("Authorization", "Bearer "+tok)
+	}
 	if strings.EqualFold(strings.TrimSpace(os.Getenv("UPSTREAM_ID_TOKEN")), "true") {
 		if ts, err := idtoken.NewTokenSource(ctx, baseURL); err == nil {
 			if tok, err := ts.Token(); err == nil && tok.AccessToken != "" {
@@ -116,4 +124,22 @@ func (s *notificationSyncService) performInitHTTP(baseURL, userID string) {
 	}
 
 	slog.Info("notification_sync: default preferences successfully initiated", "user_id", userID)
+}
+
+// serviceToken firma un access token corto (60 s) que identifica a auth
+// como servicio interno ante Notificaciones. Sin secreto no firma nada.
+func serviceToken(secret string) (string, error) {
+	secret = strings.TrimSpace(secret)
+	if secret == "" {
+		return "", nil
+	}
+	now := time.Now()
+	claims := jwt.MapClaims{
+		"sub":  "auth-service",
+		"role": "role_dev",
+		"type": "access",
+		"iat":  now.Unix(),
+		"exp":  now.Add(60 * time.Second).Unix(),
+	}
+	return jwt.NewWithClaims(jwt.SigningMethodHS256, claims).SignedString([]byte(secret))
 }

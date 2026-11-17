@@ -12,6 +12,7 @@ import {
   ArrowLeft,
 } from "lucide-angular";
 import { FooterComponent } from "../../components/layout/footer/footer.component";
+import { rutaInicio } from "../../shared/utils/ruta-inicio";
 
 @Component({
   selector: "app-privacy-policy",
@@ -21,6 +22,8 @@ import { FooterComponent } from "../../components/layout/footer/footer.component
   styleUrl: "./privacy-policy.component.css",
 })
 export class PrivacyPolicyComponent implements OnInit {
+  /** "Volver al inicio": panel si hay sesión, landing si no. */
+  readonly inicio = rutaInicio();
   readonly ShieldIcon = Shield;
   readonly FileTextIcon = FileText;
   readonly LockIcon = Lock;

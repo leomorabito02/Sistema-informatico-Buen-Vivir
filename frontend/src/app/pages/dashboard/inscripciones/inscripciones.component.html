@@ -4,8 +4,7 @@
     <div>
       <h1 class="page-title">Inscripción a cursos</h1>
       <p class="page-subtitle">
-        Inscribí participantes aprobados en cursos publicados y consultá quiénes
-        ya están inscriptos.
+        Inscribí participantes en los cursos publicados.
       </p>
     </div>
   </div>
@@ -27,15 +26,18 @@
     </app-empty-state>
 
     <div *ngIf="courseOptions.length > 0" class="course-picker">
-      <label>Curso</label>
+      <label for="curso-inscripcion">Curso</label>
       <p-select
+        inputId="curso-inscripcion"
         [options]="courseOptions"
         optionLabel="label"
         optionValue="value"
         [(ngModel)]="selectedCourseId"
         (onChange)="onCourseChange()"
         placeholder="Elegí un curso"
-        [style]="{ minWidth: '280px' }"
+        [filter]="true"
+        filterPlaceholder="Buscar curso"
+        appendTo="body"
       ></p-select>
     </div>
 

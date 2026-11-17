@@ -93,7 +93,7 @@ describe("DashboardFiltrosComponent", () => {
     const chips = component.chips;
     expect(chips.map((c) => c.texto)).toEqual([
       "01/01/2026 al 30/06/2026",
-      "Módulo: Inserción Laboral",
+      "Módulo: Inserción laboral",
       "Área: Huerta y agroecología",
     ]);
     expect(chips.every((c) => c.quitable)).toBeTrue();

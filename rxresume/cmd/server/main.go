@@ -4,6 +4,7 @@ import (
 	"context"
 	"log"
 	"net/http"
+	"strings"
 
 	"buenvivir/rxresume/internal/config"
 	"buenvivir/rxresume/internal/controllers"
@@ -45,8 +46,18 @@ func main() {
 	mux := http.NewServeMux()
 	routes.RegisterRoutes(mux, controller)
 
+	// Sin JWT_SECRET la identidad sale de los headers X-User-* que pone el
+	// gateway nginx (solo válido en Docker local). En producción no arranca.
+	if strings.TrimSpace(cfg.JWTSecret) == "" {
+		if strings.EqualFold(cfg.AppEnv, "production") {
+			log.Fatalf("invalid configuration: JWT_SECRET es obligatorio en producción")
+		}
+		log.Printf("Warning: JWT_SECRET vacío: la identidad sale de los headers X-User-* del gateway (solo válido en local)")
+	}
+	handler := routes.Security(mux, cfg.JWTSecret, cfg.CORSAllowedOrigins)
+
 	log.Printf("Servicio RxResume escuchando en el puerto :%s (conectado a cv-renderer en %s)", cfg.Port, cfg.RendererURL)
-	if err := http.ListenAndServe(":"+cfg.Port, mux); err != nil {
+	if err := http.ListenAndServe(":"+cfg.Port, handler); err != nil {
 		log.Fatalf("Error al iniciar el servidor rxresume: %v", err)
 	}
 }

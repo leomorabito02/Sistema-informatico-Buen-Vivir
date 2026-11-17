@@ -5,9 +5,7 @@
     <div>
       <h1 class="page-title">Contenido docente</h1>
       <p class="page-subtitle">
-        Material que suben los docentes. Revisalo antes de aprobarlo: lo
-        aprobado se publica en la biblioteca de la página principal, sin iniciar
-        sesión.
+        Material de los docentes para revisar y publicar en la biblioteca.
       </p>
     </div>
   </div>
@@ -105,8 +103,7 @@
       Descargas de la biblioteca
     </h2>
     <p class="page-subtitle">
-      Quién descargó material de la biblioteca pública, para el seguimiento del
-      centro. Son datos personales: no los compartas fuera del equipo.
+      Quién descargó material de la biblioteca pública.
     </p>
     <p *ngIf="errorDescargas" class="estado-carga">{{ errorDescargas }}</p>
     <p *ngIf="!errorDescargas && descargas.length === 0" class="estado-carga">

@@ -9,7 +9,7 @@ import {
 } from "../core/models/education.model";
 import { filtrosAuditoria } from "./education.service";
 
-/** Fila tal como la devuelven Autenticación e Inserción Laboral. */
+/** Fila tal como la devuelven Autenticación e Inserción laboral. */
 interface RegistroAuditoriaApi {
   id: string | number;
   usuario_id: string;
@@ -26,7 +26,7 @@ interface RegistroAuditoriaApi {
 
 /**
  * Auditoría de Autenticación (HU-10, más rechazos de HU-03 y HU-06) y de
- * Inserción Laboral (HU-42). Mismo formato de pantalla que Educación y
+ * Inserción laboral (HU-42). Mismo formato de pantalla que Educación y
  * Promoción Humana.
  */
 @Injectable({ providedIn: "root" })

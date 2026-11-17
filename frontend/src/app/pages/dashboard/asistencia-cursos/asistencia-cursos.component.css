@@ -13,19 +13,6 @@
   margin-bottom: 1.5rem;
 }
 
-.course-picker {
-  display: flex;
-  flex-direction: column;
-  gap: 0.4rem;
-  width: 100%;
-  max-width: 360px;
-}
-
-.course-picker label {
-  font-weight: 600;
-  color: var(--text-primary, #1d1d1b);
-}
-
 :host ::ng-deep .vista-toggle {
   margin-bottom: 1.25rem;
 }

@@ -10,6 +10,12 @@ type Config struct {
 	GCPProjectID     string
 	GCPBucketName    string
 	ApplicationCreds string
+	// JWTSecret: con valor, la identidad sale del JWT verificado y no de
+	// los headers X-User-* (ver routes/security.go).
+	JWTSecret string
+	// CORSAllowedOrigins: orígenes extra, separados por comas.
+	CORSAllowedOrigins string
+	AppEnv             string
 }
 
 // LoadConfig reads configuration settings from environment variables with safe defaults.
@@ -19,7 +25,15 @@ func LoadConfig() *Config {
 		port = "8080"
 	}
 
+	// DATABASE_URL_RXRESUME tiene prioridad; si no está se usa
+	// DATABASE_URL, que es la que pasan el CD de Cloud Run y el .env local.
+	// Antes solo se leía la primera: en testing y en Docker el servicio
+	// caía al default localhost:5432 y "Mi CV" respondía 500 (auditoría
+	// 17/11/2026).
 	dbURL := os.Getenv("DATABASE_URL_RXRESUME")
+	if dbURL == "" {
+		dbURL = os.Getenv("DATABASE_URL")
+	}
 	if dbURL == "" {
 		dbURL = "postgres://postgres:postgres@localhost:5432/buenvivir_rxresume?sslmode=disable"
 	}
@@ -42,11 +56,14 @@ func LoadConfig() *Config {
 	appCreds := os.Getenv("GOOGLE_APPLICATION_CREDENTIALS")
 
 	return &Config{
-		Port:             port,
-		DatabaseURL:      dbURL,
-		RendererURL:      rendererURL,
-		GCPProjectID:     gcpProjectID,
-		GCPBucketName:    gcpBucketName,
-		ApplicationCreds: appCreds,
+		Port:               port,
+		DatabaseURL:        dbURL,
+		RendererURL:        rendererURL,
+		GCPProjectID:       gcpProjectID,
+		GCPBucketName:      gcpBucketName,
+		ApplicationCreds:   appCreds,
+		JWTSecret:          os.Getenv("JWT_SECRET"),
+		CORSAllowedOrigins: os.Getenv("CORS_ALLOWED_ORIGINS"),
+		AppEnv:             os.Getenv("APP_ENV"),
 	}
 }

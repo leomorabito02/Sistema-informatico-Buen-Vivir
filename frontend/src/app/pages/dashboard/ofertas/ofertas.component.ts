@@ -248,6 +248,7 @@ export class OfertasComponent implements OnInit {
       estado: "Pendiente",
     };
     this.currentRequisito = "";
+    this.intentoGuardar = false;
     this.showDialog = true;
     this.messageService.add({
       severity: "info",
@@ -265,6 +266,7 @@ export class OfertasComponent implements OnInit {
       this.newJob.fecha_limite = utc3Date.toISOString().split("T")[0];
     }
     this.currentRequisito = "";
+    this.intentoGuardar = false;
     this.showDialog = true;
   }
 
@@ -323,13 +325,35 @@ export class OfertasComponent implements OnInit {
       });
   }
 
+  /**
+   * true después del primer intento de guardar: desde ahí cada campo
+   * obligatorio vacío muestra su error al lado (no antes, para no marcar
+   * en rojo un formulario recién abierto).
+   */
+  intentoGuardar = false;
+
+  /** Errores por campo del formulario de oferta (mismos criterios que el backend). */
+  get errores(): ErroresOferta {
+    return this.intentoGuardar
+      ? erroresOferta(this.newJob, { exigirFechaFutura: !this.isEditing })
+      : {};
+  }
+
   saveJob() {
-    const faltan = camposFaltantesOferta(this.newJob);
+    // Un requisito escrito pero sin confirmar con Enter o "+" también cuenta.
+    if (this.currentRequisito.trim()) {
+      this.addRequisito();
+    }
+    this.intentoGuardar = true;
+    const errores = erroresOferta(this.newJob, {
+      exigirFechaFutura: !this.isEditing,
+    });
+    const faltan = Object.values(errores);
     if (faltan.length) {
       this.messageService.add({
         severity: "warn",
-        summary: "Faltan datos obligatorios",
-        detail: `Completá: ${faltan.join(", ")}.`,
+        summary: "Revisá los campos marcados",
+        detail: faltan.join(" "),
       });
       return;
     }
@@ -390,7 +414,7 @@ export class OfertasComponent implements OnInit {
     this.confirmationService.confirm({
       message:
         "¿Querés eliminar esta oferta laboral? Esta acción no se puede deshacer.",
-      header: "Confirmar Eliminación",
+      header: "Confirmar eliminación",
       icon: "pi-exclamation-triangle",
       acceptLabel: "Sí",
       rejectLabel: "No",
@@ -423,7 +447,7 @@ export class OfertasComponent implements OnInit {
     this.confirmationService.confirm({
       message:
         "¿Querés postularte a esta oferta laboral? Antes, revisá que tu CV esté actualizado en Mi CV.",
-      header: "Confirmar Postulación",
+      header: "Confirmar postulación",
       icon: "pi pi-check-circle",
       acceptLabel: "Sí, postularme",
       rejectLabel: "Cancelar",
@@ -653,6 +677,57 @@ export function camposFaltantesOferta(job: {
     faltan.push("al menos un requisito");
   if (vacio(job.fecha_limite)) faltan.push("fecha límite");
   return faltan;
+}
+
+/** Campos del formulario de oferta que pueden tener error. */
+export type CampoOferta =
+  | "titulo"
+  | "descripcion"
+  | "ubicacion"
+  | "modalidad"
+  | "tipo_empleo"
+  | "salario"
+  | "horario"
+  | "requisitos"
+  | "fecha_limite";
+
+export type ErroresOferta = Partial<Record<CampoOferta, string>>;
+
+/** Fecha de hoy (YYYY-MM-DD) en Argentina, para comparar con el input date. */
+function hoyYMD(): string {
+  return new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString().slice(0, 10);
+}
+
+/**
+ * Errores por campo de una oferta, con los mismos criterios que el backend
+ * (labor-integration `validateOfferFields`): todos los campos obligatorios
+ * y, al publicar, una fecha límite que no haya pasado. Así el formulario
+ * no deja enviar algo que el backend va a rechazar.
+ */
+export function erroresOferta(
+  job: Parameters<typeof camposFaltantesOferta>[0],
+  opciones: { exigirFechaFutura?: boolean } = {},
+): ErroresOferta {
+  const vacio = (v?: string) => !v || !String(v).trim();
+  const e: ErroresOferta = {};
+  if (vacio(job.titulo)) e.titulo = "Ingresá el título del puesto.";
+  if (vacio(job.ubicacion)) e.ubicacion = "Ingresá la ubicación.";
+  if (vacio(job.tipo_empleo)) e.tipo_empleo = "Elegí el tipo de empleo.";
+  if (vacio(job.modalidad)) e.modalidad = "Elegí la modalidad.";
+  if (vacio(job.salario)) e.salario = 'Ingresá el salario (o "A convenir").';
+  if (vacio(job.horario)) e.horario = "Ingresá el horario.";
+  if (vacio(job.fecha_limite)) {
+    e.fecha_limite = "Elegí la fecha límite.";
+  } else if (
+    opciones.exigirFechaFutura &&
+    String(job.fecha_limite).slice(0, 10) < hoyYMD()
+  ) {
+    e.fecha_limite = "La fecha límite ya pasó.";
+  }
+  if (vacio(job.descripcion)) e.descripcion = "Ingresá la descripción.";
+  if (!(job.requisitos ?? []).some((r) => !vacio(r)))
+    e.requisitos = "Agregá al menos un requisito.";
+  return e;
 }
 
 /** Usa el texto que devuelve el backend (400 con el campo faltante). */

@@ -2117,6 +2117,10 @@ jobs:
             RENDERER_URL=${{ needs.cd-cv-renderer.outputs.service_url }}
             GCP_PROJECT_ID=${{ secrets.GCP_PROJECT_ID }}
             GCP_BUCKET_NAME=${{ vars.GCP_BUCKET_NAME || 'buenvivir-resumes-bucket' }}
+            APP_ENV=${{ env.APP_ENV }}
+            # Identidad por JWT y no por X-User-* (el API Gateway de GCP no
+            # valida el token de la app; auditoría 17/11/2026).
+            JWT_SECRET=${{ secrets.JWT_SECRET }}
 
       - name: Ensure 100% traffic routed to latest Cloud Run revision
         run: |
@@ -2161,7 +2165,8 @@ jobs:
           export LABOR_SERVICE_URL="${{ needs.cd-labor-integration.outputs.service_url }}"
           export CAMPAIGNS_SERVICE_URL="${{ needs.cd-campaigns.outputs.service_url }}"
           export DASHBOARD_SERVICE_URL="${{ needs.cd-dashboard.outputs.service_url }}"
-          if [ -z "$AUTH_SERVICE_URL" ] || [ -z "$EDUCATION_SERVICE_URL" ] || [ -z "$RXRESUME_SERVICE_URL" ] || [ -z "$HUMAN_PROMOTION_SERVICE_URL" ] || [ -z "$LABOR_SERVICE_URL" ] || [ -z "$CAMPAIGNS_SERVICE_URL" ] || [ -z "$DASHBOARD_SERVICE_URL" ]; then
+          export NOTIFICATIONS_SERVICE_URL="${{ needs.cd-notifications.outputs.service_url }}"
+          if [ -z "$AUTH_SERVICE_URL" ] || [ -z "$EDUCATION_SERVICE_URL" ] || [ -z "$RXRESUME_SERVICE_URL" ] || [ -z "$HUMAN_PROMOTION_SERVICE_URL" ] || [ -z "$LABOR_SERVICE_URL" ] || [ -z "$CAMPAIGNS_SERVICE_URL" ] || [ -z "$DASHBOARD_SERVICE_URL" ] || [ -z "$NOTIFICATIONS_SERVICE_URL" ]; then
             echo "::error::Falta al menos una URL de microservicio para resolver openapi.yaml."
             exit 1
           fi
@@ -2554,6 +2559,7 @@ jobs:
           export LABOR_SERVICE_URL="${{ needs.cd-labor-integration.outputs.service_url }}"
           export CAMPAIGNS_SERVICE_URL="${{ needs.cd-campaigns.outputs.service_url }}"
           export DASHBOARD_SERVICE_URL="${{ needs.cd-dashboard.outputs.service_url }}"
+          export NOTIFICATIONS_SERVICE_URL="${{ needs.cd-notifications.outputs.service_url }}"
           export FIREBASE_PROJECT_ID="${{ secrets.FIREBASE_PROJECT_ID }}"
           envsubst < api-gateway/openapi.yaml > api-gateway/openapi-resolved.yaml
 

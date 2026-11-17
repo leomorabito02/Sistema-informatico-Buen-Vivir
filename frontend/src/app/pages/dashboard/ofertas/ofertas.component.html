@@ -4,7 +4,7 @@
 <div class="page-container">
   <div class="header-section">
     <div>
-      <h1 class="page-title">Ofertas Laborales</h1>
+      <h1 class="page-title">Ofertas laborales</h1>
       <p class="page-subtitle">
         Oportunidades de empleo del programa Buen Vivir.
       </p>
@@ -27,12 +27,12 @@
         [options]="employmentTypes"
         [(ngModel)]="selectedEmploymentType"
         (onChange)="filterJobs()"
-        placeholder="Tipo de Empleo"
+        placeholder="Tipo de empleo"
         styleClass="w-full sm:w-auto p-dropdown-sm"
       ></p-dropdown>
       <p-button
         *ngIf="isCompany || isAdminOrVolunteer"
-        label="Publicar Oferta"
+        label="Publicar oferta"
         icon="pi pi-plus"
         (onClick)="openNewJobDialog()"
         styleClass="p-button-success"
@@ -47,7 +47,7 @@
           ? 'p-button-primary'
           : 'p-button-outlined p-button-secondary'
       "
-      label="Ofertas Disponibles"
+      label="Ofertas disponibles"
       (onClick)="setTab('Disponibles')"
       class="mr-2"
     ></p-button>
@@ -57,7 +57,7 @@
           ? 'p-button-primary'
           : 'p-button-outlined p-button-secondary'
       "
-      label="Mis Postulaciones"
+      label="Mis postulaciones"
       (onClick)="setTab('Postuladas')"
     ></p-button>
   </div>
@@ -79,7 +79,7 @@
           ? 'p-button-primary'
           : 'p-button-outlined p-button-secondary'
       "
-      label="Pendientes de Aprobación"
+      label="Pendientes de aprobación"
       (onClick)="setTab('Pendiente')"
       class="mr-2"
     ></p-button>
@@ -121,7 +121,7 @@
           ? 'p-button-primary'
           : 'p-button-outlined p-button-secondary'
       "
-      label="Pendientes de Aprobación"
+      label="Pendientes de aprobación"
       (onClick)="setTab('Pendiente')"
       class="mr-2"
     ></p-button>
@@ -235,14 +235,14 @@
 
             <p-button
               *ngIf="isAdminOrVolunteer && job.estado === 'Activa'"
-              label="Postular Participante"
+              label="Postular participante"
               icon="pi pi-user-plus"
               styleClass="w-full p-button-outlined p-button-help"
               (onClick)="openApplyDialog(job)"
             ></p-button>
             <p-button
               *ngIf="isCompany || isAdminOrVolunteer"
-              label="Ver Postulados"
+              label="Ver postulados"
               icon="pi pi-users"
               styleClass="w-full p-button-outlined p-button-info"
               (onClick)="showApplications(job)"
@@ -301,105 +301,167 @@
   <!-- Modal para publicar/editar oferta -->
   <p-dialog
     [header]="
-      isEditing ? 'Editar Oferta Laboral' : 'Publicar Nueva Oferta Laboral'
+      isEditing ? 'Editar oferta laboral' : 'Publicar nueva oferta laboral'
     "
     [(visible)]="showDialog"
     [modal]="true"
-    [style]="{ width: '90vw', maxWidth: '600px' }"
+    [style]="{ width: '90vw', maxWidth: '640px' }"
   >
+    <p class="form-legend">
+      Todos los campos son obligatorios (<span class="req">*</span>).
+    </p>
     <div class="dialog-body grid">
       <div class="col-12 md:col-6 field mb-3">
-        <label for="title">Título del Puesto</label>
+        <label for="title">Título del puesto <span class="req">*</span></label>
         <input
           pInputText
           id="title"
           [(ngModel)]="newJob.titulo"
           class="w-full"
-          placeholder="Ej: Operario Agrícola"
+          placeholder="Ej: Operario agrícola"
+          [class.p-invalid]="errores.titulo"
+          [attr.aria-invalid]="!!errores.titulo"
+          aria-describedby="err-titulo"
         />
+        <small *ngIf="errores.titulo" id="err-titulo" class="field-error">{{
+          errores.titulo
+        }}</small>
       </div>
       <div class="col-12 md:col-6 field mb-3">
-        <label for="location">Ubicación</label>
+        <label for="location">Ubicación <span class="req">*</span></label>
         <input
           pInputText
           id="location"
           [(ngModel)]="newJob.ubicacion"
           class="w-full"
           placeholder="Ej: Alta Gracia"
+          [class.p-invalid]="errores.ubicacion"
+          [attr.aria-invalid]="!!errores.ubicacion"
+          aria-describedby="err-ubicacion"
         />
+        <small
+          *ngIf="errores.ubicacion"
+          id="err-ubicacion"
+          class="field-error"
+          >{{ errores.ubicacion }}</small
+        >
       </div>
 
       <div class="col-12 md:col-6 field mb-3">
-        <label for="tipo_empleo">Tipo de Empleo</label>
+        <label for="tipo_empleo"
+          >Tipo de empleo <span class="req">*</span></label
+        >
         <select
           id="tipo_empleo"
           [(ngModel)]="newJob.tipo_empleo"
           class="w-full p-inputtext p-component"
+          [class.p-invalid]="errores.tipo_empleo"
         >
-          <option value="Tiempo Completo">Tiempo Completo</option>
-          <option value="Medio Tiempo">Medio Tiempo</option>
+          <option value="Tiempo Completo">Tiempo completo</option>
+          <option value="Medio Tiempo">Medio tiempo</option>
           <option value="Contrato">Contrato</option>
           <option value="Pasantía">Pasantía</option>
         </select>
+        <small *ngIf="errores.tipo_empleo" class="field-error">{{
+          errores.tipo_empleo
+        }}</small>
       </div>
       <div class="col-12 md:col-6 field mb-3">
-        <label for="modalidad">Modalidad</label>
+        <label for="modalidad">Modalidad <span class="req">*</span></label>
         <select
           id="modalidad"
           [(ngModel)]="newJob.modalidad"
           class="w-full p-inputtext p-component"
+          [class.p-invalid]="errores.modalidad"
         >
           <option value="Presencial">Presencial</option>
           <option value="Híbrido">Híbrido</option>
           <option value="Remoto">Remoto</option>
         </select>
+        <small *ngIf="errores.modalidad" class="field-error">{{
+          errores.modalidad
+        }}</small>
       </div>
 
       <div class="col-12 md:col-6 field mb-3">
-        <label for="salario">Salario</label>
+        <label for="salario">Salario <span class="req">*</span></label>
         <input
           pInputText
           id="salario"
           [(ngModel)]="newJob.salario"
           class="w-full"
-          placeholder="Ej: $500.000"
+          placeholder="Ej: $500.000 o A convenir"
+          [class.p-invalid]="errores.salario"
+          [attr.aria-invalid]="!!errores.salario"
+          aria-describedby="err-salario"
         />
+        <small *ngIf="errores.salario" id="err-salario" class="field-error">{{
+          errores.salario
+        }}</small>
       </div>
       <div class="col-12 md:col-6 field mb-3">
-        <label for="horario">Horario</label>
+        <label for="horario">Horario <span class="req">*</span></label>
         <input
           pInputText
           id="horario"
           [(ngModel)]="newJob.horario"
           class="w-full"
           placeholder="Ej: L a V de 9 a 18"
+          [class.p-invalid]="errores.horario"
+          [attr.aria-invalid]="!!errores.horario"
+          aria-describedby="err-horario"
         />
+        <small *ngIf="errores.horario" id="err-horario" class="field-error">{{
+          errores.horario
+        }}</small>
       </div>
 
       <div class="col-12 md:col-6 field mb-3">
-        <label for="fecha_limite">Fecha Límite</label>
+        <label for="fecha_limite"
+          >Fecha límite <span class="req">*</span></label
+        >
         <input
           pInputText
           type="date"
           id="fecha_limite"
           [(ngModel)]="newJob.fecha_limite"
           class="w-full"
+          [class.p-invalid]="errores.fecha_limite"
+          [attr.aria-invalid]="!!errores.fecha_limite"
+          aria-describedby="err-fecha"
         />
+        <small
+          *ngIf="errores.fecha_limite"
+          id="err-fecha"
+          class="field-error"
+          >{{ errores.fecha_limite }}</small
+        >
       </div>
 
       <div class="col-12 field mb-3">
-        <label for="descripcion">Descripción</label>
+        <label for="descripcion">Descripción <span class="req">*</span></label>
         <textarea
           id="descripcion"
           rows="3"
           [(ngModel)]="newJob.descripcion"
           class="w-full p-inputtext p-component"
-          placeholder="Describe las responsabilidades..."
+          placeholder="Describí las tareas y responsabilidades"
+          [class.p-invalid]="errores.descripcion"
+          [attr.aria-invalid]="!!errores.descripcion"
+          aria-describedby="err-descripcion"
         ></textarea>
+        <small
+          *ngIf="errores.descripcion"
+          id="err-descripcion"
+          class="field-error"
+          >{{ errores.descripcion }}</small
+        >
       </div>
 
       <div class="col-12 field mb-3">
-        <label for="nuevoRequisito">Requisitos</label>
+        <label for="nuevoRequisito"
+          >Requisitos <span class="req">*</span></label
+        >
         <div class="flex gap-2 mb-2">
           <input
             id="nuevoRequisito"
@@ -407,18 +469,27 @@
             [(ngModel)]="currentRequisito"
             (keyup.enter)="addRequisito()"
             class="flex-1"
-            placeholder="Agregar un requisito y presionar enter"
+            placeholder="Escribí un requisito y presioná Enter"
+            [class.p-invalid]="errores.requisitos"
+            [attr.aria-invalid]="!!errores.requisitos"
+            aria-describedby="err-requisitos ayuda-requisitos"
           />
           <p-button
             icon="pi pi-plus"
+            ariaLabel="Agregar requisito"
             (onClick)="addRequisito()"
             styleClass="p-button-secondary"
           ></p-button>
         </div>
-        <small class="text-color-secondary block mb-2"
-          >Al publicarse, se avisa a los participantes que tengan una habilidad
-          con el mismo nombre que un requisito (por ejemplo, "Atención al
-          cliente").</small
+        <small
+          *ngIf="errores.requisitos"
+          id="err-requisitos"
+          class="field-error block mb-2"
+          >{{ errores.requisitos }}</small
+        >
+        <small id="ayuda-requisitos" class="field-hint block mb-2"
+          >Se avisa a los participantes que tengan una habilidad con el mismo
+          nombre que un requisito.</small
         >
         <div class="flex flex-wrap gap-2">
           <p-tag
@@ -429,6 +500,7 @@
             <button
               type="button"
               class="ml-2 cursor-pointer border-none bg-transparent p-0 m-0 flex align-items-center"
+              [attr.aria-label]="'Quitar requisito ' + req"
               (click)="removeRequisito(i)"
             >
               <i class="pi pi-times"></i>
@@ -445,7 +517,7 @@
         styleClass="p-button-text"
       ></p-button>
       <p-button
-        label="Guardar"
+        [label]="isEditing ? 'Guardar cambios' : 'Publicar oferta'"
         icon="pi pi-check"
         (onClick)="saveJob()"
         styleClass="p-button-success"
@@ -455,14 +527,14 @@
 
   <!-- Modal para renovar oferta -->
   <p-dialog
-    header="Renovar Oferta Laboral"
+    header="Renovar oferta laboral"
     [(visible)]="showRenewDialog"
     [modal]="true"
     [style]="{ width: '90vw', maxWidth: '400px' }"
   >
     <div class="dialog-body">
       <div class="field mb-3">
-        <label for="renew_date">Nueva Fecha Límite</label>
+        <label for="renew_date">Nueva fecha límite</label>
         <input
           pInputText
           type="date"
@@ -493,7 +565,7 @@
     [(visible)]="applicationsDialogVisible"
     [modal]="true"
     [style]="{ width: '600px' }"
-    header="Candidatos Postulados"
+    header="Candidatos postulados"
   >
     <div class="mb-4">
       <span class="font-semibold text-gray-700">Puesto:</span>
@@ -579,7 +651,7 @@
               [href]="'/cv-public/' + cvId(candidate.app)"
               target="_blank"
               class="text-gray-700 font-bold hover:text-gray-900 hover:underline"
-              >Ver Perfil Completo</a
+              >Ver perfil completo</a
             >
             <div class="flex gap-2">
               <button
@@ -603,18 +675,17 @@
     </div>
   </p-dialog>
 
-  <!-- Modal Postular Participante -->
+  <!-- Modal Postular participante -->
   <p-dialog
     [(visible)]="showApplyDialog"
     [modal]="true"
     [style]="{ width: '400px' }"
-    header="Postular Participante"
+    header="Postular participante"
   >
     <div class="mb-4">
       <p>
         Seleccione un participante para postular a la oferta
-        <strong>{{ jobToApply?.titulo }}</strong
-        >:
+        <strong>{{ jobToApply?.titulo }}</strong>:
       </p>
     </div>
 
@@ -656,7 +727,7 @@
 
   <!-- Modal de Aceptación Exitosa -->
   <p-dialog
-    header="Participante Aceptado"
+    header="Participante aceptado"
     [(visible)]="showAcceptanceModal"
     [modal]="true"
     [style]="{ width: '450px' }"

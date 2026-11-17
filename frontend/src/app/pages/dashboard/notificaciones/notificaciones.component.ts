@@ -257,11 +257,11 @@ export class NotificacionesComponent implements OnInit, OnDestroy {
       case "education":
         return "Educación";
       case "labor":
-        return "Inserción Laboral";
+        return "Inserción laboral";
       case "campaigns":
         return "Campañas";
       case "human_promotion":
-        return "Promoción Humana";
+        return "Promoción humana";
       default:
         return "Sistema";
     }

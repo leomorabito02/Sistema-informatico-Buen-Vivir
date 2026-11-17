@@ -89,7 +89,7 @@ export class AuditoriaComponent implements OnInit {
   readonly modulos: Option<Modulo>[] = [
     { label: "Promoción Humana (fichas e hitos)", value: "promocion" },
     { label: "Educación (cursos y asistencia)", value: "educacion" },
-    { label: "Usuarios y perfiles (Autenticación)", value: "usuarios" },
+    { label: "Usuarios y perfiles (autenticación)", value: "usuarios" },
     { label: "Inserción laboral (ofertas)", value: "laboral" },
   ];
   modulo: Modulo = "promocion";

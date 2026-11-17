@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"reflect"
+	"strings"
 	"testing"
 	"time"
 
@@ -107,5 +108,25 @@ func TestDeleteOffer_EmiteEliminada(t *testing.T) {
 	}
 	if prod.deletedOfferID != "off-1" || !prod.deletedGestion {
 		t.Errorf("evento inesperado: %q %v", prod.deletedOfferID, prod.deletedGestion)
+	}
+}
+
+// Una oferta vacía informa todos los campos faltantes juntos, para que el
+// formulario los marque de una vez (17/11/2026).
+func TestValidateOfferFields_ListaTodosLosFaltantes(t *testing.T) {
+	err := validateOfferFields(&models.JobOffer{}, false)
+	if !errors.Is(err, ErrOfferInvalid) {
+		t.Fatalf("esperaba ErrOfferInvalid, fue %v", err)
+	}
+	for _, campo := range []string{"título", "descripción", "ubicación", "modalidad", "tipo de empleo", "salario", "horario", "requisitos", "fecha límite"} {
+		if !strings.Contains(err.Error(), campo) {
+			t.Errorf("el mensaje no menciona %q: %s", campo, err)
+		}
+	}
+
+	o := &models.JobOffer{Title: "t", Description: "d", Location: "l", Modality: "m", JobType: "j", Salary: "s", Schedule: "h", Requirements: []string{"r"}}
+	err = validateOfferFields(o, false)
+	if err == nil || err.Error() != "falta el campo obligatorio: fecha límite" {
+		t.Fatalf("un solo faltante: %v", err)
 	}
 }

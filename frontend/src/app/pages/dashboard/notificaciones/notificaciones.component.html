@@ -2,10 +2,8 @@
   <!-- Header Section -->
   <div class="header-section">
     <div class="title-container">
-      <h1 class="page-title">Centro de Notificaciones</h1>
-      <p class="page-subtitle">
-        Novedades, avisos del curso, ofertas y alertas de tu cuenta.
-      </p>
+      <h1 class="page-title">Notificaciones</h1>
+      <p class="page-subtitle">Novedades y avisos de tu cuenta.</p>
     </div>
     <div class="header-actions">
       <p-button
@@ -34,7 +32,7 @@
       (click)="setActiveTab('inbox')"
     >
       <i class="pi pi-bell mr-1"></i>
-      Mis Notificaciones
+      Mis notificaciones
       <span *ngIf="unreadCount > 0" class="pill-badge unread-badge ml-1">{{
         unreadCount
       }}</span>
@@ -46,7 +44,7 @@
       (click)="setActiveTab('preferences')"
     >
       <i class="pi pi-sliders-h mr-1"></i>
-      Configuración de Preferencias
+      Configuración de preferencias
     </button>
   </div>
 
@@ -202,13 +200,13 @@
         <div class="intro-text">
           <h2 class="text-xl font-bold m-0 text-900 mb-1">
             <i class="pi pi-sliders-h text-primary mr-2"></i>
-            Canales de Notificación
+            Canales de notificación
           </h2>
           <p class="text-sm text-600 m-0 line-height-3">
             Selecciona por qué vías deseas recibir avisos para cada área. Por
             defecto, todas las categorías están activadas por
-            <strong>Notificación Push</strong> y por
-            <strong>Correo Electrónico</strong> para que no te pierdas novedades
+            <strong>Notificación push</strong> y por
+            <strong>Correo electrónico</strong> para que no te pierdas novedades
             importantes.
           </p>
         </div>
@@ -389,7 +387,7 @@
 
   <!-- Detail Dialog Modal -->
   <p-dialog
-    header="Detalle de Notificación"
+    header="Detalle de la notificación"
     [(visible)]="displayDetailModal"
     [modal]="true"
     [style]="{ width: '92vw', maxWidth: '600px' }"
@@ -427,7 +425,7 @@
         <div
           class="meta-item py-1 border-bottom-1 surface-border flex justify-content-between"
         >
-          <span class="text-muted">Servicio Emisor:</span>
+          <span class="text-muted">Servicio emisor:</span>
           <span class="font-semibold">{{
             selectedDetail.source_service | uppercase
           }}</span>
@@ -435,7 +433,7 @@
         <div
           class="meta-item py-1 border-bottom-1 surface-border flex justify-content-between"
         >
-          <span class="text-muted">Estado de Lectura:</span>
+          <span class="text-muted">Estado de lectura:</span>
           <span [class.text-green-600]="selectedDetail.is_read">
             {{
               selectedDetail.is_read

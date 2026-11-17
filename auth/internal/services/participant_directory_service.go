@@ -14,7 +14,10 @@ const (
 	maxParticipantSearchLength = 100
 	defaultParticipantSearch   = 20
 	maxParticipantSearch       = 50
-	maxUserSummaryIDs          = 200
+	// maxParticipantList acota el listado completo (búsqueda vacía) que
+	// muestra Promoción Humana al entrar (pedido del 17/11/2026).
+	maxParticipantList = 500
+	maxUserSummaryIDs  = 200
 )
 
 // ErrInvalidDirectoryRequest señala parámetros inválidos en una consulta
@@ -57,6 +60,14 @@ func (s *participantDirectoryService) GetProfileByUserID(ctx context.Context, us
 func (s *participantDirectoryService) SearchParticipants(ctx context.Context, query string, limit int) ([]repositories.ParticipantProfileRow, error) {
 	query = strings.Join(strings.Fields(query), " ")
 	length := utf8.RuneCountInString(query)
+	// Sin texto: listado completo, ordenado por apellido y nombre. Con
+	// texto, se mantiene el mínimo de 2 caracteres.
+	if length == 0 {
+		if limit <= 0 || limit > maxParticipantList {
+			limit = maxParticipantList
+		}
+		return s.repo.SearchProfiles(ctx, "", limit)
+	}
 	if length < minParticipantSearchLength || length > maxParticipantSearchLength {
 		return nil, ErrInvalidDirectoryRequest
 	}

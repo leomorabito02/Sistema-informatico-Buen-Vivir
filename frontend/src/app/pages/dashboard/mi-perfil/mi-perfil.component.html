@@ -1,6 +1,6 @@
 <div class="profile-container">
   <div class="page-header">
-    <h1 class="page-title">Mi Perfil</h1>
+    <h1 class="page-title">Mi perfil</h1>
     <p class="page-description">
       Consultá tu información y gestioná tu contraseña.
     </p>
@@ -37,11 +37,11 @@
       [formGroup]="profileForm"
       (ngSubmit)="saveProfile()"
     >
-      <!-- Información Personal -->
+      <!-- Información personal -->
       <section class="profile-section">
         <div class="section-header">
           <lucide-icon [img]="UserIcon" size="20"></lucide-icon>
-          <h2>Información Personal</h2>
+          <h2>Información personal</h2>
         </div>
 
         <div class="info-grid">
@@ -52,7 +52,7 @@
             </div>
           </div>
           <div class="info-item">
-            <label for="email">Correo Electrónico</label>
+            <label for="email">Correo electrónico</label>
             <div class="info-value" *ngIf="!isEditingProfile">
               {{ profileData.user.email }}
             </div>
@@ -185,7 +185,7 @@
           class="btn-primary"
           [disabled]="profileForm.invalid || profileUpdateLoading"
         >
-          <span *ngIf="!profileUpdateLoading">Guardar Cambios</span>
+          <span *ngIf="!profileUpdateLoading">Guardar cambios</span>
           <span *ngIf="profileUpdateLoading">Guardando...</span>
         </button>
       </div>
@@ -198,14 +198,14 @@
     >
       <div class="section-header">
         <lucide-icon [img]="BriefcaseIcon" size="20"></lucide-icon>
-        <h2>Gestión de Documentos</h2>
+        <h2>Gestión de documentos</h2>
       </div>
 
       <div class="form-group mb-4" style="margin-bottom: 1.5rem">
         <label
           for="newDocFile"
           style="display: block; margin-bottom: 0.5rem; font-weight: 500"
-          >Subir Nuevo Documento</label
+          >Subir nuevo documento</label
         >
         <input
           type="file"
@@ -222,7 +222,7 @@
       </div>
 
       <div class="mt-3">
-        <strong>Documentación Subida:</strong>
+        <strong>Documentación subida:</strong>
         <ul
           class="document-list"
           *ngIf="
@@ -381,7 +381,7 @@
     <section class="profile-section">
       <div class="section-header">
         <lucide-icon [img]="LockIcon" size="20"></lucide-icon>
-        <h2>Cambiar Contraseña</h2>
+        <h2>Cambiar contraseña</h2>
       </div>
 
       <form
@@ -400,7 +400,7 @@
         </div>
 
         <div class="form-group">
-          <label for="oldPassword">Contraseña Actual</label>
+          <label for="oldPassword">Contraseña actual</label>
           <div class="input-wrapper">
             <input
               [type]="showOldPassword ? 'text' : 'password'"
@@ -422,7 +422,7 @@
         </div>
 
         <div class="form-group">
-          <label for="newPassword">Nueva Contraseña</label>
+          <label for="newPassword">Nueva contraseña</label>
           <div class="input-wrapper">
             <input
               [type]="showNewPassword ? 'text' : 'password'"
@@ -453,7 +453,7 @@
         </div>
 
         <div class="form-group">
-          <label for="confirmPassword">Repetir Nueva Contraseña</label>
+          <label for="confirmPassword">Repetir nueva contraseña</label>
           <div class="input-wrapper">
             <input
               [type]="showConfirmPassword ? 'text' : 'password'"
@@ -488,7 +488,7 @@
           class="btn-primary"
           [disabled]="passwordForm.invalid || passwordLoading"
         >
-          <span *ngIf="!passwordLoading">Actualizar Contraseña</span>
+          <span *ngIf="!passwordLoading">Actualizar contraseña</span>
           <span *ngIf="passwordLoading">Actualizando...</span>
         </button>
       </form>
@@ -498,7 +498,7 @@
     <section class="profile-section">
       <div class="section-header">
         <lucide-icon [img]="ShieldCheckIcon" size="20"></lucide-icon>
-        <h2>Autenticación en Dos Pasos (2FA)</h2>
+        <h2>Autenticación en dos pasos (2FA)</h2>
       </div>
 
       <div *ngIf="twofaSuccess" class="alert alert-success">
@@ -538,8 +538,8 @@
                 >
                   ({{
                     user.twofa_method === "totp"
-                      ? "App Autenticadora"
-                      : "Correo Electrónico"
+                      ? "App autenticadora"
+                      : "Correo electrónico"
                   }})
                 </span>
               </h3>
@@ -590,7 +590,7 @@
       [style]="{ width: '90vw', maxWidth: '500px' }"
       [closable]="true"
       (onHide)="closeTwofaSetup()"
-      header="Activar Autenticación en Dos Pasos"
+      header="Activar autenticación en dos pasos"
     >
       <!-- Paso 1: Selección de Método -->
       <div *ngIf="twofaStep === 'select'" class="space-y-4 pt-2">
@@ -612,7 +612,7 @@
             <div class="flex-1">
               <div class="flex items-center justify-between">
                 <span class="font-semibold text-gray-900"
-                  >App Autenticadora</span
+                  >App autenticadora</span
                 >
                 <span
                   class="text-xs bg-emerald-100 text-emerald-800 font-medium px-2 py-0.5 rounded"
@@ -638,7 +638,7 @@
             <div class="flex-1" *ngIf="profileData?.user as user">
               <div class="flex items-center justify-between">
                 <span class="font-semibold text-gray-900"
-                  >Correo Electrónico</span
+                  >Correo electrónico</span
                 >
               </div>
               <p class="text-xs text-gray-500 mt-1">
@@ -772,7 +772,7 @@
       [style]="{ width: '90vw', maxWidth: '440px' }"
       [closable]="true"
       (onHide)="closeTwofaDisable()"
-      header="Desactivar Autenticación en Dos Pasos"
+      header="Desactivar autenticación en dos pasos"
     >
       <div class="space-y-4 pt-2">
         <p class="text-sm text-gray-600">
@@ -848,11 +848,11 @@
       </div>
     </p-dialog>
 
-    <!-- Privacidad y Derechos de Datos (Ley 25.326) -->
+    <!-- Privacidad y derechos sobre tus datos (Ley 25.326) -->
     <section class="profile-section">
       <div class="section-header">
         <lucide-icon [img]="ShieldAlertIcon" size="20"></lucide-icon>
-        <h2>Privacidad y Derechos de Datos (Ley 25.326)</h2>
+        <h2>Privacidad y derechos sobre tus datos (Ley 25.326)</h2>
       </div>
 
       <p class="privacy-intro">
@@ -872,7 +872,7 @@
               <lucide-icon [img]="DownloadIcon" size="20"></lucide-icon>
             </div>
             <div>
-              <h3>Derecho de Acceso (Art. 14 Ley 25.326)</h3>
+              <h3>Derecho de acceso (art. 14, Ley 25.326)</h3>
               <p>
                 Podés descargar un informe oficial en formato PDF con la
                 totalidad de tus datos personales, rol, cursos inscriptos o
@@ -897,7 +897,7 @@
               <lucide-icon [img]="TrashIcon" size="20"></lucide-icon>
             </div>
             <div>
-              <h3>Derecho de Cancelación / Supresión</h3>
+              <h3>Derecho de cancelación o supresión</h3>
               <p>
                 Si querés solicitar la baja definitiva de tu cuenta y la
                 eliminación de tus datos personales de las bases de datos de la

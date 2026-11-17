@@ -2,7 +2,7 @@
   <header class="legal-header">
     <div class="container">
       <div class="legal-nav-top">
-        <a routerLink="/" class="btn-back">
+        <a [routerLink]="inicio" class="btn-back">
           <lucide-angular
             [img]="ArrowLeftIcon"
             class="icon-sm icon-mr"
@@ -20,9 +20,9 @@
             [img]="CookieIcon"
             class="icon-sm icon-mr"
           ></lucide-angular>
-          Transparencia Digital & OWASP
+          Transparencia digital y OWASP
         </div>
-        <h1 class="legal-title">Política de Cookies y Almacenamiento Local</h1>
+        <h1 class="legal-title">Política de cookies y almacenamiento local</h1>
         <p class="legal-subtitle">
           Centro de Ecología Integral "La Otra Orilla" — Alta Gracia, Provincia
           de Córdoba
@@ -39,16 +39,16 @@
         <nav>
           <a [routerLink]="[]" fragment="concepto">1. ¿Qué son las Cookies?</a>
           <a [routerLink]="[]" fragment="tipos-cookies"
-            >2. Cookies que Utilizamos</a
+            >2. Cookies que utilizamos</a
           >
           <a [routerLink]="[]" fragment="seguridad-owasp"
-            >3. Estándares OWASP de Seguridad</a
+            >3. Estándares OWASP de seguridad</a
           >
           <a [routerLink]="[]" fragment="gestion"
-            >4. Cómo Desactivar o Gestionar Cookies</a
+            >4. Cómo desactivar o gestionar cookies</a
           >
           <a [routerLink]="[]" fragment="contacto-cookies"
-            >5. Consultas e Información</a
+            >5. Consultas e información</a
           >
         </nav>
       </aside>
@@ -60,7 +60,7 @@
               [img]="CookieIcon"
               class="section-icon"
             ></lucide-angular>
-            1. ¿Qué son las Cookies y el Almacenamiento Local?
+            1. ¿Qué son las cookies y el almacenamiento local?
           </h2>
           <p>
             Las cookies y el almacenamiento local (<em>localStorage</em> /
@@ -77,7 +77,7 @@
               [img]="CheckCircleIcon"
               class="section-icon"
             ></lucide-angular>
-            2. Tipos de Cookies y Almacenamiento Utilizados
+            2. Tipos de cookies y almacenamiento utilizados
           </h2>
           <p>
             En la plataforma del Centro de Ecología Integral Buen Vivir
@@ -94,12 +94,12 @@
             </thead>
             <tbody>
               <tr>
-                <td><strong>Técnicas / Esenciales</strong></td>
+                <td><strong>Técnicas / esenciales</strong></td>
                 <td>
                   Mantener la sesión iniciada de usuario de manera segura y
                   gestionar la autenticación en el sistema.
                 </td>
-                <td>Sesión / Persistente</td>
+                <td>Sesión / persistente</td>
                 <td>Sí</td>
               </tr>
               <tr>
@@ -112,13 +112,13 @@
                 <td>Sí</td>
               </tr>
               <tr>
-                <td><strong>Opcionales / Rendimiento</strong></td>
+                <td><strong>Opcionales / rendimiento</strong></td>
                 <td>
                   Medición anónima del uso de funciones para optimización de
                   rendimiento de la plataforma.
                 </td>
                 <td>Persistente</td>
-                <td>No (Configurable)</td>
+                <td>No (configurable)</td>
               </tr>
             </tbody>
           </table>
@@ -130,7 +130,7 @@
               [img]="ShieldCheckIcon"
               class="section-icon"
             ></lucide-angular>
-            3. Seguridad y Buenas Prácticas OWASP
+            3. Seguridad y buenas prácticas OWASP
           </h2>
           <p>
             En estricto cumplimiento con las recomendaciones del proyecto
@@ -148,7 +148,7 @@
               Forgery - CSRF*).
             </li>
             <li>
-              <strong>Sin Rastreadores Invasivos:</strong> No comercializamos ni
+              <strong>Sin rastreadores invasivos:</strong> No comercializamos ni
               compartimos información de navegación con redes publicitarias de
               terceros.
             </li>
@@ -161,7 +161,7 @@
               [img]="SettingsIcon"
               class="section-icon"
             ></lucide-angular>
-            4. Cómo Gestionar o Desactivar Cookies en su Navegador
+            4. Cómo gestionar o desactivar cookies en su navegador
           </h2>
           <p>
             El usuario tiene la libertad de configurar su navegador para
@@ -200,7 +200,7 @@
               [img]="HelpCircleIcon"
               class="section-icon"
             ></lucide-angular>
-            5. Consultas e Información de Contacto
+            5. Consultas e información de contacto
           </h2>
           <p>
             Si tiene alguna duda sobre nuestra Política de Cookies o sobre el

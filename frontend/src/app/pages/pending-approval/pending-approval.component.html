@@ -23,7 +23,7 @@
         </div>
 
         <h2 class="auth-card-title text-center">
-          Solicitud Pendiente de Aprobación
+          Solicitud pendiente de aprobación
         </h2>
 
         <p class="pending-description">
@@ -70,7 +70,7 @@
         <!-- Form Section -->
         <div *ngIf="showForm" class="profile-form-section">
           <h3 class="form-section-title">
-            Datos del Perfil ({{ getRoleName() }})
+            Datos del perfil ({{ getRoleName() }})
           </h3>
 
           <form
@@ -81,7 +81,7 @@
             <!-- Participant Model Fields (participant_model.go) -->
             <ng-container *ngIf="roleId === 'role_participant'">
               <div class="form-group">
-                <label class="form-label">Fecha de Nacimiento</label>
+                <label class="form-label">Fecha de nacimiento</label>
                 <input
                   type="date"
                   formControlName="birthdate"
@@ -117,7 +117,7 @@
               </div>
               <div class="form-group">
                 <label class="form-label"
-                  >Contacto de Emergencia (Nombre)</label
+                  >Contacto de emergencia (nombre)</label
                 >
                 <input
                   type="text"
@@ -128,7 +128,7 @@
               </div>
               <div class="form-group">
                 <label class="form-label"
-                  >Contacto de Emergencia (Teléfono)</label
+                  >Contacto de emergencia (teléfono)</label
                 >
                 <input
                   type="text"
@@ -142,7 +142,9 @@
             <!-- Company Model Fields (company_model.go) -->
             <ng-container *ngIf="roleId === 'role_company'">
               <div class="form-group">
-                <label class="form-label">Razón Social / Nombre Fantasía</label>
+                <label class="form-label"
+                  >Razón social o nombre de fantasía</label
+                >
                 <input
                   type="text"
                   formControlName="business_name"
@@ -179,7 +181,7 @@
                     formControlName="is_external"
                     class="checkbox-input"
                   />
-                  <span>Docente Externo a BuenVivir</span>
+                  <span>Docente externo a Buen Vivir</span>
                 </label>
               </div>
             </ng-container>
@@ -217,7 +219,7 @@
               [img]="LogOutIcon"
               class="w-4 h-4 mr-2 inline-block"
             ></lucide-angular>
-            Cerrar Sesión
+            Cerrar sesión
           </button>
         </div>
       </div>

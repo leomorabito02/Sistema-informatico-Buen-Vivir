@@ -22,25 +22,34 @@ const (
 
 var ErrUnauthorized = errors.New("unauthorized: missing user context")
 
-// AuthHeaders inspects identity headers injected by the API Gateway or validates a JWT token / Bearer fallback.
+// AuthHeaders identifica a quien hace el pedido.
+//
+// Con JWT_SECRET (Cloud Run) la identidad sale SOLO del JWT verificado
+// (cookie de sesión, X-Forwarded-Authorization o Authorization): los
+// X-User-ID / X-User-Role que mande el cliente se ignoran, porque el API
+// Gateway de GCP los reenvía tal cual y cualquiera podía leer las
+// notificaciones de otro usuario (auditoría 17/11/2026). Sin JWT_SECRET
+// (Docker local) se confía en los headers que pone el gateway nginx después
+// de validar el token, como antes.
 func AuthHeaders(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		userID := strings.TrimSpace(r.Header.Get("X-User-ID"))
-		roleID := strings.TrimSpace(r.Header.Get("X-User-Role"))
-
-		rawToken := extractRequestToken(r)
 		jwtSecret := strings.TrimSpace(os.Getenv("JWT_SECRET"))
+		rawToken := extractRequestToken(r)
 
-		if rawToken != "" && jwtSecret != "" {
-			if sub, role, ok := parseHS256AccessToken(rawToken, jwtSecret); ok {
-				userID = sub
-				roleID = role
+		var userID, roleID string
+		if jwtSecret != "" {
+			if rawToken != "" {
+				if sub, role, ok := parseHS256AccessToken(rawToken, jwtSecret); ok {
+					userID, roleID = sub, role
+				}
 			}
-		}
-
-		// Development / test fallback: allow raw Bearer token if X-User-ID is not set and JWT_SECRET is not enforced.
-		if userID == "" && jwtSecret == "" && rawToken != "" {
-			userID = rawToken
+		} else {
+			userID = strings.TrimSpace(r.Header.Get("X-User-ID"))
+			roleID = strings.TrimSpace(r.Header.Get("X-User-Role"))
+			// Tests y desarrollo sin gateway: token crudo como user id.
+			if userID == "" && rawToken != "" {
+				userID = rawToken
+			}
 		}
 
 		if userID == "" {
@@ -68,8 +77,12 @@ func extractRequestToken(r *http.Request) string {
 			return strings.TrimSpace(c.Value)
 		}
 	}
-	if authHeader := r.Header.Get("Authorization"); strings.HasPrefix(authHeader, "Bearer ") {
-		return strings.TrimSpace(strings.TrimPrefix(authHeader, "Bearer "))
+	// El API Gateway de GCP pone su token de Cloud Run en Authorization y
+	// mueve el original a X-Forwarded-Authorization.
+	for _, header := range []string{"X-Forwarded-Authorization", "Authorization"} {
+		if v := r.Header.Get(header); strings.HasPrefix(v, "Bearer ") {
+			return strings.TrimSpace(strings.TrimPrefix(v, "Bearer "))
+		}
 	}
 	return ""
 }

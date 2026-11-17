@@ -65,6 +65,15 @@ export class HumanPromotionService {
   private readonly base = `${environment.apiUrl ?? ""}/api/v1/human-promotion`;
 
   // ---- Búsqueda (HU-36) --------------------------------------------------
+  /**
+   * Listado completo de participantes, con la marca de si tienen ficha. Es
+   * lo que se ve al entrar a Promoción Humana (el buscador filtra sobre
+   * este listado). Es la misma ruta que la búsqueda, sin texto.
+   */
+  listarParticipantes(): Observable<ResultadoBusqueda[]> {
+    return this.buscarParticipantes("");
+  }
+
   buscarParticipantes(query: string): Observable<ResultadoBusqueda[]> {
     const params = new HttpParams().set("q", query);
     return this.http

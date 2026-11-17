@@ -13,6 +13,7 @@ import (
 
 	"auth/api/proto/notificationpb"
 
+	"github.com/golang-jwt/jwt/v5"
 	"google.golang.org/grpc"
 )
 
@@ -120,5 +121,25 @@ func TestNotificationSyncService_InitUserPreferencesAsync_GRPC(t *testing.T) {
 	}
 	if fake.receivedUserID != "usr-grpc-123" {
 		t.Errorf("expected user_id usr-grpc-123, got %s", fake.receivedUserID)
+	}
+}
+
+// Con JWT_SECRET el pedido a Notificaciones lleva un token de servicio
+// role_dev firmado (Notificaciones ya no confía en X-User-ID).
+func TestServiceToken(t *testing.T) {
+	if tok, err := serviceToken(""); err != nil || tok != "" {
+		t.Fatalf("sin secreto no debe firmar: %q %v", tok, err)
+	}
+	tok, err := serviceToken("s3cr3t")
+	if err != nil || tok == "" {
+		t.Fatalf("no firmó: %v", err)
+	}
+	parsed, err := jwt.Parse(tok, func(*jwt.Token) (any, error) { return []byte("s3cr3t"), nil })
+	if err != nil || !parsed.Valid {
+		t.Fatalf("token inválido: %v", err)
+	}
+	claims := parsed.Claims.(jwt.MapClaims)
+	if claims["role"] != "role_dev" || claims["type"] != "access" {
+		t.Fatalf("claims inesperados: %v", claims)
 	}
 }

@@ -376,10 +376,10 @@ export class MiPerfilComponent implements OnInit {
       updated_at: "Última Actualización",
       deleted_at: "Fecha de Eliminación",
       specialization: "Especialidad",
-      is_external: "Docente Externo",
-      business_name: "Razón Social",
+      is_external: "Docente externo",
+      business_name: "Razón social",
       cuit: "CUIT",
-      birthdate: "Fecha de Nacimiento",
+      birthdate: "Fecha de nacimiento",
       dni: "DNI",
       address: "Dirección",
       gender: "Género",
@@ -662,8 +662,8 @@ export class MiPerfilComponent implements OnInit {
     doc.setTextColor("#1d1d1b");
 
     const items = [
-      `Nombre y Apellido: ${user.first_name || ""} ${user.last_name || ""}`.trim(),
-      `Correo Electrónico: ${user.email || "No registrado"}`,
+      `Nombre y apellido: ${user.first_name || ""} ${user.last_name || ""}`.trim(),
+      `Correo electrónico: ${user.email || "No registrado"}`,
       `Teléfono: ${user.phone || "No registrado"}`,
       `Rol del Sistema: ${user.role?.name || user.role_id || "No especificado"}`,
       `Estado de Cuenta: ${user.status || "Activo"}`,
@@ -895,7 +895,7 @@ export class MiPerfilComponent implements OnInit {
     doc.setFont("helvetica", "bold");
     doc.setFontSize(12);
     doc.setTextColor("#485839");
-    doc.text("4. Inserción Laboral y Postulaciones", margen, y);
+    doc.text("4. Inserción laboral y Postulaciones", margen, y);
     y += 6;
 
     if (!jobApplications.length) {

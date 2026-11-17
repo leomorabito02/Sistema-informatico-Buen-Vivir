@@ -108,66 +108,105 @@ describe("SeguimientoComponent", () => {
     expect(component).toBeTruthy();
   });
 
-  it("should load courses on init", () => {
+  it("al entrar muestra todos los participantes de todos los cursos", () => {
+    educationServiceSpy.listEnrollments.and.callFake((id: string) =>
+      of(
+        id === "c1"
+          ? mockEnrollments
+          : [{ ...mockEnrollments[0], id: "e9", cursoId: "c2" }],
+      ),
+    );
     fixture.detectChanges();
-    expect(component.courseOptions).toHaveSize(2);
-    expect(component.loadingCourses).toBeFalse();
+
+    // "Todos los cursos" + los 2 cursos
+    expect(component.courseOptions).toHaveSize(3);
+    expect(component.selectedCourseId).toBe("");
+    expect(educationServiceSpy.listEnrollments).toHaveBeenCalledWith("c1");
+    expect(educationServiceSpy.listEnrollments).toHaveBeenCalledWith("c2");
+    expect(component.loading).toBeFalse();
+    // 4 inscripciones en c1 + 1 en c2: una fila por inscripción
+    expect(component.filasFiltradas).toHaveSize(5);
+    const text: string = fixture.nativeElement.textContent;
+    expect(text).toContain("Course 1");
+    expect(text).toContain("Course 2");
+    expect(text).not.toContain("Cruce de inscripciones");
   });
 
-  it("should auto-select course if only 1 course is returned", () => {
+  it("calcula el riesgo según la asistencia", () => {
     educationServiceSpy.listMyCourses.and.returnValue(of([mockCourses[0]]));
     fixture.detectChanges();
-    expect(component.selectedCourseId).toBe("c1");
-    expect(educationServiceSpy.listEnrollments).toHaveBeenCalledWith("c1");
+    const porId = new Map(component.rows.map((r) => [r.participanteId, r]));
+    expect(porId.get("p1")!.riesgo).toBe("En riesgo"); // 40 %
+    expect(porId.get("p2")!.riesgo).toBe("Regular"); // 60 %
+    expect(porId.get("p3")!.riesgo).toBe("Buen avance"); // 80 %
+    expect(porId.get("p4")!.riesgo).toBe("Sin datos");
+    expect(porId.get("p4")!.porcentajeAsistencia).toBe(0);
+    expect(porId.get("p4")!.actividadesAsistidas).toBe(0);
   });
 
-  it("should handle error when loading courses", () => {
+  it("el curso y el buscador filtran sin cambiar de vista", () => {
+    educationServiceSpy.listEnrollments.and.callFake((id: string) =>
+      of(
+        id === "c1"
+          ? [{ ...mockEnrollments[0], nombre: "José", apellido: "Pérez" }]
+          : [
+              {
+                ...mockEnrollments[1],
+                cursoId: "c2",
+                nombre: "Ana",
+                apellido: "Gómez",
+              },
+            ],
+      ),
+    );
+    fixture.detectChanges();
+    expect(component.filasFiltradas).toHaveSize(2);
+
+    component.selectedCourseId = "c2";
+    expect(component.filasFiltradas.map((r) => r.nombre)).toEqual([
+      "Ana Gómez",
+    ]);
+
+    component.selectedCourseId = "";
+    component.busqueda = "jose perez";
+    expect(component.filasFiltradas.map((r) => r.nombre)).toEqual([
+      "José Pérez",
+    ]);
+    expect(component.hayFiltros).toBeTrue();
+
+    component.limpiarFiltros();
+    expect(component.filasFiltradas).toHaveSize(2);
+  });
+
+  it("muestra el error si no se pueden cargar los cursos", () => {
     educationServiceSpy.listMyCourses.and.returnValue(
       throwError(() => new Error("Error loading courses")),
     );
     fixture.detectChanges();
     expect(component.error).toBe("Error loading courses");
-    expect(component.loadingCourses).toBeFalse();
+    expect(component.loading).toBeFalse();
   });
 
-  it("should return early onCourseChange if no course selected", () => {
-    component.selectedCourseId = null;
-    component.onCourseChange();
-    expect(educationServiceSpy.listEnrollments).not.toHaveBeenCalled();
-  });
-
-  it("should fetch and calculate risk rows onCourseChange", () => {
-    component.selectedCourseId = "c1";
-    component.onCourseChange();
-
-    expect(component.rows).toHaveSize(4);
-
-    // p1: 40% -> En riesgo
-    expect(component.rows[0].riesgo).toBe("En riesgo");
-
-    // p2: 60% -> Regular
-    expect(component.rows[1].riesgo).toBe("Regular");
-
-    // p3: 80% -> Buen avance
-    expect(component.rows[2].riesgo).toBe("Buen avance");
-
-    // p4: no progress data -> Sin datos
-    expect(component.rows[3].riesgo).toBe("Sin datos");
-    expect(component.rows[3].porcentajeAsistencia).toBe(0);
-    expect(component.rows[3].actividadesAsistidas).toBe(0);
-
-    expect(component.loadingData).toBeFalse();
-  });
-
-  it("should handle error in onCourseChange", () => {
-    educationServiceSpy.listEnrollments.and.returnValue(
-      throwError(() => new Error("Error enrollments")),
+  it("si un curso falla, muestra los demás y avisa cuál faltó", () => {
+    educationServiceSpy.listEnrollments.and.callFake((id: string) =>
+      id === "c1"
+        ? throwError(() => new Error("Error enrollments"))
+        : of([{ ...mockEnrollments[0], cursoId: "c2" }]),
     );
-    component.selectedCourseId = "c1";
-    component.onCourseChange();
+    fixture.detectChanges();
+    expect(component.cursosConError).toEqual(["Course 1"]);
+    expect(component.rows).toHaveSize(1);
+    expect(component.rows[0].cursoId).toBe("c2");
+    expect(component.loading).toBeFalse();
+  });
 
-    expect(component.error).toBe("Error enrollments");
-    expect(component.loadingData).toBeFalse();
+  it("sin cursos muestra el aviso vacío", () => {
+    educationServiceSpy.listMyCourses.and.returnValue(of([]));
+    fixture.detectChanges();
+    expect(component.rows).toEqual([]);
+    expect(fixture.nativeElement.textContent).toContain(
+      "No tenés cursos asignados",
+    );
   });
 
   it("should return correct risk severities", () => {

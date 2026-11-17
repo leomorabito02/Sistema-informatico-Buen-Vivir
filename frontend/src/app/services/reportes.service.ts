@@ -32,8 +32,8 @@ export const NOMBRE_MODULO: Record<string, string> = {
   todos: "Todos",
   usuarios: "Usuarios",
   educacion: "Educación",
-  promocion: "Promoción Humana",
-  insercion: "Inserción Laboral",
+  promocion: "Promoción humana",
+  insercion: "Inserción laboral",
 };
 
 /** Resultado de exportar: el PDF siempre se descarga; guardarlo puede fallar. */

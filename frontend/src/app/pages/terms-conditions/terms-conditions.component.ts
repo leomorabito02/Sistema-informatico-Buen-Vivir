@@ -11,6 +11,7 @@ import {
   ArrowLeft,
 } from "lucide-angular";
 import { FooterComponent } from "../../components/layout/footer/footer.component";
+import { rutaInicio } from "../../shared/utils/ruta-inicio";
 
 @Component({
   selector: "app-terms-conditions",
@@ -20,6 +21,8 @@ import { FooterComponent } from "../../components/layout/footer/footer.component
   styleUrl: "./terms-conditions.component.css",
 })
 export class TermsConditionsComponent implements OnInit {
+  /** "Volver al inicio": panel si hay sesión, landing si no. */
+  readonly inicio = rutaInicio();
   readonly FileCheckIcon = FileCheck;
   readonly UserCheckIcon = UserCheck;
   readonly ScaleIcon = Scale;

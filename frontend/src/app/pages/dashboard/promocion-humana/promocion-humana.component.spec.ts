@@ -1,9 +1,4 @@
-import {
-  ComponentFixture,
-  TestBed,
-  fakeAsync,
-  tick,
-} from "@angular/core/testing";
+import { ComponentFixture, TestBed } from "@angular/core/testing";
 import { provideRouter } from "@angular/router";
 import { of, throwError } from "rxjs";
 import { PromocionHumanaComponent } from "./promocion-humana.component";
@@ -28,10 +23,22 @@ describe("PromocionHumanaComponent", () => {
   let component: PromocionHumanaComponent;
   let service: jasmine.SpyObj<HumanPromotionService>;
 
+  function crear(respuesta = of([conFicha, sinFicha])) {
+    service.listarParticipantes.and.returnValue(respuesta);
+    fixture = TestBed.createComponent(PromocionHumanaComponent);
+    component = fixture.componentInstance;
+    fixture.detectChanges();
+  }
+
+  function filas(): NodeListOf<HTMLElement> {
+    fixture.detectChanges();
+    return fixture.nativeElement.querySelectorAll(".result-item");
+  }
+
   beforeEach(async () => {
     service = jasmine.createSpyObj<HumanPromotionService>(
       "HumanPromotionService",
-      ["buscarParticipantes"],
+      ["listarParticipantes", "buscarParticipantes"],
     );
     await TestBed.configureTestingModule({
       imports: [PromocionHumanaComponent],
@@ -40,72 +47,66 @@ describe("PromocionHumanaComponent", () => {
         { provide: HumanPromotionService, useValue: service },
       ],
     }).compileComponents();
-    fixture = TestBed.createComponent(PromocionHumanaComponent);
-    component = fixture.componentInstance;
-    fixture.detectChanges();
   });
 
-  it("espera a que se deje de escribir y busca una sola vez (HU-36)", fakeAsync(() => {
-    service.buscarParticipantes.and.returnValue(of([conFicha]));
-    component.onTextoChange("a");
-    component.onTextoChange("an");
-    component.onTextoChange(" ana ");
-    tick(400);
-    expect(service.buscarParticipantes).toHaveBeenCalledOnceWith("ana");
-  }));
+  it("al entrar muestra el listado completo, sin buscar (17/11/2026)", () => {
+    crear();
+    expect(service.listarParticipantes).toHaveBeenCalledTimes(1);
+    expect(service.buscarParticipantes).not.toHaveBeenCalled();
+    expect(filas().length).toBe(2);
+    expect(fixture.nativeElement.textContent).toContain("2 de 2 participantes");
+  });
 
-  it("con menos de 2 letras no consulta y limpia los resultados", fakeAsync(() => {
-    service.buscarParticipantes.and.returnValue(of([conFicha]));
-    component.onTextoChange("ana");
-    tick(400);
-    component.onTextoChange("a");
-    tick(400);
-    expect(service.buscarParticipantes).toHaveBeenCalledTimes(1);
-    expect(component.resultados).toEqual([]);
-    expect(component.buscado).toBeFalse();
-  }));
+  it("el buscador filtra el listado sin acentos ni mayúsculas", () => {
+    crear();
+    component.texto = "PEREZ";
+    expect(filas().length).toBe(1);
+    expect(filas()[0].textContent).toContain("Ana Pérez");
 
-  it("indica quién tiene ficha y ofrece verla o crearla", fakeAsync(() => {
-    service.buscarParticipantes.and.returnValue(of([conFicha, sinFicha]));
-    component.onTextoChange("pe");
-    tick(400);
-    fixture.detectChanges();
-    const el: HTMLElement = fixture.nativeElement;
-    const filas = el.querySelectorAll(".result-item");
-    expect(filas.length).toBe(2);
-    expect(filas[0].textContent).toContain("Ana Pérez");
-    expect(filas[0].textContent).toContain("Con ficha");
-    expect(filas[0].querySelector("a")?.getAttribute("aria-label")).toBe(
+    component.texto = "";
+    expect(filas().length).toBe(2);
+    // El filtro es local: no se vuelve a consultar al backend.
+    expect(service.listarParticipantes).toHaveBeenCalledTimes(1);
+  });
+
+  it("indica quién tiene ficha y ofrece verla o crearla", () => {
+    crear();
+    const f = filas();
+    expect(f[0].textContent).toContain("Con ficha");
+    expect(f[0].querySelector("a")?.getAttribute("aria-label")).toBe(
       "Ver ficha de Ana Pérez",
     );
-    expect(filas[1].textContent).toContain("Sin ficha");
-    expect(filas[1].querySelector("a")?.getAttribute("aria-label")).toBe(
+    expect(f[1].textContent).toContain("Sin ficha");
+    expect(f[1].querySelector("a")?.getAttribute("aria-label")).toBe(
       "Crear ficha para Bruno Gómez",
     );
-  }));
+  });
 
-  it("avisa cuando no hay coincidencias", fakeAsync(() => {
-    service.buscarParticipantes.and.returnValue(of([]));
-    component.onTextoChange("zzz");
-    tick(400);
+  it("avisa cuando la búsqueda no coincide con nadie", () => {
+    crear();
+    component.texto = "zzz";
     fixture.detectChanges();
     expect(fixture.nativeElement.textContent).toContain(
-      "No se encontraron participantes",
+      "Ningún participante coincide",
     );
-  }));
+  });
 
-  it("muestra el error del servicio", fakeAsync(() => {
-    service.buscarParticipantes.and.returnValue(
-      throwError(() => new Error("No tenés permisos")),
+  it("avisa cuando no hay participantes", () => {
+    crear(of([]));
+    expect(fixture.nativeElement.textContent).toContain(
+      "Todavía no hay participantes",
     );
-    component.onTextoChange("ana");
-    tick(400);
-    fixture.detectChanges();
+  });
+
+  it("muestra el error del servicio", () => {
+    crear(throwError(() => new Error("No tenés permisos")));
     expect(component.error).toBe("No tenés permisos");
+    expect(component.cargando).toBeFalse();
     expect(fixture.nativeElement.textContent).toContain("No tenés permisos");
-  }));
+  });
 
   it("usa el id si el participante no tiene nombre cargado", () => {
+    crear();
     expect(
       component.nombreCompleto({ ...sinFicha, nombre: "", apellido: "" }),
     ).toBe("p2");
