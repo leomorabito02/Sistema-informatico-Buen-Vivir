@@ -4971,6 +4971,11 @@ paths:
             Access-Control-Max-Age:
               type: integer
   /api/v1/users/{id}/profile:
+    parameters:
+    - name: id
+      in: path
+      required: true
+      type: string
     get:
       summary: GET /api/v1/users/{id}/profile
       operationId: get__api_v1_users_id_profile
@@ -5005,6 +5010,11 @@ paths:
             Access-Control-Max-Age:
               type: integer
   /api/v1/participants/{id}/documents:
+    parameters:
+    - name: id
+      in: path
+      required: true
+      type: string
     get:
       summary: GET /api/v1/participants/{id}/documents
       operationId: get__api_v1_participants_id_documents
@@ -5049,6 +5059,15 @@ paths:
             Access-Control-Max-Age:
               type: integer
   /api/v1/participants/{id}/documents/{docId}:
+    parameters:
+    - name: id
+      in: path
+      required: true
+      type: string
+    - name: docId
+      in: path
+      required: true
+      type: string
     put:
       summary: PUT /api/v1/participants/{id}/documents/{docId}
       operationId: put__api_v1_participants_id_documents_docId
@@ -5093,6 +5112,15 @@ paths:
             Access-Control-Max-Age:
               type: integer
   /api/v1/participants/{id}/documents/{docId}/download:
+    parameters:
+    - name: id
+      in: path
+      required: true
+      type: string
+    - name: docId
+      in: path
+      required: true
+      type: string
     get:
       summary: GET /api/v1/participants/{id}/documents/{docId}/download
       operationId: get__api_v1_participants_id_documents_docId_download
@@ -5317,6 +5345,11 @@ paths:
             Access-Control-Max-Age:
               type: integer
   /api/v1/notifications/preferences/{category}:
+    parameters:
+    - name: category
+      in: path
+      required: true
+      type: string
     get:
       summary: GET /api/v1/notifications/preferences/{category}
       operationId: get__api_v1_notifications_preferences_category
@@ -5385,6 +5418,11 @@ paths:
             Access-Control-Max-Age:
               type: integer
   /api/v1/notifications/{id}:
+    parameters:
+    - name: id
+      in: path
+      required: true
+      type: string
     get:
       summary: GET /api/v1/notifications/{id}
       operationId: get__api_v1_notifications_id
@@ -5429,6 +5467,11 @@ paths:
             Access-Control-Max-Age:
               type: integer
   /api/v1/notifications/{id}/read:
+    parameters:
+    - name: id
+      in: path
+      required: true
+      type: string
     patch:
       summary: PATCH /api/v1/notifications/{id}/read
       operationId: patch__api_v1_notifications_id_read
@@ -5823,6 +5866,11 @@ paths:
             Access-Control-Max-Age:
               type: integer
   /api/v1/rxresume/public/{id}:
+    parameters:
+    - name: id
+      in: path
+      required: true
+      type: string
     get:
       summary: GET /api/v1/rxresume/public/{id}
       operationId: get__api_v1_rxresume_public_id
@@ -5857,6 +5905,11 @@ paths:
             Access-Control-Max-Age:
               type: integer
   /api/v1/rxresume/public/{id}/pdf:
+    parameters:
+    - name: id
+      in: path
+      required: true
+      type: string
     get:
       summary: GET /api/v1/rxresume/public/{id}/pdf
       operationId: get__api_v1_rxresume_public_id_pdf
