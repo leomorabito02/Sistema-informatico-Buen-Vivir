@@ -949,3 +949,35 @@ func TestCourseRepository_Get_Error(t *testing.T) {
 	assert.Nil(t, course)
 }
 
+// Editar un curso publicado lo vuelve a publicar con la versión nueva,
+// así el catálogo (CDA) muestra el cambio, por ejemplo el docente nuevo
+// (17/11/2026). El borrador (test anterior) no se publica.
+func TestCourseRepository_Update_RepublicaSiEstabaPublicado(t *testing.T) {
+	publicado := false
+	cma := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		switch {
+		case r.Method == http.MethodGet:
+			_ = json.NewEncoder(w).Encode(map[string]any{"sys": map[string]any{"id": "c1", "version": 6, "publishedVersion": 5}})
+		case r.Method == http.MethodPut && strings.HasSuffix(r.URL.Path, "/entries/c1/published"):
+			assert.Equal(t, "7", r.Header.Get("X-Contentful-Version"))
+			publicado = true
+			_ = json.NewEncoder(w).Encode(map[string]any{"sys": map[string]any{"id": "c1", "version": 8, "publishedVersion": 7}})
+		case r.Method == http.MethodPut:
+			assert.Equal(t, "6", r.Header.Get("X-Contentful-Version"))
+			_ = json.NewEncoder(w).Encode(map[string]any{"sys": map[string]any{"id": "c1", "version": 7, "publishedVersion": 5}})
+		}
+	}))
+	defer cma.Close()
+
+	repo := NewCourseRepository(newTestClient("", cma.URL))
+	input := models.CourseInput{
+		Title: "Curso", Description: json.RawMessage(`{}`),
+		ResponsibleTeacher: "docente-nuevo", Mode: "Virtual", Duration: "2 semanas",
+		TrainingAreaID: "area-1",
+	}
+	course, err := repo.Update(t.Context(), "c1", input)
+	require.NoError(t, err)
+	assert.True(t, publicado, "debía volver a publicar el curso")
+	assert.Equal(t, "docente-nuevo", course.ResponsibleTeacher)
+}
