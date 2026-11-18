@@ -71,31 +71,25 @@ type Config struct {
 	Events EventsConfig
 }
 
-// LoadConfig arma la configuración del servicio. El archivo que se
-// carga (.env.testing o .env.production) depende de APP_ENV, y las
-// variables ya presentes en el entorno real del proceso siempre ganan
-// sobre lo que diga el archivo (ver loadEnvFile). Devuelve error si la
-// combinación de APP_ENV / CONTENTFUL_ENVIRONMENT es peligrosa, para
-// que el servicio directamente no arranque.
+// LoadConfig arma la configuración del servicio leyendo siempre el
+// archivo ".env" si existe; las variables ya presentes en el entorno real
+// del proceso siempre ganan sobre lo que diga el archivo (ver loadEnvFile).
+// Devuelve error si APP_ENV es inválido o si la combinación de
+// APP_ENV / CONTENTFUL_ENVIRONMENT es peligrosa, para que el servicio
+// directamente no arranque.
 func LoadConfig() (*Config, error) {
+	if err := loadEnvFile(".env"); err != nil {
+		return nil, fmt.Errorf("no se pudo leer .env: %w", err)
+	}
+
 	appEnvRaw := os.Getenv("APP_ENV")
 	if appEnvRaw == "" {
 		appEnvRaw = string(AppEnvTesting)
 	}
 	appEnv := AppEnv(appEnvRaw)
 
-	var envFile string
-	switch appEnv {
-	case AppEnvTesting:
-		envFile = ".env.testing"
-	case AppEnvProduction:
-		envFile = ".env.production"
-	default:
+	if appEnv != AppEnvTesting && appEnv != AppEnvProduction {
 		return nil, fmt.Errorf("APP_ENV inválido: %q (valores permitidos: %q, %q)", appEnvRaw, AppEnvTesting, AppEnvProduction)
-	}
-
-	if err := loadEnvFile(envFile); err != nil {
-		return nil, fmt.Errorf("no se pudo leer %s: %w", envFile, err)
 	}
 
 	port := os.Getenv("PORT")

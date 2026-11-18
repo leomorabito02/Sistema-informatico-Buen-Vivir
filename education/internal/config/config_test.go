@@ -143,7 +143,7 @@ func TestLoadConfig_EquivalenceClassesAndBoundaries(t *testing.T) {
 		assert.Equal(t, "http://auth:8080", cfg.AuthServiceURL, "Trailing slash is trimmed")
 	})
 
-	t.Run("Production APP_ENV loads .env.production with AUTH_SERVICE_URL", func(t *testing.T) {
+	t.Run("Production APP_ENV loads with AUTH_SERVICE_URL", func(t *testing.T) {
 		// Arrange
 		t.Setenv("APP_ENV", "production")
 		t.Setenv("CONTENTFUL_ENVIRONMENT", "master")
@@ -229,6 +229,38 @@ func TestLoadConfig_EquivalenceClassesAndBoundaries(t *testing.T) {
 		assert.Error(t, err)
 		assert.Nil(t, cfg)
 		assert.Contains(t, err.Error(), "combinación de ambientes peligrosa")
+	})
+
+	t.Run("LoadConfig reads only .env and ignores .env.testing", func(t *testing.T) {
+		// Arrange
+		tmpDir := t.TempDir()
+		origDir, err := os.Getwd()
+		require.NoError(t, err)
+		require.NoError(t, os.Chdir(tmpDir))
+		t.Cleanup(func() { _ = os.Chdir(origDir) })
+
+		for _, k := range []string{"APP_ENV", "CONTENTFUL_ENVIRONMENT", "CONTENTFUL_SPACE_ID", "CONTENTFUL_CDA_TOKEN", "CONTENTFUL_CMA_TOKEN"} {
+			t.Setenv(k, "")
+			require.NoError(t, os.Unsetenv(k))
+		}
+
+		require.NoError(t, os.WriteFile(filepath.Join(tmpDir, ".env.testing"), []byte(
+			"CONTENTFUL_ENVIRONMENT=testing\nCONTENTFUL_SPACE_ID=from-env-testing\nCONTENTFUL_CDA_TOKEN=wrong\nCONTENTFUL_CMA_TOKEN=wrong\n",
+		), 0600))
+		require.NoError(t, os.WriteFile(filepath.Join(tmpDir, ".env"), []byte(
+			"APP_ENV=testing\nCONTENTFUL_ENVIRONMENT=testing\nCONTENTFUL_SPACE_ID=from-dot-env\nCONTENTFUL_CDA_TOKEN=cda-ok\nCONTENTFUL_CMA_TOKEN=cma-ok\n",
+		), 0600))
+
+		// Act
+		cfg, err := LoadConfig()
+
+		// Assert
+		require.NoError(t, err)
+		require.NotNil(t, cfg)
+		assert.Equal(t, AppEnvTesting, cfg.AppEnv)
+		assert.Equal(t, "from-dot-env", cfg.ContentfulSpaceID)
+		assert.Equal(t, "cda-ok", cfg.ContentfulCDAToken)
+		assert.Equal(t, "cma-ok", cfg.ContentfulCMAToken)
 	})
 }
 
