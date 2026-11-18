@@ -2116,7 +2116,7 @@ jobs:
             DATABASE_URL=${{ secrets.DATABASE_URL_RXRESUME }}
             RENDERER_URL=${{ needs.cd-cv-renderer.outputs.service_url }}
             GCP_PROJECT_ID=${{ secrets.GCP_PROJECT_ID }}
-            GCP_BUCKET_NAME=${{ vars.GCP_BUCKET_NAME || 'buenvivir-resumes-bucket' }}
+            GCP_BUCKET_NAME=${{ vars.GCP_BUCKET_NAME || 'ceibuenvivir-bucket' }}
             APP_ENV=${{ env.APP_ENV }}
             # Identidad por JWT y no por X-User-* (el API Gateway de GCP no
             # valida el token de la app; auditoría 17/11/2026).
