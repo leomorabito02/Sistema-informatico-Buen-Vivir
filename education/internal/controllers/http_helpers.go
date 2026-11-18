@@ -21,23 +21,36 @@ func writeErrorJSON(w http.ResponseWriter, status int, message string) {
 }
 
 func decodeJSONBody(r *http.Request, dst any) error {
-	defer r.Body.Close()
+	defer func() { _ = r.Body.Close() }()
 	return json.NewDecoder(r.Body).Decode(dst)
 }
 
 // writeError traduce un error de las capas de service/repository a una
-// respuesta HTTP apropiada: 400 si es de validación de negocio, 404 si
-// Contentful no encontró la entry, 409 si hubo conflicto de versión
-// (edición concurrente), y 502 para cualquier otra falla de Contentful.
+// respuesta HTTP apropiada: 400 si es de validación de negocio, 403 si
+// es de ownership (ej. un docente sobre un curso ajeno), 404 si la
+// entry/documento no se encontró, 409 si hubo conflicto de versión
+// (edición concurrente en Contentful), 422 si Contentful rechazó la
+// entry por validación (ej. publicar un borrador incompleto, con el
+// detalle de qué campos faltan), y 502 para cualquier otra falla
+// de infraestructura (Contentful o Firestore). 503 si una dependencia
+// opcional (la IA de sugerencias) no pudo responder.
 func writeError(w http.ResponseWriter, err error) {
 	switch {
 	case services.IsValidationError(err):
 		writeErrorJSON(w, http.StatusBadRequest, err.Error())
+	case services.IsForbiddenError(err):
+		writeErrorJSON(w, http.StatusForbidden, err.Error())
+	case services.IsUnavailableError(err):
+		writeErrorJSON(w, http.StatusServiceUnavailable, err.Error())
 	case repositories.IsNotFound(err):
 		writeErrorJSON(w, http.StatusNotFound, "recurso no encontrado")
 	case repositories.IsConflict(err):
 		writeErrorJSON(w, http.StatusConflict, "el recurso fue modificado por otra edición, volvé a intentar")
 	default:
-		writeErrorJSON(w, http.StatusBadGateway, "error hablando con Contentful: "+err.Error())
+		if msg, ok := repositories.ValidationMessage(err); ok {
+			writeErrorJSON(w, http.StatusUnprocessableEntity, msg)
+			return
+		}
+		writeErrorJSON(w, http.StatusBadGateway, "error de infraestructura: "+err.Error())
 	}
 }

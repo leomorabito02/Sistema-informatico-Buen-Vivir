@@ -24,9 +24,12 @@ func NewCompanyRepository(db *gorm.DB) CompanyRepository {
 	return &companyRepository{db: db}
 }
 
+// FindByID acepta el id de la empresa o el de su usuario (igual que
+// participantRepository.FindByID): Inserción Laboral guarda en cada oferta
+// el id de usuario de la empresa (X-User-ID) y la consulta por gRPC con ese.
 func (r *companyRepository) FindByID(ctx context.Context, id string) (*models.Company, error) {
 	var company models.Company
-	if err := r.db.WithContext(ctx).First(&company, "company_id = ?", id).Error; err != nil {
+	if err := r.db.WithContext(ctx).Where("company_id = ?", id).Or("user_id = ?", id).First(&company).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, errors.New("empresa no encontrada")
 		}

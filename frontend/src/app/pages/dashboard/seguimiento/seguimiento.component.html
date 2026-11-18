@@ -1,64 +1,134 @@
 <div class="page-container">
   <div class="header-section">
     <div>
-      <h1 class="page-title">
-        <i class="pi pi-eye mr-2"></i>Seguimiento Pedagógico y Social
-      </h1>
-      <p class="page-subtitle">
-        Monitoreo continuo de participantes para acompañar su permanencia en el
-        programa.
-      </p>
+      <h1 class="page-title">Seguimiento</h1>
     </div>
-    <p-button
-      label="Nuevo Informe"
-      icon="pi pi-plus"
-      styleClass="p-button-success"
-    ></p-button>
   </div>
 
-  <p-card styleClass="p-card-shadow">
-    <p-table [value]="records" class="p-datatable-striped">
-      <ng-template pTemplate="header">
-        <tr>
-          <th>Participante</th>
-          <th>Curso</th>
-          <th>Estado del Participante</th>
-          <th>Última Asistencia</th>
-          <th>Tutor / Voluntario</th>
-          <th>Observaciones</th>
-          <th>Acciones</th>
-        </tr>
-      </ng-template>
-      <ng-template pTemplate="body" let-item>
-        <tr>
-          <td>
-            <span class="p-column-title">Participante</span
-            ><strong>{{ item.participant }}</strong>
-          </td>
-          <td><span class="p-column-title">Curso</span>{{ item.course }}</td>
-          <td>
-            <span class="p-column-title">Estado</span>
-            <p-tag
-              [value]="item.status"
-              [severity]="getSeverity(item.status)"
-            ></p-tag>
-          </td>
-          <td>
-            <span class="p-column-title">Últ. Asistencia</span
-            >{{ item.lastAttendance }}
-          </td>
-          <td><span class="p-column-title">Tutor</span>{{ item.tutor }}</td>
-          <td><span class="p-column-title">Notas</span>{{ item.notes }}</td>
-          <td>
-            <span class="p-column-title">Acciones</span>
-            <p-button
-              icon="pi pi-comment"
-              label="Contactar"
-              styleClass="p-button-outlined p-button-sm"
-            ></p-button>
-          </td>
-        </tr>
-      </ng-template>
-    </p-table>
-  </p-card>
+  <app-error-state *ngIf="error" [message]="error"></app-error-state>
+
+  <app-loading-state
+    *ngIf="loading"
+    variant="table"
+    label="Cargando participantes…"
+  ></app-loading-state>
+
+  <ng-container *ngIf="!loading && !error">
+    <app-empty-state *ngIf="cursos.length === 0" [compact]="true">
+      {{
+        gestion
+          ? "No hay cursos publicados todavía."
+          : "No tenés cursos asignados como docente responsable."
+      }}
+    </app-empty-state>
+
+    <ng-container *ngIf="cursos.length > 0">
+      <!-- Filtros: primero se elige (opcionalmente) el curso y se busca -->
+      <section class="filtros" aria-label="Filtros del listado">
+        <div class="course-picker">
+          <label for="curso-seguimiento">Curso</label>
+          <p-select
+            inputId="curso-seguimiento"
+            [options]="courseOptions"
+            optionLabel="label"
+            optionValue="value"
+            [(ngModel)]="selectedCourseId"
+            [filter]="true"
+            filterPlaceholder="Buscar curso"
+            appendTo="body"
+          ></p-select>
+        </div>
+
+        <div class="buscador">
+          <label for="busqueda-seguimiento">Buscar participante</label>
+          <p-iconfield styleClass="buscador-campo">
+            <p-inputicon styleClass="pi pi-search" aria-hidden="true" />
+            <input
+              id="busqueda-seguimiento"
+              type="search"
+              pInputText
+              autocomplete="off"
+              maxlength="100"
+              placeholder="Nombre o apellido"
+              [(ngModel)]="busqueda"
+            />
+          </p-iconfield>
+        </div>
+      </section>
+
+      <p *ngIf="cursosConError.length" class="aviso" role="status">
+        No se pudo cargar: {{ cursosConError.join(", ") }}.
+      </p>
+
+      <p class="conteo" aria-live="polite">
+        {{ filasFiltradas.length }}
+        {{ filasFiltradas.length === 1 ? "inscripción" : "inscripciones" }}
+        <button
+          *ngIf="hayFiltros"
+          type="button"
+          class="link-button"
+          (click)="limpiarFiltros()"
+        >
+          Ver todas
+        </button>
+      </p>
+
+      <p-card styleClass="p-card-shadow">
+        <p-table
+          [value]="filasFiltradas"
+          dataKey="key"
+          class="p-datatable-striped"
+          [paginator]="filasFiltradas.length > 20"
+          [rows]="20"
+        >
+          <ng-template pTemplate="header">
+            <tr>
+              <th>Participante</th>
+              <th>Curso</th>
+              <th>Inscripción</th>
+              <th>Asistencia</th>
+              <th>Actividades</th>
+              <th>Estado</th>
+            </tr>
+          </ng-template>
+          <ng-template pTemplate="body" let-r>
+            <tr>
+              <td>
+                <span *ngIf="r.nombre; else soloId">{{ r.nombre }}</span>
+                <ng-template #soloId
+                  ><code>{{ r.participanteId }}</code></ng-template
+                >
+              </td>
+              <td>{{ r.curso }}</td>
+              <td>{{ r.estado }}</td>
+              <td class="col-asistencia">
+                <p-progressBar
+                  [value]="r.porcentajeAsistencia"
+                  [showValue]="true"
+                ></p-progressBar>
+              </td>
+              <td>{{ r.actividadesAsistidas }} / {{ r.actividadesTotal }}</td>
+              <td>
+                <p-tag
+                  [value]="r.riesgo"
+                  [severity]="riesgoSeverity(r.riesgo)"
+                ></p-tag>
+              </td>
+            </tr>
+          </ng-template>
+          <ng-template pTemplate="emptymessage">
+            <tr>
+              <td colspan="6" class="empty-state">
+                {{
+                  hayFiltros
+                    ? "Ningún participante coincide con la búsqueda."
+                    : "Todavía no hay participantes inscriptos."
+                }}
+              </td>
+            </tr>
+          </ng-template>
+        </p-table>
+      </p-card>
+    </ng-container>
+  </ng-container>
 </div>

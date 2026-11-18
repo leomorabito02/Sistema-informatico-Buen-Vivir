@@ -1,0 +1,141 @@
+<div class="cv-public-container" *ngIf="!loading && !error && resume">
+  <div class="header-actions">
+    <p-button
+      label="Descargar PDF"
+      icon="pi pi-download"
+      styleClass="p-button-rounded p-button-primary p-button-lg shadow-2"
+      (onClick)="downloadPDF()"
+    >
+    </p-button>
+  </div>
+
+  <div class="cv-document" [style.--resume-primary-color]="getPrimaryColor()">
+    <div class="cv-header">
+      <div class="profile-pic-container" *ngIf="resume.data?.basics?.picture">
+        <img
+          [src]="resolveImageUrl(resume.data.basics.picture)"
+          alt="Foto de perfil"
+          class="profile-pic"
+        />
+      </div>
+      <div class="header-content">
+        <h1 class="cv-name">{{ resume.data.basics.name }}</h1>
+        <h2 class="cv-headline">{{ resume.data.basics.headline }}</h2>
+
+        <div class="contact-info">
+          <span *ngIf="resume.data?.basics?.email"
+            ><i class="pi pi-envelope"></i> {{ resume.data.basics.email }}</span
+          >
+          <span *ngIf="resume.data?.basics?.phone"
+            ><i class="pi pi-phone"></i> {{ resume.data.basics.phone }}</span
+          >
+          <span *ngIf="resume.data?.basics?.location"
+            ><i class="pi pi-map-marker"></i>
+            {{ resume.data.basics.location }}</span
+          >
+        </div>
+      </div>
+    </div>
+
+    <div class="cv-body">
+      <div class="cv-main">
+        <section class="cv-section" *ngIf="resume.data?.basics?.summary">
+          <h3 class="section-title">Sobre mí</h3>
+          <p class="summary-text">{{ resume.data.basics.summary }}</p>
+        </section>
+
+        <section class="cv-section" *ngIf="resume.data?.work?.length">
+          <h3 class="section-title">Experiencia laboral</h3>
+          <div class="timeline-item" *ngFor="let job of resume.data.work">
+            <div class="timeline-header">
+              <h4 class="item-title">{{ job.position }}</h4>
+              <span class="item-company">{{ job.company }}</span>
+            </div>
+            <div class="item-date">
+              {{ job.startDate }} - {{ job.endDate || "Actualidad" }}
+            </div>
+            <p class="item-desc">{{ job.description }}</p>
+          </div>
+        </section>
+
+        <section class="cv-section" *ngIf="resume.data?.education?.length">
+          <h3 class="section-title">Educación</h3>
+          <div class="timeline-item" *ngFor="let edu of resume.data.education">
+            <div class="timeline-header">
+              <h4 class="item-title">
+                {{ edu.degree }} {{ edu.field ? "en " + edu.field : "" }}
+              </h4>
+              <span class="item-company">{{ edu.institution }}</span>
+            </div>
+            <div class="item-date">
+              {{ edu.startDate }} - {{ edu.endDate || edu.status }}
+            </div>
+            <span class="tag tag-blue" *ngIf="edu.grade">{{ edu.grade }}</span>
+          </div>
+        </section>
+
+        <section class="cv-section" *ngIf="resume.data?.references?.length">
+          <h3 class="section-title">Referencias</h3>
+          <div class="timeline-item" *ngFor="let ref of resume.data.references">
+            <div class="timeline-header">
+              <h4 class="item-title">{{ ref.name }}</h4>
+            </div>
+            <p class="item-desc" *ngIf="ref.description">
+              {{ ref.description }}
+            </p>
+          </div>
+        </section>
+      </div>
+
+      <div class="cv-sidebar">
+        <section class="cv-section" *ngIf="resume.data?.skills?.length">
+          <h3 class="section-title">Habilidades</h3>
+          <div class="tags-container">
+            <span class="tag" *ngFor="let skill of resume.data.skills">
+              {{ skill.name }} <small>({{ skill.level }})</small>
+            </span>
+          </div>
+        </section>
+
+        <section class="cv-section" *ngIf="resume.data?.languages?.length">
+          <h3 class="section-title">Idiomas</h3>
+          <div class="tags-container">
+            <span
+              class="tag tag-green"
+              *ngFor="let lang of resume.data.languages"
+            >
+              {{ lang.name }} <small>({{ lang.level }})</small>
+            </span>
+          </div>
+        </section>
+
+        <section class="cv-section" *ngIf="resume.data?.certifications?.length">
+          <h3 class="section-title">Certificaciones</h3>
+          <div
+            class="timeline-item"
+            *ngFor="let cert of resume.data.certifications"
+          >
+            <h4 class="item-title">{{ cert.name }}</h4>
+            <div class="item-company">{{ cert.issuer }}</div>
+            <div class="item-date">{{ cert.date }}</div>
+          </div>
+        </section>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="loading-container" *ngIf="loading">
+  <p-progressSpinner
+    styleClass="w-4rem h-4rem"
+    strokeWidth="4"
+    animationDuration=".5s"
+  ></p-progressSpinner>
+  <p>Cargando currículum...</p>
+</div>
+
+<div class="error-container" *ngIf="error">
+  <i class="pi pi-exclamation-triangle text-red-500 text-6xl mb-4"></i>
+  <h2>No pudimos cargar este currículum</h2>
+  <p>El currículum no existe o ha sido eliminado.</p>
+</div>

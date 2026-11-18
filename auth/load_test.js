@@ -3,6 +3,7 @@ import { check, sleep } from 'k6';
 
 // BASE_URL is injected by the CD pipeline via -e BASE_URL=<cloud_run_url>
 const BASE_URL = __ENV.BASE_URL || 'http://localhost:8080';
+const ID_TOKEN = __ENV.ID_TOKEN || '';
 
 export const options = {
   stages: [
@@ -17,8 +18,10 @@ export const options = {
 };
 
 export default function () {
+  const authHeaders = ID_TOKEN ? { Authorization: `Bearer ${ID_TOKEN}` } : {};
+
   // 1. Health Endpoint Spike
-  let healthRes = http.get(`${BASE_URL}/health`);
+  let healthRes = http.get(`${BASE_URL}/health`, { headers: authHeaders });
   check(healthRes, {
     'health check returns 200': (r) => r.status === 200,
   });
@@ -30,9 +33,7 @@ export default function () {
   });
 
   const params = {
-    headers: {
-      'Content-Type': 'application/json',
-    },
+    headers: Object.assign({ 'Content-Type': 'application/json' }, authHeaders),
   };
 
   let loginRes = http.post(`${BASE_URL}/api/v1/auth/login`, loginPayload, params);

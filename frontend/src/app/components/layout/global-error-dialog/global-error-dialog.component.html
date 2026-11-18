@@ -1,0 +1,61 @@
+<p-dialog
+  [visible]="alertService.dialogConfig().visible"
+  [modal]="true"
+  [closable]="false"
+  [draggable]="false"
+  [style]="{ width: '440px' }"
+  [breakpoints]="{ '640px': '92vw' }"
+>
+  <ng-template #header>
+    <div
+      class="dialog-header-custom"
+      [attr.data-severity]="alertService.dialogConfig().severity"
+    >
+      <div class="header-icon-wrapper">
+        @if (alertService.dialogConfig().severity === "warn") {
+          <lucide-angular
+            [img]="TriangleAlertIcon"
+            class="icon warn-icon"
+          ></lucide-angular>
+        } @else if (alertService.dialogConfig().severity === "error") {
+          <lucide-angular
+            [img]="ShieldAlertIcon"
+            class="icon error-icon"
+          ></lucide-angular>
+        } @else {
+          <lucide-angular
+            [img]="CircleAlertIcon"
+            class="icon info-icon"
+          ></lucide-angular>
+        }
+      </div>
+      <span class="header-title">{{ alertService.dialogConfig().title }}</span>
+    </div>
+  </ng-template>
+
+  <p class="dialog-message">
+    {{ alertService.dialogConfig().message }}
+  </p>
+
+  <ng-template #footer>
+    <div class="dialog-footer-actions">
+      @if (alertService.dialogConfig().cancelLabel) {
+        <p-button
+          [label]="alertService.dialogConfig().cancelLabel!"
+          severity="secondary"
+          [outlined]="true"
+          (onClick)="onCancel()"
+        ></p-button>
+      }
+      <p-button
+        [label]="alertService.dialogConfig().confirmLabel"
+        [severity]="
+          alertService.dialogConfig().severity === 'error'
+            ? 'danger'
+            : 'primary'
+        "
+        (onClick)="onConfirm()"
+      ></p-button>
+    </div>
+  </ng-template>
+</p-dialog>

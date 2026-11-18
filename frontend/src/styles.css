@@ -1,48 +1,572 @@
 @import url("https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap");
 @import "primeicons/primeicons.css";
 
-/* Design System — Buen Vivir Identity Manual */
+/* ==========================================================================
+   Design tokens — Buen Vivir
+   Única fuente de verdad de color, tipografía, espaciado, radios, sombras y
+   movimiento. El tema de PrimeNG (src/app/theme/buen-vivir.preset.ts) lee
+   estas mismas variables: cambiar un valor acá cambia también los
+   componentes de PrimeNG. Ningún componente debería usar un hex suelto.
+   ========================================================================== */
 :root {
-  --primary: #485839;
-  --primary-hover: #3a472d;
-  --primary-10: rgba(72, 88, 57, 0.1);
-  --primary-20: rgba(72, 88, 57, 0.2);
-  --secondary: #9a5b43;
-  --secondary-10: rgba(154, 91, 67, 0.1);
-  --bg-white: #ffffff;
-  --bg-cream: #e7e6da;
-  --bg-dark: #1d1d1b;
-  --text-main: #1d1d1b;
-  --text-muted: #6b7280;
-  --text-inverse: #ffffff;
-  --border: #e2e2d8;
-  --primary-foreground: #ffffff;
-  --destructive: #ef4444;
+  /* ── Paletas: escalas 50–950 con el color base en el 600 ─────────────── */
+
+  /* Verde institucional (manual de identidad, fondo del logo) */
+  --green-50: #f0f2ef;
+  --green-100: #e2e4df;
+  --green-200: #c4cac0;
+  --green-300: #a4ac9c;
+  --green-400: #7f8a74;
+  --green-500: #626f55;
+  --green-600: #485839;
+  --green-700: #3d4a30;
+  --green-800: #323e28;
+  --green-900: #283220;
+  --green-950: #1f2819;
+
+  /* Tierra / terracota (secundario del manual) */
+  --earth-50: #f7f2f0;
+  --earth-100: #efe5e1;
+  --earth-200: #dfcbc3;
+  --earth-300: #ccada1;
+  --earth-400: #b88c7b;
+  --earth-500: #a8725d;
+  --earth-600: #9a5b43;
+  --earth-700: #814b37;
+  --earth-800: #6b3d2c;
+  --earth-900: #552f21;
+  --earth-950: #432418;
+
+  /* Neutros cálidos (crema del manual en el 200, negro del manual en el 950) */
+  --neutral-0: #ffffff;
+  --neutral-50: #faf9f5;
+  --neutral-100: #f3f2eb;
+  --neutral-200: #e7e6da;
+  --neutral-300: #d6d4c6;
+  --neutral-400: #b3b1a2;
+  --neutral-500: #8a887b;
+  --neutral-600: #66655b;
+  --neutral-700: #4a4943;
+  --neutral-800: #33322e;
+  --neutral-900: #262622;
+  --neutral-950: #1d1d1b;
+
+  /* Estados: rojo (error), ocre (aviso), azul pizarra (información) */
+  --red-50: #f9eeed;
+  --red-100: #f3dcdb;
+  --red-200: #e7bab7;
+  --red-300: #d9928e;
+  --red-400: #ca6762;
+  --red-500: #be443e;
+  --red-600: #b3261e;
+  --red-700: #951f19;
+  --red-800: #7a1914;
+  --red-900: #5f130f;
+  --red-950: #490f0b;
+
+  --ochre-50: #f6f2eb;
+  --ochre-100: #ece5d6;
+  --ochre-200: #dacaad;
+  --ochre-300: #c4ac80;
+  --ochre-400: #ad8c4c;
+  --ochre-500: #9a7124;
+  --ochre-600: #8a5a00;
+  --ochre-700: #744b00;
+  --ochre-800: #5f3e00;
+  --ochre-900: #4b3000;
+  --ochre-950: #3a2600;
+
+  --blue-50: #f0f3f5;
+  --blue-100: #e0e8ec;
+  --blue-200: #c2d1d8;
+  --blue-300: #9fb7c2;
+  --blue-400: #799aaa;
+  --blue-500: #5a8397;
+  --blue-600: #3f6f86;
+  --blue-700: #345c70;
+  --blue-800: #2a4b5b;
+  --blue-900: #203a47;
+  --blue-950: #182d36;
+
+  /* ── Colores semánticos (los que usan los componentes) ───────────────── */
+  --color-primary: var(--green-600); /* texto blanco encima: 7.7:1 */
+  --color-primary-hover: var(--green-700);
+  --color-primary-active: var(--green-800);
+  --color-primary-soft: var(--green-50);
+  --color-primary-soft-strong: var(--green-100);
+  --color-on-primary: var(--neutral-0);
+
+  --color-secondary: var(--earth-600); /* texto blanco encima: 5.3:1 */
+  --color-secondary-hover: var(--earth-700);
+  --color-secondary-soft: var(--earth-50);
+
+  --color-bg: var(--neutral-100); /* fondo de página: crema, no blanco */
+  --color-surface: var(--neutral-0); /* tarjetas, diálogos */
+  --color-surface-alt: var(--neutral-100); /* bandas, filas alternas */
+  --color-surface-cream: var(--neutral-200); /* crema del manual */
+  --color-surface-dark: var(--neutral-950);
+
+  --color-border: var(--neutral-200); /* separadores decorativos */
+  --color-border-strong: var(--neutral-500); /* bordes de campos: 3.6:1 */
+
+  --color-text: var(--neutral-950); /* 16:1 sobre el fondo */
+  --color-text-muted: var(--neutral-600); /* 4.7:1 incluso sobre crema */
+  --color-text-inverse: var(--neutral-0);
+  --color-link: var(--green-700);
+
+  --color-success: var(--green-600);
+  --color-success-soft: var(--green-50);
+  --color-warning: var(--ochre-600);
+  --color-warning-soft: var(--ochre-50);
+  --color-danger: var(--red-600);
+  --color-danger-soft: var(--red-50);
+  --color-info: var(--blue-600);
+  --color-info-soft: var(--blue-50);
+
+  --color-focus: var(--green-600);
+  --color-overlay: rgb(29 29 27 / 0.45);
+
+  /* ── Tipografía ──────────────────────────────────────────────────────
+     Una sola familia: Poppins (secundaria del manual; la primaria, Palo
+     Seco, no tiene versión web). Cuerpo de 16px por legibilidad.        */
+  --font-family-base:
+    "Poppins", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+
+  /* Escala subida un paso (2026-10-06, pedido de la usuaria: letra más
+     grande). La landing usa sus propios clamp() y no cambia. */
+  --font-size-xs: 0.8125rem; /* 13px: ayudas, metadatos */
+  --font-size-sm: 0.9375rem; /* 15px: etiquetas de campo, tablas */
+  --font-size-base: 1.0625rem; /* 17px: cuerpo */
+  --font-size-lg: 1.1875rem; /* 19px: cuerpo destacado */
+  --font-size-xl: 1.375rem; /* 22px: subtítulo */
+  --font-size-2xl: 1.625rem; /* 26px: título de sección o tarjeta */
+  --font-size-3xl: 2rem; /* 32px: título de página */
+  --font-size-4xl: 2.25rem; /* 36px: títulos de landing */
+  --font-size-5xl: 3rem; /* 48px: hero */
+  /* Título de página del panel: 26px en celular, 34px en escritorio */
+  --font-size-page-title: clamp(1.625rem, 1.35rem + 1.1vw, 2.125rem);
+
+  --font-weight-regular: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+
+  --line-height-tight: 1.25;
+  --line-height-snug: 1.4;
+  --line-height-base: 1.6;
+  --letter-spacing-heading: -0.01em;
+
+  /* ── Espaciado (múltiplos de 4px) ────────────────────────────────────── */
+  --space-0: 0;
+  --space-1: 0.25rem; /* 4px */
+  --space-2: 0.5rem; /* 8px */
+  --space-3: 0.75rem; /* 12px */
+  --space-4: 1rem; /* 16px */
+  --space-5: 1.25rem; /* 20px */
+  --space-6: 1.5rem; /* 24px */
+  --space-8: 2rem; /* 32px */
+  --space-10: 2.5rem; /* 40px */
+  --space-12: 3rem; /* 48px */
+  --space-16: 4rem; /* 64px */
+  --space-20: 5rem; /* 80px */
+  --space-24: 6rem; /* 96px */
+
+  /* ── Radios ──────────────────────────────────────────────────────────── */
+  --radius-xs: 2px;
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --radius-full: 9999px;
+
+  /* ── Sombras (tinte del negro del manual, no gris frío) ──────────────── */
+  --shadow-xs: 0 1px 2px rgb(29 29 27 / 0.06);
+  --shadow-sm: 0 1px 3px rgb(29 29 27 / 0.08), 0 1px 2px rgb(29 29 27 / 0.04);
+  --shadow-md:
+    0 4px 8px -2px rgb(29 29 27 / 0.08), 0 2px 4px -2px rgb(29 29 27 / 0.05);
+  --shadow-lg:
+    0 12px 24px -6px rgb(29 29 27 / 0.12), 0 4px 8px -4px rgb(29 29 27 / 0.06);
+  --focus-ring: 0 0 0 3px
+    color-mix(in srgb, var(--color-focus) 35%, transparent);
+
+  /* ── Movimiento (anulado por prefers-reduced-motion, ver abajo) ──────── */
+  --duration-fast: 120ms;
+  --duration-base: 200ms;
+  --duration-slow: 300ms;
+  --ease-standard: cubic-bezier(0.2, 0, 0, 1);
+  --ease-out: cubic-bezier(0, 0, 0.2, 1);
+  /* Transición estándar de elementos interactivos: solo propiedades que
+     el navegador anima barato (nunca `all`, que también anima el layout). */
+  --transition-interactive:
+    color var(--duration-base) var(--ease-standard),
+    background-color var(--duration-base) var(--ease-standard),
+    border-color var(--duration-base) var(--ease-standard),
+    box-shadow var(--duration-base) var(--ease-standard),
+    opacity var(--duration-base) var(--ease-standard),
+    transform var(--duration-base) var(--ease-standard);
+
+  /* ── Layout ──────────────────────────────────────────────────────────── */
+  --container-max: 1200px;
+  --container-gutter: var(--space-4);
+  --tap-target: 44px; /* área táctil mínima (WCAG 2.5.5) */
+  --header-height: 64px;
+  --sidebar-width: 264px; /* barra lateral del panel (escritorio) */
+
+  /* ── Alias heredados ─────────────────────────────────────────────────
+     Nombres que ya usan los componentes. Apuntan a los tokens nuevos y se
+     van reemplazando pantalla por pantalla.                            */
+  --primary: var(--color-primary);
+  --primary-hover: var(--color-primary-hover);
+  --primary-10: color-mix(in srgb, var(--color-primary) 10%, transparent);
+  --primary-20: color-mix(in srgb, var(--color-primary) 20%, transparent);
+  --secondary: var(--color-secondary);
+  --secondary-10: color-mix(in srgb, var(--color-secondary) 10%, transparent);
+  --bg-white: var(--color-surface);
+  --bg-cream: var(--color-surface-cream);
+  --bg-dark: var(--color-surface-dark);
+  --text-main: var(--color-text);
+  --text-muted: var(--color-text-muted);
+  --text-inverse: var(--color-text-inverse);
+  --border: var(--color-border);
+  --primary-foreground: var(--color-on-primary);
+  --destructive: var(--color-danger);
+}
+
+/* ==========================================================================
+   Base
+   ========================================================================== */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
 }
 
 body {
   margin: 0;
-  font-family:
-    "Poppins",
-    system-ui,
-    -apple-system,
-    BlinkMacSystemFont,
-    sans-serif;
-  background-color: var(--bg-white);
-  color: var(--text-main);
+  font-family: var(--font-family-base);
+  font-size: var(--font-size-base);
+  line-height: var(--line-height-base);
+  background-color: var(--color-bg);
+  color: var(--color-text);
   min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
 }
 
-* {
-  box-sizing: border-box;
+h1,
+h2,
+h3,
+h4,
+h5,
+.brand-name,
+.page-title {
+  font-family: var(--font-family-base);
+  font-weight: var(--font-weight-semibold);
+  line-height: var(--line-height-tight);
+  letter-spacing: var(--letter-spacing-heading);
+}
+
+a {
+  color: var(--color-link);
+}
+
+img,
+video {
+  max-width: 100%;
+}
+
+::selection {
+  background: var(--color-primary-soft-strong);
+  color: var(--color-text);
+}
+
+/* Foco visible para teclado en toda la app (WCAG 2.4.7). Solo con
+   :focus-visible: el clic con mouse no deja el anillo. Los componentes de
+   PrimeNG usan su propio focusRing, configurado con el mismo color. */
+:focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+/* Contenedores que reciben foco por código (destino de "Saltar al
+   contenido"): no son interactivos, no llevan anillo. */
+[tabindex="-1"]:focus {
+  outline: none;
+}
+
+/* Texto solo para lectores de pantalla */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* ==========================================================================
+   Patrones de página del panel (una sola definición para todas las
+   pantallas; los componentes solo agregan lo propio)
+   ========================================================================== */
+.page-container {
+  width: 100%;
+  max-width: var(--container-max);
+  margin: 0 auto;
+  padding: var(--space-6) var(--container-gutter) var(--space-12);
+}
+
+/* Contenedor de las pantallas con barra lateral (dashboard y mi cuenta):
+   en escritorio deja lugar a la barra fija; en celular ocupa todo. */
+@media (min-width: 961px) {
+  .app-shell {
+    padding-left: var(--sidebar-width);
+  }
+}
+
+/* Encabezado de página como en las apps de comunidad (Humand): título y
+   subtítulo directo sobre el fondo, sin tarjeta, y una línea fina que lo
+   separa del contenido. */
+.header-section {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  gap: var(--space-4);
+  margin-bottom: var(--space-6);
+  padding: var(--space-2) 0 var(--space-5);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.page-title {
+  margin: 0 0 var(--space-1);
+  font-size: var(--font-size-page-title);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text);
+}
+
+.page-subtitle {
+  margin: 0;
+  max-width: 65ch;
+  color: var(--color-text-muted);
+}
+
+/* Texto de ayuda debajo de un campo */
+.input-hint {
+  margin: var(--space-2) 0 0;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+}
+
+/* ==========================================================================
+   Formularios en diálogo (alta y edición de cursos, campañas, materiales,
+   áreas, ofertas). Una sola definición para que todos compartan
+   distribución, tamaños, etiquetas, asterisco y mensajes (17/11/2026).
+   ========================================================================== */
+.form-grid {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  padding-top: var(--space-2);
+}
+
+/* La etiqueta es un bloque: el texto y el asterisco quedan en la misma
+   línea y cada control, ayuda o error va debajo. */
+.form-grid label,
+.form-grid .field {
+  display: block;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text);
+}
+
+.form-grid label:not(.checkbox-row) > :where(:not(.req)) {
+  display: block;
+  margin-top: var(--space-1);
+}
+
+/* Los selectores de PrimeNG son flex por dentro (texto + flecha). */
+.form-grid label:not(.checkbox-row) > p-select,
+.form-grid label:not(.checkbox-row) > p-multiselect,
+.form-grid label:not(.checkbox-row) > p-datepicker {
+  display: flex;
+}
+
+.form-grid .row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-4);
+}
+
+.form-grid input:not([type="checkbox"]):not([type="radio"]),
+.form-grid textarea,
+.form-grid p-select,
+.form-grid p-multiselect,
+.form-grid p-datepicker {
+  width: 100%;
+}
+
+.form-grid .checkbox-row {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: var(--space-2);
+  font-weight: var(--font-weight-medium, 500);
+}
+
+/* Asterisco de campo obligatorio y su referencia */
+.req {
+  color: var(--color-danger);
+}
+
+.form-legend {
+  margin: var(--space-2) 0 var(--space-2);
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+}
+
+/* Ayuda y error debajo de un campo */
+.field-hint {
+  font-size: var(--font-size-sm);
+  font-weight: normal;
+  color: var(--color-text-muted);
+}
+
+.field-hint.err,
+.field-error {
+  font-size: var(--font-size-sm);
+  font-weight: normal;
+  color: var(--color-danger);
+}
+
+@media (max-width: 576px) {
+  .form-grid .row {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Selector principal de curso (Inscripciones, Seguimiento, Asistencia):
+   ancho, alto y legible, separado del contenido que filtra (17/11/2026). */
+.course-picker {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  width: 100%;
+  max-width: 560px;
+  margin-bottom: var(--space-6);
+}
+
+.toolbar .course-picker {
+  margin-bottom: 0;
+}
+
+.course-picker label {
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text);
+}
+
+.course-picker .p-select {
+  width: 100%;
+  min-height: 3rem;
+}
+
+.course-picker .p-select-label {
+  display: flex;
+  align-items: center;
+  padding: var(--space-3) var(--space-4);
+  font-size: var(--font-size-base, 1rem);
+}
+
+/* En celular, título y acciones del encabezado van uno debajo del otro */
+@media (max-width: 767px) {
+  .header-section {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}
+
+/* ==========================================================================
+   Superficies de PrimeNG con más presencia (2026-10-06): tarjetas con borde
+   y sombra sobre el fondo crema, encabezados de tabla y de diálogo en verde
+   suave en lugar de blanco sobre blanco.
+   ========================================================================== */
+.p-card {
+  border: 1px solid var(--color-border);
+  box-shadow: var(--shadow-sm);
+}
+
+.p-card .p-card-title {
+  color: var(--color-primary);
+}
+
+.p-datatable .p-datatable-thead > tr > th {
+  background: var(--color-primary-soft-strong);
+  color: var(--green-900);
+  font-weight: var(--font-weight-semibold);
+}
+
+.p-datatable .p-datatable-tbody > tr:nth-child(even) > td {
+  background: var(--color-surface-alt);
+}
+
+.p-dialog .p-dialog-header {
+  background: var(--color-primary-soft);
+  border-bottom: 1px solid var(--color-border);
+}
+
+/* Fila de "sin resultados" dentro de una tabla (pTemplate="emptymessage") */
+td.empty-state {
+  padding: var(--space-8) var(--space-4);
+  text-align: center;
+  color: var(--color-text-muted);
+}
+
+@media (min-width: 768px) {
+  .page-container {
+    padding-left: var(--space-8);
+    padding-right: var(--space-8);
+  }
+}
+
+/* Cambio de pantalla: fundido corto entre rutas (View Transitions API,
+   activada con withViewTransitions() en app.config.ts). Los navegadores
+   sin soporte cambian de pantalla como antes. */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: var(--duration-slow);
+  animation-timing-function: var(--ease-standard);
+}
+
+/* Respeta la preferencia del sistema de reducir movimiento (WCAG 2.3.3) */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  ::view-transition-group(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    animation: none !important;
+  }
 }
 
 /* ── Utilities ── */
 .container {
   width: 100%;
-  max-width: 1200px;
+  max-width: var(--container-max);
   margin: 0 auto;
-  padding: 0 1.5rem;
+  padding: 0 var(--space-6);
 }
 .text-center {
   text-align: center;
@@ -234,7 +758,7 @@ body {
   color: var(--secondary);
 }
 .text-white {
-  color: #ffffff;
+  color: var(--color-text-inverse);
 }
 .text-inverse {
   color: var(--text-inverse);
@@ -245,12 +769,16 @@ body {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 0.625rem 1.25rem;
-  border-radius: 0.5rem;
-  font-weight: 500;
-  font-size: 0.9rem;
+  min-height: var(--tap-target);
+  padding: var(--space-2) var(--space-5);
+  border-radius: var(--radius-md);
+  font-weight: var(--font-weight-medium);
+  font-size: var(--font-size-sm);
   cursor: pointer;
-  transition: all 0.2s;
+  transition:
+    background-color var(--duration-base) var(--ease-standard),
+    border-color var(--duration-base) var(--ease-standard),
+    color var(--duration-base) var(--ease-standard);
   border: 1.5px solid transparent;
   text-decoration: none;
   font-family: inherit;
@@ -265,12 +793,12 @@ body {
   border-color: var(--primary-hover);
 }
 .btn-outline-white {
-  border: 1.5px solid rgba(255, 255, 255, 0.5);
-  color: #ffffff;
+  border: 1.5px solid rgb(255 255 255 / 0.6);
+  color: var(--color-text-inverse);
   background: transparent;
 }
 .btn-outline-white:hover {
-  background: rgba(255, 255, 255, 0.15);
+  background: rgb(255 255 255 / 0.15);
 }
 .btn-outline-primary {
   border: 2px solid var(--primary);
@@ -281,29 +809,31 @@ body {
   background: var(--primary-10);
 }
 .btn-white {
-  background: #ffffff;
-  color: var(--primary);
-  border-color: #ffffff;
+  background: var(--color-surface);
+  color: var(--color-primary);
+  border-color: var(--color-surface);
 }
 .btn-white:hover {
-  background: rgba(255, 255, 255, 0.9);
+  background: var(--color-surface-alt);
 }
 .btn-lg {
-  padding: 0.75rem 1.75rem;
-  font-size: 1.05rem;
+  padding: var(--space-3) var(--space-8);
+  font-size: var(--font-size-base);
 }
 
 /* Cards */
 .card {
   background: var(--bg-white);
   border: 1px solid var(--border);
-  border-radius: 0.625rem;
-  padding: 2rem;
-  transition: all 0.2s;
+  border-radius: var(--radius-lg);
+  padding: var(--space-8);
+  transition:
+    border-color var(--duration-base) var(--ease-standard),
+    box-shadow var(--duration-base) var(--ease-standard);
 }
 .card:hover {
   border-color: var(--primary);
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
+  box-shadow: var(--shadow-md);
 }
 
 /* Grid columns */
@@ -382,21 +912,19 @@ body {
   flex: 1;
 }
 .rounded-full {
-  border-radius: 9999px;
+  border-radius: var(--radius-full);
 }
 .rounded-lg {
-  border-radius: 0.5rem;
+  border-radius: var(--radius-md);
 }
 .rounded-md {
-  border-radius: 0.375rem;
+  border-radius: var(--radius-sm);
 }
 .shadow-sm {
-  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  box-shadow: var(--shadow-xs);
 }
 .shadow-md {
-  box-shadow:
-    0 4px 6px -1px rgba(0, 0, 0, 0.1),
-    0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  box-shadow: var(--shadow-md);
 }
 .border-border {
   border-color: var(--border);
@@ -466,9 +994,6 @@ body {
 .h-7 {
   height: 1.75rem;
 }
-.w-full {
-  width: 100%;
-}
 .h-full {
   height: 100%;
 }
@@ -489,8 +1014,8 @@ body {
 }
 .transition-opacity {
   transition-property: opacity;
-  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
-  transition-duration: 150ms;
+  transition-timing-function: var(--ease-standard);
+  transition-duration: var(--duration-fast);
 }
 .bg-primary {
   background-color: var(--primary);
@@ -521,12 +1046,6 @@ body {
 }
 .object-cover {
   object-fit: cover;
-}
-.font-semibold {
-  font-weight: 600;
-}
-.text-center {
-  text-align: center;
 }
 .my-6 {
   margin-top: 1.5rem;
@@ -562,29 +1081,14 @@ body {
 .mt-6 {
   margin-top: 1.5rem;
 }
-.mb-2 {
-  margin-bottom: 0.5rem;
-}
-.mb-4 {
-  margin-bottom: 1rem;
-}
-.mb-6 {
-  margin-bottom: 1.5rem;
-}
-.mb-8 {
-  margin-bottom: 2rem;
-}
 .p-3 {
   padding: 0.75rem;
 }
-.p-8 {
-  padding: 2rem;
-}
 .bg-destructive\/10 {
-  background-color: rgba(239, 68, 68, 0.1);
+  background-color: var(--color-danger-soft);
 }
 .border-destructive\/20 {
-  border-color: rgba(239, 68, 68, 0.2);
+  border-color: var(--red-200);
 }
 .text-destructive {
   color: var(--destructive);
@@ -596,30 +1100,13 @@ body {
   outline: 2px solid transparent;
   outline-offset: 2px;
 }
-.focus\:ring-2:focus {
-  --tw-ring-offset-shadow: var(--tw-ring-inset) 0 0 0
-    var(--tw-ring-offset-width) var(--tw-ring-offset-color);
-  --tw-ring-shadow: var(--tw-ring-inset) 0 0 0
-    calc(2px + var(--tw-ring-offset-width)) var(--tw-ring-color);
-  box-shadow:
-    var(--tw-ring-offset-shadow), var(--tw-ring-shadow),
-    var(--tw-shadow, 0 0 #0000);
-}
+.focus\:ring-2:focus,
 .focus\:ring-primary:focus {
-  --tw-ring-color: var(--primary);
+  box-shadow: var(--focus-ring);
 }
 .inline-block {
   display: inline-block;
 }
 .no-underline {
   text-decoration: none;
-}
-.gap-2 {
-  gap: 0.5rem;
-}
-.gap-3 {
-  gap: 0.75rem;
-}
-.gap-4 {
-  gap: 1rem;
 }

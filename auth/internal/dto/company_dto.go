@@ -14,7 +14,7 @@ type CreateCompanyRequest struct {
 
 type UpdateCompanyRequest struct {
 	BusinessName   string `json:"business_name" validate:"omitempty,min=2,max=100"`
-	ApprovalStatus string `json:"approval_status" validate:"omitempty,oneof=pending approved rejected"`
+	ApprovalStatus string `json:"approval_status" validate:"omitempty,oneof=pending approved"`
 	ApprovedBy     string `json:"approved_by" validate:"omitempty"`
 }
 

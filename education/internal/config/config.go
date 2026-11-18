@@ -3,6 +3,7 @@ package config
 import (
 	"fmt"
 	"os"
+	"strings"
 )
 
 // AppEnv identifica el ambiente de despliegue de ESTE microservicio.
@@ -24,7 +25,8 @@ const (
 
 // Config agrupa toda la configuración del servicio de Educación.
 type Config struct {
-	Port string
+	Port     string
+	GRPCPort string
 
 	AppEnv AppEnv
 
@@ -35,42 +37,73 @@ type Config struct {
 	ContentfulLocale      string
 
 	CORSAllowedOrigins string
+
+	// AuthServiceURL es la base (sin path) de auth-service, ej.
+	// "http://auth-service:8080" en Docker o
+	// "https://auth-testing-xxxx.run.app" en Cloud Run. La usa
+	// AuthServiceClient para validar participantes al inscribir/registrar
+	// asistencia y para resolver el listado de participantes en la
+	// asistencia general, reenviando el JWT del usuario que llamó a
+	// education. Obligatoria en producción; en testing permite iniciar
+	// sin ella (emitiendo advertencia).
+	AuthServiceURL        string
+	AuthServiceGRPCTarget string
+	// UpstreamIDToken activa la generación de un token de identidad de Google
+	// en X-Serverless-Authorization para llamadas a servicios Cloud Run privados.
+	UpstreamIDToken bool
+
+	// EntregasBucket es el bucket de Cloud Storage (mismo proyecto de
+	// GCP que Firestore) donde se guardan los adjuntos de las entregas
+	// de actividades. Es privado: education lee los archivos con las
+	// mismas credenciales de Firestore y los sirve validando permisos.
+	// Si queda vacío, el servicio arranca igual y las entregas se
+	// aceptan solo con texto.
+	EntregasBucket string
+
+	// SkillsAI es la configuración de la sugerencia de habilidades con IA
+	// (HU-21 / HU-58). Nada es obligatorio: si falta, el servicio arranca
+	// igual y el botón "Sugerir habilidades con IA" responde que no se
+	// pudo generar sugerencias (las habilidades se pueden cargar a mano).
+	SkillsAI SkillsAIConfig
+
+	// Events es la mensajería asíncrona con Pub/Sub (ver
+	// docs/eventos/README.md). Desactivada si falta PUBSUB_PROJECT_ID.
+	Events EventsConfig
 }
 
-// LoadConfig arma la configuración del servicio. El archivo que se
-// carga (.env.testing o .env.production) depende de APP_ENV, y las
-// variables ya presentes en el entorno real del proceso siempre ganan
-// sobre lo que diga el archivo (ver loadEnvFile). Devuelve error si la
-// combinación de APP_ENV / CONTENTFUL_ENVIRONMENT es peligrosa, para
-// que el servicio directamente no arranque.
+// LoadConfig arma la configuración del servicio leyendo siempre el
+// archivo ".env" si existe; las variables ya presentes en el entorno real
+// del proceso siempre ganan sobre lo que diga el archivo (ver loadEnvFile).
+// Devuelve error si APP_ENV es inválido o si la combinación de
+// APP_ENV / CONTENTFUL_ENVIRONMENT es peligrosa, para que el servicio
+// directamente no arranque.
 func LoadConfig() (*Config, error) {
+	if err := loadEnvFile(".env"); err != nil {
+		return nil, fmt.Errorf("no se pudo leer .env: %w", err)
+	}
+
 	appEnvRaw := os.Getenv("APP_ENV")
 	if appEnvRaw == "" {
 		appEnvRaw = string(AppEnvTesting)
 	}
 	appEnv := AppEnv(appEnvRaw)
 
-	var envFile string
-	switch appEnv {
-	case AppEnvTesting:
-		envFile = ".env.testing"
-	case AppEnvProduction:
-		envFile = ".env.production"
-	default:
+	if appEnv != AppEnvTesting && appEnv != AppEnvProduction {
 		return nil, fmt.Errorf("APP_ENV inválido: %q (valores permitidos: %q, %q)", appEnvRaw, AppEnvTesting, AppEnvProduction)
-	}
-
-	if err := loadEnvFile(envFile); err != nil {
-		return nil, fmt.Errorf("no se pudo leer %s: %w", envFile, err)
 	}
 
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "8210"
 	}
+	grpcPort := strings.TrimSpace(os.Getenv("GRPC_PORT"))
+	if grpcPort == "" {
+		grpcPort = "50053"
+	}
 
 	cfg := &Config{
 		Port:                  port,
+		GRPCPort:              grpcPort,
 		AppEnv:                appEnv,
 		ContentfulSpaceID:     os.Getenv("CONTENTFUL_SPACE_ID"),
 		ContentfulEnvironment: ContentfulEnv(os.Getenv("CONTENTFUL_ENVIRONMENT")),
@@ -78,7 +111,13 @@ func LoadConfig() (*Config, error) {
 		ContentfulCMAToken:    os.Getenv("CONTENTFUL_CMA_TOKEN"),
 		ContentfulLocale:      os.Getenv("CONTENTFUL_LOCALE"),
 		CORSAllowedOrigins:    os.Getenv("CORS_ALLOWED_ORIGINS"),
+		AuthServiceURL:        strings.TrimRight(os.Getenv("AUTH_SERVICE_URL"), "/"),
+		AuthServiceGRPCTarget: strings.TrimSpace(os.Getenv("AUTH_SERVICE_GRPC_TARGET")),
+		UpstreamIDToken:       strings.EqualFold(strings.TrimSpace(os.Getenv("UPSTREAM_ID_TOKEN")), "true"),
+		EntregasBucket:        strings.TrimSpace(os.Getenv("ENTREGAS_BUCKET")),
 	}
+	cfg.SkillsAI = loadSkillsAIConfig()
+	cfg.Events = loadEventsConfig()
 
 	if cfg.ContentfulLocale == "" {
 		cfg.ContentfulLocale = "en-US"
@@ -90,6 +129,10 @@ func LoadConfig() (*Config, error) {
 
 	if cfg.ContentfulSpaceID == "" || cfg.ContentfulCDAToken == "" || cfg.ContentfulCMAToken == "" {
 		return nil, fmt.Errorf("faltan variables de Contentful: CONTENTFUL_SPACE_ID, CONTENTFUL_CDA_TOKEN y CONTENTFUL_CMA_TOKEN son obligatorias")
+	}
+
+	if cfg.AppEnv == AppEnvProduction && cfg.AuthServiceURL == "" && cfg.AuthServiceGRPCTarget == "" {
+		return nil, fmt.Errorf("falta la variable AUTH_SERVICE_URL: obligatoria en producción")
 	}
 
 	return cfg, nil

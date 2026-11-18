@@ -1,60 +1,211 @@
+<p-toast></p-toast>
 <div class="page-container">
   <div class="header-section">
     <div>
       <h1 class="page-title">
-        <i class="pi pi-book mr-2"></i>Catálogo de Cursos
+        {{ esParticipante ? "Mis cursos" : "Catálogo de cursos" }}
       </h1>
       <p class="page-subtitle">
-        Explorá los cursos y capacitaciones disponibles para la comunidad.
+        {{
+          esParticipante
+            ? "Entrá a cada curso para ver y entregar sus actividades."
+            : "Cursos y capacitaciones disponibles para la comunidad."
+        }}
       </p>
     </div>
-    <div class="search-box p-input-icon-left">
-      <i class="pi pi-search"></i>
-      <input
-        pInputText
-        type="text"
-        [(ngModel)]="searchTerm"
-        (input)="filterCursos()"
-        placeholder="Buscar cursos..."
-        class="p-inputtext-sm"
-      />
+    <div class="filters">
+      <p-select
+        *ngIf="areaOptions.length > 1"
+        [options]="areaOptions"
+        optionLabel="label"
+        optionValue="value"
+        [(ngModel)]="selectedArea"
+        (onChange)="filterCursos()"
+        ariaLabel="Área formativa"
+        styleClass="area-select"
+      ></p-select>
+      <div class="search-box p-input-icon-left">
+        <i class="pi pi-search"></i>
+        <input
+          pInputText
+          type="text"
+          [(ngModel)]="searchTerm"
+          (input)="filterCursos()"
+          placeholder="Buscar cursos..."
+          class="p-inputtext-sm"
+        />
+      </div>
     </div>
   </div>
 
-  <div class="grid-container">
+  <app-loading-state
+    *ngIf="loading"
+    variant="cards"
+    label="Cargando cursos…"
+  ></app-loading-state>
+
+  <app-error-state
+    *ngIf="!loading && error"
+    [message]="error"
+  ></app-error-state>
+
+  <app-empty-state *ngIf="!loading && !error && filteredCursos.length === 0">
+    {{
+      selectedArea
+        ? "No hay cursos de esa área con esa búsqueda."
+        : searchTerm.trim()
+          ? "No se encontraron cursos con «" + searchTerm.trim() + "»."
+          : esParticipante
+            ? "Todavía no estás inscripto en ningún curso. Pedile a un voluntario o administrador que te inscriba."
+            : "No hay cursos publicados por ahora."
+    }}
+  </app-empty-state>
+
+  <div class="grid-container" *ngIf="!loading && !error">
     <div *ngFor="let curso of filteredCursos" class="course-card-wrapper">
       <p-card
         [header]="curso.title"
-        [subheader]="curso.category"
+        [subheader]="curso.area"
         styleClass="p-card-shadow course-card"
       >
         <div class="card-content">
+          <p class="course-desc">
+            {{ curso.descripcion || "Sin descripción." }}
+          </p>
           <div class="info-row">
             <span><i class="pi pi-clock"></i> {{ curso.duration }}</span>
-            <span><i class="pi pi-user"></i> {{ curso.instructor }}</span>
-          </div>
-          <div class="info-row">
             <span
-              ><i class="pi pi-chart-line"></i> Nivel: {{ curso.level }}</span
+              ><i class="pi pi-folder"></i>
+              {{ curso.materialsCount }} materiales</span
             >
-            <span><i class="pi pi-users"></i> Vacantes: {{ curso.seats }}</span>
+          </div>
+          <div class="info-row" *ngIf="curso.teacherId">
+            <span
+              ><i class="pi pi-user"></i> Docente:
+              <code>{{ curso.teacherId }}</code></span
+            >
           </div>
           <div class="status-badge-container">
             <p-tag
-              [value]="curso.status"
-              [severity]="getSeverity(curso.status)"
+              [value]="curso.mode"
+              [severity]="modeSeverity(curso.mode)"
             ></p-tag>
           </div>
         </div>
         <ng-template pTemplate="footer">
-          <p-button
-            label="Inscribirme"
-            icon="pi pi-check-circle"
-            [disabled]="curso.seats === 0"
-            styleClass="w-full p-button-success"
-          ></p-button>
+          <div class="card-actions">
+            <p-button
+              *ngIf="!esParticipante"
+              label="Ver detalle"
+              icon="pi pi-eye"
+              [text]="true"
+              (onClick)="openDetail(curso)"
+            ></p-button>
+            <p-button
+              *ngIf="canEnrollParticipants"
+              label="Inscribir participante"
+              icon="pi pi-check-circle"
+              styleClass="p-button-success"
+              (onClick)="openEnrollDialog(curso)"
+            ></p-button>
+            <p-button
+              *ngIf="esParticipante"
+              label="Ir al curso"
+              icon="pi pi-arrow-right"
+              iconPos="right"
+              styleClass="p-button-success"
+              (onClick)="openDetail(curso)"
+            ></p-button>
+          </div>
         </ng-template>
       </p-card>
     </div>
   </div>
 </div>
+
+<p-dialog
+  [(visible)]="detailVisible"
+  [modal]="true"
+  [style]="{ width: '620px' }"
+  [header]="detail?.title || 'Curso'"
+>
+  <div *ngIf="detail" class="detail">
+    <div class="detail-meta">
+      <p-tag
+        [value]="detail.mode"
+        [severity]="modeSeverity(detail.mode)"
+      ></p-tag>
+      <span><i class="pi pi-sitemap"></i> {{ detail.area }}</span>
+      <span><i class="pi pi-clock"></i> {{ detail.duration }}</span>
+    </div>
+
+    <h4>Descripción</h4>
+    <app-rich-text [doc]="detail.raw.description"></app-rich-text>
+
+    <h4>Materiales</h4>
+    <ul *ngIf="detail.raw.material?.length; else sinMat" class="mat-list">
+      <li *ngFor="let m of detail.raw.material">
+        <i
+          class="pi"
+          [ngClass]="{
+            'pi-file-pdf': m.type === 'PDF',
+            'pi-video': m.type === 'Video',
+            'pi-link': m.type === 'Link',
+            'pi-file': !m.type,
+          }"
+        ></i>
+        <a
+          *ngIf="matHref(m) as href; else soloTitulo"
+          [href]="href"
+          target="_blank"
+          rel="noopener"
+        >
+          {{ m.title }}
+        </a>
+        <ng-template #soloTitulo>{{ m.title }}</ng-template>
+        <span class="mat-type" *ngIf="m.type">{{ m.type }}</span>
+      </li>
+    </ul>
+    <ng-template #sinMat
+      ><p class="muted">
+        Este curso no tiene materiales cargados.
+      </p></ng-template
+    >
+
+    <p class="muted" *ngIf="detail.teacherId">
+      Docente responsable: <code>{{ detail.teacherId }}</code>
+    </p>
+  </div>
+</p-dialog>
+
+<p-dialog
+  [(visible)]="enrollVisible"
+  [modal]="true"
+  [style]="{ width: '560px' }"
+  [breakpoints]="{ '640px': '90vw' }"
+  styleClass="enroll-dialog"
+  [header]="'Inscribir en: ' + (enrollCurso?.title ?? '')"
+>
+  <div *ngIf="enrollCurso" class="detail">
+    <label for="enroll-participant">Participante</label>
+    <app-participant-picker
+      inputId="enroll-participant"
+      [cursoId]="enrollCurso.id"
+      (seleccionado)="selectedParticipant = $event"
+      style="margin-top: 0.5rem"
+    ></app-participant-picker>
+    <p class="muted">
+      Buscá por nombre, apellido o DNI. No aparecen quienes ya están inscriptos
+      en este curso.
+    </p>
+    <div style="margin-top: 1rem; text-align: right">
+      <p-button
+        label="Inscribir"
+        icon="pi pi-check"
+        [loading]="inscribiendo"
+        [disabled]="!selectedParticipant"
+        (onClick)="inscribir()"
+      ></p-button>
+    </div>
+  </div>
+</p-dialog>

@@ -1,8 +1,9 @@
-import { Component, inject } from "@angular/core";
+import { Component, inject, OnInit } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import {
   FormBuilder,
   FormGroup,
+  FormsModule,
   ReactiveFormsModule,
   Validators,
 } from "@angular/forms";
@@ -11,9 +12,9 @@ import {
   LucideAngularModule,
   Mail,
   Lock,
-  AlertCircle,
   Eye,
   EyeOff,
+  ShieldCheck,
 } from "lucide-angular";
 import { AuthService } from "../../services/auth.service";
 import { AvailableAccount } from "../../core/models/auth.model";
@@ -28,6 +29,7 @@ import { MessageModule } from "primeng/message";
   standalone: true,
   imports: [
     CommonModule,
+    FormsModule,
     ReactiveFormsModule,
     RouterLink,
     LucideAngularModule,
@@ -39,29 +41,52 @@ import { MessageModule } from "primeng/message";
   templateUrl: "./login.component.html",
   styleUrl: "./login.component.css",
 })
-export class LoginComponent {
+export class LoginComponent implements OnInit {
   readonly MailIcon = Mail;
   readonly LockIcon = Lock;
-  readonly AlertCircleIcon = AlertCircle;
   readonly EyeIcon = Eye;
   readonly EyeOffIcon = EyeOff;
+  readonly ShieldIcon = ShieldCheck;
 
-  private fb = inject(FormBuilder);
-  private authService = inject(AuthService);
-  private router = inject(Router);
+  private readonly fb = inject(FormBuilder);
+  private readonly authService = inject(AuthService);
+  private readonly router = inject(Router);
 
   loginForm: FormGroup;
   loginError = "";
   locked = false;
+  loading = false;
+  googleLoading = false;
   failedAttempts = 0;
   MAX_ATTEMPTS = 5;
   showPassword = false;
+
+  // 2FA state
+  is2faStep = false;
+  twofaMethod = "email";
+  twofaNonce = "";
+  twofaCode = "";
+  trustDevice = false;
+  twofaEmail = "";
+  resendSuccess = "";
+  resendingCode = false;
 
   constructor() {
     this.loginForm = this.fb.group({
       email: ["", [Validators.required, Validators.email]],
       password: ["", [Validators.required, Validators.minLength(4)]],
+      rememberMe: [false],
     });
+  }
+
+  ngOnInit(): void {
+    const savedEmail = localStorage.getItem("rememberedEmail");
+    if (savedEmail) {
+      this.loginForm.patchValue({
+        email: savedEmail,
+        rememberMe: true,
+      });
+    }
   }
 
   togglePasswordVisibility(): void {
@@ -83,7 +108,7 @@ export class LoginComponent {
   }
 
   onSubmit() {
-    if (this.locked) return;
+    if (this.locked || this.loading || this.googleLoading) return;
 
     if (this.loginForm.invalid) {
       this.loginForm.markAllAsTouched();
@@ -91,22 +116,56 @@ export class LoginComponent {
       return;
     }
 
-    const { email, password } = this.loginForm.value;
+    const { email, password, rememberMe } = this.loginForm.value;
+
+    if (rememberMe) {
+      localStorage.setItem("rememberedEmail", email);
+    } else {
+      localStorage.removeItem("rememberedEmail");
+    }
+
+    this.loading = true;
+    this.loginError = "";
 
     this.authService.checkCredentials(email, password).subscribe({
       next: (res) => {
+        this.loading = false;
         this.loginError = "";
+        if (res.requires_2fa) {
+          this.is2faStep = true;
+          this.twofaNonce = res.twofa_nonce || "";
+          this.twofaMethod = res.twofa_method || "email";
+          this.twofaEmail = res.email || email;
+          this.twofaCode = "";
+          return;
+        }
+        if (res.is_email_verified === false) {
+          void this.router.navigate(["/verify-email"], {
+            queryParams: { email: res.email || email },
+          });
+          return;
+        }
         this.handleAccountsResponse(res.accounts, res.login_nonce);
       },
       error: (err) => {
+        this.loading = false;
         const errorMsg = err.error?.error || "";
+        // HU-02: el backend bloquea la cuenta tras 5 intentos fallidos
+        // (423 + code ACCOUNT_LOCKED) y dice cuántos minutos faltan.
+        if (err.status === 423 || err.error?.code === "ACCOUNT_LOCKED") {
+          this.locked = true;
+          this.loginError =
+            errorMsg ||
+            "Tu cuenta fue bloqueada temporalmente por demasiados intentos fallidos. Intentá nuevamente más tarde.";
+          return;
+        }
         if (
           err.error?.user_status === "blocked" ||
           errorMsg.includes("activa") ||
           errorMsg.includes("bloque")
         ) {
           this.loginError = "";
-          this.router.navigate(["/account-notice"]);
+          void this.router.navigate(["/account-notice"]);
         } else {
           this.handleFailedAttempt(errorMsg);
         }
@@ -115,18 +174,89 @@ export class LoginComponent {
   }
 
   handleGoogleLogin() {
+    if (this.loading || this.googleLoading) return;
+    this.googleLoading = true;
+    this.loginError = "";
+
     this.authService.checkGoogleCredentials().subscribe({
       next: (res) => {
+        this.googleLoading = false;
         this.loginError = "";
+        if (res.requires_2fa) {
+          this.is2faStep = true;
+          this.twofaNonce = res.twofa_nonce || "";
+          this.twofaMethod = res.twofa_method || "email";
+          this.twofaEmail = res.email || "";
+          this.twofaCode = "";
+          return;
+        }
+        if (res.is_email_verified === false) {
+          void this.router.navigate(["/verify-email"], {
+            queryParams: { email: res.email },
+          });
+          return;
+        }
         this.handleAccountsResponse(res.accounts, res.login_nonce);
       },
       error: (err) => {
+        this.googleLoading = false;
         const errorMsg = err.error?.error;
         this.loginError =
           errorMsg ||
           "Hubo un error al iniciar sesión con Google. Intentá nuevamente.";
       },
     });
+  }
+
+  onVerifyTwofa(): void {
+    if (this.loading || this.twofaCode?.trim().length !== 6) return;
+    this.loading = true;
+    this.loginError = "";
+    this.resendSuccess = "";
+
+    this.authService
+      .verifyTwoFactor(this.twofaNonce, this.twofaCode.trim(), this.trustDevice)
+      .subscribe({
+        next: (res) => {
+          this.loading = false;
+          this.is2faStep = false;
+          this.handleAccountsResponse(res.accounts, res.login_nonce);
+        },
+        error: (err) => {
+          this.loading = false;
+          const errorMsg = err.error?.error || err.message || "";
+          this.loginError = errorMsg || "Código de verificación incorrecto.";
+        },
+      });
+  }
+
+  onResendTwofa(): void {
+    if (this.resendingCode || !this.twofaNonce) return;
+    this.resendingCode = true;
+    this.loginError = "";
+    this.resendSuccess = "";
+
+    this.authService.resendTwoFactorCode(this.twofaNonce).subscribe({
+      next: (res) => {
+        this.resendingCode = false;
+        this.resendSuccess =
+          res.message || "Se ha reenviado el código a tu correo electrónico.";
+      },
+      error: (err) => {
+        this.resendingCode = false;
+        const errorMsg = err.error?.error || err.message || "";
+        this.loginError = errorMsg || "Error al reenviar el código.";
+      },
+    });
+  }
+
+  cancelTwofa(): void {
+    this.is2faStep = false;
+    this.twofaNonce = "";
+    this.twofaCode = "";
+    this.trustDevice = false;
+    this.loginError = "";
+    this.resendSuccess = "";
   }
 
   /**
@@ -150,7 +280,7 @@ export class LoginComponent {
       this.loginWithAccount(accounts[0], loginNonce);
     } else {
       // Multiple accounts — navigate to role selection, carry nonce in router state
-      this.router.navigate(["/select-role"], {
+      void this.router.navigate(["/select-role"], {
         state: { accounts, loginNonce },
       });
     }
@@ -161,27 +291,40 @@ export class LoginComponent {
    */
   private loginWithAccount(account: AvailableAccount, loginNonce: string) {
     if (account.status !== "active") {
-      this.router.navigate(["/account-notice"]);
+      void this.router.navigate(["/account-notice"]);
       return;
     }
 
+    this.loading = true;
     this.authService
       .loginWithAccount(account.user_id, account.role_id, loginNonce)
       .subscribe({
         next: (res) => {
+          this.loading = false;
           this.loginError = "";
           if (res.user_status === "blocked") {
-            this.router.navigate(["/account-notice"]);
+            void this.router.navigate(["/account-notice"]);
           } else if (res.approval_status === "pending") {
-            this.router.navigate(["/pending-approval"]);
+            void this.router.navigate(["/pending-approval"]);
           } else {
-            this.router.navigate(["/dashboard"]);
+            void this.router.navigate(["/dashboard"]);
           }
         },
         error: (err) => {
-          const errorMsg = err.error?.error || "";
+          this.loading = false;
+          const errorMsg = err.error?.error || err.message || "";
+          if (
+            errorMsg === "EMAIL_NOT_VERIFIED" ||
+            errorMsg.includes("verificar tu correo")
+          ) {
+            const email = this.loginForm.get("email")?.value;
+            void this.router.navigate(["/verify-email"], {
+              queryParams: email ? { email } : undefined,
+            });
+            return;
+          }
           if (errorMsg.includes("activa") || errorMsg.includes("bloque")) {
-            this.router.navigate(["/account-notice"]);
+            void this.router.navigate(["/account-notice"]);
           } else {
             this.handleFailedAttempt(errorMsg);
           }

@@ -1,0 +1,270 @@
+<div class="legal-page-container">
+  <header class="legal-header">
+    <div class="container">
+      <div class="legal-nav-top">
+        <a [routerLink]="inicio" class="btn-back">
+          <lucide-angular
+            [img]="ArrowLeftIcon"
+            class="icon-sm icon-mr"
+          ></lucide-angular>
+          Volver al inicio
+        </a>
+        <div class="legal-brand">
+          <img src="assets/logo.png" alt="Logo Buen Vivir" class="legal-logo" />
+          <span>Buen Vivir</span>
+        </div>
+      </div>
+      <div class="legal-hero">
+        <div class="legal-badge">
+          <lucide-angular
+            [img]="ShieldIcon"
+            class="icon-sm icon-mr"
+          ></lucide-angular>
+          Cumplimiento de la Ley 25.326 y directrices OWASP
+        </div>
+        <h1 class="legal-title">
+          Política de privacidad y protección de datos personales
+        </h1>
+        <p class="legal-subtitle">
+          Centro de Ecología Integral "La Otra Orilla" — Alta Gracia, Provincia
+          de Córdoba
+        </p>
+        <span class="legal-date">Última actualización: {{ lastUpdated }}</span>
+      </div>
+    </div>
+  </header>
+
+  <main class="legal-content container">
+    <div class="legal-grid">
+      <aside class="legal-toc">
+        <h3>Contenido</h3>
+        <nav>
+          <a [routerLink]="[]" fragment="responsable"
+            >1. Responsable del tratamiento</a
+          >
+          <a [routerLink]="[]" fragment="marco-legal"
+            >2. Marco legal aplicable</a
+          >
+          <a [routerLink]="[]" fragment="datos-recolectados"
+            >3. Datos recolectados y finalidad</a
+          >
+          <a [routerLink]="[]" fragment="derechos-arco">4. Derechos ARCO</a>
+          <a [routerLink]="[]" fragment="organo-control"
+            >5. Órgano de control (AAIP)</a
+          >
+          <a [routerLink]="[]" fragment="seguridad-owasp"
+            >6. Seguridad de la información (OWASP)</a
+          >
+          <a [routerLink]="[]" fragment="contacto">7. Contacto y consultas</a>
+        </nav>
+      </aside>
+
+      <article class="legal-article">
+        <section id="responsable" class="legal-section">
+          <h2>
+            <lucide-angular
+              [img]="BuildingIcon"
+              class="section-icon"
+            ></lucide-angular>
+            1. Responsable del tratamiento de datos
+          </h2>
+          <p>
+            El responsable del tratamiento de los datos personales recolectados
+            a través de esta plataforma web es el
+            <strong
+              >Centro Barrial "La Otra Orilla" / Centro de Ecología Integral
+              Buen Vivir</strong
+            >, domiciliado en la localidad de Alta Gracia, Provincia de Córdoba,
+            República Argentina.
+          </p>
+          <p>
+            Correo electrónico oficial de privacidad:
+            <a href="mailto:ceibuenvivir7@gmail.com"
+              >ceibuenvivir7&#64;gmail.com</a
+            >
+          </p>
+        </section>
+
+        <section id="marco-legal" class="legal-section">
+          <h2>
+            <lucide-angular
+              [img]="FileTextIcon"
+              class="section-icon"
+            ></lucide-angular>
+            2. Marco legal aplicable
+          </h2>
+          <p>
+            La presente política se rige por la
+            <strong>Ley de Protección de Datos Personales N° 25.326</strong> de
+            la República Argentina, su Decreto Reglamentario N° 1558/2001, las
+            disposiciones emitidas por la Agencia de Acceso a la Información
+            Pública (AAIP) y la legislación vigente en la Provincia de Córdoba
+            en materia de derechos digitales y protección ciudadana.
+          </p>
+        </section>
+
+        <section id="datos-recolectados" class="legal-section">
+          <h2>
+            <lucide-angular
+              [img]="UserCheckIcon"
+              class="section-icon"
+            ></lucide-angular>
+            3. Datos recolectados y finalidades del tratamiento
+          </h2>
+          <p>
+            En cumplimiento del principio de minimización de datos de la Ley
+            25.326 y estándares OWASP, únicamente solicitamos la información
+            estrictamente necesaria para cumplir con los fines institucionales:
+          </p>
+          <ul>
+            <li>
+              <strong>Datos de identificación:</strong> Nombre, apellido, DNI,
+              correo electrónico y teléfono de contacto.
+            </li>
+            <li>
+              <strong>Datos de formación y empleo:</strong> Información
+              académica, experiencia laboral y postulaciones a cursos o bolsas
+              de trabajo comunitarias.
+            </li>
+          </ul>
+          <p><strong>Finalidades del tratamiento:</strong></p>
+          <ul>
+            <li>
+              Gestión de inscripciones y seguimiento pedagógico en cursos de
+              capacitación.
+            </li>
+            <li>
+              Intermediación y postulación a ofertas de inserción laboral en la
+              comunidad de Alta Gracia y zonas aledañas.
+            </li>
+            <li>
+              Envío de notificaciones operativas e institucionales relacionadas
+              con la participación del usuario.
+            </li>
+          </ul>
+        </section>
+
+        <section id="derechos-arco" class="legal-section">
+          <h2>
+            <lucide-angular
+              [img]="ShieldIcon"
+              class="section-icon"
+            ></lucide-angular>
+            4. Derechos ARCO (acceso, rectificación, cancelación y oposición)
+          </h2>
+          <p>
+            Conforme a lo dispuesto por el Artículo 14 de la Ley N° 25.326, el
+            titular de los datos personales tiene la facultad de ejercer el
+            derecho de acceso a los mismos en forma gratuita a intervalos no
+            inferiores a seis meses, salvo que se acredite un interés legítimo
+            al efecto.
+          </p>
+          <p>
+            Asimismo, el usuario podrá solicitar en cualquier momento la
+            <strong>rectificación, actualización o supresión</strong> de sus
+            datos de la base de datos institucional enviando una solicitud
+            firmada adjuntando copia de DNI a
+            <a href="mailto:ceibuenvivir7@gmail.com"
+              >ceibuenvivir7&#64;gmail.com</a
+            >.
+          </p>
+        </section>
+
+        <section id="organo-control" class="legal-section highlight-box">
+          <h2>5. Órgano de control de la Ley 25.326 (AAIP)</h2>
+          <p>Se informa formalmente a los usuarios de la plataforma que:</p>
+          <blockquote>
+            "La
+            <strong>AGENCIA DE ACCESO A LA INFORMACIÓN PÚBLICA (AAIP)</strong>,
+            en su carácter de Órgano de Control de la Ley N° 25.326, tiene la
+            atribución de atender las denuncias y reclamos que interpongan
+            quienes resulten afectados en sus derechos por incumplimiento de las
+            normas vigentes en materia de protección de datos personales."
+          </blockquote>
+          <div class="aaip-info">
+            <p>
+              <strong>Sitio web oficial:</strong>
+              <a
+                href="https://www.argentina.gob.ar/aaip"
+                target="_blank"
+                rel="noopener"
+                >www.argentina.gob.ar/aaip</a
+              >
+            </p>
+            <p>
+              <strong>Dirección:</strong> Av. Gaona 2862, Ciudad Autónoma de
+              Buenos Aires
+            </p>
+            <p>
+              <strong>Correo electrónico:</strong>
+              datospersonales&#64;aaip.gob.ar
+            </p>
+          </div>
+        </section>
+
+        <section id="seguridad-owasp" class="legal-section">
+          <h2>
+            <lucide-angular
+              [img]="LockIcon"
+              class="section-icon"
+            ></lucide-angular>
+            6. Medidas de seguridad de la información (OWASP)
+          </h2>
+          <p>
+            Implementamos estrictas medidas de seguridad técnicas y
+            organizativas para garantizar la confidencialidad, integridad y
+            disponibilidad de la información personal de acuerdo con los
+            estándares internacionales de OWASP:
+          </p>
+          <ul>
+            <li>
+              <strong>Cifrado en tránsito:</strong> Transmisión de información
+              protegida mediante protocolo HTTPS y TLS.
+            </li>
+            <li>
+              <strong>Almacenamiento seguro:</strong> Contraseñas procesadas
+              mediante funciones hash criptográficas y salado (*salted password
+              hashing*).
+            </li>
+            <li>
+              <strong>Control de acceso (RBAC):</strong> Restricción de acceso a
+              datos según roles de usuario verificados.
+            </li>
+            <li>
+              <strong>Sanitización de entradas:</strong>
+              Consultas parametrizadas para prevenir vulnerabilidades OWASP Top
+              10 (SQLi, XSS, CSRF).
+            </li>
+          </ul>
+        </section>
+
+        <section id="contacto" class="legal-section">
+          <h2>
+            <lucide-angular
+              [img]="MailIcon"
+              class="section-icon"
+            ></lucide-angular>
+            7. Contacto y consultas legales
+          </h2>
+          <p>
+            Para consultas relacionadas con esta Política de Privacidad o el
+            tratamiento de sus datos personales, contáctenos directamente:
+          </p>
+          <div class="contact-card">
+            <p><strong>Centro de Ecología Integral Buen Vivir</strong></p>
+            <p>Centro Barrial "La Otra Orilla" — Alta Gracia, Córdoba</p>
+            <p>
+              Email:
+              <a href="mailto:ceibuenvivir7@gmail.com"
+                >ceibuenvivir7&#64;gmail.com</a
+              >
+            </p>
+            <p>Teléfonos: +54 9 3547 61 2118 | +54 9 3547 45 6184</p>
+          </div>
+        </section>
+      </article>
+    </div>
+  </main>
+
+  <app-footer></app-footer>
+</div>

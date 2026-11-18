@@ -1,12 +1,22 @@
 declare global {
   interface Window {
-    __env?: { apiUrl?: string };
+    __env?: {
+      apiUrl?: string;
+      educationApiUrl?: string;
+      workerImpactUrl?: string;
+    };
   }
 }
 
 export const environment = {
   production: false,
   apiUrl: window.__env?.apiUrl,
+  // Base del microservicio de Educación. Vacío = mismo origen (útil detrás
+  // del api-gateway o del proxy de `ng serve -c local`).
+  educationApiUrl: window.__env?.educationApiUrl ?? "",
+  workerImpactUrl:
+    window.__env?.workerImpactUrl ??
+    "https://buen-vivir-impact-staging.leonardomorabito02.workers.dev/api/impact",
   firebase: {
     projectId: "ceibuenvivir",
     appId: "1:429506836254:web:45f5eb50d86f074323bb0f",
@@ -15,5 +25,7 @@ export const environment = {
     authDomain: "ceibuenvivir.firebaseapp.com",
     messagingSenderId: "429506836254",
     measurementId: "G-4C2KCQ3MNT",
+    firebaseVapidKey:
+      "BIDsxZWpgrdpe84FWgzqLxknJcUaEAoWo47uaH7FjufV-IfWDobgglQDA1w6_2o6gHeddZ8dg5bLH5coAHLZLhs",
   },
 };

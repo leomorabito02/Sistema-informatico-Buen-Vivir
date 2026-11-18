@@ -1,0 +1,727 @@
+asyncapi: 3.0.0
+info:
+  title: Buen Vivir — Mensajería asíncrona
+  version: 1.0.0
+  description: |
+    Eventos entre los microservicios del sistema Buen Vivir sobre GCP Pub/Sub.
+    Todos los eventos usan el envelope estándar (ver components.schemas.Envelope);
+    event_type y version viajan además como atributos del mensaje para filtrar
+    suscripciones. Los payloads llevan SOLO ids y metadatos (Ley 25.326).
+
+    Estado de cada evento en x-estado: existente | nuevo | pendiente (falta que
+    el servicio productor lo publique; ver docs/eventos/README.md, sección 5).
+
+    Detalle y decisiones: docs/eventos/README.md y docs/adr/.
+
+servers:
+  gcp:
+    host: pubsub.googleapis.com
+    protocol: googlepubsub
+    description: GCP Pub/Sub, proyecto ceibuenvivir.
+  emulador:
+    host: localhost:8086
+    protocol: googlepubsub
+    description: Emulador local (docker-compose, buenvivir-pubsub-emulator).
+
+defaultContentType: application/json
+
+channels:
+  usuariosEventos:
+    address: usuarios-eventos
+    title: Cascada de cambios de usuarios
+    description: Lo publica Autenticación. DLQ usuarios-eventos-dlq.
+    messages:
+      participanteCreado: { $ref: '#/components/messages/ParticipanteCreado' }
+      participanteEliminado: { $ref: '#/components/messages/ParticipanteEliminado' }
+      usuarioActualizado: { $ref: '#/components/messages/UsuarioActualizado' }
+      usuarioCreado: { $ref: '#/components/messages/UsuarioCreado' }
+      emailSolicitado: { $ref: '#/components/messages/EmailSolicitado' }
+    x-retencion: 7d
+
+  educacionEventos:
+    address: educacion-eventos
+    description: Lo publica Educación. DLQ educacion-eventos-dlq.
+    messages:
+      cursoCreado: { $ref: '#/components/messages/CursoCreado' }
+      cursoActualizado: { $ref: '#/components/messages/CursoActualizado' }
+      cursoEliminado: { $ref: '#/components/messages/CursoEliminado' }
+      inscripcionCreada: { $ref: '#/components/messages/InscripcionCreada' }
+      asistenciaRegistrada: { $ref: '#/components/messages/AsistenciaRegistrada' }
+      cursoCompletado: { $ref: '#/components/messages/CursoCompletadoPorParticipante' }
+      habilidadOtorgada: { $ref: '#/components/messages/HabilidadOtorgada' }
+      asistenciaGeneralRegistrada: { $ref: '#/components/messages/AsistenciaGeneralRegistrada' }
+      asistenciaGeneralActualizada: { $ref: '#/components/messages/AsistenciaGeneralActualizada' }
+      contenidoDocenteSubido: { $ref: '#/components/messages/ContenidoDocenteSubido' }
+      contenidoDocenteModerado: { $ref: '#/components/messages/ContenidoDocenteModerado' }
+      actividadRecordatorio: { $ref: '#/components/messages/ActividadRecordatorio' }
+    x-retencion: 7d
+
+  promocionHumanaEventos:
+    address: promocion-humana-eventos
+    description: Lo publica Promoción Humana. DLQ promocion-humana-eventos-dlq.
+    messages:
+      fichaCreada: { $ref: '#/components/messages/FichaCreada' }
+      fichaActualizada: { $ref: '#/components/messages/FichaActualizada' }
+      hitoRegistrado: { $ref: '#/components/messages/HitoRegistrado' }
+      hitoActualizado: { $ref: '#/components/messages/HitoActualizado' }
+    x-retencion: 7d
+
+  contenidoEventos:
+    address: contenido-eventos
+    title: Cola de eventos de contenido
+    description: Lo publica el receptor de webhooks de Contentful (POST /webhooks/contentful, dentro de Educación). DLQ contenido-eventos-dlq.
+    messages:
+      contenidoPublicado: { $ref: '#/components/messages/ContenidoPublicado' }
+      contenidoDespublicado: { $ref: '#/components/messages/ContenidoDespublicado' }
+    x-retencion: 7d
+
+  insercionLaboralEventos:
+    address: insercion-laboral-eventos
+    description: Lo publica Inserción Laboral vía outbox. DLQ insercion-laboral-eventos-dlq.
+    messages:
+      postulacionSeleccionada: { $ref: '#/components/messages/PostulacionSeleccionada' }
+      ofertaCreada: { $ref: '#/components/messages/OfertaCreada' }
+      ofertaRevisada: { $ref: '#/components/messages/OfertaRevisada' }
+      postulacionCreada: { $ref: '#/components/messages/PostulacionCreada' }
+      postulacionDecidida: { $ref: '#/components/messages/PostulacionDecidida' }
+    x-retencion: 7d
+
+  campanasEventos:
+    address: campanas-eventos
+    title: Eventos del dominio de campañas
+    description: Lo publica Campañas vía outbox. DLQ campanas-eventos-dlq.
+    messages:
+      campanaCreada: { $ref: '#/components/messages/CampanaCreada' }
+    x-retencion: 7d
+
+  rxresumeSync:
+    address: rxresume-sync-topic
+    description: |
+      EXISTENTE, previo a esta especificación. Cola de trabajo interna de rxresume
+      (publica y consume el mismo servicio, pull). NO usa el envelope estándar.
+      Se documenta para dejar registrado el formato; no se modificó.
+    messages:
+      syncCV: { $ref: '#/components/messages/RxresumeSync' }
+
+operations:
+  # ── Productores ──────────────────────────────────────────────────────
+  autenticacionPublicaUsuarios:
+    action: send
+    channel: { $ref: '#/channels/usuariosEventos' }
+    summary: Autenticación publica altas, bajas y cambios de cuenta (PENDIENTE).
+    x-estado: pendiente
+  educacionPublica:
+    action: send
+    channel: { $ref: '#/channels/educacionEventos' }
+    summary: Educación publica vía outbox (Firestore) + relay.
+  promocionHumanaPublica:
+    action: send
+    channel: { $ref: '#/channels/promocionHumanaEventos' }
+    summary: Promoción Humana publica vía outbox, junto con el registro de auditoría.
+  contentfulPublica:
+    action: send
+    channel: { $ref: '#/channels/contenidoEventos' }
+    summary: El receptor de webhooks traduce Entry.publish/unpublish/delete.
+  insercionLaboralPublica:
+    action: send
+    channel: { $ref: '#/channels/insercionLaboralEventos' }
+    summary: Inserción Laboral publica ofertas y postulaciones vía outbox.
+  campanasPublica:
+    action: send
+    channel: { $ref: '#/channels/campanasEventos' }
+    summary: Campañas publica eventos de campañas vía outbox.
+  rxresumeEncola:
+    action: send
+    channel: { $ref: '#/channels/rxresumeSync' }
+    x-estado: existente
+
+  # ── Consumidores ─────────────────────────────────────────────────────
+  # Cada uno es una suscripción PUSH propia, filtrada por el atributo
+  # event_type, con autenticación OIDC (service account dedicada), ack
+  # deadline 30 s, backoff 10 s–600 s y dead-letter a <topic>-dlq después de
+  # 5 intentos (infra/pubsub/setup.sh).
+  educacionConsumeUsuarios:
+    action: receive
+    channel: { $ref: '#/channels/usuariosEventos' }
+    summary: Suscripción educacion-usuarios → POST /eventos/usuarios. Baja de inscripciones.
+    messages:
+      - $ref: '#/channels/usuariosEventos/messages/participanteEliminado'
+      - $ref: '#/channels/usuariosEventos/messages/usuarioActualizado'
+  educacionConsumeContenido:
+    action: receive
+    channel: { $ref: '#/channels/contenidoEventos' }
+    summary: Suscripción educacion-contenido → POST /eventos/contenido. Invalida la caché de Contentful.
+    messages:
+      - $ref: '#/channels/contenidoEventos/messages/contenidoPublicado'
+      - $ref: '#/channels/contenidoEventos/messages/contenidoDespublicado'
+  promocionHumanaConsumeEducacion:
+    action: receive
+    channel: { $ref: '#/channels/educacionEventos' }
+    summary: Suscripción promocion-humana-educacion → POST /eventos/educacion. Línea de tiempo.
+    messages:
+      - $ref: '#/channels/educacionEventos/messages/inscripcionCreada'
+      - $ref: '#/channels/educacionEventos/messages/cursoCompletado'
+      - $ref: '#/channels/educacionEventos/messages/asistenciaGeneralRegistrada'
+  promocionHumanaConsumeUsuarios:
+    action: receive
+    channel: { $ref: '#/channels/usuariosEventos' }
+    summary: Suscripción promocion-humana-usuarios → POST /eventos/usuarios. Baja lógica de la ficha.
+    messages:
+      - $ref: '#/channels/usuariosEventos/messages/participanteEliminado'
+  dashboardConsumeUsuarios:
+    action: receive
+    channel: { $ref: '#/channels/usuariosEventos' }
+    summary: Suscripción dashboard-usuarios → POST /eventos. Invalida la caché de indicadores.
+    messages:
+      - $ref: '#/channels/usuariosEventos/messages/participanteCreado'
+      - $ref: '#/channels/usuariosEventos/messages/participanteEliminado'
+  dashboardConsumeEducacion:
+    action: receive
+    channel: { $ref: '#/channels/educacionEventos' }
+    summary: Suscripción dashboard-educacion → POST /eventos.
+    messages:
+      - $ref: '#/channels/educacionEventos/messages/cursoCreado'
+      - $ref: '#/channels/educacionEventos/messages/cursoEliminado'
+      - $ref: '#/channels/educacionEventos/messages/cursoCompletado'
+      - $ref: '#/channels/educacionEventos/messages/habilidadOtorgada'
+  dashboardConsumeInsercionLaboral:
+    action: receive
+    channel: { $ref: '#/channels/insercionLaboralEventos' }
+    summary: Suscripción dashboard-insercion-laboral → POST /eventos.
+    messages:
+      - $ref: '#/channels/insercionLaboralEventos/messages/postulacionSeleccionada'
+  notificacionesConsumeEducacion:
+    action: receive
+    channel: { $ref: '#/channels/educacionEventos' }
+    summary: Suscripción notificaciones-educacion → POST /eventos/educacion. Notificaciones a alumnos, docentes y administradores.
+    messages:
+      - $ref: '#/channels/educacionEventos/messages/inscripcionCreada'
+      - $ref: '#/channels/educacionEventos/messages/contenidoDocenteSubido'
+      - $ref: '#/channels/educacionEventos/messages/contenidoDocenteModerado'
+      - $ref: '#/channels/educacionEventos/messages/cursoCompletado'
+      - $ref: '#/channels/educacionEventos/messages/habilidadOtorgada'
+      - $ref: '#/channels/educacionEventos/messages/cursoEliminado'
+      - $ref: '#/channels/educacionEventos/messages/cursoCreado'
+      - $ref: '#/channels/educacionEventos/messages/actividadRecordatorio'
+  notificacionesConsumePromocionHumana:
+    action: receive
+    channel: { $ref: '#/channels/promocionHumanaEventos' }
+    summary: Suscripción notificaciones-promocion-humana → POST /eventos/promocion-humana. Notificaciones a voluntarios y administradores.
+    messages:
+      - $ref: '#/channels/promocionHumanaEventos/messages/fichaCreada'
+      - $ref: '#/channels/promocionHumanaEventos/messages/fichaActualizada'
+      - $ref: '#/channels/promocionHumanaEventos/messages/hitoRegistrado'
+      - $ref: '#/channels/promocionHumanaEventos/messages/hitoActualizado'
+  notificacionesConsumeUsuarios:
+    action: receive
+    channel: { $ref: '#/channels/usuariosEventos' }
+    summary: Suscripción notificaciones-usuarios → POST /eventos/usuarios.
+    messages:
+      - $ref: '#/channels/usuariosEventos/messages/participanteEliminado'
+      - $ref: '#/channels/usuariosEventos/messages/usuarioCreado'
+      - $ref: '#/channels/usuariosEventos/messages/emailSolicitado'
+  notificacionesConsumeInsercionLaboral:
+    action: receive
+    channel: { $ref: '#/channels/insercionLaboralEventos' }
+    summary: Suscripción notificaciones-insercion-laboral → POST /eventos/insercion-laboral.
+    messages:
+      - $ref: '#/channels/insercionLaboralEventos/messages/ofertaCreada'
+      - $ref: '#/channels/insercionLaboralEventos/messages/ofertaRevisada'
+      - $ref: '#/channels/insercionLaboralEventos/messages/postulacionCreada'
+      - $ref: '#/channels/insercionLaboralEventos/messages/postulacionDecidida'
+  notificacionesConsumeCampanas:
+    action: receive
+    channel: { $ref: '#/channels/campanasEventos' }
+    summary: Suscripción notificaciones-campanas → POST /eventos/campanas.
+    messages:
+      - $ref: '#/channels/campanasEventos/messages/campanaCreada'
+  rxresumeConsume:
+    action: receive
+    channel: { $ref: '#/channels/rxresumeSync' }
+    x-estado: existente
+
+components:
+  messageTraits:
+    estandar:
+      headers:
+        type: object
+        description: Atributos del mensaje de Pub/Sub.
+        required: [event_type, version, producer, correlation_id]
+        properties:
+          event_type: { type: string }
+          version: { type: string, description: 'Número de versión como texto ("1").' }
+          producer: { type: string }
+          correlation_id: { type: string, format: uuid }
+      bindings:
+        googlepubsub:
+          bindingVersion: 0.2.0
+          orderingKey: participante_id (en los eventos donde el orden importa)
+
+  schemas:
+    Envelope:
+      type: object
+      required: [event_id, event_type, version, occurred_at, producer, correlation_id, actor_id, payload]
+      properties:
+        event_id: { type: string, format: uuid }
+        event_type: { type: string, examples: [educacion.inscripcion.creada] }
+        version: { type: integer, minimum: 1 }
+        occurred_at: { type: string, format: date-time, description: RFC 3339 en UTC }
+        producer:
+          type: string
+          enum: [servicio-autenticacion, servicio-educacion, servicio-promocion-humana, receptor-contentful, servicio-insercion-laboral, servicio-campanas]
+        correlation_id: { type: string, format: uuid }
+        actor_id: { type: string, description: 'Usuario que originó la acción; vacío si no hubo (webhook).' }
+        payload: { type: object }
+
+    UsuarioCreadoPayload:
+      type: object
+      required: [user_id, role_id]
+      properties:
+        user_id: { type: string }
+        role_id: { type: string }
+    EmailSolicitadoPayload:
+      type: object
+      required: [request_id, user_id, tipo]
+      properties:
+        request_id: { type: string }
+        user_id: { type: string }
+        tipo: { type: string, examples: [verificacion, recuperacion_password, cuenta_aprobada] }
+    OfertaCreadaPayload:
+      type: object
+      required: [oferta_id, empresa_id, estado]
+      properties:
+        oferta_id: { type: string }
+        empresa_id: { type: string }
+        estado: { type: string, examples: [Pendiente, Activa] }
+    OfertaRevisadaPayload:
+      type: object
+      required: [oferta_id, empresa_id, aprobada]
+      properties:
+        oferta_id: { type: string }
+        empresa_id: { type: string }
+        aprobada: { type: boolean }
+    PostulacionCreadaPayload:
+      type: object
+      required: [postulacion_id, oferta_id, participante_id]
+      properties:
+        postulacion_id: { type: string }
+        oferta_id: { type: string }
+        participante_id: { type: string }
+        empresa_id: { type: string }
+    PostulacionDecididaPayload:
+      type: object
+      required: [postulacion_id, oferta_id, participante_id, resultado]
+      properties:
+        postulacion_id: { type: string }
+        oferta_id: { type: string }
+        participante_id: { type: string }
+        empresa_id: { type: string }
+        resultado: { type: string, examples: [Aprobada, Rechazada] }
+    CampanaCreadaPayload:
+      type: object
+      required: [campana_id, titulo, tipo]
+      properties:
+        campana_id: { type: string }
+        titulo: { type: string }
+        tipo: { type: string, examples: [donacion, difusion] }
+        meta: { type: number }
+
+    ParticipantePayload:
+      type: object
+      required: [participante_id, user_id]
+      properties:
+        participante_id: { type: string }
+        user_id: { type: string }
+    UsuarioActualizadoPayload:
+      type: object
+      required: [user_id, role_id, status]
+      properties:
+        user_id: { type: string }
+        role_id: { type: string }
+        participante_id: { type: string }
+        status: { type: string, examples: [active, blocked] }
+        approval_status: { type: string, examples: [pending, approved] }
+    PostulacionSeleccionadaPayload:
+      type: object
+      required: [postulacion_id, oferta_id, participante_id, empresa_id]
+      properties:
+        postulacion_id: { type: string }
+        oferta_id: { type: string }
+        participante_id: { type: string }
+        empresa_id: { type: string }
+    CursoPayload:
+      type: object
+      required: [curso_id]
+      properties:
+        curso_id: { type: string }
+        area_formativa_id: { type: string }
+        docente_id: { type: string }
+        modalidad: { type: string, enum: [Presencial, Virtual, Mixta, ''] }
+    CursoEliminadoPayload:
+      type: object
+      required: [curso_id]
+      properties:
+        curso_id: { type: string }
+    InscripcionCreadaPayload:
+      type: object
+      required: [inscripcion_id, curso_id, participante_id, fecha_inscripcion]
+      properties:
+        inscripcion_id: { type: string }
+        curso_id: { type: string }
+        participante_id: { type: string }
+        fecha_inscripcion: { type: string, format: date-time }
+    AsistenciaRegistradaPayload:
+      type: object
+      required: [asistencia_id, actividad_id, curso_id, participante_id, fecha, presente]
+      properties:
+        asistencia_id: { type: string }
+        actividad_id: { type: string }
+        curso_id: { type: string }
+        participante_id: { type: string }
+        fecha: { type: string, format: date-time }
+        presente: { type: boolean }
+    CursoCompletadoPayload:
+      type: object
+      required: [curso_id, participante_id, completado_en]
+      properties:
+        curso_id: { type: string }
+        participante_id: { type: string }
+        completado_en: { type: string, format: date-time }
+    HabilidadOtorgadaPayload:
+      type: object
+      required: [habilidad_id, participante_id, origen, fecha]
+      properties:
+        habilidad_id: { type: string }
+        participante_id: { type: string }
+        actividad_id: { type: string }
+        curso_id: { type: string }
+        origen: { type: string, enum: [actividad, manual] }
+        fecha: { type: string, format: date-time }
+    AsistenciaGeneralPayload:
+      type: object
+      required: [asistencia_id, participante_id, fecha, presente]
+      properties:
+        asistencia_id: { type: string }
+        participante_id: { type: string }
+        fecha: { type: string, format: date, description: AAAA-MM-DD }
+        presente: { type: boolean }
+    ContenidoDocenteSubidoPayload:
+      type: object
+      description: >-
+        tipo "curso": curso en borrador de un docente interno (trae
+        curso_id). tipo "material": ContenidoDocente de un docente externo
+        (trae contenido_id; agregado 2026-10-22, compatible con la versión 1).
+      required: [docente_id, tipo]
+      properties:
+        curso_id: { type: string }
+        contenido_id: { type: string }
+        docente_id: { type: string }
+        tipo: { type: string, enum: [curso, material] }
+    ContenidoDocenteModeradoPayload:
+      type: object
+      description: >-
+        Con tipo "material" trae contenido_id y docente_id (a quién avisar).
+        Sin tipo, es un curso (curso_id).
+      required: [resultado]
+      properties:
+        curso_id: { type: string }
+        contenido_id: { type: string }
+        docente_id: { type: string }
+        tipo: { type: string, enum: [curso, material] }
+        resultado: { type: string, enum: [aprobado, rechazado] }
+    ActividadRecordatorioPayload:
+      type: object
+      description: Recordatorio de actividad próxima (HU-26).
+      required: [actividad_id, curso_id, participante_id, fecha]
+      properties:
+        actividad_id: { type: string }
+        curso_id: { type: string }
+        participante_id: { type: string }
+        fecha: { type: string }
+        titulo: { type: string }
+    FichaPayload:
+      type: object
+      required: [ficha_id, participante_id]
+      properties:
+        ficha_id: { type: string }
+        participante_id: { type: string }
+    HitoPayload:
+      type: object
+      required: [hito_id, ficha_id, participante_id, fecha, visible_participante]
+      properties:
+        hito_id: { type: string }
+        ficha_id: { type: string }
+        participante_id: { type: string }
+        fecha: { type: string, format: date, description: AAAA-MM-DD }
+        visible_participante: { type: boolean }
+    ContenidoPayload:
+      type: object
+      required: [entry_id, accion]
+      properties:
+        entry_id: { type: string }
+        content_type: { type: string, examples: [course, trainingArea, material] }
+        environment: { type: string, examples: [testing, master] }
+        accion: { type: string, enum: [publish, unpublish, delete] }
+        revision: { type: integer }
+
+  messages:
+    ParticipanteCreado:
+      name: usuarios.participante.creado
+      x-estado: pendiente
+      traits: [{ $ref: '#/components/messageTraits/estandar' }]
+      payload:
+        allOf:
+          - $ref: '#/components/schemas/Envelope'
+          - properties: { payload: { $ref: '#/components/schemas/ParticipantePayload' } }
+    ParticipanteEliminado:
+      name: usuarios.participante.eliminado
+      x-estado: pendiente
+      traits: [{ $ref: '#/components/messageTraits/estandar' }]
+      payload:
+        allOf:
+          - $ref: '#/components/schemas/Envelope'
+          - properties: { payload: { $ref: '#/components/schemas/ParticipantePayload' } }
+    UsuarioActualizado:
+      name: usuarios.usuario.actualizado
+      x-estado: pendiente
+      traits: [{ $ref: '#/components/messageTraits/estandar' }]
+      payload:
+        allOf:
+          - $ref: '#/components/schemas/Envelope'
+          - properties: { payload: { $ref: '#/components/schemas/UsuarioActualizadoPayload' } }
+    PostulacionSeleccionada:
+      name: insercion_laboral.postulacion.seleccionada
+      traits: [{ $ref: '#/components/messageTraits/estandar' }]
+      payload:
+        allOf:
+          - $ref: '#/components/schemas/Envelope'
+          - properties: { payload: { $ref: '#/components/schemas/PostulacionSeleccionadaPayload' } }
+    CursoCreado:
+      name: educacion.curso.creado
+      x-estado: nuevo
+      traits: [{ $ref: '#/components/messageTraits/estandar' }]
+      payload:
+        allOf:
+          - $ref: '#/components/schemas/Envelope'
+          - properties: { payload: { $ref: '#/components/schemas/CursoPayload' } }
+    CursoActualizado:
+      name: educacion.curso.actualizado
+      x-estado: nuevo
+      traits: [{ $ref: '#/components/messageTraits/estandar' }]
+      payload:
+        allOf:
+          - $ref: '#/components/schemas/Envelope'
+          - properties: { payload: { $ref: '#/components/schemas/CursoPayload' } }
+    CursoEliminado:
+      name: educacion.curso.eliminado
+      x-estado: nuevo
+      traits: [{ $ref: '#/components/messageTraits/estandar' }]
+      payload:
+        allOf:
+          - $ref: '#/components/schemas/Envelope'
+          - properties: { payload: { $ref: '#/components/schemas/CursoEliminadoPayload' } }
+    InscripcionCreada:
+      name: educacion.inscripcion.creada
+      x-estado: nuevo
+      x-ordering-key: participante_id
+      traits: [{ $ref: '#/components/messageTraits/estandar' }]
+      payload:
+        allOf:
+          - $ref: '#/components/schemas/Envelope'
+          - properties: { payload: { $ref: '#/components/schemas/InscripcionCreadaPayload' } }
+    AsistenciaRegistrada:
+      name: educacion.asistencia.registrada
+      x-estado: nuevo
+      x-ordering-key: participante_id
+      traits: [{ $ref: '#/components/messageTraits/estandar' }]
+      payload:
+        allOf:
+          - $ref: '#/components/schemas/Envelope'
+          - properties: { payload: { $ref: '#/components/schemas/AsistenciaRegistradaPayload' } }
+    CursoCompletadoPorParticipante:
+      name: educacion.curso.completado_por_participante
+      x-estado: nuevo
+      x-ordering-key: participante_id
+      traits: [{ $ref: '#/components/messageTraits/estandar' }]
+      payload:
+        allOf:
+          - $ref: '#/components/schemas/Envelope'
+          - properties: { payload: { $ref: '#/components/schemas/CursoCompletadoPayload' } }
+    HabilidadOtorgada:
+      name: educacion.habilidad.otorgada
+      x-estado: nuevo
+      x-ordering-key: participante_id
+      description: Reemplaza a habilidad.aceptada (modelo de habilidades por actividad, ver README, supuesto 1).
+      traits: [{ $ref: '#/components/messageTraits/estandar' }]
+      payload:
+        allOf:
+          - $ref: '#/components/schemas/Envelope'
+          - properties: { payload: { $ref: '#/components/schemas/HabilidadOtorgadaPayload' } }
+    AsistenciaGeneralRegistrada:
+      name: educacion.asistencia_general.registrada
+      x-estado: nuevo
+      x-ordering-key: participante_id
+      traits: [{ $ref: '#/components/messageTraits/estandar' }]
+      payload:
+        allOf:
+          - $ref: '#/components/schemas/Envelope'
+          - properties: { payload: { $ref: '#/components/schemas/AsistenciaGeneralPayload' } }
+    AsistenciaGeneralActualizada:
+      name: educacion.asistencia_general.actualizada
+      x-estado: nuevo
+      x-ordering-key: participante_id
+      traits: [{ $ref: '#/components/messageTraits/estandar' }]
+      payload:
+        allOf:
+          - $ref: '#/components/schemas/Envelope'
+          - properties: { payload: { $ref: '#/components/schemas/AsistenciaGeneralPayload' } }
+    ContenidoDocenteSubido:
+      name: educacion.contenido_docente.subido
+      x-estado: nuevo
+      traits: [{ $ref: '#/components/messageTraits/estandar' }]
+      payload:
+        allOf:
+          - $ref: '#/components/schemas/Envelope'
+          - properties: { payload: { $ref: '#/components/schemas/ContenidoDocenteSubidoPayload' } }
+    ContenidoDocenteModerado:
+      name: educacion.contenido_docente.moderado
+      x-estado: nuevo
+      traits: [{ $ref: '#/components/messageTraits/estandar' }]
+      payload:
+        allOf:
+          - $ref: '#/components/schemas/Envelope'
+          - properties: { payload: { $ref: '#/components/schemas/ContenidoDocenteModeradoPayload' } }
+    ActividadRecordatorio:
+      name: educacion.actividad.recordatorio
+      x-estado: nuevo
+      x-ordering-key: participante_id
+      traits: [{ $ref: '#/components/messageTraits/estandar' }]
+      payload:
+        allOf:
+          - $ref: '#/components/schemas/Envelope'
+          - properties: { payload: { $ref: '#/components/schemas/ActividadRecordatorioPayload' } }
+    FichaCreada:
+      name: promocion_humana.ficha.creada
+      x-estado: nuevo
+      x-ordering-key: participante_id
+      traits: [{ $ref: '#/components/messageTraits/estandar' }]
+      payload:
+        allOf:
+          - $ref: '#/components/schemas/Envelope'
+          - properties: { payload: { $ref: '#/components/schemas/FichaPayload' } }
+    FichaActualizada:
+      name: promocion_humana.ficha.actualizada
+      x-estado: nuevo
+      x-ordering-key: participante_id
+      traits: [{ $ref: '#/components/messageTraits/estandar' }]
+      payload:
+        allOf:
+          - $ref: '#/components/schemas/Envelope'
+          - properties: { payload: { $ref: '#/components/schemas/FichaPayload' } }
+    HitoRegistrado:
+      name: promocion_humana.hito.registrado
+      x-estado: nuevo
+      x-ordering-key: participante_id
+      traits: [{ $ref: '#/components/messageTraits/estandar' }]
+      payload:
+        allOf:
+          - $ref: '#/components/schemas/Envelope'
+          - properties: { payload: { $ref: '#/components/schemas/HitoPayload' } }
+    HitoActualizado:
+      name: promocion_humana.hito.actualizado
+      x-estado: nuevo
+      x-ordering-key: participante_id
+      traits: [{ $ref: '#/components/messageTraits/estandar' }]
+      payload:
+        allOf:
+          - $ref: '#/components/schemas/Envelope'
+          - properties: { payload: { $ref: '#/components/schemas/HitoPayload' } }
+    ContenidoPublicado:
+      name: contenido.publicado
+      x-estado: nuevo
+      description: event_id determinístico (UUID v5 de entry + acción + revisión) para descartar reintentos de Contentful.
+      traits: [{ $ref: '#/components/messageTraits/estandar' }]
+      payload:
+        allOf:
+          - $ref: '#/components/schemas/Envelope'
+          - properties: { payload: { $ref: '#/components/schemas/ContenidoPayload' } }
+    ContenidoDespublicado:
+      name: contenido.despublicado
+      x-estado: nuevo
+      traits: [{ $ref: '#/components/messageTraits/estandar' }]
+      payload:
+        allOf:
+          - $ref: '#/components/schemas/Envelope'
+          - properties: { payload: { $ref: '#/components/schemas/ContenidoPayload' } }
+    RxresumeSync:
+      name: rxresume.sync
+      x-estado: existente
+      description: Formato propio de rxresume, sin envelope ni atributos.
+      payload:
+        type: object
+        required: [user_id]
+        properties:
+          user_id: { type: string }
+    UsuarioCreado:
+      name: usuarios.usuario.creado
+      x-estado: nuevo
+      x-ordering-key: user_id
+      traits: [{ $ref: '#/components/messageTraits/estandar' }]
+      payload:
+        allOf:
+          - $ref: '#/components/schemas/Envelope'
+          - properties: { payload: { $ref: '#/components/schemas/UsuarioCreadoPayload' } }
+    EmailSolicitado:
+      name: usuarios.email.solicitado
+      x-estado: nuevo
+      x-ordering-key: user_id
+      traits: [{ $ref: '#/components/messageTraits/estandar' }]
+      payload:
+        allOf:
+          - $ref: '#/components/schemas/Envelope'
+          - properties: { payload: { $ref: '#/components/schemas/EmailSolicitadoPayload' } }
+    OfertaCreada:
+      name: insercion_laboral.oferta.creada
+      x-estado: nuevo
+      x-ordering-key: empresa_id
+      traits: [{ $ref: '#/components/messageTraits/estandar' }]
+      payload:
+        allOf:
+          - $ref: '#/components/schemas/Envelope'
+          - properties: { payload: { $ref: '#/components/schemas/OfertaCreadaPayload' } }
+    OfertaRevisada:
+      name: insercion_laboral.oferta.revisada
+      x-estado: nuevo
+      x-ordering-key: empresa_id
+      traits: [{ $ref: '#/components/messageTraits/estandar' }]
+      payload:
+        allOf:
+          - $ref: '#/components/schemas/Envelope'
+          - properties: { payload: { $ref: '#/components/schemas/OfertaRevisadaPayload' } }
+    PostulacionCreada:
+      name: insercion_laboral.postulacion.creada
+      x-estado: nuevo
+      x-ordering-key: participante_id
+      traits: [{ $ref: '#/components/messageTraits/estandar' }]
+      payload:
+        allOf:
+          - $ref: '#/components/schemas/Envelope'
+          - properties: { payload: { $ref: '#/components/schemas/PostulacionCreadaPayload' } }
+    PostulacionDecidida:
+      name: insercion_laboral.postulacion.decidida
+      x-estado: nuevo
+      x-ordering-key: participante_id
+      traits: [{ $ref: '#/components/messageTraits/estandar' }]
+      payload:
+        allOf:
+          - $ref: '#/components/schemas/Envelope'
+          - properties: { payload: { $ref: '#/components/schemas/PostulacionDecididaPayload' } }
+    CampanaCreada:
+      name: campanas.campana.creada
+      x-estado: nuevo
+      x-ordering-key: campana_id
+      traits: [{ $ref: '#/components/messageTraits/estandar' }]
+      payload:
+        allOf:
+          - $ref: '#/components/schemas/Envelope'
+          - properties: { payload: { $ref: '#/components/schemas/CampanaCreadaPayload' } }

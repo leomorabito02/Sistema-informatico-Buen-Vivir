@@ -1,88 +1,914 @@
+<p-toast></p-toast>
 <div class="page-container">
   <div class="header-section">
     <div>
       <h1 class="page-title">
-        <i class="pi pi-file-pdf mr-2"></i>Generador de Currículum Vitae
+        {{ userId ? "Editar currículum" : "Mi CV" }}
       </h1>
       <p class="page-subtitle">
-        Completá y exportá tu CV profesional listo para presentar en ofertas de
-        empleo.
+        {{
+          userId
+            ? "Estás editando el currículum de un participante."
+            : "Completá tu currículum y descargalo en PDF."
+        }}
       </p>
     </div>
-    <p-button
-      label="Descargar CV en PDF"
-      icon="pi pi-download"
-      (onClick)="downloadPdf()"
-      styleClass="p-button-success"
-    ></p-button>
+    <div class="flex gap-2">
+      <div
+        *ngIf="pdfPolling"
+        class="flex items-center gap-2 text-sm text-gray-600 bg-white px-3 py-2 rounded-md shadow-sm border border-gray-200"
+      >
+        <p-progressSpinner
+          styleClass="w-5 h-5"
+          strokeWidth="4"
+        ></p-progressSpinner>
+        <span class="font-medium">Generando PDF...</span>
+      </div>
+      <p-button
+        *ngIf="!pdfPolling"
+        label="Descargar PDF"
+        icon="pi pi-download"
+        (onClick)="downloadPdf()"
+        [disabled]="!pdfReady && !resume?.pdf_url"
+        styleClass="p-button-success"
+      ></p-button>
+      <p-button
+        label="Compartir CV"
+        icon="pi pi-share-alt"
+        (onClick)="shareResume()"
+        [disabled]="!resume?.public_url"
+        styleClass="p-button-outlined"
+      ></p-button>
+    </div>
   </div>
 
-  <div class="cv-layout">
-    <div class="cv-form-section">
-      <p-card header="Datos de tu Curriculum" styleClass="p-card-shadow mb-4">
-        <div class="field mb-3">
-          <label>Nombre y Apellido</label>
-          <input pInputText [(ngModel)]="profile.fullName" class="w-full" />
-        </div>
-        <div class="field-grid mb-3">
-          <div class="field">
-            <label>Correo Electrónico</label>
-            <input pInputText [(ngModel)]="profile.email" class="w-full" />
+  <div
+    *ngIf="message"
+    class="alert alert-info p-3 mb-4 rounded bg-primary/10 border border-primary/20 text-primary"
+  >
+    {{ message }}
+  </div>
+
+  <div
+    class="cv-layout flex flex-col md:flex-row gap-6"
+    *ngIf="!loading && resume?.data as cv"
+  >
+    <!-- Formulario de edición -->
+    <div class="cv-form-section flex-1 max-w-full md:max-w-[60%]">
+      <p-card header="Completá tu perfil" styleClass="p-card-shadow mb-4">
+        <form #resumeForm="ngForm">
+          <div class="form-section-group mb-6">
+            <h3 class="text-xl font-bold mb-3 border-b pb-2 text-primary">
+              Información básica
+            </h3>
+
+            <div class="field mb-4">
+              <span class="block font-medium mb-2">Plantilla del CV</span>
+              <p-carousel
+                [value]="templates"
+                [numVisible]="3"
+                [numScroll]="1"
+                [circular]="true"
+                [responsiveOptions]="responsiveOptions"
+                styleClass="template-carousel"
+              >
+                <ng-template pTemplate="item" let-tpl>
+                  <button
+                    type="button"
+                    class="template-card"
+                    [class.selected]="cv.metadata?.template === tpl.value"
+                    (click)="selectTemplate(tpl.value)"
+                  >
+                    <div class="template-image-container">
+                      <img
+                        [src]="tpl.image"
+                        [alt]="tpl.label"
+                        class="template-thumbnail"
+                      />
+                      <span
+                        *ngIf="cv.metadata?.template === tpl.value"
+                        class="selected-badge"
+                      >
+                        <i class="pi pi-check"></i> Elegido
+                      </span>
+                    </div>
+                    <span class="template-title">{{ tpl.label }}</span>
+                  </button>
+                </ng-template>
+              </p-carousel>
+            </div>
+
+            <div class="field mb-4">
+              <span class="block font-medium mb-2">Color de la plantilla</span>
+              <div class="flex items-center gap-3 flex-wrap">
+                <div class="flex items-center gap-2">
+                  <button
+                    type="button"
+                    *ngFor="let preset of colorPresets"
+                    class="color-preset-btn"
+                    [style.background-color]="preset.value"
+                    [title]="preset.name"
+                    [class.active]="
+                      getPrimaryColor().toLowerCase() ===
+                      preset.value.toLowerCase()
+                    "
+                    (click)="setPrimaryColor(preset.value)"
+                  ></button>
+                </div>
+                <div class="flex items-center gap-2 ml-2">
+                  <p-colorPicker
+                    name="primaryColor"
+                    [ngModelOptions]="{ standalone: true }"
+                    [ngModel]="getPrimaryColor()"
+                    (ngModelChange)="setPrimaryColor($event)"
+                    format="hex"
+                  ></p-colorPicker>
+                </div>
+              </div>
+            </div>
+
+            <div class="field mb-3">
+              <span class="block font-medium mb-1">Foto de perfil</span>
+              <div class="flex items-center gap-3">
+                <img
+                  *ngIf="cv.basics.picture"
+                  [src]="resolveImageUrl(cv.basics.picture)"
+                  alt="Foto de perfil"
+                  class="w-16 h-16 rounded-full object-cover border border-gray-300 shrink-0"
+                  style="
+                    width: 64px;
+                    height: 64px;
+                    max-width: 64px;
+                    max-height: 64px;
+                  "
+                />
+                <div
+                  *ngIf="!cv.basics.picture"
+                  class="w-16 h-16 rounded-full bg-gray-100 border border-gray-300 flex items-center justify-center text-gray-400 shrink-0"
+                  style="width: 64px; height: 64px"
+                >
+                  <i class="pi pi-user text-2xl"></i>
+                </div>
+                <span class="text-xs text-gray-500">
+                  La foto de perfil se gestiona desde el perfil del usuario.
+                </span>
+              </div>
+            </div>
+
+            <div class="field mb-3">
+              <label for="name">Nombre y apellido</label>
+              <input
+                id="name"
+                name="name"
+                #nameModel="ngModel"
+                pInputText
+                [(ngModel)]="cv.basics.name"
+                required
+                class="w-full"
+                [ngClass]="{
+                  'ng-invalid ng-dirty': nameModel.invalid && nameModel.touched,
+                }"
+              />
+              <small
+                *ngIf="nameModel.invalid && nameModel.touched"
+                class="text-red-500 block mt-1"
+                >El nombre es requerido.</small
+              >
+            </div>
+
+            <div class="field mb-3">
+              <label for="headline">Titular u ocupación</label>
+              <input
+                id="headline"
+                pInputText
+                name="headline"
+                [(ngModel)]="cv.basics.headline"
+                placeholder="Ej: Estudiante de informática"
+                class="w-full"
+              />
+            </div>
+
+            <div class="field-grid grid grid-cols-1 md:grid-cols-2 gap-4 mb-3">
+              <div class="field">
+                <label for="email">Correo electrónico</label>
+                <input
+                  id="email"
+                  name="email"
+                  #emailModel="ngModel"
+                  pInputText
+                  [(ngModel)]="cv.basics.email"
+                  required
+                  email
+                  class="w-full"
+                  [ngClass]="{
+                    'ng-invalid ng-dirty':
+                      emailModel.invalid && emailModel.touched,
+                  }"
+                />
+                <small
+                  *ngIf="emailModel.errors?.['required'] && emailModel.touched"
+                  class="text-red-500 block mt-1"
+                  >El correo es requerido.</small
+                >
+                <small
+                  *ngIf="emailModel.errors?.['email'] && emailModel.touched"
+                  class="text-red-500 block mt-1"
+                  >Ingresá un correo válido.</small
+                >
+              </div>
+              <div class="field">
+                <label for="phone">Teléfono</label>
+                <input
+                  id="phone"
+                  pInputText
+                  name="phone"
+                  [(ngModel)]="cv.basics.phone"
+                  class="w-full"
+                />
+              </div>
+            </div>
+
+            <div class="field mb-3">
+              <label for="location">Ubicación</label>
+              <input
+                id="location"
+                pInputText
+                name="location"
+                [(ngModel)]="cv.basics.location"
+                placeholder="Ciudad, Provincia"
+                class="w-full"
+              />
+            </div>
+
+            <div class="field mb-3">
+              <label for="summary">Resumen profesional</label>
+              <textarea
+                id="summary"
+                pInputTextarea
+                name="summary"
+                [(ngModel)]="cv.basics.summary"
+                placeholder="Contá un poco sobre tu perfil profesional..."
+                class="w-full min-h-[100px]"
+              ></textarea>
+            </div>
           </div>
-          <div class="field">
-            <label>Teléfono</label>
-            <input pInputText [(ngModel)]="profile.phone" class="w-full" />
+
+          <div class="form-section-group mb-6">
+            <div class="flex justify-between items-center mb-3 border-b pb-2">
+              <h3 class="text-xl font-bold text-primary m-0">
+                Experiencia laboral
+              </h3>
+              <p-button
+                icon="pi pi-plus"
+                label="Agregar"
+                (onClick)="addWork()"
+                styleClass="p-button-sm p-button-outlined"
+              ></p-button>
+            </div>
+
+            <div
+              *ngIf="!cv.work || cv.work.length === 0"
+              class="text-gray-500 italic mb-3 text-sm"
+            >
+              No has agregado experiencia laboral.
+            </div>
+
+            <div
+              *ngFor="let job of cv.work; let i = index"
+              class="p-3 mb-3 border border-gray-200 rounded-md bg-gray-50 relative"
+            >
+              <p-button
+                icon="pi pi-trash"
+                (onClick)="removeWork(i)"
+                styleClass="p-button-rounded p-button-danger p-button-text p-button-sm absolute top-2 right-2"
+              ></p-button>
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mt-4">
+                <div class="field">
+                  <label [for]="'company-' + i">Empresa u organización</label>
+                  <input
+                    [id]="'company-' + i"
+                    pInputText
+                    name="company--{{ i }}"
+                    [(ngModel)]="job.company"
+                    class="w-full"
+                  />
+                </div>
+                <div class="field">
+                  <label [for]="'position-' + i">Puesto</label>
+                  <input
+                    [id]="'position-' + i"
+                    pInputText
+                    name="position--{{ i }}"
+                    [(ngModel)]="job.position"
+                    class="w-full"
+                  />
+                </div>
+                <div class="field">
+                  <label [for]="'start-date-' + i">Fecha de inicio</label>
+                  <input
+                    type="month"
+                    [id]="'start-date-' + i"
+                    class="p-inputtext p-component w-full"
+                    name="start-date--{{ i }}"
+                    [(ngModel)]="job.startDate"
+                  />
+                </div>
+                <div class="field">
+                  <label [for]="'end-date-' + i">Fecha de fin</label>
+                  <div class="flex flex-col gap-2">
+                    <div class="flex items-center gap-2">
+                      <p-checkbox
+                        [binary]="true"
+                        [inputId]="'current-' + i"
+                        [name]="'current-' + i"
+                        [ngModelOptions]="{ standalone: true }"
+                        [ngModel]="job.endDate === 'Present'"
+                        (ngModelChange)="
+                          $event
+                            ? (job.endDate = 'Present')
+                            : (job.endDate = '')
+                        "
+                      ></p-checkbox>
+                      <label [for]="'current-' + i" class="text-sm"
+                        >Hasta la actualidad</label
+                      >
+                    </div>
+                    <input
+                      *ngIf="job.endDate !== 'Present'"
+                      type="month"
+                      [id]="'end-date-' + i"
+                      class="p-inputtext p-component w-full"
+                      name="end-date--{{ i }}"
+                      [(ngModel)]="job.endDate"
+                    />
+                  </div>
+                </div>
+              </div>
+              <div class="field mt-2">
+                <label [for]="'desc-' + i">Descripción de tareas</label>
+                <textarea
+                  [id]="'desc-' + i"
+                  pTextarea
+                  name="desc--{{ i }}"
+                  [(ngModel)]="job.description"
+                  class="w-full min-h-[60px]"
+                ></textarea>
+              </div>
+            </div>
           </div>
-        </div>
-        <div class="field mb-3">
-          <label>Perfil Profesional / Resumen</label>
-          <textarea
-            pInputText
-            [(ngModel)]="profile.summary"
-            class="w-full"
-            rows="3"
-          ></textarea>
-        </div>
-        <div class="field mb-3">
-          <label>Habilidades y Competencias</label>
-          <input pInputText [(ngModel)]="profile.skills" class="w-full" />
-        </div>
-        <div class="field mb-3">
-          <label>Experiencia / Prácticas</label>
-          <textarea
-            pInputText
-            [(ngModel)]="profile.experience"
-            class="w-full"
-            rows="2"
-          ></textarea>
-        </div>
+
+          <div class="form-section-group mb-6">
+            <div class="flex justify-between items-center mb-3 border-b pb-2">
+              <h3 class="text-xl font-bold text-primary m-0">
+                Formación y cursos
+              </h3>
+              <p-button
+                icon="pi pi-plus"
+                label="Agregar"
+                (onClick)="addEducation()"
+                styleClass="p-button-sm p-button-outlined"
+              ></p-button>
+            </div>
+
+            <div
+              *ngIf="!cv.education || cv.education.length === 0"
+              class="text-gray-500 italic mb-3 text-sm"
+            >
+              No has agregado formación.
+            </div>
+
+            <div
+              *ngFor="let edu of cv.education; let i = index"
+              class="p-3 mb-3 border border-gray-200 rounded-md bg-gray-50 relative"
+            >
+              <p-button
+                icon="pi pi-trash"
+                (onClick)="removeEducation(i)"
+                styleClass="p-button-rounded p-button-danger p-button-text p-button-sm absolute top-2 right-2"
+              ></p-button>
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mt-4">
+                <div class="field">
+                  <label [for]="'inst-' + i">Institución educativa</label>
+                  <input
+                    [id]="'inst-' + i"
+                    pInputText
+                    name="inst--{{ i }}"
+                    [(ngModel)]="edu.institution"
+                    class="w-full"
+                  />
+                </div>
+                <div class="field">
+                  <label [for]="'deg-' + i">Título o curso</label>
+                  <input
+                    [id]="'deg-' + i"
+                    pInputText
+                    name="deg--{{ i }}"
+                    [(ngModel)]="edu.degree"
+                    class="w-full"
+                  />
+                </div>
+                <div class="field">
+                  <label [for]="'edu-date-' + i">Fecha de inicio</label>
+                  <input
+                    type="month"
+                    [id]="'edu-start-' + i"
+                    class="p-inputtext p-component w-full"
+                    name="edu-start--{{ i }}"
+                    [(ngModel)]="edu.startDate"
+                  />
+                </div>
+                <div class="field">
+                  <label [for]="'edu-end-' + i">Fecha de fin</label>
+                  <div class="flex flex-col gap-2">
+                    <div class="flex items-center gap-2">
+                      <p-checkbox
+                        [binary]="true"
+                        [inputId]="'edu-current-' + i"
+                        [name]="'edu-current-' + i"
+                        [ngModelOptions]="{ standalone: true }"
+                        [ngModel]="edu.endDate === 'Present'"
+                        (ngModelChange)="
+                          $event
+                            ? (edu.endDate = 'Present')
+                            : (edu.endDate = '')
+                        "
+                      ></p-checkbox>
+                      <label [for]="'edu-current-' + i" class="text-sm"
+                        >Hasta la actualidad</label
+                      >
+                    </div>
+                    <input
+                      *ngIf="edu.endDate !== 'Present'"
+                      type="month"
+                      [id]="'edu-end-' + i"
+                      class="p-inputtext p-component w-full"
+                      name="edu-end--{{ i }}"
+                      [(ngModel)]="edu.endDate"
+                    />
+                  </div>
+                </div>
+                <div class="field md:col-span-2">
+                  <label [for]="'status-' + i">Estado</label>
+                  <p-dropdown
+                    [id]="'status-' + i"
+                    [options]="educationStatuses"
+                    name="status--{{ i }}"
+                    [(ngModel)]="edu.grade"
+                    optionLabel="label"
+                    optionValue="value"
+                    styleClass="w-full"
+                  ></p-dropdown>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="form-section-group mb-4">
+            <div class="flex justify-between items-center mb-3 border-b pb-2">
+              <h3 class="text-xl font-bold text-primary m-0">Habilidades</h3>
+              <p-button
+                icon="pi pi-plus"
+                label="Agregar"
+                (onClick)="addSkill()"
+                styleClass="p-button-sm p-button-outlined"
+              ></p-button>
+            </div>
+
+            <div
+              *ngIf="!cv.skills || cv.skills.length === 0"
+              class="text-gray-500 italic mb-3 text-sm"
+            >
+              No has agregado habilidades.
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div
+                *ngFor="let skill of cv.skills; let i = index"
+                class="p-2 border border-gray-200 rounded-md bg-gray-50 flex gap-2 items-center"
+              >
+                <div class="flex-1 flex flex-col gap-1">
+                  <label class="sr-only" [for]="'skill-name-' + i"
+                    >Nombre de la habilidad</label
+                  >
+                  <input
+                    [id]="'skill-name-' + i"
+                    pInputText
+                    name="skill-name--{{ i }}"
+                    [(ngModel)]="skill.name"
+                    placeholder="Ej: Trabajo en equipo"
+                    class="w-full p-inputtext-sm"
+                  />
+
+                  <label class="sr-only" [for]="'skill-level-' + i"
+                    >Nivel de la habilidad</label
+                  >
+                  <p-dropdown
+                    [id]="'skill-level-' + i"
+                    [options]="skillLevels"
+                    name="skill-level--{{ i }}"
+                    [(ngModel)]="skill.level"
+                    optionLabel="label"
+                    optionValue="value"
+                    styleClass="w-full"
+                  ></p-dropdown>
+                </div>
+                <p-button
+                  icon="pi pi-trash"
+                  (onClick)="removeSkill(i)"
+                  styleClass="p-button-rounded p-button-danger p-button-text"
+                ></p-button>
+              </div>
+            </div>
+          </div>
+
+          <div class="form-section-group mb-4">
+            <div class="flex justify-between items-center mb-3 border-b pb-2">
+              <h3 class="text-xl font-bold text-primary m-0">Idiomas</h3>
+              <p-button
+                icon="pi pi-plus"
+                label="Agregar"
+                (onClick)="addLanguage()"
+                styleClass="p-button-sm p-button-outlined"
+              ></p-button>
+            </div>
+
+            <div
+              *ngIf="!cv.languages || cv.languages.length === 0"
+              class="text-gray-500 italic mb-3 text-sm"
+            >
+              No has agregado idiomas.
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div
+                *ngFor="let lang of cv.languages; let i = index"
+                class="p-2 border border-gray-200 rounded-md bg-gray-50 flex gap-2 items-center"
+              >
+                <div class="flex-1 flex flex-col gap-1">
+                  <label class="sr-only" [for]="'lang-name-' + i">Idioma</label>
+                  <input
+                    [id]="'lang-name-' + i"
+                    pInputText
+                    name="lang-name--{{ i }}"
+                    [(ngModel)]="lang.name"
+                    placeholder="Ej: Inglés"
+                    class="w-full p-inputtext-sm"
+                  />
+
+                  <label class="sr-only" [for]="'lang-level-' + i"
+                    >Nivel del idioma</label
+                  >
+                  <p-dropdown
+                    [id]="'lang-level-' + i"
+                    [options]="skillLevels"
+                    name="lang-level--{{ i }}"
+                    [(ngModel)]="lang.level"
+                    optionLabel="label"
+                    optionValue="value"
+                    styleClass="w-full"
+                  ></p-dropdown>
+                </div>
+                <p-button
+                  icon="pi pi-trash"
+                  (onClick)="removeLanguage(i)"
+                  styleClass="p-button-rounded p-button-danger p-button-text"
+                ></p-button>
+              </div>
+            </div>
+          </div>
+
+          <div class="form-section-group mb-4">
+            <div class="flex justify-between items-center mb-3 border-b pb-2">
+              <h3 class="text-xl font-bold text-primary m-0">Referencias</h3>
+              <p-button
+                icon="pi pi-plus"
+                label="Agregar"
+                (onClick)="addReference()"
+                styleClass="p-button-sm p-button-outlined"
+              ></p-button>
+            </div>
+
+            <div
+              *ngIf="!cv.references || cv.references.length === 0"
+              class="text-gray-500 italic mb-3 text-sm"
+            >
+              No has agregado referencias laborales o personales.
+            </div>
+
+            <div class="space-y-3">
+              <div
+                *ngFor="let ref of cv.references; let i = index"
+                class="p-3 border border-gray-200 rounded-md bg-gray-50 flex gap-2 items-start"
+              >
+                <div class="flex-1 grid grid-cols-1 md:grid-cols-2 gap-2">
+                  <div>
+                    <label
+                      class="block text-xs font-medium text-gray-700 mb-1"
+                      [for]="'ref-name-' + i"
+                    >
+                      Nombre, empresa y cargo
+                    </label>
+                    <input
+                      [id]="'ref-name-' + i"
+                      pInputText
+                      name="ref-name--{{ i }}"
+                      [(ngModel)]="ref.name"
+                      placeholder="Ej: Lic. Martín Pérez (Gerente - ABC S.A.)"
+                      class="w-full p-inputtext-sm"
+                    />
+                  </div>
+                  <div>
+                    <label
+                      class="block text-xs font-medium text-gray-700 mb-1"
+                      [for]="'ref-desc-' + i"
+                    >
+                      Contacto o relación
+                    </label>
+                    <input
+                      [id]="'ref-desc-' + i"
+                      pInputText
+                      name="ref-desc--{{ i }}"
+                      [(ngModel)]="ref.description"
+                      placeholder="Ej: Tel: +54 11 1234-5678 | martin@empresa.com"
+                      class="w-full p-inputtext-sm"
+                    />
+                  </div>
+                </div>
+                <p-button
+                  icon="pi pi-trash"
+                  (onClick)="removeReference(i)"
+                  styleClass="p-button-rounded p-button-danger p-button-text shrink-0 mt-4"
+                ></p-button>
+              </div>
+            </div>
+          </div>
+
+          <div class="flex justify-end mt-6 pt-4 border-t">
+            <p-button
+              label="Guardar y generar currículum"
+              icon="pi pi-cog"
+              [loading]="generating"
+              (onClick)="generateResume(resumeForm)"
+              styleClass="p-button-primary w-full md:w-auto p-button-lg"
+            ></p-button>
+          </div>
+        </form>
       </p-card>
     </div>
 
-    <!-- Vista previa CV -->
-    <div class="cv-preview-section">
-      <p-card header="Vista Previa" styleClass="p-card-shadow preview-card">
-        <div class="preview-header">
-          <h2>{{ profile.fullName }}</h2>
-          <p>{{ profile.email }} | {{ profile.phone }}</p>
-          <p class="text-sm text-muted">{{ profile.address }}</p>
-        </div>
-        <hr />
-        <div class="preview-body">
-          <div class="preview-block">
-            <h4>Resumen</h4>
-            <p>{{ profile.summary }}</p>
+    <!-- Vista previa -->
+    <div class="cv-preview-section flex-1 max-w-full md:max-w-[40%]">
+      <div class="sticky top-4">
+        <p-card
+          header="Vista previa"
+          styleClass="p-card-shadow preview-card relative"
+        >
+          <div
+            *ngIf="generating"
+            class="absolute inset-0 bg-white/70 z-10 flex items-center justify-center"
+          >
+            <p-progressSpinner></p-progressSpinner>
           </div>
-          <div class="preview-block">
-            <h4>Habilidades</h4>
-            <p>{{ profile.skills }}</p>
+
+          <div
+            [style.--resume-primary-color]="getPrimaryColor()"
+            [ngClass]="'preview-theme-' + (cv.metadata?.template || 'onyx')"
+            class="preview-container"
+          >
+            <div
+              class="preview-header text-center pb-3 mb-4 border-b flex flex-col items-center"
+            >
+              <img
+                *ngIf="cv.basics.picture"
+                [src]="resolveImageUrl(cv.basics.picture)"
+                alt="Foto de perfil en vista previa"
+                class="w-24 h-24 rounded-full object-cover mb-2 border border-gray-200"
+                style="
+                  width: 96px;
+                  height: 96px;
+                  max-width: 96px;
+                  max-height: 96px;
+                "
+              />
+              <h2 class="text-2xl font-bold">
+                {{ cv.basics.name || "Sin Nombre" }}
+              </h2>
+              <h3 class="text-lg text-primary">{{ cv.basics.headline }}</h3>
+              <p class="text-sm text-gray-500 mt-2">
+                {{ cv.basics.email }}
+                <span *ngIf="cv.basics.phone">| {{ cv.basics.phone }}</span>
+              </p>
+              <p class="text-xs text-gray-500">{{ cv.basics.location }}</p>
+            </div>
+
+            <div class="preview-body space-y-5">
+              <div class="preview-block">
+                <h4
+                  class="font-semibold text-primary uppercase text-sm mb-1 border-b pb-1"
+                >
+                  Perfil
+                </h4>
+                <p class="text-sm whitespace-pre-wrap">
+                  {{
+                    cv.basics.summary ||
+                      "Aún no cargaste un resumen profesional."
+                  }}
+                </p>
+                <div
+                  *ngIf="!cv.basics.summary"
+                  class="text-xs text-orange-500 mt-1"
+                >
+                  <lucide-icon
+                    [img]="TriangleAlert"
+                    [size]="14"
+                    class="cv-warn-icon"
+                    aria-hidden="true"
+                  ></lucide-icon
+                  >Completá esto para mejorar tu CV
+                </div>
+              </div>
+
+              <div class="preview-block">
+                <h4
+                  class="font-semibold text-primary uppercase text-sm mb-1 border-b pb-1"
+                >
+                  Experiencia laboral
+                </h4>
+                <div *ngIf="cv.work?.length; else noWork">
+                  <div *ngFor="let job of cv.work" class="mb-2">
+                    <div class="font-medium text-sm">
+                      {{ job.position }}
+                      <span *ngIf="job.company">en {{ job.company }}</span>
+                    </div>
+                    <div class="text-xs text-gray-500">
+                      {{ job.startDate }} - {{ job.endDate }}
+                    </div>
+                    <div class="text-xs mt-1 whitespace-pre-wrap">
+                      {{ job.description }}
+                    </div>
+                  </div>
+                </div>
+                <ng-template #noWork>
+                  <div class="text-xs text-orange-500">
+                    <lucide-icon
+                      [img]="TriangleAlert"
+                      [size]="14"
+                      class="cv-warn-icon"
+                      aria-hidden="true"
+                    ></lucide-icon
+                    >No tenés experiencia laboral registrada.
+                  </div>
+                </ng-template>
+              </div>
+
+              <div class="preview-block">
+                <h4
+                  class="font-semibold text-primary uppercase text-sm mb-1 border-b pb-1"
+                >
+                  Formación y cursos
+                </h4>
+                <div *ngIf="cv.education?.length; else noEdu">
+                  <div *ngFor="let edu of cv.education" class="mb-2">
+                    <div class="font-medium text-sm">{{ edu.institution }}</div>
+                    <div class="text-sm">{{ edu.degree }}</div>
+                    <div class="text-xs text-gray-500" *ngIf="edu.startDate">
+                      Fechas: {{ edu.startDate }}
+                    </div>
+                    <div class="text-xs text-gray-500" *ngIf="edu.status">
+                      Estado: {{ edu.status }}
+                    </div>
+                  </div>
+                </div>
+                <ng-template #noEdu>
+                  <div class="text-xs text-orange-500">
+                    <lucide-icon
+                      [img]="TriangleAlert"
+                      [size]="14"
+                      class="cv-warn-icon"
+                      aria-hidden="true"
+                    ></lucide-icon
+                    >No hay formación registrada.
+                  </div>
+                </ng-template>
+              </div>
+
+              <div class="preview-block">
+                <h4
+                  class="font-semibold text-primary uppercase text-sm mb-1 border-b pb-1"
+                >
+                  Habilidades
+                </h4>
+                <div
+                  *ngIf="cv.skills?.length; else noSkills"
+                  class="flex flex-wrap gap-1"
+                >
+                  <span
+                    *ngFor="let skill of cv.skills"
+                    class="text-xs bg-gray-200 px-2 py-1 rounded"
+                    >{{ skill.name }}
+                    <span class="opacity-70">({{ skill.level }})</span></span
+                  >
+                </div>
+                <ng-template #noSkills>
+                  <div class="text-xs text-orange-500">
+                    <lucide-icon
+                      [img]="TriangleAlert"
+                      [size]="14"
+                      class="cv-warn-icon"
+                      aria-hidden="true"
+                    ></lucide-icon
+                    >No cargaste habilidades.
+                  </div>
+                </ng-template>
+              </div>
+
+              <div class="preview-block">
+                <h4
+                  class="font-semibold text-primary uppercase text-sm mb-1 border-b pb-1"
+                >
+                  Idiomas
+                </h4>
+                <div
+                  *ngIf="cv.languages?.length; else noLangs"
+                  class="flex flex-wrap gap-1"
+                >
+                  <span
+                    *ngFor="let lang of cv.languages"
+                    class="text-xs bg-gray-200 px-2 py-1 rounded"
+                    >{{ lang.name }}
+                    <span class="opacity-70">({{ lang.level }})</span></span
+                  >
+                </div>
+                <ng-template #noLangs>
+                  <div class="text-xs text-orange-500">
+                    <lucide-icon
+                      [img]="TriangleAlert"
+                      [size]="14"
+                      class="cv-warn-icon"
+                      aria-hidden="true"
+                    ></lucide-icon
+                    >No cargaste idiomas.
+                  </div>
+                </ng-template>
+              </div>
+
+              <div class="preview-block">
+                <h4
+                  class="font-semibold text-primary uppercase text-sm mb-1 border-b pb-1"
+                >
+                  Referencias
+                </h4>
+                <div *ngIf="cv.references?.length; else noRefs">
+                  <div *ngFor="let ref of cv.references" class="mb-2">
+                    <div class="font-medium text-sm">{{ ref.name }}</div>
+                    <div class="text-xs text-gray-500" *ngIf="ref.description">
+                      {{ ref.description }}
+                    </div>
+                  </div>
+                </div>
+                <ng-template #noRefs>
+                  <div class="text-xs text-gray-400 italic">
+                    Sin referencias cargadas.
+                  </div>
+                </ng-template>
+              </div>
+            </div>
           </div>
-          <div class="preview-block">
-            <h4>Experiencia Formativa</h4>
-            <p>{{ profile.experience }}</p>
-          </div>
-        </div>
-      </p-card>
+        </p-card>
+      </div>
     </div>
+  </div>
+
+  <p-dialog
+    [(visible)]="showTemplateModal"
+    [header]="'Diseño de plantilla: ' + getSelectedTemplateLabel()"
+    [modal]="true"
+    [style]="{ width: '90vw', maxWidth: '600px' }"
+    [dismissableMask]="true"
+  >
+    <div class="text-center p-2">
+      <img
+        [src]="getSelectedTemplateImage()"
+        [alt]="getSelectedTemplateLabel()"
+        class="w-full h-auto rounded border shadow-sm max-h-[75vh] object-contain mx-auto"
+      />
+    </div>
+  </p-dialog>
+
+  <!-- Empty State UI if absolutely no resume is found -->
+  <div
+    *ngIf="!loading && !resume"
+    class="flex justify-center items-center p-12"
+  >
+    <div
+      class="text-center p-6 text-gray-500 bg-white rounded-lg shadow-sm border border-gray-200"
+    >
+      <i class="pi pi-file-pdf text-4xl mb-3 opacity-50"></i>
+      <p>No se pudo cargar tu currículum. Recargá la página.</p>
+    </div>
+  </div>
+
+  <div *ngIf="loading" class="flex justify-center p-12">
+    <p-progressSpinner></p-progressSpinner>
   </div>
 </div>

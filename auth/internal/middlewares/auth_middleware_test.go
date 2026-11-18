@@ -1,6 +1,8 @@
 package middlewares_test
 
 import (
+	"context"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -106,4 +108,105 @@ func TestAuthMiddleware_ValidToken(t *testing.T) {
 	assert.Equal(t, "usr-1", contextUserID)
 	assert.Equal(t, "role_admin", contextRoleID)
 	assert.False(t, contextIsExternal)
+}
+
+func TestAuthMiddleware_OptionsMethod(t *testing.T) {
+	mockJWT := new(MockJWTService)
+	middleware := middlewares.AuthMiddleware(mockJWT)
+
+	handler := middleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	}))
+
+	req := httptest.NewRequest("OPTIONS", "/protected", nil)
+	w := httptest.NewRecorder()
+	handler.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+}
+
+func TestAuthMiddleware_HostCookie(t *testing.T) {
+	mockJWT := new(MockJWTService)
+	middleware := middlewares.AuthMiddleware(mockJWT)
+
+	claims := jwt.MapClaims{"sub": "usr-host", "role": "role_dev", "is_external": true}
+	mockJWT.On("ValidateToken", "host.token.here").Return(claims, nil)
+
+	handler := middleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	}))
+
+	req := httptest.NewRequest("GET", "/protected", nil)
+	req.AddCookie(&http.Cookie{Name: "__Host-access_token", Value: "host.token.here"})
+	w := httptest.NewRecorder()
+	handler.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+}
+
+func TestAuthMiddleware_TokenValidationError(t *testing.T) {
+	mockJWT := new(MockJWTService)
+	middleware := middlewares.AuthMiddleware(mockJWT)
+
+	mockJWT.On("ValidateToken", "bad.token").Return(nil, errors.New("signature expired"))
+
+	handler := middleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	}))
+
+	req := httptest.NewRequest("GET", "/protected", nil)
+	req.Header.Set("Authorization", "Bearer bad.token")
+	w := httptest.NewRecorder()
+	handler.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusUnauthorized, w.Code)
+}
+
+type MockPermissionChecker struct {
+	mock.Mock
+}
+
+func (m *MockPermissionChecker) CheckPermission(ctx context.Context, roleID, action, resource string) (bool, error) {
+	args := m.Called(ctx, roleID, action, resource)
+	return args.Bool(0), args.Error(1)
+}
+
+func TestRequirePermissionMiddleware(t *testing.T) {
+	mockPerm := new(MockPermissionChecker)
+	middleware := middlewares.RequirePermissionMiddleware(mockPerm, "read", "users")
+	handler := middleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	}))
+
+	// Missing UserID
+	req := httptest.NewRequest("GET", "/users", nil)
+	w := httptest.NewRecorder()
+	handler.ServeHTTP(w, req)
+	assert.Equal(t, http.StatusUnauthorized, w.Code)
+
+	// Missing RoleID
+	req = httptest.NewRequest("GET", "/users", nil)
+	req = req.WithContext(context.WithValue(req.Context(), middlewares.UserIDKey, "u1"))
+	w = httptest.NewRecorder()
+	handler.ServeHTTP(w, req)
+	assert.Equal(t, http.StatusUnauthorized, w.Code)
+
+	// Permission denied
+	mockPerm.On("CheckPermission", mock.Anything, "role_volunteer", "read", "users").Return(false, nil).Once()
+	req = httptest.NewRequest("GET", "/users", nil)
+	ctx := context.WithValue(req.Context(), middlewares.UserIDKey, "u1")
+	ctx = context.WithValue(ctx, middlewares.RoleIDKey, "role_volunteer")
+	req = req.WithContext(ctx)
+	w = httptest.NewRecorder()
+	handler.ServeHTTP(w, req)
+	assert.Equal(t, http.StatusForbidden, w.Code)
+
+	// Permission granted
+	mockPerm.On("CheckPermission", mock.Anything, "role_admin", "read", "users").Return(true, nil).Once()
+	ctxAdmin := context.WithValue(req.Context(), middlewares.UserIDKey, "u1")
+	ctxAdmin = context.WithValue(ctxAdmin, middlewares.RoleIDKey, "role_admin")
+	req = req.WithContext(ctxAdmin)
+	w = httptest.NewRecorder()
+	handler.ServeHTTP(w, req)
+	assert.Equal(t, http.StatusOK, w.Code)
 }

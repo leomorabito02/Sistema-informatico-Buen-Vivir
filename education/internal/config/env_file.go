@@ -21,6 +21,7 @@ import (
 // que completar (caso típico en producción, donde las variables las
 // provee la plataforma).
 func loadEnvFile(path string) error {
+	// #nosec G304 -- loading environment file from local path
 	f, err := os.Open(path)
 	if err != nil {
 		if os.IsNotExist(err) {
@@ -28,7 +29,7 @@ func loadEnvFile(path string) error {
 		}
 		return err
 	}
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 
 	scanner := bufio.NewScanner(f)
 	for scanner.Scan() {
@@ -52,7 +53,7 @@ func loadEnvFile(path string) error {
 		if _, exists := os.LookupEnv(key); exists {
 			continue
 		}
-		os.Setenv(key, value)
+		_ = os.Setenv(key, value)
 	}
 
 	return scanner.Err()

@@ -1,0 +1,58 @@
+{
+  "timestamp": "2026-11-15T22:11:22.2197388-03:00",
+  "consumer": "Frontend-Angular-Client",
+  "provider": "Education-Service-Go",
+  "status": "VERIFIED",
+  "contracts": [
+    {
+      "endpoint": "/api/salud",
+      "method": "GET",
+      "matched": true
+    },
+    {
+      "endpoint": "/api/cursos",
+      "method": "GET",
+      "matched": true
+    },
+    {
+      "endpoint": "/api/cursos/{id}",
+      "method": "GET",
+      "matched": true
+    },
+    {
+      "endpoint": "/api/cursos",
+      "method": "POST",
+      "matched": true
+    },
+    {
+      "endpoint": "/api/cursos/{id}",
+      "method": "PUT",
+      "matched": true
+    },
+    {
+      "endpoint": "/api/cursos/{id}/publicar",
+      "method": "POST",
+      "matched": true
+    },
+    {
+      "endpoint": "/api/areas-formativas",
+      "method": "GET",
+      "matched": true
+    },
+    {
+      "endpoint": "/api/materiales",
+      "method": "GET",
+      "matched": true
+    },
+    {
+      "endpoint": "/api/docente/cursos",
+      "method": "GET",
+      "matched": true
+    },
+    {
+      "endpoint": "/api/docente/cursos/{cursoId}/progreso",
+      "method": "GET",
+      "matched": true
+    }
+  ]
+}

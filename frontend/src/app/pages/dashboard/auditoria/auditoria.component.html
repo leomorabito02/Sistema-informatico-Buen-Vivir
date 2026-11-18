@@ -1,0 +1,113 @@
+<div class="page-container">
+  <div class="header-section">
+    <div>
+      <h1 class="page-title">Auditoría</h1>
+      <p class="page-subtitle">
+        Registro de altas, cambios y bajas del sistema.
+      </p>
+    </div>
+  </div>
+
+  <form class="filtros" (ngSubmit)="buscar()">
+    <div class="campo">
+      <label for="aud-modulo">Módulo</label>
+      <p-select
+        inputId="aud-modulo"
+        name="modulo"
+        [options]="modulos"
+        optionLabel="label"
+        optionValue="value"
+        [(ngModel)]="modulo"
+        (onChange)="buscar()"
+      ></p-select>
+    </div>
+    <div class="campo">
+      <label for="aud-accion">Acción</label>
+      <p-select
+        inputId="aud-accion"
+        name="accion"
+        [options]="acciones"
+        optionLabel="label"
+        optionValue="value"
+        [(ngModel)]="accion"
+      ></p-select>
+    </div>
+    <div class="campo">
+      <label for="aud-desde">Desde</label>
+      <input
+        pInputText
+        id="aud-desde"
+        name="desde"
+        type="date"
+        [(ngModel)]="desde"
+      />
+    </div>
+    <div class="campo">
+      <label for="aud-hasta">Hasta</label>
+      <input
+        pInputText
+        id="aud-hasta"
+        name="hasta"
+        type="date"
+        [(ngModel)]="hasta"
+      />
+    </div>
+    <p-button type="submit" label="Buscar" icon="pi pi-search"></p-button>
+  </form>
+
+  <app-error-state *ngIf="error" [message]="error"></app-error-state>
+
+  <app-loading-state
+    *ngIf="loading"
+    variant="table"
+    label="Cargando registros…"
+  ></app-loading-state>
+
+  <p-table
+    *ngIf="!loading && !error"
+    [value]="registros"
+    [paginator]="registros.length > 20"
+    [rows]="20"
+    class="p-datatable-striped"
+  >
+    <ng-template pTemplate="header">
+      <tr>
+        <th>Fecha y hora</th>
+        <th>Usuario</th>
+        <th>Acción</th>
+        <th>Sobre qué</th>
+        <th>Identificador</th>
+      </tr>
+    </ng-template>
+    <ng-template pTemplate="body" let-r>
+      <tr>
+        <td>{{ r.fecha | date: "dd/MM/yyyy HH:mm" }}</td>
+        <td>{{ r.usuarioNombre || r.usuarioId || "Sistema" }}</td>
+        <td>
+          <p-tag
+            [value]="accionLabel(r.accion)"
+            [severity]="accionSeverity(r.accion)"
+          ></p-tag>
+        </td>
+        <td>
+          {{ recursoLabel(r.recurso) }}
+          <small *ngIf="r.detalle" class="detalle">{{ r.detalle }}</small>
+        </td>
+        <td>
+          <code>{{ r.recursoId }}</code>
+        </td>
+      </tr>
+    </ng-template>
+    <ng-template pTemplate="emptymessage">
+      <tr>
+        <td colspan="5" class="empty-state">
+          No hay registros en esas fechas.
+        </td>
+      </tr>
+    </ng-template>
+  </p-table>
+  <p *ngIf="!loading && registros.length === 500" class="hint">
+    Se muestran los 500 registros más recientes: acotá las fechas para ver los
+    anteriores.
+  </p>
+</div>

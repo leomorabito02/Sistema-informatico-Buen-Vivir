@@ -1,0 +1,186 @@
+<p-toast></p-toast>
+<p-confirmDialog></p-confirmDialog>
+
+<div class="page-container">
+  <div class="header-section">
+    <div>
+      <h1 class="page-title">Mis contenidos</h1>
+      <p class="page-subtitle">
+        Material que compartís con el centro; se publica cuando la
+        administración lo aprueba.
+      </p>
+    </div>
+    <p-button
+      label="Subir material"
+      icon="pi pi-upload"
+      (onClick)="nuevo()"
+    ></p-button>
+  </div>
+
+  <p *ngIf="cargando" class="estado-carga" role="status">
+    Cargando tus contenidos…
+  </p>
+
+  <app-empty-state
+    *ngIf="!cargando && error"
+    title="No se pudieron cargar tus contenidos"
+  >
+    {{ error }}
+  </app-empty-state>
+
+  <app-empty-state
+    *ngIf="!cargando && !error && contenidos.length === 0"
+    title="Todavía no subiste material"
+  >
+    Usá «Subir material» para compartir una guía, una presentación o un apunte.
+  </app-empty-state>
+
+  <ul class="lista" *ngIf="!cargando && !error && contenidos.length">
+    <li *ngFor="let c of contenidos" class="item">
+      <div class="item-cabecera">
+        <h2 class="item-titulo">{{ c.titulo }}</h2>
+        <p-tag
+          [value]="etiqueta(c.estadoModeracion)"
+          [severity]="severidad(c.estadoModeracion)"
+        ></p-tag>
+      </div>
+      <p class="item-meta">
+        {{ c.archivoNombre }} · {{ tamano(c.archivoTamano) }} · subido el
+        {{ fecha(c.fechaSubida) }}
+      </p>
+      <p *ngIf="c.descripcion" class="item-texto">{{ c.descripcion }}</p>
+      <p
+        *ngIf="c.estadoModeracion === 'rechazado' && c.motivoRechazo"
+        class="item-motivo"
+      >
+        Motivo del rechazo: {{ c.motivoRechazo }}
+      </p>
+      <div class="item-acciones">
+        <p-button
+          label="Descargar"
+          icon="pi pi-download"
+          size="small"
+          [outlined]="true"
+          [ariaLabel]="'Descargar ' + c.titulo"
+          (onClick)="descargar(c)"
+        ></p-button>
+        <ng-container *ngIf="c.estadoModeracion === 'pendiente'">
+          <p-button
+            label="Editar"
+            icon="pi pi-pencil"
+            size="small"
+            [outlined]="true"
+            [ariaLabel]="'Editar ' + c.titulo"
+            (onClick)="editar(c)"
+          ></p-button>
+          <p-button
+            label="Eliminar"
+            icon="pi pi-trash"
+            size="small"
+            severity="danger"
+            [outlined]="true"
+            [ariaLabel]="'Eliminar ' + c.titulo"
+            (onClick)="eliminar(c)"
+          ></p-button>
+        </ng-container>
+      </div>
+    </li>
+  </ul>
+
+  <section class="biblioteca" aria-labelledby="biblioteca-titulo">
+    <h2 id="biblioteca-titulo" class="seccion-titulo">Biblioteca del centro</h2>
+    <p class="page-subtitle">Material aprobado, disponible para consulta.</p>
+    <p *ngIf="errorBiblioteca" class="estado-carga">{{ errorBiblioteca }}</p>
+    <p *ngIf="!errorBiblioteca && biblioteca.length === 0" class="estado-carga">
+      Todavía no hay material publicado.
+    </p>
+    <ul class="lista" *ngIf="biblioteca.length">
+      <li *ngFor="let b of biblioteca" class="item">
+        <h3 class="item-titulo">{{ b.titulo }}</h3>
+        <p class="item-meta">
+          {{ b.archivoNombre }} · {{ tamano(b.archivoTamano) }}
+        </p>
+        <p *ngIf="b.descripcion" class="item-texto">{{ b.descripcion }}</p>
+        <div class="item-acciones">
+          <p-button
+            label="Descargar"
+            icon="pi pi-download"
+            size="small"
+            [outlined]="true"
+            [ariaLabel]="'Descargar ' + b.titulo"
+            (onClick)="descargar(b)"
+          ></p-button>
+        </div>
+      </li>
+    </ul>
+  </section>
+</div>
+
+<p-dialog
+  [(visible)]="dialogo"
+  [modal]="true"
+  [style]="{ width: '560px' }"
+  [breakpoints]="{ '640px': '95vw' }"
+  [header]="editandoId ? 'Editar material' : 'Subir material'"
+>
+  <form class="form-grid" (ngSubmit)="guardar()" novalidate>
+    <label>
+      <span>Título <span class="req" aria-hidden="true">*</span></span>
+      <input
+        pInputText
+        name="titulo"
+        [(ngModel)]="titulo"
+        maxlength="120"
+        required
+      />
+    </label>
+    <label>
+      Descripción
+      <textarea
+        pTextarea
+        name="descripcion"
+        [(ngModel)]="descripcion"
+        rows="3"
+        maxlength="1000"
+      ></textarea>
+    </label>
+    <label>
+      <span>
+        Archivo
+        <span *ngIf="!editandoId" class="req" aria-hidden="true">*</span>
+        <span *ngIf="editandoId" class="ayuda"
+          >(opcional: reemplaza el actual)</span
+        >
+      </span>
+      <input
+        type="file"
+        name="archivo"
+        [accept]="acepta"
+        (change)="elegirArchivo($event)"
+      />
+      <span class="ayuda"
+        >PDF, Word, Excel, PowerPoint, texto o imagen. Hasta 10 MB.</span
+      >
+    </label>
+    <p *ngIf="errorForm" class="form-error" role="alert">{{ errorForm }}</p>
+    <div class="form-acciones">
+      <p-button
+        type="button"
+        label="Cancelar"
+        [text]="true"
+        (onClick)="dialogo = false"
+      ></p-button>
+      <p-button
+        type="submit"
+        [label]="
+          guardando
+            ? 'Guardando…'
+            : editandoId
+              ? 'Guardar cambios'
+              : 'Enviar a moderación'
+        "
+        [disabled]="guardando"
+      ></p-button>
+    </div>
+  </form>
+</p-dialog>

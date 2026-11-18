@@ -6,9 +6,7 @@ import { catchError } from "rxjs/operators";
 import {
   User,
   ProfileResponse,
-  UpdateParticipantProfile,
-  UpdateCompanyProfile,
-  UpdateTeacherProfile,
+  SetupTwofaResponse,
 } from "../core/models/auth.model";
 
 interface PasswordUpdateRequest {
@@ -25,7 +23,7 @@ interface GoogleLinkRequest {
   providedIn: "root",
 })
 export class ProfileService {
-  private http = inject(HttpClient);
+  private readonly http = inject(HttpClient);
   private readonly apiUrl = environment.apiUrl;
 
   constructor() {}
@@ -69,10 +67,7 @@ export class ProfileService {
       .pipe(catchError(this.handleError));
   }
 
-  updateProfile(
-    data:
-      UpdateParticipantProfile | UpdateCompanyProfile | UpdateTeacherProfile,
-  ): Observable<User> {
+  updateProfile(data: Record<string, any>): Observable<User> {
     return this.http
       .put<User>(`${this.apiUrl}/api/v1/profile/me`, data, {
         withCredentials: true,
@@ -80,7 +75,53 @@ export class ProfileService {
       .pipe(catchError(this.handleError));
   }
 
-  private handleError = (error: HttpErrorResponse) => {
+  setupTwoFactor(method: "email" | "totp"): Observable<SetupTwofaResponse> {
+    return this.http
+      .post<SetupTwofaResponse>(
+        `${this.apiUrl}/api/v1/profile/me/2fa/setup`,
+        { method },
+        { withCredentials: true },
+      )
+      .pipe(catchError(this.handleError));
+  }
+
+  enableTwoFactor(
+    method: "email" | "totp",
+    code: string,
+  ): Observable<{ message: string }> {
+    return this.http
+      .post<{ message: string }>(
+        `${this.apiUrl}/api/v1/profile/me/2fa/enable`,
+        { method, code },
+        { withCredentials: true },
+      )
+      .pipe(catchError(this.handleError));
+  }
+
+  disableTwoFactor(
+    password?: string,
+    code?: string,
+  ): Observable<{ message: string }> {
+    return this.http
+      .post<{ message: string }>(
+        `${this.apiUrl}/api/v1/profile/me/2fa/disable`,
+        { password, code },
+        { withCredentials: true },
+      )
+      .pipe(catchError(this.handleError));
+  }
+
+  revokeTrustedDevice(): Observable<{ message: string }> {
+    return this.http
+      .post<{ message: string }>(
+        `${this.apiUrl}/api/v1/profile/me/2fa/revoke-device`,
+        {},
+        { withCredentials: true },
+      )
+      .pipe(catchError(this.handleError));
+  }
+
+  private readonly handleError = (error: HttpErrorResponse) => {
     let errorMessage =
       "Ocurrió un error inesperado. Por favor, intente nuevamente.";
     if (error.error && (error.error as { message?: string }).message) {

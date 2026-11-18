@@ -1,0 +1,76 @@
+package services_test
+
+import (
+	"context"
+	"errors"
+	"testing"
+
+	"buenvivir/education/internal/models"
+	"buenvivir/education/internal/services"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
+)
+
+type MockEnrollmentRepository struct {
+	mock.Mock
+}
+
+func (m *MockEnrollmentRepository) ListByCourse(ctx context.Context, cursoID string) ([]models.Enrollment, error) {
+	args := m.Called(ctx, cursoID)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).([]models.Enrollment), args.Error(1)
+}
+
+func (m *MockEnrollmentRepository) ListByParticipant(ctx context.Context, participanteID string) ([]models.Enrollment, error) {
+	args := m.Called(ctx, participanteID)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).([]models.Enrollment), args.Error(1)
+}
+
+func (m *MockEnrollmentRepository) Create(ctx context.Context, e models.Enrollment) (*models.Enrollment, error) {
+	args := m.Called(ctx, e)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*models.Enrollment), args.Error(1)
+}
+
+func (m *MockEnrollmentRepository) DeactivateByParticipant(ctx context.Context, participanteID, motivo string) (int, error) {
+	args := m.Called(ctx, participanteID, motivo)
+	return args.Int(0), args.Error(1)
+}
+
+func (m *MockEnrollmentRepository) ListByParticipants(ctx context.Context, participantIDs []string) ([]models.Enrollment, error) {
+	args := m.Called(ctx, participantIDs)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).([]models.Enrollment), args.Error(1)
+}
+
+func TestEnrollmentService_ListByCourse_Success(t *testing.T) {
+	repo := new(MockEnrollmentRepository)
+	svc := services.NewEnrollmentService(repo, nil, nil)
+
+	repo.On("ListByCourse", mock.Anything, "c1").Return([]models.Enrollment{{ID: "e1"}}, nil)
+
+	enrollments, err := svc.ListByCourse(context.Background(), "c1")
+	assert.NoError(t, err)
+	assert.Len(t, enrollments, 1)
+}
+
+func TestEnrollmentService_ListByCourse_RepoError(t *testing.T) {
+	repo := new(MockEnrollmentRepository)
+	svc := services.NewEnrollmentService(repo, nil, nil)
+
+	repo.On("ListByCourse", mock.Anything, "c1").Return(nil, errors.New("firestore caído"))
+
+	enrollments, err := svc.ListByCourse(context.Background(), "c1")
+	assert.Error(t, err)
+	assert.Nil(t, enrollments)
+}

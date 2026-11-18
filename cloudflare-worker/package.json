@@ -1,0 +1,13 @@
+{
+  "name": "buen-vivir-impact-worker",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy:staging": "wrangler deploy --env staging",
+    "deploy:prod": "wrangler deploy --env production"
+  },
+  "devDependencies": {
+    "wrangler": "^3.0.0"
+  }
+}

@@ -1,0 +1,8 @@
+<section *ngIf="roleLabel" class="welcome">
+  <div class="welcome-card">
+    <h1 class="welcome-title">
+      ¡Bienvenido/a{{ firstName ? ", " + firstName : "" }}!
+    </h1>
+    <p class="welcome-role">Ingresaste como {{ roleLabel }}</p>
+  </div>
+</section>

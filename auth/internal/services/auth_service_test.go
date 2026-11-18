@@ -102,11 +102,6 @@ func (m *MockRefreshTokenRepository) FindByTokenHash(ctx context.Context, tokenH
 	return args.Get(0).(*models.RefreshToken), args.Error(1)
 }
 
-func (m *MockRefreshTokenRepository) Delete(ctx context.Context, id string) error {
-	args := m.Called(ctx, id)
-	return args.Error(0)
-}
-
 func (m *MockRefreshTokenRepository) RevokeAllForUser(ctx context.Context, userID string) error {
 	args := m.Called(ctx, userID)
 	return args.Error(0)
@@ -146,25 +141,23 @@ func TestAuthService_Register_Success(t *testing.T) {
 	svc := services.NewAuthService(mockTransactor, mockQuerier, mockUserRepo, mockRtRepo, mockJWT, mockFB)
 
 	req := &dto.RegisterRequest{
-		Email: "test@example.com",
+		Email: "test@gmail.com",
 		Password: "Password123!",
 		Role: "role_participant",
 		FirstName: "John",
 		LastName: "Doe",
 	}
 
-	mockUserRepo.On("FindByEmail", mock.Anything, "test@example.com").Return(nil, errors.New("not found"))
+	mockUserRepo.On("FindByEmail", mock.Anything, "test@gmail.com").Return(nil, errors.New("not found"))
 	mockTransactor.On("RunInTx", mock.Anything, mock.Anything).Return(nil)
-	mockJWT.On("GenerateTokenPair", mock.Anything, "role_participant", false).Return("access", "refresh", nil)
-	mockRtRepo.On("RevokeAllForUser", mock.Anything, mock.Anything).Return(nil)
-	mockRtRepo.On("Create", mock.Anything, mock.AnythingOfType("*models.RefreshToken")).Return(nil)
-	mockRtRepo.On("DeleteExpired", mock.Anything).Return(nil).Maybe()
 
 	res, err := svc.Register(context.Background(), req)
 
 	assert.NoError(t, err)
 	assert.NotNil(t, res)
-	assert.Equal(t, "access", res.Token)
+	assert.Empty(t, res.Token)
+	assert.Empty(t, res.RefreshToken)
+	assert.NotNil(t, res.User)
 	mockUserRepo.AssertExpectations(t)
 }
 
@@ -295,7 +288,7 @@ func TestAuthService_GetApprovalStatus_AllRoles(t *testing.T) {
 	assert.Equal(t, "active", status2)
 	
 	statusAdmin := svc.GetApprovalStatus(context.Background(), "role_admin", "usr-3")
-	assert.Equal(t, "accepted", statusAdmin)
+	assert.Equal(t, "approved", statusAdmin)
 }
 
 func TestAuthService_Register_UserExists(t *testing.T) {
@@ -430,6 +423,8 @@ func TestAuthService_CheckGoogleCredentials_Success(t *testing.T) {
 	assert.NotNil(t, res)
 	assert.Len(t, res.Accounts, 2)
 	assert.NotEmpty(t, res.LoginNonce)
+	assert.False(t, res.IsEmailVerified)
+	assert.Equal(t, "test@google.com", res.Email)
 }
 
 func TestAuthService_Login_InvalidNonce(t *testing.T) {

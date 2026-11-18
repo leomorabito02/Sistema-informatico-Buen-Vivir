@@ -1,49 +1,477 @@
 <div class="page-container">
+  <!-- Header Section -->
   <div class="header-section">
-    <div>
-      <h1 class="page-title">
-        <i class="pi pi-bell mr-2"></i>Centro de Notificaciones
-      </h1>
-      <p class="page-subtitle">
-        Novedades, avisos del curso y alertas de tu cuenta.
-      </p>
+    <div class="title-container">
+      <h1 class="page-title">Notificaciones</h1>
+      <p class="page-subtitle">Novedades y avisos de tu cuenta.</p>
     </div>
-    <p-button
-      label="Marcar todas como leídas"
-      icon="pi pi-check"
-      (onClick)="markAllAsRead()"
-      styleClass="p-button-outlined p-button-sm"
-    ></p-button>
+    <div class="header-actions">
+      <p-button
+        label="Actualizar"
+        icon="pi pi-refresh"
+        (onClick)="loadNotifications()"
+        [loading]="loading"
+        styleClass="p-button-outlined p-button-secondary p-button-sm mr-2"
+      ></p-button>
+      <p-button
+        label="Marcar todas como leídas"
+        icon="pi pi-check-double"
+        (onClick)="markAllAsRead()"
+        [disabled]="unreadCount === 0"
+        styleClass="p-button-outlined p-button-sm"
+      ></p-button>
+    </div>
   </div>
 
-  <div class="notifications-list">
-    <div
-      *ngFor="let notif of notifications"
-      class="notification-item-wrapper mb-3"
+  <!-- Navigation Tabs: Inbox vs Preferences -->
+  <div class="view-tabs mb-4">
+    <button
+      type="button"
+      class="view-tab"
+      [class.active]="activeTab === 'inbox'"
+      (click)="setActiveTab('inbox')"
     >
-      <p-card
-        styleClass="p-card-shadow notification-card"
-        [class.unread]="!notif.read"
+      <i class="pi pi-bell mr-1"></i>
+      Mis notificaciones
+      <span *ngIf="unreadCount > 0" class="pill-badge unread-badge ml-1">{{
+        unreadCount
+      }}</span>
+    </button>
+    <button
+      type="button"
+      class="view-tab"
+      [class.active]="activeTab === 'preferences'"
+      (click)="setActiveTab('preferences')"
+    >
+      <i class="pi pi-sliders-h mr-1"></i>
+      Configuración de preferencias
+    </button>
+  </div>
+
+  <!-- Inbox View -->
+  <ng-container *ngIf="activeTab === 'inbox'">
+    <!-- Filter Pills -->
+    <div class="filters-bar my-3">
+      <button
+        type="button"
+        class="filter-pill"
+        [class.active]="currentFilter === 'all'"
+        (click)="setFilter('all')"
       >
-        <div class="notification-content">
-          <div class="notification-header">
-            <div class="title-row">
-              <span *ngIf="!notif.read" class="unread-dot"></span>
-              <strong>{{ notif.title }}</strong>
+        Todas
+        <span class="pill-badge">{{ notifications.length }}</span>
+      </button>
+      <button
+        type="button"
+        class="filter-pill"
+        [class.active]="currentFilter === 'unread'"
+        (click)="setFilter('unread')"
+      >
+        No leídas
+        <span class="pill-badge unread-badge">{{ unreadCount }}</span>
+      </button>
+    </div>
+
+    <!-- Error State -->
+    <div *ngIf="error" class="error-banner mb-3">
+      <i class="pi pi-exclamation-circle mr-2"></i>
+      <span>{{ error }}</span>
+      <p-button
+        label="Reintentar"
+        icon="pi pi-replay"
+        styleClass="p-button-text p-button-sm p-button-danger ml-auto"
+        (onClick)="loadNotifications()"
+      ></p-button>
+    </div>
+
+    <!-- Loading State -->
+    <div *ngIf="loading" class="loading-state text-center py-5">
+      <i class="pi pi-spin pi-spinner text-3xl text-primary"></i>
+      <p class="text-muted mt-2">Cargando tus notificaciones...</p>
+    </div>
+
+    <!-- Empty State -->
+    <div
+      *ngIf="!loading && displayedNotifications.length === 0"
+      class="empty-state text-center py-5"
+    >
+      <div class="empty-icon-wrapper mb-3">
+        <i class="pi pi-bell-slash text-4xl text-muted"></i>
+      </div>
+      <h3 class="empty-title">Sin notificaciones</h3>
+      <p class="empty-desc text-muted">
+        {{
+          currentFilter === "unread"
+            ? "¡Estás al día! No tienes notificaciones pendientes de lectura."
+            : "Aún no has recibido ninguna notificación."
+        }}
+      </p>
+    </div>
+
+    <!-- Notifications List -->
+    <div
+      *ngIf="!loading && displayedNotifications.length > 0"
+      class="notifications-list"
+    >
+      <div
+        *ngFor="let notif of displayedNotifications"
+        class="notification-item-wrapper mb-3"
+      >
+        <p-card
+          styleClass="p-card-shadow notification-card"
+          [class.unread]="!notif.is_read"
+          tabindex="0"
+          role="article"
+          (click)="viewDetails(notif)"
+          (keydown.enter)="viewDetails(notif)"
+          (keydown.space)="viewDetails(notif)"
+        >
+          <div class="notification-content">
+            <div class="notification-header">
+              <div class="title-row">
+                <span
+                  *ngIf="!notif.is_read"
+                  class="unread-dot"
+                  title="No leída"
+                ></span>
+                <strong class="notification-title">{{ notif.title }}</strong>
+                <p-tag
+                  [value]="getCategoryLabel(notif.category)"
+                  [severity]="getCategorySeverity(notif.category)"
+                  styleClass="category-tag text-xs"
+                ></p-tag>
+                <p-tag
+                  *ngIf="notif.is_critical"
+                  value="Importante"
+                  severity="danger"
+                  styleClass="text-xs"
+                ></p-tag>
+              </div>
+              <span class="text-xs text-muted date-text">
+                {{ formatDate(notif.created_at) }}
+              </span>
             </div>
-            <span class="text-xs text-muted">{{ notif.date }}</span>
+
+            <p class="notification-message">
+              {{ notif.message }}
+            </p>
+
+            <div class="notification-footer">
+              <div class="footer-left text-xs text-muted">
+                <span>Origen: {{ notif.source_service | uppercase }}</span>
+              </div>
+              <div class="action-buttons">
+                <p-button
+                  label="Ver detalle"
+                  icon="pi pi-eye"
+                  (onClick)="viewDetails(notif)"
+                  styleClass="p-button-text p-button-sm p-button-secondary mr-1"
+                ></p-button>
+                <p-button
+                  *ngIf="!notif.is_read"
+                  label="Marcar leída"
+                  icon="pi pi-check"
+                  (onClick)="markAsRead(notif, $event)"
+                  styleClass="p-button-text p-button-sm p-button-success mr-1"
+                ></p-button>
+                <p-button
+                  label="Eliminar"
+                  icon="pi pi-trash"
+                  (onClick)="deleteNotification(notif, $event)"
+                  styleClass="p-button-text p-button-sm p-button-danger"
+                  title="Eliminar definitivamente"
+                ></p-button>
+              </div>
+            </div>
           </div>
-          <p class="notification-message">{{ notif.message }}</p>
-          <div class="notification-footer" *ngIf="!notif.read">
-            <p-button
-              label="Marcar leída"
-              icon="pi pi-check"
-              (onClick)="markAsRead(notif)"
-              styleClass="p-button-text p-button-sm"
-            ></p-button>
+        </p-card>
+      </div>
+    </div>
+  </ng-container>
+
+  <!-- Preferences View -->
+  <div *ngIf="activeTab === 'preferences'" class="preferences-container">
+    <div
+      class="preferences-intro-card p-4 mb-4 border-round surface-card border-1 surface-border"
+    >
+      <div
+        class="flex justify-content-between align-items-start flex-wrap gap-3"
+      >
+        <div class="intro-text">
+          <h2 class="text-xl font-bold m-0 text-900 mb-1">
+            <i class="pi pi-sliders-h text-primary mr-2"></i>
+            Canales de notificación
+          </h2>
+          <p class="text-sm text-600 m-0 line-height-3">
+            Selecciona por qué vías deseas recibir avisos para cada área. Por
+            defecto, todas las categorías están activadas por
+            <strong>Notificación push</strong> y por
+            <strong>Correo electrónico</strong> para que no te pierdas novedades
+            importantes.
+          </p>
+        </div>
+        <p-button
+          label="Restablecer todo activado"
+          icon="pi pi-refresh"
+          styleClass="p-button-outlined p-button-secondary p-button-sm"
+          [loading]="preferencesSaving"
+          (onClick)="resetPreferences()"
+        ></p-button>
+      </div>
+
+      <div
+        class="security-notice mt-3 p-2 border-round surface-100 flex align-items-center gap-2 text-xs text-700"
+      >
+        <i class="pi pi-info-circle text-primary"></i>
+        <span>
+          <strong>Importante:</strong> Los avisos críticos de seguridad (como
+          cambios de contraseña o restablecimientos de cuenta) siempre serán
+          enviados por razones de seguridad de tu cuenta.
+        </span>
+      </div>
+    </div>
+
+    <!-- Alert / Feedback Banners -->
+    <div
+      *ngIf="preferencesSuccessMessage"
+      class="feedback-banner success mb-3 p-3 border-round"
+    >
+      <i class="pi pi-check-circle mr-2"></i>
+      <span>{{ preferencesSuccessMessage }}</span>
+    </div>
+
+    <div
+      *ngIf="preferencesErrorMessage"
+      class="feedback-banner error mb-3 p-3 border-round"
+    >
+      <i class="pi pi-exclamation-triangle mr-2"></i>
+      <span>{{ preferencesErrorMessage }}</span>
+    </div>
+
+    <!-- Loading Preferences -->
+    <div *ngIf="preferencesLoading" class="loading-state text-center py-5">
+      <i class="pi pi-spin pi-spinner text-3xl text-primary"></i>
+      <p class="text-muted mt-2">
+        Cargando tus preferencias de notificación...
+      </p>
+    </div>
+
+    <!-- Preferences List -->
+    <div *ngIf="!preferencesLoading" class="preferences-grid">
+      <div
+        *ngFor="let pref of preferences"
+        class="preference-card mb-3 p-3 border-round surface-card border-1"
+        [class.has-changes]="isCategoryChanged(pref)"
+      >
+        <div
+          class="flex flex-column md:flex-row md:align-items-center justify-content-between gap-3"
+        >
+          <div class="flex align-items-start gap-3">
+            <div class="pref-icon-wrapper" [ngClass]="pref.category">
+              <i [class]="getCategoryIcon(pref.category)"></i>
+            </div>
+            <div>
+              <div class="flex align-items-center gap-2 mb-1">
+                <h3
+                  class="pref-category-title text-base font-semibold m-0 text-900"
+                >
+                  {{ getCategoryLabel(pref.category) }}
+                </h3>
+                <p-tag
+                  [value]="getCategoryLabel(pref.category)"
+                  [severity]="getCategorySeverity(pref.category)"
+                  styleClass="text-xs"
+                ></p-tag>
+                <p-tag
+                  [value]="getChannelModeLabel(pref)"
+                  [severity]="getChannelModeSeverity(pref)"
+                  styleClass="text-xs font-semibold"
+                ></p-tag>
+                <span
+                  *ngIf="isCategoryChanged(pref)"
+                  class="badge-modified text-xs font-semibold"
+                >
+                  Modificado
+                </span>
+              </div>
+              <p class="pref-description text-sm text-600 m-0">
+                {{ getCategoryDescription(pref.category) }}
+              </p>
+            </div>
+          </div>
+
+          <!-- Channel Toggles -->
+          <div class="channel-toggles flex align-items-center gap-4 flex-wrap">
+            <div class="toggle-group flex align-items-center gap-2">
+              <span
+                class="channel-label text-sm font-medium text-700 flex align-items-center gap-1"
+              >
+                <i class="pi pi-bell text-xs"></i>
+                Push:
+              </span>
+              <p-toggleswitch
+                [(ngModel)]="pref.push_enabled"
+                (onChange)="onPreferenceChange()"
+                [attr.aria-label]="
+                  'Notificaciones push para ' + getCategoryLabel(pref.category)
+                "
+              ></p-toggleswitch>
+            </div>
+
+            <div class="toggle-group flex align-items-center gap-2">
+              <span
+                class="channel-label text-sm font-medium text-700 flex align-items-center gap-1"
+              >
+                <i class="pi pi-envelope text-xs"></i>
+                Email:
+              </span>
+              <p-toggleswitch
+                [(ngModel)]="pref.email_enabled"
+                (onChange)="onPreferenceChange()"
+                [attr.aria-label]="
+                  'Notificaciones por correo para ' +
+                  getCategoryLabel(pref.category)
+                "
+              ></p-toggleswitch>
+            </div>
           </div>
         </div>
-      </p-card>
+      </div>
+    </div>
+
+    <!-- Preferences Bottom Action Bar (Save All Changes) -->
+    <div
+      *ngIf="!preferencesLoading && preferences.length > 0"
+      class="preferences-action-bar mt-4 p-3 border-round flex flex-column sm:flex-row align-items-center justify-content-between gap-3"
+      [class.has-pending-changes]="hasUnsavedChanges"
+    >
+      <div class="action-bar-status flex align-items-center gap-2 text-sm">
+        <i
+          [class]="
+            hasUnsavedChanges
+              ? 'pi pi-exclamation-circle text-orange-600 font-bold'
+              : 'pi pi-check-circle text-green-700'
+          "
+        ></i>
+        <div>
+          <span *ngIf="hasUnsavedChanges" class="font-semibold text-900">
+            Tenés cambios pendientes de guardar.
+          </span>
+          <span *ngIf="!hasUnsavedChanges" class="text-700 font-medium">
+            Tus canales de notificación están actualizados y sincronizados.
+          </span>
+        </div>
+      </div>
+
+      <div class="action-bar-buttons flex align-items-center gap-2">
+        <p-button
+          *ngIf="hasUnsavedChanges"
+          label="Descartar"
+          icon="pi pi-undo"
+          styleClass="p-button-outlined p-button-secondary p-button-sm"
+          [disabled]="preferencesSaving"
+          (onClick)="cancelPreferenceChanges()"
+        ></p-button>
+
+        <p-button
+          label="Guardar cambios"
+          icon="pi pi-check"
+          styleClass="p-button-sm btn-save-changes"
+          [loading]="preferencesSaving"
+          [disabled]="!hasUnsavedChanges"
+          (onClick)="saveAllPreferences()"
+        ></p-button>
+      </div>
     </div>
   </div>
+
+  <!-- Detail Dialog Modal -->
+  <p-dialog
+    header="Detalle de la notificación"
+    [(visible)]="displayDetailModal"
+    [modal]="true"
+    [style]="{ width: '92vw', maxWidth: '600px' }"
+    [draggable]="false"
+    [resizable]="false"
+    (onHide)="closeDetailModal()"
+  >
+    <div *ngIf="selectedDetail" class="detail-dialog-content">
+      <div class="detail-header-tags mb-3 flex align-items-center gap-2">
+        <p-tag
+          [value]="getCategoryLabel(selectedDetail.category)"
+          [severity]="getCategorySeverity(selectedDetail.category)"
+        ></p-tag>
+        <p-tag
+          *ngIf="selectedDetail.is_critical"
+          value="Crítica / Obligatoria"
+          severity="danger"
+        ></p-tag>
+        <span class="text-xs text-muted ml-auto">
+          {{ formatDate(selectedDetail.created_at) }}
+        </span>
+      </div>
+
+      <h2 class="detail-title text-xl font-bold mb-2">
+        {{ selectedDetail.title }}
+      </h2>
+
+      <div class="detail-body-box p-3 border-round surface-ground mb-3">
+        <p class="detail-message line-height-3 m-0">
+          {{ selectedDetail.message }}
+        </p>
+      </div>
+
+      <div class="detail-meta-grid text-sm mb-3">
+        <div
+          class="meta-item py-1 border-bottom-1 surface-border flex justify-content-between"
+        >
+          <span class="text-muted">Servicio emisor:</span>
+          <span class="font-semibold">{{
+            selectedDetail.source_service | uppercase
+          }}</span>
+        </div>
+        <div
+          class="meta-item py-1 border-bottom-1 surface-border flex justify-content-between"
+        >
+          <span class="text-muted">Estado de lectura:</span>
+          <span [class.text-green-600]="selectedDetail.is_read">
+            {{
+              selectedDetail.is_read
+                ? "Leída el " + formatDate(selectedDetail.read_at)
+                : "No leída"
+            }}
+          </span>
+        </div>
+        <div *ngIf="selectedDetail.action_url" class="meta-item py-2">
+          <a
+            [href]="selectedDetail.action_url"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="action-link inline-flex align-items-center text-primary font-semibold"
+          >
+            <i class="pi pi-external-link mr-1"></i>
+            Acceder al enlace relacionado
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <ng-template pTemplate="footer">
+      <div class="flex justify-content-between w-full">
+        <p-button
+          *ngIf="selectedDetail"
+          label="Eliminar"
+          icon="pi pi-trash"
+          styleClass="p-button-danger p-button-outlined p-button-sm"
+          (onClick)="deleteNotification(selectedDetail)"
+        ></p-button>
+        <p-button
+          label="Cerrar"
+          icon="pi pi-times"
+          styleClass="p-button-secondary p-button-sm ml-auto"
+          (onClick)="closeDetailModal()"
+        ></p-button>
+      </div>
+    </ng-template>
+  </p-dialog>
 </div>

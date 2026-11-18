@@ -1,0 +1,73 @@
+<p-toast></p-toast>
+
+<div class="page-container">
+  <div class="header-section">
+    <div>
+      <h1 class="page-title">Indicadores del centro</h1>
+      <p class="page-subtitle">
+        Evolución de la participación, los cursos y la inserción laboral.
+      </p>
+    </div>
+    <div class="acciones">
+      <app-back-link to="/dashboard" label="Volver al inicio"></app-back-link>
+      <p-button
+        label="Exportar PDF"
+        icon="pi pi-file-pdf"
+        [loading]="exportando"
+        [disabled]="!puedeExportar"
+        (onClick)="exportar()"
+      ></p-button>
+    </div>
+  </div>
+
+  <app-dashboard-filtros
+    [filtros]="filtros"
+    [areas]="areas"
+    [areasNoDisponibles]="areasNoDisponibles"
+    (filtrosChange)="onFiltros($event)"
+  ></app-dashboard-filtros>
+
+  <p class="sr-only" aria-live="polite">
+    {{ cargando ? "Actualizando indicadores…" : "Indicadores actualizados." }}
+  </p>
+
+  @if (error) {
+    <app-error-state [message]="error" (retry)="reintentar()"></app-error-state>
+  } @else if (moduloSinIndicadores) {
+    <app-empty-state title="Este módulo todavía no tiene indicadores">
+      El dashboard mide usuarios, educación, promoción humana e inserción
+      laboral. Elegí otro módulo o «Todos».
+    </app-empty-state>
+  } @else {
+    <section aria-labelledby="kpi-titulo">
+      <h2 id="kpi-titulo" class="sr-only">Indicadores</h2>
+      <div class="kpis" [attr.aria-busy]="cargando">
+        @if (cargando || !datos) {
+          @for (p of placeholders; track p) {
+            <app-kpi-card [loading]="true"></app-kpi-card>
+          }
+        } @else {
+          @for (ind of datos.indicadores; track ind.id) {
+            <app-kpi-card [indicador]="ind"></app-kpi-card>
+          }
+        }
+      </div>
+    </section>
+
+    @if (datos) {
+      <section aria-labelledby="graficas-titulo">
+        <h2 id="graficas-titulo" class="seccion-titulo">Evolución mensual</h2>
+        <div class="graficas">
+          @for (g of datos.graficas; track g.id) {
+            <app-grafica-evolucion
+              [grafica]="g"
+              [loading]="cargando"
+            ></app-grafica-evolucion>
+          }
+        </div>
+      </section>
+    }
+  }
+
+  <app-historial-reportes></app-historial-reportes>
+</div>

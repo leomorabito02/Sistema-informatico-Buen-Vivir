@@ -3,7 +3,7 @@ import { HttpClient, HttpErrorResponse } from "@angular/common/http";
 import { Auth, signInWithPopup, GoogleAuthProvider } from "@angular/fire/auth";
 import { environment } from "../../environments/environment";
 import { Observable, from, throwError } from "rxjs";
-import { catchError, switchMap } from "rxjs/operators";
+import { catchError, switchMap, tap } from "rxjs/operators";
 import { Router } from "@angular/router";
 import {
   CheckCredentialsResponse,
@@ -15,18 +15,60 @@ import {
   UpdateTeacherProfile,
   User,
 } from "../core/models/auth.model";
+import { SKIP_GLOBAL_ERROR_HEADER } from "../core/interceptors/error.interceptor";
+
+import { PushNotificationService } from "./push-notification.service";
 
 @Injectable({
   providedIn: "root",
 })
 export class AuthService {
-  private http = inject(HttpClient);
-  private auth = inject(Auth);
-  private router = inject(Router);
+  private readonly http = inject(HttpClient);
+  private readonly auth = inject(Auth);
+  private readonly router = inject(Router);
+  private readonly pushService = inject(PushNotificationService);
 
   private readonly apiUrl = environment.apiUrl;
 
+  /** El token se registra una vez por carga de la página, no en cada navegación. */
+  private pushSynced = false;
+
   constructor() {}
+
+  /**
+   * Registra el dispositivo para las notificaciones push.
+   * @param askPermission `true` solo al iniciar sesión o registrarse: ahí se
+   *   muestra el pedido de permiso. Al validar la sesión (en cada guard) va
+   *   `false`, para no volver a preguntar en cada pantalla.
+   */
+  async syncPushNotifications(askPermission = false): Promise<void> {
+    if (this.pushSynced) {
+      return;
+    }
+    try {
+      const token =
+        await this.pushService.requestPermissionAndGetToken(askPermission);
+      if (token) {
+        this.pushSynced = true;
+        this.pushService.registerDeviceToken(token).subscribe();
+        this.pushService.listenForegroundMessages();
+      }
+    } catch {
+      // Non-blocking: push token retrieval does not interrupt auth flow
+    }
+  }
+
+  isLocallyAuthenticated(): boolean {
+    return localStorage.getItem("isAuthenticated") === "true";
+  }
+
+  setLocallyAuthenticated(): void {
+    localStorage.setItem("isAuthenticated", "true");
+  }
+
+  clearLocallyAuthenticated(): void {
+    localStorage.removeItem("isAuthenticated");
+  }
 
   /**
    * Step 1: Validates email and password. Returns a list of available accounts/roles.
@@ -40,7 +82,10 @@ export class AuthService {
       .post<CheckCredentialsResponse>(
         `${this.apiUrl}/api/v1/auth/check-credentials`,
         { email, password },
-        { withCredentials: true },
+        {
+          withCredentials: true,
+          headers: { [SKIP_GLOBAL_ERROR_HEADER]: "true" },
+        },
       )
       .pipe(catchError(this.handleError));
   }
@@ -65,7 +110,10 @@ export class AuthService {
           .post<CheckCredentialsResponse>(
             `${this.apiUrl}/api/v1/auth/google-check-credentials`,
             { id_token: idToken, google_id: googleId },
-            { withCredentials: true },
+            {
+              withCredentials: true,
+              headers: { [SKIP_GLOBAL_ERROR_HEADER]: "true" },
+            },
           )
           .pipe(catchError(this.handleError)),
       ),
@@ -88,7 +136,65 @@ export class AuthService {
         { user_id: userId, role_id: roleId, login_nonce: loginNonce },
         { withCredentials: true },
       )
+      .pipe(
+        tap(() => {
+          this.setLocallyAuthenticated();
+          void this.syncPushNotifications(true);
+        }),
+        catchError(this.handleError),
+      );
+  }
+
+  /**
+   * Completes 2FA verification during login challenge.
+   */
+  verifyTwoFactor(
+    twofaNonce: string,
+    code: string,
+    trustDevice = false,
+  ): Observable<CheckCredentialsResponse> {
+    return this.http
+      .post<CheckCredentialsResponse>(
+        `${this.apiUrl}/api/v1/auth/verify-2fa`,
+        { twofa_nonce: twofaNonce, code, trust_device: trustDevice },
+        {
+          withCredentials: true,
+          headers: { [SKIP_GLOBAL_ERROR_HEADER]: "true" },
+        },
+      )
       .pipe(catchError(this.handleError));
+  }
+
+  /**
+   * Resends email OTP code for an active 2FA challenge.
+   */
+  resendTwoFactorCode(twofaNonce: string): Observable<{ message: string }> {
+    return this.http
+      .post<{ message: string }>(
+        `${this.apiUrl}/api/v1/auth/resend-2fa`,
+        { twofa_nonce: twofaNonce },
+        {
+          withCredentials: true,
+          headers: { [SKIP_GLOBAL_ERROR_HEADER]: "true" },
+        },
+      )
+      .pipe(catchError(this.handleError));
+  }
+
+  refreshToken(): Observable<LoginResponse> {
+    return this.http
+      .post<LoginResponse>(
+        `${this.apiUrl}/api/v1/auth/refresh`,
+        {},
+        {
+          withCredentials: true,
+          headers: { [SKIP_GLOBAL_ERROR_HEADER]: "true" },
+        },
+      )
+      .pipe(
+        tap(() => this.setLocallyAuthenticated()),
+        catchError(this.handleError),
+      );
   }
 
   /**
@@ -99,7 +205,13 @@ export class AuthService {
       .post<LoginResponse>(`${this.apiUrl}/api/v1/auth/register`, userData, {
         withCredentials: true,
       })
-      .pipe(catchError(this.handleError));
+      .pipe(
+        tap(() => {
+          this.setLocallyAuthenticated();
+          void this.syncPushNotifications(true);
+        }),
+        catchError(this.handleError),
+      );
   }
 
   /**
@@ -111,7 +223,12 @@ export class AuthService {
       .get<MeResponse>(`${this.apiUrl}/api/v1/auth/me`, {
         withCredentials: true,
       })
-      .pipe(catchError(this.handleError));
+      .pipe(
+        tap(() => {
+          void this.syncPushNotifications();
+        }),
+        catchError(this.handleError),
+      );
   }
 
   updateProfile(
@@ -130,31 +247,126 @@ export class AuthService {
    * The backend is responsible for invalidating the session and clearing the cookies.
    */
   logout(): void {
+    this.clearLocallyAuthenticated();
     this.http
-      .post(`${this.apiUrl}/api/v1/auth/logout`, {}, { withCredentials: true })
+      .post(
+        `${this.apiUrl}/api/v1/auth/logout`,
+        {},
+        {
+          withCredentials: true,
+          headers: { [SKIP_GLOBAL_ERROR_HEADER]: "true" },
+        },
+      )
       .subscribe({
         next: () => {
-          this.auth.signOut();
-          this.router.navigate(["/login"]);
+          void this.auth.signOut();
+          void this.router.navigate(["/login"]);
         },
         error: () => {
           // Even if the backend request fails, clear the Firebase session and redirect
-          this.auth.signOut();
-          this.router.navigate(["/login"]);
+          void this.auth.signOut();
+          void this.router.navigate(["/login"]);
         },
       });
   }
 
-  private handleError = (error: HttpErrorResponse) => {
+  /**
+   * Dispara el reenvío del correo de confirmación con enlace temporal.
+   */
+  resendVerificationEmail(email: string): Observable<{ message: string }> {
+    return this.http
+      .post<{ message: string }>(
+        `${this.apiUrl}/api/v1/auth/resend-verification`,
+        { email },
+        {
+          withCredentials: true,
+          headers: { [SKIP_GLOBAL_ERROR_HEADER]: "true" },
+        },
+      )
+      .pipe(catchError(this.handleError));
+  }
+
+  /**
+   * Ejecuta el PATCH para validar el token y pasar is_email_verified = true.
+   */
+  verifyEmail(
+    token: string,
+  ): Observable<{ is_email_verified: boolean; message: string }> {
+    return this.http
+      .patch<{ is_email_verified: boolean; message: string }>(
+        `${this.apiUrl}/api/v1/auth/verify-email`,
+        { token },
+        {
+          withCredentials: true,
+          headers: { [SKIP_GLOBAL_ERROR_HEADER]: "true" },
+        },
+      )
+      .pipe(catchError(this.handleError));
+  }
+
+  /**
+   * Solicita el restablecimiento de contraseña enviando un enlace al email provisto.
+   */
+  forgotPassword(email: string): Observable<{ message: string }> {
+    return this.http
+      .post<{ message: string }>(
+        `${this.apiUrl}/api/v1/auth/forgot-password`,
+        { email },
+        {
+          withCredentials: true,
+          headers: { [SKIP_GLOBAL_ERROR_HEADER]: "true" },
+        },
+      )
+      .pipe(catchError(this.handleError));
+  }
+
+  /**
+   * Restablece la contraseña utilizando el token temporal recibido por email.
+   */
+  resetPassword(
+    token: string,
+    newPassword: string,
+  ): Observable<{ message: string }> {
+    return this.http
+      .post<{ message: string }>(
+        `${this.apiUrl}/api/v1/auth/reset-password`,
+        { token, new_password: newPassword },
+        {
+          withCredentials: true,
+          headers: { [SKIP_GLOBAL_ERROR_HEADER]: "true" },
+        },
+      )
+      .pipe(catchError(this.handleError));
+  }
+
+  private readonly handleError = (error: HttpErrorResponse) => {
     let errorMessage =
       "Ocurrió un error inesperado. Por favor, intente nuevamente.";
-    if (error.error && (error.error as { message?: string }).message) {
-      errorMessage = (error.error as { message: string }).message;
+    if (error.status === 401) {
+      this.clearLocallyAuthenticated();
+    }
+
+    const body = error.error as { message?: string; error?: string } | null;
+    if (body?.message) {
+      errorMessage = body.message;
+    } else if (typeof body?.error === "string" && body.error) {
+      // Auth responde {"error": "..."}: antes se perdía este mensaje.
+      errorMessage = body.error;
+    } else if (error.status === 429) {
+      errorMessage =
+        "Hiciste demasiados intentos seguidos. Esperá un minuto y probá de nuevo.";
     } else if (error.status === 401) {
       errorMessage = "No autorizado. Verifique sus credenciales.";
     } else if (error.status === 403) {
       errorMessage = "No tiene permisos para realizar esta acción.";
     }
-    return throwError(() => new Error(errorMessage));
+    // Se conservan status y cuerpo para que el login distinga el bloqueo
+    // (423), la cuenta suspendida y el resto.
+    return throwError(() =>
+      Object.assign(new Error(errorMessage), {
+        status: error.status,
+        error: error.error,
+      }),
+    );
   };
 }

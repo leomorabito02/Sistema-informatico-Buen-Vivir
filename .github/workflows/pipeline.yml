@@ -2,24 +2,22 @@ name: Unified CI/CD & Mutation Pipeline
 
 on:
   push:
-    branches: ['**']
+    branches-ignore:
+      - 'Calidad'
   pull_request:
-    branches: ['**']
+    branches-ignore:
+      - 'Calidad'
   workflow_dispatch:
 
 permissions:
   contents: read
-  id-token: write
-  security-events: write
-  actions: read
-  pull-requests: read
 
 concurrency:
   group: cd-${{ github.ref }}
-  cancel-in-progress: false
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 env:
-  GO_VERSION: '1.25'
+  GO_VERSION: '1.26'
   NODE_VERSION: '22'
 
 # ============================================================================
@@ -30,6 +28,10 @@ jobs:
   ci-secrets:
     name: CI — Secrets Scan (Gitleaks)
     runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      pull-requests: read
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -43,6 +45,11 @@ jobs:
   ci-frontend:
     name: CI — Frontend (Angular)
     runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      security-events: write
+      actions: read
 
     steps:
       - name: Checkout repository
@@ -65,24 +72,34 @@ jobs:
         working-directory: frontend
         run: pnpm install --frozen-lockfile
 
+      # El front importa @buenvivir/cv-engine/browser, que se exporta desde
+      # cv-engine/dist (no versionado): sin este paso no compilan ni los
+      # tests ni el build.
+      - name: Build cv-engine
+        working-directory: frontend
+        run: pnpm --filter @buenvivir/cv-engine build
+
       - name: ESLint
         working-directory: frontend
         run: pnpm exec eslint . --ext .ts,.html
 
       - name: Prettier check
         working-directory: frontend
-        run: npx prettier --check "src/**/*.{ts,html,css,json}"
+        run: pnpm run format:check
 
       - name: Unit tests (Karma/Jasmine) + coverage
         working-directory: frontend
         run: |
-          npx ng test --watch=false --browsers=ChromeHeadless --code-coverage > test_output.txt || true
+          set +e
+          npx ng test --watch=false --browsers=ChromeHeadless --code-coverage > test_output.txt 2>&1
+          TEST_EXIT=$?
+          set -e
           cat test_output.txt
           echo "### Frontend Test Results" >> $GITHUB_STEP_SUMMARY
           echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
           grep -i -E "Executed|TOTAL|SUCCESS|FAILED" test_output.txt >> $GITHUB_STEP_SUMMARY || tail -n 10 test_output.txt >> $GITHUB_STEP_SUMMARY
           echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
-          if grep -q "FAILED" test_output.txt; then exit 1; fi
+          if [ "$TEST_EXIT" -ne 0 ] || grep -q "FAILED" test_output.txt; then exit 1; fi
 
       - name: Upload coverage report
         if: always()
@@ -95,7 +112,7 @@ jobs:
       - name: SAST — Semgrep
         uses: semgrep/semgrep-action@v1
         with:
-          publishToken: ${{ secrets.SEMGREP_APP_TOKEN }}
+          config: p/default
         continue-on-error: true
 
       - name: SCA — pnpm audit (block HIGH/CRITICAL)
@@ -113,9 +130,43 @@ jobs:
           path: frontend/dist/frontend-buen-vivir/browser
           retention-days: 7
 
+  ci-pkg:
+    name: CI — Shared Packages (pkg)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+          cache-dependency-path: pkg/go.sum
+
+      - name: Download Go modules
+        working-directory: pkg
+        run: go mod download
+
+      - name: Go vet
+        working-directory: pkg
+        run: go vet ./...
+
+      - name: Unit tests
+        working-directory: pkg
+        run: go test -v -race -coverprofile=coverage.out ./...
+
   ci-auth:
     name: CI — Auth Service (Go)
     runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      id-token: write
+      security-events: write
+      actions: read
 
     steps:
       - name: Checkout repository
@@ -145,16 +196,19 @@ jobs:
         working-directory: auth
         run: |
           go test -v -race -coverprofile=coverage.out -covermode=atomic ./...
+          # El código gRPC generado por protoc (api/proto) no se mide.
+          grep -v '/api/proto/' coverage.out > coverage.filtered.out
+          mv coverage.filtered.out coverage.out
           go tool cover -func=coverage.out
 
-      - name: Enforce coverage threshold (70%)
+      - name: Enforce coverage threshold (75%)
         working-directory: auth
         run: |
           COVERAGE=$(go tool cover -func=coverage.out | grep total | awk '{print $3}' | tr -d '%')
           echo "Total coverage: ${COVERAGE}%"
           echo "### Auth Service Coverage: ${COVERAGE}%" >> $GITHUB_STEP_SUMMARY
-          if (( $(echo "$COVERAGE < 70" | bc -l) )); then
-            echo "::error::Coverage ${COVERAGE}% is below the required 70% threshold."
+          if (( $(echo "$COVERAGE < 75" | bc -l) )); then
+            echo "::error::Coverage ${COVERAGE}% is below the required 75% threshold."
             exit 1
           fi
 
@@ -174,7 +228,7 @@ jobs:
         working-directory: auth
         run: |
           go install github.com/securego/gosec/v2/cmd/gosec@latest
-          gosec -fmt=sarif -out=gosec-results.sarif ./... || true
+          $(go env GOPATH)/bin/gosec -fmt=sarif -out=gosec-results.sarif ./... || true
 
       - name: Upload gosec SARIF
         if: always()
@@ -193,7 +247,7 @@ jobs:
         run: docker build -t auth:${{ github.sha }} -f auth/Dockerfile ./auth
 
       - name: Trivy image scan (block CRITICAL/HIGH)
-        uses: aquasecurity/trivy-action@master
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
           image-ref: 'auth:${{ github.sha }}'
           format: 'table'
@@ -228,9 +282,811 @@ jobs:
           done
           if [ "$n" -ge 3 ]; then echo "Failed to push image after 3 attempts."; exit 1; fi
 
+  ci-education:
+    name: CI — Education Service (Go)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      id-token: write
+      security-events: write
+      actions: read
+
+    # education-service no tiene base de datos relacional propia (el
+    # catálogo vive en Contentful, un SaaS externo), pero sí usa Firestore
+    # para actividades/asistencias/inscripciones. Los tests de esos
+    # repositories corren contra el emulador oficial de Firestore, no
+    # contra un proyecto real de GCP — mismo criterio que auth con su
+    # Postgres. Ver education/TESTS.md.
+    services:
+      firestore:
+        image: mtlynch/firestore-emulator:latest
+        ports:
+          - 8390:8080
+
+    env:
+      FIRESTORE_EMULATOR_HOST: localhost:8390
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+          cache-dependency-path: education/go.sum
+
+      - name: Download Go dependencies
+        working-directory: education
+        run: go mod download
+
+      - name: golangci-lint
+        uses: golangci/golangci-lint-action@v7
+        with:
+          version: v2.13.1
+          working-directory: education
+          args: --timeout=5m
+
+      - name: Wait for Firestore emulator
+        run: |
+          for i in $(seq 1 30); do
+            if curl -s "http://localhost:8390/" >/dev/null 2>&1; then
+              echo "Firestore emulator ready"; exit 0
+            fi
+            echo "waiting for Firestore emulator ($i/30)..."; sleep 2
+          done
+          echo "::error::Firestore emulator did not become ready"; exit 1
+
+      - name: Unit + integration tests + coverage
+        working-directory: education
+        run: |
+          go test -v -race -coverprofile=coverage.out -covermode=atomic ./...
+          grep -v '/api/proto/' coverage.out > coverage.filtered.out
+          mv coverage.filtered.out coverage.out
+          go tool cover -func=coverage.out
+
+      - name: Enforce coverage threshold (70%)
+        working-directory: education
+        run: |
+          COVERAGE=$(go tool cover -func=coverage.out | grep total | awk '{print $3}' | tr -d '%')
+          echo "Total coverage: ${COVERAGE}%"
+          echo "### Education Service Coverage: ${COVERAGE}%" >> $GITHUB_STEP_SUMMARY
+          if (( $(echo "$COVERAGE < 70" | bc -l) )); then
+            echo "::error::Coverage ${COVERAGE}% is below the required 70% threshold."
+            exit 1
+          fi
+
+      - name: Upload education coverage report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: education-coverage-${{ github.sha }}
+          path: education/coverage.out
+          retention-days: 7
+
+      - name: Contract tests — Education provider (Pact)
+        working-directory: education
+        run: go test -v ./tests/contract/...
+
+      - name: SAST — gosec
+        working-directory: education
+        run: |
+          go install github.com/securego/gosec/v2/cmd/gosec@latest
+          $(go env GOPATH)/bin/gosec -fmt=sarif -out=gosec-results.sarif ./... || true
+
+      - name: Upload gosec SARIF
+        if: always()
+        uses: github/codeql-action/upload-sarif@v4
+        with:
+          sarif_file: education/gosec-results.sarif
+        continue-on-error: true
+
+      - name: SCA — govulncheck
+        working-directory: education
+        run: |
+          go install golang.org/x/vuln/cmd/govulncheck@latest
+          govulncheck ./...
+
+      - name: Docker build (education)
+        run: docker build -t education:${{ github.sha }} -f education/Dockerfile ./education
+
+      - name: Trivy image scan (block CRITICAL/HIGH)
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          image-ref: 'education:${{ github.sha }}'
+          format: 'table'
+          exit-code: '1'
+          ignore-unfixed: true
+          vuln-type: 'os,library'
+          severity: 'CRITICAL,HIGH'
+
+      - name: Authenticate GCP (Workload Identity)
+        if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/testing')
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+
+      - name: Configure Docker for Artifact Registry
+        if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/testing')
+        run: gcloud auth configure-docker ${{ secrets.ARTIFACT_REGISTRY_HOST }} --quiet
+
+      - name: Push image to Artifact Registry
+        if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/testing')
+        run: |
+          IMAGE_URI="${{ secrets.ARTIFACT_REGISTRY_HOST }}/${{ secrets.GCP_PROJECT_ID }}/${{ secrets.ARTIFACT_REGISTRY_REPO }}/education:${{ github.sha }}"
+          docker tag education:${{ github.sha }} "$IMAGE_URI"
+          n=0
+          until [ "$n" -ge 3 ]
+          do
+             docker push "$IMAGE_URI" && break
+             n=$((n+1))
+             echo "Push failed, retrying in 10 seconds..."
+             sleep 10
+          done
+          if [ "$n" -ge 3 ]; then echo "Failed to push image after 3 attempts."; exit 1; fi
+
+
+  ci-rxresume:
+    name: CI — RxResume Service (Go)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      id-token: write
+      security-events: write
+      actions: read
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+          cache-dependency-path: rxresume/go.sum
+
+      - name: Download Go modules
+        working-directory: rxresume
+        run: go mod download
+
+      - name: Go vet
+        working-directory: rxresume
+        run: go vet ./...
+
+      - name: Run Go Unit Tests
+        working-directory: rxresume
+        run: go test -v -race -coverprofile=coverage.out ./...
+
+      - name: Go Security Scan (gosec)
+        working-directory: rxresume
+        run: |
+          go install github.com/securego/gosec/v2/cmd/gosec@latest
+          gosec -fmt sarif -out gosec-results.sarif ./...
+        continue-on-error: true
+
+      - name: SCA — govulncheck
+        working-directory: rxresume
+        run: |
+          go install golang.org/x/vuln/cmd/govulncheck@latest
+          govulncheck ./...
+
+      - name: Docker build (rxresume)
+        run: docker build -t rxresume:${{ github.sha }} -f rxresume/Dockerfile ./rxresume
+
+      - name: Trivy image scan (block CRITICAL/HIGH)
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          image-ref: 'rxresume:${{ github.sha }}'
+          format: 'table'
+          exit-code: '1'
+          ignore-unfixed: true
+          vuln-type: 'os,library'
+          severity: 'CRITICAL,HIGH'
+
+      - name: Authenticate to Google Cloud
+        if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/testing')
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+
+      - name: Setup Google Cloud SDK
+        if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/testing')
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Configure Docker for Artifact Registry
+        if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/testing')
+        run: gcloud auth configure-docker ${{ secrets.ARTIFACT_REGISTRY_HOST }} --quiet
+
+      - name: Push rxresume image to Artifact Registry
+        if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/testing')
+        run: |
+          IMAGE_URI="${{ secrets.ARTIFACT_REGISTRY_HOST }}/${{ secrets.GCP_PROJECT_ID }}/${{ secrets.ARTIFACT_REGISTRY_REPO }}/rxresume:${{ github.sha }}"
+          docker tag rxresume:${{ github.sha }} "$IMAGE_URI"
+          docker push "$IMAGE_URI"
+
+  ci-human-promotion:
+    name: CI — Human Promotion Service (Go)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      id-token: write
+      security-events: write
+      actions: read
+
+    # Los repositorios (fichas, hitos, línea de tiempo, indicadores) se
+    # prueban contra el emulador de Firestore; sin él, esas pruebas se
+    # saltean y la cobertura queda baja.
+    services:
+      firestore:
+        image: mtlynch/firestore-emulator:latest
+        ports:
+          - 8390:8080
+
+    env:
+      FIRESTORE_EMULATOR_HOST: localhost:8390
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+          cache-dependency-path: human-promotion/go.sum
+
+      - name: Download Go modules
+        working-directory: human-promotion
+        run: go mod download
+
+      - name: Go vet
+        working-directory: human-promotion
+        run: go vet ./...
+
+      - name: Unit + integration tests + coverage
+        working-directory: human-promotion
+        run: |
+          go test -v -race -coverprofile=coverage.out ./...
+          grep -v '/api/proto/' coverage.out > coverage.filtered.out
+          mv coverage.filtered.out coverage.out
+          COVERAGE=$(go tool cover -func=coverage.out | grep total | awk '{print $3}')
+          echo "### Human Promotion Service Coverage: ${COVERAGE}" >> $GITHUB_STEP_SUMMARY
+
+      - name: Go Security Scan (gosec)
+        working-directory: human-promotion
+        run: |
+          go install github.com/securego/gosec/v2/cmd/gosec@latest
+          gosec -fmt sarif -out gosec-results.sarif ./...
+        continue-on-error: true
+
+      - name: SCA — govulncheck
+        working-directory: human-promotion
+        run: |
+          go install golang.org/x/vuln/cmd/govulncheck@latest
+          govulncheck ./...
+
+      - name: Docker build (human-promotion)
+        run: docker build -t human-promotion:${{ github.sha }} -f human-promotion/Dockerfile ./human-promotion
+
+      - name: Trivy image scan (block CRITICAL/HIGH)
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          image-ref: 'human-promotion:${{ github.sha }}'
+          format: 'table'
+          exit-code: '1'
+          ignore-unfixed: true
+          vuln-type: 'os,library'
+          severity: 'CRITICAL,HIGH'
+
+      - name: Authenticate to Google Cloud
+        if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/testing')
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+
+      - name: Setup Google Cloud SDK
+        if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/testing')
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Configure Docker for Artifact Registry
+        if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/testing')
+        run: gcloud auth configure-docker ${{ secrets.ARTIFACT_REGISTRY_HOST }} --quiet
+
+      - name: Push human-promotion image to Artifact Registry
+        if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/testing')
+        run: |
+          IMAGE_URI="${{ secrets.ARTIFACT_REGISTRY_HOST }}/${{ secrets.GCP_PROJECT_ID }}/${{ secrets.ARTIFACT_REGISTRY_REPO }}/human-promotion:${{ github.sha }}"
+          docker tag human-promotion:${{ github.sha }} "$IMAGE_URI"
+          docker push "$IMAGE_URI"
+
+  ci-campaigns:
+    name: CI — Campaigns Service (Go)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      id-token: write
+      security-events: write
+      actions: read
+
+    # Los tests del repository corren contra el emulador de Firestore,
+    # igual que ci-education (sin él se saltean).
+    services:
+      firestore:
+        image: mtlynch/firestore-emulator:latest
+        ports:
+          - 8390:8080
+
+    env:
+      FIRESTORE_EMULATOR_HOST: localhost:8390
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+          cache-dependency-path: campaigns/go.sum
+
+      - name: Download Go modules
+        working-directory: campaigns
+        run: go mod download
+
+      - name: Go vet
+        working-directory: campaigns
+        run: go vet ./...
+
+      # -coverpkg: los handlers y middlewares se prueban desde el paquete
+      # routes; sin esto la cobertura de cada paquete sale artificialmente baja.
+      - name: Unit + integration tests + coverage
+        working-directory: campaigns
+        run: |
+          go test -v -race -coverpkg=./... -coverprofile=coverage.out ./...
+          go tool cover -func=coverage.out | tail -1
+
+      - name: Enforce coverage threshold (70%)
+        working-directory: campaigns
+        run: |
+          COVERAGE=$(go tool cover -func=coverage.out | grep total | awk '{print $3}' | tr -d '%')
+          echo "### Campaigns Service Coverage: ${COVERAGE}%" >> $GITHUB_STEP_SUMMARY
+          if (( $(echo "$COVERAGE < 70" | bc -l) )); then
+            echo "::error::Coverage ${COVERAGE}% is below the required 70% threshold."
+            exit 1
+          fi
+
+      - name: Go Security Scan (gosec)
+        working-directory: campaigns
+        run: |
+          go install github.com/securego/gosec/v2/cmd/gosec@latest
+          gosec -fmt sarif -out gosec-results.sarif ./...
+        continue-on-error: true
+
+      - name: SCA — govulncheck
+        working-directory: campaigns
+        run: |
+          go install golang.org/x/vuln/cmd/govulncheck@latest
+          govulncheck ./...
+
+      - name: Docker build (campaigns)
+        run: docker build -t campaigns:${{ github.sha }} -f campaigns/Dockerfile ./campaigns
+
+      - name: Trivy image scan (block CRITICAL/HIGH)
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          image-ref: 'campaigns:${{ github.sha }}'
+          format: 'table'
+          exit-code: '1'
+          ignore-unfixed: true
+          vuln-type: 'os,library'
+          severity: 'CRITICAL,HIGH'
+
+      - name: Authenticate to Google Cloud
+        if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/testing')
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+
+      - name: Setup Google Cloud SDK
+        if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/testing')
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Configure Docker for Artifact Registry
+        if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/testing')
+        run: gcloud auth configure-docker ${{ secrets.ARTIFACT_REGISTRY_HOST }} --quiet
+
+      - name: Push campaigns image to Artifact Registry
+        if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/testing')
+        run: |
+          IMAGE_URI="${{ secrets.ARTIFACT_REGISTRY_HOST }}/${{ secrets.GCP_PROJECT_ID }}/${{ secrets.ARTIFACT_REGISTRY_REPO }}/campaigns:${{ github.sha }}"
+          docker tag campaigns:${{ github.sha }} "$IMAGE_URI"
+          docker push "$IMAGE_URI"
+
+  ci-notifications:
+    name: CI — Notifications Service (Go)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      id-token: write
+      security-events: write
+      actions: read
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+          cache-dependency-path: notifications/go.sum
+
+      - name: Download Go dependencies
+        working-directory: notifications
+        run: go mod download
+
+      - name: Go vet
+        working-directory: notifications
+        run: go vet ./...
+
+      - name: Run Unit Tests (notifications)
+        working-directory: notifications
+        run: go test -v -race -cover ./...
+
+      - name: Go Security Scan (gosec)
+        working-directory: notifications
+        run: |
+          go install github.com/securego/gosec/v2/cmd/gosec@latest
+          gosec -fmt sarif -out gosec-results.sarif ./...
+        continue-on-error: true
+
+      - name: SCA — govulncheck
+        working-directory: notifications
+        run: |
+          go install golang.org/x/vuln/cmd/govulncheck@latest
+          govulncheck ./...
+
+      - name: Docker build (notifications)
+        run: docker build -t notifications:${{ github.sha }} -f notifications/Dockerfile ./notifications
+
+      - name: Trivy image scan (block CRITICAL/HIGH)
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          image-ref: 'notifications:${{ github.sha }}'
+          format: 'table'
+          exit-code: '1'
+          ignore-unfixed: true
+          vuln-type: 'os,library'
+          severity: 'CRITICAL,HIGH'
+
+      - name: Authenticate to Google Cloud
+        if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/testing')
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+
+      - name: Setup Google Cloud SDK
+        if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/testing')
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Configure Docker for Artifact Registry
+        if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/testing')
+        run: gcloud auth configure-docker ${{ secrets.ARTIFACT_REGISTRY_HOST }} --quiet
+
+      - name: Push notifications image to Artifact Registry
+        if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/testing')
+        run: |
+          IMAGE_URI="${{ secrets.ARTIFACT_REGISTRY_HOST }}/${{ secrets.GCP_PROJECT_ID }}/${{ secrets.ARTIFACT_REGISTRY_REPO }}/notifications:${{ github.sha }}"
+          docker tag notifications:${{ github.sha }} "$IMAGE_URI"
+          docker push "$IMAGE_URI"
+
+  ci-dashboard:
+    name: CI — Dashboard Service (Go)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      id-token: write
+      security-events: write
+      actions: read
+
+    # El repositorio del historial de reportes se prueba contra el
+    # emulador de Firestore (sin él, esa prueba se saltea).
+    services:
+      firestore:
+        image: mtlynch/firestore-emulator:latest
+        ports:
+          - 8390:8080
+
+    env:
+      FIRESTORE_EMULATOR_HOST: localhost:8390
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+          cache-dependency-path: dashboard/go.sum
+
+      - name: Download Go modules
+        working-directory: dashboard
+        run: go mod download
+
+      - name: Go vet
+        working-directory: dashboard
+        run: go vet ./...
+
+      - name: Unit + integration tests + coverage
+        working-directory: dashboard
+        run: |
+          go test -v -race -coverpkg=./... -coverprofile=coverage.out ./...
+          go tool cover -func=coverage.out | tail -1
+
+      - name: Enforce coverage threshold (70%)
+        working-directory: dashboard
+        run: |
+          COVERAGE=$(go tool cover -func=coverage.out | grep total | awk '{print $3}' | tr -d '%')
+          echo "### Dashboard Service Coverage: ${COVERAGE}%" >> $GITHUB_STEP_SUMMARY
+          if (( $(echo "$COVERAGE < 70" | bc -l) )); then
+            echo "::error::Coverage ${COVERAGE}% is below the required 70% threshold."
+            exit 1
+          fi
+
+      - name: Go Security Scan (gosec)
+        working-directory: dashboard
+        run: |
+          go install github.com/securego/gosec/v2/cmd/gosec@latest
+          gosec -fmt sarif -out gosec-results.sarif ./...
+        continue-on-error: true
+
+      - name: SCA — govulncheck
+        working-directory: dashboard
+        run: |
+          go install golang.org/x/vuln/cmd/govulncheck@latest
+          govulncheck ./...
+
+      - name: Docker build (dashboard)
+        run: docker build -t dashboard:${{ github.sha }} -f dashboard/Dockerfile ./dashboard
+
+      - name: Trivy image scan (block CRITICAL/HIGH)
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          image-ref: 'dashboard:${{ github.sha }}'
+          format: 'table'
+          exit-code: '1'
+          ignore-unfixed: true
+          vuln-type: 'os,library'
+          severity: 'CRITICAL,HIGH'
+
+      - name: Authenticate to Google Cloud
+        if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/testing')
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+
+      - name: Setup Google Cloud SDK
+        if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/testing')
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Configure Docker for Artifact Registry
+        if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/testing')
+        run: gcloud auth configure-docker ${{ secrets.ARTIFACT_REGISTRY_HOST }} --quiet
+
+      - name: Push dashboard image to Artifact Registry
+        if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/testing')
+        run: |
+          IMAGE_URI="${{ secrets.ARTIFACT_REGISTRY_HOST }}/${{ secrets.GCP_PROJECT_ID }}/${{ secrets.ARTIFACT_REGISTRY_REPO }}/dashboard:${{ github.sha }}"
+          docker tag dashboard:${{ github.sha }} "$IMAGE_URI"
+          docker push "$IMAGE_URI"
+
+  ci-labor-integration:
+    name: CI — Labor Integration Service (Go)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      id-token: write
+      security-events: write
+      actions: read
+
+    services:
+      firestore:
+        image: mtlynch/firestore-emulator:latest
+        ports:
+          - 8390:8080
+
+    env:
+      FIRESTORE_EMULATOR_HOST: localhost:8390
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+          cache-dependency-path: labor-integration/go.sum
+
+      - name: Download Go modules
+        working-directory: labor-integration
+        run: go mod download
+
+      - name: Go vet
+        working-directory: labor-integration
+        run: go vet ./...
+
+      - name: Wait for Firestore emulator
+        run: |
+          for i in $(seq 1 30); do
+            if curl -s "http://localhost:8390/" >/dev/null 2>&1; then
+              echo "Firestore emulator ready"; exit 0
+            fi
+            echo "waiting for Firestore emulator ($i/30)..."; sleep 2
+          done
+          echo "::error::Firestore emulator did not become ready"; exit 1
+
+      - name: Unit + integration tests + coverage
+        working-directory: labor-integration
+        run: |
+          go test -v -race -coverprofile=coverage.out ./...
+          grep -v '/api/proto/' coverage.out > coverage.filtered.out
+          mv coverage.filtered.out coverage.out
+          COVERAGE=$(go tool cover -func=coverage.out | grep total | awk '{print $3}')
+          echo "### Labor Integration Service Coverage: ${COVERAGE}" >> $GITHUB_STEP_SUMMARY
+
+      - name: Go Security Scan (gosec)
+        working-directory: labor-integration
+        run: |
+          go install github.com/securego/gosec/v2/cmd/gosec@latest
+          gosec -fmt sarif -out gosec-results.sarif ./...
+        continue-on-error: true
+
+      - name: SCA — govulncheck
+        working-directory: labor-integration
+        run: |
+          go install golang.org/x/vuln/cmd/govulncheck@latest
+          govulncheck ./...
+
+      - name: Docker build (labor-integration)
+        run: docker build -t labor-integration:${{ github.sha }} -f labor-integration/Dockerfile ./labor-integration
+
+      - name: Trivy image scan (block CRITICAL/HIGH)
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          image-ref: 'labor-integration:${{ github.sha }}'
+          format: 'table'
+          exit-code: '1'
+          ignore-unfixed: true
+          vuln-type: 'os,library'
+          severity: 'CRITICAL,HIGH'
+
+      - name: Authenticate to Google Cloud
+        if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/testing')
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+
+      - name: Setup Google Cloud SDK
+        if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/testing')
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Configure Docker for Artifact Registry
+        if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/testing')
+        run: gcloud auth configure-docker ${{ secrets.ARTIFACT_REGISTRY_HOST }} --quiet
+
+      - name: Push labor-integration image to Artifact Registry
+        if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/testing')
+        run: |
+          IMAGE_URI="${{ secrets.ARTIFACT_REGISTRY_HOST }}/${{ secrets.GCP_PROJECT_ID }}/${{ secrets.ARTIFACT_REGISTRY_REPO }}/labor-integration:${{ github.sha }}"
+          docker tag labor-integration:${{ github.sha }} "$IMAGE_URI"
+          docker push "$IMAGE_URI"
+
+  ci-cv-renderer:
+    name: CI — CV Renderer (Node)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          submodules: true
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24' # reactive-resume exige node >= 24
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          package_json_file: rxresume/reactive-resume/package.json
+          run_install: false
+
+      - name: Get pnpm store directory
+        id: pnpm-cache
+        shell: bash
+        run: |
+          echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_OUTPUT
+
+      - name: Setup pnpm cache
+        uses: actions/cache@v4
+        with:
+          path: ${{ steps.pnpm-cache.outputs.STORE_PATH }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('frontend/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-store-
+
+      - name: Install dependencies
+        working-directory: frontend
+        run: pnpm install --frozen-lockfile
+
+      - name: Test cv-engine
+        working-directory: frontend/cv-engine
+        run: pnpm test
+
+      - name: Docker build (cv-renderer)
+        run: docker build -t cv-renderer:${{ github.sha }} -f frontend/cv-engine/Dockerfile ./frontend
+
+      - name: Authenticate to Google Cloud
+        if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/testing')
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+
+      - name: Setup Google Cloud SDK
+        if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/testing')
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Configure Docker for Artifact Registry
+        if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/testing')
+        run: gcloud auth configure-docker ${{ secrets.ARTIFACT_REGISTRY_HOST }} --quiet
+
+      - name: Push cv-renderer image to Artifact Registry
+        if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/testing')
+        run: |
+          IMAGE_URI="${{ secrets.ARTIFACT_REGISTRY_HOST }}/${{ secrets.GCP_PROJECT_ID }}/${{ secrets.ARTIFACT_REGISTRY_REPO }}/cv-renderer:${{ github.sha }}"
+          docker tag cv-renderer:${{ github.sha }} "$IMAGE_URI"
+          docker push "$IMAGE_URI"
+
   ci-api-gateway:
     name: CI — API Gateway (OpenAPI spec)
     runs-on: ubuntu-latest
+    timeout-minutes: 10
 
     steps:
       - name: Checkout repository
@@ -249,6 +1105,12 @@ jobs:
         run: |
           export GATEWAY_HOST="validate.example.com"
           export AUTH_SERVICE_URL="https://auth.example.com"
+          export EDUCATION_SERVICE_URL="https://education.example.com"
+          export RXRESUME_SERVICE_URL="https://rxresume.example.com"
+          export HUMAN_PROMOTION_SERVICE_URL="https://human-promotion.example.com"
+          export CAMPAIGNS_SERVICE_URL="https://campaigns.example.com"
+          export DASHBOARD_SERVICE_URL="https://dashboard.example.com"
+          export LABOR_SERVICE_URL="https://labor-integration.example.com"
           export FIREBASE_PROJECT_ID="validate-project"
           envsubst < openapi.yaml > openapi-resolved.yaml
 
@@ -269,22 +1131,63 @@ jobs:
   ci-gate:
     name: CI — Gate (Verificación general)
     runs-on: ubuntu-latest
-    needs: [ci-secrets, ci-frontend, ci-auth, ci-api-gateway]
+    timeout-minutes: 5
+    needs: [ci-secrets, ci-frontend, ci-pkg, ci-auth, ci-education, ci-rxresume, ci-human-promotion, ci-campaigns, ci-notifications, ci-dashboard, ci-labor-integration, ci-cv-renderer, ci-api-gateway]
     if: always()
 
     steps:
       - name: Fail if any CI job failed
         run: |
+          if [ "${{ needs.ci-secrets.result }}" != "success" ]; then
+            echo "::error::ci-secrets failed."
+            exit 1
+          fi
           if [ "${{ needs.ci-frontend.result }}" != "success" ]; then
             echo "::error::ci-frontend failed."
+            exit 1
+          fi
+          if [ "${{ needs.ci-pkg.result }}" != "success" ]; then
+            echo "::error::ci-pkg failed."
             exit 1
           fi
           if [ "${{ needs.ci-auth.result }}" != "success" ]; then
             echo "::error::ci-auth failed."
             exit 1
           fi
+          if [ "${{ needs.ci-education.result }}" != "success" ]; then
+            echo "::error::ci-education failed."
+            exit 1
+          fi
           if [ "${{ needs.ci-api-gateway.result }}" != "success" ]; then
             echo "::error::ci-api-gateway failed."
+            exit 1
+          fi
+          if [ "${{ needs.ci-cv-renderer.result }}" != "success" ]; then
+            echo "::error::ci-cv-renderer failed."
+            exit 1
+          fi
+          if [ "${{ needs.ci-rxresume.result }}" != "success" ]; then
+            echo "::error::ci-rxresume failed."
+            exit 1
+          fi
+          if [ "${{ needs.ci-human-promotion.result }}" != "success" ]; then
+            echo "::error::ci-human-promotion failed."
+            exit 1
+          fi
+          if [ "${{ needs.ci-campaigns.result }}" != "success" ]; then
+            echo "::error::ci-campaigns failed."
+            exit 1
+          fi
+          if [ "${{ needs.ci-notifications.result }}" != "success" ]; then
+            echo "::error::ci-notifications failed."
+            exit 1
+          fi
+          if [ "${{ needs.ci-dashboard.result }}" != "success" ]; then
+            echo "::error::ci-dashboard failed."
+            exit 1
+          fi
+          if [ "${{ needs.ci-labor-integration.result }}" != "success" ]; then
+            echo "::error::ci-labor-integration failed."
             exit 1
           fi
           echo "All CI jobs passed. Gate cleared."
@@ -379,18 +1282,107 @@ jobs:
           path: auth/mutation_report.txt
           retention-days: 14
 
+  mutation-education:
+    name: Mutation — Education Service (gremlins)
+    runs-on: ubuntu-latest
+    needs: [ci-education]
+    if: false # (github.event_name == 'push' && github.ref == 'refs/heads/testing') || (github.event_name == 'pull_request' && github.base_ref == 'refs/heads/main')
+    timeout-minutes: 30
+
+    services:
+      firestore:
+        image: mtlynch/firestore-emulator:latest
+        ports:
+          - 8390:8080
+
+    env:
+      FIRESTORE_EMULATOR_HOST: localhost:8390
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+          cache-dependency-path: education/go.sum
+
+      - name: Download Go dependencies
+        working-directory: education
+        run: go mod download
+
+      - name: Install gremlins
+        run: go install github.com/go-gremlins/gremlins/cmd/gremlins@latest
+
+      - name: Run gremlins
+        working-directory: education
+        run: |
+          gremlins unleash ./internal/... > mutation_report.txt || true
+          cat mutation_report.txt
+          echo "### Education Mutation Report" >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+          tail -n 20 mutation_report.txt >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+
+      - name: Upload mutation report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: education-mutation-report-${{ github.sha }}
+          path: education/mutation_report.txt
+          retention-days: 14
+
+  mutation-rxresume:
+    name: Mutation — RxResume Service (gremlins)
+    runs-on: ubuntu-latest
+    needs: [ci-rxresume]
+    if: false # Disable for now unless explicitly needed
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+          cache-dependency-path: rxresume/go.sum
+
+      - name: Download Go modules
+        working-directory: rxresume
+        run: go mod download
+
+      - name: Install gremlins
+        run: go install github.com/go-gremlins/gremlins/cmd/gremlins@latest
+
+      - name: Run mutation tests (rxresume)
+        working-directory: rxresume
+        run: |
+          gremlins unleash ./... || echo "Gremlins found survivors"
+
 # ============================================================================
 # STAGE 3: CD (Continuous Deployment)
 # Corre SOLO si el CI-Gate fue exitoso Y es un push a 'testing' o 'main'.
 # ============================================================================
+
   cd-setup:
     name: CD — Setup & Verify
     runs-on: ubuntu-latest
     needs: [ci-gate]
     if: needs.ci-gate.result == 'success' && github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/testing')
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      id-token: write
     outputs:
       env_name: ${{ steps.env.outputs.env_name }}
       service_suffix: ${{ steps.env.outputs.service_suffix }}
+      app_env: ${{ steps.env.outputs.app_env }}
+      contentful_environment: ${{ steps.env.outputs.contentful_environment }}
 
     steps:
       - name: Checkout repository
@@ -400,11 +1392,18 @@ jobs:
         id: env
         run: |
           if [ "${{ github.ref }}" = "refs/heads/main" ]; then
-            echo "env_name=PROD"          >> $GITHUB_OUTPUT
-            echo "service_suffix=prod"    >> $GITHUB_OUTPUT
+            echo "env_name=PROD"                        >> $GITHUB_OUTPUT
+            echo "service_suffix=prod"                  >> $GITHUB_OUTPUT
+            # education: APP_ENV/CONTENTFUL_ENVIRONMENT tienen que ser
+            # coherentes o el servicio se niega a arrancar
+            # (validateEnvironmentSafety en internal/config/config.go).
+            echo "app_env=production"                   >> $GITHUB_OUTPUT
+            echo "contentful_environment=master"        >> $GITHUB_OUTPUT
           elif [ "${{ github.ref }}" = "refs/heads/testing" ]; then
-            echo "env_name=TESTING"       >> $GITHUB_OUTPUT
-            echo "service_suffix=testing" >> $GITHUB_OUTPUT
+            echo "env_name=TESTING"                     >> $GITHUB_OUTPUT
+            echo "service_suffix=testing"               >> $GITHUB_OUTPUT
+            echo "app_env=testing"                      >> $GITHUB_OUTPUT
+            echo "contentful_environment=testing"       >> $GITHUB_OUTPUT
           else
             echo "::error::Branch '${{ github.ref }}' no autorizada para CD."
             exit 1
@@ -430,15 +1429,17 @@ jobs:
           workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
           service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
 
-      - name: Verify auth image in Artifact Registry
+      - name: Verify all service images in Artifact Registry
         run: |
-          IMAGE_URI="${{ secrets.ARTIFACT_REGISTRY_HOST }}/${{ secrets.GCP_PROJECT_ID }}/${{ secrets.ARTIFACT_REGISTRY_REPO }}/auth:${{ github.sha }}"
-          echo "Verifying image: $IMAGE_URI"
-          if ! gcloud artifacts docker images describe "$IMAGE_URI" > /dev/null 2>&1; then
-            echo "::error::Image $IMAGE_URI not found in Artifact Registry. CD requires image built by CI."
-            exit 1
-          fi
-          echo "Image verified."
+          for SVC in auth education notifications human-promotion campaigns dashboard labor-integration rxresume cv-renderer; do
+            IMAGE_URI="${{ secrets.ARTIFACT_REGISTRY_HOST }}/${{ secrets.GCP_PROJECT_ID }}/${{ secrets.ARTIFACT_REGISTRY_REPO }}/${SVC}:${{ github.sha }}"
+            echo "Verifying image: $IMAGE_URI"
+            if ! gcloud artifacts docker images describe "$IMAGE_URI" > /dev/null 2>&1; then
+              echo "::error::Image $IMAGE_URI not found in Artifact Registry. CD requires image built by CI."
+              exit 1
+            fi
+          done
+          echo "All 9 images verified."
 
   cd-auth:
     name: CD — Auth Service (Cloud Run)
@@ -446,6 +1447,12 @@ jobs:
     needs: [cd-setup]
     environment: ${{ needs.cd-setup.outputs.env_name }}
     timeout-minutes: 15
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      FIREBASE_CREDENTIALS_BASE64: ""
+      CORS_ALLOWED_ORIGINS_ESCAPED: ""
     outputs:
       service_url: ${{ steps.deploy.outputs.url }}
       prev_revision: ${{ steps.pre-deploy.outputs.prev_revision }}
@@ -467,11 +1474,28 @@ jobs:
           echo "prev_revision=$PREV" >> $GITHUB_OUTPUT
           echo "Previous revision: ${PREV:-none}"
 
+      - name: Resolve notifications URL (existing service)
+        id: notif
+        run: |
+          URL=$(gcloud run services describe "notifications-${{ needs.cd-setup.outputs.service_suffix }}" \
+            --region="${{ secrets.GCP_REGION }}" --project="${{ secrets.GCP_PROJECT_ID }}" \
+            --format='value(status.url)' 2>/dev/null || echo "")
+          echo "url=$URL" >> "$GITHUB_OUTPUT"
+
       - name: Prepare Firebase Credentials
         run: |
           echo "FIREBASE_CREDENTIALS_BASE64=$(echo -n "$FIREBASE_JSON" | base64 -w 0)" >> $GITHUB_ENV
         env:
           FIREBASE_JSON: ${{ secrets.GOOGLE_APPLICATION_CREDENTIALS }}
+
+      # deploy-cloudrun separa env_vars por comas: las comas de la lista de
+      # orígenes se escapan con \ para que llegue entera.
+      - name: Escape CORS origins for deploy-cloudrun
+        run: |
+          ESCAPED=$(printf '%s' "$CORS_ALLOWED_ORIGINS" | sed 's/,/\\,/g')
+          echo "CORS_ALLOWED_ORIGINS_ESCAPED=$ESCAPED" >> $GITHUB_ENV
+        env:
+          CORS_ALLOWED_ORIGINS: ${{ secrets.CORS_ALLOWED_ORIGINS }}
 
       - name: Deploy Auth to Cloud Run
         id: deploy
@@ -480,14 +1504,20 @@ jobs:
           service: 'auth-${{ needs.cd-setup.outputs.service_suffix }}'
           region: '${{ secrets.GCP_REGION }}'
           image: '${{ secrets.ARTIFACT_REGISTRY_HOST }}/${{ secrets.GCP_PROJECT_ID }}/${{ secrets.ARTIFACT_REGISTRY_REPO }}/auth:${{ github.sha }}'
-          flags: '--no-allow-unauthenticated --min-instances=0 --max-instances=1 --cpu=1 --memory=1Gi --service-account=${{ secrets.GCP_SERVICE_ACCOUNT }}'
+          flags: '--no-allow-unauthenticated --min-instances=0 --max-instances=3 --cpu=1 --cpu-boost --memory=1Gi --service-account=${{ secrets.GCP_SERVICE_ACCOUNT }}'
           env_vars: |-
+            APP_ENV=${{ needs.cd-setup.outputs.app_env }}
+            PUBSUB_PROJECT_ID=${{ secrets.GCP_PROJECT_ID }}
             DATABASE_URL_AUTH=${{ secrets.DATABASE_URL_AUTH }}
             JWT_SECRET=${{ secrets.JWT_SECRET }}
             JWT_REFRESH_EXPIRATION_DAYS=${{ secrets.JWT_REFRESH_EXPIRATION_DAYS }}
             JWT_REFRESH_SECRET=${{ secrets.JWT_REFRESH_SECRET }}
             FIREBASE_CREDENTIALS_BASE64=${{ env.FIREBASE_CREDENTIALS_BASE64 }}
-            CORS_ALLOWED_ORIGINS=${{ secrets.CORS_ALLOWED_ORIGINS }}
+            CORS_ALLOWED_ORIGINS=${{ env.CORS_ALLOWED_ORIGINS_ESCAPED }}
+            WORKER_IMPACT_URL=${{ secrets.WORKER_IMPACT_URL }}
+            WORKER_SYNC_TOKEN=${{ secrets.WORKER_SYNC_TOKEN }}
+            NOTIFICATIONS_SERVICE_URL=${{ steps.notif.outputs.url }}
+            UPSTREAM_ID_TOKEN=true
 
       - name: Ensure 100% traffic routed to latest Cloud Run revision
         run: |
@@ -495,13 +1525,617 @@ jobs:
           REGION="${{ secrets.GCP_REGION }}"
           gcloud run services update-traffic "$SERVICE" --region="$REGION" --to-latest --project="${{ secrets.GCP_PROJECT_ID }}"
 
+  cd-notifications:
+    name: CD — Notifications Service (Cloud Run)
+    runs-on: ubuntu-latest
+    needs: [cd-setup, cd-auth]
+    environment: ${{ needs.cd-setup.outputs.env_name }}
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      id-token: write
+    outputs:
+      service_url: ${{ steps.deploy.outputs.url }}
+      prev_revision: ${{ steps.pre-deploy.outputs.prev_revision }}
+
+    steps:
+      - name: Authenticate GCP (Workload Identity)
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+
+      - name: Capture previous Cloud Run revision (for rollback)
+        id: pre-deploy
+        run: |
+          SERVICE="notifications-${{ needs.cd-setup.outputs.service_suffix }}"
+          REGION="${{ secrets.GCP_REGION }}"
+          PREV=$(gcloud run services describe "$SERVICE" --region="$REGION" \
+            --format='value(status.latestReadyRevisionName)' 2>/dev/null || echo "")
+          echo "prev_revision=$PREV" >> $GITHUB_OUTPUT
+          echo "Previous revision: ${PREV:-none}"
+
+      - name: Validate dependencies (auth-service URL)
+        run: |
+          if [ -z "${{ needs.cd-auth.outputs.service_url }}" ]; then
+            echo "::error::cd-auth output service_url is empty. Cannot deploy notifications-service without AUTH_SERVICE_URL."
+            exit 1
+          fi
+
+      - name: Deploy Notifications to Cloud Run
+        id: deploy
+        uses: google-github-actions/deploy-cloudrun@v2
+        with:
+          service: 'notifications-${{ needs.cd-setup.outputs.service_suffix }}'
+          region: '${{ secrets.GCP_REGION }}'
+          image: '${{ secrets.ARTIFACT_REGISTRY_HOST }}/${{ secrets.GCP_PROJECT_ID }}/${{ secrets.ARTIFACT_REGISTRY_REPO }}/notifications:${{ github.sha }}'
+          flags: '--no-allow-unauthenticated --min-instances=0 --max-instances=3 --cpu=1 --cpu-boost --memory=256Mi --service-account=${{ secrets.GCP_SERVICE_ACCOUNT }}'
+          # PORT lo pone Cloud Run (8080 por defecto): pasarlo es un error.
+          env_vars: |-
+            APP_ENV=${{ needs.cd-setup.outputs.app_env }}
+            ENV=${{ needs.cd-setup.outputs.app_env }}
+            AUTH_SERVICE_URL=${{ needs.cd-auth.outputs.service_url }}
+            UPSTREAM_ID_TOKEN=true
+            JWT_SECRET=${{ secrets.JWT_SECRET }}
+            RESEND_API_KEY=${{ secrets.RESEND_API_KEY }}
+            RESEND_FROM_EMAIL_NOTIFICATIONS=${{ secrets.RESEND_FROM_EMAIL_NOTIFICATIONS }}
+            RESEND_FROM_EMAIL_ALERTS=${{ secrets.RESEND_FROM_EMAIL_ALERTS }}
+            DATABASE_URL_NOTIFICATIONS=${{ secrets.DATABASE_URL_NOTIFICATIONS }}
+
+      - name: Ensure 100% traffic routed to latest Cloud Run revision
+        run: |
+          SERVICE="notifications-${{ needs.cd-setup.outputs.service_suffix }}"
+          REGION="${{ secrets.GCP_REGION }}"
+          gcloud run services update-traffic "$SERVICE" --region="$REGION" --to-latest --project="${{ secrets.GCP_PROJECT_ID }}"
+
+      - name: Sync NOTIFICATIONS_SERVICE_URL into Auth Service if missing
+        run: |
+          AUTH_SVC="auth-${{ needs.cd-setup.outputs.service_suffix }}"
+          REGION="${{ secrets.GCP_REGION }}"
+          NOTIF_URL="${{ steps.deploy.outputs.url }}"
+          CURRENT_URL=$(gcloud run services describe "$AUTH_SVC" --region="$REGION" --project="${{ secrets.GCP_PROJECT_ID }}" --format=json \
+            | jq -r '.spec.template.spec.containers[0].env[]? | select(.name == "NOTIFICATIONS_SERVICE_URL") | .value')
+          if [ "$CURRENT_URL" != "$NOTIF_URL" ] && [ -n "$NOTIF_URL" ]; then
+            gcloud run services update "$AUTH_SVC" --region="$REGION" --project="${{ secrets.GCP_PROJECT_ID }}" \
+              --update-env-vars="NOTIFICATIONS_SERVICE_URL=$NOTIF_URL"
+          fi
+
+  cd-education:
+    name: CD — Education Service (Cloud Run)
+    runs-on: ubuntu-latest
+    needs: [cd-setup, cd-auth]
+    environment: ${{ needs.cd-setup.outputs.env_name }}
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      GOOGLE_APPLICATION_CREDENTIALS_BASE64: ""
+      CORS_ALLOWED_ORIGINS_ESCAPED: ""
+    outputs:
+      service_url: ${{ steps.deploy.outputs.url }}
+      prev_revision: ${{ steps.pre-deploy.outputs.prev_revision }}
+
+    steps:
+      - name: Authenticate GCP (Workload Identity)
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+
+      - name: Capture previous Cloud Run revision (for rollback)
+        id: pre-deploy
+        run: |
+          SERVICE="education-${{ needs.cd-setup.outputs.service_suffix }}"
+          REGION="${{ secrets.GCP_REGION }}"
+          PREV=$(gcloud run services describe "$SERVICE" --region="$REGION" \
+            --format='value(status.latestReadyRevisionName)' 2>/dev/null || echo "")
+          echo "prev_revision=$PREV" >> $GITHUB_OUTPUT
+          echo "Previous revision: ${PREV:-none}"
+
+      - name: Prepare Firestore credentials (base64)
+        run: |
+          echo "GOOGLE_APPLICATION_CREDENTIALS_BASE64=$(echo -n "$FIREBASE_JSON" | base64 -w 0)" >> $GITHUB_ENV
+        env:
+          FIREBASE_JSON: ${{ secrets.GOOGLE_APPLICATION_CREDENTIALS }}
+
+      - name: Validate dependencies (auth-service URL)
+        run: |
+          if [ -z "${{ needs.cd-auth.outputs.service_url }}" ]; then
+            echo "::error::cd-auth output service_url is empty. Cannot deploy education-service without AUTH_SERVICE_URL."
+            exit 1
+          fi
+
+      # deploy-cloudrun separa env_vars por comas: las comas de la lista de
+      # orígenes se escapan con \ para que llegue entera.
+      - name: Escape CORS origins for deploy-cloudrun
+        run: |
+          ESCAPED=$(printf '%s' "$CORS_ALLOWED_ORIGINS" | sed 's/,/\\,/g')
+          echo "CORS_ALLOWED_ORIGINS_ESCAPED=$ESCAPED" >> $GITHUB_ENV
+        env:
+          CORS_ALLOWED_ORIGINS: ${{ secrets.CORS_ALLOWED_ORIGINS }}
+
+      - name: Deploy Education to Cloud Run
+        id: deploy
+        uses: google-github-actions/deploy-cloudrun@v2
+        with:
+          service: 'education-${{ needs.cd-setup.outputs.service_suffix }}'
+          region: '${{ secrets.GCP_REGION }}'
+          image: '${{ secrets.ARTIFACT_REGISTRY_HOST }}/${{ secrets.GCP_PROJECT_ID }}/${{ secrets.ARTIFACT_REGISTRY_REPO }}/education:${{ github.sha }}'
+          flags: '--no-allow-unauthenticated --min-instances=0 --max-instances=3 --cpu=1 --cpu-boost --memory=1Gi --service-account=${{ secrets.GCP_SERVICE_ACCOUNT }}'
+          env_vars: |-
+            APP_ENV=${{ needs.cd-setup.outputs.app_env }}
+            PUBSUB_PROJECT_ID=${{ secrets.GCP_PROJECT_ID }}
+            CONTENTFUL_ENVIRONMENT=${{ needs.cd-setup.outputs.contentful_environment }}
+            CONTENTFUL_SPACE_ID=${{ secrets.CONTENTFUL_SPACE_ID }}
+            CONTENTFUL_CDA_TOKEN=${{ secrets.CONTENTFUL_CDA_TOKEN }}
+            CONTENTFUL_CMA_TOKEN=${{ secrets.CONTENTFUL_CMA_TOKEN }}
+            CONTENTFUL_LOCALE=${{ secrets.CONTENTFUL_LOCALE }}
+            JWT_SECRET=${{ secrets.JWT_SECRET }}
+            GOOGLE_APPLICATION_CREDENTIALS_BASE64=${{ env.GOOGLE_APPLICATION_CREDENTIALS_BASE64 }}
+            CORS_ALLOWED_ORIGINS=${{ env.CORS_ALLOWED_ORIGINS_ESCAPED }}
+            WORKER_IMPACT_URL=${{ secrets.WORKER_IMPACT_URL }}
+            WORKER_SYNC_TOKEN=${{ secrets.WORKER_SYNC_TOKEN }}
+            AUTH_SERVICE_URL=${{ needs.cd-auth.outputs.service_url }}
+            UPSTREAM_ID_TOKEN=true
+            ENTREGAS_BUCKET=ceibuenvivir-bucket
+            VERTEX_PROJECT_ID=${{ secrets.GCP_PROJECT_ID }}
+
+      - name: Ensure 100% traffic routed to latest Cloud Run revision
+        run: |
+          SERVICE="education-${{ needs.cd-setup.outputs.service_suffix }}"
+          REGION="${{ secrets.GCP_REGION }}"
+          gcloud run services update-traffic "$SERVICE" --region="$REGION" --to-latest --project="${{ secrets.GCP_PROJECT_ID }}"
+
+      - name: Verify AUTH_SERVICE_URL is configured
+        run: |
+          SERVICE="education-${{ needs.cd-setup.outputs.service_suffix }}"
+          REGION="${{ secrets.GCP_REGION }}"
+          # value(...env) no imprime NAME=valor sino {'name': ..., 'value': ...}:
+          # se lee el JSON con jq.
+          CONFIGURED_URL=$(gcloud run services describe "$SERVICE" --region="$REGION" --project="${{ secrets.GCP_PROJECT_ID }}" --format=json             | jq -r '.spec.template.spec.containers[0].env[]? | select(.name == "AUTH_SERVICE_URL") | .value')
+          if [ -z "$CONFIGURED_URL" ]; then
+            echo "::error::AUTH_SERVICE_URL is not configured in deployed revision for $SERVICE"
+            exit 1
+          fi
+          echo "Verified $SERVICE env: $CONFIGURED_URL"
+
+
+  cd-human-promotion:
+    name: CD — Human Promotion Service (Cloud Run)
+    runs-on: ubuntu-latest
+    needs: [cd-setup, cd-auth, cd-education]
+    environment: ${{ needs.cd-setup.outputs.env_name }}
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      GOOGLE_APPLICATION_CREDENTIALS_BASE64: ""
+      CORS_ALLOWED_ORIGINS_ESCAPED: ""
+    outputs:
+      service_url: ${{ steps.deploy.outputs.url }}
+      prev_revision: ${{ steps.pre-deploy.outputs.prev_revision }}
+
+    steps:
+      - name: Authenticate GCP (Workload Identity)
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+
+      - name: Capture previous Cloud Run revision (for rollback)
+        id: pre-deploy
+        run: |
+          SERVICE="human-promotion-${{ needs.cd-setup.outputs.service_suffix }}"
+          REGION="${{ secrets.GCP_REGION }}"
+          PREV=$(gcloud run services describe "$SERVICE" --region="$REGION" \
+            --format='value(status.latestReadyRevisionName)' 2>/dev/null || echo "")
+          echo "prev_revision=$PREV" >> $GITHUB_OUTPUT
+          echo "Previous revision: ${PREV:-none}"
+
+      - name: Prepare Firestore credentials (base64)
+        run: |
+          echo "GOOGLE_APPLICATION_CREDENTIALS_BASE64=$(echo -n "$FIREBASE_JSON" | base64 -w 0)" >> $GITHUB_ENV
+        env:
+          FIREBASE_JSON: ${{ secrets.GOOGLE_APPLICATION_CREDENTIALS }}
+
+      # deploy-cloudrun separa env_vars por comas: las comas de la lista de
+      # orígenes se escapan con \ para que llegue entera.
+      - name: Escape CORS origins for deploy-cloudrun
+        run: |
+          ESCAPED=$(printf '%s' "$CORS_ALLOWED_ORIGINS" | sed 's/,/\\,/g')
+          echo "CORS_ALLOWED_ORIGINS_ESCAPED=$ESCAPED" >> $GITHUB_ENV
+        env:
+          CORS_ALLOWED_ORIGINS: ${{ secrets.CORS_ALLOWED_ORIGINS }}
+
+      # La clave AES-256 NO viaja por el pipeline: el servicio la lee de
+      # Secret Manager en el arranque (ENCRYPTION_KEY_SECRET = nombre
+      # completo del secreto). La service account necesita el rol
+      # roles/secretmanager.secretAccessor sobre ese secreto.
+      - name: Validate encryption key secret name
+        run: |
+          if [ -z "${{ vars.HUMAN_PROMOTION_ENCRYPTION_KEY_SECRET }}" ]; then
+            echo "::error::Falta la variable HUMAN_PROMOTION_ENCRYPTION_KEY_SECRET (environment ${{ needs.cd-setup.outputs.env_name }}). Sin ella el servicio no arranca."
+            exit 1
+          fi
+          if [ -z "${{ needs.cd-auth.outputs.service_url }}" ] || [ -z "${{ needs.cd-education.outputs.service_url }}" ]; then
+            echo "::error::Falta AUTH_SERVICE_URL o EDUCATION_SERVICE_URL para desplegar human-promotion."
+            exit 1
+          fi
+
+      - name: Deploy Human Promotion to Cloud Run
+        id: deploy
+        uses: google-github-actions/deploy-cloudrun@v2
+        with:
+          service: 'human-promotion-${{ needs.cd-setup.outputs.service_suffix }}'
+          region: '${{ secrets.GCP_REGION }}'
+          image: '${{ secrets.ARTIFACT_REGISTRY_HOST }}/${{ secrets.GCP_PROJECT_ID }}/${{ secrets.ARTIFACT_REGISTRY_REPO }}/human-promotion:${{ github.sha }}'
+          flags: '--no-allow-unauthenticated --min-instances=0 --max-instances=3 --cpu=1 --cpu-boost --memory=512Mi --service-account=${{ secrets.GCP_SERVICE_ACCOUNT }}'
+          env_vars: |-
+            APP_ENV=${{ needs.cd-setup.outputs.app_env }}
+            PUBSUB_PROJECT_ID=${{ secrets.GCP_PROJECT_ID }}
+            JWT_SECRET=${{ secrets.JWT_SECRET }}
+            GOOGLE_APPLICATION_CREDENTIALS_BASE64=${{ env.GOOGLE_APPLICATION_CREDENTIALS_BASE64 }}
+            CORS_ALLOWED_ORIGINS=${{ env.CORS_ALLOWED_ORIGINS_ESCAPED }}
+            ENCRYPTION_KEY_SECRET=${{ vars.HUMAN_PROMOTION_ENCRYPTION_KEY_SECRET }}
+            AUTH_SERVICE_URL=${{ needs.cd-auth.outputs.service_url }}
+            EDUCATION_SERVICE_URL=${{ needs.cd-education.outputs.service_url }}
+            UPSTREAM_ID_TOKEN=true
+
+      - name: Ensure 100% traffic routed to latest Cloud Run revision
+        run: |
+          SERVICE="human-promotion-${{ needs.cd-setup.outputs.service_suffix }}"
+          gcloud run services update-traffic "$SERVICE" --region="${{ secrets.GCP_REGION }}" --to-latest --project="${{ secrets.GCP_PROJECT_ID }}"
+
+  cd-labor-integration:
+    name: CD — Labor Integration Service (Cloud Run)
+    runs-on: ubuntu-latest
+    needs: [cd-setup, cd-auth, cd-education]
+    environment: ${{ needs.cd-setup.outputs.env_name }}
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      GOOGLE_APPLICATION_CREDENTIALS_BASE64: ""
+      CORS_ALLOWED_ORIGINS_ESCAPED: ""
+    outputs:
+      service_url: ${{ steps.deploy.outputs.url }}
+      prev_revision: ${{ steps.pre-deploy.outputs.prev_revision }}
+
+    steps:
+      - name: Authenticate GCP (Workload Identity)
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+
+      - name: Capture previous Cloud Run revision (for rollback)
+        id: pre-deploy
+        run: |
+          SERVICE="labor-integration-${{ needs.cd-setup.outputs.service_suffix }}"
+          REGION="${{ secrets.GCP_REGION }}"
+          PREV=$(gcloud run services describe "$SERVICE" --region="$REGION" \
+            --format='value(status.latestReadyRevisionName)' 2>/dev/null || echo "")
+          echo "prev_revision=$PREV" >> $GITHUB_OUTPUT
+          echo "Previous revision: ${PREV:-none}"
+
+      - name: Prepare Firestore credentials (base64)
+        run: |
+          echo "GOOGLE_APPLICATION_CREDENTIALS_BASE64=$(echo -n "$FIREBASE_JSON" | base64 -w 0)" >> $GITHUB_ENV
+        env:
+          FIREBASE_JSON: ${{ secrets.GOOGLE_APPLICATION_CREDENTIALS }}
+
+      - name: Escape CORS origins for deploy-cloudrun
+        run: |
+          ESCAPED=$(printf '%s' "$CORS_ALLOWED_ORIGINS" | sed 's/,/\\,/g')
+          echo "CORS_ALLOWED_ORIGINS_ESCAPED=$ESCAPED" >> $GITHUB_ENV
+        env:
+          CORS_ALLOWED_ORIGINS: ${{ secrets.CORS_ALLOWED_ORIGINS }}
+
+      - name: Validate dependencies (auth-service and education-service URLs)
+        run: |
+          if [ -z "${{ needs.cd-auth.outputs.service_url }}" ] || [ -z "${{ needs.cd-education.outputs.service_url }}" ]; then
+            echo "::error::Falta AUTH_SERVICE_URL o EDUCATION_SERVICE_URL para desplegar labor-integration."
+            exit 1
+          fi
+
+      - name: Deploy Labor Integration to Cloud Run
+        id: deploy
+        uses: google-github-actions/deploy-cloudrun@v2
+        with:
+          service: 'labor-integration-${{ needs.cd-setup.outputs.service_suffix }}'
+          region: '${{ secrets.GCP_REGION }}'
+          image: '${{ secrets.ARTIFACT_REGISTRY_HOST }}/${{ secrets.GCP_PROJECT_ID }}/${{ secrets.ARTIFACT_REGISTRY_REPO }}/labor-integration:${{ github.sha }}'
+          flags: '--no-allow-unauthenticated --min-instances=0 --max-instances=3 --cpu=1 --cpu-boost --memory=512Mi --service-account=${{ secrets.GCP_SERVICE_ACCOUNT }}'
+          env_vars: |-
+            APP_ENV=${{ needs.cd-setup.outputs.app_env }}
+            GOOGLE_CLOUD_PROJECT=${{ secrets.GCP_PROJECT_ID }}
+            PUBSUB_PROJECT_ID=${{ secrets.GCP_PROJECT_ID }}
+            JWT_SECRET=${{ secrets.JWT_SECRET }}
+            GOOGLE_APPLICATION_CREDENTIALS_BASE64=${{ env.GOOGLE_APPLICATION_CREDENTIALS_BASE64 }}
+            CORS_ALLOWED_ORIGINS=${{ env.CORS_ALLOWED_ORIGINS_ESCAPED }}
+            AUTH_SERVICE_URL=${{ needs.cd-auth.outputs.service_url }}
+            EDUCATION_SERVICE_URL=${{ needs.cd-education.outputs.service_url }}
+            UPSTREAM_ID_TOKEN=true
+
+      - name: Ensure 100% traffic routed to latest Cloud Run revision
+        run: |
+          SERVICE="labor-integration-${{ needs.cd-setup.outputs.service_suffix }}"
+          gcloud run services update-traffic "$SERVICE" --region="${{ secrets.GCP_REGION }}" --to-latest --project="${{ secrets.GCP_PROJECT_ID }}"
+
+  cd-campaigns:
+    name: CD — Campaigns Service (Cloud Run)
+    runs-on: ubuntu-latest
+    needs: [cd-setup, cd-auth]
+    environment: ${{ needs.cd-setup.outputs.env_name }}
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      GOOGLE_APPLICATION_CREDENTIALS_BASE64: ""
+      CORS_ALLOWED_ORIGINS_ESCAPED: ""
+    outputs:
+      service_url: ${{ steps.deploy.outputs.url }}
+      prev_revision: ${{ steps.pre-deploy.outputs.prev_revision }}
+
+    steps:
+      - name: Authenticate GCP (Workload Identity)
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+
+      - name: Capture previous Cloud Run revision (for rollback)
+        id: pre-deploy
+        run: |
+          SERVICE="campaigns-${{ needs.cd-setup.outputs.service_suffix }}"
+          REGION="${{ secrets.GCP_REGION }}"
+          PREV=$(gcloud run services describe "$SERVICE" --region="$REGION" \
+            --format='value(status.latestReadyRevisionName)' 2>/dev/null || echo "")
+          echo "prev_revision=$PREV" >> $GITHUB_OUTPUT
+          echo "Previous revision: ${PREV:-none}"
+
+      - name: Prepare Firestore credentials (base64)
+        run: |
+          echo "GOOGLE_APPLICATION_CREDENTIALS_BASE64=$(echo -n "$FIREBASE_JSON" | base64 -w 0)" >> $GITHUB_ENV
+        env:
+          FIREBASE_JSON: ${{ secrets.GOOGLE_APPLICATION_CREDENTIALS }}
+
+      # deploy-cloudrun separa env_vars por comas: las comas de la lista de
+      # orígenes se escapan con \ para que llegue entera.
+      - name: Escape CORS origins for deploy-cloudrun
+        run: |
+          ESCAPED=$(printf '%s' "$CORS_ALLOWED_ORIGINS" | sed 's/,/\\,/g')
+          echo "CORS_ALLOWED_ORIGINS_ESCAPED=$ESCAPED" >> $GITHUB_ENV
+        env:
+          CORS_ALLOWED_ORIGINS: ${{ secrets.CORS_ALLOWED_ORIGINS }}
+
+      - name: Deploy Campaigns to Cloud Run
+        id: deploy
+        uses: google-github-actions/deploy-cloudrun@v2
+        with:
+          service: 'campaigns-${{ needs.cd-setup.outputs.service_suffix }}'
+          region: '${{ secrets.GCP_REGION }}'
+          image: '${{ secrets.ARTIFACT_REGISTRY_HOST }}/${{ secrets.GCP_PROJECT_ID }}/${{ secrets.ARTIFACT_REGISTRY_REPO }}/campaigns:${{ github.sha }}'
+          flags: '--no-allow-unauthenticated --min-instances=0 --max-instances=3 --cpu=1 --cpu-boost --memory=256Mi --service-account=${{ secrets.GCP_SERVICE_ACCOUNT }}'
+          env_vars: |-
+            APP_ENV=${{ needs.cd-setup.outputs.app_env }}
+            PUBSUB_PROJECT_ID=${{ secrets.GCP_PROJECT_ID }}
+            JWT_SECRET=${{ secrets.JWT_SECRET }}
+            GOOGLE_APPLICATION_CREDENTIALS_BASE64=${{ env.GOOGLE_APPLICATION_CREDENTIALS_BASE64 }}
+            CORS_ALLOWED_ORIGINS=${{ env.CORS_ALLOWED_ORIGINS_ESCAPED }}
+
+      - name: Ensure 100% traffic routed to latest Cloud Run revision
+        run: |
+          SERVICE="campaigns-${{ needs.cd-setup.outputs.service_suffix }}"
+          gcloud run services update-traffic "$SERVICE" --region="${{ secrets.GCP_REGION }}" --to-latest --project="${{ secrets.GCP_PROJECT_ID }}"
+
+  cd-dashboard:
+    name: CD — Dashboard Service (Cloud Run)
+    runs-on: ubuntu-latest
+    needs: [cd-setup, cd-auth, cd-education, cd-human-promotion, cd-labor-integration]
+    environment: ${{ needs.cd-setup.outputs.env_name }}
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      GOOGLE_APPLICATION_CREDENTIALS_BASE64: ""
+      CORS_ALLOWED_ORIGINS_ESCAPED: ""
+    outputs:
+      service_url: ${{ steps.deploy.outputs.url }}
+      prev_revision: ${{ steps.pre-deploy.outputs.prev_revision }}
+
+    steps:
+      - name: Authenticate GCP (Workload Identity)
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+
+      - name: Capture previous Cloud Run revision (for rollback)
+        id: pre-deploy
+        run: |
+          SERVICE="dashboard-${{ needs.cd-setup.outputs.service_suffix }}"
+          REGION="${{ secrets.GCP_REGION }}"
+          PREV=$(gcloud run services describe "$SERVICE" --region="$REGION" \
+            --format='value(status.latestReadyRevisionName)' 2>/dev/null || echo "")
+          echo "prev_revision=$PREV" >> $GITHUB_OUTPUT
+          echo "Previous revision: ${PREV:-none}"
+
+      - name: Prepare Google credentials (base64)
+        run: |
+          echo "GOOGLE_APPLICATION_CREDENTIALS_BASE64=$(echo -n "$FIREBASE_JSON" | base64 -w 0)" >> $GITHUB_ENV
+        env:
+          FIREBASE_JSON: ${{ secrets.GOOGLE_APPLICATION_CREDENTIALS }}
+
+      # deploy-cloudrun separa env_vars por comas: las comas de la lista de
+      # orígenes se escapan con \ para que llegue entera.
+      - name: Escape CORS origins for deploy-cloudrun
+        run: |
+          ESCAPED=$(printf '%s' "$CORS_ALLOWED_ORIGINS" | sed 's/,/\\,/g')
+          echo "CORS_ALLOWED_ORIGINS_ESCAPED=$ESCAPED" >> $GITHUB_ENV
+        env:
+          CORS_ALLOWED_ORIGINS: ${{ secrets.CORS_ALLOWED_ORIGINS }}
+
+      # El Dashboard valida el token por su cuenta (en Google Cloud el
+      # gateway no pasa el rol) y llama a los demás servicios con un token
+      # de identidad de Google (UPSTREAM_ID_TOKEN): la service account
+      # necesita roles/run.invoker sobre auth, education, human-promotion y labor-integration.
+      - name: Validate upstream service URLs for Dashboard
+        run: |
+          if [ -z "${{ needs.cd-auth.outputs.service_url }}" ] || [ -z "${{ needs.cd-education.outputs.service_url }}" ] || [ -z "${{ needs.cd-human-promotion.outputs.service_url }}" ] || [ -z "${{ needs.cd-labor-integration.outputs.service_url }}" ]; then
+            echo "::error::Falta alguna URL de servicio upstream (auth, education, human-promotion o labor-integration) para desplegar dashboard."
+            exit 1
+          fi
+
+      - name: Deploy Dashboard to Cloud Run
+        id: deploy
+        uses: google-github-actions/deploy-cloudrun@v2
+        with:
+          service: 'dashboard-${{ needs.cd-setup.outputs.service_suffix }}'
+          region: '${{ secrets.GCP_REGION }}'
+          image: '${{ secrets.ARTIFACT_REGISTRY_HOST }}/${{ secrets.GCP_PROJECT_ID }}/${{ secrets.ARTIFACT_REGISTRY_REPO }}/dashboard:${{ github.sha }}'
+          flags: '--no-allow-unauthenticated --min-instances=0 --max-instances=3 --cpu=1 --cpu-boost --memory=256Mi --service-account=${{ secrets.GCP_SERVICE_ACCOUNT }}'
+          env_vars: |-
+            APP_ENV=${{ needs.cd-setup.outputs.app_env }}
+            JWT_SECRET=${{ secrets.JWT_SECRET }}
+            AUTH_SERVICE_URL=${{ needs.cd-auth.outputs.service_url }}
+            EDUCATION_SERVICE_URL=${{ needs.cd-education.outputs.service_url }}
+            HUMAN_PROMOTION_SERVICE_URL=${{ needs.cd-human-promotion.outputs.service_url }}
+            LABOR_SERVICE_URL=${{ needs.cd-labor-integration.outputs.service_url }}
+            UPSTREAM_ID_TOKEN=true
+            REPORTES_BUCKET=ceibuenvivir-bucket
+            CORS_ALLOWED_ORIGINS=${{ env.CORS_ALLOWED_ORIGINS_ESCAPED }}
+            GOOGLE_APPLICATION_CREDENTIALS_BASE64=${{ env.GOOGLE_APPLICATION_CREDENTIALS_BASE64 }}
+
+      - name: Ensure 100% traffic routed to latest Cloud Run revision
+        run: |
+          SERVICE="dashboard-${{ needs.cd-setup.outputs.service_suffix }}"
+          gcloud run services update-traffic "$SERVICE" --region="${{ secrets.GCP_REGION }}" --to-latest --project="${{ secrets.GCP_PROJECT_ID }}"
+
+  cd-cv-renderer:
+    name: CD — CV Renderer (Cloud Run)
+    runs-on: ubuntu-latest
+    needs: [cd-setup]
+    environment: ${{ needs.cd-setup.outputs.env_name }}
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      id-token: write
+    outputs:
+      service_url: ${{ steps.deploy.outputs.url }}
+      prev_revision: ${{ steps.pre-deploy.outputs.prev_revision }}
+
+    steps:
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+
+      - name: Capture previous Cloud Run revision (for rollback)
+        id: pre-deploy
+        run: |
+          SERVICE="cv-renderer-${{ needs.cd-setup.outputs.service_suffix }}"
+          REGION="${{ secrets.GCP_REGION }}"
+          PREV=$(gcloud run services describe "$SERVICE" --region="$REGION" \
+            --format='value(status.latestReadyRevisionName)' 2>/dev/null || echo "")
+          echo "prev_revision=$PREV" >> $GITHUB_OUTPUT
+          echo "Previous revision: ${PREV:-none}"
+
+      - name: Deploy CV Renderer to Cloud Run
+        id: deploy
+        uses: google-github-actions/deploy-cloudrun@v2
+        with:
+          service: 'cv-renderer-${{ needs.cd-setup.outputs.service_suffix }}'
+          region: '${{ secrets.GCP_REGION }}'
+          image: '${{ secrets.ARTIFACT_REGISTRY_HOST }}/${{ secrets.GCP_PROJECT_ID }}/${{ secrets.ARTIFACT_REGISTRY_REPO }}/cv-renderer:${{ github.sha }}'
+          # PORT es reservada en Cloud Run: el puerto se fija con --port y
+          # Cloud Run se lo pasa al contenedor como PORT=5005.
+          flags: '--port=5005 --no-allow-unauthenticated --min-instances=0 --max-instances=3 --cpu=1 --cpu-boost --memory=1Gi --service-account=${{ secrets.GCP_SERVICE_ACCOUNT }}'
+          env_vars: |-
+            NODE_ENV=production
+
+      - name: Ensure 100% traffic routed to latest Cloud Run revision
+        run: |
+          SERVICE="cv-renderer-${{ needs.cd-setup.outputs.service_suffix }}"
+          gcloud run services update-traffic "$SERVICE" --region="${{ secrets.GCP_REGION }}" --to-latest --project="${{ secrets.GCP_PROJECT_ID }}"
+
+  cd-rxresume:
+    name: CD — RxResume Service (Cloud Run)
+    runs-on: ubuntu-latest
+    needs: [cd-setup, cd-cv-renderer]
+    environment: ${{ needs.cd-setup.outputs.env_name }}
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      APP_ENV: ${{ needs.cd-setup.outputs.env_name == 'PROD' && 'production' || 'development' }}
+    outputs:
+      service_url: ${{ steps.deploy.outputs.url }}
+      prev_revision: ${{ steps.pre-deploy.outputs.prev_revision }}
+
+    steps:
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+
+      - name: Capture previous Cloud Run revision (for rollback)
+        id: pre-deploy
+        run: |
+          SERVICE="rxresume-${{ needs.cd-setup.outputs.service_suffix }}"
+          REGION="${{ secrets.GCP_REGION }}"
+          PREV=$(gcloud run services describe "$SERVICE" --region="$REGION" \
+            --format='value(status.latestReadyRevisionName)' 2>/dev/null || echo "")
+          echo "prev_revision=$PREV" >> $GITHUB_OUTPUT
+          echo "Previous revision: ${PREV:-none}"
+
+      - name: Validate dependencies (cv-renderer URL)
+        run: |
+          if [ -z "${{ needs.cd-cv-renderer.outputs.service_url }}" ]; then
+            echo "::error::cd-cv-renderer output service_url is empty. Cannot deploy rxresume without RENDERER_URL."
+            exit 1
+          fi
+
+      - name: Deploy RxResume to Cloud Run
+        id: deploy
+        uses: google-github-actions/deploy-cloudrun@v2
+        with:
+          service: 'rxresume-${{ needs.cd-setup.outputs.service_suffix }}'
+          region: '${{ secrets.GCP_REGION }}'
+          image: '${{ secrets.ARTIFACT_REGISTRY_HOST }}/${{ secrets.GCP_PROJECT_ID }}/${{ secrets.ARTIFACT_REGISTRY_REPO }}/rxresume:${{ github.sha }}'
+          flags: '--no-allow-unauthenticated --min-instances=0 --max-instances=3 --cpu=1 --cpu-boost --memory=1Gi --service-account=${{ secrets.GCP_SERVICE_ACCOUNT }}'
+          env_vars: |-
+            DATABASE_URL=${{ secrets.DATABASE_URL_RXRESUME }}
+            RENDERER_URL=${{ needs.cd-cv-renderer.outputs.service_url }}
+            GCP_PROJECT_ID=${{ secrets.GCP_PROJECT_ID }}
+            GCP_BUCKET_NAME=${{ vars.GCP_BUCKET_NAME || 'ceibuenvivir-bucket' }}
+            APP_ENV=${{ env.APP_ENV }}
+            # Identidad por JWT y no por X-User-* (el API Gateway de GCP no
+            # valida el token de la app; auditoría 17/11/2026).
+            JWT_SECRET=${{ secrets.JWT_SECRET }}
+
+      - name: Ensure 100% traffic routed to latest Cloud Run revision
+        run: |
+          SERVICE="rxresume-${{ needs.cd-setup.outputs.service_suffix }}"
+          gcloud run services update-traffic "$SERVICE" --region="${{ secrets.GCP_REGION }}" --to-latest --project="${{ secrets.GCP_PROJECT_ID }}"
 
   cd-api-gateway:
     name: CD — API Gateway (Google Cloud)
     runs-on: ubuntu-latest
-    needs: [cd-setup, cd-auth]
+    needs: [cd-setup, cd-auth, cd-notifications, cd-education, cd-rxresume, cd-cv-renderer, cd-human-promotion, cd-labor-integration, cd-campaigns, cd-dashboard]
     environment: ${{ needs.cd-setup.outputs.env_name }}
     timeout-minutes: 30
+    permissions:
+      contents: read
+      id-token: write
     outputs:
       gateway_url: ${{ steps.deploy-gateway.outputs.gateway_url }}
 
@@ -524,11 +2158,21 @@ jobs:
         working-directory: api-gateway
         run: |
           SUFFIX="${{ needs.cd-setup.outputs.service_suffix }}"
-          AUTH_URL=$(gcloud run services describe "auth-$SUFFIX" --region="${{ secrets.GCP_REGION }}" --format='value(status.url)')
-          export AUTH_SERVICE_URL="$AUTH_URL"
+          export AUTH_SERVICE_URL="${{ needs.cd-auth.outputs.service_url }}"
+          export EDUCATION_SERVICE_URL="${{ needs.cd-education.outputs.service_url }}"
+          export RXRESUME_SERVICE_URL="${{ needs.cd-rxresume.outputs.service_url }}"
+          export HUMAN_PROMOTION_SERVICE_URL="${{ needs.cd-human-promotion.outputs.service_url }}"
+          export LABOR_SERVICE_URL="${{ needs.cd-labor-integration.outputs.service_url }}"
+          export CAMPAIGNS_SERVICE_URL="${{ needs.cd-campaigns.outputs.service_url }}"
+          export DASHBOARD_SERVICE_URL="${{ needs.cd-dashboard.outputs.service_url }}"
+          export NOTIFICATIONS_SERVICE_URL="${{ needs.cd-notifications.outputs.service_url }}"
+          if [ -z "$AUTH_SERVICE_URL" ] || [ -z "$EDUCATION_SERVICE_URL" ] || [ -z "$RXRESUME_SERVICE_URL" ] || [ -z "$HUMAN_PROMOTION_SERVICE_URL" ] || [ -z "$LABOR_SERVICE_URL" ] || [ -z "$CAMPAIGNS_SERVICE_URL" ] || [ -z "$DASHBOARD_SERVICE_URL" ] || [ -z "$NOTIFICATIONS_SERVICE_URL" ]; then
+            echo "::error::Falta al menos una URL de microservicio para resolver openapi.yaml."
+            exit 1
+          fi
           export FIREBASE_PROJECT_ID="${{ secrets.FIREBASE_PROJECT_ID }}"
           envsubst < openapi.yaml > openapi-resolved.yaml
-          echo "openapi.yaml resolved for env: $SUFFIX"
+          echo "openapi.yaml resolved for env: $SUFFIX (auth=$AUTH_SERVICE_URL, education=$EDUCATION_SERVICE_URL, labor=$LABOR_SERVICE_URL)"
 
 
       - name: Create or update API Gateway config
@@ -650,12 +2294,46 @@ jobs:
             --project-name=${{ secrets.CLOUDFLARE_PROJECT }}
             --branch=${{ github.ref_name }}
 
+  cd-worker:
+    name: CD — Cloudflare Worker (Impact Stats)
+    runs-on: ubuntu-latest
+    needs: [cd-setup]
+    environment: ${{ needs.cd-setup.outputs.env_name }}
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # cloudflare-worker tiene pnpm-lock.yaml, así que wrangler-action
+      # instala wrangler con pnpm: sin este paso no lo encuentra.
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+          run_install: false
+
+      - name: Deploy Worker to Cloudflare
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          workingDirectory: cloudflare-worker
+          environment: ${{ needs.cd-setup.outputs.env_name == 'PROD' && 'production' || 'staging' }}
+          secrets: |
+            WORKER_SYNC_TOKEN
+        env:
+          WORKER_SYNC_TOKEN: ${{ secrets.WORKER_SYNC_TOKEN }}
+
   cd-smoke:
     name: CD — Smoke Tests
     runs-on: ubuntu-latest
-    needs: [cd-setup, cd-auth, cd-api-gateway, cd-frontend]
+    needs: [cd-setup, cd-auth, cd-notifications, cd-education, cd-rxresume, cd-cv-renderer, cd-human-promotion, cd-labor-integration, cd-campaigns, cd-dashboard, cd-api-gateway, cd-frontend, cd-worker]
     environment: ${{ needs.cd-setup.outputs.env_name }}
     timeout-minutes: 15
+    permissions:
+      contents: read
+      id-token: write
 
     steps:
       - name: Authenticate GCP (Workload Identity)
@@ -668,10 +2346,168 @@ jobs:
           id_token_audience: ${{ needs.cd-auth.outputs.service_url }}
           id_token_include_email: true
 
+      - name: Mint ID token for Notifications Service
+        id: auth_notif
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+          token_format: id_token
+          id_token_audience: ${{ needs.cd-notifications.outputs.service_url }}
+          id_token_include_email: true
+
+      - name: Mint ID token for Education Service
+        id: auth_edu
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+          token_format: id_token
+          id_token_audience: ${{ needs.cd-education.outputs.service_url }}
+          id_token_include_email: true
+
+      - name: Mint ID token for Human Promotion Service
+        id: auth_hp
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+          token_format: id_token
+          id_token_audience: ${{ needs.cd-human-promotion.outputs.service_url }}
+          id_token_include_email: true
+
+      - name: Mint ID token for Labor Integration Service
+        id: auth_labor
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+          token_format: id_token
+          id_token_audience: ${{ needs.cd-labor-integration.outputs.service_url }}
+          id_token_include_email: true
+
+      - name: Mint ID token for Campaigns Service
+        id: auth_campaigns
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+          token_format: id_token
+          id_token_audience: ${{ needs.cd-campaigns.outputs.service_url }}
+          id_token_include_email: true
+
+      - name: Mint ID token for Dashboard Service
+        id: auth_dashboard
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+          token_format: id_token
+          id_token_audience: ${{ needs.cd-dashboard.outputs.service_url }}
+          id_token_include_email: true
+
+      - name: Mint ID token for RxResume Service
+        id: auth_rxresume
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+          token_format: id_token
+          id_token_audience: ${{ needs.cd-rxresume.outputs.service_url }}
+          id_token_include_email: true
+
+      - name: Mint ID token for CV Renderer Service
+        id: auth_renderer
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+          token_format: id_token
+          id_token_audience: ${{ needs.cd-cv-renderer.outputs.service_url }}
+          id_token_include_email: true
+
       - name: Setup gcloud
         uses: google-github-actions/setup-gcloud@v2
         with:
           project_id: ${{ secrets.GCP_PROJECT_ID }}
+
+      - name: Smoke test — Dashboard Service (/health y protección)
+        run: |
+          DSH_URL="${{ needs.cd-dashboard.outputs.service_url }}"
+          TOKEN="${{ steps.auth_dashboard.outputs.id_token }}"
+          curl --retry 3 --retry-delay 5 --fail --silent --show-error --max-time 15 \
+            -H "X-Serverless-Authorization: Bearer $TOKEN" "$DSH_URL/health" | grep -q '"status":"UP"' \
+            || { echo "::error::Dashboard /health no respondió UP"; exit 1; }
+          # Sin sesión de usuario, los indicadores tienen que responder 401.
+          STATUS=$(curl --retry 3 --retry-delay 5 --silent --output /dev/null --write-out "%{http_code}" --max-time 15 \
+            -H "X-Serverless-Authorization: Bearer $TOKEN" "$DSH_URL/api/v1/dashboard/resumen?desde=2026-01-01&hasta=2026-01-31")
+          [ "$STATUS" = "401" ] || { echo "::error::Dashboard sin sesión respondió $STATUS (se esperaba 401)"; exit 1; }
+          echo "Dashboard health: OK"
+
+      - name: Smoke test — Notifications Service (/health)
+        run: |
+          NTF_URL="${{ needs.cd-notifications.outputs.service_url }}"
+          TOKEN="${{ steps.auth_notif.outputs.id_token }}"
+          curl --retry 3 --retry-delay 5 --fail --silent --show-error --max-time 15 \
+            -H "Authorization: Bearer $TOKEN" "$NTF_URL/health"
+          echo "Notifications health: OK"
+
+      - name: Smoke test — Human Promotion Service (/health)
+        run: |
+          HP_URL="${{ needs.cd-human-promotion.outputs.service_url }}"
+          TOKEN="${{ steps.auth_hp.outputs.id_token }}"
+          curl --retry 3 --retry-delay 5 --fail --silent --show-error --max-time 15 \
+            -H "Authorization: Bearer $TOKEN" "$HP_URL/health"
+          echo "Human Promotion health: OK"
+
+      - name: Smoke test — Labor Integration Service (/health)
+        run: |
+          LBR_URL="${{ needs.cd-labor-integration.outputs.service_url }}"
+          TOKEN="${{ steps.auth_labor.outputs.id_token }}"
+          curl --retry 3 --retry-delay 5 --fail --silent --show-error --max-time 15 \
+            -H "Authorization: Bearer $TOKEN" "$LBR_URL/health" | grep -q '"status":"UP"' \
+            || { echo "::error::Labor Integration /health no respondió UP"; exit 1; }
+          echo "Labor Integration health: OK"
+
+      - name: Smoke test — RxResume & CV Renderer Services (/health)
+        run: |
+          RX_URL="${{ needs.cd-rxresume.outputs.service_url }}"
+          RX_TOKEN="${{ steps.auth_rxresume.outputs.id_token }}"
+          curl --retry 3 --retry-delay 5 --fail --silent --show-error --max-time 15 \
+            -H "Authorization: Bearer $RX_TOKEN" "$RX_URL/health"
+          RND_URL="${{ needs.cd-cv-renderer.outputs.service_url }}"
+          RND_TOKEN="${{ steps.auth_renderer.outputs.id_token }}"
+          # El renderer arranca en frío (min-instances=0) y compila TypeScript
+          # con tsx al iniciar: el primer pedido puede tardar más de 15 s.
+          curl --retry 4 --retry-delay 10 --retry-all-errors --fail --silent --show-error --max-time 90 \
+            -H "Authorization: Bearer $RND_TOKEN" "$RND_URL/health" \
+            || { echo "::error::CV Renderer /health no respondió (revisar logs de cv-renderer en Cloud Run)"; exit 1; }
+          echo "RxResume & CV Renderer health: OK"
+
+      - name: Smoke test — Campaigns Service (/health y listado público)
+        run: |
+          CMP_URL="${{ needs.cd-campaigns.outputs.service_url }}"
+          TOKEN="${{ steps.auth_campaigns.outputs.id_token }}"
+          curl --retry 3 --retry-delay 5 --fail --silent --show-error --max-time 15 \
+            -H "Authorization: Bearer $TOKEN" "$CMP_URL/health" | grep -q '"status":"UP"' \
+            || { echo "::error::Campaigns /health no respondió UP"; exit 1; }
+          curl --retry 3 --retry-delay 5 --fail --silent --show-error --max-time 15 \
+            -H "Authorization: Bearer $TOKEN" "$CMP_URL/api/v1/campaigns/publicas" > /dev/null \
+            || { echo "::error::Campaigns listado público falló (¿Firestore?)"; exit 1; }
+          echo "Campaigns health: OK"
+
+      - name: Smoke test — Education Service (/api/salud)
+        run: |
+          EDU_URL="${{ needs.cd-education.outputs.service_url }}"
+          echo "Testing Education health: $EDU_URL/api/salud"
+          BODY=$(curl --retry 3 --retry-delay 5 --fail --silent --show-error --max-time 15 \
+            -H "Authorization: Bearer ${{ steps.auth_edu.outputs.id_token }}" "$EDU_URL/api/salud")
+          echo "$BODY"
+          echo "$BODY" | grep -q '"status"' || { echo "::error::Education /api/salud sin campo status"; exit 1; }
+          EXPECTED_CF="${{ needs.cd-setup.outputs.contentful_environment }}"
+          echo "$BODY" | grep -q "\"contentfulEnvironment\":\"$EXPECTED_CF\"" || {
+            echo "::error::Education apuntando a un Environment de Contentful distinto del esperado ($EXPECTED_CF)"; exit 1; }
+          echo "Education health: OK"
 
       - name: Smoke test — Auth Service (/health)
         run: |
@@ -709,7 +2545,7 @@ jobs:
   cd-dast-zap:
     name: CD — DAST (OWASP ZAP)
     runs-on: ubuntu-latest
-    needs: [cd-setup, cd-smoke, cd-auth, cd-api-gateway]
+    needs: [cd-setup, cd-smoke, cd-auth, cd-notifications, cd-education, cd-rxresume, cd-cv-renderer, cd-human-promotion, cd-labor-integration, cd-campaigns, cd-dashboard, cd-api-gateway]
     environment: ${{ needs.cd-setup.outputs.env_name }}
     timeout-minutes: 15
 
@@ -717,13 +2553,23 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Fix permissions for ZAP
-        run: chmod -R 777 .
+      - name: Resolve OpenAPI spec for ZAP
+        run: |
+          export AUTH_SERVICE_URL="${{ needs.cd-auth.outputs.service_url }}"
+          export EDUCATION_SERVICE_URL="${{ needs.cd-education.outputs.service_url }}"
+          export RXRESUME_SERVICE_URL="${{ needs.cd-rxresume.outputs.service_url }}"
+          export HUMAN_PROMOTION_SERVICE_URL="${{ needs.cd-human-promotion.outputs.service_url }}"
+          export LABOR_SERVICE_URL="${{ needs.cd-labor-integration.outputs.service_url }}"
+          export CAMPAIGNS_SERVICE_URL="${{ needs.cd-campaigns.outputs.service_url }}"
+          export DASHBOARD_SERVICE_URL="${{ needs.cd-dashboard.outputs.service_url }}"
+          export NOTIFICATIONS_SERVICE_URL="${{ needs.cd-notifications.outputs.service_url }}"
+          export FIREBASE_PROJECT_ID="${{ secrets.FIREBASE_PROJECT_ID }}"
+          envsubst < api-gateway/openapi.yaml > api-gateway/openapi-resolved.yaml
 
-      - name: ZAP API Scan — Auth Service
+      - name: ZAP API Scan — API Gateway
         uses: zaproxy/action-api-scan@v0.10.0
         with:
-          target: 'api-gateway/openapi.yaml'
+          target: 'api-gateway/openapi-resolved.yaml'
           format: openapi
           cmd_options: '-O ${{ needs.cd-api-gateway.outputs.gateway_url }}'
           rules_file_name: 'auth/zap.conf'
@@ -737,25 +2583,43 @@ jobs:
     needs: [cd-setup, cd-smoke, cd-auth]
     environment: ${{ needs.cd-setup.outputs.env_name }}
     timeout-minutes: 15
+    permissions:
+      contents: read
+      id-token: write
     if: needs.cd-setup.outputs.env_name == 'TESTING'
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Mint ID token for Auth Service (k6)
+        id: auth_k6
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+          token_format: id_token
+          id_token_audience: ${{ needs.cd-auth.outputs.service_url }}
+          id_token_include_email: true
+
       - name: Run k6 load tests
         run: |
           AUTH_URL="${{ needs.cd-auth.outputs.service_url }}"
           echo "Running k6 against: $AUTH_URL"
           docker run --rm -i grafana/k6 run \
-            -e BASE_URL="$AUTH_URL" - < auth/load_test.js
+            -e BASE_URL="$AUTH_URL" \
+            -e ID_TOKEN="${{ steps.auth_k6.outputs.id_token }}" \
+            - < auth/load_test.js
 
   cd-rollback:
     name: CD — Rollback (auto)
     runs-on: ubuntu-latest
-    needs: [cd-setup, cd-auth, cd-frontend, cd-smoke, cd-dast-zap, cd-load-k6]
+    needs: [cd-setup, cd-auth, cd-notifications, cd-education, cd-rxresume, cd-cv-renderer, cd-human-promotion, cd-labor-integration, cd-campaigns, cd-dashboard, cd-frontend, cd-smoke, cd-dast-zap, cd-load-k6]
     environment: ${{ needs.cd-setup.outputs.env_name }}
     timeout-minutes: 15
+    permissions:
+      contents: read
+      id-token: write
     if: always() && (needs.cd-smoke.result == 'failure' || needs.cd-dast-zap.result == 'failure' || needs.cd-load-k6.result == 'failure')
 
     steps:
@@ -765,20 +2629,32 @@ jobs:
           workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
           service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
 
-      - name: Rollback Auth (Cloud Run — previous revision)
+      - name: Rollback Cloud Run services (previous revision)
         run: |
-          SERVICE="auth-${{ needs.cd-setup.outputs.service_suffix }}"
           REGION="${{ secrets.GCP_REGION }}"
-          PREV="${{ needs.cd-auth.outputs.prev_revision }}"
-          if [ -n "$PREV" ]; then
-            echo "Rolling back Cloud Run to revision: $PREV"
-            gcloud run services update-traffic "$SERVICE" \
-              --region="$REGION" \
-              --to-revisions "$PREV=100"
-            echo "Cloud Run rollback complete."
-          else
-            echo "::warning::No previous revision found. Manual intervention required."
-          fi
+          SUFFIX="${{ needs.cd-setup.outputs.service_suffix }}"
+          rollback_service() {
+            local SVC="$1"
+            local PREV="$2"
+            if [ -n "$PREV" ]; then
+              echo "Rolling back $SVC to revision: $PREV"
+              gcloud run services update-traffic "$SVC" \
+                --region="$REGION" \
+                --project="${{ secrets.GCP_PROJECT_ID }}" \
+                --to-revisions "$PREV=100"
+            else
+              echo "::warning::No previous revision found for $SVC. Manual intervention required."
+            fi
+          }
+          rollback_service "auth-$SUFFIX" "${{ needs.cd-auth.outputs.prev_revision }}"
+          rollback_service "notifications-$SUFFIX" "${{ needs.cd-notifications.outputs.prev_revision }}"
+          rollback_service "education-$SUFFIX" "${{ needs.cd-education.outputs.prev_revision }}"
+          rollback_service "human-promotion-$SUFFIX" "${{ needs.cd-human-promotion.outputs.prev_revision }}"
+          rollback_service "labor-integration-$SUFFIX" "${{ needs.cd-labor-integration.outputs.prev_revision }}"
+          rollback_service "campaigns-$SUFFIX" "${{ needs.cd-campaigns.outputs.prev_revision }}"
+          rollback_service "dashboard-$SUFFIX" "${{ needs.cd-dashboard.outputs.prev_revision }}"
+          rollback_service "rxresume-$SUFFIX" "${{ needs.cd-rxresume.outputs.prev_revision }}"
+          rollback_service "cv-renderer-$SUFFIX" "${{ needs.cd-cv-renderer.outputs.prev_revision }}"
 
       - name: Rollback Frontend (Cloudflare Pages)
         run: |

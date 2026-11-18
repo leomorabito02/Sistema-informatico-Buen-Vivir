@@ -2,11 +2,43 @@ package models
 
 import "time"
 
+// Estados de una campaña (DER, tabla Campaña: "Borrador / publicada").
+const (
+	EstadoBorrador  = "borrador"
+	EstadoPublicada = "publicada"
+)
+
+// FechaLayout es el formato de la fecha de la campaña: fecha calendario,
+// sin hora (AAAA-MM-DD), igual que las fechas de los hitos en
+// human-promotion.
+const FechaLayout = "2006-01-02"
+
+// Campaign es una campaña de concientización (HU-47 a HU-51). Los campos
+// son los de la tabla Campaña del DER; creado_por es el usuario
+// (responsable o voluntario) que la creó, sin FK física a la base de
+// Autenticación.
 type Campaign struct {
-	ID          string    `json:"id"`
-	Title       string    `json:"title"`
-	Description string    `json:"description"`
-	Status      string    `json:"status"`
-	StartDate   time.Time `json:"start_date"`
-	EndDate     time.Time `json:"end_date"`
+	ID        string `json:"id" firestore:"-"`
+	Titulo    string `json:"titulo" firestore:"titulo"`
+	Texto     string `json:"texto" firestore:"texto"`
+	ImagenURL string `json:"imagen_url" firestore:"imagen_url"`
+	Fecha     string `json:"fecha" firestore:"fecha"`
+	Estado    string `json:"estado" firestore:"estado"`
+	CreadoPor string `json:"creado_por,omitempty" firestore:"creado_por"`
+	// Baja lógica (auditoría 2026-11-11, Problema 5): la campaña no se
+	// borra de Firestore; queda marcada y sale de la gestión y de la
+	// sección pública. Los comentarios que tenga (education) se conservan.
+	Eliminada    bool       `json:"-" firestore:"eliminada,omitempty"`
+	EliminadaEn  *time.Time `json:"-" firestore:"eliminada_en,omitempty"`
+	EliminadaPor string     `json:"-" firestore:"eliminada_por,omitempty"`
+}
+
+// CampaignInput es el cuerpo de POST y PUT /api/v1/campaigns. El estado y
+// el autor no se reciben: los decide el servicio (se crea en borrador y
+// se publica con su propia operación, HU-49).
+type CampaignInput struct {
+	Titulo    string `json:"titulo"`
+	Texto     string `json:"texto"`
+	ImagenURL string `json:"imagen_url"`
+	Fecha     string `json:"fecha"`
 }

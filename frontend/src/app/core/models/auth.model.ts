@@ -17,9 +17,12 @@ export interface User {
   role_id: string;
   role?: Role;
   twofa_enabled: boolean;
+  twofa_method?: string;
+  is_email_verified?: boolean;
   created_at: string;
   updated_at: string;
   role_data?: RoleData;
+  image_url?: string;
 }
 
 export interface RoleData {
@@ -45,11 +48,41 @@ export interface AvailableAccount {
   role_id: string;
   role_name: string;
   status: string;
+  approval_status?: string;
+  is_email_verified?: boolean;
 }
 
 export interface CheckCredentialsResponse {
   accounts: AvailableAccount[];
   login_nonce: string;
+  is_email_verified?: boolean;
+  email?: string;
+  requires_2fa?: boolean;
+  twofa_method?: string;
+  twofa_nonce?: string;
+}
+
+export interface VerifyTwofaRequest {
+  twofa_nonce: string;
+  code: string;
+  trust_device?: boolean;
+}
+
+export interface SetupTwofaResponse {
+  method: string;
+  secret?: string;
+  otpauth_url?: string;
+  message?: string;
+}
+
+export interface EnableTwofaRequest {
+  method: string;
+  code: string;
+}
+
+export interface DisableTwofaRequest {
+  password?: string;
+  code?: string;
 }
 
 export interface MeResponse {
@@ -57,6 +90,8 @@ export interface MeResponse {
   role_id?: string;
   approval_status?: string;
   user_status?: string;
+  /** Docente externo (viene del token): solo ve "Mis contenidos" (HU-23). */
+  is_external?: boolean;
 }
 
 export interface ProfileResponse {
@@ -81,7 +116,12 @@ export interface RegisterRequest {
   role: string;
 }
 
-export interface UpdateParticipantProfile {
+export interface UpdateBaseProfile {
+  email?: string;
+  phone?: string;
+}
+
+export interface UpdateParticipantProfile extends UpdateBaseProfile {
   birthdate?: string;
   dni?: string;
   address?: string;
@@ -90,12 +130,14 @@ export interface UpdateParticipantProfile {
   emergency_contact_phone?: string;
 }
 
-export interface UpdateCompanyProfile {
+export interface UpdateCompanyProfile extends UpdateBaseProfile {
   business_name?: string;
   cuit?: string;
 }
 
-export interface UpdateTeacherProfile {
+export interface UpdateTeacherProfile extends UpdateBaseProfile {
   specialization?: string;
   is_external?: boolean;
 }
+
+export interface UpdateVolunteerProfile extends UpdateBaseProfile {}

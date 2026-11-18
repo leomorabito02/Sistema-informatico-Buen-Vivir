@@ -1,0 +1,99 @@
+<p-toast></p-toast>
+<div class="page-container">
+  <div class="header-section">
+    <div>
+      <h1 class="page-title">Asistencia general del centro</h1>
+      <p class="page-subtitle">Registro diario de asistencia al centro.</p>
+    </div>
+    <div class="date-picker">
+      <label>Fecha</label>
+      <p-datepicker
+        [(ngModel)]="selectedDate"
+        dateFormat="dd/mm/yy"
+        (onSelect)="onDateChange()"
+        [showIcon]="true"
+      ></p-datepicker>
+    </div>
+  </div>
+
+  <app-error-state
+    *ngIf="error"
+    [message]="error"
+    (retry)="cargar()"
+  ></app-error-state>
+
+  <app-loading-state
+    *ngIf="loading"
+    variant="table"
+    label="Cargando participantes…"
+  ></app-loading-state>
+
+  <p-card *ngIf="!loading" styleClass="p-card-shadow">
+    <p-table [value]="rows" class="p-datatable-striped">
+      <ng-template pTemplate="header">
+        <tr>
+          <th>Participante</th>
+          <th>Asistencia</th>
+          <th>Observación</th>
+        </tr>
+      </ng-template>
+      <ng-template pTemplate="body" let-r>
+        <tr>
+          <td>{{ r.nombreCompleto }}</td>
+          <td>
+            <p-buttonGroup>
+              <p-button
+                label="Presente"
+                icon="pi pi-check"
+                size="small"
+                [outlined]="r.presente !== true"
+                severity="success"
+                (onClick)="marcar(r, true)"
+              ></p-button>
+              <p-button
+                label="Ausente"
+                icon="pi pi-times"
+                size="small"
+                [outlined]="r.presente !== false"
+                severity="danger"
+                (onClick)="marcar(r, false)"
+              ></p-button>
+            </p-buttonGroup>
+            <span *ngIf="r.presente === null" class="sin-registrar"
+              >Sin registrar</span
+            >
+          </td>
+          <td>
+            <input
+              pInputText
+              [(ngModel)]="r.observacion"
+              placeholder="Opcional"
+              style="width: 100%"
+            />
+          </td>
+        </tr>
+      </ng-template>
+      <ng-template pTemplate="emptymessage">
+        <tr>
+          <td colspan="3" class="empty-state">
+            No hay participantes aprobados en el centro todavía.
+          </td>
+        </tr>
+      </ng-template>
+    </p-table>
+
+    <div class="attendance-actions" *ngIf="rows.length > 0">
+      <span class="hint"
+        >{{ pendientesDeGuardar }} participante(s) con asistencia marcada para
+        guardar.</span
+      >
+      <p-button
+        label="Guardar asistencia"
+        icon="pi pi-check"
+        [loading]="guardando"
+        [disabled]="pendientesDeGuardar === 0"
+        (onClick)="guardar()"
+      ></p-button>
+    </div>
+  </p-card>
+</div>

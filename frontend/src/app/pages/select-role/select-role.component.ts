@@ -3,11 +3,22 @@ import { CommonModule } from "@angular/common";
 import { Router, RouterLink } from "@angular/router";
 import { AuthService } from "../../services/auth.service";
 import { AvailableAccount } from "../../core/models/auth.model";
+import {
+  LucideAngularModule,
+  BookOpen,
+  Building2,
+  CircleAlert,
+  Code,
+  Handshake,
+  ShieldCheck,
+  Sprout,
+  User,
+} from "lucide-angular";
 
 @Component({
   selector: "app-select-role",
   standalone: true,
-  imports: [CommonModule, RouterLink],
+  imports: [CommonModule, RouterLink, LucideAngularModule],
   templateUrl: "./select-role.component.html",
   styleUrl: "./select-role.component.css",
 })
@@ -20,15 +31,17 @@ export class SelectRoleComponent implements OnInit {
   loginError = "";
   loadingAccountId = "";
 
-  /** Maps role IDs to icon names for display */
-  readonly roleIcons: Record<string, string> = {
-    role_admin: "🛡️",
-    role_dev: "💻",
-    role_participant: "🌱",
-    role_company: "🏢",
-    role_teacher: "📚",
-    role_volunteer: "🤝",
+  /** Ícono (Lucide) de cada rol en la lista de cuentas */
+  readonly roleIcons: Record<string, typeof User> = {
+    role_admin: ShieldCheck,
+    role_dev: Code,
+    role_participant: Sprout,
+    role_company: Building2,
+    role_teacher: BookOpen,
+    role_volunteer: Handshake,
   };
+  readonly defaultRoleIcon = User;
+  readonly CircleAlert = CircleAlert;
 
   ngOnInit() {
     const nav = this.router.getCurrentNavigation();
@@ -74,9 +87,16 @@ export class SelectRoleComponent implements OnInit {
         },
         error: (err) => {
           this.loadingAccountId = "";
-          const errorMsg = err.error?.error || "";
+          const errorMsg = err.error?.error || err.message || "";
+          if (
+            errorMsg === "EMAIL_NOT_VERIFIED" ||
+            errorMsg.includes("verificar tu correo")
+          ) {
+            void this.router.navigate(["/verify-email"]);
+            return;
+          }
           if (errorMsg.includes("activa") || errorMsg.includes("bloque")) {
-            this.router.navigate(["/account-notice"]);
+            void this.router.navigate(["/account-notice"]);
           } else {
             this.loginError =
               "Ocurrió un error al iniciar sesión. Intentá nuevamente.";

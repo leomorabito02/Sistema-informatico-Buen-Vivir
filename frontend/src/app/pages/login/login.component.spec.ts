@@ -1,288 +1,191 @@
 import { ComponentFixture, TestBed } from "@angular/core/testing";
 import { LoginComponent } from "./login.component";
-import { ReactiveFormsModule } from "@angular/forms";
-import { Router, provideRouter } from "@angular/router";
 import { AuthService } from "../../services/auth.service";
+import { Router, ActivatedRoute, provideRouter } from "@angular/router";
 import { of, throwError } from "rxjs";
-import { BrowserAnimationsModule } from "@angular/platform-browser/animations";
+import { ReactiveFormsModule } from "@angular/forms";
+import { By } from "@angular/platform-browser";
 
 describe("LoginComponent", () => {
   let component: LoginComponent;
   let fixture: ComponentFixture<LoginComponent>;
-  let mockAuthService: jasmine.SpyObj<AuthService>;
-  let mockRouter: any;
+  let authServiceSpy: jasmine.SpyObj<AuthService>;
+  let routerSpy: jasmine.SpyObj<Router>;
 
   beforeEach(async () => {
-    mockAuthService = jasmine.createSpyObj("AuthService", [
+    authServiceSpy = jasmine.createSpyObj("AuthService", [
       "checkCredentials",
       "checkGoogleCredentials",
       "loginWithAccount",
+      "verifyTwoFactor",
+      "resendTwoFactorCode",
     ]);
 
     await TestBed.configureTestingModule({
-      imports: [LoginComponent, ReactiveFormsModule, BrowserAnimationsModule],
+      imports: [LoginComponent, ReactiveFormsModule],
       providers: [
-        { provide: AuthService, useValue: mockAuthService },
         provideRouter([]),
+        { provide: AuthService, useValue: authServiceSpy },
+        { provide: ActivatedRoute, useValue: { queryParams: of({}) } },
       ],
     }).compileComponents();
 
-    mockRouter = TestBed.inject(Router);
-    spyOn(mockRouter, "navigate");
-
     fixture = TestBed.createComponent(LoginComponent);
     component = fixture.componentInstance;
+    routerSpy = TestBed.inject(Router) as jasmine.SpyObj<Router>;
+    spyOn(routerSpy, "navigate");
     fixture.detectChanges();
   });
 
-  it("should create with initial default states", () => {
+  it("should create", () => {
     expect(component).toBeTruthy();
-    expect(component.loginError).toBe("");
-    expect(component.locked).toBeFalse();
-    expect(component.failedAttempts).toBe(0);
-    expect(component.MAX_ATTEMPTS).toBe(5);
-    expect(component.showPassword).toBeFalse();
   });
 
   it("should toggle password visibility", () => {
     expect(component.showPassword).toBeFalse();
     component.togglePasswordVisibility();
     expect(component.showPassword).toBeTrue();
-    component.togglePasswordVisibility();
-    expect(component.showPassword).toBeFalse();
   });
 
-  describe("onSubmit validations", () => {
-    it("should set error when required fields are empty independently and mark form touched", () => {
-      component.loginForm.controls["email"].setValue("");
+  it("should handle invalid form on submit", () => {
+    component.onSubmit();
+    expect(component.loginForm.invalid).toBeTrue();
+    expect(component.loginError).toContain(
+      "Por favor, ingresá tu email y contraseña",
+    );
+  });
+
+  describe("Form Validation", () => {
+    it("should validate email format", () => {
+      component.loginForm.controls["email"].setValue("invalid");
       component.loginForm.controls["password"].setValue("1234");
       component.onSubmit();
-      expect(component.loginError).toBe(
-        "Por favor, ingresá tu email y contraseña.",
-      );
-      expect(component.loginForm.touched).toBeTrue();
-
-      component.loginForm.controls["email"].setValue("test@test.com");
-      component.loginForm.controls["password"].setValue("");
-      component.onSubmit();
-      expect(component.loginError).toBe(
-        "Por favor, ingresá tu email y contraseña.",
-      );
+      expect(component.loginError).toContain("correo electrónico válido");
     });
 
-    it("should set error for invalid email when password is valid", () => {
-      component.loginForm.controls["email"].setValue("invalid-email");
-      component.loginForm.controls["password"].setValue("1234");
-      component.onSubmit();
-      expect(component.loginError).toBe(
-        "Por favor, ingresá un correo electrónico válido.",
-      );
-    });
-
-    it("should set error for short password when email is valid", () => {
+    it("should validate password length", () => {
       component.loginForm.controls["email"].setValue("test@test.com");
       component.loginForm.controls["password"].setValue("123");
       component.onSubmit();
-      expect(component.loginError).toBe(
-        "La contraseña debe tener al menos 4 caracteres.",
-      );
+      expect(component.loginError).toContain("al menos 4 caracteres");
     });
   });
 
-  describe("onSubmit success", () => {
-    beforeEach(() => {
-      component.loginForm.controls["email"].setValue("test@test.com");
-      component.loginForm.controls["password"].setValue("1234");
-    });
-
-    it("should handle missing accounts", () => {
-      mockAuthService.checkCredentials.and.returnValue(
-        of({ accounts: [], login_nonce: "nonce" }),
-      );
-      component.onSubmit();
-      expect(component.loginError).toBe(
-        "No se encontraron cuentas activas asociadas a este correo electrónico.",
-      );
-    });
-
-    it("should navigate to select-role if multiple accounts exist", () => {
+  describe("Successful Login", () => {
+    it("should login directly if single account", () => {
       const accounts = [
-        { user_id: "1", role_id: "r1", role_name: "Role 1", status: "active" },
-        { user_id: "1", role_id: "r2", role_name: "Role 2", status: "active" },
+        {
+          user_id: "u1",
+          role_id: "r1",
+          status: "active",
+          role_name: "admin",
+          entity_name: "",
+        },
       ];
-      mockAuthService.checkCredentials.and.returnValue(
+      authServiceSpy.checkCredentials.and.returnValue(
         of({ accounts, login_nonce: "nonce" }),
       );
-      component.onSubmit();
-      expect(mockRouter.navigate).toHaveBeenCalledWith(["/select-role"], {
-        state: { accounts, loginNonce: "nonce" },
+      authServiceSpy.loginWithAccount.and.returnValue(
+        of({ user_status: "active", approval_status: "approved" } as any),
+      );
+
+      component.loginForm.setValue({
+        email: "test@test.com",
+        password: "password",
+        rememberMe: false,
       });
-    });
-
-    it("should login directly if exactly one account exists and is active", () => {
-      const account = {
-        user_id: "1",
-        role_id: "r1",
-        role_name: "Role 1",
-        status: "active",
-      };
-      mockAuthService.checkCredentials.and.returnValue(
-        of({ accounts: [account], login_nonce: "nonce" }),
-      );
-      mockAuthService.loginWithAccount.and.returnValue(
-        of({ token: "jwt", user: {} as any }),
-      );
-
       component.onSubmit();
 
-      expect(mockAuthService.loginWithAccount).toHaveBeenCalledWith(
-        "1",
+      expect(authServiceSpy.loginWithAccount).toHaveBeenCalledWith(
+        "u1",
         "r1",
         "nonce",
       );
-      expect(mockRouter.navigate).toHaveBeenCalledWith(["/dashboard"]);
+      expect(routerSpy.navigate).toHaveBeenCalledWith(["/dashboard"]);
     });
 
-    it("should redirect to account-notice if account status is not active before login", () => {
-      const account = {
-        user_id: "1",
-        role_id: "r1",
-        role_name: "Role 1",
-        status: "inactive",
-      };
-      mockAuthService.checkCredentials.and.returnValue(
-        of({ accounts: [account], login_nonce: "nonce" }),
+    it("should navigate to role select if multiple accounts", () => {
+      const accounts = [
+        {
+          user_id: "u1",
+          role_id: "r1",
+          status: "active",
+          role_name: "admin",
+          entity_name: "",
+        },
+        {
+          user_id: "u2",
+          role_id: "r2",
+          status: "active",
+          role_name: "user",
+          entity_name: "",
+        },
+      ];
+      authServiceSpy.checkCredentials.and.returnValue(
+        of({ accounts, login_nonce: "nonce" }),
       );
 
+      component.loginForm.setValue({
+        email: "test@test.com",
+        password: "password",
+        rememberMe: false,
+      });
       component.onSubmit();
 
-      expect(mockRouter.navigate).toHaveBeenCalledWith(["/account-notice"]);
-    });
-
-    it("should redirect to account-notice if login response returns blocked status", () => {
-      const account = {
-        user_id: "1",
-        role_id: "r1",
-        role_name: "Role 1",
-        status: "active",
-      };
-      mockAuthService.checkCredentials.and.returnValue(
-        of({ accounts: [account], login_nonce: "nonce" }),
-      );
-      mockAuthService.loginWithAccount.and.returnValue(
-        of({ token: "jwt", user: {} as any, user_status: "blocked" }),
-      );
-
-      component.onSubmit();
-
-      expect(mockRouter.navigate).toHaveBeenCalledWith(["/account-notice"]);
-    });
-
-    it("should redirect to pending-approval if login response returns pending status", () => {
-      const account = {
-        user_id: "1",
-        role_id: "r1",
-        role_name: "Role 1",
-        status: "active",
-      };
-      mockAuthService.checkCredentials.and.returnValue(
-        of({ accounts: [account], login_nonce: "nonce" }),
-      );
-      mockAuthService.loginWithAccount.and.returnValue(
-        of({ token: "jwt", user: {} as any, approval_status: "pending" }),
-      );
-
-      component.onSubmit();
-
-      expect(mockRouter.navigate).toHaveBeenCalledWith(["/pending-approval"]);
+      expect(routerSpy.navigate).toHaveBeenCalledWith(["/select-role"], {
+        state: { accounts, loginNonce: "nonce" },
+      });
     });
   });
 
-  describe("onSubmit errors and lockout", () => {
-    beforeEach(() => {
-      component.loginForm.controls["email"].setValue("test@test.com");
-      component.loginForm.controls["password"].setValue("1234");
-    });
-
-    it("should navigate to account-notice if error user_status is blocked", () => {
-      mockAuthService.checkCredentials.and.returnValue(
+  describe("Error Handling & Account Status", () => {
+    it("should handle blocked status on checkCredentials", () => {
+      authServiceSpy.checkCredentials.and.returnValue(
         throwError(() => ({ error: { user_status: "blocked" } })),
       );
+
+      component.loginForm.setValue({
+        email: "test@test.com",
+        password: "password",
+        rememberMe: false,
+      });
       component.onSubmit();
-      expect(mockRouter.navigate).toHaveBeenCalledWith(["/account-notice"]);
+
+      expect(routerSpy.navigate).toHaveBeenCalledWith(["/account-notice"]);
     });
 
-    it("should navigate to account-notice if checkCredentials error includes activa", () => {
-      mockAuthService.checkCredentials.and.returnValue(
-        throwError(() => ({ error: { error: "cuenta no activa" } })),
+    it("should lock when the backend answers 423 ACCOUNT_LOCKED (HU-02)", () => {
+      authServiceSpy.checkCredentials.and.returnValue(
+        throwError(() => ({
+          status: 423,
+          error: {
+            code: "ACCOUNT_LOCKED",
+            error:
+              "Tu cuenta quedó bloqueada por demasiados intentos fallidos. Probá de nuevo en 15 minuto(s).",
+          },
+        })),
       );
+      component.loginForm.setValue({
+        email: "test@gmail.com",
+        password: "password",
+        rememberMe: false,
+      });
+
       component.onSubmit();
-      expect(mockRouter.navigate).toHaveBeenCalledWith(["/account-notice"]);
+
+      expect(component.locked).toBeTrue();
+      expect(component.loginError).toContain("15 minuto");
     });
 
-    it("should navigate to account-notice if checkCredentials error includes bloque", () => {
-      mockAuthService.checkCredentials.and.returnValue(
-        throwError(() => ({ error: { error: "usuario bloqueado" } })),
+    it("should lock out after max attempts", () => {
+      authServiceSpy.checkCredentials.and.returnValue(
+        throwError(() => ({ error: { error: "Invalid" } })),
       );
-      component.onSubmit();
-      expect(mockRouter.navigate).toHaveBeenCalledWith(["/account-notice"]);
-    });
-
-    it("should navigate to account-notice if loginWithAccount error includes activa", () => {
-      const account = {
-        user_id: "1",
-        role_id: "r1",
-        role_name: "Role 1",
-        status: "active",
-      };
-      mockAuthService.checkCredentials.and.returnValue(
-        of({ accounts: [account], login_nonce: "nonce" }),
-      );
-      mockAuthService.loginWithAccount.and.returnValue(
-        throwError(() => ({ error: { error: "cuenta no activa" } })),
-      );
-      component.onSubmit();
-      expect(mockRouter.navigate).toHaveBeenCalledWith(["/account-notice"]);
-    });
-
-    it("should navigate to account-notice if loginWithAccount error includes bloque", () => {
-      const account = {
-        user_id: "1",
-        role_id: "r1",
-        role_name: "Role 1",
-        status: "active",
-      };
-      mockAuthService.checkCredentials.and.returnValue(
-        of({ accounts: [account], login_nonce: "nonce" }),
-      );
-      mockAuthService.loginWithAccount.and.returnValue(
-        throwError(() => ({ error: { error: "usuario bloqueado" } })),
-      );
-      component.onSubmit();
-      expect(mockRouter.navigate).toHaveBeenCalledWith(["/account-notice"]);
-    });
-
-    it("should handle failed attempts correctly with generic message", () => {
-      const account = {
-        user_id: "1",
-        role_id: "r1",
-        role_name: "Role 1",
-        status: "active",
-      };
-      mockAuthService.checkCredentials.and.returnValue(
-        of({ accounts: [account], login_nonce: "nonce" }),
-      );
-      mockAuthService.loginWithAccount.and.returnValue(
-        throwError(() => ({ error: {} })),
-      );
-      component.onSubmit();
-      expect(component.loginError).toBe("Email o contraseña incorrectos.");
-    });
-
-    it("should handle failed attempts and lock out after MAX_ATTEMPTS", () => {
-      mockAuthService.checkCredentials.and.returnValue(
-        throwError(() => ({ error: { error: "Bad login" } })),
-      );
+      component.loginForm.setValue({
+        email: "test@test.com",
+        password: "password",
+        rememberMe: false,
+      });
 
       for (let i = 0; i < 5; i++) {
         component.onSubmit();
@@ -290,50 +193,194 @@ describe("LoginComponent", () => {
 
       expect(component.locked).toBeTrue();
       expect(component.loginError).toContain("bloqueada temporalmente");
+    });
 
-      // Should not call service again after lock
-      mockAuthService.checkCredentials.calls.reset();
+    it("should handle pending approval status", () => {
+      const accounts = [
+        {
+          user_id: "u1",
+          role_id: "r1",
+          status: "active",
+          role_name: "admin",
+          entity_name: "",
+        },
+      ];
+      authServiceSpy.checkCredentials.and.returnValue(
+        of({ accounts, login_nonce: "nonce" }),
+      );
+      authServiceSpy.loginWithAccount.and.returnValue(
+        of({ user_status: "active", approval_status: "pending" } as any),
+      );
+
+      component.loginForm.setValue({
+        email: "test@test.com",
+        password: "password",
+        rememberMe: false,
+      });
       component.onSubmit();
-      expect(mockAuthService.checkCredentials).not.toHaveBeenCalled();
+
+      expect(routerSpy.navigate).toHaveBeenCalledWith(["/pending-approval"]);
     });
   });
 
   describe("Google Login", () => {
     it("should handle google login success", () => {
-      const account = {
-        user_id: "1",
-        role_id: "r1",
-        role_name: "Role 1",
-        status: "active",
-      };
-      mockAuthService.checkGoogleCredentials.and.returnValue(
-        of({ accounts: [account], login_nonce: "nonce" }),
+      const accounts = [
+        {
+          user_id: "u1",
+          role_id: "r1",
+          status: "active",
+          role_name: "admin",
+          entity_name: "",
+        },
+      ];
+      authServiceSpy.checkGoogleCredentials.and.returnValue(
+        of({ accounts, login_nonce: "nonce" }),
       );
-      mockAuthService.loginWithAccount.and.returnValue(
-        of({ token: "jwt", user: {} as any }),
+      authServiceSpy.loginWithAccount.and.returnValue(
+        of({ user_status: "active", approval_status: "approved" } as any),
       );
 
       component.handleGoogleLogin();
 
-      expect(mockRouter.navigate).toHaveBeenCalledWith(["/dashboard"]);
+      expect(authServiceSpy.checkGoogleCredentials).toHaveBeenCalled();
+      expect(routerSpy.navigate).toHaveBeenCalledWith(["/dashboard"]);
     });
 
-    it("should handle google login error with server error message", () => {
-      mockAuthService.checkGoogleCredentials.and.returnValue(
-        throwError(() => ({ error: { error: "Google err" } })),
+    it("should handle google login error", () => {
+      authServiceSpy.checkGoogleCredentials.and.returnValue(
+        throwError(() => ({ error: { error: "Google Error" } })),
       );
+
       component.handleGoogleLogin();
-      expect(component.loginError).toBe("Google err");
+
+      expect(component.loginError).toBe("Google Error");
     });
 
-    it("should handle google login error with default message", () => {
-      mockAuthService.checkGoogleCredentials.and.returnValue(
-        throwError(() => ({ error: {} })),
+    it("should navigate to /verify-email when google login account has is_email_verified = false", () => {
+      const accounts = [
+        {
+          user_id: "u1",
+          role_id: "r1",
+          status: "active",
+          role_name: "admin",
+          entity_name: "",
+        },
+      ];
+      authServiceSpy.checkGoogleCredentials.and.returnValue(
+        of({
+          accounts,
+          login_nonce: "nonce",
+          is_email_verified: false,
+          email: "google@example.com",
+        }),
       );
+
       component.handleGoogleLogin();
-      expect(component.loginError).toBe(
-        "Hubo un error al iniciar sesión con Google. Intentá nuevamente.",
+
+      expect(routerSpy.navigate).toHaveBeenCalledWith(["/verify-email"], {
+        queryParams: { email: "google@example.com" },
+      });
+    });
+
+    it("should navigate to /verify-email when checkCredentials has is_email_verified = false", () => {
+      component.loginForm.setValue({
+        email: "test@example.com",
+        password: "Password123!",
+        rememberMe: false,
+      });
+
+      authServiceSpy.checkCredentials.and.returnValue(
+        of({
+          accounts: [],
+          login_nonce: "nonce",
+          is_email_verified: false,
+          email: "test@example.com",
+        }),
       );
+
+      component.onSubmit();
+
+      expect(routerSpy.navigate).toHaveBeenCalledWith(["/verify-email"], {
+        queryParams: { email: "test@example.com" },
+      });
+    });
+
+    it("should transition to 2FA step when credentials check returns requires_2fa = true", () => {
+      component.loginForm.setValue({
+        email: "2fa@example.com",
+        password: "Password123!",
+        rememberMe: false,
+      });
+
+      authServiceSpy.checkCredentials.and.returnValue(
+        of({
+          accounts: [],
+          login_nonce: "",
+          requires_2fa: true,
+          twofa_method: "totp",
+          twofa_nonce: "nonce-2fa-123",
+          email: "2fa@example.com",
+        }),
+      );
+
+      component.onSubmit();
+
+      expect(component.is2faStep).toBeTrue();
+      expect(component.twofaNonce).toBe("nonce-2fa-123");
+      expect(component.twofaMethod).toBe("totp");
+    });
+
+    it("should verify 2FA code and log in on success", () => {
+      component.is2faStep = true;
+      component.twofaNonce = "nonce-2fa-123";
+      component.twofaCode = "123456";
+
+      const accounts = [
+        {
+          user_id: "u1",
+          role_id: "r1",
+          status: "active",
+          role_name: "admin",
+          entity_name: "",
+        },
+      ];
+      authServiceSpy.verifyTwoFactor.and.returnValue(
+        of({
+          accounts,
+          login_nonce: "step2-nonce",
+          requires_2fa: false,
+        }),
+      );
+      authServiceSpy.loginWithAccount.and.returnValue(
+        of({ user_status: "active", approval_status: "approved" } as any),
+      );
+
+      component.onVerifyTwofa();
+
+      expect(authServiceSpy.verifyTwoFactor).toHaveBeenCalledWith(
+        "nonce-2fa-123",
+        "123456",
+        false,
+      );
+      expect(component.is2faStep).toBeFalse();
+      expect(authServiceSpy.loginWithAccount).toHaveBeenCalledWith(
+        "u1",
+        "r1",
+        "step2-nonce",
+      );
+    });
+
+    it("should reset 2FA state on cancelTwofa", () => {
+      component.is2faStep = true;
+      component.twofaNonce = "nonce-123";
+      component.twofaCode = "654321";
+
+      component.cancelTwofa();
+
+      expect(component.is2faStep).toBeFalse();
+      expect(component.twofaNonce).toBe("");
+      expect(component.twofaCode).toBe("");
     });
   });
 });

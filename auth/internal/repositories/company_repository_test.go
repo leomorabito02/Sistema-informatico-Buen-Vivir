@@ -18,8 +18,8 @@ func TestCompanyRepository_FindByID(t *testing.T) {
 	repo := repositories.NewCompanyRepository(db)
 
 	t.Run("Success", func(t *testing.T) {
-		mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "companies" WHERE company_id = $1 AND "companies"."deleted_at" IS NULL ORDER BY "companies"."company_id" LIMIT $2`)).
-			WithArgs("comp-1", 1).
+		mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "companies" WHERE (company_id = $1 OR user_id = $2) AND "companies"."deleted_at" IS NULL ORDER BY "companies"."company_id" LIMIT $3`)).
+			WithArgs("comp-1", "comp-1", 1).
 			WillReturnRows(sqlmock.NewRows([]string{"company_id", "business_name"}).
 				AddRow("comp-1", "Test Company"))
 
@@ -30,8 +30,8 @@ func TestCompanyRepository_FindByID(t *testing.T) {
 	})
 
 	t.Run("NotFound", func(t *testing.T) {
-		mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "companies" WHERE company_id = $1 AND "companies"."deleted_at" IS NULL ORDER BY "companies"."company_id" LIMIT $2`)).
-			WithArgs("notfound", 1).
+		mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "companies" WHERE (company_id = $1 OR user_id = $2) AND "companies"."deleted_at" IS NULL ORDER BY "companies"."company_id" LIMIT $3`)).
+			WithArgs("notfound", "notfound", 1).
 			WillReturnRows(sqlmock.NewRows([]string{"company_id"}))
 
 		comp, err := repo.FindByID(context.Background(), "notfound")
@@ -41,8 +41,8 @@ func TestCompanyRepository_FindByID(t *testing.T) {
 	})
 
 	t.Run("DBError", func(t *testing.T) {
-		mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "companies" WHERE company_id = $1 AND "companies"."deleted_at" IS NULL ORDER BY "companies"."company_id" LIMIT $2`)).
-			WithArgs("error", 1).
+		mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "companies" WHERE (company_id = $1 OR user_id = $2) AND "companies"."deleted_at" IS NULL ORDER BY "companies"."company_id" LIMIT $3`)).
+			WithArgs("error", "error", 1).
 			WillReturnError(errors.New("db error"))
 
 		comp, err := repo.FindByID(context.Background(), "error")
@@ -184,4 +184,20 @@ func TestCompanyRepository_Delete(t *testing.T) {
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "db error")
 	})
+}
+
+func TestCompanyRepository_FindByID_AceptaIDDeUsuario(t *testing.T) {
+	db, mock := setupTestDB(t)
+	repo := repositories.NewCompanyRepository(db)
+
+	// Inserción Laboral consulta la empresa con el id de usuario.
+	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "companies" WHERE (company_id = $1 OR user_id = $2) AND "companies"."deleted_at" IS NULL ORDER BY "companies"."company_id" LIMIT $3`)).
+		WithArgs("usr-emp", "usr-emp", 1).
+		WillReturnRows(sqlmock.NewRows([]string{"company_id", "user_id", "business_name"}).
+			AddRow("comp-1", "usr-emp", "Vivero"))
+
+	comp, err := repo.FindByID(context.Background(), "usr-emp")
+	assert.NoError(t, err)
+	assert.Equal(t, "comp-1", comp.CompanyID)
+	assert.Equal(t, "usr-emp", comp.UserID)
 }

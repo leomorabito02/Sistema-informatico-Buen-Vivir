@@ -1,67 +1,63 @@
 <div class="page-container">
   <div class="header-section">
     <div>
-      <h1 class="page-title">
-        <i class="pi pi-calendar-plus mr-2"></i>Registro de Asistencia
-      </h1>
+      <h1 class="page-title">Asistencia de mis cursos</h1>
       <p class="page-subtitle">
-        Control e historial de presentes por fecha y comisión de curso.
+        La asistencia se registra cuando el participante entrega la actividad.
       </p>
     </div>
-    <p-button
-      label="Tomar Nueva Asistencia"
-      icon="pi pi-check-square"
-      styleClass="p-button-success"
-    ></p-button>
   </div>
 
-  <p-card styleClass="p-card-shadow">
-    <p-table [value]="attendanceLogs" class="p-datatable-striped">
-      <ng-template pTemplate="header">
-        <tr>
-          <th>Fecha</th>
-          <th>Curso / Comisión</th>
-          <th>Presentes</th>
-          <th>Ausentes</th>
-          <th>Total Inscritos</th>
-          <th>% Asistencia</th>
-          <th>Acciones</th>
-        </tr>
-      </ng-template>
-      <ng-template pTemplate="body" let-log>
-        <tr>
-          <td><span class="p-column-title">Fecha</span>{{ log.date }}</td>
-          <td>
-            <span class="p-column-title">Curso</span
-            ><strong>{{ log.course }}</strong>
-          </td>
-          <td>
-            <span class="p-column-title">Presentes</span
-            ><span class="text-success font-semibold">{{
-              log.presentCount
-            }}</span>
-          </td>
-          <td>
-            <span class="p-column-title">Ausentes</span
-            ><span class="text-danger font-semibold">{{
-              log.absentCount
-            }}</span>
-          </td>
-          <td><span class="p-column-title">Total</span>{{ log.total }}</td>
-          <td>
-            <span class="p-column-title">% Asistencia</span>
-            <p-tag [value]="log.percentage" severity="success"></p-tag>
-          </td>
-          <td>
-            <span class="p-column-title">Acciones</span>
-            <p-button
-              icon="pi pi-search"
-              label="Ver Detalle"
-              styleClass="p-button-outlined p-button-sm"
-            ></p-button>
-          </td>
-        </tr>
-      </ng-template>
-    </p-table>
-  </p-card>
+  <app-error-state *ngIf="error" [message]="error"></app-error-state>
+
+  <app-loading-state
+    *ngIf="loadingCourses"
+    variant="list"
+    [rows]="1"
+    label="Cargando tus cursos…"
+  ></app-loading-state>
+
+  <ng-container *ngIf="!loadingCourses">
+    <app-empty-state
+      *ngIf="courseOptions.length === 0 && !error"
+      [compact]="true"
+    >
+      No tenés cursos publicados como docente responsable.
+    </app-empty-state>
+
+    <div *ngIf="courseOptions.length > 0" class="toolbar">
+      <div class="course-picker">
+        <label for="curso-asistencia">Curso</label>
+        <p-select
+          inputId="curso-asistencia"
+          [options]="courseOptions"
+          optionLabel="label"
+          optionValue="value"
+          [(ngModel)]="selectedCourseId"
+          (onChange)="onCourseChange()"
+          placeholder="Elegí un curso"
+          [style]="{ minWidth: '280px', width: '100%' }"
+        ></p-select>
+      </div>
+      <p-button
+        *ngIf="selectedCourseId"
+        label="Gestionar actividades"
+        icon="pi pi-list-check"
+        [outlined]="true"
+        [routerLink]="['/dashboard/cursos', selectedCourseId]"
+      ></p-button>
+    </div>
+
+    <app-loading-state
+      *ngIf="loadingMatrix"
+      variant="table"
+      label="Cargando asistencia…"
+    ></app-loading-state>
+
+    <app-attendance-matrix
+      *ngIf="selectedCourseId && !loadingMatrix"
+      [activities]="activities"
+      [rows]="rows"
+    ></app-attendance-matrix>
+  </ng-container>
 </div>

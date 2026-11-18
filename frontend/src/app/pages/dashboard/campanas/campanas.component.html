@@ -1,61 +1,188 @@
+<p-toast></p-toast>
+<p-confirmDialog></p-confirmDialog>
+
 <div class="page-container">
   <div class="header-section">
     <div>
-      <h1 class="page-title">
-        <i class="pi pi-megaphone mr-2"></i>Gestión de Campañas
-      </h1>
+      <h1 class="page-title">Gestión de campañas</h1>
       <p class="page-subtitle">
-        Iniciativas comunitarias, recolección de insumos y eventos solidarios.
+        Las campañas se ven en la página pública cuando se publican.
       </p>
     </div>
     <p-button
-      label="Crear Campaña"
+      label="Crear campaña"
       icon="pi pi-plus"
-      styleClass="p-button-success"
+      (onClick)="nueva()"
     ></p-button>
   </div>
 
-  <div class="grid-container">
-    <div *ngFor="let camp of campaigns" class="campaign-card-wrapper">
-      <p-card [header]="camp.name" styleClass="p-card-shadow campaign-card">
-        <div class="card-body mb-3">
-          <div class="flex justify-between items-center mb-2">
-            <span class="text-sm text-muted">Meta: {{ camp.goal }}</span>
-            <p-tag
-              [value]="camp.status"
-              [severity]="camp.status === 'Finalizada' ? 'info' : 'success'"
-            ></p-tag>
-          </div>
-          <p-progressBar
-            [value]="camp.raised"
-            styleClass="mb-2"
-          ></p-progressBar>
-          <div class="info-footer text-xs text-muted">
-            <span
-              ><i class="pi pi-calendar mr-1"></i> {{ camp.startDate }} -
-              {{ camp.endDate }}</span
-            >
-            <span
-              ><i class="pi pi-users mr-1"></i>
-              {{ camp.volunteers }} Voluntarios</span
-            >
-          </div>
-        </div>
-        <ng-template pTemplate="footer">
-          <div class="card-footer-buttons">
-            <p-button
-              label="Detalles"
-              icon="pi pi-info-circle"
-              styleClass="p-button-outlined p-button-sm"
-            ></p-button>
-            <p-button
-              label="Administrar"
-              icon="pi pi-cog"
-              styleClass="p-button-sm p-button-secondary"
-            ></p-button>
-          </div>
-        </ng-template>
-      </p-card>
+  <form class="filtros" (ngSubmit)="cargar()">
+    <label>
+      Buscar por título
+      <input
+        pInputText
+        name="busqueda"
+        [(ngModel)]="busqueda"
+        placeholder="Ej.: reciclaje"
+      />
+    </label>
+    <div class="campo">
+      <label for="filtro-estado">Estado</label>
+      <p-select
+        inputId="filtro-estado"
+        name="estado"
+        [options]="estados"
+        [(ngModel)]="estado"
+        optionLabel="label"
+        optionValue="value"
+        (onChange)="cargar()"
+      ></p-select>
     </div>
+    <p-button
+      type="submit"
+      label="Buscar"
+      icon="pi pi-search"
+      [outlined]="true"
+    ></p-button>
+  </form>
+
+  <output *ngIf="cargando" class="estado-carga">Cargando campañas…</output>
+
+  <app-empty-state
+    *ngIf="!cargando && error"
+    title="No se pudieron cargar las campañas"
+  >
+    {{ error }}
+  </app-empty-state>
+
+  <app-empty-state
+    *ngIf="!cargando && !error && campaigns.length === 0"
+    title="No hay campañas"
+  >
+    {{
+      busqueda || estado
+        ? "Ninguna campaña coincide con la búsqueda."
+        : "Todavía no se cargó ninguna campaña. Usá «Crear campaña» para empezar."
+    }}
+  </app-empty-state>
+
+  <div class="grid-container" *ngIf="!cargando && !error && campaigns.length">
+    <article *ngFor="let c of campaigns" class="campana-card">
+      <img
+        [src]="c.imagen_url"
+        [alt]="c.titulo"
+        class="campana-img"
+        loading="lazy"
+        (error)="onImageError($event)"
+      />
+      <div class="campana-body">
+        <div class="campana-cabecera">
+          <h2 class="campana-titulo">{{ c.titulo }}</h2>
+          <p-tag
+            [value]="c.estado === 'publicada' ? 'Publicada' : 'Borrador'"
+            [severity]="c.estado === 'publicada' ? 'success' : 'secondary'"
+          ></p-tag>
+        </div>
+        <p class="campana-fecha">
+          <i class="pi pi-calendar" aria-hidden="true"></i>
+          {{ fechaDMY(c.fecha) }}
+        </p>
+        <p class="campana-texto">{{ c.texto }}</p>
+      </div>
+      <div class="card-footer-buttons">
+        <p-button
+          label="Editar"
+          icon="pi pi-pencil"
+          size="small"
+          [outlined]="true"
+          [ariaLabel]="'Editar ' + c.titulo"
+          (onClick)="editar(c)"
+        ></p-button>
+        <p-button
+          *ngIf="c.estado === 'borrador'"
+          label="Publicar"
+          icon="pi pi-send"
+          size="small"
+          [ariaLabel]="'Publicar ' + c.titulo"
+          (onClick)="publicar(c)"
+        ></p-button>
+        <p-button
+          label="Eliminar"
+          icon="pi pi-trash"
+          size="small"
+          severity="danger"
+          [outlined]="true"
+          [loading]="eliminandoId === c.id"
+          [ariaLabel]="'Eliminar ' + c.titulo"
+          (onClick)="eliminar(c)"
+        ></p-button>
+      </div>
+    </article>
   </div>
 </div>
+
+<p-dialog
+  [(visible)]="dialogo"
+  [modal]="true"
+  [style]="{ width: '640px' }"
+  [breakpoints]="{ '720px': '95vw' }"
+  [header]="editandoId ? 'Editar campaña' : 'Nueva campaña'"
+>
+  <p class="form-legend"><span class="req">*</span> Campo obligatorio</p>
+  <div class="form-grid">
+    <label>
+      Título <span class="req">*</span>
+      <input
+        pInputText
+        [(ngModel)]="form.titulo"
+        maxlength="150"
+        placeholder="Nombre de la campaña"
+      />
+    </label>
+    <label>
+      Texto <span class="req">*</span>
+      <textarea
+        pTextarea
+        [(ngModel)]="form.texto"
+        rows="5"
+        maxlength="5000"
+        placeholder="Contenido de la campaña"
+      ></textarea>
+    </label>
+    <label>
+      Imagen (dirección web) <span class="req">*</span>
+      <input
+        pInputText
+        [(ngModel)]="form.imagen_url"
+        type="url"
+        placeholder="https://…"
+        [class.p-invalid]="imagenInvalida"
+      />
+      <small class="field-hint" [class.err]="imagenInvalida">
+        {{
+          imagenInvalida
+            ? "Debe empezar con http:// o https://"
+            : "Pegá el enlace de la imagen."
+        }}
+      </small>
+    </label>
+    <label>
+      Fecha <span class="req">*</span>
+      <input pInputText [(ngModel)]="form.fecha" type="date" />
+    </label>
+  </div>
+  <ng-template pTemplate="footer">
+    <p-button
+      label="Cancelar"
+      [text]="true"
+      (onClick)="dialogo = false"
+    ></p-button>
+    <p-button
+      [label]="editandoId ? 'Guardar cambios' : 'Crear campaña'"
+      icon="pi pi-check"
+      [disabled]="!formCompleto || imagenInvalida || guardando"
+      [loading]="guardando"
+      (onClick)="guardar()"
+    ></p-button>
+  </ng-template>
+</p-dialog>

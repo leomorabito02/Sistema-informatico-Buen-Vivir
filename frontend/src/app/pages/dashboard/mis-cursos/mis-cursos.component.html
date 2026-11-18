@@ -1,67 +1,183 @@
 <div class="page-container">
+  <p-toast></p-toast>
   <div class="header-section">
     <div>
-      <h1 class="page-title">
-        <i class="pi pi-briefcase mr-2"></i>Mis Cursos Asignados
-      </h1>
-      <p class="page-subtitle">
-        Panel docente para la gestión de clases, asistencias y alumnos.
-      </p>
+      <h1 class="page-title">Mis cursos asignados</h1>
+      <p class="page-subtitle">Cursos en los que sos docente responsable.</p>
     </div>
   </div>
 
-  <p-card styleClass="p-card-shadow">
-    <p-table [value]="assignedCourses" class="p-datatable-striped">
+  <app-loading-state
+    *ngIf="loading"
+    variant="table"
+    label="Cargando tus cursos…"
+  ></app-loading-state>
+
+  <app-error-state
+    *ngIf="!loading && error"
+    [message]="error"
+  ></app-error-state>
+
+  <p-card *ngIf="!loading && !error" styleClass="p-card-shadow">
+    <p-table [value]="courses" class="p-datatable-striped">
       <ng-template pTemplate="header">
         <tr>
-          <th>Código</th>
-          <th>Nombre del Curso</th>
-          <th>Horario</th>
-          <th>Aula / Espacio</th>
-          <th>Alumnos</th>
+          <th>Curso</th>
+          <th>Área formativa</th>
+          <th>Modalidad</th>
+          <th>Duración</th>
+          <th>Materiales</th>
           <th>Estado</th>
           <th>Acciones</th>
         </tr>
       </ng-template>
       <ng-template pTemplate="body" let-course>
         <tr>
-          <td><span class="p-column-title">Código</span>{{ course.code }}</td>
           <td>
             <span class="p-column-title">Curso</span
-            ><strong>{{ course.name }}</strong>
+            ><strong>{{ course.title }}</strong>
+          </td>
+          <td><span class="p-column-title">Área</span>{{ course.area }}</td>
+          <td>
+            <span class="p-column-title">Modalidad</span>{{ course.mode }}
           </td>
           <td>
-            <span class="p-column-title">Horario</span>{{ course.schedule }}
+            <span class="p-column-title">Duración</span>{{ course.duration }}
           </td>
-          <td><span class="p-column-title">Aula</span>{{ course.room }}</td>
           <td>
-            <span class="p-column-title">Alumnos</span
-            >{{ course.studentsCount }} alumnos
+            <span class="p-column-title">Materiales</span
+            >{{ course.materialsCount }}
           </td>
           <td>
             <span class="p-column-title">Estado</span>
             <p-tag
-              [value]="course.status"
-              [severity]="getSeverity(course.status)"
+              [value]="course.publicado ? 'Publicado' : 'Borrador'"
+              [severity]="course.publicado ? 'success' : 'warn'"
             ></p-tag>
           </td>
           <td>
             <span class="p-column-title">Acciones</span>
-            <div class="action-buttons">
-              <p-button
-                icon="pi pi-list"
-                label="Alumnos"
-                styleClass="p-button-outlined p-button-sm"
-              ></p-button>
-              <p-button
-                icon="pi pi-check-square"
-                label="Tomar Asistencia"
-                styleClass="p-button-sm p-button-success"
-              ></p-button>
-            </div>
+            <p-button
+              *ngIf="course.publicado"
+              label="Ver detalle"
+              icon="pi pi-list-check"
+              [text]="true"
+              size="small"
+              [routerLink]="['/dashboard/cursos', course.id]"
+            ></p-button>
+            <p-button
+              label="Materiales"
+              icon="pi pi-folder-open"
+              [text]="true"
+              size="small"
+              (onClick)="openMaterials(course)"
+            ></p-button>
+          </td>
+        </tr>
+      </ng-template>
+      <ng-template pTemplate="emptymessage">
+        <tr>
+          <td colspan="7" class="empty-state">
+            No tenés cursos asignados. Un administrador debe crear un curso con
+            tu id de usuario como docente responsable y publicarlo.
           </td>
         </tr>
       </ng-template>
     </p-table>
   </p-card>
 </div>
+
+<p-dialog
+  [(visible)]="matDialog"
+  [modal]="true"
+  [style]="{ width: '560px' }"
+  [header]="'Materiales — ' + (matCourse?.title || '')"
+>
+  <div *ngIf="matCourse">
+    <h4 class="mat-h">Materiales del curso</h4>
+    <ul class="mat-list" *ngIf="matCourse.raw.material?.length; else sinMat">
+      <li *ngFor="let m of matCourse.raw.material">
+        <i
+          class="pi"
+          [ngClass]="{
+            'pi-file-pdf': m.type === 'PDF',
+            'pi-video': m.type === 'Video',
+            'pi-link': m.type === 'Link',
+            'pi-file': !m.type,
+          }"
+        ></i>
+        <a
+          *ngIf="matHref(m) as href; else soloT"
+          [href]="href"
+          target="_blank"
+          rel="noopener"
+          >{{ m.title }}</a
+        >
+        <ng-template #soloT>{{ m.title }}</ng-template>
+      </li>
+    </ul>
+    <ng-template #sinMat
+      ><p class="muted">Todavía no hay materiales.</p></ng-template
+    >
+
+    <h4 class="mat-h">Agregar material</h4>
+    <div class="mat-form">
+      <label>
+        Título
+        <input pInputText [(ngModel)]="matForm.title" />
+      </label>
+      <label>
+        Tipo
+        <p-select
+          [options]="[
+            { label: 'PDF', value: 'PDF' },
+            { label: 'Video', value: 'Video' },
+            { label: 'Link', value: 'Link' },
+          ]"
+          optionLabel="label"
+          optionValue="value"
+          [(ngModel)]="matForm.type"
+          (ngModelChange)="onMatTypeChange()"
+        ></p-select>
+      </label>
+      <label *ngIf="matForm.type !== 'PDF'">
+        URL ({{ matForm.type === "Video" ? "video" : "recurso externo" }})
+        <input
+          pInputText
+          [(ngModel)]="matForm.url"
+          placeholder="https://…"
+          [class.p-invalid]="matUrlInvalid"
+        />
+        <small class="muted" [class.err]="matUrlInvalid" *ngIf="matUrlInvalid">
+          Debe empezar con http:// o https://
+        </small>
+      </label>
+      <label *ngIf="matForm.type === 'PDF'">
+        Subir archivo (JPG/PNG/WEBP ≤ 5 MB · PDF/DOC ≤ 10 MB)
+        <input
+          type="file"
+          accept=".jpg,.jpeg,.png,.webp,.pdf,.doc,.docx"
+          (change)="onMatFile($event)"
+        />
+        <small class="muted" [class.err]="matFileError">
+          {{ matFileError || (matFile ? matFile.name + " listo" : "") }}
+        </small>
+      </label>
+    </div>
+  </div>
+
+  <ng-template pTemplate="footer">
+    <p-button
+      label="Cerrar"
+      [text]="true"
+      (onClick)="matDialog = false"
+    ></p-button>
+    <p-button
+      [label]="matFile ? 'Subir y agregar' : 'Agregar'"
+      icon="pi pi-plus"
+      [loading]="savingMat"
+      [disabled]="!matForm.title.trim() || matUrlInvalid || !!matFileError"
+      (onClick)="addMaterial()"
+    ></p-button>
+  </ng-template>
+</p-dialog>

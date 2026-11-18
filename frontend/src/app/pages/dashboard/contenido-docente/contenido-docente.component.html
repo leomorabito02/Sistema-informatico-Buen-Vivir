@@ -1,0 +1,179 @@
+<p-toast></p-toast>
+
+<div class="page-container">
+  <div class="header-section">
+    <div>
+      <h1 class="page-title">Contenido docente</h1>
+      <p class="page-subtitle">
+        Material de los docentes para revisar y publicar en la biblioteca.
+      </p>
+    </div>
+  </div>
+
+  <div class="filtros">
+    <label>
+      Estado
+      <p-select
+        name="estado"
+        [options]="estados"
+        [(ngModel)]="estado"
+        optionLabel="label"
+        optionValue="value"
+        (onChange)="cargar()"
+      ></p-select>
+    </label>
+  </div>
+
+  <p *ngIf="cargando" class="estado-carga" role="status">Cargando material…</p>
+
+  <app-empty-state
+    *ngIf="!cargando && error"
+    title="No se pudo cargar el material"
+  >
+    {{ error }}
+  </app-empty-state>
+
+  <app-empty-state
+    *ngIf="!cargando && !error && contenidos.length === 0"
+    title="No hay material"
+  >
+    {{
+      estado === "pendiente"
+        ? "No hay material esperando revisión."
+        : "No hay material en este estado."
+    }}
+  </app-empty-state>
+
+  <ul class="lista" *ngIf="!cargando && !error && contenidos.length">
+    <li *ngFor="let c of contenidos" class="item">
+      <div class="item-cabecera">
+        <h2 class="item-titulo">{{ c.titulo }}</h2>
+        <p-tag
+          [value]="etiqueta(c.estadoModeracion)"
+          [severity]="severidad(c.estadoModeracion)"
+        ></p-tag>
+      </div>
+      <p class="item-meta">
+        {{ docente(c.docenteId) }} · {{ c.archivoNombre }} ·
+        {{ tamano(c.archivoTamano) }} · subido el {{ fecha(c.fechaSubida) }}
+      </p>
+      <p *ngIf="c.descripcion" class="item-texto">{{ c.descripcion }}</p>
+      <p
+        *ngIf="c.estadoModeracion === 'rechazado' && c.motivoRechazo"
+        class="item-motivo"
+      >
+        Motivo del rechazo: {{ c.motivoRechazo }}
+      </p>
+      <div class="item-acciones">
+        <p-button
+          label="Revisar archivo"
+          icon="pi pi-download"
+          size="small"
+          [outlined]="true"
+          [ariaLabel]="'Descargar ' + c.titulo"
+          (onClick)="descargar(c)"
+        ></p-button>
+        <p-button
+          *ngIf="c.estadoModeracion !== 'aprobado'"
+          label="Aprobar"
+          icon="pi pi-check"
+          size="small"
+          severity="success"
+          [ariaLabel]="'Aprobar ' + c.titulo"
+          (onClick)="aprobar(c)"
+        ></p-button>
+        <p-button
+          *ngIf="c.estadoModeracion !== 'rechazado'"
+          [label]="
+            c.estadoModeracion === 'aprobado' ? 'Despublicar' : 'Rechazar'
+          "
+          icon="pi pi-times"
+          size="small"
+          severity="danger"
+          [outlined]="true"
+          [ariaLabel]="'Rechazar ' + c.titulo"
+          (onClick)="abrirRechazo(c)"
+        ></p-button>
+      </div>
+    </li>
+  </ul>
+
+  <section class="biblioteca" aria-labelledby="descargas-titulo">
+    <h2 id="descargas-titulo" class="seccion-titulo">
+      Descargas de la biblioteca
+    </h2>
+    <p class="page-subtitle">
+      Quién descargó material de la biblioteca pública.
+    </p>
+    <p *ngIf="errorDescargas" class="estado-carga">{{ errorDescargas }}</p>
+    <p *ngIf="!errorDescargas && descargas.length === 0" class="estado-carga">
+      Todavía nadie descargó material.
+    </p>
+    <div class="tabla-scroll" *ngIf="descargas.length">
+      <table class="tabla">
+        <thead>
+          <tr>
+            <th scope="col">Fecha</th>
+            <th scope="col">Material</th>
+            <th scope="col">Nombre</th>
+            <th scope="col">Email</th>
+            <th scope="col">Teléfono</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let d of descargas">
+            <td>{{ fecha(d.fecha) }}</td>
+            <td>{{ titulos.get(d.contenidoId) || "Material eliminado" }}</td>
+            <td>{{ d.nombre }} {{ d.apellido }}</td>
+            <td>{{ d.email }}</td>
+            <td>{{ d.telefono }}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+</div>
+
+<p-dialog
+  [visible]="!!rechazando"
+  (visibleChange)="!$event && (rechazando = null)"
+  [modal]="true"
+  [style]="{ width: '520px' }"
+  [breakpoints]="{ '640px': '95vw' }"
+  [header]="
+    rechazando?.estadoModeracion === 'aprobado'
+      ? 'Despublicar material'
+      : 'Rechazar material'
+  "
+>
+  <form class="form-grid" (ngSubmit)="rechazar()" novalidate>
+    <p class="item-meta">
+      «{{ rechazando?.titulo }}» deja de verse en la biblioteca. El docente ve
+      el motivo.
+    </p>
+    <label>
+      Motivo (opcional)
+      <textarea
+        pTextarea
+        name="motivo"
+        [(ngModel)]="motivo"
+        rows="3"
+        maxlength="500"
+      ></textarea>
+    </label>
+    <div class="form-acciones">
+      <p-button
+        type="button"
+        label="Cancelar"
+        [text]="true"
+        (onClick)="rechazando = null"
+      ></p-button>
+      <p-button
+        type="submit"
+        severity="danger"
+        [label]="enviando ? 'Guardando…' : 'Confirmar'"
+        [disabled]="enviando"
+      ></p-button>
+    </div>
+  </form>
+</p-dialog>

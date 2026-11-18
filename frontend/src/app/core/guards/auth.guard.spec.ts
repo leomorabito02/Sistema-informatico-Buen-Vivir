@@ -13,7 +13,11 @@ describe("authGuard", () => {
   const mockUrlTree = {} as UrlTree;
 
   beforeEach(() => {
-    mockAuthService = jasmine.createSpyObj("AuthService", ["isAuthenticated"]);
+    mockAuthService = jasmine.createSpyObj("AuthService", [
+      "isAuthenticated",
+      "isLocallyAuthenticated",
+    ]);
+    mockAuthService.isLocallyAuthenticated.and.returnValue(true);
     mockRouter = jasmine.createSpyObj("Router", ["createUrlTree"]);
     mockRouter.createUrlTree.and.returnValue(mockUrlTree);
 
@@ -81,6 +85,28 @@ describe("authGuard", () => {
       expect(mockRouter.createUrlTree).toHaveBeenCalledWith([
         "/account-notice",
       ]);
+      done();
+    });
+  });
+
+  it("should redirect to /verify-email if user.is_email_verified is false", (done) => {
+    mockAuthService.isAuthenticated.and.returnValue(
+      of({
+        user_status: "active",
+        user: {
+          status: "active",
+          is_email_verified: false,
+          email: "user@test.com",
+        },
+      } as any),
+    );
+
+    const result = executeGuard({} as any, {} as any);
+    (result as any).subscribe((res: any) => {
+      expect(res).toBe(mockUrlTree);
+      expect(mockRouter.createUrlTree).toHaveBeenCalledWith(["/verify-email"], {
+        queryParams: { email: "user@test.com" },
+      });
       done();
     });
   });

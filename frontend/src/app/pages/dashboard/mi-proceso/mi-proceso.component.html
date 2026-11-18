@@ -1,0 +1,53 @@
+<div class="page-container">
+  <div class="header-section">
+    <h1 class="page-title">Mi proceso</h1>
+    <p class="page-subtitle">
+      Los momentos importantes de tu recorrido en el centro.
+    </p>
+  </div>
+
+  <app-loading-state
+    *ngIf="loading"
+    variant="list"
+    label="Cargando tu línea de tiempo…"
+  ></app-loading-state>
+
+  <app-error-state
+    *ngIf="!loading && error"
+    [message]="error"
+    (retry)="cargar()"
+  ></app-error-state>
+
+  <p-card *ngIf="!loading && !error" styleClass="p-card-shadow">
+    <app-empty-state *ngIf="items.length === 0">
+      Todavía no hay momentos registrados en tu línea de tiempo.
+    </app-empty-state>
+
+    <ol *ngIf="items.length > 0" class="timeline">
+      <li
+        *ngFor="let item of items; trackBy: trackByKey"
+        class="timeline-item"
+        [class.timeline-item--actividad]="item.tipo === 'actividad'"
+      >
+        <span class="timeline-dot" aria-hidden="true"></span>
+        <div class="timeline-content">
+          <div class="timeline-head">
+            <time class="timeline-date" [attr.datetime]="item.fecha">{{
+              formatDMY(item.fecha)
+            }}</time>
+            <span class="timeline-origen">{{
+              item.tipo === "actividad" ? "Actividad en el centro" : "Equipo"
+            }}</span>
+          </div>
+          <ng-container *ngIf="item.tipo === 'hito'">
+            <p class="texto-libre">{{ item.hito.descripcion }}</p>
+          </ng-container>
+          <ng-container *ngIf="item.tipo === 'actividad'">
+            <p class="texto-libre">{{ item.actividad.descripcion }}</p>
+            <p *ngIf="item.curso" class="timeline-curso">{{ item.curso }}</p>
+          </ng-container>
+        </div>
+      </li>
+    </ol>
+  </p-card>
+</div>

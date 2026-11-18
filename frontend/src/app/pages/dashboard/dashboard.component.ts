@@ -1,10 +1,10 @@
-import { Component } from "@angular/core";
+import { Component, DestroyRef, OnInit, inject } from "@angular/core";
+import { takeUntilDestroyed } from "@angular/core/rxjs-interop";
 import { CommonModule } from "@angular/common";
 import { ReactiveFormsModule } from "@angular/forms";
-import { RouterOutlet } from "@angular/router";
+import { ActivatedRoute, Router, RouterOutlet } from "@angular/router";
 import { LucideAngularModule } from "lucide-angular";
 import { HeaderComponent } from "../../components/layout/header/header.component";
-import { SidebarComponent } from "../../components/layout/sidebar/sidebar.component";
 import { FooterComponent } from "../../components/layout/footer/footer.component";
 
 import { ToastModule } from "primeng/toast";
@@ -19,7 +19,6 @@ import { CardModule } from "primeng/card";
     RouterOutlet,
     LucideAngularModule,
     HeaderComponent,
-    SidebarComponent,
     FooterComponent,
     ToastModule,
     CardModule,
@@ -27,4 +26,29 @@ import { CardModule } from "primeng/card";
   templateUrl: "./dashboard.component.html",
   styleUrl: "./dashboard.component.css",
 })
-export class DashboardComponent {}
+export class DashboardComponent implements OnInit {
+  private route = inject(ActivatedRoute);
+  private router = inject(Router);
+  private destroyRef = inject(DestroyRef);
+
+  /** Llegó redirigido por un guard de rol (`?acceso=denegado`). */
+  accesoDenegado = false;
+
+  ngOnInit(): void {
+    this.route.queryParamMap
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((q) => {
+        if (q.get("acceso") === "denegado") this.accesoDenegado = true;
+      });
+  }
+
+  cerrarAviso(): void {
+    this.accesoDenegado = false;
+    this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: { acceso: null },
+      queryParamsHandling: "merge",
+      replaceUrl: true,
+    });
+  }
+}

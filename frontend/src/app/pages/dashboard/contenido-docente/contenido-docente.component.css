@@ -1,0 +1,38 @@
+.filtros {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.filtros label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+}
+
+.tabla-scroll {
+  overflow-x: auto;
+}
+
+.tabla {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--font-size-sm);
+}
+
+.tabla th,
+.tabla td {
+  text-align: left;
+  padding: 0.5rem 0.75rem;
+  border-bottom: 1px solid var(--border, #e5e5e0);
+  white-space: nowrap;
+}
+
+.tabla th {
+  color: var(--muted-foreground, #66655b);
+  font-weight: 600;
+}

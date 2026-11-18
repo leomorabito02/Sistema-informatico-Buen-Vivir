@@ -1,0 +1,65 @@
+<div class="page-container">
+  <div class="header-section">
+    <div>
+      <h1 class="page-title">Asistencia por curso</h1>
+      <p class="page-subtitle">
+        La asistencia se registra cuando el participante entrega la actividad.
+      </p>
+    </div>
+  </div>
+
+  <app-error-state *ngIf="error" [message]="error"></app-error-state>
+
+  <app-loading-state
+    *ngIf="loadingCourses"
+    variant="list"
+    [rows]="1"
+    label="Cargando cursos…"
+  ></app-loading-state>
+
+  <ng-container *ngIf="!loadingCourses">
+    <app-empty-state
+      *ngIf="courseOptions.length === 0 && !error"
+      [compact]="true"
+    >
+      No hay cursos publicados todavía.
+    </app-empty-state>
+
+    <div *ngIf="courseOptions.length > 0" class="toolbar">
+      <div class="course-picker">
+        <label for="curso-asistencia">Curso</label>
+        <p-select
+          inputId="curso-asistencia"
+          [options]="courseOptions"
+          optionLabel="label"
+          optionValue="value"
+          [(ngModel)]="selectedCourseId"
+          (onChange)="onCourseChange()"
+          placeholder="Elegí un curso"
+          [filter]="true"
+          filterPlaceholder="Buscar curso"
+          appendTo="body"
+        ></p-select>
+      </div>
+      <p-button
+        *ngIf="selectedCourseId"
+        label="Gestionar actividades"
+        icon="pi pi-list-check"
+        [outlined]="true"
+        [routerLink]="['/dashboard/cursos', selectedCourseId]"
+      ></p-button>
+    </div>
+
+    <app-loading-state
+      *ngIf="loadingMatrix"
+      variant="table"
+      label="Cargando asistencia…"
+    ></app-loading-state>
+
+    <app-attendance-matrix
+      *ngIf="selectedCourseId && !loadingMatrix"
+      [activities]="activities"
+      [rows]="rows"
+    ></app-attendance-matrix>
+  </ng-container>
+</div>

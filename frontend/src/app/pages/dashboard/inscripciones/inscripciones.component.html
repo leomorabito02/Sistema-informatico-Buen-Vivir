@@ -1,0 +1,110 @@
+<p-toast></p-toast>
+<div class="page-container">
+  <div class="header-section">
+    <div>
+      <h1 class="page-title">Inscripción a cursos</h1>
+      <p class="page-subtitle">
+        Inscribí participantes en los cursos publicados.
+      </p>
+    </div>
+  </div>
+
+  <app-error-state *ngIf="error" [message]="error"></app-error-state>
+
+  <app-loading-state
+    *ngIf="loading"
+    variant="list"
+    label="Cargando cursos…"
+  ></app-loading-state>
+
+  <ng-container *ngIf="!loading">
+    <app-empty-state
+      *ngIf="courseOptions.length === 0 && !error"
+      [compact]="true"
+    >
+      No hay cursos publicados todavía.
+    </app-empty-state>
+
+    <div *ngIf="courseOptions.length > 0" class="course-picker">
+      <label for="curso-inscripcion">Curso</label>
+      <p-select
+        inputId="curso-inscripcion"
+        [options]="courseOptions"
+        optionLabel="label"
+        optionValue="value"
+        [(ngModel)]="selectedCourseId"
+        (onChange)="onCourseChange()"
+        placeholder="Elegí un curso"
+        [filter]="true"
+        filterPlaceholder="Buscar curso"
+        appendTo="body"
+      ></p-select>
+    </div>
+
+    <div *ngIf="selectedCourseId" class="two-col">
+      <!-- Inscribir -->
+      <p-card header="Inscribir participante" styleClass="p-card-shadow">
+        <div class="new-enrollment">
+          <label for="participant-picker">Participante</label>
+          <app-participant-picker
+            #picker
+            [cursoId]="selectedCourseId"
+            (seleccionado)="selectedParticipant = $event"
+          ></app-participant-picker>
+          <p class="hint">
+            Buscá por nombre, apellido o DNI. No aparecen quienes ya están
+            inscriptos en este curso.
+          </p>
+          <p-button
+            label="Inscribir"
+            icon="pi pi-check"
+            [loading]="inscribiendo"
+            [disabled]="!selectedParticipant"
+            (onClick)="inscribir(picker)"
+          ></p-button>
+        </div>
+      </p-card>
+
+      <!-- Inscriptos -->
+      <p-card header="Inscriptos en el curso" styleClass="p-card-shadow">
+        <app-loading-state
+          *ngIf="loadingEnrollments"
+          variant="table"
+        ></app-loading-state>
+
+        <p-table
+          *ngIf="!loadingEnrollments"
+          [value]="enrollments"
+          class="p-datatable-striped"
+        >
+          <ng-template pTemplate="header">
+            <tr>
+              <th>Participante</th>
+              <th>Fecha de inscripción</th>
+              <th>Estado</th>
+            </tr>
+          </ng-template>
+          <ng-template pTemplate="body" let-e>
+            <tr>
+              <td>{{ e.nombreCompleto }}</td>
+              <td>{{ e.fechaInscripcion | date: "short" }}</td>
+              <td>
+                <p-tag
+                  [value]="e.estado"
+                  [severity]="estadoSeverity(e.estado)"
+                ></p-tag>
+              </td>
+            </tr>
+          </ng-template>
+          <ng-template pTemplate="emptymessage">
+            <tr>
+              <td colspan="3" class="empty-state">
+                Todavía no hay nadie inscripto en este curso.
+              </td>
+            </tr>
+          </ng-template>
+        </p-table>
+      </p-card>
+    </div>
+  </ng-container>
+</div>

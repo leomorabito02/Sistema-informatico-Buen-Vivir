@@ -1,0 +1,60 @@
+.tabs {
+  display: flex;
+  gap: 0.25rem;
+  border-bottom: 1px solid #e2e8f0;
+  margin-bottom: 1.25rem;
+}
+.tabs button {
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  padding: 0.6rem 1rem;
+  cursor: pointer;
+  color: #64748b;
+  font-size: var(--font-size-sm);
+}
+.tabs button.active {
+  color: #2563eb;
+  border-bottom-color: #2563eb;
+  font-weight: 600;
+}
+
+.section-toolbar {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 0.75rem;
+}
+
+.actions {
+  white-space: nowrap;
+}
+.muted {
+  color: #94a3b8;
+  font-size: var(--font-size-sm);
+}
+.muted.err {
+  color: #dc2626;
+}
+.ellipsis {
+  display: inline-block;
+  max-width: 260px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  vertical-align: bottom;
+}
+.hint {
+  color: #94a3b8;
+  font-size: var(--font-size-sm);
+  margin-top: 0.5rem;
+}
+
+.course-link {
+  font-weight: 700;
+  color: var(--primary);
+  text-decoration: none;
+}
+.course-link:hover,
+.course-link:focus-visible {
+  text-decoration: underline;
+}

@@ -1,0 +1,10 @@
+packages:
+  - "."
+  - "cv-engine"
+allowBuilds:
+  "@firebase/util": true
+  esbuild: true
+  lmdb: true
+  msgpackr-extract: true
+  nice-napi: true
+  protobufjs: true

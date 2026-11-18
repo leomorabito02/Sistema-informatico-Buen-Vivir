@@ -1,6 +1,6 @@
 <div class="profile-container">
   <div class="page-header">
-    <h1 class="page-title">Mi Perfil</h1>
+    <h1 class="page-title">Mi perfil</h1>
     <p class="page-description">
       Consultá tu información y gestioná tu contraseña.
     </p>
@@ -16,67 +16,276 @@
   </div>
 
   <div class="profile-content" *ngIf="!loading && !error && profileData">
-    <!-- Información Personal (Solo lectura) -->
-    <section class="profile-section">
-      <div class="section-header">
-        <lucide-icon [img]="UserIcon" size="20"></lucide-icon>
-        <h2>Información Personal</h2>
-      </div>
+    <div class="profile-actions-header">
+      <button type="button" class="btn-secondary" (click)="toggleEditProfile()">
+        {{ isEditingProfile ? "Cancelar Edición" : "Editar Perfil" }}
+      </button>
+    </div>
 
-      <div class="info-grid">
-        <div class="info-item">
-          <label>Nombre</label>
-          <div class="info-value">
-            {{ profileData.user.first_name }} {{ profileData.user.last_name }}
-          </div>
-        </div>
-        <div class="info-item">
-          <label>Correo Electrónico</label>
-          <div class="info-value">{{ profileData.user.email }}</div>
-        </div>
-        <div class="info-item">
-          <label>Teléfono</label>
-          <div class="info-value">
-            {{ profileData.user.phone || "No especificado" }}
-          </div>
-        </div>
-        <div class="info-item">
-          <label>Estado</label>
-          <div
-            class="info-value status-badge"
-            [class.active]="profileData.user.status === 'active'"
-          >
-            {{ profileData.user.status | titlecase }}
-          </div>
-        </div>
-      </div>
-    </section>
+    <div *ngIf="profileUpdateSuccess" class="alert alert-success">
+      <lucide-icon [img]="CheckCircleIcon" size="20"></lucide-icon>
+      {{ profileUpdateSuccess }}
+    </div>
 
-    <!-- Información de Rol (Solo lectura) -->
-    <section class="profile-section" *ngIf="profileData.role_data">
-      <div class="section-header">
-        <lucide-icon [img]="BriefcaseIcon" size="20"></lucide-icon>
-        <h2>
-          Información de Rol ({{ getRoleName(profileData.user.role_id) }})
-        </h2>
-      </div>
+    <div *ngIf="profileUpdateError" class="alert alert-error">
+      <lucide-icon [img]="AlertCircleIcon" size="20"></lucide-icon>
+      {{ profileUpdateError }}
+    </div>
 
-      <div class="info-grid">
-        <ng-container *ngFor="let item of profileData.role_data | keyvalue">
-          <div
-            class="info-item"
-            *ngIf="
-              item.key !== 'user_id' &&
-              item.key !== 'id' &&
-              item.key !== 'deleted_at'
-            "
-          >
-            <label>{{ getRoleKeyLabel(item.key) }}</label>
+    <form
+      *ngIf="profileForm"
+      [formGroup]="profileForm"
+      (ngSubmit)="saveProfile()"
+    >
+      <!-- Información personal -->
+      <section class="profile-section">
+        <div class="section-header">
+          <lucide-icon [img]="UserIcon" size="20"></lucide-icon>
+          <h2>Información personal</h2>
+        </div>
+
+        <div class="info-grid">
+          <div class="info-item">
+            <span class="label-text">Nombre</span>
             <div class="info-value">
-              {{ formatRoleValue(item.key, item.value) }}
+              {{ profileData.user.first_name }} {{ profileData.user.last_name }}
             </div>
           </div>
-        </ng-container>
+          <div class="info-item">
+            <label for="email">Correo electrónico</label>
+            <div class="info-value" *ngIf="!isEditingProfile">
+              {{ profileData.user.email }}
+            </div>
+            <div *ngIf="isEditingProfile" class="input-wrapper">
+              <input
+                id="email"
+                type="email"
+                class="form-input"
+                formControlName="email"
+              />
+            </div>
+          </div>
+          <div class="info-item">
+            <label for="phone">Teléfono</label>
+            <div class="info-value" *ngIf="!isEditingProfile">
+              {{ profileData.user.phone || "No especificado" }}
+            </div>
+            <div *ngIf="isEditingProfile" class="input-wrapper">
+              <input
+                id="phone"
+                type="text"
+                class="form-input"
+                formControlName="phone"
+              />
+            </div>
+          </div>
+          <div class="info-item">
+            <span class="label-text">Estado</span>
+            <div
+              class="info-value status-badge"
+              [class.active]="profileData.user.status === 'active'"
+            >
+              {{ profileData.user.status | titlecase }}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Información de Rol -->
+      <section class="profile-section" *ngIf="profileData.role_data">
+        <div class="section-header">
+          <lucide-icon [img]="BriefcaseIcon" size="20"></lucide-icon>
+          <h2>
+            Información de Rol ({{ getRoleName(profileData.user.role_id) }})
+          </h2>
+        </div>
+
+        <div class="info-grid">
+          <ng-container *ngFor="let item of profileData.role_data | keyvalue">
+            <div
+              class="info-item"
+              *ngIf="
+                item.key !== 'user_id' &&
+                item.key !== 'id' &&
+                item.key !== 'deleted_at'
+              "
+            >
+              <label [for]="item.key">{{ getRoleKeyLabel(item.key) }}</label>
+              <div
+                class="info-value"
+                *ngIf="!isEditingProfile || !profileForm.contains(item.key)"
+              >
+                <img
+                  *ngIf="
+                    item.key === 'image_url' && item.value;
+                    else valorTexto
+                  "
+                  class="role-profile-picture"
+                  [src]="resolveImageUrl($any(item.value))"
+                  alt="Perfil del usuario"
+                />
+                <ng-template #valorTexto>
+                  {{ formatRoleValue(item.key, item.value) }}
+                </ng-template>
+              </div>
+              <div
+                *ngIf="isEditingProfile && profileForm.contains(item.key)"
+                class="input-wrapper"
+              >
+                <ng-container *ngIf="item.key !== 'image_url'; else fileInput">
+                  <input
+                    type="text"
+                    class="form-input"
+                    [id]="item.key"
+                    [formControlName]="item.key"
+                  />
+                </ng-container>
+                <ng-template #fileInput>
+                  <div style="display: flex; align-items: center; gap: 1rem">
+                    <img
+                      *ngIf="
+                        profileData.role_data['image_url'] ||
+                        profileData.role_data['profile_picture_url']
+                      "
+                      [src]="
+                        resolveImageUrl(
+                          profileData.role_data['image_url'] ||
+                            profileData.role_data['profile_picture_url']
+                        )
+                      "
+                      alt="Preview"
+                      style="
+                        width: 50px;
+                        height: 50px;
+                        object-fit: cover;
+                        border-radius: 50%;
+                        border: 1px solid #dee2e6;
+                      "
+                    />
+                    <input
+                      type="file"
+                      class="form-input"
+                      [id]="item.key"
+                      accept="image/*"
+                      (change)="onPictureSelected($event)"
+                      [disabled]="uploadingPicture"
+                    />
+                  </div>
+                  <small *ngIf="uploadingPicture">Subiendo foto...</small>
+                </ng-template>
+              </div>
+            </div>
+          </ng-container>
+        </div>
+      </section>
+
+      <div class="form-actions" *ngIf="isEditingProfile">
+        <button
+          type="submit"
+          class="btn-primary"
+          [disabled]="profileForm.invalid || profileUpdateLoading"
+        >
+          <span *ngIf="!profileUpdateLoading">Guardar cambios</span>
+          <span *ngIf="profileUpdateLoading">Guardando...</span>
+        </button>
+      </div>
+    </form>
+
+    <!-- Documentación (solo participantes) -->
+    <section
+      class="profile-section"
+      *ngIf="profileData.user.role_id === 'role_participant'"
+    >
+      <div class="section-header">
+        <lucide-icon [img]="BriefcaseIcon" size="20"></lucide-icon>
+        <h2>Gestión de documentos</h2>
+      </div>
+
+      <div class="form-group mb-4" style="margin-bottom: 1.5rem">
+        <label
+          for="newDocFile"
+          style="display: block; margin-bottom: 0.5rem; font-weight: 500"
+          >Subir nuevo documento</label
+        >
+        <input
+          type="file"
+          id="newDocFile"
+          class="form-input"
+          (change)="onDocumentSelected($event)"
+          [disabled]="uploadingDocument"
+        />
+        <small
+          *ngIf="uploadingDocument"
+          style="color: #666; display: block; margin-top: 0.25rem"
+          >Subiendo documento...</small
+        >
+      </div>
+
+      <div class="mt-3">
+        <strong>Documentación subida:</strong>
+        <ul
+          class="document-list"
+          *ngIf="
+            participantDocuments && participantDocuments.length > 0;
+            else noDocs
+          "
+          style="list-style: none; padding: 0; margin: 0.5rem 0"
+        >
+          <li
+            *ngFor="let doc of participantDocuments"
+            style="
+              display: flex;
+              justify-content: space-between;
+              align-items: center;
+              padding: 0.75rem;
+              border: 1px solid #e2e8f0;
+              border-radius: 6px;
+              margin-bottom: 0.5rem;
+              background-color: #f8fafc;
+            "
+          >
+            <a
+              href="#"
+              (click)="downloadDocument(doc.id, doc.name, $event)"
+              class="doc-link"
+              style="
+                text-decoration: none;
+                color: #2196f3;
+                display: flex;
+                align-items: center;
+                font-weight: 500;
+              "
+            >
+              <i class="pi pi-file mr-2" style="font-size: 1.2rem"></i>
+              {{ doc.name }}
+            </a>
+            <button
+              type="button"
+              class="btn-action btn-delete"
+              (click)="deleteDocument(doc.id)"
+              title="Eliminar documento"
+              style="
+                background: none;
+                border: none;
+                color: #dc3545;
+                cursor: pointer;
+                padding: 0.5rem;
+                border-radius: 4px;
+                transition: background-color 0.2s;
+              "
+            >
+              <i class="pi pi-trash" style="font-size: 1.1rem"></i>
+            </button>
+          </li>
+        </ul>
+        <ng-template #noDocs>
+          <p
+            class="text-muted text-sm mt-1 mb-0"
+            style="color: #64748b; font-style: italic"
+          >
+            No hay documentos subidos.
+          </p>
+        </ng-template>
       </div>
     </section>
 
@@ -172,7 +381,7 @@
     <section class="profile-section">
       <div class="section-header">
         <lucide-icon [img]="LockIcon" size="20"></lucide-icon>
-        <h2>Cambiar Contraseña</h2>
+        <h2>Cambiar contraseña</h2>
       </div>
 
       <form
@@ -191,7 +400,7 @@
         </div>
 
         <div class="form-group">
-          <label for="oldPassword">Contraseña Actual</label>
+          <label for="oldPassword">Contraseña actual</label>
           <div class="input-wrapper">
             <input
               [type]="showOldPassword ? 'text' : 'password'"
@@ -213,7 +422,7 @@
         </div>
 
         <div class="form-group">
-          <label for="newPassword">Nueva Contraseña</label>
+          <label for="newPassword">Nueva contraseña</label>
           <div class="input-wrapper">
             <input
               [type]="showNewPassword ? 'text' : 'password'"
@@ -244,7 +453,7 @@
         </div>
 
         <div class="form-group">
-          <label for="confirmPassword">Repetir Nueva Contraseña</label>
+          <label for="confirmPassword">Repetir nueva contraseña</label>
           <div class="input-wrapper">
             <input
               [type]="showConfirmPassword ? 'text' : 'password'"
@@ -279,10 +488,433 @@
           class="btn-primary"
           [disabled]="passwordForm.invalid || passwordLoading"
         >
-          <span *ngIf="!passwordLoading">Actualizar Contraseña</span>
+          <span *ngIf="!passwordLoading">Actualizar contraseña</span>
           <span *ngIf="passwordLoading">Actualizando...</span>
         </button>
       </form>
+    </section>
+
+    <!-- Autenticación de Dos Factores (2FA) -->
+    <section class="profile-section">
+      <div class="section-header">
+        <lucide-icon [img]="ShieldCheckIcon" size="20"></lucide-icon>
+        <h2>Autenticación en dos pasos (2FA)</h2>
+      </div>
+
+      <div *ngIf="twofaSuccess" class="alert alert-success">
+        <lucide-icon [img]="CheckCircleIcon" size="20"></lucide-icon>
+        {{ twofaSuccess }}
+      </div>
+
+      <div *ngIf="deviceRevokedMessage" class="alert alert-success">
+        <lucide-icon [img]="CheckCircleIcon" size="20"></lucide-icon>
+        {{ deviceRevokedMessage }}
+      </div>
+
+      <div *ngIf="profileData?.user as user" class="privacy-cards-grid">
+        <div class="privacy-card">
+          <div class="privacy-card-header">
+            <div
+              class="privacy-icon-badge"
+              [ngClass]="user.twofa_enabled ? 'bg-primary-subtle' : ''"
+            >
+              <lucide-icon
+                [img]="user.twofa_enabled ? ShieldCheckIcon : ShieldIcon"
+                size="20"
+              ></lucide-icon>
+            </div>
+            <div>
+              <h3>
+                Estado:
+                <span
+                  class="status-badge"
+                  [ngClass]="{ active: user.twofa_enabled }"
+                >
+                  {{ user.twofa_enabled ? "Activado" : "Desactivado" }}
+                </span>
+                <span
+                  *ngIf="user.twofa_enabled"
+                  class="ml-2 text-xs text-muted-foreground"
+                >
+                  ({{
+                    user.twofa_method === "totp"
+                      ? "App autenticadora"
+                      : "Correo electrónico"
+                  }})
+                </span>
+              </h3>
+              <p class="mt-2 text-sm text-muted-foreground">
+                Añade una capa adicional de seguridad a tu cuenta solicitando un
+                código temporal de 6 dígitos cada vez que iniciás sesión desde
+                un nuevo dispositivo o navegador.
+              </p>
+            </div>
+          </div>
+
+          <div class="flex items-center gap-3 mt-4">
+            <button
+              *ngIf="!user.twofa_enabled"
+              type="button"
+              class="btn-primary"
+              (click)="openTwofaSetup()"
+            >
+              Activar 2FA
+            </button>
+
+            <button
+              *ngIf="user.twofa_enabled"
+              type="button"
+              class="btn-danger"
+              (click)="openTwofaDisable()"
+            >
+              Desactivar 2FA
+            </button>
+
+            <button
+              *ngIf="user.twofa_enabled"
+              type="button"
+              class="btn-secondary"
+              (click)="revokeTrustedDevice()"
+            >
+              Olvidar dispositivo de confianza
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Modal de Configuración 2FA -->
+    <p-dialog
+      [(visible)]="showTwofaSetupModal"
+      [modal]="true"
+      [style]="{ width: '90vw', maxWidth: '500px' }"
+      [closable]="true"
+      (onHide)="closeTwofaSetup()"
+      header="Activar autenticación en dos pasos"
+    >
+      <!-- Paso 1: Selección de Método -->
+      <div *ngIf="twofaStep === 'select'" class="space-y-4 pt-2">
+        <p class="text-sm text-gray-600">
+          Elegí el método que preferís para recibir o generar tus códigos de
+          verificación:
+        </p>
+
+        <div class="grid gap-3">
+          <!-- Opción TOTP -->
+          <button
+            type="button"
+            (click)="selectTwofaMethod('totp')"
+            class="w-full text-left p-4 border border-gray-200 rounded-xl hover:border-emerald-600 hover:bg-emerald-50/30 cursor-pointer transition flex items-start gap-3 bg-transparent"
+          >
+            <div class="p-2 bg-emerald-100 text-emerald-700 rounded-lg">
+              <lucide-icon [img]="SmartphoneIcon" size="24"></lucide-icon>
+            </div>
+            <div class="flex-1">
+              <div class="flex items-center justify-between">
+                <span class="font-semibold text-gray-900"
+                  >App autenticadora</span
+                >
+                <span
+                  class="text-xs bg-emerald-100 text-emerald-800 font-medium px-2 py-0.5 rounded"
+                  >Recomendado</span
+                >
+              </div>
+              <p class="text-xs text-gray-500 mt-1">
+                Generá códigos dinámicos cada 30 segundos con Google
+                Authenticator, Authy o Microsoft Authenticator.
+              </p>
+            </div>
+          </button>
+
+          <!-- Opción Email -->
+          <button
+            type="button"
+            (click)="selectTwofaMethod('email')"
+            class="w-full text-left p-4 border border-gray-200 rounded-xl hover:border-emerald-600 hover:bg-emerald-50/30 cursor-pointer transition flex items-start gap-3 bg-transparent"
+          >
+            <div class="p-2 bg-blue-100 text-blue-700 rounded-lg">
+              <lucide-icon [img]="MailIcon" size="24"></lucide-icon>
+            </div>
+            <div class="flex-1" *ngIf="profileData?.user as user">
+              <div class="flex items-center justify-between">
+                <span class="font-semibold text-gray-900"
+                  >Correo electrónico</span
+                >
+              </div>
+              <p class="text-xs text-gray-500 mt-1">
+                Recibí un código de 6 dígitos en tu correo verificado (<strong
+                  >{{ user.email }}</strong
+                >).
+              </p>
+              <p
+                *ngIf="!user.is_email_verified"
+                class="text-xs text-amber-600 font-medium mt-1"
+              >
+                ⚠️ Debes verificar tu correo para usar este método.
+              </p>
+            </div>
+          </button>
+        </div>
+
+        <div *ngIf="twofaError" class="alert alert-danger mt-3">
+          <lucide-icon [img]="AlertCircleIcon" size="18"></lucide-icon>
+          {{ twofaError }}
+        </div>
+      </div>
+
+      <!-- Paso 2: Verificación y Activación -->
+      <div *ngIf="twofaStep === 'verify'" class="space-y-4 pt-2">
+        <!-- TOTP QR y Clave -->
+        <div *ngIf="twofaMethod === 'totp'" class="text-center">
+          <p class="text-sm text-gray-600 mb-3">
+            Escaneá este código QR con tu aplicación autenticadora (Google
+            Authenticator, Authy, etc.):
+          </p>
+          <div
+            class="inline-block p-3 bg-white border border-gray-200 rounded-xl shadow-sm mb-3"
+          >
+            <img
+              *ngIf="twofaQrDataUrl"
+              [src]="twofaQrDataUrl"
+              alt="Código QR para autenticación"
+              width="180"
+              height="180"
+            />
+          </div>
+
+          <div class="text-xs text-gray-500 mb-1">
+            ¿No podés escanear el código? Ingresá esta clave manual:
+          </div>
+          <div
+            class="flex items-center justify-center gap-2 font-mono bg-gray-100 py-1.5 px-3 rounded-lg text-sm text-gray-800"
+          >
+            <span>{{ twofaSecret }}</span>
+            <button
+              type="button"
+              (click)="copySecret()"
+              class="text-xs text-emerald-600 hover:text-emerald-700 cursor-pointer border-0 bg-transparent flex items-center gap-1"
+            >
+              <lucide-icon [img]="CopyIcon" size="14"></lucide-icon>
+              {{ copiedSecret ? "¡Copiado!" : "Copiar" }}
+            </button>
+          </div>
+        </div>
+
+        <!-- Email Mensaje -->
+        <div *ngIf="twofaMethod === 'email'" class="text-center py-2">
+          <div
+            class="inline-flex p-3 bg-blue-50 text-blue-600 rounded-full mb-2"
+          >
+            <lucide-icon [img]="MailIcon" size="28"></lucide-icon>
+          </div>
+          <p class="text-sm text-gray-700">
+            Enviamos un código de verificación de 6 dígitos a tu casilla de
+            correo:
+          </p>
+          <strong
+            class="text-sm text-gray-900"
+            *ngIf="profileData?.user as user"
+            >{{ user.email }}</strong
+          >
+        </div>
+
+        <!-- Input del Código -->
+        <div class="form-group text-center mt-4">
+          <label
+            class="block text-xs font-semibold uppercase tracking-wider text-gray-500 mb-2"
+            for="confirm2faCode"
+          >
+            Ingresá el código de 6 dígitos
+          </label>
+          <input
+            id="confirm2faCode"
+            type="text"
+            maxlength="6"
+            [(ngModel)]="twofaCode"
+            placeholder="000000"
+            class="w-48 mx-auto text-center font-mono text-2xl tracking-widest py-2 px-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
+          />
+        </div>
+
+        <div *ngIf="twofaError" class="alert alert-danger mt-3">
+          <lucide-icon [img]="AlertCircleIcon" size="18"></lucide-icon>
+          {{ twofaError }}
+        </div>
+
+        <div
+          class="flex items-center justify-end gap-2 pt-3 border-t border-gray-100"
+        >
+          <button
+            type="button"
+            class="btn-secondary"
+            (click)="twofaStep = 'select'"
+          >
+            Atrás
+          </button>
+          <button
+            type="button"
+            class="btn-primary"
+            [disabled]="
+              twofaLoading || !twofaCode || twofaCode.trim().length !== 6
+            "
+            (click)="confirmEnableTwofa()"
+          >
+            {{ twofaLoading ? "Verificando..." : "Confirmar y Activar" }}
+          </button>
+        </div>
+      </div>
+    </p-dialog>
+
+    <!-- Modal de Desactivación 2FA -->
+    <p-dialog
+      [(visible)]="showTwofaDisableModal"
+      [modal]="true"
+      [style]="{ width: '90vw', maxWidth: '440px' }"
+      [closable]="true"
+      (onHide)="closeTwofaDisable()"
+      header="Desactivar autenticación en dos pasos"
+    >
+      <div class="space-y-4 pt-2">
+        <p class="text-sm text-gray-600">
+          Para desactivar el segundo factor de autenticación, por favor confirmá
+          con tu contraseña actual o un código de verificación:
+        </p>
+
+        <div class="form-group">
+          <label
+            class="block text-xs font-medium text-gray-700 mb-1"
+            for="disablePass"
+            >Contraseña actual</label
+          >
+          <input
+            id="disablePass"
+            type="password"
+            [(ngModel)]="twofaDisablePassword"
+            placeholder="••••••••"
+            class="w-full py-2 px-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
+          />
+        </div>
+
+        <div
+          class="text-center text-xs text-gray-400 font-semibold uppercase tracking-wider"
+        >
+          o mediante código
+        </div>
+
+        <div class="form-group">
+          <label
+            class="block text-xs font-medium text-gray-700 mb-1"
+            for="disableCode"
+            >Código de 6 dígitos</label
+          >
+          <input
+            id="disableCode"
+            type="text"
+            maxlength="6"
+            [(ngModel)]="twofaDisableCode"
+            placeholder="000000"
+            class="w-full text-center font-mono py-2 px-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
+          />
+        </div>
+
+        <div *ngIf="twofaError" class="alert alert-danger">
+          <lucide-icon [img]="AlertCircleIcon" size="18"></lucide-icon>
+          {{ twofaError }}
+        </div>
+
+        <div
+          class="flex items-center justify-end gap-2 pt-3 border-t border-gray-100"
+        >
+          <button
+            type="button"
+            class="btn-secondary"
+            (click)="closeTwofaDisable()"
+          >
+            Cancelar
+          </button>
+          <button
+            type="button"
+            class="btn-danger"
+            [disabled]="
+              twofaLoading ||
+              (!twofaDisablePassword &&
+                (!twofaDisableCode || twofaDisableCode.length !== 6))
+            "
+            (click)="confirmDisableTwofa()"
+          >
+            {{ twofaLoading ? "Desactivando..." : "Confirmar Desactivación" }}
+          </button>
+        </div>
+      </div>
+    </p-dialog>
+
+    <!-- Privacidad y derechos sobre tus datos (Ley 25.326) -->
+    <section class="profile-section">
+      <div class="section-header">
+        <lucide-icon [img]="ShieldAlertIcon" size="20"></lucide-icon>
+        <h2>Privacidad y derechos sobre tus datos (Ley 25.326)</h2>
+      </div>
+
+      <p class="privacy-intro">
+        Gestión de tus derechos ARCO (Acceso, Rectificación, Cancelación y
+        Oposición) ante el Centro de Ecología Integral Buen Vivir.
+      </p>
+
+      <div *ngIf="isExported" class="alert alert-success">
+        <lucide-icon [img]="CheckCircleIcon" size="20"></lucide-icon>
+        Se ha generado y descargado el informe en PDF con tus datos personales.
+      </div>
+
+      <div class="privacy-cards-grid">
+        <div class="privacy-card">
+          <div class="privacy-card-header">
+            <div class="privacy-icon-badge bg-primary-subtle">
+              <lucide-icon [img]="DownloadIcon" size="20"></lucide-icon>
+            </div>
+            <div>
+              <h3>Derecho de acceso (art. 14, Ley 25.326)</h3>
+              <p>
+                Podés descargar un informe oficial en formato PDF con la
+                totalidad de tus datos personales, rol, cursos inscriptos o
+                dictados, postulaciones y legajo registrado.
+              </p>
+            </div>
+          </div>
+          <button
+            type="button"
+            (click)="exportUserData()"
+            class="btn-outline-primary"
+            [disabled]="isExporting"
+          >
+            <lucide-icon [img]="DownloadIcon" size="16"></lucide-icon>
+            {{ isExporting ? "Generando PDF..." : "Descargar informe en PDF" }}
+          </button>
+        </div>
+
+        <div class="privacy-card danger-card">
+          <div class="privacy-card-header">
+            <div class="privacy-icon-badge bg-destructive-subtle">
+              <lucide-icon [img]="TrashIcon" size="20"></lucide-icon>
+            </div>
+            <div>
+              <h3>Derecho de cancelación o supresión</h3>
+              <p>
+                Si querés solicitar la baja definitiva de tu cuenta y la
+                eliminación de tus datos personales de las bases de datos de la
+                institución, podés enviar una solicitud a nuestro responsable de
+                privacidad conforme al Artículo 16 de la Ley 25.326.
+              </p>
+            </div>
+          </div>
+          <a
+            href="mailto:ceibuenvivir7@gmail.com?subject=Solicitud%20de%20Supresion%20de%20Datos%20Ley%2025326"
+            class="btn-danger-link"
+          >
+            <lucide-icon [img]="ShieldAlertIcon" size="16"></lucide-icon>
+            Solicitar eliminación de datos (AAIP)
+          </a>
+        </div>
+      </div>
     </section>
   </div>
 </div>

@@ -15,13 +15,29 @@ import {
   Mail,
   Lock,
   Phone,
-  CheckCircle2,
+  CircleCheck,
   Clock,
   AlertCircle,
   Eye,
   EyeOff,
 } from "lucide-angular";
 import { AuthService } from "../../services/auth.service";
+
+/**
+ * HU-01 (decisión del 15/11/2026): los participantes se registran con una
+ * cuenta de Gmail; el resto de los roles puede usar cualquier dominio. El
+ * backend valida lo mismo.
+ */
+export function participantGmailValidator(
+  control: AbstractControl,
+): ValidationErrors | null {
+  const role = control.get("role")?.value;
+  const email = String(control.get("email")?.value ?? "")
+    .trim()
+    .toLowerCase();
+  if (role !== "participant" || !email) return null;
+  return email.endsWith("@gmail.com") ? null : { participantGmail: true };
+}
 
 function passwordMatchValidator(
   control: AbstractControl,
@@ -84,15 +100,15 @@ export class RegisterComponent {
   readonly MailIcon = Mail;
   readonly LockIcon = Lock;
   readonly PhoneIcon = Phone;
-  readonly CheckCircle2Icon = CheckCircle2;
+  readonly CheckCircle2Icon = CircleCheck;
   readonly ClockIcon = Clock;
   readonly AlertCircleIcon = AlertCircle;
   readonly EyeIcon = Eye;
   readonly EyeOffIcon = EyeOff;
 
-  private fb = inject(FormBuilder);
-  private authService = inject(AuthService);
-  private route = inject(ActivatedRoute);
+  private readonly fb = inject(FormBuilder);
+  private readonly authService = inject(AuthService);
+  private readonly route = inject(ActivatedRoute);
 
   registerForm: FormGroup;
   registered = false;
@@ -120,7 +136,7 @@ export class RegisterComponent {
         confirmPassword: ["", [Validators.required]],
         terms: [false, [Validators.requiredTrue]],
       },
-      { validators: passwordMatchValidator },
+      { validators: [passwordMatchValidator, participantGmailValidator] },
     );
   }
 
@@ -152,6 +168,9 @@ export class RegisterComponent {
     if (c["email"].hasError("email")) {
       return "Por favor, ingresá una dirección de correo electrónico válida.";
     }
+    if (this.registerForm.hasError("participantGmail")) {
+      return "Los participantes se registran con una cuenta de Gmail (@gmail.com).";
+    }
     if (c["password"].hasError("minlength")) {
       return "La contraseña debe tener al menos 8 caracteres.";
     }
@@ -174,6 +193,8 @@ export class RegisterComponent {
   }
 
   onSubmit() {
+    if (this.loading) return;
+
     if (this.registerForm.invalid) {
       this.registerForm.markAllAsTouched();
       this.registerError = this.getFirstFormError();
@@ -194,8 +215,8 @@ export class RegisterComponent {
 
     this.authService.registerWithEmail(formData).subscribe({
       next: () => {
-        this.registered = true;
         this.loading = false;
+        this.registered = true;
       },
       error: (err) => {
         this.loading = false;

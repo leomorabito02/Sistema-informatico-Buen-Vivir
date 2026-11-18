@@ -1,0 +1,247 @@
+{
+  "fecha": "2026-11-15T22:21:20-03:00",
+  "ok": 40,
+  "resultados": [
+    {
+      "hu": "HU-10",
+      "prueba": "admin lee la auditoría de auth por el gateway",
+      "ok": true,
+      "detalle": "status 200"
+    },
+    {
+      "hu": "HU-10",
+      "prueba": "voluntario no puede leer la auditoría",
+      "ok": true,
+      "detalle": "status 403"
+    },
+    {
+      "hu": "HU-06",
+      "prueba": "participante pide un recurso de admin (403, queda auditado)",
+      "ok": true,
+      "detalle": "status 403"
+    },
+    {
+      "hu": "HU-03",
+      "prueba": "token inválido directo a auth (como el gateway de GCP)",
+      "ok": true,
+      "detalle": "status 401"
+    },
+    {
+      "hu": "HU-01",
+      "prueba": "alta de participante sin Gmail rechazada",
+      "ok": true,
+      "detalle": "status 400"
+    },
+    {
+      "hu": "HU-07",
+      "prueba": "alta de participante sin DNI rechazada",
+      "ok": true,
+      "detalle": "status 400"
+    },
+    {
+      "hu": "HU-07",
+      "prueba": "alta de participante completa",
+      "ok": true,
+      "detalle": "status 201"
+    },
+    {
+      "hu": "HU-07",
+      "prueba": "DNI y dirección quedaron guardados en el perfil",
+      "ok": true,
+      "detalle": "perfil con DNI y dirección: true"
+    },
+    {
+      "hu": "HU-08",
+      "prueba": "edición del participante",
+      "ok": true,
+      "detalle": "status 200"
+    },
+    {
+      "hu": "HU-09",
+      "prueba": "baja del participante [PRUEBA]",
+      "ok": true,
+      "detalle": "status 200"
+    },
+    {
+      "hu": "HU-01",
+      "prueba": "registro público de participante sin Gmail rechazado",
+      "ok": true,
+      "detalle": "status 400"
+    },
+    {
+      "hu": "HU-12",
+      "prueba": "registro público de voluntario [PRUEBA] (queda pendiente)",
+      "ok": true,
+      "detalle": "status 201"
+    },
+    {
+      "hu": "HU-12",
+      "prueba": "rechazo por PATCH /users/{id}/approval",
+      "ok": true,
+      "detalle": "status 200"
+    },
+    {
+      "hu": "HU-12",
+      "prueba": "el perfil quedó rechazado",
+      "ok": true,
+      "detalle": "approval_status rejected: true"
+    },
+    {
+      "hu": "HU-11",
+      "prueba": "documento de 6 MB rechazado",
+      "ok": true,
+      "detalle": "status 400 {\"success\":false,\"errors\":\"el archivo supera el máximo de 5 MB\"}"
+    },
+    {
+      "hu": "HU-02",
+      "prueba": "intentos 1 a 4 avisan cuántos quedan",
+      "ok": true,
+      "detalle": "4 de 4 con aviso"
+    },
+    {
+      "hu": "HU-02",
+      "prueba": "el 5.º intento bloquea (423 ACCOUNT_LOCKED)",
+      "ok": true,
+      "detalle": "status 423 {\"code\":\"ACCOUNT_LOCKED\",\"error\":\"Tu cuenta quedó bloqueada por demasiados intentos fallidos. Probá de nuevo en 15 minuto(s) o recuperá tu contraseña.\"}"
+    },
+    {
+      "hu": "HU-02",
+      "prueba": "sigue bloqueada en el intento siguiente",
+      "ok": true,
+      "detalle": "status 423"
+    },
+    {
+      "hu": "HU-39",
+      "prueba": "oferta sin salario rechazada con el campo",
+      "ok": true,
+      "detalle": "status 400 falta el campo obligatorio: salario"
+    },
+    {
+      "hu": "HU-39",
+      "prueba": "oferta completa de la empresa queda pendiente",
+      "ok": true,
+      "detalle": "status 201 estado \"Pendiente\""
+    },
+    {
+      "hu": "HU-41",
+      "prueba": "admin aprueba la oferta",
+      "ok": true,
+      "detalle": "status 200"
+    },
+    {
+      "hu": "HU-44",
+      "prueba": "al aprobar, labor consultó a Educación y cruzó requisitos con habilidades",
+      "ok": true,
+      "detalle": "participantes=0"
+    },
+    {
+      "hu": "HU-41",
+      "prueba": "admin borra la oferta [PRUEBA]",
+      "ok": true,
+      "detalle": "status 204"
+    },
+    {
+      "hu": "HU-41",
+      "prueba": "la empresa recibió el aviso de oferta eliminada",
+      "ok": true,
+      "detalle": "aviso en la campana: true"
+    },
+    {
+      "hu": "HU-42",
+      "prueba": "auditoría de la oferta: crear, aprobar y baja",
+      "ok": true,
+      "detalle": "acciones map[aprobar:true baja:true crear:true]"
+    },
+    {
+      "hu": "HU-42",
+      "prueba": "la empresa no puede leer la auditoría",
+      "ok": true,
+      "detalle": "status 403"
+    },
+    {
+      "hu": "HU-14",
+      "prueba": "cursos que usan un material",
+      "ok": true,
+      "detalle": "status 200 []"
+    },
+    {
+      "hu": "HU-50",
+      "prueba": "listado público paginado",
+      "ok": true,
+      "detalle": "status 200 items 1 total 3"
+    },
+    {
+      "hu": "HU-07",
+      "prueba": "auditoría: alta del participante",
+      "ok": true,
+      "detalle": ""
+    },
+    {
+      "hu": "HU-08",
+      "prueba": "auditoría: edición con el nombre del campo (sin valores)",
+      "ok": true,
+      "detalle": ""
+    },
+    {
+      "hu": "HU-09",
+      "prueba": "auditoría: baja",
+      "ok": true,
+      "detalle": ""
+    },
+    {
+      "hu": "HU-12",
+      "prueba": "auditoría: rechazo",
+      "ok": true,
+      "detalle": ""
+    },
+    {
+      "hu": "HU-06",
+      "prueba": "auditoría: acceso denegado",
+      "ok": true,
+      "detalle": ""
+    },
+    {
+      "hu": "HU-03",
+      "prueba": "auditoría: token rechazado",
+      "ok": true,
+      "detalle": ""
+    },
+    {
+      "hu": "HU-10",
+      "prueba": "la auditoría no guarda valores (ni nombre ni DNI)",
+      "ok": true,
+      "detalle": ""
+    },
+    {
+      "hu": "HU-10",
+      "prueba": "tablas auditoria y login_attempts creadas en Neon",
+      "ok": true,
+      "detalle": "2 de 2"
+    },
+    {
+      "hu": "HU-10",
+      "prueba": "UPDATE sobre la auditoría rechazado por el trigger",
+      "ok": true,
+      "detalle": "ERROR: el registro de auditoria no se puede modificar ni borrar (SQLSTATE P0001)"
+    },
+    {
+      "hu": "HU-10",
+      "prueba": "DELETE sobre la auditoría rechazado por el trigger",
+      "ok": true,
+      "detalle": "ERROR: el registro de auditoria no se puede modificar ni borrar (SQLSTATE P0001)"
+    },
+    {
+      "hu": "limpieza",
+      "prueba": "baja de una cuenta [PRUEBA] anterior",
+      "ok": true,
+      "detalle": "status 200"
+    },
+    {
+      "hu": "limpieza",
+      "prueba": "baja de la cuenta [PRUEBA] rechazada",
+      "ok": true,
+      "detalle": "status 200"
+    }
+  ],
+  "total": 40
+}

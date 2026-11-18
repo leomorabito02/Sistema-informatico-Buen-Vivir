@@ -20,24 +20,22 @@ type MockVolunteerRepository struct {
 }
 
 func (m *MockVolunteerRepository) Create(ctx context.Context, vol *models.Volunteer) error {
-	args := m.Called(ctx, vol)
-	return args.Error(0)
+	return m.Called(ctx, vol).Error(0)
+}
+
+func (m *MockVolunteerRepository) mockVolunteerReturn(args mock.Arguments) (*models.Volunteer, error) {
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*models.Volunteer), args.Error(1)
 }
 
 func (m *MockVolunteerRepository) FindByID(ctx context.Context, id string) (*models.Volunteer, error) {
-	args := m.Called(ctx, id)
-	if args.Get(0) == nil {
-		return nil, args.Error(1)
-	}
-	return args.Get(0).(*models.Volunteer), args.Error(1)
+	return m.mockVolunteerReturn(m.Called(ctx, id))
 }
 
 func (m *MockVolunteerRepository) FindByUserID(ctx context.Context, userID string) (*models.Volunteer, error) {
-	args := m.Called(ctx, userID)
-	if args.Get(0) == nil {
-		return nil, args.Error(1)
-	}
-	return args.Get(0).(*models.Volunteer), args.Error(1)
+	return m.mockVolunteerReturn(m.Called(ctx, userID))
 }
 
 func (m *MockVolunteerRepository) FindAll(ctx context.Context) ([]models.Volunteer, error) {
@@ -49,13 +47,11 @@ func (m *MockVolunteerRepository) FindAll(ctx context.Context) ([]models.Volunte
 }
 
 func (m *MockVolunteerRepository) Update(ctx context.Context, vol *models.Volunteer) error {
-	args := m.Called(ctx, vol)
-	return args.Error(0)
+	return m.Called(ctx, vol).Error(0)
 }
 
 func (m *MockVolunteerRepository) Delete(ctx context.Context, id string) error {
-	args := m.Called(ctx, id)
-	return args.Error(0)
+	return m.Called(ctx, id).Error(0)
 }
 
 func TestVolunteerService_GetAllVolunteers_Success(t *testing.T) {
@@ -94,8 +90,10 @@ func TestVolunteerService_UpdateVolunteer_Success(t *testing.T) {
 	mockRepo.On("FindByID", mock.Anything, "vol-1").Return(existing, nil)
 	mockRepo.On("Update", mock.Anything, mock.AnythingOfType("*models.Volunteer")).Return(nil)
 
+	// Aprobar requiere un administrador (HU-12).
+	ctx := context.WithValue(context.Background(), middlewares.RoleIDKey, "role_admin")
 	req := &dto.UpdateVolunteerRequest{ApprovalStatus: "approved", ApprovedBy: "admin"}
-	res, err := svc.UpdateVolunteer(context.Background(), "vol-1", req)
+	res, err := svc.UpdateVolunteer(ctx, "vol-1", req)
 
 	assert.NoError(t, err)
 	assert.Equal(t, "approved", res.ApprovalStatus)
@@ -137,7 +135,7 @@ func TestVolunteerService_CreateVolunteer_ValidationError(t *testing.T) {
 func TestVolunteerService_CreateVolunteer_DBError(t *testing.T) {
 	mockRepo := new(MockVolunteerRepository)
 	svc := services.NewVolunteerService(mockRepo)
-	
+
 	req := &dto.CreateVolunteerRequest{
 		UserID: "usr-1",
 	}
@@ -152,7 +150,7 @@ func TestVolunteerService_CreateVolunteer_DBError(t *testing.T) {
 func TestVolunteerService_GetAllVolunteers_DBError(t *testing.T) {
 	mockRepo := new(MockVolunteerRepository)
 	svc := services.NewVolunteerService(mockRepo)
-	
+
 	mockRepo.On("FindAll", mock.Anything).Return(nil, errors.New("db error"))
 
 	res, err := svc.GetAllVolunteers(context.Background())
@@ -193,7 +191,7 @@ func TestVolunteerService_UpdateVolunteer_DBError(t *testing.T) {
 
 	ctx := context.WithValue(context.Background(), middlewares.RoleIDKey, "role_admin")
 	vol := &models.Volunteer{UserID: "usr-123"}
-	
+
 	mockRepo.On("FindByID", mock.Anything, "vol-1").Return(vol, nil)
 	mockRepo.On("Update", mock.Anything, mock.AnythingOfType("*models.Volunteer")).Return(errors.New("db error"))
 

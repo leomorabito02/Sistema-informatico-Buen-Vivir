@@ -1,6 +1,28 @@
-<div class="dashboard-container">
+<div class="dashboard-container app-shell">
   <app-header></app-header>
-  <app-sidebar></app-sidebar>
-  <router-outlet></router-outlet>
+  <div class="dashboard-body">
+    <main id="contenido-principal" class="dashboard-main" tabindex="-1">
+      <!-- Lo muestra un guard por rol al redirigir (403) -->
+      <div *ngIf="accesoDenegado" class="acceso-denegado" role="alert">
+        <i class="pi pi-lock" aria-hidden="true"></i>
+        <p>
+          <strong
+            >No tenés permiso para entrar a esa sección (error 403).</strong
+          >
+          Te trajimos al inicio. Si la necesitás, pedile acceso a la persona
+          responsable del centro.
+        </p>
+        <button
+          type="button"
+          class="acceso-cerrar"
+          aria-label="Cerrar aviso"
+          (click)="cerrarAviso()"
+        >
+          <i class="pi pi-times" aria-hidden="true"></i>
+        </button>
+      </div>
+      <router-outlet></router-outlet>
+    </main>
+  </div>
   <app-footer></app-footer>
 </div>

@@ -1,28 +1,12 @@
-.page-container {
-  padding: 1.5rem;
-  max-width: 1200px;
-  margin: 0 auto;
-}
-
-.header-section {
+.filters {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
   flex-wrap: wrap;
-  gap: 1rem;
-  margin-bottom: 2rem;
+  gap: 0.75rem;
+  align-items: center;
 }
 
-.page-title {
-  font-size: 1.75rem;
-  font-weight: 700;
-  color: var(--primary);
-  margin: 0 0 0.5rem 0;
-}
-
-.page-subtitle {
-  color: var(--text-muted);
-  margin: 0;
+:host ::ng-deep .area-select {
+  min-width: 200px;
 }
 
 .search-box input {
@@ -46,7 +30,7 @@
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
-  font-size: 0.9rem;
+  font-size: var(--font-size-sm);
 }
 
 .info-row {
@@ -59,10 +43,69 @@
   margin-top: 0.5rem;
 }
 
+.course-desc {
+  color: #4b5563;
+  margin: 0;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.card-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.detail .detail-meta {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+  color: #4b5563;
+  margin-bottom: 1rem;
+}
+.detail h4 {
+  margin: 1.25rem 0 0.5rem;
+  font-size: var(--font-size-base);
+  color: var(--primary);
+}
+.detail .mat-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+.detail .mat-list li {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+.detail .mat-type {
+  font-size: var(--font-size-xs);
+  background: var(--primary-10);
+  color: var(--primary);
+  padding: 0.05rem 0.4rem;
+  border-radius: 4px;
+}
+.detail .muted {
+  color: var(--text-muted);
+}
+
+::ng-deep .enroll-dialog .p-dialog-content {
+  min-height: 220px;
+  overflow: visible;
+}
+
 @media (max-width: 640px) {
-  .header-section {
-    flex-direction: column;
-    align-items: stretch;
+  .filters,
+  .search-box,
+  :host ::ng-deep .area-select {
+    width: 100%;
   }
   .search-box input {
     max-width: 100%;

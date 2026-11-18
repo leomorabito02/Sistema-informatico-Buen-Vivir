@@ -18,8 +18,7 @@ type MockRoleRepository struct {
 }
 
 func (m *MockRoleRepository) Create(ctx context.Context, role *models.Role) error {
-	args := m.Called(ctx, role)
-	return args.Error(0)
+	return m.Called(ctx, role).Error(0)
 }
 
 func (m *MockRoleRepository) FindByID(ctx context.Context, id string) (*models.Role, error) {
@@ -39,13 +38,11 @@ func (m *MockRoleRepository) FindAll(ctx context.Context) ([]models.Role, error)
 }
 
 func (m *MockRoleRepository) Update(ctx context.Context, role *models.Role) error {
-	args := m.Called(ctx, role)
-	return args.Error(0)
+	return m.Called(ctx, role).Error(0)
 }
 
 func (m *MockRoleRepository) Delete(ctx context.Context, id string) error {
-	args := m.Called(ctx, id)
-	return args.Error(0)
+	return m.Called(ctx, id).Error(0)
 }
 
 func TestRoleService_GetAllRoles_Success(t *testing.T) {

@@ -1,0 +1,478 @@
+{
+  "cabeceras": {
+    "education /api/salud": {
+      "Content-Security-Policy": "default-src 'self'; connect-src 'self' http://localhost:4200 https://ceibuenvivir.org https://testing.ceibuenvivir.pages.dev; frame-ancestors 'none';",
+      "Referrer-Policy": "strict-origin-when-cross-origin",
+      "Server": "",
+      "Strict-Transport-Security": "max-age=31536000; includeSubDomains; preload",
+      "X-Content-Type-Options": "nosniff",
+      "X-Frame-Options": "DENY"
+    },
+    "gateway /health": {
+      "Content-Security-Policy": "",
+      "Referrer-Policy": "",
+      "Server": "nginx/1.31.4",
+      "Strict-Transport-Security": "",
+      "X-Content-Type-Options": "",
+      "X-Frame-Options": ""
+    },
+    "human-promotion /health": {
+      "Content-Security-Policy": "default-src 'none'; frame-ancestors 'none';",
+      "Referrer-Policy": "strict-origin-when-cross-origin",
+      "Server": "",
+      "Strict-Transport-Security": "max-age=31536000; includeSubDomains; preload",
+      "X-Content-Type-Options": "nosniff",
+      "X-Frame-Options": "DENY"
+    }
+  },
+  "casos": [
+    {
+      "grupo": "autenticacion",
+      "nombre": "education sin token",
+      "metodo": "GET",
+      "url": "http://localhost:8210/api/cursos",
+      "espera": [
+        401
+      ],
+      "obtuvo": 401,
+      "resultado": "OK"
+    },
+    {
+      "grupo": "autenticacion",
+      "nombre": "education token alg=none (admin)",
+      "metodo": "GET",
+      "url": "http://localhost:8210/api/cursos/borradores",
+      "espera": [
+        401
+      ],
+      "obtuvo": 401,
+      "resultado": "OK"
+    },
+    {
+      "grupo": "autenticacion",
+      "nombre": "education token firmado con otra clave",
+      "metodo": "GET",
+      "url": "http://localhost:8210/api/cursos/borradores",
+      "espera": [
+        401
+      ],
+      "obtuvo": 401,
+      "resultado": "OK"
+    },
+    {
+      "grupo": "autenticacion",
+      "nombre": "education token basura",
+      "metodo": "GET",
+      "url": "http://localhost:8210/api/cursos",
+      "espera": [
+        401
+      ],
+      "obtuvo": 401,
+      "resultado": "OK"
+    },
+    {
+      "grupo": "autenticacion",
+      "nombre": "human-promotion sin token",
+      "metodo": "GET",
+      "url": "http://localhost:8085/api/v1/human-promotion/fichas?participante_id=x",
+      "espera": [
+        401
+      ],
+      "obtuvo": 401,
+      "resultado": "OK"
+    },
+    {
+      "grupo": "autenticacion",
+      "nombre": "human-promotion token alg=none",
+      "metodo": "GET",
+      "url": "http://localhost:8085/api/v1/human-promotion/indicadores",
+      "espera": [
+        401
+      ],
+      "obtuvo": 401,
+      "resultado": "OK"
+    },
+    {
+      "grupo": "autenticacion",
+      "nombre": "gateway auth /users sin token",
+      "metodo": "GET",
+      "url": "http://localhost:8080/api/v1/users",
+      "espera": [
+        401
+      ],
+      "obtuvo": 401,
+      "resultado": "OK"
+    },
+    {
+      "grupo": "autenticacion",
+      "nombre": "gateway auth /users token alg=none",
+      "metodo": "GET",
+      "url": "http://localhost:8080/api/v1/users",
+      "espera": [
+        401
+      ],
+      "obtuvo": 401,
+      "resultado": "OK"
+    },
+    {
+      "grupo": "autenticacion",
+      "nombre": "gateway campañas gestión sin token",
+      "metodo": "GET",
+      "url": "http://localhost:8080/api/v1/campaigns",
+      "espera": [
+        401
+      ],
+      "obtuvo": 401,
+      "resultado": "OK"
+    },
+    {
+      "grupo": "autenticacion",
+      "nombre": "gateway notificaciones sin token",
+      "metodo": "GET",
+      "url": "http://localhost:8080/api/v1/notifications",
+      "espera": [
+        401
+      ],
+      "obtuvo": 401,
+      "resultado": "OK"
+    },
+    {
+      "grupo": "autenticacion",
+      "nombre": "gateway dashboard sin token",
+      "metodo": "GET",
+      "url": "http://localhost:8080/api/v1/dashboard/resumen",
+      "espera": [
+        401
+      ],
+      "obtuvo": 401,
+      "resultado": "OK"
+    },
+    {
+      "grupo": "labor-headers",
+      "nombre": "labor directo: aprobar oferta inexistente sin token y X-User-Role admin falsificado",
+      "metodo": "PUT",
+      "url": "http://localhost:8310/api/v1/labor-integration/offers/audit-oferta-inexistente/approve",
+      "espera": [
+        401,
+        403
+      ],
+      "obtuvo": 403,
+      "resultado": "OK",
+      "nota": "Debe rechazar. Si responde 404/500, el rol falsificado pasó el control (vulnerabilidad)."
+    },
+    {
+      "grupo": "labor-headers",
+      "nombre": "gateway: aprobar oferta inexistente sin token y X-User-Role admin falsificado",
+      "metodo": "PUT",
+      "url": "http://localhost:8080/api/v1/labor-integration/offers/audit-oferta-inexistente/approve",
+      "espera": [
+        401,
+        403
+      ],
+      "obtuvo": 401,
+      "resultado": "OK"
+    },
+    {
+      "grupo": "cors",
+      "nombre": "education preflight desde origen no permitido",
+      "metodo": "OPTIONS",
+      "url": "http://localhost:8210/api/cursos",
+      "espera": [
+        200,
+        204,
+        403
+      ],
+      "obtuvo": 200,
+      "resultado": "OK",
+      "nota": "sin Access-Control-Allow-Origin para el origen no permitido"
+    },
+    {
+      "grupo": "entradas",
+      "nombre": "campañas públicas con búsqueda de inyección",
+      "metodo": "GET",
+      "url": "http://localhost:8080/api/v1/campaigns/publicas?q=%27%20OR%201%3D1--%20%7B%22%24gt%22%3A%22%22%7D",
+      "espera": [
+        200,
+        400
+      ],
+      "obtuvo": 200,
+      "resultado": "OK"
+    },
+    {
+      "grupo": "entradas",
+      "nombre": "campañas públicas con búsqueda de 5000 caracteres",
+      "metodo": "GET",
+      "url": "http://localhost:8080/api/v1/campaigns/publicas?q=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa…",
+      "espera": [
+        400,
+        414
+      ],
+      "obtuvo": 400,
+      "resultado": "OK"
+    },
+    {
+      "grupo": "entradas",
+      "nombre": "comentarios: listar con entidad inválida",
+      "metodo": "GET",
+      "url": "http://localhost:8210/api/comentarios?entidadTipo=%3Cscript%3E\u0026entidadId=x",
+      "espera": [
+        400
+      ],
+      "obtuvo": 400,
+      "resultado": "OK"
+    },
+    {
+      "grupo": "roles",
+      "nombre": "education token vencido",
+      "metodo": "GET",
+      "url": "http://localhost:8210/api/cursos",
+      "espera": [
+        401
+      ],
+      "obtuvo": 401,
+      "resultado": "OK"
+    },
+    {
+      "grupo": "roles",
+      "nombre": "education token de refresh usado como acceso",
+      "metodo": "GET",
+      "url": "http://localhost:8210/api/cursos",
+      "espera": [
+        401
+      ],
+      "obtuvo": 401,
+      "resultado": "OK"
+    },
+    {
+      "grupo": "roles",
+      "nombre": "participante -\u003e borradores de cursos (admin)",
+      "metodo": "GET",
+      "url": "http://localhost:8210/api/cursos/borradores",
+      "espera": [
+        403
+      ],
+      "obtuvo": 403,
+      "resultado": "OK"
+    },
+    {
+      "grupo": "roles",
+      "nombre": "participante -\u003e crear curso",
+      "metodo": "POST",
+      "url": "http://localhost:8210/api/cursos",
+      "espera": [
+        403
+      ],
+      "obtuvo": 403,
+      "resultado": "OK"
+    },
+    {
+      "grupo": "roles",
+      "nombre": "voluntario -\u003e crear curso (solo admin)",
+      "metodo": "POST",
+      "url": "http://localhost:8210/api/cursos",
+      "espera": [
+        403
+      ],
+      "obtuvo": 403,
+      "resultado": "OK"
+    },
+    {
+      "grupo": "roles",
+      "nombre": "participante -\u003e auditoría de educación",
+      "metodo": "GET",
+      "url": "http://localhost:8210/api/auditoria",
+      "espera": [
+        403
+      ],
+      "obtuvo": 403,
+      "resultado": "OK"
+    },
+    {
+      "grupo": "roles",
+      "nombre": "voluntario -\u003e auditoría de educación (solo admin)",
+      "metodo": "GET",
+      "url": "http://localhost:8210/api/auditoria",
+      "espera": [
+        403
+      ],
+      "obtuvo": 403,
+      "resultado": "OK"
+    },
+    {
+      "grupo": "roles",
+      "nombre": "participante -\u003e asistencia general",
+      "metodo": "GET",
+      "url": "http://localhost:8210/api/asistencia-general?fecha=2026-01-01",
+      "espera": [
+        403
+      ],
+      "obtuvo": 403,
+      "resultado": "OK"
+    },
+    {
+      "grupo": "roles",
+      "nombre": "empresa -\u003e buscador de participantes",
+      "metodo": "GET",
+      "url": "http://localhost:8210/api/participantes?q=ab",
+      "espera": [
+        403
+      ],
+      "obtuvo": 403,
+      "resultado": "OK"
+    },
+    {
+      "grupo": "roles",
+      "nombre": "docente externo -\u003e /api/docente",
+      "metodo": "GET",
+      "url": "http://localhost:8210/api/docente/cursos",
+      "espera": [
+        403
+      ],
+      "obtuvo": 403,
+      "resultado": "OK"
+    },
+    {
+      "grupo": "roles",
+      "nombre": "docente -\u003e rutas de participante",
+      "metodo": "GET",
+      "url": "http://localhost:8210/api/participante/cursos",
+      "espera": [
+        403
+      ],
+      "obtuvo": 403,
+      "resultado": "OK"
+    },
+    {
+      "grupo": "roles",
+      "nombre": "participante -\u003e borrar comentario (moderación admin)",
+      "metodo": "DELETE",
+      "url": "http://localhost:8210/api/comentarios/audit-inexistente",
+      "espera": [
+        403
+      ],
+      "obtuvo": 403,
+      "resultado": "OK"
+    },
+    {
+      "grupo": "roles",
+      "nombre": "participante -\u003e fichas de promoción humana",
+      "metodo": "GET",
+      "url": "http://localhost:8085/api/v1/human-promotion/fichas?participante_id=x",
+      "espera": [
+        403
+      ],
+      "obtuvo": 403,
+      "resultado": "OK"
+    },
+    {
+      "grupo": "roles",
+      "nombre": "docente -\u003e fichas de promoción humana",
+      "metodo": "GET",
+      "url": "http://localhost:8085/api/v1/human-promotion/fichas?participante_id=x",
+      "espera": [
+        403
+      ],
+      "obtuvo": 403,
+      "resultado": "OK"
+    },
+    {
+      "grupo": "roles",
+      "nombre": "empresa -\u003e fichas de promoción humana",
+      "metodo": "GET",
+      "url": "http://localhost:8085/api/v1/human-promotion/fichas?participante_id=x",
+      "espera": [
+        403
+      ],
+      "obtuvo": 403,
+      "resultado": "OK"
+    },
+    {
+      "grupo": "roles",
+      "nombre": "voluntario -\u003e indicadores (solo admin)",
+      "metodo": "GET",
+      "url": "http://localhost:8085/api/v1/human-promotion/indicadores",
+      "espera": [
+        403
+      ],
+      "obtuvo": 403,
+      "resultado": "OK"
+    },
+    {
+      "grupo": "roles",
+      "nombre": "voluntario -\u003e auditoría de PH (solo admin)",
+      "metodo": "GET",
+      "url": "http://localhost:8085/api/v1/human-promotion/auditoria",
+      "espera": [
+        403
+      ],
+      "obtuvo": 403,
+      "resultado": "OK"
+    },
+    {
+      "grupo": "roles",
+      "nombre": "empresa -\u003e mi línea de tiempo (solo participante)",
+      "metodo": "GET",
+      "url": "http://localhost:8085/api/v1/human-promotion/mi-linea-de-tiempo",
+      "espera": [
+        403
+      ],
+      "obtuvo": 403,
+      "resultado": "OK"
+    },
+    {
+      "grupo": "roles",
+      "nombre": "participante -\u003e crear campaña (gateway)",
+      "metodo": "POST",
+      "url": "http://localhost:8080/api/v1/campaigns",
+      "espera": [
+        403
+      ],
+      "obtuvo": 403,
+      "resultado": "OK"
+    },
+    {
+      "grupo": "roles",
+      "nombre": "empresa -\u003e gestión de campañas (gateway)",
+      "metodo": "GET",
+      "url": "http://localhost:8080/api/v1/campaigns",
+      "espera": [
+        403
+      ],
+      "obtuvo": 403,
+      "resultado": "OK"
+    },
+    {
+      "grupo": "roles",
+      "nombre": "participante -\u003e eliminar campaña (gateway)",
+      "metodo": "DELETE",
+      "url": "http://localhost:8080/api/v1/campaigns/audit-inexistente",
+      "espera": [
+        403,
+        405
+      ],
+      "obtuvo": 403,
+      "resultado": "OK",
+      "nota": "405 = el contenedor corre el código anterior, sin DELETE (Problema 5)."
+    },
+    {
+      "grupo": "roles",
+      "nombre": "voluntario -\u003e dashboard (solo admin)",
+      "metodo": "GET",
+      "url": "http://localhost:8080/api/v1/dashboard/resumen",
+      "espera": [
+        401,
+        403
+      ],
+      "obtuvo": 403,
+      "resultado": "OK"
+    }
+  ],
+  "con_tokens_rol": true,
+  "fecha": "2026-11-12T00:50:36-03:00",
+  "resumen": {
+    "casos": 39,
+    "error": 0,
+    "falla": 0,
+    "ok": 39
+  }
+}

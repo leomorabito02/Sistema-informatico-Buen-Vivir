@@ -1,0 +1,7 @@
+# Security Disclosure Policy for ceibuenvivir.org (RFC 9116 / OWASP)
+Contact: mailto:ceibuenvivir7@gmail.com
+Expires: 2027-12-31T23:59:59.000Z
+Preferred-Languages: es, en
+Canonical: https://ceibuenvivir.org/.well-known/security.txt
+Policy: https://ceibuenvivir.org/privacidad
+Hiring: https://ceibuenvivir.org/contacto

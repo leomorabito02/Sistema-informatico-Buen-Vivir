@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"auth/internal/models"
+	"auth/internal/repositories"
 
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
@@ -40,8 +41,10 @@ func InitDatabase() (*gorm.DB, error) {
 
 	slog.Info("Successfully connected to the database")
 
-	if err := db.AutoMigrate(&models.User{}); err != nil {
-		slog.Warn("Failed to auto-migrate User model", "error", err)
+	if err := db.AutoMigrate(&models.User{}, &models.EmailVerification{}, &models.OutboxEvent{}, &models.LoginAttempt{}, &models.AuditLog{}); err != nil {
+		slog.Warn("Failed to auto-migrate models", "error", err)
+	} else if err := db.Exec(repositories.AuditImmutabilitySQL).Error; err != nil {
+		slog.Warn("Failed to create audit immutability trigger", "error", err)
 	}
 
 	return db, nil
