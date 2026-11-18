@@ -22,3 +22,14 @@ func TestLoadConfig_BaseDeDatos(t *testing.T) {
 		t.Fatal("sin variables debería quedar el default local")
 	}
 }
+
+// Comillas o espacios alrededor del secret no deben romper la conexión.
+func TestLoadConfig_BaseDeDatosConComillas(t *testing.T) {
+	t.Setenv("DATABASE_URL_RXRESUME", "")
+	for _, v := range []string{"'postgresql://u:p@h/db'", "\"postgresql://u:p@h/db\"", "  postgresql://u:p@h/db \n"} {
+		t.Setenv("DATABASE_URL", v)
+		if got := LoadConfig().DatabaseURL; got != "postgresql://u:p@h/db" {
+			t.Fatalf("%q quedó como %q", v, got)
+		}
+	}
+}
