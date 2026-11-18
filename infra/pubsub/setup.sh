@@ -142,6 +142,30 @@ ensure_push_sub notificaciones-insercion-laboral insercion-laboral-eventos "$NOT
 ensure_push_sub notificaciones-campanas campanas-eventos "$NOTIFICATIONS_URL/eventos/campanas" "$SA_NOTIF_CAMPANAS" "$NOTIFICATIONS_URL" \
   "$(filter campanas.campana.creada)" false
 
+# ── Permiso para invocar Cloud Run ────────────────────────────────────
+# Los servicios son privados (--no-allow-unauthenticated): sin
+# roles/run.invoker, Cloud Run rechaza con 403 cada push y cada barrido
+# de Cloud Scheduler aunque el token OIDC sea válido (17/11/2026).
+SERVICIOS_RUN="$("${G[@]}" run services list --region "$REGION" --format='value(metadata.name,status.url)')"
+grant_invoker() { # $1=url del servicio $2..=service accounts
+  local url="$1" name sa; shift
+  name="$(awk -v u="$url" '$2==u {print $1}' <<<"$SERVICIOS_RUN")"
+  if [[ -z "$name" ]]; then
+    echo "AVISO: no encontré un servicio de Cloud Run con la URL $url (usar la de 'gcloud run services describe ... --format=value(status.url)')"
+    return
+  fi
+  for sa in "$@"; do
+    "${G[@]}" run services add-iam-policy-binding "$name" --region "$REGION"       --member="serviceAccount:$sa" --role=roles/run.invoker >/dev/null
+    echo "invoker $sa -> $name"
+  done
+}
+
+log "Invocadores de Cloud Run"
+grant_invoker "$EDUCATION_URL" "$SA_EDU_USUARIOS" "$SA_EDU_CONTENIDO" "$SA_SCHEDULER"
+grant_invoker "$HUMAN_PROMOTION_URL" "$SA_PH_EDUCACION" "$SA_PH_USUARIOS" "$SA_SCHEDULER"
+grant_invoker "$DASHBOARD_URL" "$SA_DASHBOARD"
+grant_invoker "$NOTIFICATIONS_URL" "$SA_NOTIF_EDU" "$SA_NOTIF_PH" "$SA_NOTIF_USUARIOS" "$SA_NOTIF_LABOR" "$SA_NOTIF_CAMPANAS" "$SA_SCHEDULER"
+
 # ── Permisos de publicación (productores) ────────────────────────────
 grant_publisher() { # $1=topic $2=service account
   "${G[@]}" pubsub topics add-iam-policy-binding "$1" --member="serviceAccount:$2" --role=roles/pubsub.publisher >/dev/null
@@ -202,7 +226,7 @@ Listo. Variables a cargar en Cloud Run:
   notifications:
     PUBSUB_PROJECT_ID=$PROJECT_ID
     PUBSUB_PUSH_AUDIENCE=$NOTIFICATIONS_URL
-    PUBSUB_PUSH_SERVICE_ACCOUNTS=$SA_NOTIF_EDU,$SA_NOTIF_PH,$SA_NOTIF_USUARIOS,$SA_SCHEDULER
+    PUBSUB_PUSH_SERVICE_ACCOUNTS=$SA_NOTIF_EDU,$SA_NOTIF_PH,$SA_NOTIF_USUARIOS,$SA_NOTIF_LABOR,$SA_NOTIF_CAMPANAS,$SA_SCHEDULER
 
 Webhook de Contentful: POST $EDUCATION_URL/webhooks/contentful, con el
 header secreto X-Webhook-Secret y los topics Entry.publish, Entry.unpublish
