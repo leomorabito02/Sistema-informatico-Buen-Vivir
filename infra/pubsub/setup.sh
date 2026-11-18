@@ -93,7 +93,18 @@ SA_SCHEDULER="$(ensure_sa sa-scheduler-outbox 'Cloud Scheduler -> barrido del ou
 # ── Suscripciones push ───────────────────────────────────────────────
 # Filtros: los mismos que arma events.SubscriptionFilter a partir de los
 # tipos que registra cada consumidor.
-filter() { local out="" t; for t in "$@"; do out+="${out:+ OR }attributes.event_type = \"$t\""; done; echo "$out"; }
+# Pub/Sub acepta filtros de hasta 256 caracteres. Si la lista de tipos es
+# más larga (notificaciones-educacion e -insercion-laboral), se filtra por
+# el dominio ("educacion.") y el consumidor ignora con 204 los tipos que no
+# maneja (pkg/events: resultado "ignorado_tipo").
+filter() {
+  local out="" t
+  for t in "$@"; do out+="${out:+ OR }attributes.event_type = \"$t\""; done
+  if (( ${#out} > 256 )); then
+    out="hasPrefix(attributes.event_type, \"${1%%.*}.\")"
+  fi
+  echo "$out"
+}
 
 ensure_push_sub() { # $1=nombre $2=topic $3=endpoint $4=sa $5=audience $6=filtro $7=ordering(true|false)
   if "${G[@]}" pubsub subscriptions describe "$1" >/dev/null 2>&1; then
