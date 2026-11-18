@@ -2,6 +2,7 @@ package repositories
 
 import (
 	"context"
+	"fmt"
 	"strings"
 
 	"buenvivir/education/internal/models"
@@ -119,6 +120,18 @@ func (r *courseRepository) Update(ctx context.Context, id string, input models.C
 	updated, err := r.client.UpdateEntry(ctx, id, current.Sys.Version, courseInputToFields(r.client.Locale(), input))
 	if err != nil {
 		return nil, err
+	}
+
+	// Un curso publicado se vuelve a publicar para que el cambio se vea:
+	// la CMA deja la edición como borrador pendiente y el catálogo (CDA)
+	// seguía mostrando la versión anterior (p. ej. el docente viejo,
+	// 17/11/2026). Un borrador queda como borrador.
+	if current.Sys.PublishedVersion != 0 {
+		published, err := r.client.PublishEntry(ctx, id, updated.Sys.Version)
+		if err != nil {
+			return nil, fmt.Errorf("el curso se guardó pero no se pudo volver a publicar: %w", err)
+		}
+		updated = published
 	}
 
 	course := courseFromInput(updated.Sys, input)
