@@ -27,7 +27,19 @@ type contentCache struct {
 	maxEntries int
 	entries    map[string]cacheEntry
 	now        func() time.Time
+	// settleUntil: hasta este momento, lo que se guarda queda vencido
+	// desde el principio (sirve de respaldo, pero no se sirve como
+	// fresco). Ver settleWindow.
+	settleUntil time.Time
 }
+
+// settleWindow es cuánto se tarda en considerar confiable la CDA después
+// de una invalidación. Contentful propaga lo publicado a la CDA con unos
+// segundos de demora: si justo después de editar un curso la pantalla
+// recargaba, la CDA todavía devolvía la versión vieja y esa respuesta
+// quedaba guardada como fresca durante todo el TTL (el docente editado
+// "no cambiaba" por 5 minutos, 18/11/2026).
+const settleWindow = 30 * time.Second
 
 type cacheEntry struct {
 	body      []byte
@@ -72,11 +84,17 @@ func (c *contentCache) put(key string, body []byte) {
 		}
 		delete(c.entries, oldest)
 	}
-	c.entries[key] = cacheEntry{body: body, expiresAt: c.now().Add(c.ttl)}
+	now := c.now()
+	expiresAt := now.Add(c.ttl)
+	if now.Before(c.settleUntil) {
+		expiresAt = now
+	}
+	c.entries[key] = cacheEntry{body: body, expiresAt: expiresAt}
 }
 
 // invalidate vence todas las respuestas pero conserva sus cuerpos como
-// respaldo (ver comentario del tipo). Se invalida todo y no una entry
+// respaldo (ver comentario del tipo) y abre la ventana de settleWindow,
+// durante la cual nada se guarda como fresco. Se invalida todo y no una entry
 // puntual porque los listados incluyen las entries y sus referencias.
 func (c *contentCache) invalidate() {
 	if c == nil {
@@ -84,7 +102,9 @@ func (c *contentCache) invalidate() {
 	}
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	past := c.now().Add(-time.Second)
+	now := c.now()
+	c.settleUntil = now.Add(settleWindow)
+	past := now.Add(-time.Second)
 	for k, e := range c.entries {
 		e.expiresAt = past
 		c.entries[k] = e

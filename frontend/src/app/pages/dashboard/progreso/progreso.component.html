@@ -70,7 +70,7 @@
       <p-table [value]="rows" class="p-datatable-striped">
         <ng-template pTemplate="header">
           <tr>
-            <th>Participante (id)</th>
+            <th>Participante</th>
             <th>Actividades asistidas</th>
             <th>Actividades totales</th>
             <th>% Asistencia</th>
@@ -79,7 +79,7 @@
         <ng-template pTemplate="body" let-row>
           <tr>
             <td>
-              <code>{{ row.participanteId }}</code>
+              {{ row.nombre }}
             </td>
             <td>{{ row.actividadesAsistidas }}</td>
             <td>{{ row.actividadesTotal }}</td>

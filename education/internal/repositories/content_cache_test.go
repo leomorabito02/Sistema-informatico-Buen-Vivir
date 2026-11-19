@@ -40,6 +40,27 @@ func TestContentCache_FrescaVencidaEInvalidada(t *testing.T) {
 	assert.Equal(t, "v2", string(body))
 }
 
+func TestContentCache_NoGuardaComoFrescoJustoDespuesDeInvalidar(t *testing.T) {
+	now := time.Date(2026, 11, 18, 12, 0, 0, 0, time.UTC)
+	c := newContentCache(5 * time.Minute)
+	c.now = func() time.Time { return now }
+
+	c.invalidate()
+	// La CDA todavía puede devolver la versión vieja: se guarda como
+	// respaldo, pero el próximo pedido vuelve a consultar.
+	c.put("k", []byte("vieja"))
+	body, fresh, ok := c.get("k")
+	assert.True(t, ok)
+	assert.False(t, fresh)
+	assert.Equal(t, "vieja", string(body))
+
+	now = now.Add(settleWindow + time.Second)
+	c.put("k", []byte("nueva"))
+	body, fresh, _ = c.get("k")
+	assert.True(t, fresh, "pasada la ventana se vuelve a cachear normal")
+	assert.Equal(t, "nueva", string(body))
+}
+
 func TestContentCache_DesactivadaYLlena(t *testing.T) {
 	off := newContentCache(0)
 	assert.Nil(t, off)

@@ -300,7 +300,7 @@ func TestDocenteController_ListEnrollments_Success(t *testing.T) {
 	ctrl, courseSvc, _, enrollmentSvc, _, _ := newDocenteController()
 
 	courseSvc.On("VerifyOwnership", mock.Anything, "c1", "teacher-1").Return(nil)
-	enrollmentSvc.On("ListByCourse", mock.Anything, "c1").Return([]models.Enrollment{{ID: "e1"}}, nil)
+	enrollmentSvc.On("ListByCourseConNombres", mock.Anything, "c1", mock.Anything).Return([]models.Enrollment{{ID: "e1"}}, nil)
 
 	req := withChiURLParam(withTeacherContext(httptest.NewRequest("GET", "/api/docente/cursos/c1/inscriptos", nil), "teacher-1"), "cursoId", "c1")
 	w := httptest.NewRecorder()
@@ -529,7 +529,7 @@ func TestDocenteController_ErrorBranches(t *testing.T) {
 	t.Run("ListEnrollments service error maps to 502", func(t *testing.T) {
 		ctrl, courseSvc, _, enrollmentSvc, _, _ := newDocenteController()
 		courseSvc.On("VerifyOwnership", mock.Anything, "c1", "t1").Return(nil)
-		enrollmentSvc.On("ListByCourse", mock.Anything, "c1").Return(nil, errors.New("err"))
+		enrollmentSvc.On("ListByCourseConNombres", mock.Anything, "c1", mock.Anything).Return(nil, errors.New("err"))
 
 		req := withChiURLParam(withTeacherContext(httptest.NewRequest("GET", "/api/docente/cursos/c1/inscriptos", nil), "t1"), "cursoId", "c1")
 		w := httptest.NewRecorder()

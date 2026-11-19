@@ -240,7 +240,9 @@ func (c *DocenteController) ListEnrollments(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	enrollments, err := c.enrollmentService.ListByCourse(r.Context(), cursoID)
+	// Con nombre y apellido: el docente veía solo el id del participante.
+	token, _ := r.Context().Value(middlewares.TokenKey).(string)
+	enrollments, err := c.enrollmentService.ListByCourseConNombres(r.Context(), cursoID, token)
 	if err != nil {
 		writeError(w, err)
 		return

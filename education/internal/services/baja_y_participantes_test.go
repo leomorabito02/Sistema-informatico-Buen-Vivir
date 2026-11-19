@@ -134,11 +134,14 @@ func TestEnrollment_CountActiveYNombres(t *testing.T) {
 	assert.Equal(t, "Paz", list[0].Apellido)
 	assert.Empty(t, list[1].Nombre, "un participante que auth no conoce queda sin nombre")
 
-	// auth caído: las inscripciones salen igual
+	// Sin permiso para listar (docente): los nombres se piden de a uno.
 	auth.failList = true
 	list, err = svc.ListByCourseConNombres(context.Background(), "c1", "tok")
 	require.NoError(t, err)
 	assert.Len(t, list, 2)
+	assert.Equal(t, "Ana", list[0].Nombre)
+	assert.Equal(t, "Paz", list[0].Apellido)
+	assert.Empty(t, list[1].Nombre)
 }
 
 // ---- HU-28: filtro por área ----

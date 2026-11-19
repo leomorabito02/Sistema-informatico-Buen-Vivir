@@ -178,7 +178,7 @@ export class AdminCursosComponent implements OnInit {
         this.courses = [
           ...courses.map((c) => ({ ...c, publicado: true })),
           ...drafts.map((c) => ({ ...c, publicado: false })),
-        ];
+        ].map((c) => this.withRecentEdit(c));
         this.areas = areas;
         this.materials = materials;
         this.loading = false;
@@ -202,6 +202,24 @@ export class AdminCursosComponent implements OnInit {
       label: `${m.title}${m.type ? " (" + m.type + ")" : ""}`,
       value: m.id,
     }));
+  }
+
+  /**
+   * Ediciones recién guardadas. Contentful tarda unos segundos en mostrar
+   * lo publicado: si la recarga llega antes, devolvía el curso viejo (p. ej.
+   * el docente anterior). Durante ese rato se muestra lo que se guardó.
+   */
+  private recentEdits = new Map<string, { data: Partial<Course>; at: number }>();
+  private static readonly RECENT_EDIT_MS = 60_000;
+
+  private withRecentEdit<T extends Course>(c: T): T {
+    const edit = this.recentEdits.get(c.id);
+    if (!edit) return c;
+    if (Date.now() - edit.at > AdminCursosComponent.RECENT_EDIT_MS) {
+      this.recentEdits.delete(c.id);
+      return c;
+    }
+    return { ...c, ...edit.data };
   }
 
   descPreview(c: Course): string {
@@ -278,8 +296,21 @@ export class AdminCursosComponent implements OnInit {
     this.savingCourse = true;
 
     if (this.editingCourseId) {
-      this.education.updateCourse(this.editingCourseId, payload).subscribe({
+      const editedId = this.editingCourseId;
+      this.education.updateCourse(editedId, payload).subscribe({
         next: () => {
+          const area = this.areas.find((a) => a.id === payload.trainingAreaId);
+          this.recentEdits.set(editedId, {
+            data: {
+              title: payload.title,
+              description: payload.description,
+              mode: payload.mode,
+              duration: payload.duration,
+              responsibleTeacher: payload.responsibleTeacher,
+              ...(area ? { trainingArea: area } : {}),
+            },
+            at: Date.now(),
+          });
           this.savingCourse = false;
           this.courseDialog = false;
           this.toast.add({

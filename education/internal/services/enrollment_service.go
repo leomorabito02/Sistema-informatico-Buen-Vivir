@@ -69,7 +69,11 @@ func (s *enrollmentService) ListByCourseConNombres(ctx context.Context, cursoID,
 	}
 	directorio, err := directorioParticipantes(ctx, s.authClient, bearerToken)
 	if err != nil {
-		return enrollments, nil // los nombres son un dato secundario
+		// Un docente no puede listar todos los participantes en auth
+		// (403): se piden los nombres de a uno, solo los de este curso.
+		// Los nombres son un dato secundario: si falla, queda el id.
+		s.nombresDeAUno(ctx, enrollments, bearerToken)
+		return enrollments, nil
 	}
 	for i := range enrollments {
 		if p, ok := directorio[enrollments[i].ParticipanteID]; ok {
@@ -78,6 +82,30 @@ func (s *enrollmentService) ListByCourseConNombres(ctx context.Context, cursoID,
 		}
 	}
 	return enrollments, nil
+}
+
+// nombresDeAUno completa nombre y apellido pidiendo a auth cada
+// participante por separado (GET /directory/participants/{id}, permitido
+// al docente). Cada participante se pide una sola vez.
+func (s *enrollmentService) nombresDeAUno(ctx context.Context, enrollments []models.Enrollment, bearerToken string) {
+	if s.authClient == nil {
+		return
+	}
+	cache := map[string]*models.AuthUser{}
+	for i := range enrollments {
+		id := enrollments[i].ParticipanteID
+		u, visto := cache[id]
+		if !visto {
+			if got, err := s.authClient.GetParticipantName(ctx, id, bearerToken); err == nil {
+				u = &got
+			}
+			cache[id] = u
+		}
+		if u != nil {
+			enrollments[i].Nombre = u.FirstName
+			enrollments[i].Apellido = u.LastName
+		}
+	}
 }
 
 func (s *enrollmentService) CountActive(ctx context.Context, cursoID string) (int, error) {

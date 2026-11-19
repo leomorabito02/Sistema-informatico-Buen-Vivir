@@ -5,6 +5,8 @@ import { TableModule } from "primeng/table";
 import { CardModule } from "primeng/card";
 import { ProgressBarModule } from "primeng/progressbar";
 import { SelectModule } from "primeng/select";
+import { forkJoin, of } from "rxjs";
+import { catchError } from "rxjs/operators";
 import { EducationService } from "../../../services/education.service";
 import { LoadingStateComponent } from "../../../shared/components/loading-state.component";
 import { ErrorStateComponent } from "../../../shared/components/error-state.component";
@@ -13,6 +15,11 @@ import {
   Course,
   ParticipantProgress,
 } from "../../../core/models/education.model";
+
+/** Fila de progreso con el nombre del participante (antes se veía el id). */
+interface ProgressRow extends ParticipantProgress {
+  nombre: string;
+}
 
 interface CourseOption {
   label: string;
@@ -44,7 +51,7 @@ export class ProgresoComponent implements OnInit {
   error = "";
   courseOptions: CourseOption[] = [];
   selectedCourseId: string | null = null;
-  rows: ParticipantProgress[] = [];
+  rows: ProgressRow[] = [];
 
   get overallProgress(): number {
     if (!this.rows.length) return 0;
@@ -77,9 +84,26 @@ export class ProgresoComponent implements OnInit {
     this.loadingProgress = true;
     this.error = "";
     this.rows = [];
-    this.education.getCourseProgress(this.selectedCourseId).subscribe({
-      next: (rows) => {
-        this.rows = rows;
+    forkJoin({
+      progress: this.education.getCourseProgress(this.selectedCourseId),
+      // Los nombres vienen con las inscripciones; si fallan, queda el id.
+      enrollments: this.education
+        .listEnrollments(this.selectedCourseId)
+        .pipe(catchError(() => of([]))),
+    }).subscribe({
+      next: ({ progress, enrollments }) => {
+        const nombres = new Map(
+          enrollments.map((e) => [
+            e.participanteId,
+            `${e.nombre ?? ""} ${e.apellido ?? ""}`.trim(),
+          ]),
+        );
+        this.rows = progress
+          .map((p) => ({
+            ...p,
+            nombre: nombres.get(p.participanteId) || p.participanteId,
+          }))
+          .sort((a, b) => a.nombre.localeCompare(b.nombre));
         this.loadingProgress = false;
       },
       error: (err: Error) => {
