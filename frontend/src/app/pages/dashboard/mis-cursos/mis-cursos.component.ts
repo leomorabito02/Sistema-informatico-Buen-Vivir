@@ -2,10 +2,8 @@ import { Component, OnInit, inject } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { FormsModule } from "@angular/forms";
 import { RouterLink } from "@angular/router";
-import { TableModule } from "primeng/table";
 import { ButtonModule } from "primeng/button";
 import { TagModule } from "primeng/tag";
-import { CardModule } from "primeng/card";
 import { DialogModule } from "primeng/dialog";
 import { SelectModule } from "primeng/select";
 import { InputTextModule } from "primeng/inputtext";
@@ -45,10 +43,8 @@ interface CourseVM {
     CommonModule,
     FormsModule,
     RouterLink,
-    TableModule,
     ButtonModule,
     TagModule,
-    CardModule,
     DialogModule,
     SelectModule,
     InputTextModule,

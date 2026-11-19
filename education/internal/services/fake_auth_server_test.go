@@ -55,6 +55,21 @@ func (f *fakeAuthServer) handle(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 		w.WriteHeader(http.StatusNotFound)
+	case strings.HasPrefix(r.URL.Path, "/api/v1/directory/participants/"):
+		// Lo que puede pedir un docente: nombre de un participante por id.
+		id := strings.TrimPrefix(r.URL.Path, "/api/v1/directory/participants/")
+		for _, p := range f.participants {
+			if p.ParticipantID != id {
+				continue
+			}
+			for _, u := range f.users {
+				if u.UserID == p.UserID {
+					writeAuthData(w, map[string]string{"nombre": u.FirstName, "apellido": u.LastName})
+					return
+				}
+			}
+		}
+		w.WriteHeader(http.StatusNotFound)
 	case r.URL.Path == "/api/v1/users":
 		if f.failUsers {
 			w.WriteHeader(http.StatusInternalServerError)

@@ -22,3 +22,24 @@ education/coverage.out
 education/test-report.json
 scripts/calidad/entorno/.env.calidad
 __pycache__/
+
+# Credenciales y secretos (nunca se versionan)
+.env.*
+!.env.example
+serviceAccountKey*.json
+*service-account*.json
+*-sa-key.json
+credentials.json
+application_default_credentials.json
+*.pem
+*.key
+*.p12
+*.pfx
+*.jks
+*.keystore
+id_rsa*
+id_ed25519*
+*.tfvars
+*.tfstate
+*.tfstate.*
+docs/

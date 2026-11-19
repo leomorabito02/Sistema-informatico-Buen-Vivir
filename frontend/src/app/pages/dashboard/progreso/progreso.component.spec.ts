@@ -5,6 +5,7 @@ import { EducationService } from "../../../services/education.service";
 import { of, throwError } from "rxjs";
 import {
   Course,
+  Enrollment,
   ParticipantProgress,
 } from "../../../core/models/education.model";
 
@@ -37,10 +38,12 @@ describe("ProgresoComponent", () => {
     educationServiceSpy = jasmine.createSpyObj("EducationService", [
       "listMyCourses",
       "getCourseProgress",
+      "listEnrollments",
     ]);
 
     educationServiceSpy.listMyCourses.and.returnValue(of(mockCourses));
     educationServiceSpy.getCourseProgress.and.returnValue(of(mockProgress));
+    educationServiceSpy.listEnrollments.and.returnValue(of([]));
 
     await TestBed.configureTestingModule({
       imports: [ProgresoComponent, BrowserAnimationsModule],
@@ -59,7 +62,10 @@ describe("ProgresoComponent", () => {
   it("should calculate overallProgress correctly", () => {
     expect(component.overallProgress).toBe(0);
 
-    component.rows = mockProgress;
+    component.rows = mockProgress.map((p) => ({
+      ...p,
+      nombre: p.participanteId,
+    }));
     // (50 + 100) / 2 = 75
     expect(component.overallProgress).toBe(75);
   });
@@ -93,10 +99,20 @@ describe("ProgresoComponent", () => {
   });
 
   it("should fetch progress onCourseChange", () => {
+    educationServiceSpy.listEnrollments.and.returnValue(
+      of([
+        {
+          participanteId: mockProgress[0].participanteId,
+          nombre: "Ana",
+          apellido: "Paz",
+        },
+      ] as Enrollment[]),
+    );
     component.selectedCourseId = "c1";
     component.onCourseChange();
 
-    expect(component.rows).toEqual(mockProgress);
+    expect(component.rows.length).toBe(mockProgress.length);
+    expect(component.rows.map((r) => r.nombre)).toContain("Ana Paz");
     expect(component.loadingProgress).toBeFalse();
   });
 
