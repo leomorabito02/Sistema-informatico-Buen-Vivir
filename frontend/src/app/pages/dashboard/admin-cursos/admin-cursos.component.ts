@@ -209,7 +209,10 @@ export class AdminCursosComponent implements OnInit {
    * lo publicado: si la recarga llega antes, devolvía el curso viejo (p. ej.
    * el docente anterior). Durante ese rato se muestra lo que se guardó.
    */
-  private recentEdits = new Map<string, { data: Partial<Course>; at: number }>();
+  private recentEdits = new Map<
+    string,
+    { data: Partial<Course>; at: number }
+  >();
   private static readonly RECENT_EDIT_MS = 60_000;
 
   private withRecentEdit<T extends Course>(c: T): T {

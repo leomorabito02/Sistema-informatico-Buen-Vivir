@@ -62,7 +62,10 @@ describe("ProgresoComponent", () => {
   it("should calculate overallProgress correctly", () => {
     expect(component.overallProgress).toBe(0);
 
-    component.rows = mockProgress.map((p) => ({ ...p, nombre: p.participanteId }));
+    component.rows = mockProgress.map((p) => ({
+      ...p,
+      nombre: p.participanteId,
+    }));
     // (50 + 100) / 2 = 75
     expect(component.overallProgress).toBe(75);
   });
@@ -98,7 +101,11 @@ describe("ProgresoComponent", () => {
   it("should fetch progress onCourseChange", () => {
     educationServiceSpy.listEnrollments.and.returnValue(
       of([
-        { participanteId: mockProgress[0].participanteId, nombre: "Ana", apellido: "Paz" },
+        {
+          participanteId: mockProgress[0].participanteId,
+          nombre: "Ana",
+          apellido: "Paz",
+        },
       ] as Enrollment[]),
     );
     component.selectedCourseId = "c1";
