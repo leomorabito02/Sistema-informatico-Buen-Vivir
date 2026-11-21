@@ -404,6 +404,7 @@ export class UsuariosComponent implements OnInit {
       return;
     }
 
+    this.showDetailModal = false;
     this.selectedUser = user;
     this.cancelEditDocument();
 

@@ -1513,6 +1513,9 @@ jobs:
             JWT_REFRESH_EXPIRATION_DAYS=${{ secrets.JWT_REFRESH_EXPIRATION_DAYS }}
             JWT_REFRESH_SECRET=${{ secrets.JWT_REFRESH_SECRET }}
             FIREBASE_CREDENTIALS_BASE64=${{ env.FIREBASE_CREDENTIALS_BASE64 }}
+            GOOGLE_APPLICATION_CREDENTIALS_BASE64=${{ env.FIREBASE_CREDENTIALS_BASE64 }}
+            GCP_PROJECT_ID=${{ secrets.GCP_PROJECT_ID }}
+            GCP_BUCKET_NAME=${{ vars.GCP_BUCKET_NAME || 'ceibuenvivir-bucket' }}
             CORS_ALLOWED_ORIGINS=${{ env.CORS_ALLOWED_ORIGINS_ESCAPED }}
             WORKER_IMPACT_URL=${{ secrets.WORKER_IMPACT_URL }}
             WORKER_SYNC_TOKEN=${{ secrets.WORKER_SYNC_TOKEN }}
@@ -2076,6 +2079,7 @@ jobs:
       id-token: write
     env:
       APP_ENV: ${{ needs.cd-setup.outputs.env_name == 'PROD' && 'production' || 'development' }}
+      GOOGLE_APPLICATION_CREDENTIALS_BASE64: ""
     outputs:
       service_url: ${{ steps.deploy.outputs.url }}
       prev_revision: ${{ steps.pre-deploy.outputs.prev_revision }}
@@ -2096,6 +2100,12 @@ jobs:
             --format='value(status.latestReadyRevisionName)' 2>/dev/null || echo "")
           echo "prev_revision=$PREV" >> $GITHUB_OUTPUT
           echo "Previous revision: ${PREV:-none}"
+
+      - name: Prepare Google credentials (base64)
+        run: |
+          echo "GOOGLE_APPLICATION_CREDENTIALS_BASE64=$(echo -n "$FIREBASE_JSON" | base64 -w 0)" >> $GITHUB_ENV
+        env:
+          FIREBASE_JSON: ${{ secrets.GOOGLE_APPLICATION_CREDENTIALS }}
 
       - name: Validate dependencies (cv-renderer URL)
         run: |
@@ -2118,6 +2128,7 @@ jobs:
             GCP_PROJECT_ID=${{ secrets.GCP_PROJECT_ID }}
             GCP_BUCKET_NAME=${{ vars.GCP_BUCKET_NAME || 'ceibuenvivir-bucket' }}
             APP_ENV=${{ env.APP_ENV }}
+            GOOGLE_APPLICATION_CREDENTIALS_BASE64=${{ env.GOOGLE_APPLICATION_CREDENTIALS_BASE64 }}
             # Identidad por JWT y no por X-User-* (el API Gateway de GCP no
             # valida el token de la app; auditoría 17/11/2026).
             JWT_SECRET=${{ secrets.JWT_SECRET }}

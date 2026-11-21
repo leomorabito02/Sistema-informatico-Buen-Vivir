@@ -564,6 +564,38 @@ describe("UsuariosComponent", () => {
     );
   });
 
+  it("closes detail modal and opens edit modal when editing from detail", () => {
+    // Arrange
+    setup(admin, []);
+    usersService.getUserProfile.and.returnValue(
+      of({
+        user: { user_id: "u1", first_name: "Ana", role_id: "role_participant" },
+        role_data: { participant_id: "part-1" },
+      }),
+    );
+    const user = row({
+      originalUser: apiUser({
+        user_id: "u1",
+        first_name: "Ana",
+        role_id: "role_participant",
+      }),
+    });
+    component.selectedUser = user;
+    component.showDetailModal = true;
+    fixture.detectChanges();
+
+    // Act
+    const editBtn = fixture.nativeElement.querySelector(
+      'p-dialog button.btn-save[aria-label="Editar a ' + user.name + '"]',
+    ) as HTMLButtonElement | null;
+    expect(editBtn).not.toBeNull();
+    editBtn?.click();
+
+    // Assert
+    expect(component.showDetailModal).toBeFalse();
+    expect(component.showEditModal).toBeTrue();
+  });
+
   it("saves the user and its role data, recording who approved it", () => {
     setup(admin, []);
     usersService.updateUser.and.returnValue(of({}));

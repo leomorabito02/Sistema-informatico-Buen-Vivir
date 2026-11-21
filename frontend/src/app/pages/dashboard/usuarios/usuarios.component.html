@@ -59,10 +59,9 @@
   </div>
 
   <!-- HU-12 y HU-38: cuentas esperando aprobación -->
-  <div
+  <output
     class="pending-banner"
     *ngIf="!loading && !loadError && (pendientes.length || soloPendientes)"
-    role="status"
   >
     <i class="pi pi-exclamation-triangle" aria-hidden="true"></i>
     <span *ngIf="pendientes.length; else sinPendientes">
@@ -84,14 +83,9 @@
     >
       {{ soloPendientes ? "Ver todas" : "Ver pendientes" }}
     </button>
-  </div>
+  </output>
 
-  <div
-    class="table-card table-skeleton"
-    *ngIf="loading"
-    role="status"
-    aria-live="polite"
-  >
+  <output class="table-card table-skeleton" *ngIf="loading" aria-live="polite">
     <span class="sr-only">Cargando usuarios…</span>
     <table class="custom-user-table" aria-hidden="true">
       <thead>
@@ -131,7 +125,7 @@
         </tr>
       </tbody>
     </table>
-  </div>
+  </output>
 
   <app-error-state
     *ngIf="!loading && loadError"
@@ -527,6 +521,30 @@
         </ng-template>
       </div>
     </div>
+    <ng-template pTemplate="footer">
+      <div class="modal-footer-actions" *ngIf="selectedUser">
+        <button
+          type="button"
+          class="btn-cancel"
+          (click)="showDetailModal = false"
+        >
+          Cerrar
+        </button>
+        <button
+          type="button"
+          class="btn-save"
+          [attr.aria-label]="'Editar a ' + selectedUser.name"
+          (click)="openEditUser(selectedUser, $event)"
+        >
+          <i
+            class="pi pi-pencil"
+            aria-hidden="true"
+            style="margin-right: 0.4rem"
+          ></i>
+          Editar
+        </button>
+      </div>
+    </ng-template>
   </p-dialog>
 
   <!-- Edit User Modal -->

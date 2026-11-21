@@ -2,8 +2,11 @@ package storage
 
 import (
 	"context"
+	"encoding/base64"
 	"fmt"
 	"io"
+	"os"
+	"strings"
 
 	"cloud.google.com/go/storage"
 	"google.golang.org/api/option"
@@ -23,16 +26,9 @@ type gcsStorageService struct {
 
 // NewObjectStorageService initializes a GCP Cloud Storage client with local emulator fallback support.
 func NewObjectStorageService(ctx context.Context, projectID, bucketName, emulatorHost, credsPath string) (ObjectStorageService, error) {
-	var opts []option.ClientOption
-
-	if emulatorHost != "" {
-		opts = append(opts, option.WithEndpoint(emulatorHost), option.WithoutAuthentication())
-	} else if credsPath != "" {
-		if credsPath[0] == '{' {
-			opts = append(opts, option.WithCredentialsJSON([]byte(credsPath))) //nolint:staticcheck // mismo criterio que firebase_service.go: credenciales inline
-		} else {
-			opts = append(opts, option.WithCredentialsFile(credsPath)) //nolint:staticcheck // mismo criterio que firebase_service.go: archivo de credenciales
-		}
+	opts, err := resolveStorageClientOptions(emulatorHost, credsPath)
+	if err != nil {
+		return nil, err
 	}
 
 	client, err := storage.NewClient(ctx, opts...)
@@ -45,6 +41,39 @@ func NewObjectStorageService(ctx context.Context, projectID, bucketName, emulato
 		bucketName: bucketName,
 		emulator:   emulatorHost,
 	}, nil
+}
+
+// resolveStorageClientOptions builds Google Storage client options from emulator settings,
+// explicit credentials path/JSON, or base64-encoded service account environment variables.
+func resolveStorageClientOptions(emulatorHost, credsPath string) ([]option.ClientOption, error) {
+	if emulatorHost != "" {
+		return []option.ClientOption{
+			option.WithEndpoint(emulatorHost),
+			option.WithoutAuthentication(),
+		}, nil
+	}
+
+	creds := strings.TrimSpace(credsPath)
+	if creds == "" {
+		for _, envKey := range []string{"GOOGLE_APPLICATION_CREDENTIALS_BASE64", "FIREBASE_CREDENTIALS_BASE64"} {
+			if b64 := strings.TrimSpace(os.Getenv(envKey)); b64 != "" {
+				decoded, err := base64.StdEncoding.DecodeString(b64)
+				if err != nil {
+					return nil, fmt.Errorf("error decoding %s: %w", envKey, err)
+				}
+				creds = strings.TrimSpace(string(decoded))
+				break
+			}
+		}
+	}
+
+	if creds == "" {
+		return nil, nil
+	}
+	if strings.HasPrefix(creds, "{") {
+		return []option.ClientOption{option.WithCredentialsJSON([]byte(creds))}, nil //nolint:staticcheck // mismo criterio que firebase_service.go: credenciales inline
+	}
+	return []option.ClientOption{option.WithCredentialsFile(creds)}, nil //nolint:staticcheck // mismo criterio que firebase_service.go: archivo de credenciales
 }
 
 // UploadFile uploads a reader stream to GCP Object Storage and returns the public or emulated file URL.
