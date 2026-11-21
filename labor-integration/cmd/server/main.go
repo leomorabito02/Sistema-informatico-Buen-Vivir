@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"strings"
 	"sync"
+	"time"
 
 	"cloud.google.com/go/firestore"
 	"github.com/go-chi/chi/v5"
@@ -19,6 +20,7 @@ import (
 	"buenvivir/labor-integration/internal/controllers"
 	"buenvivir/labor-integration/internal/events"
 	"buenvivir/labor-integration/internal/events/producers"
+	"buenvivir/labor-integration/internal/observability"
 	"buenvivir/labor-integration/internal/outbox"
 	"buenvivir/labor-integration/internal/repositories"
 	"buenvivir/labor-integration/internal/routes"
@@ -28,15 +30,9 @@ import (
 func main() {
 	ctx := context.Background()
 	cfg := config.LoadConfig()
-	// Sin JWT_SECRET el servicio confía en los headers X-User-* (los pone
-	// el gateway nginx en local). En producción eso no es seguro: el API
-	// Gateway de GCP no los pisa (auditoría 2026-11-11).
-	if cfg.JWTSecret == "" && strings.EqualFold(cfg.AppEnv, "production") {
-		log.Fatalf("invalid configuration: JWT_SECRET es obligatorio en producción")
-	}
-	if cfg.JWTSecret == "" {
-		log.Printf("Warning: JWT_SECRET vacío: la identidad sale de los headers X-User-* del gateway (solo válido en local)")
-	}
+	observability.InitLogger("labor-integration", cfg.AppEnv)
+	metrics := observability.NewRegistry("labor-integration")
+	validateJWTConfig(cfg)
 
 	googleCredentials, err := config.GoogleCredentialsJSON()
 	if err != nil {
@@ -50,16 +46,9 @@ func main() {
 	defer func() { _ = firestoreClient.Close() }()
 
 	// Auth Client (HTTP in Cloud Run via AUTH_SERVICE_URL, gRPC in local Docker)
-	authTarget := cfg.AuthServiceURL
-	if authTarget == "" {
-		authTarget = cfg.AuthServiceGRPCTarget
-	}
+	authTarget, authIDToken := resolveServiceEndpoint(ctx, cfg.AuthServiceURL, cfg.AuthServiceGRPCTarget, cfg.UpstreamIDToken)
 	if authTarget == "" {
 		log.Fatalf("invalid configuration: missing AUTH_SERVICE_URL or AUTH_SERVICE_GRPC_TARGET")
-	}
-	var authIDToken func(context.Context) (string, error)
-	if cfg.UpstreamIDToken && cfg.AuthServiceURL != "" {
-		authIDToken = idTokenPara(ctx, cfg.AuthServiceURL)
 	}
 	authServiceClient, err := repositories.NewAuthServiceClient(
 		authTarget,
@@ -84,14 +73,7 @@ func main() {
 	insercionLaboralProducer := producers.NewInsercionLaboral(writer, cfg.Events.TopicInsercionLaboral)
 
 	// Education Client (HTTP in Cloud Run via EDUCATION_SERVICE_URL, gRPC in local Docker)
-	eduTarget := cfg.EducationServiceURL
-	if eduTarget == "" {
-		eduTarget = cfg.EducationServiceGRPCTarget
-	}
-	var eduIDToken func(context.Context) (string, error)
-	if cfg.UpstreamIDToken && cfg.EducationServiceURL != "" {
-		eduIDToken = idTokenPara(ctx, cfg.EducationServiceURL)
-	}
+	eduTarget, eduIDToken := resolveServiceEndpoint(ctx, cfg.EducationServiceURL, cfg.EducationServiceGRPCTarget, cfg.UpstreamIDToken)
 
 	// Services
 	jobOfferService := services.NewJobOfferService(
@@ -114,18 +96,56 @@ func main() {
 	jobApplicationController := controllers.NewJobApplicationController(jobApplicationService)
 
 	r := chi.NewRouter()
-	r.Use(middleware.Logger)
+	r.Use(observability.HTTPMiddleware(metrics, chiRoutePattern))
 	r.Use(middleware.Recoverer)
+	if observability.MetricsEnabled() {
+		r.Handle("/metrics", metrics.Handler())
+	}
 
 	routes.RegisterRoutes(r, routes.Controllers{
 		JobOffer:       jobOfferController,
 		JobApplication: jobApplicationController,
 	})
 
-	log.Printf("Labor Integration Service listening on port %s", cfg.Port)
-	if err := http.ListenAndServe(":"+cfg.Port, r); err != nil {
+	server := &http.Server{
+		Addr:              ":" + cfg.Port,
+		Handler:           r,
+		ReadHeaderTimeout: 10 * time.Second,
+	}
+	slog.Info("Labor Integration Service listening", slog.String("port", cfg.Port))
+	if err := observability.ListenAndServeGraceful(ctx, server); err != nil {
 		log.Fatalf("failed to start server: %v", err)
 	}
+}
+
+func validateJWTConfig(cfg *config.Config) {
+	// Sin JWT_SECRET el servicio confía en los headers X-User-* (los pone
+	// el gateway nginx en local). En producción eso no es seguro: el API
+	// Gateway de GCP no los pisa (auditoría 2026-11-11).
+	if cfg.JWTSecret == "" && strings.EqualFold(cfg.AppEnv, "production") {
+		log.Fatalf("invalid configuration: JWT_SECRET es obligatorio en producción")
+	}
+	if cfg.JWTSecret == "" {
+		log.Printf("Warning: JWT_SECRET vacío: la identidad sale de los headers X-User-* del gateway (solo válido en local)")
+	}
+}
+
+func resolveServiceEndpoint(ctx context.Context, httpURL, grpcTarget string, useIDToken bool) (string, func(context.Context) (string, error)) {
+	target := httpURL
+	if target == "" {
+		target = grpcTarget
+	}
+	if useIDToken && httpURL != "" {
+		return target, idTokenPara(ctx, httpURL)
+	}
+	return target, nil
+}
+
+func chiRoutePattern(req *http.Request) string {
+	if rc := chi.RouteContext(req.Context()); rc != nil {
+		return rc.RoutePattern()
+	}
+	return ""
 }
 
 func startRelay(ctx context.Context, cfg *config.Config, client *firestore.Client, googleCredentials []byte) *outbox.Relay {

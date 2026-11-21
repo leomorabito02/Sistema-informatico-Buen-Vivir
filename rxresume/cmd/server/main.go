@@ -3,12 +3,15 @@ package main
 import (
 	"context"
 	"log"
+	"log/slog"
 	"net/http"
 	"strings"
+	"time"
 
 	"buenvivir/rxresume/internal/config"
 	"buenvivir/rxresume/internal/controllers"
 	"buenvivir/rxresume/internal/models"
+	"buenvivir/rxresume/internal/observability"
 	"buenvivir/rxresume/internal/renderer"
 	"buenvivir/rxresume/internal/repositories"
 	"buenvivir/rxresume/internal/routes"
@@ -21,6 +24,8 @@ import (
 
 func main() {
 	cfg := config.LoadConfig()
+	observability.InitLogger("rxresume", cfg.AppEnv)
+	metrics := observability.NewRegistry("rxresume")
 
 	db, err := gorm.Open(postgres.Open(cfg.DatabaseURL), &gorm.Config{})
 	if err != nil {
@@ -44,6 +49,9 @@ func main() {
 	controller := controllers.NewResumeController(service)
 
 	mux := http.NewServeMux()
+	if observability.MetricsEnabled() {
+		mux.Handle("GET /metrics", metrics.Handler())
+	}
 	routes.RegisterRoutes(mux, controller)
 
 	// Sin JWT_SECRET la identidad sale de los headers X-User-* que pone el
@@ -52,12 +60,17 @@ func main() {
 		if strings.EqualFold(cfg.AppEnv, "production") {
 			log.Fatalf("invalid configuration: JWT_SECRET es obligatorio en producción")
 		}
-		log.Printf("Warning: JWT_SECRET vacío: la identidad sale de los headers X-User-* del gateway (solo válido en local)")
+		slog.Warn("JWT_SECRET vacío: la identidad sale de los headers X-User-* del gateway (solo válido en local)")
 	}
-	handler := routes.Security(mux, cfg.JWTSecret, cfg.CORSAllowedOrigins)
+	handler := observability.HTTPMiddleware(metrics, nil)(routes.Security(mux, cfg.JWTSecret, cfg.CORSAllowedOrigins))
 
-	log.Printf("Servicio RxResume escuchando en el puerto :%s (conectado a cv-renderer en %s)", cfg.Port, cfg.RendererURL)
-	if err := http.ListenAndServe(":"+cfg.Port, handler); err != nil {
+	srv := &http.Server{
+		Addr:              ":" + cfg.Port,
+		Handler:           handler,
+		ReadHeaderTimeout: 10 * time.Second,
+	}
+	slog.Info("Servicio RxResume escuchando", slog.String("port", cfg.Port), slog.String("renderer_url", cfg.RendererURL))
+	if err := observability.ListenAndServeGraceful(ctx, srv); err != nil {
 		log.Fatalf("Error al iniciar el servidor rxresume: %v", err)
 	}
 }

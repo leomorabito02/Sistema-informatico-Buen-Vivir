@@ -1,0 +1,39 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+scrape_configs:
+  - job_name: prometheus
+    static_configs:
+      - targets: ["localhost:9090"]
+
+  - job_name: buenvivir-services
+    metrics_path: /metrics
+    static_configs:
+      - targets: ["auth-service:8080"]
+        labels:
+          service: auth
+      - targets: ["education-service:8210"]
+        labels:
+          service: education
+      - targets: ["labor-integration:8080"]
+        labels:
+          service: labor-integration
+      - targets: ["human-promotion:8085"]
+        labels:
+          service: human-promotion
+      - targets: ["dashboard-service:8090"]
+        labels:
+          service: dashboard
+      - targets: ["campaigns-service:8080"]
+        labels:
+          service: campaigns
+      - targets: ["notifications-service:8080"]
+        labels:
+          service: notifications
+      - targets: ["rxresume-service:8080"]
+        labels:
+          service: rxresume
+      - targets: ["cv-renderer:5005"]
+        labels:
+          service: cv-renderer
