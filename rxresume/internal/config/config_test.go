@@ -1,6 +1,9 @@
 package config
 
-import "testing"
+import (
+	"encoding/base64"
+	"testing"
+)
 
 // El CD de Cloud Run y el .env local pasan DATABASE_URL; antes solo se
 // leía DATABASE_URL_RXRESUME y el servicio caía a localhost:5432.
@@ -31,5 +34,35 @@ func TestLoadConfig_BaseDeDatosConComillas(t *testing.T) {
 		if got := LoadConfig().DatabaseURL; got != "postgresql://u:p@h/db" {
 			t.Fatalf("%q quedó como %q", v, got)
 		}
+	}
+}
+
+func TestLoadConfig_GoogleCredentialsBase64(t *testing.T) {
+	// Arrange
+	rawJSON := `{"type":"service_account","project_id":"ceibuenvivir"}`
+	encoded := base64.StdEncoding.EncodeToString([]byte("  " + rawJSON + "\n"))
+	t.Setenv("GOOGLE_APPLICATION_CREDENTIALS_BASE64", encoded)
+	t.Setenv("GOOGLE_APPLICATION_CREDENTIALS", "/tmp/fallback.json")
+
+	// Act
+	cfg := LoadConfig()
+
+	// Assert
+	if cfg.ApplicationCreds != rawJSON {
+		t.Fatalf("expected decoded JSON %q, got %q", rawJSON, cfg.ApplicationCreds)
+	}
+}
+
+func TestLoadConfig_GoogleCredentialsFallback(t *testing.T) {
+	// Arrange
+	t.Setenv("GOOGLE_APPLICATION_CREDENTIALS_BASE64", "invalid-base64!!!")
+	t.Setenv("GOOGLE_APPLICATION_CREDENTIALS", " /tmp/creds.json ")
+
+	// Act
+	cfg := LoadConfig()
+
+	// Assert
+	if cfg.ApplicationCreds != "/tmp/creds.json" {
+		t.Fatalf("expected fallback path %q, got %q", "/tmp/creds.json", cfg.ApplicationCreds)
 	}
 }

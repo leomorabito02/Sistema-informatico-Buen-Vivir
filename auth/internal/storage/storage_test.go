@@ -1,0 +1,55 @@
+package storage
+
+import (
+	"encoding/base64"
+	"testing"
+)
+
+func TestResolveStorageClientOptions_Emulator(t *testing.T) {
+	// Arrange
+	emulatorHost := "http://localhost:4443"
+
+	// Act
+	opts, err := resolveStorageClientOptions(emulatorHost, "")
+
+	// Assert
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+	if len(opts) != 2 {
+		t.Fatalf("expected 2 emulator options, got %d", len(opts))
+	}
+}
+
+func TestResolveStorageClientOptions_Base64EnvFallback(t *testing.T) {
+	// Arrange
+	rawJSON := `{"type":"service_account","project_id":"ceibuenvivir"}`
+	encoded := base64.StdEncoding.EncodeToString([]byte(rawJSON))
+	t.Setenv("GOOGLE_APPLICATION_CREDENTIALS_BASE64", "")
+	t.Setenv("FIREBASE_CREDENTIALS_BASE64", encoded)
+
+	// Act
+	opts, err := resolveStorageClientOptions("", "")
+
+	// Assert
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+	if len(opts) != 1 {
+		t.Fatalf("expected 1 credentials option, got %d", len(opts))
+	}
+}
+
+func TestResolveStorageClientOptions_InvalidBase64(t *testing.T) {
+	// Arrange
+	t.Setenv("GOOGLE_APPLICATION_CREDENTIALS_BASE64", "not-valid-base64!!!")
+	t.Setenv("FIREBASE_CREDENTIALS_BASE64", "")
+
+	// Act
+	_, err := resolveStorageClientOptions("", "")
+
+	// Assert
+	if err == nil {
+		t.Fatal("expected error for invalid base64 credentials")
+	}
+}
