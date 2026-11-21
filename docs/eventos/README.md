@@ -282,11 +282,32 @@ request → [transacción Firestore: cambio + evento en outbox_eventos] → resp
   en el log con el `correlation_id` y el request no falla. Es el único
   caso sin garantía total. Contentful igual emite su webhook, que genera
   `contenido.publicado` para las publicaciones.
-- **Cloud Run escala a cero**: entre requests la instancia no tiene CPU,
-  así que el Relay en segundo plano puede quedar parado. Por eso hay un
-  job de Cloud Scheduler por minuto que llama a
-  `POST /internal/outbox/flush` (con OIDC) en Educación y Promoción
-  Humana. Ningún evento espera más de ~1 minuto.
+- **Cloud Run escala a cero (flush inline + drain en `SIGTERM`)**: entre
+  requests la instancia no tiene CPU, y un cron de Cloud Scheduler cada
+  minuto mantendría viva la instancia las 24 h (impidiendo el
+  `scale-to-zero` de ~15 min y excediendo el Free Tier de 3 jobs gratis).
+  Por eso, al correr en Cloud Run (`K_SERVICE` definido):
+  1. **Flush inline *best-effort***: tras confirmar el commit en Firestore
+     (`outbox.Relay.NotifyInline`, timeout 2 s), Postgres (`auth`:
+     middleware post-request `FlushIfDirty`, timeout 2 s) o Notificaciones
+     (`delivery.Worker.NotifyInline`, timeout 3 s), el servicio intenta
+     publicar/despachar el evento inmediatamente dentro del mismo request
+     HTTP activo (~50–150 ms). Si falla o vence el timeout, **el request
+     del usuario nunca falla**: el registro sigue a salvo en el outbox/BD
+     con backoff exponencial.
+  2. **Drain en `SIGTERM`**: cuando Cloud Run apaga la instancia tras ~15
+     min sin tráfico (`observability.ListenAndServeGraceful`), se cancelan
+     los loops periódicos y se ejecuta un barrido final de hasta 5 s para
+     despachar cualquier pendiente antes de bajar a `0` instancias.
+  3. **Cloud Scheduler (Free Tier ≤ 3 jobs)**: `infra/pubsub/setup.sh`
+     deja activo por defecto solo `reminders-education` (`0 8 * * *`, 1
+     vez al día = 1 job gratis). Si en producción se desea barrido de
+     rescate periódico sin romper `scale-to-zero`, ejecutar `setup.sh` con
+     `ENABLE_FLUSH_JOBS=true OUTBOX_FLUSH_SCHEDULE="0 * * * *"` (cada 60
+     min > 15 min idle, máximo 3 jobs totales gratis).
+  4. Los endpoints `POST /internal/outbox/flush` y
+     `POST /internal/delivery/flush` siguen disponibles (protegidos con
+     OIDC) para barridos manuales o de rescate horario.
 - Si dos instancias barren a la vez, cada evento queda **reservado**
   (lease de 1 minuto) por la que lo tomó. Si una instancia se cae a mitad
   de camino, el evento se vuelve a publicar: el consumidor lo descarta
@@ -405,11 +426,13 @@ registro se escribe aunque Pub/Sub esté desactivado.
 
 | Variable | Servicios | Para qué |
 |---|---|---|
-| `PUBSUB_PROJECT_ID` | education, human-promotion | proyecto de GCP. Vacío = no publica (local) |
-| `PUBSUB_TOPIC_EDUCACION`, `PUBSUB_TOPIC_CONTENIDO`, `PUBSUB_TOPIC_PROMOCION_HUMANA` | ídem | nombres de los topics (valores por defecto en la sección 2) |
-| `PUBSUB_PUSH_AUDIENCE` | los tres | audience de los push: la URL del servicio (en Dashboard, `<url>/eventos`) |
-| `PUBSUB_PUSH_SERVICE_ACCOUNTS` | los tres | service accounts autorizadas (las imprime `setup.sh`). Incluye la de Cloud Scheduler |
-| `PUBSUB_PUSH_AUTH=disabled` | los tres | **solo local** con el emulador. En producción el servicio no arranca |
+| `PUBSUB_PROJECT_ID` | auth, education, human-promotion, labor-integration, campaigns, notifications | proyecto de GCP. Vacío = no publica (local) |
+| `PUBSUB_TOPIC_EDUCACION`, `PUBSUB_TOPIC_CONTENIDO`, `PUBSUB_TOPIC_PROMOCION_HUMANA` | productores | nombres de los topics (valores por defecto en la sección 2) |
+| `PUBSUB_PUSH_AUDIENCE` | education, human-promotion, dashboard, notifications | audience OIDC de los push: la URL del servicio (en Dashboard, `<url>/eventos`). El pipeline CD la inyecta automáticamente |
+| `PUBSUB_PUSH_SERVICE_ACCOUNTS` | education, human-promotion, dashboard, notifications | service accounts autorizadas (las imprime `setup.sh` y el pipeline CD las inyecta automáticamente). Incluye `sa-scheduler-outbox` |
+| `PUBSUB_PUSH_AUTH=disabled` | consumidores | **solo local** con el emulador. En producción el servicio no arranca |
+| `OUTBOX_INLINE_FLUSH` | auth, education, human-promotion, labor-integration, campaigns | fuerza (`true`/`false`) el flush inline del outbox. Por defecto activo automáticamente en Cloud Run (`K_SERVICE` seteado) y desactivado en local |
+| `DELIVERY_INLINE_FLUSH` | notifications | fuerza (`true`/`false`) el despacho inline de email/push tras recibir un evento. Por defecto activo automáticamente en Cloud Run (`K_SERVICE` seteado) |
 | `CONTENTFUL_WEBHOOK_SECRET` | education | secreto del header `X-Webhook-Secret` (Secret Manager) |
 | `CONTENT_CACHE_TTL` | education | caché de Contentful (por defecto `5m`, `0` la desactiva) |
 | `DASHBOARD_CACHE_TTL` | dashboard | caché de indicadores (por defecto `5m`) |

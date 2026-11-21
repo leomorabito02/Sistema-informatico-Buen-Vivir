@@ -34,6 +34,14 @@ set -euo pipefail
 : "${EDUCATION_SA:?falta EDUCATION_SA (service account de Cloud Run de education)}"
 : "${HUMAN_PROMOTION_SA:?falta HUMAN_PROMOTION_SA}"
 REGION="${REGION:-us-central1}"
+# Cloud Scheduler Free Tier incluye 3 jobs gratis por cuenta de facturación.
+# Como los productores hacen flush inline (best-effort) + drain en SIGTERM,
+# los jobs periódicos de flush quedan desactivados por defecto (solo corre
+# reminders-education 1 vez al día -> 1 job gratis y scale-to-zero real).
+# Para activar barrido de respaldo horario en prod (<= 3 jobs totales):
+#   ENABLE_FLUSH_JOBS=true OUTBOX_FLUSH_SCHEDULE="0 * * * *"
+ENABLE_FLUSH_JOBS="${ENABLE_FLUSH_JOBS:-false}"
+OUTBOX_FLUSH_SCHEDULE="${OUTBOX_FLUSH_SCHEDULE:-0 * * * *}"
 
 G=(gcloud --project "$PROJECT_ID" --quiet)
 PROJECT_NUMBER="$("${G[@]}" projects describe "$PROJECT_ID" --format='value(projectNumber)')"
@@ -196,12 +204,15 @@ log "TTL de Firestore"
 "${G[@]}" firestore fields ttls update expira_en --collection-group=eventos_procesados --enable-ttl --async || \
   echo "(no se pudo configurar el TTL: revisar que la base Firestore sea la (default))"
 
-# ── Barrido del outbox (Cloud Run escala a cero) ─────────────────────
+# ── Cloud Scheduler (presupuesto $0 / scale-to-zero) ─────────────────
 ensure_job() { # $1=nombre $2=url base $3=path (opcional) $4=schedule (opcional)
   local path="${3:-/internal/outbox/flush}"
-  local sched="${4:-* * * * *}"
+  local sched="${4:-$OUTBOX_FLUSH_SCHEDULE}"
   if "${G[@]}" scheduler jobs describe "$1" --location "$REGION" >/dev/null 2>&1; then
-    echo "job $1: ya existe"
+    "${G[@]}" scheduler jobs update http "$1" --location "$REGION" \
+      --schedule "$sched" --http-method POST --uri "$2$path" \
+      --oidc-service-account-email "$SA_SCHEDULER" --oidc-token-audience "$2"
+    echo "job $1: actualizado ($sched)"
   else
     "${G[@]}" scheduler jobs create http "$1" --location "$REGION" \
       --schedule "$sched" --http-method POST --uri "$2$path" \
@@ -210,10 +221,17 @@ ensure_job() { # $1=nombre $2=url base $3=path (opcional) $4=schedule (opcional)
 }
 
 log "Cloud Scheduler"
-ensure_job outbox-flush-education "$EDUCATION_URL"
-ensure_job outbox-flush-human-promotion "$HUMAN_PROMOTION_URL"
-ensure_job delivery-flush-notifications "$NOTIFICATIONS_URL" "/internal/delivery/flush"
 ensure_job reminders-education "$EDUCATION_URL" "/internal/reminders/trigger" "0 8 * * *"
+if [[ "$ENABLE_FLUSH_JOBS" == "true" ]]; then
+  # Máximo 2 jobs de rescate horarios + reminders-education = 3 jobs totales gratis
+  # (60 min > 15 min de ventana idle de Cloud Run -> preserva scale-to-zero).
+  ensure_job outbox-flush-education "$EDUCATION_URL" "/internal/outbox/flush" "$OUTBOX_FLUSH_SCHEDULE"
+  ensure_job outbox-flush-human-promotion "$HUMAN_PROMOTION_URL" "/internal/outbox/flush" "$OUTBOX_FLUSH_SCHEDULE"
+else
+  echo "ENABLE_FLUSH_JOBS=false: solo se mantiene reminders-education (1 job gratis, scale-to-zero real)."
+  echo "Si existen jobs heredados de flush cada minuto, pausarlos con:"
+  echo "  gcloud scheduler jobs pause outbox-flush-education outbox-flush-human-promotion delivery-flush-notifications --location=$REGION --project=$PROJECT_ID"
+fi
 
 cat <<EOF
 

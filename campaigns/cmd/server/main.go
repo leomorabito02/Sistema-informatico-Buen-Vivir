@@ -39,10 +39,11 @@ func main() {
 	}
 	defer func() { _ = firestoreClient.Close() }()
 
-	relay := startRelay(ctx, cfg, firestoreClient)
+	relayCtx, cancelRelay := context.WithCancel(ctx)
+	relay := startRelay(relayCtx, cfg, firestoreClient)
 	var writer *outbox.Writer
 	if relay != nil {
-		writer = outbox.NewWriter(firestoreClient, events.ProducerCampanas, relay.Notify)
+		writer = outbox.NewWriter(firestoreClient, events.ProducerCampanas, relay.NotifyInline)
 	}
 	campanasProducer := producers.NewCampanasProducer(writer, cfg.Events.TopicCampanas)
 
@@ -70,7 +71,10 @@ func main() {
 		ReadHeaderTimeout: 10 * time.Second,
 	}
 	slog.Info("Servicio Campaigns escuchando", slog.String("port", cfg.Port))
-	if err := observability.ListenAndServeGraceful(ctx, server); err != nil {
+	if err := observability.ListenAndServeGraceful(ctx, server, func(shutdownCtx context.Context) {
+		cancelRelay()
+		relay.Shutdown(shutdownCtx)
+	}); err != nil {
 		slog.Error("error al iniciar el servidor", slog.String("error", err.Error()))
 		os.Exit(1)
 	}

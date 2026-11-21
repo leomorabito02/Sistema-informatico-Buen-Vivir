@@ -69,11 +69,12 @@ func main() {
 	}
 
 	// Mensajería asíncrona (docs/eventos/README.md): el productor escribe
-	// en el outbox y el relay publica en Pub/Sub.
-	relay := startRelay(ctx, cfg, firestoreClient, googleCredentials)
+	// en el outbox y el relay publica en Pub/Sub (inline en Cloud Run + drain en SIGTERM).
+	relayCtx, cancelRelay := context.WithCancel(ctx)
+	relay := startRelay(relayCtx, cfg, firestoreClient, googleCredentials)
 	var writer *outbox.Writer
 	if relay != nil {
-		writer = outbox.NewWriter(firestoreClient, events.ProducerEducacion, relay.Notify)
+		writer = outbox.NewWriter(firestoreClient, events.ProducerEducacion, relay.NotifyInline)
 	}
 	eventProducer := producers.NewEducacion(writer, cfg.Events.TopicEducacion, cfg.Events.TopicContenido)
 
@@ -191,7 +192,10 @@ func main() {
 		WriteTimeout:      30 * time.Second,
 		IdleTimeout:       60 * time.Second,
 	}
-	if err := observability.ListenAndServeGraceful(ctx, srv); err != nil {
+	if err := observability.ListenAndServeGraceful(ctx, srv, func(shutdownCtx context.Context) {
+		cancelRelay()
+		relay.Shutdown(shutdownCtx)
+	}); err != nil {
 		log.Fatalf("error al iniciar el servidor: %v", err)
 	}
 }

@@ -301,3 +301,75 @@ func TestFirestoreProcessedStore(t *testing.T) {
 		t.Errorf("TTL: %v", doc.ExpiresAt.Sub(doc.ProcessedAt))
 	}
 }
+
+func TestInlineFlushEnabled(t *testing.T) {
+	t.Run("disabled by default outside Cloud Run", func(t *testing.T) {
+		// Arrange
+		t.Setenv("K_SERVICE", "")
+		t.Setenv("OUTBOX_INLINE_FLUSH", "")
+
+		// Act & Assert
+		if InlineFlushEnabled() {
+			t.Fatal("expected inline flush disabled by default")
+		}
+	})
+
+	t.Run("enabled automatically on Cloud Run", func(t *testing.T) {
+		// Arrange
+		t.Setenv("K_SERVICE", "education-testing")
+		t.Setenv("OUTBOX_INLINE_FLUSH", "")
+
+		// Act & Assert
+		if !InlineFlushEnabled() {
+			t.Fatal("expected inline flush enabled when K_SERVICE is set")
+		}
+	})
+
+	t.Run("explicit false overrides K_SERVICE", func(t *testing.T) {
+		// Arrange
+		t.Setenv("K_SERVICE", "education-testing")
+		t.Setenv("OUTBOX_INLINE_FLUSH", "false")
+
+		// Act & Assert
+		if InlineFlushEnabled() {
+			t.Fatal("expected explicit false to disable inline flush")
+		}
+	})
+
+	t.Run("explicit true enables locally", func(t *testing.T) {
+		// Arrange
+		t.Setenv("K_SERVICE", "")
+		t.Setenv("OUTBOX_INLINE_FLUSH", "true")
+
+		// Act & Assert
+		if !InlineFlushEnabled() {
+			t.Fatal("expected explicit true to enable inline flush")
+		}
+	})
+}
+
+func TestRelayFlushBestEffortAndNotifyInline_NilSafe(t *testing.T) {
+	// Arrange
+	var nilRelay *Relay
+	zeroRelay := &Relay{}
+	emptyRelay := NewRelay(nil, nil, quiet())
+
+	// Act & Assert
+	if n := nilRelay.FlushBestEffort(context.Background(), 0); n != 0 {
+		t.Fatalf("nil relay expected 0, got %d", n)
+	}
+	if n := zeroRelay.FlushBestEffort(context.TODO(), 0); n != 0 {
+		t.Fatalf("zero relay expected 0, got %d", n)
+	}
+	nilRelay.Notify()
+	nilRelay.NotifyInline()
+	nilRelay.Shutdown(context.Background())
+
+	t.Setenv("K_SERVICE", "education-testing")
+	t.Setenv("OUTBOX_INLINE_FLUSH", "")
+	emptyRelay.NotifyInline()
+	emptyRelay.Shutdown(context.Background())
+
+	t.Setenv("K_SERVICE", "")
+	emptyRelay.NotifyInline()
+}

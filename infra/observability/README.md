@@ -59,6 +59,13 @@ PROJECT_ID=ceibuenvivir ENV_SUFFIX=testing ALERT_EMAIL=tu-email@ejemplo.com \
   # Borrar los que correspondan a servicios privados con:
   # gcloud monitoring uptime delete <CONFIG_ID> --quiet
   ```
+- Si en Cloud Scheduler existían los jobs heredados de flush cada minuto (`* * * * *`), pausarlos (o borrarlos) para que las instancias bajen a `0` y el proyecto se mantenga en el Free Tier (máximo 3 jobs gratis; ver `docs/eventos/README.md`):
+  ```bash
+  gcloud scheduler jobs list --location=us-central1 --project=ceibuenvivir
+  gcloud scheduler jobs pause outbox-flush-education --location=us-central1 --project=ceibuenvivir
+  gcloud scheduler jobs pause outbox-flush-human-promotion --location=us-central1 --project=ceibuenvivir
+  gcloud scheduler jobs pause delivery-flush-notifications --location=us-central1 --project=ceibuenvivir
+  ```
 - *(Recomendado, \$0)* En GCP *Billing -> Budgets & alerts*, crear una alerta mensual (ej. USD 5) para detectar consumo anómalo si algo impidiera el `scale-to-zero`.
 
 ### Paso 3: Configurar Grafana Cloud (Plan Free Forever — URL privada HU-56)
