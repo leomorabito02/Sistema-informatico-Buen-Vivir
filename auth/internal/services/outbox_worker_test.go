@@ -271,7 +271,7 @@ func TestOutboxWorker_InlineFlushAndBestEffort(t *testing.T) {
 
 		// Act & Assert
 		assert.Equal(t, 0, nilWorker.FlushBestEffort(context.Background(), 0))
-		assert.Equal(t, 0, wErr.FlushBestEffort(nil, 0))
+		assert.Equal(t, 0, wErr.FlushBestEffort(context.TODO(), 0))
 		repoErr.AssertExpectations(t)
 	})
 }

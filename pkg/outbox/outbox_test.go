@@ -356,7 +356,7 @@ func TestRelayFlushBestEffortAndNotifyInline_NilSafe(t *testing.T) {
 	if n := nilRelay.FlushBestEffort(context.Background(), 0); n != 0 {
 		t.Fatalf("nil relay expected 0, got %d", n)
 	}
-	if n := zeroRelay.FlushBestEffort(nil, 0); n != 0 {
+	if n := zeroRelay.FlushBestEffort(context.TODO(), 0); n != 0 {
 		t.Fatalf("zero relay expected 0, got %d", n)
 	}
 	nilRelay.Notify()
