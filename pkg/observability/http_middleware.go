@@ -1,0 +1,150 @@
+package observability
+
+import (
+	"crypto/rand"
+	"encoding/hex"
+	"log/slog"
+	"net/http"
+	"strings"
+	"time"
+)
+
+// RouteResolver returns a low-cardinality route pattern for an HTTP request
+// (e.g., "/api/v1/users/{id}" instead of "/api/v1/users/123").
+type RouteResolver func(*http.Request) string
+
+type statusRecorder struct {
+	http.ResponseWriter
+	status int
+	bytes  int
+}
+
+func (sr *statusRecorder) WriteHeader(code int) {
+	if sr.status == 0 {
+		sr.status = code
+	}
+	sr.ResponseWriter.WriteHeader(code)
+}
+
+func (sr *statusRecorder) Write(p []byte) (int, error) {
+	if sr.status == 0 {
+		sr.status = http.StatusOK
+	}
+	n, err := sr.ResponseWriter.Write(p)
+	sr.bytes += n
+	return n, err
+}
+
+func (sr *statusRecorder) Unwrap() http.ResponseWriter {
+	return sr.ResponseWriter
+}
+
+// HTTPMiddleware instruments HTTP handlers with correlation ID propagation, Cloud Trace extraction,
+// RED Prometheus metrics, and structured JSON request logging.
+func HTTPMiddleware(reg *Registry, resolveRoute RouteResolver) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if r.URL.Path == "/metrics" {
+				next.ServeHTTP(w, r)
+				return
+			}
+
+			cid := strings.TrimSpace(r.Header.Get(HeaderCorrelationID))
+			if cid == "" || len(cid) > 128 {
+				cid = generateCorrelationID()
+			}
+			w.Header().Set(HeaderCorrelationID, cid)
+
+			ctx := WithCorrelationID(r.Context(), cid)
+			if traceID := ParseCloudTraceHeader(r.Header.Get(HeaderCloudTraceContext)); traceID != "" {
+				ctx = WithTraceID(ctx, traceID)
+			}
+			r = r.WithContext(ctx)
+
+			if reg != nil {
+				reg.IncInFlight()
+				defer reg.DecInFlight()
+			}
+
+			rec := &statusRecorder{ResponseWriter: w}
+			start := time.Now()
+			next.ServeHTTP(rec, r)
+			elapsed := time.Since(start)
+
+			status := rec.status
+			if status == 0 {
+				status = http.StatusOK
+			}
+
+			route := normalizeRoute(r, resolveRoute)
+			if reg != nil {
+				reg.ObserveHTTPRequest(r.Method, route, status, elapsed)
+			}
+
+			if isQuietPath(r.URL.Path) && status < http.StatusBadRequest {
+				return
+			}
+
+			logger := LoggerFromContext(ctx, slog.Default())
+			attrs := []any{
+				slog.String("method", r.Method),
+				slog.String("route", route),
+				slog.Int("status", status),
+				slog.Float64("latency_ms", float64(elapsed.Microseconds())/1000.0),
+				slog.Int("bytes", rec.bytes),
+			}
+			switch {
+			case status >= http.StatusInternalServerError:
+				logger.Error("http_request", attrs...)
+			case status >= http.StatusBadRequest:
+				logger.Warn("http_request", attrs...)
+			default:
+				logger.Info("http_request", attrs...)
+			}
+		})
+	}
+}
+
+func normalizeRoute(r *http.Request, resolveRoute RouteResolver) string {
+	var route string
+	if resolveRoute != nil {
+		route = strings.TrimSpace(resolveRoute(r))
+	}
+	if route == "" && r.Pattern != "" {
+		route = strings.TrimSpace(r.Pattern)
+		if idx := strings.Index(route, " "); idx != -1 {
+			route = strings.TrimSpace(route[idx+1:])
+		}
+	}
+	if route == "" {
+		if isQuietPath(r.URL.Path) {
+			return r.URL.Path
+		}
+		return "unmatched"
+	}
+	return route
+}
+
+func isQuietPath(path string) bool {
+	return path == "/health" || path == "/api/salud" || path == "/metrics"
+}
+
+func generateCorrelationID() string {
+	var b [16]byte
+	if _, err := rand.Read(b[:]); err != nil {
+		return "req-fallback"
+	}
+	b[6] = (b[6] & 0x0f) | 0x40
+	b[8] = (b[8] & 0x3f) | 0x80
+	var out [36]byte
+	hex.Encode(out[0:8], b[0:4])
+	out[8] = '-'
+	hex.Encode(out[9:13], b[4:6])
+	out[13] = '-'
+	hex.Encode(out[14:18], b[6:8])
+	out[18] = '-'
+	hex.Encode(out[19:23], b[8:10])
+	out[23] = '-'
+	hex.Encode(out[24:36], b[10:16])
+	return string(out[:])
+}

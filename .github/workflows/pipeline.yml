@@ -158,6 +158,9 @@ jobs:
         working-directory: pkg
         run: go test -v -race -coverprofile=coverage.out ./...
 
+      - name: Verify shared pkg copies are in sync
+        run: bash scripts/sync-eventlib.sh --check
+
   ci-auth:
     name: CI — Auth Service (Go)
     runs-on: ubuntu-latest

@@ -3,10 +3,12 @@ package main
 import (
 	"context"
 	"log"
+	"log/slog"
 	"net"
 	"net/http"
 	"os"
 	"sync"
+	"time"
 
 	"buenvivir/notifications/api/proto/notificationpb"
 	"buenvivir/notifications/internal/audience"
@@ -18,6 +20,7 @@ import (
 	"buenvivir/notifications/internal/delivery"
 	"buenvivir/notifications/internal/events"
 	"buenvivir/notifications/internal/middlewares"
+	"buenvivir/notifications/internal/observability"
 	"buenvivir/notifications/internal/repositories"
 	"buenvivir/notifications/internal/routes"
 	"buenvivir/notifications/internal/rules"
@@ -33,77 +36,17 @@ import (
 
 func main() {
 	cfg := config.LoadConfig()
+	observability.InitLogger("notifications", cfg.Environment)
+	metrics := observability.NewRegistry("notifications")
 
 	db := setupDatabase(cfg.DatabaseURL)
 	repo := repositories.NewNotificationRepository(db)
 
 	var serviceOpts []services.NotificationServiceOption
-	var emailSvc services.EmailService
-	var pushSvc services.PushService
-	var authClient clients.AuthClient
-	var tmplEngine templates.TemplateEngine
-
-	// 1. Resend Email Client
-	if cfg.ResendAPIKey != "" {
-		svc, err := services.NewDualResendEmailService(
-			cfg.ResendAPIKey,
-			cfg.ResendFromNotifications,
-			cfg.ResendFromAlerts,
-		)
-		if err != nil {
-			log.Printf("Warning: failed to initialize Resend email service: %v", err)
-		} else {
-			log.Println("Resend email service initialized successfully (dual-from support enabled).")
-			emailSvc = svc
-			serviceOpts = append(serviceOpts, services.WithEmailService(svc))
-		}
-	} else {
-		log.Println("Notice: RESEND_API_KEY is not configured; email dispatching will be disabled.")
-	}
-
-	// 2. Firebase FCM Push Client via Google Cloud ADC
-	fcmSvc, err := services.NewFirebasePushService(context.Background())
-	if err != nil {
-		log.Printf("Notice: Firebase Push Service not active (will skip push until ADC is available): %v", err)
-	} else {
-		log.Println("Firebase Cloud Messaging (FCM) push service initialized via Google Cloud ADC.")
-		pushSvc = fcmSvc
-		serviceOpts = append(serviceOpts, services.WithPushService(fcmSvc))
-	}
-
-	// 3. Auth Client (HTTP in Cloud Run via AUTH_SERVICE_URL, gRPC in local Docker)
-	authTarget := cfg.AuthServiceURL
-	if authTarget == "" {
-		authTarget = cfg.AuthGRPCURL
-	}
-	if authTarget != "" {
-		var authIDToken func(context.Context) (string, error)
-		if cfg.UpstreamIDToken && cfg.AuthServiceURL != "" {
-			authIDToken = idTokenPara(context.Background(), cfg.AuthServiceURL)
-		}
-		authCl, err := clients.NewAuthClient(
-			authTarget,
-			clients.WithIDToken(authIDToken),
-			clients.WithJWTSecret(cfg.JWTSecret),
-		)
-		if err != nil {
-			log.Printf("Warning: failed to initialize Auth client for %s: %v", authTarget, err)
-		} else {
-			log.Printf("Auth client connected to %s", authTarget)
-			authClient = authCl
-			serviceOpts = append(serviceOpts, services.WithAuthClient(authCl))
-		}
-	}
-
-	// 4. HTML Template Engine (//go:embed)
-	tmplEng, err := templates.NewTemplateEngine()
-	if err != nil {
-		log.Printf("Warning: failed to initialize embedded template engine: %v", err)
-	} else {
-		log.Println("Embedded HTML template engine initialized successfully.")
-		tmplEngine = tmplEng
-		serviceOpts = append(serviceOpts, services.WithTemplateEngine(tmplEng))
-	}
+	emailSvc := initEmailService(cfg, &serviceOpts)
+	pushSvc := initPushService(&serviceOpts)
+	authClient := initAuthClient(cfg, &serviceOpts)
+	tmplEngine := initTemplateEngine(&serviceOpts)
 
 	service := services.NewNotificationService(repo, serviceOpts...)
 	controller := controllers.NewNotificationController(service)
@@ -117,20 +60,7 @@ func main() {
 	go deliveryWorker.Run(context.Background())
 
 	// Pub/Sub Push Verifier and Processed Store
-	isProd := cfg.Environment == "production"
-	pushVerifier, err := events.NewPushVerifier(cfg.PubSubPushAuth, cfg.PubSubPushAudience, cfg.PubSubPushServiceAccounts, isProd)
-	if err != nil {
-		// En producción no se acepta ningún push sin verificar: antes se
-		// caía a NoVerifier y cualquiera que llegara a /eventos/* podía
-		// fabricar notificaciones (auditoría 2026-11-11). Es la regla de
-		// docs/eventos: "PUBSUB_PUSH_AUTH=disabled solo en local; en
-		// producción no arranca".
-		if isProd {
-			log.Fatalf("push verifier: %v", err)
-		}
-		log.Printf("Warning: push verifier initialization: %v (se aceptan push sin verificar: solo válido fuera de producción)", err)
-		pushVerifier = events.NoVerifier{}
-	}
+	pushVerifier := buildPushVerifier(cfg)
 	processedStore := store.NewProcessedStore(db)
 
 	// Rule Registry and Audience Resolver
@@ -167,6 +97,9 @@ func main() {
 	campanasConsumer := consumers.NewCampanasConsumer(pushVerifier, processedStore, registry, audienceResolver, repo, deliveryWorker, nil)
 
 	mux := http.NewServeMux()
+	if observability.MetricsEnabled() {
+		mux.Handle("GET /metrics", metrics.Handler())
+	}
 	routes.RegisterRoutes(mux, controller)
 	routes.RegisterAsyncRoutes(mux, routes.AsyncEndpoints{
 		Educacion:        eduConsumer,
@@ -181,12 +114,94 @@ func main() {
 	routes.RegisterContactRoute(mux, controllers.NewContactController(emailSvc, os.Getenv("CONTACT_EMAIL")))
 
 	// CORS en el propio servicio: en GCP no hay nginx que lo agregue.
-	handler := middlewares.CORS(middlewares.ParseOrigins(os.Getenv("CORS_ALLOWED_ORIGINS")))(mux)
+	handler := observability.HTTPMiddleware(metrics, nil)(middlewares.CORS(middlewares.ParseOrigins(os.Getenv("CORS_ALLOWED_ORIGINS")))(mux))
 
-	log.Printf("Servicio Notifications escuchando en :%s", cfg.Port)
-	if err := http.ListenAndServe(":"+cfg.Port, handler); err != nil {
+	srv := &http.Server{
+		Addr:              ":" + cfg.Port,
+		Handler:           handler,
+		ReadHeaderTimeout: 10 * time.Second,
+	}
+	slog.Info("Servicio Notifications escuchando", slog.String("port", cfg.Port))
+	if err := observability.ListenAndServeGraceful(context.Background(), srv); err != nil {
 		log.Fatalf("Error al iniciar el servidor HTTP: %v", err)
 	}
+}
+
+func initEmailService(cfg *config.Config, opts *[]services.NotificationServiceOption) services.EmailService {
+	if cfg.ResendAPIKey == "" {
+		log.Println("Notice: RESEND_API_KEY is not configured; email dispatching will be disabled.")
+		return nil
+	}
+	svc, err := services.NewDualResendEmailService(cfg.ResendAPIKey, cfg.ResendFromNotifications, cfg.ResendFromAlerts)
+	if err != nil {
+		log.Printf("Warning: failed to initialize Resend email service: %v", err)
+		return nil
+	}
+	log.Println("Resend email service initialized successfully (dual-from support enabled).")
+	*opts = append(*opts, services.WithEmailService(svc))
+	return svc
+}
+
+func initPushService(opts *[]services.NotificationServiceOption) services.PushService {
+	fcmSvc, err := services.NewFirebasePushService(context.Background())
+	if err != nil {
+		log.Printf("Notice: Firebase Push Service not active (will skip push until ADC is available): %v", err)
+		return nil
+	}
+	log.Println("Firebase Cloud Messaging (FCM) push service initialized via Google Cloud ADC.")
+	*opts = append(*opts, services.WithPushService(fcmSvc))
+	return fcmSvc
+}
+
+func initAuthClient(cfg *config.Config, opts *[]services.NotificationServiceOption) clients.AuthClient {
+	authTarget := cfg.AuthServiceURL
+	if authTarget == "" {
+		authTarget = cfg.AuthGRPCURL
+	}
+	if authTarget == "" {
+		return nil
+	}
+	var authIDToken func(context.Context) (string, error)
+	if cfg.UpstreamIDToken && cfg.AuthServiceURL != "" {
+		authIDToken = idTokenPara(context.Background(), cfg.AuthServiceURL)
+	}
+	authCl, err := clients.NewAuthClient(authTarget, clients.WithIDToken(authIDToken), clients.WithJWTSecret(cfg.JWTSecret))
+	if err != nil {
+		log.Printf("Warning: failed to initialize Auth client for %s: %v", authTarget, err)
+		return nil
+	}
+	log.Printf("Auth client connected to %s", authTarget)
+	*opts = append(*opts, services.WithAuthClient(authCl))
+	return authCl
+}
+
+func initTemplateEngine(opts *[]services.NotificationServiceOption) templates.TemplateEngine {
+	tmplEng, err := templates.NewTemplateEngine()
+	if err != nil {
+		log.Printf("Warning: failed to initialize embedded template engine: %v", err)
+		return nil
+	}
+	log.Println("Embedded HTML template engine initialized successfully.")
+	*opts = append(*opts, services.WithTemplateEngine(tmplEng))
+	return tmplEng
+}
+
+func buildPushVerifier(cfg *config.Config) events.Verifier {
+	isProd := cfg.Environment == "production"
+	pushVerifier, err := events.NewPushVerifier(cfg.PubSubPushAuth, cfg.PubSubPushAudience, cfg.PubSubPushServiceAccounts, isProd)
+	if err != nil {
+		// En producción no se acepta ningún push sin verificar: antes se
+		// caía a NoVerifier y cualquiera que llegara a /eventos/* podía
+		// fabricar notificaciones (auditoría 2026-11-11). Es la regla de
+		// docs/eventos: "PUBSUB_PUSH_AUTH=disabled solo en local; en
+		// producción no arranca".
+		if isProd {
+			log.Fatalf("push verifier: %v", err)
+		}
+		log.Printf("Warning: push verifier initialization: %v (se aceptan push sin verificar: solo válido fuera de producción)", err)
+		return events.NoVerifier{}
+	}
+	return pushVerifier
 }
 
 func startGRPCServer(port string, grpcController *controllers.GrpcNotificationController) {

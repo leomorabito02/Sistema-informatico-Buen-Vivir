@@ -1,0 +1,243 @@
+{
+  "__inputs": [
+    {
+      "name": "DS_GOOGLE_CLOUD_MONITORING",
+      "label": "Google Cloud Monitoring",
+      "description": "Datasource oficial de Google Cloud Monitoring conectado al proyecto ceibuenvivir",
+      "type": "datasource",
+      "pluginId": "stackdriver",
+      "pluginName": "Google Cloud Monitoring"
+    }
+  ],
+  "uid": "buenvivir-gcp-cloudrun",
+  "title": "Buen Vivir - Cloud Run (Scale-to-Zero)",
+  "tags": ["buenvivir", "gcp", "cloud-run", "hu-56"],
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "1m",
+  "time": { "from": "now-6h", "to": "now" },
+  "templating": {
+    "list": [
+      {
+        "name": "env",
+        "label": "Entorno",
+        "type": "custom",
+        "query": "testing,prod",
+        "current": { "text": "testing", "value": "testing" },
+        "options": [
+          { "text": "testing", "value": "testing", "selected": true },
+          { "text": "prod", "value": "prod", "selected": false }
+        ]
+      }
+    ]
+  },
+  "panels": [
+    {
+      "id": 1,
+      "type": "timeseries",
+      "title": "Pedidos por segundo por servicio",
+      "gridPos": { "x": 0, "y": 0, "w": 12, "h": 8 },
+      "datasource": { "type": "stackdriver", "uid": "${DS_GOOGLE_CLOUD_MONITORING}" },
+      "targets": [
+        {
+          "refId": "A",
+          "queryType": "timeSeriesList",
+          "timeSeriesList": {
+            "projectName": "ceibuenvivir",
+            "crossSeriesReducer": "REDUCE_SUM",
+            "alignmentPeriod": "60s",
+            "perSeriesAligner": "ALIGN_RATE",
+            "groupBys": ["resource.label.service_name"],
+            "filters": [
+              "metric.type", "=", "run.googleapis.com/request_count", "AND",
+              "resource.type", "=", "cloud_run_revision", "AND",
+              "resource.label.service_name", "=~", ".*-${env}"
+            ]
+          }
+        }
+      ],
+      "fieldConfig": { "defaults": { "unit": "reqps" } }
+    },
+    {
+      "id": 2,
+      "type": "timeseries",
+      "title": "Errores 5xx por servicio",
+      "gridPos": { "x": 12, "y": 0, "w": 12, "h": 8 },
+      "datasource": { "type": "stackdriver", "uid": "${DS_GOOGLE_CLOUD_MONITORING}" },
+      "targets": [
+        {
+          "refId": "A",
+          "queryType": "timeSeriesList",
+          "timeSeriesList": {
+            "projectName": "ceibuenvivir",
+            "crossSeriesReducer": "REDUCE_SUM",
+            "alignmentPeriod": "60s",
+            "perSeriesAligner": "ALIGN_RATE",
+            "groupBys": ["resource.label.service_name"],
+            "filters": [
+              "metric.type", "=", "run.googleapis.com/request_count", "AND",
+              "metric.label.response_code_class", "=", "5xx", "AND",
+              "resource.type", "=", "cloud_run_revision", "AND",
+              "resource.label.service_name", "=~", ".*-${env}"
+            ]
+          }
+        }
+      ],
+      "fieldConfig": { "defaults": { "unit": "reqps" } }
+    },
+    {
+      "id": 3,
+      "type": "timeseries",
+      "title": "Latencia HTTP p95 (ms)",
+      "gridPos": { "x": 0, "y": 8, "w": 12, "h": 8 },
+      "datasource": { "type": "stackdriver", "uid": "${DS_GOOGLE_CLOUD_MONITORING}" },
+      "targets": [
+        {
+          "refId": "A",
+          "queryType": "timeSeriesList",
+          "timeSeriesList": {
+            "projectName": "ceibuenvivir",
+            "crossSeriesReducer": "REDUCE_MAX",
+            "alignmentPeriod": "60s",
+            "perSeriesAligner": "ALIGN_PERCENTILE_95",
+            "groupBys": ["resource.label.service_name"],
+            "filters": [
+              "metric.type", "=", "run.googleapis.com/request_latencies", "AND",
+              "resource.type", "=", "cloud_run_revision", "AND",
+              "resource.label.service_name", "=~", ".*-${env}"
+            ]
+          }
+        }
+      ],
+      "fieldConfig": { "defaults": { "unit": "ms" } }
+    },
+    {
+      "id": 4,
+      "type": "timeseries",
+      "title": "Instancias activas (verificación scale-to-zero)",
+      "gridPos": { "x": 12, "y": 8, "w": 12, "h": 8 },
+      "datasource": { "type": "stackdriver", "uid": "${DS_GOOGLE_CLOUD_MONITORING}" },
+      "targets": [
+        {
+          "refId": "A",
+          "queryType": "timeSeriesList",
+          "timeSeriesList": {
+            "projectName": "ceibuenvivir",
+            "crossSeriesReducer": "REDUCE_SUM",
+            "alignmentPeriod": "60s",
+            "perSeriesAligner": "ALIGN_MAX",
+            "groupBys": ["resource.label.service_name"],
+            "filters": [
+              "metric.type", "=", "run.googleapis.com/container/instance_count", "AND",
+              "resource.type", "=", "cloud_run_revision", "AND",
+              "resource.label.service_name", "=~", ".*-${env}"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "type": "timeseries",
+      "title": "Latencia de Cold Start p95 (ms)",
+      "gridPos": { "x": 0, "y": 16, "w": 12, "h": 8 },
+      "datasource": { "type": "stackdriver", "uid": "${DS_GOOGLE_CLOUD_MONITORING}" },
+      "targets": [
+        {
+          "refId": "A",
+          "queryType": "timeSeriesList",
+          "timeSeriesList": {
+            "projectName": "ceibuenvivir",
+            "crossSeriesReducer": "REDUCE_MAX",
+            "alignmentPeriod": "60s",
+            "perSeriesAligner": "ALIGN_PERCENTILE_95",
+            "groupBys": ["resource.label.service_name"],
+            "filters": [
+              "metric.type", "=", "run.googleapis.com/container/startup_latencies", "AND",
+              "resource.type", "=", "cloud_run_revision", "AND",
+              "resource.label.service_name", "=~", ".*-${env}"
+            ]
+          }
+        }
+      ],
+      "fieldConfig": { "defaults": { "unit": "ms" } }
+    },
+    {
+      "id": 6,
+      "type": "timeseries",
+      "title": "Logs con severidad >= ERROR (Log-based Metric)",
+      "gridPos": { "x": 12, "y": 16, "w": 12, "h": 8 },
+      "datasource": { "type": "stackdriver", "uid": "${DS_GOOGLE_CLOUD_MONITORING}" },
+      "targets": [
+        {
+          "refId": "A",
+          "queryType": "timeSeriesList",
+          "timeSeriesList": {
+            "projectName": "ceibuenvivir",
+            "crossSeriesReducer": "REDUCE_SUM",
+            "alignmentPeriod": "60s",
+            "perSeriesAligner": "ALIGN_SUM",
+            "groupBys": ["resource.label.service_name"],
+            "filters": [
+              "metric.type", "=", "logging.googleapis.com/user/buenvivir_${env}_error_logs", "AND",
+              "resource.type", "=", "cloud_run_revision"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "type": "timeseries",
+      "title": "CPU p95 (%)",
+      "gridPos": { "x": 0, "y": 24, "w": 12, "h": 8 },
+      "datasource": { "type": "stackdriver", "uid": "${DS_GOOGLE_CLOUD_MONITORING}" },
+      "targets": [
+        {
+          "refId": "A",
+          "queryType": "timeSeriesList",
+          "timeSeriesList": {
+            "projectName": "ceibuenvivir",
+            "crossSeriesReducer": "REDUCE_MAX",
+            "alignmentPeriod": "60s",
+            "perSeriesAligner": "ALIGN_PERCENTILE_95",
+            "groupBys": ["resource.label.service_name"],
+            "filters": [
+              "metric.type", "=", "run.googleapis.com/container/cpu/utilizations", "AND",
+              "resource.type", "=", "cloud_run_revision", "AND",
+              "resource.label.service_name", "=~", ".*-${env}"
+            ]
+          }
+        }
+      ],
+      "fieldConfig": { "defaults": { "unit": "percentunit" } }
+    },
+    {
+      "id": 8,
+      "type": "timeseries",
+      "title": "Memoria p95 (%)",
+      "gridPos": { "x": 12, "y": 24, "w": 12, "h": 8 },
+      "datasource": { "type": "stackdriver", "uid": "${DS_GOOGLE_CLOUD_MONITORING}" },
+      "targets": [
+        {
+          "refId": "A",
+          "queryType": "timeSeriesList",
+          "timeSeriesList": {
+            "projectName": "ceibuenvivir",
+            "crossSeriesReducer": "REDUCE_MAX",
+            "alignmentPeriod": "60s",
+            "perSeriesAligner": "ALIGN_PERCENTILE_95",
+            "groupBys": ["resource.label.service_name"],
+            "filters": [
+              "metric.type", "=", "run.googleapis.com/container/memory/utilizations", "AND",
+              "resource.type", "=", "cloud_run_revision", "AND",
+              "resource.label.service_name", "=~", ".*-${env}"
+            ]
+          }
+        }
+      ],
+      "fieldConfig": { "defaults": { "unit": "percentunit" } }
+    }
+  ]
+}

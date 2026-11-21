@@ -18,13 +18,14 @@ CHECK=false
 
 # servicio:paquetes
 TARGETS=(
-  "education:events outbox"
-  "human-promotion:events outbox"
-  "dashboard:events"
-  "notifications:events"
-  "auth:events"
-  "labor-integration:events outbox"
-  "campaigns:events outbox"
+  "education:events outbox observability"
+  "human-promotion:events outbox observability"
+  "dashboard:events observability"
+  "notifications:events observability"
+  "auth:events observability"
+  "labor-integration:events outbox observability"
+  "campaigns:events outbox observability"
+  "rxresume:observability"
 )
 
 render() { # $1=servicio $2=paquete $3=archivo fuente

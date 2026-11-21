@@ -13,6 +13,7 @@ import (
 	"auth/internal/controllers"
 	"auth/internal/events/producers"
 	"auth/internal/middlewares"
+	"auth/internal/observability"
 	"auth/internal/repositories"
 	"auth/internal/services"
 	"auth/internal/storage"
@@ -25,8 +26,9 @@ func main() {
 	// Load local .env if present (fallback for local development)
 	config.LoadEnvFile()
 
-	// 1. Setup Logger
-	config.InitLogger()
+	// 1. Setup Logger & Observability
+	observability.InitLogger("auth", os.Getenv("APP_ENV"))
+	metrics := observability.NewRegistry("auth")
 	slog.Info("Starting Auth Service...")
 
 	// 2. Setup Database
@@ -145,6 +147,12 @@ func main() {
 
 	// 6. Setup Router and Middlewares
 	r := chi.NewRouter()
+	r.Use(observability.HTTPMiddleware(metrics, func(req *http.Request) string {
+		if rc := chi.RouteContext(req.Context()); rc != nil {
+			return rc.RoutePattern()
+		}
+		return ""
+	}))
 
 	// Middlewares (CORS and Security Headers must be handled here as API Gateway does not support allowCors)
 	middlewares.SetupMiddlewares(r)
@@ -162,6 +170,9 @@ func main() {
 	// 7. Define Routes
 
 	r.Get("/health", authController.HealthCheck)
+	if observability.MetricsEnabled() {
+		r.Handle("/metrics", metrics.Handler())
+	}
 	r.Get("/internal/validate-token", tokenValidatorController.ValidateToken)
 
 	r.Route("/api/v1", func(r chi.Router) {
@@ -315,14 +326,15 @@ func main() {
 	// Wrap chi with a net/http level OPTIONS interceptor that runs before chi's
 	// routing tree, bypassing the sub-router method dispatch issue in chi v5.
 	server := &http.Server{
-		Addr:         ":" + port,
-		Handler:      middlewares.OptionsInterceptor(r),
-		ReadTimeout:  30 * time.Second,
-		WriteTimeout: 30 * time.Second,
-		IdleTimeout:  120 * time.Second,
+		Addr:              ":" + port,
+		Handler:           middlewares.OptionsInterceptor(r),
+		ReadHeaderTimeout: 10 * time.Second,
+		ReadTimeout:       30 * time.Second,
+		WriteTimeout:      30 * time.Second,
+		IdleTimeout:       120 * time.Second,
 	}
 
-	if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+	if err := observability.ListenAndServeGraceful(context.Background(), server); err != nil {
 		slog.Error("Error al iniciar el servidor", "error", err)
 		os.Exit(1)
 	}

@@ -24,6 +24,7 @@ import (
 	"buenvivir/education/internal/events/consumers"
 	"buenvivir/education/internal/events/producers"
 	"buenvivir/education/internal/middlewares"
+	"buenvivir/education/internal/observability"
 	"buenvivir/education/internal/outbox"
 	"buenvivir/education/internal/repositories"
 	"buenvivir/education/internal/routes"
@@ -32,7 +33,8 @@ import (
 
 func main() {
 	// Logs estructurados en JSON (Cloud Run los manda a Cloud Logging).
-	slog.SetDefault(slog.New(slog.NewJSONHandler(os.Stdout, nil)))
+	observability.InitLogger("education", os.Getenv("APP_ENV"))
+	metrics := observability.NewRegistry("education")
 
 	cfg, err := config.LoadConfig()
 	if err != nil {
@@ -144,7 +146,16 @@ func main() {
 	startGRPCServer(cfg.GRPCPort, grpcEducationController)
 
 	r := chi.NewRouter()
+	r.Use(observability.HTTPMiddleware(metrics, func(req *http.Request) string {
+		if rc := chi.RouteContext(req.Context()); rc != nil {
+			return rc.RoutePattern()
+		}
+		return ""
+	}))
 	middlewares.SetupMiddlewares(r)
+	if observability.MetricsEnabled() {
+		r.Handle("/metrics", metrics.Handler())
+	}
 	r.Use(middlewares.RateLimiter())
 
 	routes.RegisterRoutes(
@@ -180,7 +191,7 @@ func main() {
 		WriteTimeout:      30 * time.Second,
 		IdleTimeout:       60 * time.Second,
 	}
-	if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+	if err := observability.ListenAndServeGraceful(ctx, srv); err != nil {
 		log.Fatalf("error al iniciar el servidor: %v", err)
 	}
 }
