@@ -65,10 +65,11 @@ func main() {
 	jobApplicationRepo := repositories.NewJobApplicationRepository(firestoreClient)
 
 	// Mensajería asíncrona (docs/eventos/README.md).
-	relay := startRelay(ctx, cfg, firestoreClient, googleCredentials)
+	relayCtx, cancelRelay := context.WithCancel(ctx)
+	relay := startRelay(relayCtx, cfg, firestoreClient, googleCredentials)
 	var writer *outbox.Writer
 	if relay != nil {
-		writer = outbox.NewWriter(firestoreClient, events.ProducerInsercionLaboral, relay.Notify)
+		writer = outbox.NewWriter(firestoreClient, events.ProducerInsercionLaboral, relay.NotifyInline)
 	}
 	insercionLaboralProducer := producers.NewInsercionLaboral(writer, cfg.Events.TopicInsercionLaboral)
 
@@ -113,7 +114,10 @@ func main() {
 		ReadHeaderTimeout: 10 * time.Second,
 	}
 	slog.Info("Labor Integration Service listening", slog.String("port", cfg.Port))
-	if err := observability.ListenAndServeGraceful(ctx, server); err != nil {
+	if err := observability.ListenAndServeGraceful(ctx, server, func(shutdownCtx context.Context) {
+		cancelRelay()
+		relay.Shutdown(shutdownCtx)
+	}); err != nil {
 		log.Fatalf("failed to start server: %v", err)
 	}
 }

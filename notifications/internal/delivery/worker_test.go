@@ -271,3 +271,94 @@ func TestDeliveryWorker_Flush_IssueActionLinkOnDemand(t *testing.T) {
 		t.Errorf("expected html to contain action url, got: %s", emailSvc.sentMsgs[0].Html)
 	}
 }
+
+func TestDeliveryWorker_InlineFlushEnabled(t *testing.T) {
+	t.Run("disabled by default locally", func(t *testing.T) {
+		// Arrange
+		t.Setenv("K_SERVICE", "")
+		t.Setenv("DELIVERY_INLINE_FLUSH", "")
+
+		// Act & Assert
+		if delivery.InlineFlushEnabled() {
+			t.Fatal("expected inline flush disabled by default")
+		}
+	})
+
+	t.Run("enabled automatically on Cloud Run", func(t *testing.T) {
+		// Arrange
+		t.Setenv("K_SERVICE", "notifications-testing")
+		t.Setenv("DELIVERY_INLINE_FLUSH", "")
+
+		// Act & Assert
+		if !delivery.InlineFlushEnabled() {
+			t.Fatal("expected inline flush enabled when K_SERVICE is set")
+		}
+	})
+
+	t.Run("explicit false overrides K_SERVICE", func(t *testing.T) {
+		// Arrange
+		t.Setenv("K_SERVICE", "notifications-testing")
+		t.Setenv("DELIVERY_INLINE_FLUSH", "false")
+
+		// Act & Assert
+		if delivery.InlineFlushEnabled() {
+			t.Fatal("expected explicit false to disable inline flush")
+		}
+	})
+
+	t.Run("explicit true enables locally", func(t *testing.T) {
+		// Arrange
+		t.Setenv("K_SERVICE", "")
+		t.Setenv("DELIVERY_INLINE_FLUSH", "true")
+
+		// Act & Assert
+		if !delivery.InlineFlushEnabled() {
+			t.Fatal("expected explicit true to enable inline flush")
+		}
+	})
+}
+
+func TestDeliveryWorker_NotifyInlineAndShutdown(t *testing.T) {
+	// Arrange
+	t.Setenv("K_SERVICE", "notifications-testing")
+	t.Setenv("DELIVERY_INLINE_FLUSH", "")
+
+	repo := repositories.NewMemoryNotificationRepository()
+	emailSvc := &mockEmailService{}
+	authCl := &mockAuthClient{}
+
+	notif := &models.Notification{
+		ID:        "ntf-inline-1",
+		Category:  models.CategoryEducation,
+		Title:     "Inline Title",
+		Message:   "Inline Message",
+		SendEmail: true,
+	}
+	_ = repo.CreateNotification(context.Background(), notif)
+	_ = repo.CreateRecipients(context.Background(), []models.NotificationRecipient{{
+		RecipientID:    "rcp-inline-1",
+		NotificationID: notif.ID,
+		UserID:         "usr-inline-1",
+		EmailStatus:    models.DeliveryStatusPending,
+	}})
+
+	worker := delivery.NewWorker(repo, emailSvc, nil, authCl, nil, nil)
+
+	// Act
+	worker.NotifyInline(context.Background())
+	worker.Shutdown(context.Background())
+
+	// Assert
+	saved, err := repo.FindRecipientByID(context.Background(), "rcp-inline-1", "usr-inline-1")
+	if err != nil {
+		t.Fatalf("failed to find recipient: %v", err)
+	}
+	if saved.EmailStatus != models.DeliveryStatusSent {
+		t.Fatalf("expected email sent inline, got %s", saved.EmailStatus)
+	}
+
+	var nilWorker *delivery.Worker
+	nilWorker.Notify()
+	nilWorker.NotifyInline(context.Background())
+	nilWorker.Shutdown(context.Background())
+}

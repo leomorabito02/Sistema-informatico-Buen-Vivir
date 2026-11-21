@@ -7,6 +7,9 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
+	"os"
+	"strings"
+	"sync"
 	"time"
 
 	"cloud.google.com/go/firestore"
@@ -36,6 +39,7 @@ type Relay struct {
 	publisher Publisher
 	logger    *slog.Logger
 	notify    chan struct{}
+	mu        sync.Mutex
 
 	BatchSize  int
 	Interval   time.Duration // barrido periódico
@@ -61,12 +65,74 @@ func NewRelay(client *firestore.Client, publisher Publisher, logger *slog.Logger
 	}
 }
 
+const (
+	defaultInlineFlushTimeout   = 2 * time.Second
+	defaultShutdownFlushTimeout = 5 * time.Second
+)
+
+// InlineFlushEnabled returns true when outbox events should be flushed inline inside the
+// active request (default on Cloud Run via K_SERVICE, or explicitly via OUTBOX_INLINE_FLUSH=true).
+// This lets Cloud Run scale to zero without per-minute Cloud Scheduler pings.
+func InlineFlushEnabled() bool {
+	if raw := strings.TrimSpace(os.Getenv("OUTBOX_INLINE_FLUSH")); raw != "" {
+		return strings.EqualFold(raw, "true") || raw == "1"
+	}
+	return strings.TrimSpace(os.Getenv("K_SERVICE")) != ""
+}
+
 // Notify pide un Flush sin bloquear (si ya hay uno pedido, no suma otro).
 func (r *Relay) Notify() {
+	if r == nil || r.notify == nil {
+		return
+	}
 	select {
 	case r.notify <- struct{}{}:
 	default:
 	}
+}
+
+// NotifyInline flushes pending events inline (best-effort) when running on Cloud Run
+// (or OUTBOX_INLINE_FLUSH=true), falling back to non-blocking async Notify otherwise.
+func (r *Relay) NotifyInline() {
+	if r == nil {
+		return
+	}
+	if InlineFlushEnabled() {
+		r.FlushBestEffort(context.Background(), defaultInlineFlushTimeout)
+		return
+	}
+	r.Notify()
+}
+
+// FlushBestEffort attempts to publish pending outbox events within timeout without
+// propagating errors to the caller. Pending events remain safely in Firestore for retry.
+func (r *Relay) FlushBestEffort(ctx context.Context, timeout time.Duration) int {
+	if r == nil || r.client == nil || r.publisher == nil {
+		return 0
+	}
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	if timeout <= 0 {
+		timeout = defaultInlineFlushTimeout
+	}
+	flushCtx, cancel := context.WithTimeout(ctx, timeout)
+	defer cancel()
+
+	n, err := r.Flush(flushCtx)
+	if err != nil {
+		logger := r.logger
+		if logger == nil {
+			logger = slog.Default()
+		}
+		logger.Warn("outbox: best-effort flush failed", slog.String("error", err.Error()))
+	}
+	return n
+}
+
+// Shutdown drains any pending outbox events during graceful shutdown (Cloud Run SIGTERM).
+func (r *Relay) Shutdown(ctx context.Context) {
+	r.FlushBestEffort(ctx, defaultShutdownFlushTimeout)
 }
 
 // Run publica pendientes ante cada Notify y cada Interval, hasta que se
@@ -90,6 +156,9 @@ func (r *Relay) Run(ctx context.Context) {
 // Flush publica los eventos vencidos (hasta BatchSize por vuelta, y
 // sigue mientras haya). Devuelve cuántos publicó.
 func (r *Relay) Flush(ctx context.Context) (int, error) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
 	total := 0
 	for {
 		recs, err := r.claim(ctx)

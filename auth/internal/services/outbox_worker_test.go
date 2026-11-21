@@ -181,3 +181,98 @@ func TestOutboxWorker_ProcessDueEvents(t *testing.T) {
 	})
 }
 
+func TestOutboxInlineFlushEnabled(t *testing.T) {
+	t.Run("disabled by default locally", func(t *testing.T) {
+		// Arrange
+		t.Setenv("K_SERVICE", "")
+		t.Setenv("OUTBOX_INLINE_FLUSH", "")
+
+		// Act & Assert
+		assert.False(t, services.OutboxInlineFlushEnabled())
+	})
+
+	t.Run("enabled automatically on Cloud Run", func(t *testing.T) {
+		// Arrange
+		t.Setenv("K_SERVICE", "auth-testing")
+		t.Setenv("OUTBOX_INLINE_FLUSH", "")
+
+		// Act & Assert
+		assert.True(t, services.OutboxInlineFlushEnabled())
+	})
+
+	t.Run("explicit false disables on Cloud Run", func(t *testing.T) {
+		// Arrange
+		t.Setenv("K_SERVICE", "auth-testing")
+		t.Setenv("OUTBOX_INLINE_FLUSH", "false")
+
+		// Act & Assert
+		assert.False(t, services.OutboxInlineFlushEnabled())
+	})
+
+	t.Run("explicit true enables locally", func(t *testing.T) {
+		// Arrange
+		t.Setenv("K_SERVICE", "")
+		t.Setenv("OUTBOX_INLINE_FLUSH", "true")
+
+		// Act & Assert
+		assert.True(t, services.OutboxInlineFlushEnabled())
+	})
+}
+
+func TestOutboxWorker_InlineFlushAndBestEffort(t *testing.T) {
+	t.Run("FlushIfDirty skips repository when clean", func(t *testing.T) {
+		// Arrange
+		repo := new(mockOutboxRepository)
+		pub := new(mockPublisher)
+		w := services.NewOutboxWorker(repo, pub)
+
+		// Act
+		processed := w.FlushIfDirty(context.Background(), time.Second)
+
+		// Assert
+		assert.Equal(t, 0, processed)
+		repo.AssertNotCalled(t, "GetDueEvents", mock.Anything, mock.Anything)
+	})
+
+	t.Run("MarkDirty triggers FlushIfDirty once", func(t *testing.T) {
+		// Arrange
+		repo := new(mockOutboxRepository)
+		pub := new(mockPublisher)
+		env, _ := events.New(context.Background(), events.ProducerAutenticacion, events.ParticipanteCreado, events.ParticipantePayload{ParticipanteID: "p-inline"})
+		raw, _ := json.Marshal(env)
+		event := models.OutboxEvent{ID: "evt-inline", Topic: "usuarios-eventos", EventType: events.ParticipanteCreado, Payload: raw, MaxAttempts: 5}
+
+		repo.On("GetDueEvents", mock.Anything, 50).Return([]models.OutboxEvent{event}, nil).Once()
+		repo.On("MarkProcessing", mock.Anything, "evt-inline").Return(nil).Once()
+		pub.On("Publish", mock.Anything, "usuarios-eventos", mock.Anything).Return(nil).Once()
+		repo.On("MarkCompleted", mock.Anything, "evt-inline").Return(nil).Once()
+
+		w := services.NewOutboxWorker(repo, pub)
+		w.MarkDirty()
+
+		// Act
+		first := w.FlushIfDirty(context.Background(), time.Second)
+		second := w.FlushIfDirty(context.Background(), time.Second)
+
+		// Assert
+		assert.Equal(t, 1, first)
+		assert.Equal(t, 0, second)
+		repo.AssertExpectations(t)
+		pub.AssertExpectations(t)
+	})
+
+	t.Run("FlushBestEffort swallows errors and handles nil dependencies", func(t *testing.T) {
+		// Arrange
+		nilWorker := services.NewOutboxWorker(nil, nil)
+		repoErr := new(mockOutboxRepository)
+		pub := new(mockPublisher)
+		repoErr.On("GetDueEvents", mock.Anything, 50).Return(nil, errors.New("temporary db error")).Once()
+		wErr := services.NewOutboxWorker(repoErr, pub)
+
+		// Act & Assert
+		assert.Equal(t, 0, nilWorker.FlushBestEffort(context.Background(), 0))
+		assert.Equal(t, 0, wErr.FlushBestEffort(nil, 0))
+		repoErr.AssertExpectations(t)
+	})
+}
+

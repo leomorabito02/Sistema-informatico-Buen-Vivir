@@ -6,6 +6,10 @@ import (
 	"fmt"
 	"log/slog"
 	"math"
+	"os"
+	"strings"
+	"sync"
+	"sync/atomic"
 	"time"
 
 	"auth/internal/events"
@@ -14,6 +18,18 @@ import (
 
 	"cloud.google.com/go/pubsub/v2"
 )
+
+const defaultOutboxInlineTimeout = 2 * time.Second
+
+// OutboxInlineFlushEnabled returns true on Cloud Run (K_SERVICE set) or when
+// OUTBOX_INLINE_FLUSH=true, allowing pending outbox rows to flush before the HTTP
+// response finishes so Cloud Run can scale to zero without external polling.
+func OutboxInlineFlushEnabled() bool {
+	if raw := strings.TrimSpace(os.Getenv("OUTBOX_INLINE_FLUSH")); raw != "" {
+		return strings.EqualFold(raw, "true") || raw == "1"
+	}
+	return strings.TrimSpace(os.Getenv("K_SERVICE")) != ""
+}
 
 // EventPublisher abstracts publishing a single message to Pub/Sub.
 type EventPublisher interface {
@@ -24,12 +40,17 @@ type EventPublisher interface {
 type OutboxWorker interface {
 	Start(ctx context.Context, interval time.Duration)
 	ProcessDueEvents(ctx context.Context) (int, error)
+	MarkDirty()
+	FlushBestEffort(ctx context.Context, timeout time.Duration) int
+	FlushIfDirty(ctx context.Context, timeout time.Duration) int
 }
 
 type outboxWorker struct {
 	repo      repositories.OutboxRepository
 	publisher EventPublisher
 	batchSize int
+	mu        sync.Mutex
+	dirty     atomic.Bool
 }
 
 // NewOutboxWorker creates a new OutboxWorker instance.
@@ -112,10 +133,49 @@ func (w *outboxWorker) processSingleEvent(ctx context.Context, event models.Outb
 	return true
 }
 
+func (w *outboxWorker) MarkDirty() {
+	if w == nil {
+		return
+	}
+	w.dirty.Store(true)
+}
+
+func (w *outboxWorker) FlushBestEffort(ctx context.Context, timeout time.Duration) int {
+	if w == nil || w.repo == nil || w.publisher == nil {
+		return 0
+	}
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	if timeout <= 0 {
+		timeout = defaultOutboxInlineTimeout
+	}
+	flushCtx, cancel := context.WithTimeout(ctx, timeout)
+	defer cancel()
+
+	processed, err := w.ProcessDueEvents(flushCtx)
+	if err != nil {
+		slog.Warn("Outbox best-effort flush failed", "error", err)
+		return processed
+	}
+	w.dirty.Store(false)
+	return processed
+}
+
+func (w *outboxWorker) FlushIfDirty(ctx context.Context, timeout time.Duration) int {
+	if w == nil || !w.dirty.Swap(false) {
+		return 0
+	}
+	return w.FlushBestEffort(ctx, timeout)
+}
+
 func (w *outboxWorker) ProcessDueEvents(ctx context.Context) (int, error) {
 	if w.repo == nil || w.publisher == nil {
 		return 0, nil
 	}
+
+	w.mu.Lock()
+	defer w.mu.Unlock()
 
 	events, err := w.repo.GetDueEvents(ctx, w.batchSize)
 	if err != nil {

@@ -69,10 +69,11 @@ func main() {
 	defer func() { _ = authDirectory.Close() }()
 
 	// Mensajería asíncrona (docs/eventos/README.md).
-	relay := startRelay(ctx, cfg, firestoreClient, googleCredentials)
+	relayCtx, cancelRelay := context.WithCancel(ctx)
+	relay := startRelay(relayCtx, cfg, firestoreClient, googleCredentials)
 	var writer *outbox.Writer
 	if relay != nil {
-		writer = outbox.NewWriter(firestoreClient, events.ProducerPromocionHumana, relay.Notify)
+		writer = outbox.NewWriter(firestoreClient, events.ProducerPromocionHumana, relay.NotifyInline)
 	}
 	eventProducer := producers.NewPromocionHumana(writer, cfg.Events.TopicPromocion)
 
@@ -109,7 +110,10 @@ func main() {
 	}
 
 	slog.Info("Servicio Human Promotion escuchando", slog.String("port", cfg.Port))
-	if err := observability.ListenAndServeGraceful(ctx, server); err != nil {
+	if err := observability.ListenAndServeGraceful(ctx, server, func(shutdownCtx context.Context) {
+		cancelRelay()
+		relay.Shutdown(shutdownCtx)
+	}); err != nil {
 		fatal("error al iniciar el servidor", err)
 	}
 }

@@ -55,9 +55,10 @@ func main() {
 	startGRPCServer(cfg.GRPCPort, grpcController)
 
 	// Delivery Worker
+	workerCtx, cancelWorkers := context.WithCancel(context.Background())
 	deliveryWorker := delivery.NewWorker(repo, emailSvc, pushSvc, authClient, tmplEngine, nil)
 	deliveryWorker.FrontendURL = cfg.FrontendURL
-	go deliveryWorker.Run(context.Background())
+	go deliveryWorker.Run(workerCtx)
 
 	// Pub/Sub Push Verifier and Processed Store
 	pushVerifier := buildPushVerifier(cfg)
@@ -122,7 +123,10 @@ func main() {
 		ReadHeaderTimeout: 10 * time.Second,
 	}
 	slog.Info("Servicio Notifications escuchando", slog.String("port", cfg.Port))
-	if err := observability.ListenAndServeGraceful(context.Background(), srv); err != nil {
+	if err := observability.ListenAndServeGraceful(context.Background(), srv, func(shutdownCtx context.Context) {
+		cancelWorkers()
+		deliveryWorker.Shutdown(shutdownCtx)
+	}); err != nil {
 		log.Fatalf("Error al iniciar el servidor HTTP: %v", err)
 	}
 }

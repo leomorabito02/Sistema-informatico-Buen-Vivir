@@ -82,8 +82,10 @@ func main() {
 	transactor := repositories.NewGormTransactor(db)
 	querier := repositories.NewGormRoleProfileQuerier(db)
 
+	workerCtx, cancelWorkers := context.WithCancel(context.Background())
+
 	outboxRepo := repositories.NewOutboxRepository(db)
-	usuariosProducer := producers.NewUsuariosProducer(outboxRepo)
+	usuariosProducer, outboxWorker := initOutbox(workerCtx, outboxRepo)
 
 	notificationSyncSvc := services.NewNotificationSyncService()
 	verificationService := services.NewVerificationService(emailVerificationRepo, userRepo, notificationSyncSvc, usuariosProducer)
@@ -113,10 +115,7 @@ func main() {
 
 	// Iniciar worker de reconciliación asíncrona de archivos huérfanos
 	cleanupWorker := services.NewStorageCleanupWorker(storageCleanupRepo, storageSvc)
-	cleanupWorker.Start(context.Background(), 5*time.Minute)
-
-	// Iniciar worker de outbox para publicación a Pub/Sub si está configurado
-	startOutboxWorker(outboxRepo)
+	cleanupWorker.Start(workerCtx, 5*time.Minute)
 
 	// Sincronizar contadores de impacto en Cloudflare Worker KV al iniciar el servicio
 	services.NewKVSyncService(userRepo).SyncImpactStatsAsync()
@@ -153,6 +152,7 @@ func main() {
 		}
 		return ""
 	}))
+	r.Use(outboxInlineFlushMiddleware(outboxWorker))
 
 	// Middlewares (CORS and Security Headers must be handled here as API Gateway does not support allowCors)
 	middlewares.SetupMiddlewares(r)
@@ -334,24 +334,61 @@ func main() {
 		IdleTimeout:       120 * time.Second,
 	}
 
-	if err := observability.ListenAndServeGraceful(context.Background(), server); err != nil {
+	if err := observability.ListenAndServeGraceful(context.Background(), server, func(shutdownCtx context.Context) {
+		drainAuthWorkers(shutdownCtx, cancelWorkers, outboxWorker, cleanupWorker)
+	}); err != nil {
 		slog.Error("Error al iniciar el servidor", "error", err)
 		os.Exit(1)
 	}
 }
 
-func startOutboxWorker(outboxRepo repositories.OutboxRepository) {
+func initOutbox(ctx context.Context, outboxRepo repositories.OutboxRepository) (producers.UsuariosProducer, services.OutboxWorker) {
+	outboxWorker := startOutboxWorker(ctx, outboxRepo)
+	var onEnqueue func()
+	if outboxWorker != nil {
+		onEnqueue = outboxWorker.MarkDirty
+	}
+	return producers.NewUsuariosProducer(outboxRepo, onEnqueue), outboxWorker
+}
+
+func startOutboxWorker(ctx context.Context, outboxRepo repositories.OutboxRepository) services.OutboxWorker {
 	pubsubProject := os.Getenv("PUBSUB_PROJECT_ID")
 	if pubsubProject == "" {
-		return
+		return nil
 	}
-	pubPublisher, err := services.NewPubSubPublisher(context.Background(), pubsubProject)
+	pubPublisher, err := services.NewPubSubPublisher(ctx, pubsubProject)
 	if err != nil {
 		slog.Warn("PubSub publisher initialization failed for outbox worker", "error", err)
-		return
+		return nil
 	}
 	outboxWorker := services.NewOutboxWorker(outboxRepo, pubPublisher)
-	outboxWorker.Start(context.Background(), 5*time.Second)
+	outboxWorker.Start(ctx, 5*time.Second)
+	return outboxWorker
+}
+
+func outboxInlineFlushMiddleware(worker services.OutboxWorker) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+			next.ServeHTTP(w, req)
+			if worker != nil && services.OutboxInlineFlushEnabled() {
+				worker.FlushIfDirty(context.Background(), 2*time.Second)
+			}
+		})
+	}
+}
+
+func drainAuthWorkers(ctx context.Context, cancel context.CancelFunc, outboxWorker services.OutboxWorker, cleanupWorker services.StorageCleanupWorker) {
+	cancel()
+	if outboxWorker != nil {
+		outboxWorker.FlushBestEffort(ctx, 5*time.Second)
+	}
+	if cleanupWorker != nil {
+		cleanCtx, cleanCancel := context.WithTimeout(ctx, 3*time.Second)
+		defer cleanCancel()
+		if _, err := cleanupWorker.ProcessDueTasks(cleanCtx); err != nil {
+			slog.Warn("Storage cleanup shutdown drain failed", "error", err)
+		}
+	}
 }
 
 func startGRPCServer(grpcAuthController authpb.AuthServiceServer) {

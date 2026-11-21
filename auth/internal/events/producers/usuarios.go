@@ -26,12 +26,18 @@ type UsuariosProducer interface {
 }
 
 type usuariosProducer struct {
-	repo repositories.OutboxRepository
+	repo      repositories.OutboxRepository
+	onEnqueue func()
 }
 
-// NewUsuariosProducer creates a new UsuariosProducer.
-func NewUsuariosProducer(repo repositories.OutboxRepository) UsuariosProducer {
-	return &usuariosProducer{repo: repo}
+// NewUsuariosProducer creates a new UsuariosProducer. An optional onEnqueue hook is invoked
+// after an outbox row is queued so callers can trigger an inline best-effort flush after commit.
+func NewUsuariosProducer(repo repositories.OutboxRepository, onEnqueue ...func()) UsuariosProducer {
+	var hook func()
+	if len(onEnqueue) > 0 {
+		hook = onEnqueue[0]
+	}
+	return &usuariosProducer{repo: repo, onEnqueue: hook}
 }
 
 func (p *usuariosProducer) emit(ctx context.Context, eventType string, payload any, orderingKey string, tx ...*gorm.DB) error {
@@ -54,7 +60,7 @@ func (p *usuariosProducer) emit(ctx context.Context, eventType string, payload a
 		gormTx = tx[0]
 	}
 
-	return p.repo.EnqueueTx(ctx, gormTx, &models.OutboxEvent{
+	err = p.repo.EnqueueTx(ctx, gormTx, &models.OutboxEvent{
 		ID:          env.EventID,
 		Topic:       TopicUsuarios,
 		EventType:   eventType,
@@ -65,6 +71,10 @@ func (p *usuariosProducer) emit(ctx context.Context, eventType string, payload a
 		MaxAttempts: 5,
 		NextRunAt:   time.Now(),
 	})
+	if err == nil && p.onEnqueue != nil {
+		p.onEnqueue()
+	}
+	return err
 }
 
 func (p *usuariosProducer) UsuarioCreado(ctx context.Context, userID, roleID string, tx ...*gorm.DB) error {

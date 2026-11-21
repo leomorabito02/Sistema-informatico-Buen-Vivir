@@ -1558,7 +1558,10 @@ jobs:
           REGION="${{ secrets.GCP_REGION }}"
           PREV=$(gcloud run services describe "$SERVICE" --region="$REGION" \
             --format='value(status.latestReadyRevisionName)' 2>/dev/null || echo "")
+          CUR_URL=$(gcloud run services describe "$SERVICE" --region="$REGION" \
+            --format='value(status.url)' 2>/dev/null || echo "")
           echo "prev_revision=$PREV" >> $GITHUB_OUTPUT
+          echo "current_url=$CUR_URL" >> $GITHUB_OUTPUT
           echo "Previous revision: ${PREV:-none}"
 
       - name: Validate dependencies (auth-service URL)
@@ -1580,6 +1583,9 @@ jobs:
           env_vars: |-
             APP_ENV=${{ needs.cd-setup.outputs.app_env }}
             ENV=${{ needs.cd-setup.outputs.app_env }}
+            PUBSUB_PROJECT_ID=${{ secrets.GCP_PROJECT_ID }}
+            PUBSUB_PUSH_AUDIENCE=${{ steps.pre-deploy.outputs.current_url }}
+            PUBSUB_PUSH_SERVICE_ACCOUNTS=sa-push-notif-edu@${{ secrets.GCP_PROJECT_ID }}.iam.gserviceaccount.com\,sa-push-notif-ph@${{ secrets.GCP_PROJECT_ID }}.iam.gserviceaccount.com\,sa-push-notif-usuarios@${{ secrets.GCP_PROJECT_ID }}.iam.gserviceaccount.com\,sa-push-notif-labor@${{ secrets.GCP_PROJECT_ID }}.iam.gserviceaccount.com\,sa-push-notif-campanas@${{ secrets.GCP_PROJECT_ID }}.iam.gserviceaccount.com\,sa-scheduler-outbox@${{ secrets.GCP_PROJECT_ID }}.iam.gserviceaccount.com
             AUTH_SERVICE_URL=${{ needs.cd-auth.outputs.service_url }}
             UPSTREAM_ID_TOKEN=true
             JWT_SECRET=${{ secrets.JWT_SECRET }}
@@ -1587,6 +1593,16 @@ jobs:
             RESEND_FROM_EMAIL_NOTIFICATIONS=${{ secrets.RESEND_FROM_EMAIL_NOTIFICATIONS }}
             RESEND_FROM_EMAIL_ALERTS=${{ secrets.RESEND_FROM_EMAIL_ALERTS }}
             DATABASE_URL_NOTIFICATIONS=${{ secrets.DATABASE_URL_NOTIFICATIONS }}
+
+      - name: Sync Pub/Sub push audience on first deploy or URL change
+        run: |
+          SERVICE="notifications-${{ needs.cd-setup.outputs.service_suffix }}"
+          REGION="${{ secrets.GCP_REGION }}"
+          DEPLOYED_URL="${{ steps.deploy.outputs.url }}"
+          if [ -n "$DEPLOYED_URL" ] && [ "$DEPLOYED_URL" != "${{ steps.pre-deploy.outputs.current_url }}" ]; then
+            gcloud run services update "$SERVICE" --region="$REGION" --project="${{ secrets.GCP_PROJECT_ID }}" \
+              --update-env-vars="PUBSUB_PUSH_AUDIENCE=$DEPLOYED_URL"
+          fi
 
       - name: Ensure 100% traffic routed to latest Cloud Run revision
         run: |
@@ -1636,7 +1652,10 @@ jobs:
           REGION="${{ secrets.GCP_REGION }}"
           PREV=$(gcloud run services describe "$SERVICE" --region="$REGION" \
             --format='value(status.latestReadyRevisionName)' 2>/dev/null || echo "")
+          CUR_URL=$(gcloud run services describe "$SERVICE" --region="$REGION" \
+            --format='value(status.url)' 2>/dev/null || echo "")
           echo "prev_revision=$PREV" >> $GITHUB_OUTPUT
+          echo "current_url=$CUR_URL" >> $GITHUB_OUTPUT
           echo "Previous revision: ${PREV:-none}"
 
       - name: Prepare Firestore credentials (base64)
@@ -1672,6 +1691,8 @@ jobs:
           env_vars: |-
             APP_ENV=${{ needs.cd-setup.outputs.app_env }}
             PUBSUB_PROJECT_ID=${{ secrets.GCP_PROJECT_ID }}
+            PUBSUB_PUSH_AUDIENCE=${{ steps.pre-deploy.outputs.current_url }}
+            PUBSUB_PUSH_SERVICE_ACCOUNTS=sa-push-edu-usuarios@${{ secrets.GCP_PROJECT_ID }}.iam.gserviceaccount.com\,sa-push-edu-contenido@${{ secrets.GCP_PROJECT_ID }}.iam.gserviceaccount.com\,sa-scheduler-outbox@${{ secrets.GCP_PROJECT_ID }}.iam.gserviceaccount.com
             CONTENTFUL_ENVIRONMENT=${{ needs.cd-setup.outputs.contentful_environment }}
             CONTENTFUL_SPACE_ID=${{ secrets.CONTENTFUL_SPACE_ID }}
             CONTENTFUL_CDA_TOKEN=${{ secrets.CONTENTFUL_CDA_TOKEN }}
@@ -1686,6 +1707,16 @@ jobs:
             UPSTREAM_ID_TOKEN=true
             ENTREGAS_BUCKET=ceibuenvivir-bucket
             VERTEX_PROJECT_ID=${{ secrets.GCP_PROJECT_ID }}
+
+      - name: Sync Pub/Sub push audience on first deploy or URL change
+        run: |
+          SERVICE="education-${{ needs.cd-setup.outputs.service_suffix }}"
+          REGION="${{ secrets.GCP_REGION }}"
+          DEPLOYED_URL="${{ steps.deploy.outputs.url }}"
+          if [ -n "$DEPLOYED_URL" ] && [ "$DEPLOYED_URL" != "${{ steps.pre-deploy.outputs.current_url }}" ]; then
+            gcloud run services update "$SERVICE" --region="$REGION" --project="${{ secrets.GCP_PROJECT_ID }}" \
+              --update-env-vars="PUBSUB_PUSH_AUDIENCE=$DEPLOYED_URL"
+          fi
 
       - name: Ensure 100% traffic routed to latest Cloud Run revision
         run: |
@@ -1737,7 +1768,10 @@ jobs:
           REGION="${{ secrets.GCP_REGION }}"
           PREV=$(gcloud run services describe "$SERVICE" --region="$REGION" \
             --format='value(status.latestReadyRevisionName)' 2>/dev/null || echo "")
+          CUR_URL=$(gcloud run services describe "$SERVICE" --region="$REGION" \
+            --format='value(status.url)' 2>/dev/null || echo "")
           echo "prev_revision=$PREV" >> $GITHUB_OUTPUT
+          echo "current_url=$CUR_URL" >> $GITHUB_OUTPUT
           echo "Previous revision: ${PREV:-none}"
 
       - name: Prepare Firestore credentials (base64)
@@ -1781,6 +1815,8 @@ jobs:
           env_vars: |-
             APP_ENV=${{ needs.cd-setup.outputs.app_env }}
             PUBSUB_PROJECT_ID=${{ secrets.GCP_PROJECT_ID }}
+            PUBSUB_PUSH_AUDIENCE=${{ steps.pre-deploy.outputs.current_url }}
+            PUBSUB_PUSH_SERVICE_ACCOUNTS=sa-push-ph-educacion@${{ secrets.GCP_PROJECT_ID }}.iam.gserviceaccount.com\,sa-push-ph-usuarios@${{ secrets.GCP_PROJECT_ID }}.iam.gserviceaccount.com\,sa-scheduler-outbox@${{ secrets.GCP_PROJECT_ID }}.iam.gserviceaccount.com
             JWT_SECRET=${{ secrets.JWT_SECRET }}
             GOOGLE_APPLICATION_CREDENTIALS_BASE64=${{ env.GOOGLE_APPLICATION_CREDENTIALS_BASE64 }}
             CORS_ALLOWED_ORIGINS=${{ env.CORS_ALLOWED_ORIGINS_ESCAPED }}
@@ -1788,6 +1824,16 @@ jobs:
             AUTH_SERVICE_URL=${{ needs.cd-auth.outputs.service_url }}
             EDUCATION_SERVICE_URL=${{ needs.cd-education.outputs.service_url }}
             UPSTREAM_ID_TOKEN=true
+
+      - name: Sync Pub/Sub push audience on first deploy or URL change
+        run: |
+          SERVICE="human-promotion-${{ needs.cd-setup.outputs.service_suffix }}"
+          REGION="${{ secrets.GCP_REGION }}"
+          DEPLOYED_URL="${{ steps.deploy.outputs.url }}"
+          if [ -n "$DEPLOYED_URL" ] && [ "$DEPLOYED_URL" != "${{ steps.pre-deploy.outputs.current_url }}" ]; then
+            gcloud run services update "$SERVICE" --region="$REGION" --project="${{ secrets.GCP_PROJECT_ID }}" \
+              --update-env-vars="PUBSUB_PUSH_AUDIENCE=$DEPLOYED_URL"
+          fi
 
       - name: Ensure 100% traffic routed to latest Cloud Run revision
         run: |
@@ -1969,7 +2015,12 @@ jobs:
           REGION="${{ secrets.GCP_REGION }}"
           PREV=$(gcloud run services describe "$SERVICE" --region="$REGION" \
             --format='value(status.latestReadyRevisionName)' 2>/dev/null || echo "")
+          CUR_URL=$(gcloud run services describe "$SERVICE" --region="$REGION" \
+            --format='value(status.url)' 2>/dev/null || echo "")
+          PUSH_AUD="${CUR_URL:+${CUR_URL}/eventos}"
           echo "prev_revision=$PREV" >> $GITHUB_OUTPUT
+          echo "current_url=$CUR_URL" >> $GITHUB_OUTPUT
+          echo "push_audience=$PUSH_AUD" >> $GITHUB_OUTPUT
           echo "Previous revision: ${PREV:-none}"
 
       - name: Prepare Google credentials (base64)
@@ -2008,6 +2059,8 @@ jobs:
           flags: '--no-allow-unauthenticated --min-instances=0 --max-instances=3 --cpu=1 --cpu-boost --memory=256Mi --service-account=${{ secrets.GCP_SERVICE_ACCOUNT }}'
           env_vars: |-
             APP_ENV=${{ needs.cd-setup.outputs.app_env }}
+            PUBSUB_PUSH_AUDIENCE=${{ steps.pre-deploy.outputs.push_audience }}
+            PUBSUB_PUSH_SERVICE_ACCOUNTS=sa-push-dashboard@${{ secrets.GCP_PROJECT_ID }}.iam.gserviceaccount.com
             JWT_SECRET=${{ secrets.JWT_SECRET }}
             AUTH_SERVICE_URL=${{ needs.cd-auth.outputs.service_url }}
             EDUCATION_SERVICE_URL=${{ needs.cd-education.outputs.service_url }}
@@ -2017,6 +2070,16 @@ jobs:
             REPORTES_BUCKET=ceibuenvivir-bucket
             CORS_ALLOWED_ORIGINS=${{ env.CORS_ALLOWED_ORIGINS_ESCAPED }}
             GOOGLE_APPLICATION_CREDENTIALS_BASE64=${{ env.GOOGLE_APPLICATION_CREDENTIALS_BASE64 }}
+
+      - name: Sync Pub/Sub push audience on first deploy or URL change
+        run: |
+          SERVICE="dashboard-${{ needs.cd-setup.outputs.service_suffix }}"
+          REGION="${{ secrets.GCP_REGION }}"
+          DEPLOYED_URL="${{ steps.deploy.outputs.url }}"
+          if [ -n "$DEPLOYED_URL" ] && [ "$DEPLOYED_URL" != "${{ steps.pre-deploy.outputs.current_url }}" ]; then
+            gcloud run services update "$SERVICE" --region="$REGION" --project="${{ secrets.GCP_PROJECT_ID }}" \
+              --update-env-vars="PUBSUB_PUSH_AUDIENCE=${DEPLOYED_URL}/eventos"
+          fi
 
       - name: Ensure 100% traffic routed to latest Cloud Run revision
         run: |
