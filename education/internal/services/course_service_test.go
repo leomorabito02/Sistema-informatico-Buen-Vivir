@@ -380,6 +380,44 @@ func TestCourseService_UpdateCourseAsTeacher_CannotReassign(t *testing.T) {
 	assert.Equal(t, "teacher-1", course.ResponsibleTeacher)
 }
 
+// El docente corrige un curso suyo que sigue pendiente (en borrador): no
+// está en la CDA, pero sí entre sus borradores.
+func TestCourseService_UpdateCourseAsTeacher_BorradorPropio(t *testing.T) {
+	repo := new(MockCourseRepository)
+	svc := services.NewCourseService(repo)
+
+	repo.On("Get", mock.Anything, "c1").Return(nil, repositories.ErrNotFound)
+	repo.On("ListDraftsByResponsibleTeacher", mock.Anything, "teacher-1").Return([]models.Course{{ID: "c1"}}, nil)
+	repo.On("Update", mock.Anything, "c1", mock.Anything).Return(&models.Course{ID: "c1", ResponsibleTeacher: "teacher-1"}, nil)
+
+	course, err := svc.UpdateCourseAsTeacher(context.Background(), "c1", "teacher-1", validCourseInput())
+	assert.NoError(t, err)
+	assert.Equal(t, "c1", course.ID)
+}
+
+func TestCourseService_UpdateCourseAsTeacher_BorradorAjeno(t *testing.T) {
+	repo := new(MockCourseRepository)
+	svc := services.NewCourseService(repo)
+
+	repo.On("Get", mock.Anything, "c1").Return(nil, repositories.ErrNotFound)
+	repo.On("ListDraftsByResponsibleTeacher", mock.Anything, "teacher-1").Return([]models.Course{{ID: "otro"}}, nil)
+
+	_, err := svc.UpdateCourseAsTeacher(context.Background(), "c1", "teacher-1", validCourseInput())
+	assert.True(t, services.IsForbiddenError(err))
+	repo.AssertNotCalled(t, "Update", mock.Anything, mock.Anything, mock.Anything)
+}
+
+// Un curso publicado lo da de baja el administrador, no el docente.
+func TestCourseService_DeleteCourseAsTeacher_PublicadoNo(t *testing.T) {
+	repo := new(MockCourseRepository)
+	svc := services.NewCourseService(repo)
+
+	repo.On("Get", mock.Anything, "c1").Return(&models.Course{ID: "c1", ResponsibleTeacher: "teacher-1"}, nil)
+
+	err := svc.DeleteCourseAsTeacher(context.Background(), "c1", "teacher-1")
+	assert.True(t, services.IsForbiddenError(err))
+}
+
 func TestCourseService_VerifyExists(t *testing.T) {
 	repo := new(MockCourseRepository)
 	svc := services.NewCourseService(repo)
@@ -648,6 +686,7 @@ func TestCourseService_UpdateCourseAsTeacher_ValidationAndErrors(t *testing.T) {
 		repo := new(MockCourseRepository)
 		svc := services.NewCourseService(repo)
 		repo.On("Get", mock.Anything, "c1").Return(nil, repositories.ErrNotFound)
+		repo.On("ListDraftsByResponsibleTeacher", mock.Anything, "teacher-1").Return([]models.Course{}, nil)
 
 		// Act
 		_, err := svc.UpdateCourseAsTeacher(context.Background(), "c1", "teacher-1", validCourseInput())

@@ -249,6 +249,9 @@ type HabilidadOtorgadaPayload struct {
 	CursoID        string    `json:"curso_id"`
 	Origen         string    `json:"origen"`
 	Fecha          time.Time `json:"fecha"`
+	// HabilidadNombre es aditivo (22/11/2026): Notificaciones lo usa
+	// para decirle al participante qué habilidad ganó. Puede venir vacío.
+	HabilidadNombre string `json:"habilidad_nombre,omitempty"`
 }
 
 // AsistenciaGeneralPayload: asistencia diaria al centro (HU-19bis). La

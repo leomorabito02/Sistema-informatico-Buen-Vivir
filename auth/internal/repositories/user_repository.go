@@ -170,6 +170,7 @@ func (r *userRepository) CreateWithRoleProfile(ctx context.Context, user *models
 			return tx.Create(&models.Teacher{
 				TeacherID:      "tech-" + utils.GenerateRandomString(10),
 				UserID:         user.UserID,
+				IsExternal:     teacherExternalFrom(ctx),
 				ApprovalStatus: status,
 				ApprovedBy:     appByPtr,
 			}).Error
@@ -342,4 +343,18 @@ func WithParticipantProfile(ctx context.Context, dni, address string) context.Co
 func participantProfileFrom(ctx context.Context) (string, string) {
 	p, _ := ctx.Value(participantProfileKey{}).(participantProfile)
 	return p.dni, p.address
+}
+
+type teacherExternalKey struct{}
+
+// WithTeacherExternal marca que el docente que se crea es externo (sube
+// material a la biblioteca pública). Usa la columna is_external que ya
+// existe en teachers: no cambia la estructura de la base.
+func WithTeacherExternal(ctx context.Context, external bool) context.Context {
+	return context.WithValue(ctx, teacherExternalKey{}, external)
+}
+
+func teacherExternalFrom(ctx context.Context) bool {
+	v, _ := ctx.Value(teacherExternalKey{}).(bool)
+	return v
 }

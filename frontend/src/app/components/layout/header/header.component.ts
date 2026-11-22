@@ -82,22 +82,35 @@ const ASISTENCIA: MenuItem = {
   ],
 };
 
+/**
+ * Promoción humana (22/11/2026): antes "Promoción humana" y "Seguimiento"
+ * eran subopciones de "Participantes" y no se entendía la diferencia.
+ * - Fichas personales: la ficha de proceso de cada participante.
+ * - Seguimiento educativo: asistencia y avance en los cursos.
+ */
+const PROMOCION_HUMANA: MenuItem = {
+  label: "Promoción humana",
+  items: [
+    { label: "Fichas personales", routerLink: "/dashboard/promocion-humana" },
+    {
+      label: "Seguimiento educativo",
+      routerLink: "/dashboard/seguimiento",
+    },
+  ],
+};
+
 export const NAV_BY_ROLE: Record<string, MenuItem[]> = {
   role_admin: [
     { label: "Dashboard", routerLink: "/dashboard/indicadores" },
     CURSOS_GESTION,
     ASISTENCIA,
     {
-      label: "Participantes",
+      label: "Usuarios",
       items: [
-        { label: "Usuarios", routerLink: "/dashboard/usuarios" },
-        {
-          label: "Promoción humana",
-          routerLink: "/dashboard/promocion-humana",
-        },
-        { label: "Seguimiento", routerLink: "/dashboard/seguimiento" },
+        { label: "Gestión de usuarios", routerLink: "/dashboard/usuarios" },
       ],
     },
+    PROMOCION_HUMANA,
     { label: "Campañas", routerLink: "/dashboard/campanas" },
     { label: "Inserción laboral", routerLink: "/dashboard/ofertas" },
     // HU-35: el log de auditoría lo consulta solo administración.
@@ -115,19 +128,15 @@ export const NAV_BY_ROLE: Record<string, MenuItem[]> = {
     },
     ASISTENCIA,
     {
-      label: "Participantes",
+      label: "Usuarios",
       items: [
         {
           label: "Gestión de participantes",
           routerLink: "/dashboard/usuarios",
         },
-        {
-          label: "Promoción humana",
-          routerLink: "/dashboard/promocion-humana",
-        },
-        { label: "Seguimiento", routerLink: "/dashboard/seguimiento" },
       ],
     },
+    PROMOCION_HUMANA,
     // HU-06: el voluntariado crea, edita y publica campañas.
     { label: "Campañas", routerLink: "/dashboard/campanas" },
     { label: "Inserción laboral", routerLink: "/dashboard/ofertas" },
@@ -142,7 +151,7 @@ export const NAV_BY_ROLE: Record<string, MenuItem[]> = {
     { label: "Mis cursos", routerLink: "/dashboard/mis-cursos" },
     { label: "Asistencia", routerLink: "/dashboard/asistencia" },
     { label: "Progreso", routerLink: "/dashboard/progreso" },
-    { label: "Seguimiento", routerLink: "/dashboard/seguimiento" },
+    { label: "Seguimiento educativo", routerLink: "/dashboard/seguimiento" },
   ],
   role_company: [
     { label: "Ofertas laborales", routerLink: "/dashboard/ofertas" },
@@ -162,7 +171,8 @@ const NAV_ICONS: Record<string, LucideIconData> = {
   Cursos: BookOpen,
   "Mis cursos": BookOpen,
   Asistencia: CalendarCheck,
-  Participantes: Users,
+  Usuarios: Users,
+  "Promoción humana": Sprout,
   Campañas: Megaphone,
   "Inserción laboral": Briefcase,
   "Ofertas laborales": Briefcase,
@@ -170,7 +180,7 @@ const NAV_ICONS: Record<string, LucideIconData> = {
   "Mi CV": FileText,
   "Mis contenidos": FileText,
   Progreso: TrendingUp,
-  Seguimiento: ClipboardList,
+  "Seguimiento educativo": ClipboardList,
   Auditoría: ShieldCheck,
   "Roles y permisos": ShieldCheck,
   "Contacto con el centro": MessageCircle,

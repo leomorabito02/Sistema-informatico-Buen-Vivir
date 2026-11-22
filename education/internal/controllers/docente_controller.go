@@ -106,6 +106,16 @@ func (c *DocenteController) UpdateMyCourse(w http.ResponseWriter, r *http.Reques
 	writeJSON(w, http.StatusOK, course)
 }
 
+// DeleteMyCourse responde DELETE /api/docente/cursos/{id}: el docente da
+// de baja un curso suyo que sigue en borrador (pendiente de aprobación).
+func (c *DocenteController) DeleteMyCourse(w http.ResponseWriter, r *http.Request) {
+	if err := c.courseService.DeleteCourseAsTeacher(r.Context(), chi.URLParam(r, "id"), teacherIDFromRequest(r)); err != nil {
+		writeError(w, err)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
 // ListActivities responde GET /api/docente/cursos/{cursoId}/actividades
 func (c *DocenteController) ListActivities(w http.ResponseWriter, r *http.Request) {
 	cursoID := chi.URLParam(r, "cursoId")

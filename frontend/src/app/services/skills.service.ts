@@ -90,6 +90,9 @@ export class SkillsService {
     let message = "No se pudieron cargar las habilidades.";
     if (error.status === 503) {
       message = SUGGESTIONS_UNAVAILABLE;
+    } else if (error.status === 429) {
+      message =
+        "Se hicieron demasiados pedidos seguidos. Esperá un minuto y volvé a tocar Sugerir habilidades.";
     } else if (body && typeof body === "object" && body.error) {
       message = body.error;
     } else if (error.status === 401) {

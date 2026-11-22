@@ -85,7 +85,39 @@ export class MisCursosComponent implements OnInit {
     "application/vnd.openxmlformats-officedocument.wordprocessingml.document": 10,
   };
 
+  // ---- crear / editar / eliminar curso propio ----
+  courseDialog = false;
+  editingCourse: CourseVM | null = null;
+  savingCourse = false;
+  courseForm = {
+    title: "",
+    description: "",
+    trainingAreaId: "",
+    mode: "Presencial",
+    duration: "",
+  };
+  areaOptions: { label: string; value: string }[] = [];
+  readonly modeOptions = [
+    { label: "Presencial", value: "Presencial" },
+    { label: "Virtual", value: "Virtual" },
+    { label: "Mixta", value: "Mixta" },
+  ];
+  deleteDialog = false;
+  deletingCourse: CourseVM | null = null;
+  deletingBusy = false;
+
   ngOnInit() {
+    this.cargar();
+    this.education.listTrainingAreas().subscribe({
+      next: (areas) =>
+        (this.areaOptions = areas.map((a) => ({ label: a.name, value: a.id }))),
+      error: () => (this.areaOptions = []),
+    });
+  }
+
+  cargar() {
+    this.loading = true;
+    this.error = "";
     forkJoin({
       publicados: this.education.listMyCourses(),
       borradores: this.education.listMyDraftCourses(),
@@ -229,6 +261,103 @@ export class MisCursosComponent implements OnInit {
         this.toast.add({
           severity: "warn",
           summary: "Material creado, pero no se pudo adjuntar",
+          detail: err.message,
+        });
+      },
+    });
+  }
+
+  // ---------------- curso propio ----------------
+  openCourseForm(c?: CourseVM) {
+    this.editingCourse = c ?? null;
+    const raw = c?.raw;
+    this.courseForm = {
+      title: raw?.title ?? "",
+      description: raw ? richTextToPlain(raw.description) : "",
+      trainingAreaId: raw?.trainingArea?.id ?? "",
+      mode: raw?.mode || "Presencial",
+      duration: raw?.duration ?? "",
+    };
+    this.courseDialog = true;
+  }
+
+  get courseFormValid(): boolean {
+    const f = this.courseForm;
+    return (
+      !!f.title.trim() &&
+      !!f.description.trim() &&
+      !!f.trainingAreaId &&
+      !!f.mode &&
+      !!f.duration.trim()
+    );
+  }
+
+  saveCourse() {
+    if (!this.courseFormValid || this.savingCourse) return;
+    const f = this.courseForm;
+    const input: CourseInput = {
+      title: f.title.trim(),
+      description: plainToRichText(f.description.trim()),
+      mode: f.mode,
+      duration: f.duration.trim(),
+      trainingAreaId: f.trainingAreaId,
+      // Al editar se conservan los materiales que ya tenía.
+      materialIds: (this.editingCourse?.raw.material ?? []).map((m) => m.id),
+    };
+    const editing = this.editingCourse;
+    this.savingCourse = true;
+    const req$ = editing
+      ? this.education.updateMyCourse(editing.id, input)
+      : this.education.createMyCourse(input);
+    req$.subscribe({
+      next: () => {
+        this.savingCourse = false;
+        this.courseDialog = false;
+        this.toast.add({
+          severity: "success",
+          summary: editing ? "Curso actualizado" : "Curso creado",
+          detail: editing
+            ? "Se guardaron los cambios."
+            : "Quedó pendiente de aprobación del administrador.",
+        });
+        this.cargar();
+      },
+      error: (err: Error) => {
+        this.savingCourse = false;
+        this.toast.add({
+          severity: "error",
+          summary: "No se pudo guardar el curso",
+          detail: err.message,
+        });
+      },
+    });
+  }
+
+  askDelete(c: CourseVM) {
+    this.deletingCourse = c;
+    this.deleteDialog = true;
+  }
+
+  confirmDelete() {
+    const c = this.deletingCourse;
+    if (!c || this.deletingBusy) return;
+    this.deletingBusy = true;
+    this.education.deleteMyCourse(c.id).subscribe({
+      next: () => {
+        this.deletingBusy = false;
+        this.deleteDialog = false;
+        this.courses = this.courses.filter((x) => x.id !== c.id);
+        this.toast.add({
+          severity: "success",
+          summary: "Curso eliminado",
+          detail: c.title,
+        });
+      },
+      error: (err: Error) => {
+        this.deletingBusy = false;
+        this.toast.add({
+          severity: "error",
+          summary: "No se pudo eliminar el curso",
           detail: err.message,
         });
       },

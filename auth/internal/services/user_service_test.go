@@ -12,6 +12,7 @@ import (
 	"auth/internal/models"
 	"auth/internal/repositories"
 	"auth/internal/services"
+	"auth/internal/utils"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
@@ -490,36 +491,58 @@ func (m *mockVerificationService) IssueActionLink(ctx context.Context, requestID
 	return "", nil
 }
 
-func TestUserService_CreateUser_Success_SendsVerification(t *testing.T) {
-	mockRepo := new(MockUserRepository)
-	mockVerif := &mockVerificationService{}
-	svc := services.NewUserService(mockRepo, mockVerif)
+// El alta que hace el administrador nace verificada y aprobada para todos
+// los roles, y pide el mail "cuenta_aprobada" en vez del de verificación
+// (22/11/2026: el usuario creado desde el panel no podía entrar).
+func TestUserService_CreateUser_AltaAdmin_NaceVerificadaEnTodosLosRoles(t *testing.T) {
+	roles := []string{"role_participant", "role_teacher", "role_volunteer", "role_company", "role_admin"}
+	for _, role := range roles {
+		t.Run(role, func(t *testing.T) {
+			mockRepo := new(MockUserRepository)
+			mockVerif := &mockVerificationService{}
+			prod := &mockUsuariosProducer{}
+			svc := services.NewUserService(mockRepo, mockVerif, prod)
 
-	ctx := context.WithValue(context.Background(), middlewares.RoleIDKey, "role_admin")
-	ctx = context.WithValue(ctx, middlewares.UserIDKey, "admin-1")
+			ctx := context.WithValue(context.Background(), middlewares.RoleIDKey, "role_admin")
+			ctx = context.WithValue(ctx, middlewares.UserIDKey, "admin-1")
 
-	req := &dto.CreateUserRequest{
-		Email:     "newuser@gmail.com",
-		FirstName: "Nuevo",
-		LastName:  "Usuario",
-		Password:  "Password123!",
-		RoleID:    "role_participant",
-		Phone:     "123456789",
-		DNI:       "30111222",
-		Address:   "San Martín 100",
+			req := &dto.CreateUserRequest{
+				Email:     "newuser@gmail.com",
+				FirstName: "Nuevo",
+				LastName:  "Usuario",
+				Password:  "Password123!",
+				RoleID:    role,
+				Phone:     "123456789",
+				DNI:       "30111222",
+				Address:   "San Martín 100",
+			}
+
+			mockRepo.On("CreateWithRoleProfile", mock.Anything, mock.MatchedBy(func(u *models.User) bool {
+				return u.Email == "newuser@gmail.com" && u.IsEmailVerified
+			}), role, "admin-1").Return(nil)
+
+			res, err := svc.CreateUser(ctx, req)
+			require.NoError(t, err)
+			assert.True(t, res.IsEmailVerified)
+			assert.Nil(t, mockVerif.calledWithUser, "no se manda el mail de verificación")
+			require.Len(t, prod.emailSolicitadoCalls, 1)
+			assert.Equal(t, "cuenta_aprobada", prod.emailSolicitadoCalls[0].Tipo)
+			mockRepo.AssertExpectations(t)
+		})
 	}
+}
 
-	mockRepo.On("CreateWithRoleProfile", mock.Anything, mock.MatchedBy(func(u *models.User) bool {
-		return u.Email == "newuser@gmail.com" && !u.IsEmailVerified
-	}), "role_participant", "admin-1").Return(nil)
+func TestMensajesAltaUsuario_SinTextoDeLaBase(t *testing.T) {
+	err := errors.New(`ERROR: duplicate key value violates unique constraint "uni_users_email" (SQLSTATE 23505)`)
+	assert.Equal(t, "Ya existe una cuenta registrada con ese correo electrónico.", services.MensajeErrorBaseAlta(err))
+	otro := services.MensajeErrorBaseAlta(errors.New("dial tcp: connection refused"))
+	assert.NotContains(t, otro, "tcp")
 
-	res, err := svc.CreateUser(ctx, req)
-	assert.NoError(t, err)
-	assert.NotNil(t, res)
-	assert.False(t, res.IsEmailVerified)
-	assert.NotNil(t, mockVerif.calledWithUser)
-	assert.Equal(t, "newuser@gmail.com", mockVerif.calledWithUser.Email)
-	assert.False(t, mockVerif.calledWithUser.IsEmailVerified)
+	verr := utils.GetValidator().Struct(&dto.CreateUserRequest{FirstName: "A", LastName: "Perez", Email: "x", Password: "corta", Phone: "1", RoleID: "role_participant"})
+	msg := services.MensajeValidacionAlta(verr)
+	assert.Contains(t, msg, "La contraseña debe tener al menos 8 caracteres")
+	assert.Contains(t, msg, "El correo electrónico no tiene un formato válido")
+	assert.NotContains(t, msg, "Password")
 }
 
 func TestUserService_GetAllUsers(t *testing.T) {

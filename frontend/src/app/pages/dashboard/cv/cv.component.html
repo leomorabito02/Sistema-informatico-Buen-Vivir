@@ -521,6 +521,34 @@
             </div>
           </div>
 
+          <div class="form-section-group mb-4" *ngIf="!userId">
+            <div class="flex justify-between items-center mb-3 border-b pb-2">
+              <h3 class="text-xl font-bold text-primary m-0">
+                Habilidades adquiridas en el centro
+              </h3>
+            </div>
+            <p class="text-sm text-gray-500 mb-3">
+              Se cargan solas cuando completás actividades de los cursos y se
+              agregan al PDF de tu CV. No hace falta escribirlas.
+            </p>
+            <div
+              *ngIf="habilidadesCentro.length; else sinHabilidadesCentro"
+              class="flex flex-wrap gap-2"
+            >
+              <span
+                *ngFor="let h of habilidadesCentro"
+                class="cv-skill-centro"
+                >{{ h }}</span
+              >
+            </div>
+            <ng-template #sinHabilidadesCentro>
+              <div class="text-gray-500 italic text-sm">
+                Todavía no ganaste habilidades. Aparecen acá cuando entregás
+                actividades de tus cursos.
+              </div>
+            </ng-template>
+          </div>
+
           <div class="form-section-group mb-4">
             <div class="flex justify-between items-center mb-3 border-b pb-2">
               <h3 class="text-xl font-bold text-primary m-0">Idiomas</h3>
@@ -809,8 +837,21 @@
                     <span class="opacity-70">({{ skill.level }})</span></span
                   >
                 </div>
+                <div
+                  *ngIf="habilidadesCentro.length"
+                  class="flex flex-wrap gap-1 mt-2"
+                >
+                  <span
+                    *ngFor="let h of habilidadesCentro"
+                    class="text-xs cv-skill-centro"
+                    >{{ h }}</span
+                  >
+                </div>
                 <ng-template #noSkills>
-                  <div class="text-xs text-orange-500">
+                  <div
+                    *ngIf="!habilidadesCentro.length"
+                    class="text-xs text-orange-500"
+                  >
                     <lucide-icon
                       [img]="TriangleAlert"
                       [size]="14"

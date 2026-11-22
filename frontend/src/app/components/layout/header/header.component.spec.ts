@@ -231,11 +231,21 @@ describe("HeaderComponent", () => {
     it("abre el grupo de la pantalla actual al navegar", async () => {
       create({ role_id: "role_admin" });
       await TestBed.inject(Router).navigateByUrl("/dashboard/usuarios");
-      const participantes = component.items.find(
-        (i) => i.label === "Participantes",
-      )!;
-      expect(component.isGroupActive(participantes)).toBeTrue();
-      expect(component.isExpanded(participantes)).toBeTrue();
+      const usuarios = component.items.find((i) => i.label === "Usuarios")!;
+      expect(component.isGroupActive(usuarios)).toBeTrue();
+      expect(component.isExpanded(usuarios)).toBeTrue();
+    });
+
+    it("Promoción humana agrupa Fichas personales y Seguimiento educativo", () => {
+      create({ role_id: "role_admin" });
+      const ph = component.items.find((i) => i.label === "Promoción humana")!;
+      expect(ph.items?.map((i) => i.label)).toEqual([
+        "Fichas personales",
+        "Seguimiento educativo",
+      ]);
+      expect(
+        component.items.some((i) => i.label === "Participantes"),
+      ).toBeFalse();
     });
 
     it("abre y cierra el panel en celular, y lo cierra al navegar", async () => {

@@ -3,8 +3,16 @@
   <div class="header-section">
     <div>
       <h1 class="page-title">Mis cursos asignados</h1>
-      <p class="page-subtitle">Cursos en los que sos docente responsable.</p>
+      <p class="page-subtitle">
+        Cursos en los que sos docente responsable. Los que creás quedan
+        pendientes hasta que el administrador los aprueba y publica.
+      </p>
     </div>
+    <p-button
+      label="Nuevo curso"
+      icon="pi pi-plus"
+      (onClick)="openCourseForm()"
+    ></p-button>
   </div>
 
   <app-loading-state
@@ -24,7 +32,7 @@
         <header class="course-card__head">
           <h2 class="course-card__title">{{ course.title }}</h2>
           <p-tag
-            [value]="course.publicado ? 'Publicado' : 'Borrador'"
+            [value]="course.publicado ? 'Publicado' : 'Pendiente de aprobación'"
             [severity]="course.publicado ? 'success' : 'warn'"
           ></p-tag>
         </header>
@@ -64,14 +72,30 @@
             [outlined]="true"
             (onClick)="openMaterials(course)"
           ></p-button>
+          <p-button
+            label="Editar"
+            icon="pi pi-pencil"
+            size="small"
+            [outlined]="true"
+            (onClick)="openCourseForm(course)"
+          ></p-button>
+          <p-button
+            *ngIf="!course.publicado"
+            label="Eliminar"
+            icon="pi pi-trash"
+            size="small"
+            severity="danger"
+            [outlined]="true"
+            (onClick)="askDelete(course)"
+          ></p-button>
         </footer>
       </article>
     </div>
 
     <ng-template #sinCursos>
       <p class="empty-state">
-        No tenés cursos asignados. Un administrador debe crear un curso con tu
-        id de usuario como docente responsable y publicarlo.
+        Todavía no tenés cursos. Creá uno con "Nuevo curso": queda pendiente
+        hasta que el administrador lo aprueba y publica.
       </p>
     </ng-template>
   </ng-container>
@@ -168,6 +192,103 @@
       [loading]="savingMat"
       [disabled]="!matForm.title.trim() || matUrlInvalid || !!matFileError"
       (onClick)="addMaterial()"
+    ></p-button>
+  </ng-template>
+</p-dialog>
+
+<!-- Crear / editar curso (22/11/2026): el docente crea a su nombre y el
+     curso queda en borrador hasta que el administrador lo publica. -->
+<p-dialog
+  [(visible)]="courseDialog"
+  [modal]="true"
+  [style]="{ width: '560px' }"
+  [breakpoints]="{ '640px': '95vw' }"
+  [header]="editingCourse ? 'Editar curso' : 'Nuevo curso'"
+>
+  <div class="mat-form">
+    <label>
+      Título *
+      <input pInputText [(ngModel)]="courseForm.title" maxlength="120" />
+    </label>
+    <label>
+      Descripción *
+      <textarea
+        pInputText
+        rows="4"
+        [(ngModel)]="courseForm.description"
+      ></textarea>
+    </label>
+    <label>
+      Área formativa *
+      <p-select
+        [options]="areaOptions"
+        optionLabel="label"
+        optionValue="value"
+        [(ngModel)]="courseForm.trainingAreaId"
+        placeholder="Elegí un área"
+      ></p-select>
+    </label>
+    <label>
+      Modalidad *
+      <p-select
+        [options]="modeOptions"
+        optionLabel="label"
+        optionValue="value"
+        [(ngModel)]="courseForm.mode"
+      ></p-select>
+    </label>
+    <label>
+      Duración *
+      <input
+        pInputText
+        [(ngModel)]="courseForm.duration"
+        placeholder="Ej.: 8 semanas"
+      />
+    </label>
+    <small class="muted" *ngIf="!editingCourse">
+      El curso queda pendiente de aprobación: el administrador lo revisa y lo
+      publica en el catálogo.
+    </small>
+  </div>
+  <ng-template pTemplate="footer">
+    <p-button
+      label="Cancelar"
+      [text]="true"
+      (onClick)="courseDialog = false"
+    ></p-button>
+    <p-button
+      [label]="editingCourse ? 'Guardar cambios' : 'Crear curso'"
+      icon="pi pi-check"
+      [loading]="savingCourse"
+      [disabled]="!courseFormValid"
+      (onClick)="saveCourse()"
+    ></p-button>
+  </ng-template>
+</p-dialog>
+
+<p-dialog
+  [(visible)]="deleteDialog"
+  [modal]="true"
+  [style]="{ width: '420px' }"
+  [breakpoints]="{ '640px': '95vw' }"
+  header="Eliminar curso"
+>
+  <p>
+    ¿Eliminar «{{ deletingCourse?.title }}»? Todavía no fue publicado, así que
+    nadie está inscripto.
+  </p>
+  <ng-template pTemplate="footer">
+    <p-button
+      label="Cancelar"
+      [text]="true"
+      (onClick)="deleteDialog = false"
+    ></p-button>
+    <p-button
+      label="Eliminar"
+      icon="pi pi-trash"
+      severity="danger"
+      [loading]="deletingBusy"
+      (onClick)="confirmDelete()"
     ></p-button>
   </ng-template>
 </p-dialog>

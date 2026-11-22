@@ -3,6 +3,7 @@ package controllers
 import (
 	"errors"
 	"encoding/json"
+	"log/slog"
 	"net/http"
 	"strings"
 
@@ -30,11 +31,23 @@ func (c *UserController) CreateUser(w http.ResponseWriter, r *http.Request) {
 
 	user, err := c.userService.CreateUser(r.Context(), &req)
 	if err != nil {
-		if validationErrors := utils.FormatValidationError(err); len(validationErrors) > 0 {
-			utils.JSONResponse(w, http.StatusBadRequest, false, nil, validationErrors)
+		// El panel muestra este texto tal cual: nunca el error de la base
+		// ni el nombre interno del campo (ver services/user_errors.go).
+		if msg := services.MensajeValidacionAlta(err); msg != "" {
+			utils.JSONResponse(w, http.StatusBadRequest, false, nil, msg)
 			return
 		}
-		utils.JSONResponse(w, errorStatus(err, http.StatusInternalServerError), false, nil, err.Error())
+		status := errorStatus(err, http.StatusInternalServerError)
+		if status == http.StatusInternalServerError {
+			slog.Error("alta de usuario: error al guardar", slog.String("error", err.Error()))
+			msg := services.MensajeErrorBaseAlta(err)
+			if strings.HasPrefix(msg, "Ya ") {
+				status = http.StatusConflict
+			}
+			utils.JSONResponse(w, status, false, nil, msg)
+			return
+		}
+		utils.JSONResponse(w, status, false, nil, err.Error())
 		return
 	}
 

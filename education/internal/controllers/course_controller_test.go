@@ -102,6 +102,10 @@ func (m *MockCourseService) CreateCourseAsTeacher(ctx context.Context, teacherID
 	return args.Get(0).(*models.Course), args.Error(1)
 }
 
+func (m *MockCourseService) DeleteCourseAsTeacher(ctx context.Context, id, teacherID string) error {
+	return m.Called(ctx, id, teacherID).Error(0)
+}
+
 func (m *MockCourseService) UpdateCourseAsTeacher(ctx context.Context, id, teacherID string, input models.CourseInput) (*models.Course, error) {
 	args := m.Called(ctx, id, teacherID, input)
 	if args.Get(0) == nil {

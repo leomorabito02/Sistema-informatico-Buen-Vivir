@@ -237,6 +237,7 @@ func RegisterRoutes(
 			r.Get("/cursos/borradores", ctrls.Docente.ListMyDraftCourses)
 			r.Post("/cursos", ctrls.Docente.CreateMyCourse)
 			r.Put("/cursos/{id}", ctrls.Docente.UpdateMyCourse)
+			r.Delete("/cursos/{id}", ctrls.Docente.DeleteMyCourse)
 			r.Get("/cursos/{cursoId}/actividades", ctrls.Docente.ListActivities)
 			r.Post("/cursos/{cursoId}/actividades", ctrls.Docente.CreateActivity)
 			r.Put("/actividades/{actividadId}", ctrls.Docente.UpdateActivity)

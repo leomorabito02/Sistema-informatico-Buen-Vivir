@@ -177,6 +177,31 @@ describe("LoginComponent", () => {
       expect(component.loginError).toContain("15 minuto");
     });
 
+    it("con contraseña incorrecta muestra el error y no va a Acceso no disponible", () => {
+      authServiceSpy.checkCredentials.and.returnValue(
+        throwError(() => ({
+          status: 401,
+          error: {
+            error:
+              "la contraseña ingresada es incorrecta. Te quedan 4 intento(s) antes del bloqueo temporal",
+          },
+        })),
+      );
+      component.loginForm.setValue({
+        email: "test@gmail.com",
+        password: "password",
+        rememberMe: false,
+      });
+
+      component.onSubmit();
+
+      expect(routerSpy.navigate).not.toHaveBeenCalledWith(["/account-notice"]);
+      expect(component.loginError).toContain(
+        "La contraseña ingresada es incorrecta",
+      );
+      expect(component.locked).toBeFalse();
+    });
+
     it("should lock out after max attempts", () => {
       authServiceSpy.checkCredentials.and.returnValue(
         throwError(() => ({ error: { error: "Invalid" } })),

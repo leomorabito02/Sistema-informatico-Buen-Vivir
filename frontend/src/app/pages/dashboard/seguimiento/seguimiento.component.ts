@@ -9,8 +9,8 @@ import { ProgressBarModule } from "primeng/progressbar";
 import { InputTextModule } from "primeng/inputtext";
 import { IconFieldModule } from "primeng/iconfield";
 import { InputIconModule } from "primeng/inputicon";
-import { Observable, forkJoin, of } from "rxjs";
-import { catchError, map } from "rxjs/operators";
+import { Observable, forkJoin, from, of } from "rxjs";
+import { catchError, map, mergeMap, toArray } from "rxjs/operators";
 import { EducationService } from "../../../services/education.service";
 import { AuthService } from "../../../services/auth.service";
 import { LoadingStateComponent } from "../../../shared/components/loading-state.component";
@@ -22,6 +22,9 @@ import {
   Enrollment,
   ParticipantProgress,
 } from "../../../core/models/education.model";
+
+const SILENT = { silent: true };
+const CURSOS_EN_PARALELO = 3;
 
 interface Option {
   label: string;
@@ -142,9 +145,12 @@ export class SeguimientoComponent implements OnInit {
     this.loading = true;
     this.error = "";
     this.cursosConError = [];
+    // silent: si falla, se muestra el error en esta pantalla (con
+    // Reintentar) en vez de saltar a la página de error del servidor, y
+    // las fallas pasajeras se reintentan solas (22/11/2026).
     const cursos$: Observable<Course[]> = this.gestion
-      ? this.education.listCourses()
-      : this.education.listMyCourses();
+      ? this.education.listCourses("", "", SILENT)
+      : this.education.listMyCourses(SILENT);
     cursos$.subscribe({
       next: (cursos) => {
         this.cursos = cursos;
@@ -157,8 +163,15 @@ export class SeguimientoComponent implements OnInit {
           this.loading = false;
           return;
         }
-        forkJoin(cursos.map((c) => this.filasDelCurso(c))).subscribe(
-          (porCurso) => {
+        // Antes salían 2 pedidos por curso todos juntos; con muchos cursos
+        // Cloud Run respondía 5xx hasta "calentarse". Ahora van de a
+        // CURSOS_EN_PARALELO.
+        from(cursos)
+          .pipe(
+            mergeMap((c) => this.filasDelCurso(c), CURSOS_EN_PARALELO),
+            toArray(),
+          )
+          .subscribe((porCurso) => {
             this.rows = porCurso
               .flat()
               .sort(
@@ -169,8 +182,7 @@ export class SeguimientoComponent implements OnInit {
                   ) || a.curso.localeCompare(b.curso, "es"),
               );
             this.loading = false;
-          },
-        );
+          });
       },
       error: (err: Error) => {
         this.error = err.message;
@@ -185,11 +197,11 @@ export class SeguimientoComponent implements OnInit {
    */
   private filasDelCurso(c: Course): Observable<SeguimientoRow[]> {
     const enrollments$: Observable<Enrollment[]> = this.gestion
-      ? this.education.listCourseEnrollments(c.id)
-      : this.education.listEnrollments(c.id);
+      ? this.education.listCourseEnrollments(c.id, SILENT)
+      : this.education.listEnrollments(c.id, SILENT);
     const progress$: Observable<ParticipantProgress[]> = this.gestion
-      ? this.education.getCourseProgressGestion(c.id)
-      : this.education.getCourseProgress(c.id);
+      ? this.education.getCourseProgressGestion(c.id, SILENT)
+      : this.education.getCourseProgress(c.id, SILENT);
     const curso = c.title || c.id;
     return forkJoin({ enrollments: enrollments$, progress: progress$ }).pipe(
       map(({ enrollments, progress }) => {

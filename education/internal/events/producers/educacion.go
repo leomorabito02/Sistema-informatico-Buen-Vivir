@@ -167,14 +167,17 @@ func (p *Educacion) CursoCompletado(ctx context.Context, tx *firestore.Transacti
 
 // HabilidadOtorgada: el participante ganó una habilidad (al entregar, o
 // retroactivamente al agregarle habilidades a una actividad ya entregada).
-func (p *Educacion) HabilidadOtorgada(ctx context.Context, tx *firestore.Transaction, s models.ParticipantSkill) error {
+// nombre es el nombre de la habilidad para el aviso al participante
+// (vacío si no se pudo leer del catálogo).
+func (p *Educacion) HabilidadOtorgada(ctx context.Context, tx *firestore.Transaction, s models.ParticipantSkill, nombre string) error {
 	return p.emit(ctx, tx, p.event(events.HabilidadOtorgada, events.HabilidadOtorgadaPayload{
-		HabilidadID:    s.HabilidadID,
-		ParticipanteID: s.ParticipanteID,
-		ActividadID:    s.ActividadID,
-		CursoID:        s.CursoID,
-		Origen:         s.Origen,
-		Fecha:          s.Fecha,
+		HabilidadID:     s.HabilidadID,
+		ParticipanteID:  s.ParticipanteID,
+		ActividadID:     s.ActividadID,
+		CursoID:         s.CursoID,
+		Origen:          s.Origen,
+		Fecha:           s.Fecha,
+		HabilidadNombre: nombre,
 	}, s.ParticipanteID))
 }
 

@@ -77,18 +77,25 @@ func (s *userService) CreateUser(ctx context.Context, req *dto.CreateUserRequest
 		}
 		ctx = repositories.WithParticipantProfile(ctx, strings.TrimSpace(req.DNI), strings.TrimSpace(req.Address))
 	}
+	if req.RoleID == "role_teacher" && req.IsExternal {
+		ctx = repositories.WithTeacherExternal(ctx, true)
+	}
 
-	// 3. Crear modelo
+	// 3. Crear modelo. La cuenta que da de alta el administrador (o el
+	// voluntario) nace con el correo verificado y aprobada para todos los
+	// roles: la persona entra con la contraseña que le dieron y recibe el
+	// mail "tu cuenta fue aprobada" (22/11/2026). Antes nacía sin verificar
+	// y, si no tocaba el enlace del mail, no podía iniciar sesión.
 	user := &models.User{
 		UserID:          "usr-" + utils.GenerateRandomString(12), // helper pseudo-id o UUID
-		FirstName:       req.FirstName,
-		LastName:        req.LastName,
-		Email:           req.Email,
+		FirstName:       strings.TrimSpace(req.FirstName),
+		LastName:        strings.TrimSpace(req.LastName),
+		Email:           strings.TrimSpace(req.Email),
 		PasswordHash:    string(hashedPassword),
-		Phone:           req.Phone,
+		Phone:           strings.TrimSpace(req.Phone),
 		Status:          "active",
 		RoleID:          req.RoleID,
-		IsEmailVerified: false,
+		IsEmailVerified: true,
 	}
 
 	// 4. Guardar en Base de Datos (a través del repositorio con transacciones)
@@ -108,10 +115,9 @@ func (s *userService) CreateUser(ctx context.Context, req *dto.CreateUserRequest
 
 	if s.producer != nil {
 		_ = s.producer.UsuarioCreado(ctx, user.UserID, user.RoleID)
-	}
-
-	if s.verificationService != nil {
-		_ = s.verificationService.GenerateAndSendVerification(ctx, user)
+		// Mismo mail que cuando el admin aprueba un registro: avisa que
+		// la cuenta está lista y trae el enlace para iniciar sesión.
+		_ = s.producer.EmailSolicitado(ctx, "app-"+user.UserID, user.UserID, "cuenta_aprobada")
 	}
 
 	// Sincronizar stats de impacto y preferencias de notificaciones

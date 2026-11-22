@@ -82,6 +82,8 @@ func (r *submissionRepository) CreateWithAttendance(ctx context.Context, activit
 		if err != nil {
 			return err
 		}
+		// Nombres para el aviso "ganaste la habilidad X" (best effort).
+		skillNames := skillNamesTx(tx, r.client, newSkills)
 
 		if err := tx.Create(r.client.Collection(submissionsCollection).Doc(docID), sub); err != nil {
 			return err
@@ -102,7 +104,7 @@ func (r *submissionRepository) CreateWithAttendance(ctx context.Context, activit
 			if err := tx.Create(ref, ps); err != nil {
 				return err
 			}
-			if err := r.events.HabilidadOtorgada(ctx, tx, ps); err != nil {
+			if err := r.events.HabilidadOtorgada(ctx, tx, ps, skillNames[habilidadID]); err != nil {
 				return err
 			}
 		}

@@ -1843,6 +1843,16 @@ paths:
       responses:
         '200':
           description: OK
+    delete:
+      summary: DELETE /api/docente/cursos/{id}
+      operationId: delete__api_docente_cursos_id
+      x-google-backend:
+        address: ${EDUCATION_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+        jwt_audience: ${EDUCATION_SERVICE_URL}
+      responses:
+        '204':
+          description: No Content
     parameters:
     - name: id
       in: path

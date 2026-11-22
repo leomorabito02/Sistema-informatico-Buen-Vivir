@@ -55,6 +55,20 @@ type Worker struct {
 	Interval    time.Duration
 	FrontendURL string
 	Now         func() time.Time
+	// Disabled apaga el envío (Flush no hace nada). Lo usa el stack Docker
+	// local con DELIVERY_WORKER_ENABLED=false: comparte Firestore con
+	// testing y, si procesaba los pendientes de testing, mandaba los mails
+	// con enlaces a http://localhost:4200 (22/11/2026).
+	Disabled bool
+}
+
+// WorkerEnabledFromEnv lee DELIVERY_WORKER_ENABLED (por defecto true).
+func WorkerEnabledFromEnv() bool {
+	raw := strings.TrimSpace(os.Getenv("DELIVERY_WORKER_ENABLED"))
+	if raw == "" {
+		return true
+	}
+	return !strings.EqualFold(raw, "false") && raw != "0"
 }
 
 // NewWorker instantiates a DeliveryWorker.
@@ -160,6 +174,9 @@ func (w *Worker) Run(ctx context.Context) {
 
 // Flush fetches and delivers due pending notifications.
 func (w *Worker) Flush(ctx context.Context) (int, error) {
+	if w.Disabled {
+		return 0, nil
+	}
 	w.mu.Lock()
 	defer w.mu.Unlock()
 

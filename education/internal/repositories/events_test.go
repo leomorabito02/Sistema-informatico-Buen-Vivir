@@ -131,6 +131,7 @@ func TestSubmission_PublicaAsistenciaHabilidadYCursoCompletado(t *testing.T) {
 	}, asis)
 	hab := decode[events.HabilidadOtorgadaPayload](t, evs[events.HabilidadOtorgada][0])
 	assert.Equal(t, "compost", hab.HabilidadID)
+	assert.Equal(t, "Compost", hab.HabilidadNombre, "el aviso al participante dice qué habilidad ganó")
 
 	_, err = subs.CreateWithAttendance(ctx, a2, models.Submission{ParticipanteID: "p1", FechaEntrega: time.Now().UTC()})
 	require.NoError(t, err)

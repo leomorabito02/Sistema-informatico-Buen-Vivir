@@ -1140,7 +1140,7 @@
           >
             <option value="" disabled selected>Seleccione un rol</option>
             <option *ngFor="let role of availableNewRoles" [value]="role">
-              {{ role }}
+              {{ newRoleLabel(role) }}
             </option>
           </select>
           <p class="input-hint">
@@ -1150,6 +1150,10 @@
             >
             <span *ngIf="newUserForm.role_id === 'role_teacher'"
               >El docente tendrá acceso al portal educativo.</span
+            >
+            <span *ngIf="newUserForm.role_id === ROLE_TEACHER_EXTERNAL"
+              >El docente externo solo sube material a la biblioteca pública
+              (queda pendiente de moderación).</span
             >
             <span *ngIf="newUserForm.role_id === 'role_participant'"
               >El participante podrá acceder a cursos y talleres.</span

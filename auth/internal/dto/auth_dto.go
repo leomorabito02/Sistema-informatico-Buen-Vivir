@@ -9,6 +9,9 @@ type RegisterRequest struct {
 	Phone     string `json:"phone" validate:"required"`
 	Password  string `json:"password" validate:"required,password"`
 	Role      string `json:"role" validate:"required,oneof=admin volunteer participant teacher company"`
+	// IsExternal solo cuenta con role teacher: el docente externo se
+	// registra para subir material a la biblioteca pública (HU-23).
+	IsExternal bool `json:"is_external"`
 }
 
 // CheckCredentialsRequest is used in step 1: verify email and password without selecting a role
