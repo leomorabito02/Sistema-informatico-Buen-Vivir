@@ -81,6 +81,13 @@ Un solo workflow: `.github/workflows/pipeline.yml`.
 Detalle: `ci-cd-pipeline.md` y `PIPELINE_EDUCATION.md`. Variables y secretos
 del environment de testing: `referencias/despliegue/` (solo nombres).
 
+Desde el 22/11/2026 el CD configura `FRONTEND_URL=https://testing.ceibuenvivir.pages.dev`
+en auth y notifications **solo en TESTING** (paso "Configure FRONTEND_URL").
+Es el destino de los enlaces de los correos (confirmar cuenta, recuperar
+contraseña) y la base del logo de los correos. En producción no se toca:
+si falta, auth usa `https://ceibuenvivir.org` y el logo sale de
+`https://ceibuenvivir.pages.dev/assets/logo.png`.
+
 Pendientes de configuración (ver `PENDIENTES.md`): `PUBSUB_PUSH_AUDIENCE` y
 `PUBSUB_PUSH_SERVICE_ACCOUNTS` en el CD; credenciales de FCM; suscripciones
 push de notifications en GCP (`infra/pubsub/setup.sh`).

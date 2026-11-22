@@ -157,9 +157,6 @@
             </p>
 
             <div class="notification-footer">
-              <div class="footer-left text-xs text-muted">
-                <span>Origen: {{ notif.source_service | uppercase }}</span>
-              </div>
               <div class="action-buttons">
                 <p-button
                   label="Ver detalle"
@@ -422,14 +419,6 @@
       </div>
 
       <div class="detail-meta-grid text-sm mb-3">
-        <div
-          class="meta-item py-1 border-bottom-1 surface-border flex justify-content-between"
-        >
-          <span class="text-muted">Servicio emisor:</span>
-          <span class="font-semibold">{{
-            selectedDetail.source_service | uppercase
-          }}</span>
-        </div>
         <div
           class="meta-item py-1 border-bottom-1 surface-border flex justify-content-between"
         >

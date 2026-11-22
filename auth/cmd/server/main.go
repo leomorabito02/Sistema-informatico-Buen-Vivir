@@ -216,7 +216,12 @@ func main() {
 				r.With(middlewares.RequireRole("role_admin", "role_dev", "role_volunteer")).
 					Patch("/{id}/approval", userController.ApproveUser)
 				r.Get("/{id}", userController.GetUser)
-				r.Get("/{id}/profile", authController.GetUserProfile)
+				// Perfil completo (contacto, DNI, datos del rol): solo el propio
+				// usuario o la gestión del centro. Antes cualquier usuario
+				// logueado podía leer el de cualquiera (D4, 22/11/2026). El
+				// nombre del docente de un curso lo resuelve Educación.
+				r.With(middlewares.RequireRoleOrSelf("id", "role_admin", "role_dev", "role_volunteer")).
+					Get("/{id}/profile", authController.GetUserProfile)
 				r.Put("/{id}", userController.UpdateUser)
 				r.Delete("/{id}", userController.DeleteUser)
 			})

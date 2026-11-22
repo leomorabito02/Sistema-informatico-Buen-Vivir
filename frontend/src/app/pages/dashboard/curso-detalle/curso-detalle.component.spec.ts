@@ -12,7 +12,6 @@ import { CursoDetalleComponent } from "./curso-detalle.component";
 import { AuthService } from "../../../services/auth.service";
 import { ProfileService } from "../../../services/profile.service";
 import { EducationService } from "../../../services/education.service";
-import { UsersService } from "../../../services/users.service";
 import { SkillsService } from "../../../services/skills.service";
 import { Skill } from "../../../core/models/skills.model";
 import { Activity, Course } from "../../../core/models/education.model";
@@ -36,6 +35,7 @@ describe("CursoDetalleComponent", () => {
     description: null,
     mode: "Presencial",
     responsibleTeacher: "t1",
+    responsibleTeacherName: "María Rodríguez",
   };
   const act = (id: string, fecha: string): Activity => ({
     id,
@@ -93,12 +93,6 @@ describe("CursoDetalleComponent", () => {
     skills.getCourseSkills.and.returnValue(
       of({ habilidades: [excel], porActividad: { a1: [excel] } }),
     );
-    const users = jasmine.createSpyObj("UsersService", ["getUserProfile"]);
-    users.getUserProfile.and.returnValue(
-      of({
-        user: { user_id: "t1", first_name: "María", last_name: "Rodríguez" },
-      }),
-    );
 
     education.getCourse.and.returnValue(of(curso));
     education.listCourseActivities.and.returnValue(
@@ -121,7 +115,6 @@ describe("CursoDetalleComponent", () => {
               of({ user: { first_name: "Ana", last_name: "Gómez" } }),
           },
         },
-        { provide: UsersService, useValue: users },
         { provide: SkillsService, useValue: skills },
         {
           provide: ComentariosService,

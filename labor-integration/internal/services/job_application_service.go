@@ -46,7 +46,7 @@ func (s *JobApplicationService) ApplyToJob(ctx context.Context, application *mod
 	if err != nil {
 		return err
 	}
-	if participant == nil || participant.ApprovalStatus != "approved" {
+	if participant == nil || !isApprovedStatus(participant.ApprovalStatus) {
 		return errors.New("participant not approved or does not exist")
 	}
 	// Auth acepta el id de participante o el de usuario: se guardan los

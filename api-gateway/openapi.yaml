@@ -3937,6 +3937,40 @@ paths:
               type: boolean
             Access-Control-Max-Age:
               type: integer
+  /api/v1/campaigns/auditoria:
+    get:
+      summary: GET /api/v1/campaigns/auditoria
+      operationId: get__api_v1_campaigns_auditoria
+      x-google-backend:
+        address: ${CAMPAIGNS_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+        jwt_audience: ${CAMPAIGNS_SERVICE_URL}
+      responses:
+        '200':
+          description: OK
+    options:
+      summary: CORS preflight for /api/v1/campaigns/auditoria
+      operationId: options__api_v1_campaigns_auditoria
+      x-google-backend:
+        address: ${CAMPAIGNS_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+        jwt_audience: ${CAMPAIGNS_SERVICE_URL}
+      responses:
+        '200':
+          description: OK
+          headers:
+            Access-Control-Allow-Origin:
+              type: string
+            Access-Control-Allow-Methods:
+              type: string
+            Access-Control-Allow-Headers:
+              type: string
+            Access-Control-Expose-Headers:
+              type: string
+            Access-Control-Allow-Credentials:
+              type: boolean
+            Access-Control-Max-Age:
+              type: integer
   /api/v1/campaigns/publicas:
     get:
       summary: GET /api/v1/campaigns/publicas
@@ -5597,6 +5631,40 @@ paths:
     options:
       summary: CORS preflight for /api/v1/rxresume/me/parse-pdf
       operationId: options__api_v1_rxresume_me_parse_pdf
+      x-google-backend:
+        address: ${RXRESUME_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+        jwt_audience: ${RXRESUME_SERVICE_URL}
+      responses:
+        '200':
+          description: OK
+          headers:
+            Access-Control-Allow-Origin:
+              type: string
+            Access-Control-Allow-Methods:
+              type: string
+            Access-Control-Allow-Headers:
+              type: string
+            Access-Control-Expose-Headers:
+              type: string
+            Access-Control-Allow-Credentials:
+              type: boolean
+            Access-Control-Max-Age:
+              type: integer
+  /api/v1/rxresume/auditoria:
+    get:
+      summary: GET /api/v1/rxresume/auditoria
+      operationId: get__api_v1_rxresume_auditoria
+      x-google-backend:
+        address: ${RXRESUME_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+        jwt_audience: ${RXRESUME_SERVICE_URL}
+      responses:
+        '200':
+          description: OK
+    options:
+      summary: CORS preflight for /api/v1/rxresume/auditoria
+      operationId: options__api_v1_rxresume_auditoria
       x-google-backend:
         address: ${RXRESUME_SERVICE_URL}
         path_translation: APPEND_PATH_TO_ADDRESS

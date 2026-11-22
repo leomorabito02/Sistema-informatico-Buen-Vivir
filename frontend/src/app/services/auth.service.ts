@@ -2,7 +2,7 @@ import { Injectable, inject } from "@angular/core";
 import { HttpClient, HttpErrorResponse } from "@angular/common/http";
 import { Auth, signInWithPopup, GoogleAuthProvider } from "@angular/fire/auth";
 import { environment } from "../../environments/environment";
-import { Observable, from, throwError } from "rxjs";
+import { Observable, firstValueFrom, from, throwError } from "rxjs";
 import { catchError, switchMap, tap } from "rxjs/operators";
 import { Router } from "@angular/router";
 import {
@@ -181,20 +181,32 @@ export class AuthService {
       .pipe(catchError(this.handleError));
   }
 
+  /**
+   * Renueva la sesión. Con varias pestañas abiertas, solo una pide el
+   * refresh a la vez (Web Locks) y las demás reutilizan esa renovación:
+   * las cookies son compartidas, así que no hace falta pedir otra. Antes,
+   * si dos pestañas renovaban juntas, la segunda mandaba un refresh token
+   * recién rotado, auth lo tomaba como reutilización y cerraba todas las
+   * sesiones del usuario (D10, 22/11/2026).
+   */
   refreshToken(): Observable<LoginResponse> {
-    return this.http
-      .post<LoginResponse>(
-        `${this.apiUrl}/api/v1/auth/refresh`,
-        {},
-        {
-          withCredentials: true,
-          headers: { [SKIP_GLOBAL_ERROR_HEADER]: "true" },
-        },
-      )
-      .pipe(
-        tap(() => this.setLocallyAuthenticated()),
-        catchError(this.handleError),
-      );
+    return from(
+      conCandadoDeRefresh(() =>
+        firstValueFrom(
+          this.http.post<LoginResponse>(
+            `${this.apiUrl}/api/v1/auth/refresh`,
+            {},
+            {
+              withCredentials: true,
+              headers: { [SKIP_GLOBAL_ERROR_HEADER]: "true" },
+            },
+          ),
+        ),
+      ),
+    ).pipe(
+      tap(() => this.setLocallyAuthenticated()),
+      catchError(this.handleError),
+    );
   }
 
   /**
@@ -248,6 +260,11 @@ export class AuthService {
    */
   logout(): void {
     this.clearLocallyAuthenticated();
+    try {
+      localStorage.removeItem(REFRESH_AT_KEY);
+    } catch {
+      /* sin almacenamiento */
+    }
     this.http
       .post(
         `${this.apiUrl}/api/v1/auth/logout`,
@@ -369,4 +386,52 @@ export class AuthService {
       }),
     );
   };
+}
+
+/** Clave de localStorage con la hora de la última renovación exitosa. */
+export const REFRESH_AT_KEY = "bv_refresh_at";
+/** Si otra pestaña renovó hace menos que esto, se reutiliza su renovación. */
+export const REFRESH_REUSE_MS = 15_000;
+
+function leerUltimoRefresh(): number {
+  try {
+    return Number(localStorage.getItem(REFRESH_AT_KEY) ?? 0) || 0;
+  } catch {
+    return 0;
+  }
+}
+
+function anotarRefresh(): void {
+  try {
+    localStorage.setItem(REFRESH_AT_KEY, String(Date.now()));
+  } catch {
+    /* sin almacenamiento: cada pestaña renueva por su cuenta */
+  }
+}
+
+/**
+ * Ejecuta `pedir` con un candado compartido entre pestañas del mismo
+ * origen. Si mientras esperaba el candado otra pestaña ya renovó, no vuelve
+ * a pedir y devuelve una respuesta vacía (la sesión ya está renovada en las
+ * cookies). Sin Web Locks (navegadores viejos) se comporta como antes.
+ */
+export async function conCandadoDeRefresh<T>(
+  pedir: () => Promise<T>,
+): Promise<T> {
+  const ejecutar = async (): Promise<T> => {
+    if (Date.now() - leerUltimoRefresh() < REFRESH_REUSE_MS) {
+      return {} as T;
+    }
+    const res = await pedir();
+    anotarRefresh();
+    return res;
+  };
+  const locks = (
+    globalThis.navigator as Navigator & {
+      locks?: { request<R>(name: string, cb: () => Promise<R>): Promise<R> };
+    }
+  )?.locks;
+  return locks?.request
+    ? locks.request("bv-auth-refresh", ejecutar)
+    : ejecutar();
 }

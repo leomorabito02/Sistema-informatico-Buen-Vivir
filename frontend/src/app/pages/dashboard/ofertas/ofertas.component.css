@@ -1,7 +1,31 @@
+/* Buscador, filtro y "Publicar oferta" en una sola fila y a la misma
+   altura (antes: buscador de 28px con letra de 12px, desplegable de 45px y
+   el botón partido en dos líneas). */
 .header-actions {
   display: flex;
-  gap: 1rem;
+  gap: var(--space-4);
   align-items: center;
+  justify-content: flex-end;
+}
+
+.header-actions .search-box {
+  flex: 0 1 16rem;
+  min-width: 11rem;
+}
+
+.header-actions .search-box input {
+  min-height: var(--tap-target);
+  font-size: var(--font-size-sm);
+}
+
+:host ::ng-deep .header-actions .p-select {
+  width: 10rem;
+  min-height: var(--tap-target);
+}
+
+:host ::ng-deep .header-actions .p-button {
+  min-height: var(--tap-target);
+  white-space: nowrap;
 }
 
 .grid-container {
@@ -26,4 +50,57 @@
     flex-direction: column;
     align-items: stretch;
   }
+  .header-actions .search-box {
+    flex: none;
+    width: 100%;
+  }
+  :host ::ng-deep .header-actions .p-select {
+    width: 100%;
+  }
+  :host ::ng-deep .header-actions .p-button {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+/* Formulario de la oferta: dos columnas desde tablet (col-12 / md:col-6
+   eran clases de PrimeFlex, que el proyecto no carga, y todo quedaba en
+   una sola columna). Los campos col-12 sin md:col-6 ocupan la fila. */
+.dialog-body.grid {
+  grid-template-columns: minmax(0, 1fr);
+  column-gap: var(--space-4);
+}
+
+@media (min-width: 768px) {
+  .dialog-body.grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .dialog-body .col-12:not(.md\:col-6) {
+    grid-column: 1 / -1;
+  }
+}
+
+/* Tarjeta: textos en dos tamaños (contenido 15px, metadatos 13px) y
+   acciones de a dos por fila; si queda una sola, ocupa la fila (antes
+   todas iban apiladas y la tarjeta de la empresa o del admin quedaba muy
+   alta). */
+.card-body p {
+  margin-top: 0;
+}
+
+.card-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.card-actions > * {
+  flex: 1 1 calc(50% - var(--space-2));
+  min-width: 0;
+}
+
+:host ::ng-deep .card-actions .p-button {
+  width: 100%;
+  justify-content: center;
+  white-space: nowrap;
 }

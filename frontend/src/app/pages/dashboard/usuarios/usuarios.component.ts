@@ -20,6 +20,7 @@ import { Router } from "@angular/router";
 import { ErrorStateComponent } from "../../../shared/components/error-state.component";
 import { RxResumeService } from "../../../services/rxresume.service";
 import { ImageService } from "../../../services/image.service";
+import { validarFotoPerfil } from "../../../shared/utils/foto-perfil";
 
 export interface DashboardUser {
   id: string;
@@ -653,12 +654,13 @@ export class UsuariosComponent implements OnInit {
   onDetailPictureSelected(event: any) {
     const file = event.target?.files?.[0];
     if (file && this.selectedUser?.originalUser?.user_id) {
-      // HU-11: máximo 5 MB (el backend también lo controla).
-      if (file.size > 5 * 1024 * 1024) {
+      // HU-11 y D9: tipo y tamaño (el backend también lo controla).
+      const invalida = validarFotoPerfil(file);
+      if (invalida) {
         this.messages.add({
           severity: "warn",
-          summary: "Imagen muy grande",
-          detail: "La imagen no debe superar los 5 MB.",
+          summary: "Imagen no válida",
+          detail: invalida,
         });
         return;
       }
@@ -692,10 +694,11 @@ export class UsuariosComponent implements OnInit {
         error: (err) => {
           console.error("Error al subir foto:", err);
           this.uploadingPicture = false;
-          alert(
-            "Error al subir la foto de perfil: " +
-              (err.message || "Desconocido"),
-          );
+          this.messages.add({
+            severity: "error",
+            summary: "No se pudo subir la foto",
+            detail: err.message || "Probá de nuevo en unos minutos.",
+          });
         },
       });
     }
@@ -704,6 +707,15 @@ export class UsuariosComponent implements OnInit {
   onPictureSelected(event: any) {
     const file = event.target.files[0];
     if (file && this.selectedUser?.originalUser?.user_id) {
+      const invalida = validarFotoPerfil(file);
+      if (invalida) {
+        this.messages.add({
+          severity: "warn",
+          summary: "Imagen no válida",
+          detail: invalida,
+        });
+        return;
+      }
       this.uploadingPicture = true;
       this.rxResumeService
         .uploadUserPictureByAdmin(this.selectedUser.originalUser.user_id, file)
@@ -719,7 +731,11 @@ export class UsuariosComponent implements OnInit {
           error: (err) => {
             console.error("Error al subir foto:", err);
             this.uploadingPicture = false;
-            alert("Error al subir la foto de perfil.");
+            this.messages.add({
+              severity: "error",
+              summary: "No se pudo subir la foto",
+              detail: err.message || "Probá de nuevo en unos minutos.",
+            });
           },
         });
     }

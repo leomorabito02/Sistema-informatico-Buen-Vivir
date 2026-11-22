@@ -40,6 +40,8 @@ describe("AuditoriaComponent", () => {
     auditoria = jasmine.createSpyObj<AuditoriaService>("AuditoriaService", [
       "listarUsuarios",
       "listarLaboral",
+      "listarCampanas",
+      "listarCv",
     ]);
     auditoria.listarUsuarios.and.returnValue(
       of([
@@ -54,6 +56,16 @@ describe("AuditoriaComponent", () => {
     auditoria.listarLaboral.and.returnValue(
       of([
         { ...fila, accion: "aprobar", recurso: "oferta", recursoId: "of-1" },
+      ]),
+    );
+    auditoria.listarCampanas.and.returnValue(
+      of([
+        { ...fila, accion: "publicar", recurso: "campana", recursoId: "cmp-1" },
+      ]),
+    );
+    auditoria.listarCv.and.returnValue(
+      of([
+        { ...fila, accion: "cambiar_foto", recurso: "cv", recursoId: "usr-p" },
       ]),
     );
     education.listAuditoria.and.returnValue(
@@ -139,6 +151,28 @@ describe("AuditoriaComponent", () => {
     const text = fixture.nativeElement.textContent;
     expect(text).toContain("Aprobación");
     expect(text).toContain("Oferta laboral");
+  });
+
+  it("muestra las acciones de gestión sobre CV (D8)", () => {
+    component.modulo = "cv";
+    component.buscar();
+    fixture.detectChanges();
+
+    expect(auditoria.listarCv).toHaveBeenCalled();
+    const text = fixture.nativeElement.textContent;
+    expect(text).toContain("Cambio de foto");
+    expect(text).toContain("CV de participante");
+  });
+
+  it("muestra la auditoría de Campañas (D8)", () => {
+    component.modulo = "campanas";
+    component.buscar();
+    fixture.detectChanges();
+
+    expect(auditoria.listarCampanas).toHaveBeenCalled();
+    const text = fixture.nativeElement.textContent;
+    expect(text).toContain("Publicación");
+    expect(text).toContain("Campaña");
   });
 });
 

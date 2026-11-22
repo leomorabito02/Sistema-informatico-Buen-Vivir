@@ -51,7 +51,7 @@ func main() {
 
 	r := chi.NewRouter()
 	middlewares.SetupMiddlewares(r, cfg.CORSAllowedOrigins)
-	routes.RegisterRoutes(r, jwtService, controllers.NewCampaignController(service))
+	routes.RegisterRoutes(r, jwtService, controllers.NewCampaignController(service).WithAudit(repositories.NewAuditRepository(firestoreClient)))
 
 	server := &http.Server{
 		Addr:              ":" + cfg.Port,

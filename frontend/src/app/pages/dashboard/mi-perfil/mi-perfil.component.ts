@@ -40,6 +40,10 @@ import { UsersService } from "../../../services/users.service";
 import { EducationService } from "../../../services/education.service";
 import { JobOfferService } from "../../../services/job-offer.service";
 import { ImageService } from "../../../services/image.service";
+import {
+  ACCEPT_FOTO,
+  validarFotoPerfil,
+} from "../../../shared/utils/foto-perfil";
 
 @Component({
   selector: "app-mi-perfil",
@@ -242,10 +246,18 @@ export class MiPerfilComponent implements OnInit {
   }
 
   uploadingPicture = false;
+  readonly acceptFoto = ACCEPT_FOTO;
 
   onPictureSelected(event: any) {
     const file = event.target.files[0];
     if (file) {
+      const invalida = validarFotoPerfil(file);
+      if (invalida) {
+        this.profileUpdateError = invalida;
+        event.target.value = "";
+        return;
+      }
+      this.profileUpdateError = "";
       this.uploadingPicture = true;
       this.rxResumeService.uploadPicture(file).subscribe({
         next: (resume) => {
@@ -260,7 +272,8 @@ export class MiPerfilComponent implements OnInit {
         error: (err) => {
           console.error("Error al subir foto:", err);
           this.uploadingPicture = false;
-          alert("Error al subir la foto de perfil.");
+          this.profileUpdateError =
+            "No pudimos subir la foto. Revisá que sea una imagen JPG, PNG, WEBP o GIF de hasta 5 MB.";
         },
       });
     }
@@ -360,6 +373,17 @@ export class MiPerfilComponent implements OnInit {
       dev: "Desarrollador",
     };
     return roleMap[roleId.toLowerCase()] || roleId;
+  }
+
+  /** Estado de la cuenta en castellano (auth guarda active/pending/blocked). */
+  estadoCuenta(status: string | null | undefined): string {
+    const estados: Record<string, string> = {
+      active: "Activa",
+      pending: "Pendiente",
+      blocked: "Bloqueada",
+    };
+    const s = String(status ?? "").toLowerCase();
+    return estados[s] ?? (status || "—");
   }
 
   getRoleKeyLabel(key: string): string {

@@ -19,7 +19,8 @@ import { formatYMD, todayYMD } from "../../../shared/utils/date-ymd";
 import { LoadingStateComponent } from "../../../shared/components/loading-state.component";
 import { ErrorStateComponent } from "../../../shared/components/error-state.component";
 
-type Modulo = "promocion" | "educacion" | "usuarios" | "laboral";
+type Modulo =
+  "promocion" | "educacion" | "usuarios" | "laboral" | "campanas" | "cv";
 
 interface Option<T = string> {
   label: string;
@@ -36,6 +37,10 @@ const ACCIONES: Record<string, string> = {
   rechazar: "Rechazo",
   acceso_denegado: "Acceso denegado",
   token_rechazado: "Sesión rechazada",
+  editar: "Edición",
+  publicar: "Publicación",
+  ver: "Consulta",
+  cambiar_foto: "Cambio de foto",
 };
 const RECURSOS: Record<string, string> = {
   ficha: "Ficha personal",
@@ -55,6 +60,8 @@ const RECURSOS: Record<string, string> = {
   permiso: "Permiso",
   dispositivo: "Dispositivo",
   oferta: "Oferta laboral",
+  campana: "Campaña",
+  cv: "CV de participante",
 };
 
 /**
@@ -91,6 +98,8 @@ export class AuditoriaComponent implements OnInit {
     { label: "Educación (cursos y asistencia)", value: "educacion" },
     { label: "Usuarios y perfiles (autenticación)", value: "usuarios" },
     { label: "Inserción laboral (ofertas)", value: "laboral" },
+    { label: "Campañas", value: "campanas" },
+    { label: "Mi CV (acciones de gestión)", value: "cv" },
   ];
   modulo: Modulo = "promocion";
   desde = formatYMD(haceDias(29));
@@ -121,6 +130,8 @@ export class AuditoriaComponent implements OnInit {
       promocion: () => this.promocion.listarAuditoria(filtro),
       usuarios: () => this.auditoria.listarUsuarios(filtro),
       laboral: () => this.auditoria.listarLaboral(filtro),
+      campanas: () => this.auditoria.listarCampanas(filtro),
+      cv: () => this.auditoria.listarCv(filtro),
     };
     const consulta$ = consultas[this.modulo]();
     this.loading = true;
@@ -153,6 +164,9 @@ export class AuditoriaComponent implements OnInit {
       case "aprobar":
         return "success";
       case "actualizar":
+      case "editar":
+      case "publicar":
+      case "cambiar_foto":
         return "info";
       case "baja":
       case "rechazar":

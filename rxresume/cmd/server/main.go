@@ -26,7 +26,7 @@ func main() {
 	if err != nil {
 		log.Printf("Warning: Database connection failed (%v). Running with fallback memory/storage.", err)
 	} else {
-		if err := db.AutoMigrate(&models.Resume{}); err != nil {
+		if err := db.AutoMigrate(&models.Resume{}, &models.AuditEntry{}); err != nil {
 			log.Printf("Warning: AutoMigrate failed: %v", err)
 		}
 	}
@@ -41,7 +41,11 @@ func main() {
 	repo := repositories.NewResumeRepository(db)
 
 	service := services.NewResumeService(repo, storageService, rendererClient)
-	controller := controllers.NewResumeController(service)
+	var auditRepo repositories.AuditRepository
+	if db != nil {
+		auditRepo = repositories.NewAuditRepository(db)
+	}
+	controller := controllers.NewResumeController(service).WithAudit(auditRepo)
 
 	mux := http.NewServeMux()
 	routes.RegisterRoutes(mux, controller)

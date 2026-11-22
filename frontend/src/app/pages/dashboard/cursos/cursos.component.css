@@ -111,3 +111,11 @@
     max-width: 100%;
   }
 }
+
+/* Tarjetas de la misma fila con la misma altura (el host <p-card> no
+   estiraba y cada tarjeta medía según su texto). */
+.course-card-wrapper,
+:host ::ng-deep .course-card-wrapper > p-card {
+  display: block;
+  height: 100%;
+}

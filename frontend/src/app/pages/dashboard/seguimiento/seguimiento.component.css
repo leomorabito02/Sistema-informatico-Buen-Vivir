@@ -13,7 +13,7 @@
 }
 
 .filtros .course-picker {
-  flex: 1 1 320px;
+  flex: 1 1 280px; /* igual que el buscador: dos columnas parejas */
   margin-bottom: 0;
 }
 

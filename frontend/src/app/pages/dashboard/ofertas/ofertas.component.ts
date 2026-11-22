@@ -20,11 +20,13 @@ import { RxResumeService, Resume } from "../../../services/rxresume.service";
 import { UsersService } from "../../../services/users.service";
 import { ProfileService } from "../../../services/profile.service";
 import { User } from "../../../core/models/auth.model";
+import { EmptyStateComponent } from "../../../shared/components/empty-state.component";
 
 @Component({
   selector: "app-ofertas",
   standalone: true,
   imports: [
+    EmptyStateComponent,
     CommonModule,
     FormsModule,
     CardModule,
@@ -175,13 +177,19 @@ export class OfertasComponent implements OnInit {
     this.busquedaTimer = setTimeout(() => this.loadJobs(), 300);
   }
 
+  /** true mientras se piden las ofertas (para no mostrar "no hay" antes de tiempo). */
+  cargando = true;
+
   loadJobs() {
+    this.cargando = true;
     this.jobOfferService.getOffers(this.searchTerm).subscribe({
       next: (data) => {
+        this.cargando = false;
         this.jobs = data || [];
         this.filterJobs();
       },
       error: (err) => {
+        this.cargando = false;
         this.messageService.add({
           severity: "error",
           summary: "Error",

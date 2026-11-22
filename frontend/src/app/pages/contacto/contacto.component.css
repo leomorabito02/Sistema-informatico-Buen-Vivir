@@ -130,8 +130,13 @@
   color: var(--text-main);
 }
 
+.info-card > div:last-child {
+  min-width: 0;
+}
+
 .info-card p {
   margin: 0;
+  overflow-wrap: anywhere;
   font-size: var(--font-size-sm);
   color: var(--text-muted);
   line-height: 1.4;
@@ -252,8 +257,10 @@
 }
 
 @media (max-width: 992px) {
+  /* minmax(0, 1fr): con 1fr a secas la columna crecía hasta el ancho
+     mínimo de su contenido y en celular la página desbordaba ~90px. */
   .contact-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
 }
 

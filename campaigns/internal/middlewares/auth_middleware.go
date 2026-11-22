@@ -75,3 +75,9 @@ func UserIDFromContext(ctx context.Context) string {
 	userID, _ := ctx.Value(UserIDKey).(string)
 	return userID
 }
+
+// RoleFromContext devuelve el rol del usuario autenticado.
+func RoleFromContext(ctx context.Context) string {
+	role, _ := ctx.Value(RoleIDKey).(string)
+	return role
+}

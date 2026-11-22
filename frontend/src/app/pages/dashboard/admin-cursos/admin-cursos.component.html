@@ -85,7 +85,7 @@
             <td>{{ c.trainingArea?.name || "—" }}</td>
             <td><p-tag [value]="c.mode"></p-tag></td>
             <td>
-              <code>{{ teacherName(c.responsibleTeacher) }}</code>
+              {{ teacherName(c.responsibleTeacher) }}
             </td>
             <td>{{ c.material?.length || 0 }}</td>
             <td class="actions">

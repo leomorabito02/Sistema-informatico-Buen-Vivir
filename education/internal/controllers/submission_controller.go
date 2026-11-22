@@ -45,6 +45,14 @@ type SubmissionController struct {
 	courseService     services.CourseService
 	activityService   services.ActivityService
 	submissionService services.SubmissionService
+	names             *services.TeacherNames
+}
+
+// WithTeacherNames: "Mis cursos" del participante muestra el nombre del
+// docente responsable (D3, 22/11/2026).
+func (c *SubmissionController) WithTeacherNames(n *services.TeacherNames) *SubmissionController {
+	c.names = n
+	return c
 }
 
 func NewSubmissionController(courseService services.CourseService, activityService services.ActivityService, submissionService services.SubmissionService) *SubmissionController {
@@ -72,6 +80,7 @@ func (c *SubmissionController) ListMyCourses(w http.ResponseWriter, r *http.Requ
 		writeError(w, err)
 		return
 	}
+	c.names.Fill(r.Context(), courses)
 	writeJSON(w, http.StatusOK, services.FiltrarCursosPorArea(services.FiltrarCursos(courses, q), r.URL.Query().Get("area")))
 }
 
@@ -86,6 +95,9 @@ func (c *SubmissionController) GetMyCourse(w http.ResponseWriter, r *http.Reques
 	if err != nil {
 		writeError(w, err)
 		return
+	}
+	if detail != nil {
+		c.names.FillOne(r.Context(), &detail.Curso)
 	}
 	writeJSON(w, http.StatusOK, detail)
 }

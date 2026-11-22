@@ -330,7 +330,7 @@
         id="detailPhotoInput"
         #detailPhotoInput
         type="file"
-        accept="image/*"
+        accept=".jpg,.jpeg,.png,.webp,.gif"
         (change)="onDetailPictureSelected($event)"
         style="display: none"
       />
@@ -745,7 +745,7 @@
                     type="file"
                     id="editImageUrl"
                     class="form-control"
-                    accept="image/*"
+                    accept=".jpg,.jpeg,.png,.webp,.gif"
                     (change)="onPictureSelected($event)"
                     [disabled]="uploadingPicture"
                   />

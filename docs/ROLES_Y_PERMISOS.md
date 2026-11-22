@@ -41,6 +41,12 @@ Roles (`role_id` en el JWT): `role_admin`, `role_dev` (igual que admin),
 5. El participante podía dar de baja su perfil de participante (HU-09).
 6. Seguimiento en el menú de admin/voluntario usaba endpoints de docente (403).
 
+## Cambios del 22/11/2026
+
+1. `GET /api/v1/users/{id}/profile` (perfil completo: contacto, DNI, datos del rol) queda solo para la propia cuenta, administración y voluntariado. Antes lo podía leer cualquier usuario logueado. El nombre del docente de un curso lo resuelve Educación (`responsibleTeacherName`).
+2. Auditoría de Campañas (`/api/v1/campaigns/auditoria`) y de las acciones de gestión sobre CV (`/api/v1/rxresume/auditoria`): solo administración.
+3. Labor acepta `approval_status = "accepted"` (valor viejo) igual que `"approved"` al crear ofertas y postularse.
+
 ## Diferencias abiertas con HU-06
 
 - No hay panel de configuración RBAC en el front (solo la API `/roles` y `/permissions`).

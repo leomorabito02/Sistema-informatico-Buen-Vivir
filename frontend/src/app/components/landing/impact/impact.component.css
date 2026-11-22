@@ -37,3 +37,15 @@
   font-size: var(--font-size-sm);
   color: var(--text-muted);
 }
+
+/* Celular chico: las tres cifras no entraban con 2rem de separación y la
+   página desbordaba en pantallas de 360px. */
+@media (max-width: 480px) {
+  .impact-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: var(--space-3);
+  }
+  .impact-label {
+    overflow-wrap: anywhere;
+  }
+}

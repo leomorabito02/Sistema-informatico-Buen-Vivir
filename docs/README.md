@@ -17,6 +17,7 @@ cómo levantarlo; acá está el detalle. Cada tema vive en un solo lugar.
 | [TESTING.md](TESTING.md) | Qué tests hay, cómo correrlos, carga y seguridad |
 | [PENDIENTES.md](PENDIENTES.md) | Lo que falta para considerar terminado el proyecto |
 | [INFORME_AUDITORIA_BUEN_VIVIR.pdf](INFORME_AUDITORIA_BUEN_VIVIR.pdf) | Informe completo de la auditoría (11/11/2026) |
+| [INFORME_PENDIENTES_2026-11-22.md](INFORME_PENDIENTES_2026-11-22.md) | Pendientes del 22/11/2026: consultas, ofertas, docente, pipelines, auditoría, UI |
 
 ## Detalle técnico (ya existente)
 

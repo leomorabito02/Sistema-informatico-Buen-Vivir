@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"buenvivir/rxresume/internal/dto"
+	"buenvivir/rxresume/internal/repositories"
 	"buenvivir/rxresume/internal/services"
 )
 
@@ -29,6 +30,7 @@ const (
 
 type ResumeController struct {
 	service services.ResumeService
+	audit   repositories.AuditRepository
 }
 
 func NewResumeController(service services.ResumeService) *ResumeController {
@@ -149,6 +151,10 @@ func (c *ResumeController) UploadMyPicture(w http.ResponseWriter, r *http.Reques
 		http.Error(w, "la imagen supera el máximo de 5 MB", http.StatusRequestEntityTooLarge)
 		return
 	}
+	if err := validarFoto(file, header); err != nil {
+		http.Error(w, errFotoTipo.Error(), http.StatusUnsupportedMediaType)
+		return
+	}
 
 	resume, err := c.service.UploadPicture(r.Context(), userID, header.Filename, file)
 	if err != nil {
@@ -243,6 +249,7 @@ func (c *ResumeController) GetUserResumeByAdmin(w http.ResponseWriter, r *http.R
 		return
 	}
 
+	c.registrar(r, AccionVer, userID)
 	w.Header().Set(headerContentType, contentTypeJSON)
 	_ = json.NewEncoder(w).Encode(resume)
 }
@@ -297,6 +304,7 @@ func (c *ResumeController) UpdateUserResumeByAdmin(w http.ResponseWriter, r *htt
 		return
 	}
 
+	c.registrar(r, AccionEditar, userID)
 	w.Header().Set(headerContentType, contentTypeJSON)
 	_ = json.NewEncoder(w).Encode(resume)
 }
@@ -332,6 +340,10 @@ func (c *ResumeController) UploadUserPictureByAdmin(w http.ResponseWriter, r *ht
 		http.Error(w, "la imagen supera el máximo de 5 MB", http.StatusRequestEntityTooLarge)
 		return
 	}
+	if err := validarFoto(file, header); err != nil {
+		http.Error(w, errFotoTipo.Error(), http.StatusUnsupportedMediaType)
+		return
+	}
 
 	resume, err := c.service.UploadPicture(r.Context(), userID, header.Filename, file)
 	if err != nil {
@@ -339,6 +351,7 @@ func (c *ResumeController) UploadUserPictureByAdmin(w http.ResponseWriter, r *ht
 		return
 	}
 
+	c.registrar(r, AccionCambiarFoto, userID)
 	w.Header().Set(headerContentType, contentTypeJSON)
 	_ = json.NewEncoder(w).Encode(resume)
 }
