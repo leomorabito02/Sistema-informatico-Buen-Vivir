@@ -22,7 +22,13 @@ describe("MisCursosComponent", () => {
       "createMaterial",
       "uploadMaterial",
       "updateMyCourse",
+      "listTrainingAreas",
+      "createMyCourse",
+      "deleteMyCourse",
     ]);
+    educationServiceSpy.listTrainingAreas.and.returnValue(
+      of([{ id: "a1", name: "Huerta" }]),
+    );
     messageServiceSpy = jasmine.createSpyObj("MessageService", ["add"]);
 
     educationServiceSpy.listMyCourses.and.returnValue(of([]));
@@ -116,6 +122,85 @@ describe("MisCursosComponent", () => {
       expect(messageServiceSpy.add).toHaveBeenCalledWith(
         jasmine.objectContaining({ severity: "success" }),
       );
+    });
+  });
+
+  describe("Curso propio (22/11/2026)", () => {
+    it("crea el curso y avisa que queda pendiente de aprobación", () => {
+      educationServiceSpy.createMyCourse.and.returnValue(
+        of({ id: "n1", title: "Nuevo" } as any),
+      );
+      component.openCourseForm();
+      component.courseForm = {
+        title: "Huerta urbana",
+        description: "Aprender a cultivar",
+        trainingAreaId: "a1",
+        mode: "Presencial",
+        duration: "8 semanas",
+      };
+
+      component.saveCourse();
+
+      expect(educationServiceSpy.createMyCourse).toHaveBeenCalledWith(
+        jasmine.objectContaining({
+          title: "Huerta urbana",
+          trainingAreaId: "a1",
+          mode: "Presencial",
+          duration: "8 semanas",
+        }),
+      );
+      expect(messageServiceSpy.add).toHaveBeenCalledWith(
+        jasmine.objectContaining({
+          severity: "success",
+          detail: "Quedó pendiente de aprobación del administrador.",
+        }),
+      );
+    });
+
+    it("no guarda si faltan datos obligatorios", () => {
+      component.openCourseForm();
+      component.courseForm.title = "Solo título";
+      expect(component.courseFormValid).toBeFalse();
+      component.saveCourse();
+      expect(educationServiceSpy.createMyCourse).not.toHaveBeenCalled();
+    });
+
+    it("al editar conserva los materiales del curso", () => {
+      const vm: any = {
+        id: "c1",
+        title: "Curso",
+        publicado: false,
+        raw: {
+          id: "c1",
+          title: "Curso",
+          mode: "Virtual",
+          duration: "4 semanas",
+          trainingArea: { id: "a1", name: "Huerta" },
+          material: [{ id: "m1" }],
+        },
+      };
+      educationServiceSpy.updateMyCourse.and.returnValue(of(vm.raw));
+      component.openCourseForm(vm);
+      component.courseForm.description = "Descripción";
+
+      component.saveCourse();
+
+      expect(educationServiceSpy.updateMyCourse).toHaveBeenCalledWith(
+        "c1",
+        jasmine.objectContaining({ materialIds: ["m1"], mode: "Virtual" }),
+      );
+    });
+
+    it("elimina un curso pendiente", () => {
+      const vm: any = { id: "c1", title: "Curso", publicado: false, raw: {} };
+      component.courses = [vm];
+      educationServiceSpy.deleteMyCourse.and.returnValue(of(void 0));
+
+      component.askDelete(vm);
+      component.confirmDelete();
+
+      expect(educationServiceSpy.deleteMyCourse).toHaveBeenCalledWith("c1");
+      expect(component.courses.length).toBe(0);
     });
   });
 });

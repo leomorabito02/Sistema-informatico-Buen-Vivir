@@ -24,6 +24,22 @@ import { CardModule } from "primeng/card";
 import { InputTextModule } from "primeng/inputtext";
 import { MessageModule } from "primeng/message";
 
+/**
+ * La cuenta está bloqueada o dada de baja por el centro (no por intentos
+ * fallidos): auth-service lo indica con user_status "blocked" o con el
+ * código ACCOUNT_BLOCKED. No se mira el texto del mensaje.
+ */
+export function isBlockedAccountError(err: {
+  error?: { user_status?: string; error?: string; code?: string } | null;
+}): boolean {
+  const body = err?.error;
+  return (
+    body?.user_status === "blocked" ||
+    body?.error === "ACCOUNT_BLOCKED" ||
+    body?.code === "ACCOUNT_BLOCKED"
+  );
+}
+
 @Component({
   selector: "app-login",
   standalone: true,
@@ -159,11 +175,10 @@ export class LoginComponent implements OnInit {
             "Tu cuenta fue bloqueada temporalmente por demasiados intentos fallidos. Intentá nuevamente más tarde.";
           return;
         }
-        if (
-          err.error?.user_status === "blocked" ||
-          errorMsg.includes("activa") ||
-          errorMsg.includes("bloque")
-        ) {
+        // Antes se miraba si el texto decía "bloque": con contraseña mal el
+        // backend responde "...te quedan N intento(s) antes del bloqueo
+        // temporal" y se terminaba en "Acceso no disponible" (22/11/2026).
+        if (isBlockedAccountError(err)) {
           this.loginError = "";
           void this.router.navigate(["/account-notice"]);
         } else {
@@ -323,7 +338,7 @@ export class LoginComponent implements OnInit {
             });
             return;
           }
-          if (errorMsg.includes("activa") || errorMsg.includes("bloque")) {
+          if (isBlockedAccountError(err)) {
             void this.router.navigate(["/account-notice"]);
           } else {
             this.handleFailedAttempt(errorMsg);
@@ -339,7 +354,8 @@ export class LoginComponent implements OnInit {
       this.loginError =
         "Tu cuenta fue bloqueada temporalmente por demasiados intentos fallidos. Intentá nuevamente más tarde.";
     } else {
-      this.loginError = specificError || "Email o contraseña incorrectos.";
+      const msg = (specificError || "Email o contraseña incorrectos.").trim();
+      this.loginError = msg.charAt(0).toUpperCase() + msg.slice(1);
     }
   }
 }

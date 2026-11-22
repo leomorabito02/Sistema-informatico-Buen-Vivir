@@ -30,7 +30,37 @@ import { ProfileService } from "../../../services/profile.service";
 import { UsersService } from "../../../services/users.service";
 import { ImageService } from "../../../services/image.service";
 import { CvPdfService } from "../../../services/cv-pdf.service";
+import { SkillsService } from "../../../services/skills.service";
 import { User, RoleData } from "../../../core/models/auth.model";
+import { skillKey } from "../../../core/models/skills.model";
+
+/** Nivel con el que figuran en el PDF las habilidades ganadas en el centro. */
+export const NIVEL_HABILIDAD_CENTRO = "Adquirida en el centro";
+
+/**
+ * Suma al CV las habilidades ganadas en el centro que la persona no cargó
+ * a mano (misma habilidad escrita distinto = una sola). No modifica el
+ * CV guardado: se usa al armar el PDF.
+ */
+export function conHabilidadesDelCentro(
+  skills: Skill[] | undefined,
+  delCentro: string[],
+): Skill[] {
+  const manuales = skills ?? [];
+  const vistas = new Set(manuales.map((s) => skillKey(s.name || "")));
+  const extra: Skill[] = [];
+  for (const nombre of delCentro) {
+    const key = skillKey(nombre);
+    if (!nombre.trim() || vistas.has(key)) continue;
+    vistas.add(key);
+    extra.push({
+      id: `centro-${key}`,
+      name: nombre,
+      level: NIVEL_HABILIDAD_CENTRO,
+    });
+  }
+  return [...manuales, ...extra];
+}
 
 @Component({
   selector: "app-cv",
@@ -61,11 +91,18 @@ export class CvComponent implements OnInit {
   private readonly usersService = inject(UsersService);
   private readonly imageService = inject(ImageService);
   private readonly cvPdfService = inject(CvPdfService);
+  private readonly skillsService = inject(SkillsService);
   private readonly route = inject(ActivatedRoute);
   private readonly messages = inject(MessageService);
   private readonly cdr = inject(ChangeDetectorRef);
 
   readonly TriangleAlert = TriangleAlert;
+
+  /**
+   * Habilidades que la persona ganó en el centro al completar actividades
+   * (22/11/2026). Se leen solas y van al PDF; no se editan a mano.
+   */
+  habilidadesCentro: string[] = [];
 
   userId: string | null = null;
   resume: Resume | null = null;
@@ -199,12 +236,24 @@ export class CvComponent implements OnInit {
           .pipe(catchError(() => of(null)))
       : this.profileService.getMyProfile().pipe(catchError(() => of(null)));
 
+    // Solo el CV propio: el endpoint toma al participante del token. Si
+    // falla (o no es participante) el CV se arma igual, sin esta sección.
+    const habilidades$ = this.userId
+      ? of([])
+      : this.skillsService.mySkills().pipe(catchError(() => of([])));
+
     forkJoin({
       resume: resume$,
       profile: profile$,
+      habilidades: habilidades$,
     }).subscribe({
-      next: ({ resume, profile }) => {
+      next: ({ resume, profile, habilidades }) => {
         this.resume = resume;
+        this.habilidadesCentro = [
+          ...new Set(
+            habilidades.map((h) => (h.nombre || "").trim()).filter(Boolean),
+          ),
+        ].sort((a, b) => a.localeCompare(b, "es"));
         this.checkInitialPDFStatus();
         if (profile) {
           this.populateBasicsFromProfile(profile);
@@ -335,8 +384,20 @@ export class CvComponent implements OnInit {
     const picToUse = this.resume.data.basics.picture || this.userProfilePicture;
     const picture = this.resolveImageUrl(picToUse);
 
+    // El PDF lleva también las habilidades ganadas en el centro.
+    const resumeParaPdf = {
+      ...this.resume,
+      data: {
+        ...this.resume.data,
+        skills: conHabilidadesDelCentro(
+          this.resume.data.skills,
+          this.habilidadesCentro,
+        ),
+      },
+    };
+
     try {
-      await this.cvPdfService.downloadPdf(this.resume, filename, {
+      await this.cvPdfService.downloadPdf(resumeParaPdf, filename, {
         primaryColor: this.getPrimaryColor(),
         pictureUrl: picture,
       });

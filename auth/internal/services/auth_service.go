@@ -149,7 +149,7 @@ func (s *authService) Register(ctx context.Context, req *dto.RegisterRequest) (r
 		if err := tx.Create(user); err != nil {
 			return errors.New("error al guardar los datos del usuario")
 		}
-		if err := s.createRoleProfileTx(tx, user.UserID, roleID); err != nil {
+		if err := s.createRoleProfileTx(tx, user.UserID, roleID, req.IsExternal); err != nil {
 			return errors.New("error al crear el perfil asociado al rol seleccionado")
 		}
 		return nil
@@ -472,7 +472,8 @@ func (s *authService) saveRefreshToken(ctx context.Context, userID, token string
 	return s.refreshTokenRepo.Create(ctx, rt)
 }
 
-func (s *authService) createRoleProfileTx(tx repositories.Tx, userID, roleID string) error {
+// isExternal solo se usa con role_teacher (docente externo).
+func (s *authService) createRoleProfileTx(tx repositories.Tx, userID, roleID string, isExternal bool) error {
 	status := "pending"
 	switch roleID {
 	case "role_company":
@@ -494,6 +495,7 @@ func (s *authService) createRoleProfileTx(tx repositories.Tx, userID, roleID str
 		return tx.Create(&models.Teacher{
 			TeacherID:      "tech-" + utils.GenerateRandomString(10),
 			UserID:         userID,
+			IsExternal:     isExternal,
 			ApprovalStatus: status,
 		})
 	case "role_volunteer":

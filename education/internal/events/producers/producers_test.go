@@ -32,7 +32,7 @@ func TestProductorNilNoPublica(t *testing.T) {
 	assert.NoError(t, p.InscripcionCreada(ctx, nil, models.Enrollment{}))
 	assert.NoError(t, p.AsistenciaRegistrada(ctx, nil, "a", "c", models.Attendance{}))
 	assert.NoError(t, p.CursoCompletado(ctx, nil, "c", "p", time.Now()))
-	assert.NoError(t, p.HabilidadOtorgada(ctx, nil, models.ParticipantSkill{}))
+	assert.NoError(t, p.HabilidadOtorgada(ctx, nil, models.ParticipantSkill{}, ""))
 	assert.NoError(t, p.AsistenciaGeneral(ctx, nil, "a", models.GeneralAttendance{}, true))
 	assert.NoError(t, p.Contenido(ctx, "id", events.ContenidoPublicado, events.ContenidoPayload{}))
 
@@ -152,7 +152,7 @@ func TestEducacion_EnabledProducer_EmitsEvents(t *testing.T) {
 	assert.Error(t, p.InscripcionCreada(ctx, &firestore.Transaction{}, models.Enrollment{ID: "e1", CursoID: "c1", ParticipanteID: "p1"}))
 	assert.Error(t, p.AsistenciaRegistrada(ctx, nil, "act1", "c1", models.Attendance{ParticipanteID: "p1"}))
 	assert.Error(t, p.CursoCompletado(ctx, nil, "c1", "p1", time.Now()))
-	assert.Error(t, p.HabilidadOtorgada(ctx, nil, models.ParticipantSkill{HabilidadID: "s1", ParticipanteID: "p1"}))
+	assert.Error(t, p.HabilidadOtorgada(ctx, nil, models.ParticipantSkill{HabilidadID: "s1", ParticipanteID: "p1"}, "Compostaje"))
 	assert.Error(t, p.AsistenciaGeneral(ctx, nil, "ag1", models.GeneralAttendance{ParticipanteID: "p1"}, false))
 	assert.Error(t, p.AsistenciaGeneral(ctx, nil, "ag1", models.GeneralAttendance{ParticipanteID: "p1"}, true))
 	assert.Error(t, p.Contenido(ctx, "ev1", events.ContenidoPublicado, events.ContenidoPayload{EntryID: "c1"}))

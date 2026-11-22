@@ -58,6 +58,10 @@ func main() {
 	workerCtx, cancelWorkers := context.WithCancel(context.Background())
 	deliveryWorker := delivery.NewWorker(repo, emailSvc, pushSvc, authClient, tmplEngine, nil)
 	deliveryWorker.FrontendURL = cfg.FrontendURL
+	deliveryWorker.Disabled = !delivery.WorkerEnabledFromEnv()
+	if deliveryWorker.Disabled {
+		slog.Warn("DELIVERY_WORKER_ENABLED=false: este servicio no envía emails ni push (los envía el ambiente que comparte la base)")
+	}
 	go deliveryWorker.Run(workerCtx)
 
 	// Pub/Sub Push Verifier and Processed Store

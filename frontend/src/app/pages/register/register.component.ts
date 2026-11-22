@@ -121,6 +121,9 @@ export class RegisterComponent {
     { label: "Participante", value: "participant" },
     { label: "Voluntario", value: "volunteer" },
     { label: "Docente", value: "teacher" },
+    // Docente externo (HU-23): se registra para subir material a la
+    // biblioteca pública. Se guarda como teacher + is_external.
+    { label: "Docente externo", value: "teacher_external" },
     { label: "Empresa", value: "company" },
   ];
 
@@ -150,7 +153,12 @@ export class RegisterComponent {
 
   get needsApproval(): boolean {
     const role = this.registerForm.controls["role"].value;
-    return role === "volunteer" || role === "teacher" || role === "company";
+    return (
+      role === "volunteer" ||
+      role === "teacher" ||
+      role === "teacher_external" ||
+      role === "company"
+    );
   }
 
   private getFirstFormError(): string {
@@ -210,7 +218,13 @@ export class RegisterComponent {
       email: this.registerForm.value.email,
       phone: this.registerForm.value.phone,
       password: this.registerForm.value.password,
-      role: this.registerForm.value.role,
+      role:
+        this.registerForm.value.role === "teacher_external"
+          ? "teacher"
+          : this.registerForm.value.role,
+      ...(this.registerForm.value.role === "teacher_external"
+        ? { is_external: true }
+        : {}),
     };
 
     this.authService.registerWithEmail(formData).subscribe({

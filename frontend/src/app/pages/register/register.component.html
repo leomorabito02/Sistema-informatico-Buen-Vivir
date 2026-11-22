@@ -150,6 +150,12 @@
                 coordinador/administrador antes de tener acceso al portal
                 educativo</span
               >
+              <span
+                *ngIf="registerForm.get('role')?.value === 'teacher_external'"
+                >Para docentes de otras instituciones que quieren compartir
+                material en la biblioteca pública. La cuenta y cada material que
+                subas pasan por la aprobación del administrador</span
+              >
               <span *ngIf="registerForm.get('role')?.value === 'participant'"
                 >Podrás acceder a cursos y talleres</span
               >

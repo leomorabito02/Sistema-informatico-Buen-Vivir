@@ -114,6 +114,8 @@ export interface RegisterRequest {
   phone: string;
   password?: string;
   role: string;
+  /** Solo con role "teacher": docente externo (biblioteca pública). */
+  is_external?: boolean;
 }
 
 export interface UpdateBaseProfile {

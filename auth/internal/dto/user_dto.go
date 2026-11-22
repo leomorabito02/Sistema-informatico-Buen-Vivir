@@ -16,6 +16,8 @@ type CreateUserRequest struct {
 	// (HU-07); se validan en el servicio porque dependen del rol.
 	DNI     string `json:"dni" validate:"omitempty"`
 	Address string `json:"address" validate:"omitempty"`
+	// IsExternal solo cuenta con role_teacher: docente externo.
+	IsExternal bool `json:"is_external"`
 }
 
 type UpdateUserRequest struct {

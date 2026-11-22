@@ -3,6 +3,7 @@ package rules
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"buenvivir/notifications/internal/events"
 	"buenvivir/notifications/internal/models"
@@ -84,13 +85,22 @@ func (r *ContenidoDocenteSubidoRule) EventType() string {
 }
 
 func (r *ContenidoDocenteSubidoRule) Build(_ context.Context, env events.Envelope) ([]NotificationPlan, error) {
-	_, err := events.DecodePayload[events.ContenidoDocenteSubidoPayload](env)
+	p, err := events.DecodePayload[events.ContenidoDocenteSubidoPayload](env)
 	if err != nil {
 		return nil, err
 	}
 
 	adminRole := "role_admin"
 	actionURL := "/dashboard/contenido-docente"
+	title := "Nuevo contenido pendiente de moderación"
+	message := "Un docente ha subido nuevo material educativo para revisión."
+	// Curso creado por un docente: queda en borrador hasta que el admin
+	// lo aprueba y publica desde Gestión de cursos (22/11/2026).
+	if p.Tipo == events.ContenidoTipoCurso {
+		actionURL = "/dashboard/gestion-cursos"
+		title = "Nuevo curso pendiente de aprobación"
+		message = "Un docente creó un curso. Revisalo y publicalo desde Gestión de cursos."
+	}
 	return []NotificationPlan{
 		{
 			SourceService: "education",
@@ -99,8 +109,8 @@ func (r *ContenidoDocenteSubidoRule) Build(_ context.Context, env events.Envelop
 			Priority:      models.PriorityNormal,
 			AudienceType:  AudienceRole,
 			TargetRole:    &adminRole,
-			Title:         "Nuevo contenido pendiente de moderación",
-			Message:       "Un docente ha subido nuevo material educativo para revisión.",
+			Title:         title,
+			Message:       message,
 			ActionURL:     &actionURL,
 			SendEmail:     true,
 			SendInApp:     true,
@@ -197,6 +207,13 @@ func (r *HabilidadOtorgadaRule) Build(_ context.Context, env events.Envelope) ([
 	}
 
 	actionURL := "/dashboard/mi-proceso"
+	// Desde el 22/11/2026 Education manda el nombre: el participante ve
+	// qué habilidad ganó. Los eventos viejos (sin nombre) usan el texto
+	// genérico.
+	message := "Obtuviste una nueva habilidad por completar una actividad. Mirala en Mi proceso."
+	if nombre := strings.TrimSpace(p.HabilidadNombre); nombre != "" {
+		message = fmt.Sprintf("Obtuviste la habilidad «%s» por completar una actividad. Ya figura en Mi proceso y en tu CV.", nombre)
+	}
 	return []NotificationPlan{
 		{
 			SourceService: "education",
@@ -206,7 +223,7 @@ func (r *HabilidadOtorgadaRule) Build(_ context.Context, env events.Envelope) ([
 			AudienceType:  AudienceParticipant,
 			ParticipantID: p.ParticipanteID,
 			Title:         "¡Nueva habilidad obtenida!",
-			Message:       "Has desbloqueado una nueva habilidad en tu perfil por completar actividades.",
+			Message:       message,
 			ActionURL:     &actionURL,
 			SendPush:      true,
 			SendInApp:     true,
@@ -309,4 +326,3 @@ func (r *ActividadRecordatorioRule) Build(_ context.Context, env events.Envelope
 		},
 	}, nil
 }
-

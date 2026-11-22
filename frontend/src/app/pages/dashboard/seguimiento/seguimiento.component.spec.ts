@@ -121,8 +121,12 @@ describe("SeguimientoComponent", () => {
     // "Todos los cursos" + los 2 cursos
     expect(component.courseOptions).toHaveSize(3);
     expect(component.selectedCourseId).toBe("");
-    expect(educationServiceSpy.listEnrollments).toHaveBeenCalledWith("c1");
-    expect(educationServiceSpy.listEnrollments).toHaveBeenCalledWith("c2");
+    expect(educationServiceSpy.listEnrollments).toHaveBeenCalledWith("c1", {
+      silent: true,
+    });
+    expect(educationServiceSpy.listEnrollments).toHaveBeenCalledWith("c2", {
+      silent: true,
+    });
     expect(component.loading).toBeFalse();
     // 4 inscripciones en c1 + 1 en c2: una fila por inscripción
     expect(component.filasFiltradas).toHaveSize(5);
@@ -237,6 +241,7 @@ describe("SeguimientoComponent", () => {
       expect(educationServiceSpy.listEnrollments).not.toHaveBeenCalled();
       expect(educationServiceSpy.getCourseProgressGestion).toHaveBeenCalledWith(
         "c1",
+        { silent: true },
       );
       expect(component.rows[0].nombre).toBe("Ana Pérez");
       expect(component.rows[0].riesgo).toBe("En riesgo");

@@ -251,6 +251,7 @@ func (r *skillRepository) GrantToParticipants(ctx context.Context, participanteI
 	// si ya existe), así que reintentar después de una falla a mitad de
 	// camino completa lo que faltó sin duplicar ni pisar nada.
 	col := r.client.Collection(participantSkillsCollection)
+	names := r.skillNames(ctx, habilidadIDs)
 	for _, p := range participanteIDs {
 		for _, h := range habilidadIDs {
 			ps := models.ParticipantSkill{
@@ -261,7 +262,7 @@ func (r *skillRepository) GrantToParticipants(ctx context.Context, participanteI
 				ActividadID:    grant.ActividadID,
 				CursoID:        grant.CursoID,
 			}
-			if err := r.grantOne(ctx, col.Doc(ParticipantSkillDocID(p, h)), ps); err != nil {
+			if err := r.grantOne(ctx, col.Doc(ParticipantSkillDocID(p, h)), ps, names[h]); err != nil {
 				if status.Code(err) == codes.AlreadyExists {
 					continue
 				}
@@ -276,7 +277,7 @@ func (r *skillRepository) GrantToParticipants(ctx context.Context, participanteI
 // grantOne crea una asignación. Con eventos activos va en una
 // transacción chica junto con su habilidad.otorgada (outbox); sin
 // eventos es un Create simple, como antes.
-func (r *skillRepository) grantOne(ctx context.Context, ref *firestore.DocumentRef, ps models.ParticipantSkill) error {
+func (r *skillRepository) grantOne(ctx context.Context, ref *firestore.DocumentRef, ps models.ParticipantSkill, nombre string) error {
 	if !r.events.Enabled() {
 		_, err := ref.Create(ctx, ps)
 		return err
@@ -285,8 +286,57 @@ func (r *skillRepository) grantOne(ctx context.Context, ref *firestore.DocumentR
 		if err := tx.Create(ref, ps); err != nil {
 			return err
 		}
-		return r.events.HabilidadOtorgada(ctx, tx, ps)
+		return r.events.HabilidadOtorgada(ctx, tx, ps, nombre)
 	})
+}
+
+// skillNames lee del catálogo el nombre de cada habilidad (best effort:
+// si falla, el aviso sale sin nombre pero la asignación sigue).
+func (r *skillRepository) skillNames(ctx context.Context, ids []string) map[string]string {
+	names := make(map[string]string, len(ids))
+	if len(ids) == 0 || !r.events.Enabled() {
+		return names
+	}
+	refs := make([]*firestore.DocumentRef, len(ids))
+	for i, id := range ids {
+		refs[i] = r.client.Collection(skillsCollection).Doc(id)
+	}
+	docs, err := r.client.GetAll(ctx, refs)
+	if err != nil {
+		return names
+	}
+	return namesFromDocs(docs)
+}
+
+// skillNamesTx es lo mismo dentro de una transacción (Firestore pide
+// hacer las lecturas antes de la primera escritura).
+func skillNamesTx(tx *firestore.Transaction, client *firestore.Client, ids []string) map[string]string {
+	if len(ids) == 0 {
+		return map[string]string{}
+	}
+	refs := make([]*firestore.DocumentRef, len(ids))
+	for i, id := range ids {
+		refs[i] = client.Collection(skillsCollection).Doc(id)
+	}
+	docs, err := tx.GetAll(refs)
+	if err != nil {
+		return map[string]string{}
+	}
+	return namesFromDocs(docs)
+}
+
+func namesFromDocs(docs []*firestore.DocumentSnapshot) map[string]string {
+	names := make(map[string]string, len(docs))
+	for _, d := range docs {
+		if d == nil || !d.Exists() {
+			continue
+		}
+		var s models.Skill
+		if err := d.DataTo(&s); err == nil {
+			names[d.Ref.ID] = s.Nombre
+		}
+	}
+	return names
 }
 
 func (r *skillRepository) ListByParticipant(ctx context.Context, participanteID string) ([]models.ParticipantSkill, error) {

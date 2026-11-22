@@ -52,6 +52,10 @@ type CourseService interface {
 	// responsable: verifica ownership antes de delegar y no permite
 	// reasignar responsibleTeacher a otro id.
 	UpdateCourseAsTeacher(ctx context.Context, id, teacherID string, input models.CourseInput) (*models.Course, error)
+	// DeleteCourseAsTeacher da de baja un curso propio que todavía está
+	// en borrador (pendiente de aprobación). Uno publicado lo da de baja
+	// el administrador (22/11/2026).
+	DeleteCourseAsTeacher(ctx context.Context, id, teacherID string) error
 	// VerifyOwnership confirma que cursoID esté publicado y que
 	// teacherID sea su responsibleTeacher. La usan también los
 	// endpoints de actividades/asistencia/inscriptos/progreso del
@@ -339,7 +343,9 @@ func (s *courseService) CreateCourseAsTeacher(ctx context.Context, teacherID str
 }
 
 func (s *courseService) UpdateCourseAsTeacher(ctx context.Context, id, teacherID string, input models.CourseInput) (*models.Course, error) {
-	if err := s.VerifyOwnership(ctx, id, teacherID); err != nil {
+	// Antes solo se aceptaban cursos publicados (VerifyOwnership mira la
+	// CDA) y el docente no podía corregir un curso suyo pendiente.
+	if _, err := s.verifyTeacherOwnsCourse(ctx, id, teacherID); err != nil {
 		return nil, err
 	}
 	// El docente no puede reasignar el curso a otro responsable: se
@@ -354,6 +360,48 @@ func (s *courseService) UpdateCourseAsTeacher(ctx context.Context, id, teacherID
 		s.publish(ctx, events.CursoActualizado, course.ID, func() error { return s.events.CursoActualizado(ctx, course) })
 	}
 	return course, err
+}
+
+func (s *courseService) DeleteCourseAsTeacher(ctx context.Context, id, teacherID string) error {
+	publicado, err := s.verifyTeacherOwnsCourse(ctx, id, teacherID)
+	if err != nil {
+		return err
+	}
+	if publicado {
+		return NewForbiddenError("el curso ya está publicado: para darlo de baja pedíselo al administrador")
+	}
+	return s.DeleteCourse(ctx, id)
+}
+
+// verifyTeacherOwnsCourse confirma que el curso (publicado o en
+// borrador) sea del docente. Devuelve si está publicado.
+func (s *courseService) verifyTeacherOwnsCourse(ctx context.Context, id, teacherID string) (bool, error) {
+	if strings.TrimSpace(id) == "" {
+		return false, NewValidationError(errCourseIDRequired)
+	}
+	if strings.TrimSpace(teacherID) == "" {
+		return false, NewValidationError(errTeacherIDMissing)
+	}
+	course, err := s.repo.Get(ctx, id)
+	if err == nil {
+		if course.ResponsibleTeacher != teacherID {
+			return true, NewForbiddenError("no sos el docente responsable de este curso")
+		}
+		return true, nil
+	}
+	if !errors.Is(err, repositories.ErrNotFound) {
+		return false, err
+	}
+	drafts, err := s.repo.ListDraftsByResponsibleTeacher(ctx, teacherID)
+	if err != nil {
+		return false, err
+	}
+	for _, d := range drafts {
+		if d.ID == id {
+			return false, nil
+		}
+	}
+	return false, NewForbiddenError("no sos el docente responsable de este curso")
 }
 
 // validateCourseInput refleja los campos requeridos y los valores

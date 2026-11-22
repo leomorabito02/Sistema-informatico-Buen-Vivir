@@ -37,6 +37,18 @@ export interface DashboardUser {
   coursesList?: any[]; // Enrolled courses or taught courses
 }
 
+/** Valor del selector para el docente externo (role_teacher + is_external). */
+export const ROLE_TEACHER_EXTERNAL = "role_teacher_external";
+
+const NEW_ROLE_LABELS: Record<string, string> = {
+  role_participant: "Participante",
+  role_volunteer: "Voluntario",
+  role_company: "Empresa",
+  role_teacher: "Docente",
+  [ROLE_TEACHER_EXTERNAL]: "Docente externo",
+  role_admin: "Responsable (administración)",
+};
+
 @Component({
   selector: "app-usuarios",
   standalone: true,
@@ -60,6 +72,8 @@ export interface DashboardUser {
   styleUrls: ["./usuarios.component.css"],
 })
 export class UsuariosComponent implements OnInit {
+  readonly ROLE_TEACHER_EXTERNAL = ROLE_TEACHER_EXTERNAL;
+
   private readonly authService = inject(AuthService);
   private readonly usersService = inject(UsersService);
   private readonly educationService = inject(EducationService);
@@ -299,23 +313,26 @@ export class UsuariosComponent implements OnInit {
     };
 
     if (this.isVolunteerOnly) {
-      this.availableNewRoles = [
-        "role_participant",
-        "role_company",
-        "role_teacher",
-        "role_volunteer",
-      ];
+      // auth-service solo deja al voluntario crear participantes (HU-07):
+      // ofrecer otros roles terminaba en un error al guardar.
+      this.availableNewRoles = ["role_participant"];
     } else {
       this.availableNewRoles = [
         "role_participant",
         "role_company",
         "role_teacher",
+        ROLE_TEACHER_EXTERNAL,
         "role_volunteer",
         "role_admin",
       ];
     }
 
     this.showNewUserModal = true;
+  }
+
+  /** Nombre visible del rol en el alta (antes se veía "role_participant"). */
+  newRoleLabel(roleId: string): string {
+    return NEW_ROLE_LABELS[roleId] ?? this.formatRoleName(roleId);
   }
 
   createUser() {
@@ -342,14 +359,18 @@ export class UsuariosComponent implements OnInit {
       return;
     }
 
-    const payload: Record<string, string> = {
+    // "Docente externo" no es un rol aparte: es role_teacher con
+    // is_external (columna que ya existe en teachers).
+    const esExterno = this.newUserForm.role_id === ROLE_TEACHER_EXTERNAL;
+    const payload: Record<string, string | boolean> = {
       first_name: this.newUserForm.first_name,
       last_name: this.newUserForm.last_name,
       email: this.newUserForm.email,
       phone: this.newUserForm.phone,
       password: this.newUserForm.password,
-      role_id: this.newUserForm.role_id,
+      role_id: esExterno ? "role_teacher" : this.newUserForm.role_id,
     };
+    if (esExterno) payload["is_external"] = true;
     if (this.newUserForm.role_id === "role_participant") {
       payload["dni"] = String(this.newUserForm.dni ?? "").trim();
       payload["address"] = String(this.newUserForm.address ?? "").trim();

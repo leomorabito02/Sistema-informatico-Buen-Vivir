@@ -79,7 +79,7 @@ const DOCENTE: AyudaTema[] = [
     pregunta: "¿Dónde veo cómo avanza el grupo?",
     pasos: [
       "Progreso: avance y asistencia promedio de cada curso.",
-      "Seguimiento: seguimiento pedagógico de cada participante.",
+      "Seguimiento educativo: asistencia y avance de cada participante en tus cursos.",
     ],
   },
 ];
@@ -108,7 +108,7 @@ const GESTION_COMUN: AyudaTema[] = [
   {
     pregunta: "¿Cómo veo la ficha de un participante?",
     pasos: [
-      "En el menú, Participantes → Promoción humana.",
+      "En el menú, Promoción humana → Fichas personales.",
       "Buscá a la persona por nombre o apellido para ver o crear su ficha.",
     ],
   },
@@ -135,7 +135,7 @@ const RESPONSABLE: AyudaTema[] = [
   {
     pregunta: "¿Cómo doy de alta o edito una cuenta?",
     pasos: [
-      "En el menú, Participantes → Usuarios.",
+      "En el menú, Usuarios → Gestión de usuarios.",
       "Tocá Nuevo usuario, o el lápiz (Editar) de una fila para cambiar sus datos.",
       "Eliminar pide confirmación y no se puede deshacer.",
     ],
@@ -147,7 +147,7 @@ const VOLUNTARIADO: AyudaTema[] = [
   {
     pregunta: "¿Cómo actualizo los datos de un participante?",
     pasos: [
-      "En el menú, Participantes → Gestión de participantes.",
+      "En el menú, Usuarios → Gestión de participantes.",
       "Buscalo por nombre o email y tocá el lápiz (Editar).",
     ],
   },

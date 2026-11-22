@@ -2,10 +2,18 @@ import { Injectable, inject } from "@angular/core";
 import {
   HttpClient,
   HttpErrorResponse,
+  HttpHeaders,
   HttpParams,
 } from "@angular/common/http";
-import { Observable, throwError } from "rxjs";
+import {
+  MonoTypeOperatorFunction,
+  Observable,
+  retry,
+  throwError,
+  timer,
+} from "rxjs";
 import { catchError, map } from "rxjs/operators";
+import { withSkipGlobalError } from "../core/interceptors/error.interceptor";
 import { environment } from "../../environments/environment";
 import {
   Activity,
@@ -42,6 +50,39 @@ import {
  *  - dev local (`ng serve -c local`): ambos vacíos -> `""` -> el proxy manda `/api/*` a :8210
  *  - Docker detrás del gateway: `educationApiUrl` vacío -> cae a `apiUrl` (el gateway :8080)
  */
+
+/**
+ * `silent: true` no dispara el manejo global de errores (pantalla /500 o
+ * diálogo): lo usa una pantalla que junta varios pedidos y resuelve sola
+ * el que falla, como Seguimiento (22/11/2026).
+ */
+export interface SilentOpts {
+  silent?: boolean;
+}
+
+function silentHeaders(opts: SilentOpts): { headers?: HttpHeaders } {
+  return opts.silent ? withSkipGlobalError() : {};
+}
+
+/**
+ * Con `silent`, reintenta hasta 2 veces las fallas pasajeras (sin red o
+ * 5xx: Cloud Run arrancando o saturado) antes de dar el error.
+ */
+function reintentoSilencioso<T>(opts: SilentOpts): MonoTypeOperatorFunction<T> {
+  if (!opts.silent) return (source) => source;
+  return retry({
+    count: 2,
+    delay: (err: unknown, intento: number) => {
+      const status = (err as HttpErrorResponse)?.status ?? 0;
+      // 429 no se reintenta: el límite es por minuto y reintentar lo empeora.
+      if (status === 0 || status >= 500) {
+        return timer(700 * intento);
+      }
+      return throwError(() => err);
+    },
+  });
+}
+
 @Injectable({ providedIn: "root" })
 export class EducationService {
   private readonly http = inject(HttpClient);
@@ -71,13 +112,14 @@ export class EducationService {
    * deja solo los cursos de esa área formativa (HU-28). Los dos los
    * aplica el backend. No trae los cursos dados de baja.
    */
-  listCourses(q = "", area = ""): Observable<Course[]> {
+  listCourses(q = "", area = "", opts: SilentOpts = {}): Observable<Course[]> {
     return this.http
       .get<Course[]>(`${this.base}/api/cursos`, {
         withCredentials: true,
         params: busqueda(q, area),
+        ...silentHeaders(opts),
       })
-      .pipe(catchError(this.handleError));
+      .pipe(reintentoSilencioso(opts), catchError(this.handleError));
   }
 
   getCourse(id: string): Observable<Course> {
@@ -257,12 +299,13 @@ export class EducationService {
   }
 
   // ---- Portal docente (role_teacher interno) ---------------------------
-  listMyCourses(): Observable<Course[]> {
+  listMyCourses(opts: SilentOpts = {}): Observable<Course[]> {
     return this.http
       .get<Course[]>(`${this.base}/api/docente/cursos`, {
         withCredentials: true,
+        ...silentHeaders(opts),
       })
-      .pipe(catchError(this.handleError));
+      .pipe(reintentoSilencioso(opts), catchError(this.handleError));
   }
 
   listMyDraftCourses(): Observable<Course[]> {
@@ -270,6 +313,28 @@ export class EducationService {
       .get<Course[]>(`${this.base}/api/docente/cursos/borradores`, {
         withCredentials: true,
       })
+      .pipe(catchError(this.handleError));
+  }
+
+  /**
+   * El docente crea un curso a su nombre: nace en borrador y queda
+   * pendiente hasta que el administrador lo aprueba y publica.
+   */
+  createMyCourse(input: CourseInput): Observable<Course> {
+    return this.http
+      .post<Course>(`${this.base}/api/docente/cursos`, input, {
+        withCredentials: true,
+      })
+      .pipe(catchError(this.handleError));
+  }
+
+  /** El docente da de baja un curso suyo que sigue pendiente (borrador). */
+  deleteMyCourse(id: string): Observable<void> {
+    return this.http
+      .delete<void>(
+        `${this.base}/api/docente/cursos/${encodeURIComponent(id)}`,
+        { withCredentials: true },
+      )
       .pipe(catchError(this.handleError));
   }
 
@@ -346,35 +411,44 @@ export class EducationService {
       .pipe(catchError(this.handleError));
   }
 
-  listEnrollments(cursoId: string): Observable<Enrollment[]> {
+  listEnrollments(
+    cursoId: string,
+    opts: SilentOpts = {},
+  ): Observable<Enrollment[]> {
     return this.http
       .get<Enrollment[]>(
         `${this.base}/api/docente/cursos/${cursoId}/inscriptos`,
-        { withCredentials: true },
+        { withCredentials: true, ...silentHeaders(opts) },
       )
-      .pipe(catchError(this.handleError));
+      .pipe(reintentoSilencioso(opts), catchError(this.handleError));
   }
 
-  getCourseProgress(cursoId: string): Observable<ParticipantProgress[]> {
+  getCourseProgress(
+    cursoId: string,
+    opts: SilentOpts = {},
+  ): Observable<ParticipantProgress[]> {
     return this.http
       .get<ParticipantProgress[]>(
         `${this.base}/api/docente/cursos/${cursoId}/progreso`,
-        { withCredentials: true },
+        { withCredentials: true, ...silentHeaders(opts) },
       )
-      .pipe(catchError(this.handleError));
+      .pipe(reintentoSilencioso(opts), catchError(this.handleError));
   }
 
   /**
    * Progreso formativo de cualquier curso (HU-20), para admin y
    * voluntario: `GET /api/cursos/{id}/progreso` (auditoría 2026-11-11).
    */
-  getCourseProgressGestion(cursoId: string): Observable<ParticipantProgress[]> {
+  getCourseProgressGestion(
+    cursoId: string,
+    opts: SilentOpts = {},
+  ): Observable<ParticipantProgress[]> {
     return this.http
       .get<ParticipantProgress[]>(
         `${this.base}/api/cursos/${encodeURIComponent(cursoId)}/progreso`,
-        { withCredentials: true },
+        { withCredentials: true, ...silentHeaders(opts) },
       )
-      .pipe(catchError(this.handleError));
+      .pipe(reintentoSilencioso(opts), catchError(this.handleError));
   }
 
   // ---- Inscripción, asistencia por actividad y asistencia general ------
@@ -458,12 +532,16 @@ export class EducationService {
   }
 
   /** Inscriptos de un curso con nombre y apellido (sin chequeo de ownership). */
-  listCourseEnrollments(cursoId: string): Observable<Enrollment[]> {
+  listCourseEnrollments(
+    cursoId: string,
+    opts: SilentOpts = {},
+  ): Observable<Enrollment[]> {
     return this.http
       .get<Enrollment[]>(`${this.base}/api/cursos/${cursoId}/inscripciones`, {
         withCredentials: true,
+        ...silentHeaders(opts),
       })
-      .pipe(catchError(this.handleError));
+      .pipe(reintentoSilencioso(opts), catchError(this.handleError));
   }
 
   /**
