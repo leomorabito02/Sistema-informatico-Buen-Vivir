@@ -38,6 +38,10 @@ type Course struct {
 	// docentes que resuelve nombre -> id contra auth-service
 	// (admin-cursos.component, teacherOptions).
 	ResponsibleTeacher string        `json:"responsibleTeacher,omitempty"`
+	// ResponsibleTeacherName es el nombre del docente, resuelto contra
+	// auth al responder (no se guarda en Contentful). Campo aditivo: el id
+	// sigue siendo la relación (decisión D3, 22/11/2026).
+	ResponsibleTeacherName string `json:"responsibleTeacherName,omitempty"`
 	CoverImage         *AssetRef     `json:"coverImage,omitempty"`
 	Mode               string        `json:"mode"`
 	Duration           string        `json:"duration,omitempty"`

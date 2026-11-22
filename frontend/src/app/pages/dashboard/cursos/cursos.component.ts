@@ -50,6 +50,8 @@ interface CursoVM {
   mode: string;
   duration: string;
   teacherId: string;
+  /** Nombre del docente (Educación lo resuelve); vacío si no se pudo. */
+  teacherName: string;
   materialsCount: number;
   raw: Course;
 }
@@ -104,6 +106,8 @@ export class CursosComponent implements OnInit {
   canEnrollParticipants = false;
   /** El participante ve solo sus cursos inscriptos ("Mis cursos"). */
   esParticipante = false;
+  /** true cuando ya se sabe el rol (para no mostrar un título y cambiarlo). */
+  rolCargado = false;
   private roleId = "";
   private userId = "";
   enrollVisible = false;
@@ -141,12 +145,16 @@ export class CursosComponent implements OnInit {
         this.roleId = res.role_id ?? res.user?.role_id ?? "";
         this.userId = res.user?.user_id ?? "";
         this.esParticipante = this.roleId === "role_participant";
+        this.rolCargado = true;
         this.canEnrollParticipants =
           this.roleId === "role_admin" || this.roleId === "role_volunteer";
         this.loadAreas();
         this.loadCursos();
       },
-      error: () => this.loadCursos(),
+      error: () => {
+        this.rolCargado = true;
+        this.loadCursos();
+      },
     });
   }
 
@@ -234,6 +242,7 @@ export class CursosComponent implements OnInit {
       mode: c.mode || "—",
       duration: c.duration || "Duración a confirmar",
       teacherId: c.responsibleTeacher ?? "",
+      teacherName: c.responsibleTeacherName?.trim() ?? "",
       materialsCount: c.material?.length ?? 0,
       raw: c,
     };

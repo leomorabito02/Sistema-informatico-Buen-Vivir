@@ -206,6 +206,29 @@ describe("NotificacionesComponent", () => {
     expect(component.selectedDetail?.data).toEqual({ test: true });
   });
 
+  it("no muestra el servicio emisor ni en la lista ni en el detalle", async () => {
+    await fixture.whenStable();
+    fixture.detectChanges();
+    const lista = (fixture.nativeElement as HTMLElement).textContent ?? "";
+    expect(lista).not.toContain("Origen");
+    expect(lista.toUpperCase()).not.toContain("EDUCATION");
+
+    const item = component.notifications[0];
+    mockNotificationsService.getNotificationDetail.and.resolveTo({
+      ...item,
+      sender_type: "system",
+      sender_id: "system",
+      data: {},
+    });
+    await component.viewDetails(item);
+    fixture.detectChanges();
+    await fixture.whenStable();
+    const todo = document.body.textContent ?? "";
+    expect(todo).not.toContain("Servicio emisor");
+    // El dato sigue en el modelo para trazabilidad interna.
+    expect(component.selectedDetail?.source_service).toBe("auth");
+  });
+
   it("should switch between inbox and preferences tabs", () => {
     expect(component.activeTab).toBe("inbox");
     component.setActiveTab("preferences");

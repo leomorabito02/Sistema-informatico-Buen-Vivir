@@ -118,6 +118,14 @@ describe("MiPerfilComponent", () => {
     expect(component.getRoleKeyLabel("some_other_key")).toBe("Some Other Key");
   });
 
+  it("muestra el estado de la cuenta en castellano", () => {
+    expect(component.estadoCuenta("active")).toBe("Activa");
+    expect(component.estadoCuenta("pending")).toBe("Pendiente");
+    expect(component.estadoCuenta("blocked")).toBe("Bloqueada");
+    expect(component.estadoCuenta("otro")).toBe("otro");
+    expect(component.estadoCuenta(undefined)).toBe("—");
+  });
+
   it("should format role values", () => {
     expect(component.formatRoleValue("test", null)).toBe("No especificado");
     expect(component.formatRoleValue("test", true)).toBe("Sí");

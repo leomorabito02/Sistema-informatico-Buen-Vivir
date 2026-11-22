@@ -8,11 +8,13 @@ import (
 
 	"buenvivir/campaigns/internal/middlewares"
 	"buenvivir/campaigns/internal/models"
+	"buenvivir/campaigns/internal/repositories"
 	"buenvivir/campaigns/internal/services"
 )
 
 type CampaignController struct {
 	service services.CampaignService
+	audit   repositories.AuditRepository
 }
 
 func NewCampaignController(service services.CampaignService) *CampaignController {
@@ -114,6 +116,7 @@ func (c *CampaignController) Create(w http.ResponseWriter, r *http.Request) {
 		writeError(w, r, err)
 		return
 	}
+	c.registrar(r, AccionCrear, campaign.ID)
 	writeJSON(w, http.StatusCreated, respuestaConMensaje{Mensaje: services.MsgCampanaCreada, Campana: campaign})
 }
 
@@ -129,6 +132,7 @@ func (c *CampaignController) Update(w http.ResponseWriter, r *http.Request) {
 		writeError(w, r, err)
 		return
 	}
+	c.registrar(r, AccionEditar, chi.URLParam(r, "id"))
 	writeJSON(w, http.StatusOK, respuestaConMensaje{Mensaje: services.MsgCampanaEditada, Campana: campaign})
 }
 
@@ -139,6 +143,7 @@ func (c *CampaignController) Publish(w http.ResponseWriter, r *http.Request) {
 		writeError(w, r, err)
 		return
 	}
+	c.registrar(r, AccionPublicar, chi.URLParam(r, "id"))
 	writeJSON(w, http.StatusOK, respuestaConMensaje{Mensaje: services.MsgCampanaPublicada, Campana: campaign})
 }
 
@@ -151,6 +156,7 @@ func (c *CampaignController) Delete(w http.ResponseWriter, r *http.Request) {
 		writeError(w, r, err)
 		return
 	}
+	c.registrar(r, AccionBaja, chi.URLParam(r, "id"))
 	writeJSON(w, http.StatusOK, map[string]string{"mensaje": services.MsgCampanaEliminada})
 }
 

@@ -78,7 +78,7 @@ func (s *JobOfferService) CreateOffer(ctx context.Context, offer *models.JobOffe
 		}
 		
 		if company.UserEmail == "" || company.UserPhone == "" || company.UserStatus != "active" ||
-			company.BusinessName == "" || company.Cuit == "" || strings.HasPrefix(company.Cuit, "PENDING-") || company.ApprovalStatus != "approved" {
+			company.BusinessName == "" || company.Cuit == "" || strings.HasPrefix(company.Cuit, "PENDING-") || !isApprovedStatus(company.ApprovalStatus) {
 			return errors.New("company profile is incomplete or not approved")
 		}
 	}

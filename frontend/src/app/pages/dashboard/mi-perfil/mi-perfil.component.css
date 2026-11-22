@@ -4,12 +4,20 @@
   padding: 2rem;
 }
 
+/* Título a la izquierda y "Editar perfil" a la derecha, en la misma fila
+   (antes el botón ocupaba una fila sola entre el título y la primera
+   tarjeta). */
 .page-header {
-  margin-bottom: 2rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  gap: var(--space-4);
+  margin-bottom: var(--space-6);
 }
 
 .page-description {
-  color: var(--text-gray);
+  color: var(--color-text-muted);
   margin: 0;
 }
 
@@ -19,7 +27,7 @@
   padding: 2rem;
   margin-bottom: 2rem;
   box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
-  border: 1px solid var(--border-color);
+  border: 1px solid var(--color-border);
 }
 
 .section-header {
@@ -28,8 +36,8 @@
   gap: 0.75rem;
   margin-bottom: 1.5rem;
   padding-bottom: 1rem;
-  border-bottom: 1px solid var(--border-color);
-  color: var(--text-dark);
+  border-bottom: 1px solid var(--color-border);
+  color: var(--color-text);
 }
 
 .section-header h2 {
@@ -48,19 +56,18 @@
 .info-item .label-text {
   display: block;
   font-size: var(--font-size-sm);
-  color: var(--text-gray);
+  color: var(--color-text-muted);
   margin-bottom: 0.5rem;
   font-weight: 500;
-  text-transform: capitalize;
 }
 
 .info-value {
   font-size: var(--font-size-base);
-  color: var(--text-dark);
-  background: var(--bg-light);
+  color: var(--color-text);
+  background: var(--color-surface-alt);
   padding: 0.75rem 1rem;
   border-radius: 8px;
-  border: 1px solid var(--border-color);
+  border: 1px solid var(--color-border);
 }
 
 .status-badge {
@@ -91,7 +98,7 @@
   display: block;
   font-size: var(--font-size-sm);
   font-weight: 500;
-  color: var(--text-dark);
+  color: var(--color-text);
   margin-bottom: 0.5rem;
 }
 
@@ -105,15 +112,16 @@
   width: 100%;
   padding: 0.75rem 1rem;
   padding-right: 2.5rem;
-  border: 1px solid var(--border-color);
+  border: 1px solid var(--color-border-strong);
   border-radius: 8px;
+  font-family: inherit;
   font-size: var(--font-size-base);
   transition: var(--transition-interactive);
 }
 
 .input-wrapper input:focus {
   outline: none;
-  border-color: var(--primary-color);
+  border-color: var(--color-primary);
   box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.1);
 }
 
@@ -122,7 +130,7 @@
   right: 0.75rem;
   background: none;
   border: none;
-  color: var(--text-gray);
+  color: var(--color-text-muted);
   cursor: pointer;
   padding: 0.25rem;
   display: flex;
@@ -131,7 +139,7 @@
 }
 
 .toggle-password:hover {
-  color: var(--text-dark);
+  color: var(--color-text);
 }
 
 .error-text {
@@ -140,8 +148,11 @@
   margin-top: 0.5rem;
 }
 
+/* Ancho según el texto, como el resto de los botones del sistema (antes
+   "Activar 2FA" ocupaba todo el ancho de la tarjeta y, en los diálogos,
+   empujaba al botón "Atrás"). */
 .btn-primary {
-  width: 100%;
+  width: auto;
   padding: 0.75rem 1.5rem;
   background-color: var(--primary, #485839);
   color: #ffffff;
@@ -181,12 +192,6 @@
   background-color: rgba(72, 88, 57, 0.1);
 }
 
-.profile-actions-header {
-  display: flex;
-  justify-content: flex-end;
-  margin-bottom: 1rem;
-}
-
 .form-actions {
   display: flex;
   justify-content: flex-end;
@@ -200,7 +205,7 @@
 .form-input {
   width: 100%;
   padding: 0.75rem 1rem;
-  border: 1px solid var(--border-color, #e5e7eb);
+  border: 1px solid var(--color-border-strong);
   border-radius: 8px;
   font-size: var(--font-size-base);
   transition: var(--transition-interactive);
@@ -224,22 +229,22 @@
 }
 
 .alert-success {
-  background-color: #dcfce7;
-  color: #166534;
-  border: 1px solid #bbf7d0;
+  background-color: var(--color-primary-soft);
+  color: var(--color-primary);
+  border: 1px solid var(--color-primary-soft-strong);
 }
 
 .alert-error {
-  background-color: #fee2e2;
-  color: #991b1b;
-  border: 1px solid #fecaca;
+  background-color: var(--color-danger-soft);
+  color: var(--color-danger);
+  border: 1px solid var(--color-danger);
 }
 
 .loading-state,
 .error-state {
   text-align: center;
   padding: 3rem;
-  color: var(--text-gray);
+  color: var(--color-text-muted);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -257,7 +262,7 @@
 }
 
 .google-desc {
-  color: var(--text-gray);
+  color: var(--color-text-muted);
   margin: 0;
   font-size: var(--font-size-base);
 }
@@ -332,7 +337,7 @@ button.btn-google:hover:not(:disabled) {
 }
 
 .privacy-intro {
-  color: var(--text-gray);
+  color: var(--color-text-muted);
   font-size: var(--font-size-sm);
   margin-top: -0.5rem;
   margin-bottom: 1.5rem;
@@ -345,7 +350,7 @@ button.btn-google:hover:not(:disabled) {
 }
 
 .privacy-card {
-  border: 1px solid var(--border-color);
+  border: 1px solid var(--color-border);
   border-radius: 8px;
   padding: 1.25rem;
   background-color: var(--bg-white);
@@ -368,13 +373,13 @@ button.btn-google:hover:not(:disabled) {
 .privacy-card-header h3 {
   font-size: var(--font-size-base);
   font-weight: 600;
-  color: var(--text-dark);
+  color: var(--color-text);
   margin: 0 0 0.35rem 0;
 }
 
 .privacy-card-header p {
   font-size: var(--font-size-sm);
-  color: var(--text-gray);
+  color: var(--color-text-muted);
   margin: 0;
   line-height: 1.45;
 }
@@ -452,4 +457,232 @@ button.btn-google:hover:not(:disabled) {
   display: flex;
   align-items: center;
   gap: 1rem;
+}
+
+/* ── Autenticación en dos pasos (diálogos) ───────────────────────────────
+   El marcado usaba clases de Tailwind que el proyecto no carga: los
+   métodos salían como botones nativos (borde negro, Arial, texto centrado)
+   y "Desactivar 2FA" no tenía estilo. */
+.btn-danger {
+  padding: 0.75rem 1.5rem;
+  background-color: var(--color-danger);
+  color: var(--color-text-inverse);
+  border: none;
+  border-radius: 0.5rem;
+  font-size: var(--font-size-base);
+  font-weight: 600;
+  cursor: pointer;
+  transition: var(--transition-interactive);
+  font-family: inherit;
+}
+
+.btn-danger:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.twofa-step {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  padding-top: var(--space-2);
+}
+
+.twofa-intro {
+  margin: 0;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+  line-height: 1.5;
+}
+
+.twofa-methods {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.twofa-method {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  width: 100%;
+  padding: var(--space-4);
+  text-align: left;
+  font-family: inherit;
+  color: var(--color-text);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-lg);
+  cursor: pointer;
+  transition: var(--transition-interactive);
+}
+
+.twofa-method:hover,
+.twofa-method:focus-visible {
+  border-color: var(--color-primary);
+  background: var(--color-primary-soft);
+}
+
+.twofa-method-icon {
+  display: inline-flex;
+  flex-shrink: 0;
+  padding: var(--space-2);
+  border-radius: var(--radius-md);
+  background: var(--color-primary-soft-strong);
+  color: var(--color-primary);
+}
+
+.twofa-method-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-width: 0;
+}
+
+.twofa-method-title {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  font-weight: 600;
+  font-size: var(--font-size-base);
+}
+
+.twofa-tag {
+  padding: 0.125rem var(--space-2);
+  border-radius: var(--radius-full);
+  background: var(--color-primary-soft-strong);
+  color: var(--color-primary);
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+}
+
+.twofa-method-desc {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+
+.twofa-method-warn {
+  font-size: var(--font-size-xs);
+  font-weight: 500;
+  color: var(--color-warning);
+}
+
+.twofa-center {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2);
+  text-align: center;
+}
+
+.twofa-qr {
+  padding: var(--space-3);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+}
+
+.twofa-hint {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+}
+
+.twofa-secret {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-alt);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: var(--font-size-sm);
+  overflow-wrap: anywhere;
+}
+
+.twofa-copy {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  border: 0;
+  background: transparent;
+  color: var(--color-primary);
+  font-family: inherit;
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.twofa-mail-icon {
+  display: inline-flex;
+  padding: var(--space-3);
+  border-radius: var(--radius-full);
+  background: var(--color-primary-soft);
+  color: var(--color-primary);
+}
+
+.twofa-code-group {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.twofa-code-label {
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+}
+
+.twofa-code-input {
+  width: 12rem;
+  max-width: 100%;
+  padding: var(--space-2) var(--space-3);
+  text-align: center;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: var(--font-size-2xl);
+  letter-spacing: 0.3em;
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-md);
+}
+
+.twofa-code-input:focus,
+.twofa-code-inline:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px var(--color-primary-soft-strong);
+}
+
+.twofa-code-inline {
+  text-align: center;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  letter-spacing: 0.2em;
+}
+
+.twofa-divider {
+  text-align: center;
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+}
+
+.twofa-actions {
+  display: flex;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--color-border);
+}
+
+.twofa-step .alert {
+  margin: 0;
 }

@@ -17,6 +17,7 @@ D docente interno, DX docente externo, * cualquiera con sesión, — sin sesión
 | POST `auth/register`, `auth/login`, `auth/refresh`, `auth/logout`, `auth/forgot-password`, `auth/reset-password`, `auth/verify-2fa`, `auth/verify-email` | — (límite estricto por IP) |
 | GET `auth/me`, GET/PUT `profile/me`, `profile/me/2fa/*`, `profile/me/link-google` | * |
 | POST/GET/PUT/DELETE `users[/{id}]` | servicio decide: A todo; V solo participantes; resto, solo la propia cuenta |
+| GET `users/{id}/profile` | A, V y la propia cuenta (desde el 22/11/2026; antes cualquier usuario logueado) |
 | `roles`, `permissions` | A |
 | `participants[/{id}][/documents]` | A, V, P (P solo lo propio; P no crea perfiles ajenos ni borra su perfil) |
 | `companies`, `teachers`, `volunteers` | A + el propio rol sobre su perfil |
@@ -29,7 +30,7 @@ Resumen; la tabla completa con reglas está en `../education/CLAUDE.md`.
 | Método y ruta | Roles |
 |---|---|
 | GET `/api/salud`, GET/POST `/api/comentarios`, GET `/api/biblioteca`, POST `/api/biblioteca/{id}/descargas` | — |
-| GET `/api/cursos[?q=&area=]`, `/api/cursos/{id}`, `/api/areas-formativas`, `/api/materiales` | * |
+| GET `/api/cursos[?q=&area=]`, `/api/cursos/{id}`, `/api/areas-formativas`, `/api/materiales` | * (los cursos incluyen `responsibleTeacherName`, 22/11/2026) |
 | POST/PUT/DELETE `/api/cursos`, publicar/despublicar, `/api/cursos/borradores`, áreas, DELETE materiales, `/api/auditoria`, moderación | A |
 | POST/PUT `/api/materiales[/upload]` | A, D |
 | inscripciones, actividades, entregas, asistencia, asistencia general, `/api/participantes`, **GET `/api/cursos/{id}/progreso`** (nuevo) | A, V |
@@ -52,6 +53,7 @@ Resumen; la tabla completa con reglas está en `../education/CLAUDE.md`.
 |---|---|
 | GET `publicas[?q=]` | — |
 | GET `/`, POST `/`, GET/PUT `/{id}`, POST `/{id}/publicar`, **DELETE `/{id}`** (baja lógica, nuevo) | A, V |
+| GET `auditoria?desde=&hasta=&accion=` (22/11/2026) | A |
 
 ## labor-integration (`/api/v1/labor-integration`)
 
@@ -62,6 +64,7 @@ Resumen; la tabla completa con reglas está en `../education/CLAUDE.md`.
 | PUT/DELETE `offers/{id}` | A, V, empresa dueña (estado solo A) |
 | PUT `offers/{id}/approve`, `offers/{id}/reject` | A |
 | GET `offers/{id}/applications` | A, V, empresa dueña |
+| GET `auditoria` | A |
 | `applications`, `applications/me`, `applications/{id}[/status]` | según rol en el servicio |
 
 ## Otros
@@ -70,5 +73,6 @@ Resumen; la tabla completa con reglas está en `../education/CLAUDE.md`.
 |---|---|
 | dashboard | GET `/api/v1/dashboard/resumen?desde&hasta&modulo&area`, reportes (A) |
 | notifications | `/api/v1/notifications` (listado, detalle, `read`, `read-all`, `unread-count`, preferencias) del propio usuario; `/eventos/*` solo Pub/Sub |
-| rxresume | `/api/v1/rxresume/*` (con sesión), `/api/v1/rxresume/public/*` |
+| rxresume | `/api/v1/rxresume/*` (con sesión), `/api/v1/rxresume/public/*`; GET `auditoria` (A, 22/11/2026); fotos: JPG, PNG, WEBP o GIF hasta 5 MB (415 si no es imagen) |
+| notifications (público) | POST `/api/v1/notifications/contacto` (formulario de contacto, límite 5 cada 10 min por IP) |
 | Pub/Sub (internos) | `/eventos/*`, `/internal/outbox/flush`, `/internal/delivery/flush`: no expuestos en el gateway |

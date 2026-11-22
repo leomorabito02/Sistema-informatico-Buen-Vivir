@@ -1,0 +1,32 @@
+{{/*
+  Identidad visual común de los correos (D7, 22/11/2026): encabezado con el
+  logo del Centro y pie institucional. Cada plantilla los incluye con
+  {{template "bv_encabezado" (marca "#485839" "subtítulo")}} (color de fondo,
+  rojo en las alertas críticas, y subtítulo opcional) y
+  {{template "bv_pie" .Year}}.
+  HTML pensado para clientes de correo: tablas y estilos en línea, sin
+  etiquetas semánticas (Outlook ignora header/main/footer).
+*/}}
+{{define "bv_encabezado"}}
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color: {{.Color}};">
+        <tr>
+          <td align="center" style="padding: 24px 32px;">
+            <img src="{{logoURL}}" width="56" height="56" alt="Centro de Ecología Integral Buen Vivir" style="display: block; width: 56px; height: 56px; border-radius: 50%; border: 2px solid #ffffff; margin: 0 auto 10px auto;">
+            <p style="margin: 0; font-family: Arial, Helvetica, sans-serif; font-size: 22px; line-height: 1.2; font-weight: 700; color: #ffffff;">Buen Vivir</p>
+            <p style="margin: 4px 0 0 0; font-family: Arial, Helvetica, sans-serif; font-size: 13px; color: #e7e6da;">Centro de Ecología Integral</p>
+            {{if .Subtitulo}}<p style="margin: 8px 0 0 0; font-family: Arial, Helvetica, sans-serif; font-size: 12px; letter-spacing: 0.5px; text-transform: uppercase; color: #ffffff;">{{.Subtitulo}}</p>{{end}}
+          </td>
+        </tr>
+      </table>
+{{end}}
+{{define "bv_pie"}}
+        <p style="margin: 0 0 4px 0; font-family: Arial, Helvetica, sans-serif; font-size: 12px; color: #66655b;">
+          Centro de Ecología Integral Buen Vivir · Centro Barrial "La Otra Orilla", Alta Gracia, Córdoba
+        </p>
+        <p style="margin: 0 0 4px 0; font-family: Arial, Helvetica, sans-serif; font-size: 12px; color: #66655b;">
+          <a href="mailto:ceibuenvivir7@gmail.com" style="color: #485839; text-decoration: underline;">ceibuenvivir7@gmail.com</a>
+        </p>
+        <p style="margin: 0; font-family: Arial, Helvetica, sans-serif; font-size: 12px; color: #66655b;">
+          &copy; {{.}} Centro de Ecología Integral Buen Vivir. Todos los derechos reservados.
+        </p>
+{{end}}

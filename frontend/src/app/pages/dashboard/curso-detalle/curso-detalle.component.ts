@@ -18,7 +18,6 @@ import { Observable, catchError, map, of, switchMap } from "rxjs";
 
 import { AuthService } from "../../../services/auth.service";
 import { EducationService } from "../../../services/education.service";
-import { UsersService } from "../../../services/users.service";
 import { SkillsService } from "../../../services/skills.service";
 import { Skill, SkillInput, skillKey } from "../../../core/models/skills.model";
 import { ActivitySkillsComponent } from "./activity-skills/activity-skills.component";
@@ -119,7 +118,6 @@ export class CursoDetalleComponent implements OnInit {
   private readonly router = inject(Router);
   private readonly authService = inject(AuthService);
   private readonly education = inject(EducationService);
-  private readonly users = inject(UsersService);
   private readonly skills = inject(SkillsService);
   private readonly toast = inject(MessageService);
   private readonly confirm = inject(ConfirmationService);
@@ -295,20 +293,13 @@ export class CursoDetalleComponent implements OnInit {
     return this.habilidadesPorActividad[actividadId] ?? [];
   }
 
-  /** Nombre del docente responsable; si auth-service no lo resuelve para este rol, se omite. */
+  /**
+   * Nombre del docente responsable: lo resuelve Educación en la respuesta
+   * del curso (responsibleTeacherName). Antes se pedía el perfil completo
+   * del docente a auth, algo que no le corresponde ver a un participante.
+   */
   private resolverDocente() {
-    const id = this.curso?.responsibleTeacher;
-    if (!id) return;
-    this.users
-      .getUserProfile(id)
-      .pipe(catchError(() => of(null)))
-      .subscribe((data) => {
-        const u = data?.user;
-        if (u) {
-          this.docenteNombre =
-            `${u.first_name ?? ""} ${u.last_name ?? ""}`.trim();
-        }
-      });
+    this.docenteNombre = this.curso?.responsibleTeacherName?.trim() ?? "";
   }
 
   volver() {

@@ -66,6 +66,8 @@ export interface Course {
   description: RichTextDocument | null;
   /** id de usuario (sub del JWT) del docente responsable, NO su nombre. */
   responsibleTeacher?: string;
+  /** Nombre del docente, resuelto por Educación al responder (D3). */
+  responsibleTeacherName?: string;
   coverImage?: AssetRef;
   mode: string;
   duration?: string;

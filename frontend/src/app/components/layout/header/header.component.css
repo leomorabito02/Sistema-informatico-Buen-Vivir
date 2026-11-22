@@ -343,7 +343,11 @@
 }
 
 /* Menú de usuario (va en <body> por appendTo, fuera de .app-header) */
+/* PrimeNG alinea el menú al borde izquierdo del botón y calcula el ancho
+   con la barra de scroll incluida: se pasaba unos px de la pantalla y
+   aparecía scroll horizontal al abrirlo. Se corre 1rem a la izquierda. */
 .user-menu.p-menu {
+  margin-left: calc(-1 * var(--space-4));
   min-width: 12rem;
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-lg);

@@ -120,7 +120,8 @@ func main() {
 	skillSuggestionService := services.NewSkillSuggestionService(skillRepo, skillProviders(cfg, googleCredentials), cfg.SkillsAI.Timeout, cfg.SkillsAI.MaxRetries)
 	submissionService := services.NewSubmissionService(submissionRepo, activityRepo, enrollmentRepo, courseRepo, fileStorage, authServiceClient)
 
-	courseController := controllers.NewCourseController(courseService)
+	teacherNames := services.NewTeacherNames(authServiceClient.GetUserNames)
+	courseController := controllers.NewCourseController(courseService).WithTeacherNames(teacherNames)
 	trainingAreaController := controllers.NewTrainingAreaController(trainingAreaService)
 	materialController := controllers.NewMaterialController(materialService).
 		WithCourseListers(courseService.ListCourses, courseService.ListAllDraftCourses)
@@ -137,7 +138,7 @@ func main() {
 	attendanceController := controllers.NewAttendanceController(activityService, attendanceService)
 	generalAttendanceController := controllers.NewGeneralAttendanceController(generalAttendanceService)
 	activityController := controllers.NewActivityController(courseService, activityService, submissionService)
-	submissionController := controllers.NewSubmissionController(courseService, activityService, submissionService)
+	submissionController := controllers.NewSubmissionController(courseService, activityService, submissionService).WithTeacherNames(teacherNames)
 	commentController := controllers.NewCommentController(services.NewCommentService(commentRepo))
 	teacherContentController := controllers.NewTeacherContentController(services.NewTeacherContentService(teacherContentRepo, fileStorage))
 	participanteController := controllers.NewParticipanteController(services.NewParticipanteService(authServiceClient, enrollmentRepo, activityRepo, attendanceRepo, courseRepo))

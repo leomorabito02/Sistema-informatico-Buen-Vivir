@@ -93,6 +93,8 @@ Fichero: `.github/workflows/ci.yml`
   - **npm audit:** Verificación de vulnerabilidades en paquetes Node.js.
 - **Escaneo de Secretos:**
   - **Gitleaks:** Detección de claves API, tokens o credenciales hardcodeadas en el commit.
+- **Configuración insegura (22/11/2026):** job `ci-iac`, Trivy en modo `config` sobre Dockerfiles, docker-compose y workflows. **Informativo**: no bloquea ni entra en `ci-gate`.
+- **Cobertura por servicio (22/11/2026):** gosec y govulncheck en los 8 servicios Go y en `pkg`; `pnpm audit` cubre el frontend y cv-engine (mismo lockfile).
 
 #### Stage 5 - Construcción (Build)
 - **Backend:** Construye la imagen Docker del backend tagged temporalmente con el Commit SHA (`backend:${{ github.sha }}`).
@@ -100,7 +102,7 @@ Fichero: `.github/workflows/ci.yml`
 
 #### Stage 6 - Escaneo de Imágenes Docker
 - **Trivy Image Scan:** Analiza las capas de la imagen Docker generada.
-- **Política de bloqueo:** Si se detectan vulnerabilidades clasificadas como `CRITICAL` o `HIGH`, el job falla inmediatamente y se impide la publicación.
+- **Política de bloqueo:** Si se detectan vulnerabilidades clasificadas como `CRITICAL` o `HIGH` **con arreglo disponible** (`ignore-unfixed`), el job falla y se impide la publicación. Desde el 22/11/2026 también se escanea la imagen de cv-renderer (era la única sin escaneo).
 
 #### Stage 7 - Publicación
 - Autentica contra Google Cloud usando **Workload Identity Federation**.
@@ -136,6 +138,11 @@ Una vez finalizado el despliegue, se ejecutan peticiones HTTP de validación con
 1. `GET /`
 2. `GET /health`
 3. `GET /api/version`
+
+#### Stage 3 bis - Seguridad dinámica y carga (informativos, 22/11/2026)
+- **ZAP (DAST):** escaneo de la API publicada en el gateway con `openapi.yaml`. El reporte queda como artifact; `fail_action: false`.
+- **k6:** `auth/load_test.js` contra auth y `tests/carga/k6_servicios_gateway.js` contra los **8 servicios** por el gateway (solo lectura: GET públicos o pedidos sin token que deben dar 401). Umbrales: p95 < 3 s (admite arranques en frío de Cloud Run), errores 5xx/timeout < 2 %, checks > 90 %. Los 429 por el límite de 100 pedidos/min por IP se cuentan aparte. Solo corre en TESTING; el job tiene `continue-on-error`.
+- Ninguno de los dos dispara el rollback: solo los smoke tests lo hacen.
 
 #### Stage 4 - Health Check & Rollback Automático
 - Evalúa la respuesta de los Smoke Tests y la disponibilidad de Cloud Run y Cloudflare Pages.

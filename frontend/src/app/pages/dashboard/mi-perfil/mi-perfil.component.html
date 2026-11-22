@@ -1,9 +1,19 @@
 <div class="profile-container">
   <div class="page-header">
-    <h1 class="page-title">Mi perfil</h1>
-    <p class="page-description">
-      Consultá tu información y gestioná tu contraseña.
-    </p>
+    <div>
+      <h1 class="page-title">Mi perfil</h1>
+      <p class="page-description">
+        Consultá tu información y gestioná tu contraseña.
+      </p>
+    </div>
+    <button
+      *ngIf="!loading && !error && profileData"
+      type="button"
+      class="btn-secondary"
+      (click)="toggleEditProfile()"
+    >
+      {{ isEditingProfile ? "Cancelar Edición" : "Editar Perfil" }}
+    </button>
   </div>
 
   <div *ngIf="loading" class="loading-state">
@@ -16,12 +26,6 @@
   </div>
 
   <div class="profile-content" *ngIf="!loading && !error && profileData">
-    <div class="profile-actions-header">
-      <button type="button" class="btn-secondary" (click)="toggleEditProfile()">
-        {{ isEditingProfile ? "Cancelar Edición" : "Editar Perfil" }}
-      </button>
-    </div>
-
     <div *ngIf="profileUpdateSuccess" class="alert alert-success">
       <lucide-icon [img]="CheckCircleIcon" size="20"></lucide-icon>
       {{ profileUpdateSuccess }}
@@ -85,7 +89,7 @@
               class="info-value status-badge"
               [class.active]="profileData.user.status === 'active'"
             >
-              {{ profileData.user.status | titlecase }}
+              {{ estadoCuenta(profileData.user.status) }}
             </div>
           </div>
         </div>
@@ -166,7 +170,7 @@
                       type="file"
                       class="form-input"
                       [id]="item.key"
-                      accept="image/*"
+                      [accept]="acceptFoto"
                       (change)="onPictureSelected($event)"
                       [disabled]="uploadingPicture"
                     />
@@ -593,86 +597,72 @@
       header="Activar autenticación en dos pasos"
     >
       <!-- Paso 1: Selección de Método -->
-      <div *ngIf="twofaStep === 'select'" class="space-y-4 pt-2">
-        <p class="text-sm text-gray-600">
+      <div *ngIf="twofaStep === 'select'" class="twofa-step">
+        <p class="twofa-intro">
           Elegí el método que preferís para recibir o generar tus códigos de
           verificación:
         </p>
 
-        <div class="grid gap-3">
+        <div class="twofa-methods">
           <!-- Opción TOTP -->
           <button
             type="button"
             (click)="selectTwofaMethod('totp')"
-            class="w-full text-left p-4 border border-gray-200 rounded-xl hover:border-emerald-600 hover:bg-emerald-50/30 cursor-pointer transition flex items-start gap-3 bg-transparent"
+            class="twofa-method"
           >
-            <div class="p-2 bg-emerald-100 text-emerald-700 rounded-lg">
-              <lucide-icon [img]="SmartphoneIcon" size="24"></lucide-icon>
-            </div>
-            <div class="flex-1">
-              <div class="flex items-center justify-between">
-                <span class="font-semibold text-gray-900"
-                  >App autenticadora</span
-                >
-                <span
-                  class="text-xs bg-emerald-100 text-emerald-800 font-medium px-2 py-0.5 rounded"
-                  >Recomendado</span
-                >
-              </div>
-              <p class="text-xs text-gray-500 mt-1">
+            <span class="twofa-method-icon">
+              <lucide-icon [img]="SmartphoneIcon" size="22"></lucide-icon>
+            </span>
+            <span class="twofa-method-body">
+              <span class="twofa-method-title">
+                App autenticadora
+                <span class="twofa-tag">Recomendado</span>
+              </span>
+              <span class="twofa-method-desc">
                 Generá códigos dinámicos cada 30 segundos con Google
                 Authenticator, Authy o Microsoft Authenticator.
-              </p>
-            </div>
+              </span>
+            </span>
           </button>
 
           <!-- Opción Email -->
           <button
             type="button"
             (click)="selectTwofaMethod('email')"
-            class="w-full text-left p-4 border border-gray-200 rounded-xl hover:border-emerald-600 hover:bg-emerald-50/30 cursor-pointer transition flex items-start gap-3 bg-transparent"
+            class="twofa-method"
           >
-            <div class="p-2 bg-blue-100 text-blue-700 rounded-lg">
-              <lucide-icon [img]="MailIcon" size="24"></lucide-icon>
-            </div>
-            <div class="flex-1" *ngIf="profileData?.user as user">
-              <div class="flex items-center justify-between">
-                <span class="font-semibold text-gray-900"
-                  >Correo electrónico</span
-                >
-              </div>
-              <p class="text-xs text-gray-500 mt-1">
+            <span class="twofa-method-icon">
+              <lucide-icon [img]="MailIcon" size="22"></lucide-icon>
+            </span>
+            <span class="twofa-method-body" *ngIf="profileData?.user as user">
+              <span class="twofa-method-title">Correo electrónico</span>
+              <span class="twofa-method-desc">
                 Recibí un código de 6 dígitos en tu correo verificado (<strong
                   >{{ user.email }}</strong
                 >).
-              </p>
-              <p
-                *ngIf="!user.is_email_verified"
-                class="text-xs text-amber-600 font-medium mt-1"
-              >
+              </span>
+              <span *ngIf="!user.is_email_verified" class="twofa-method-warn">
                 ⚠️ Debes verificar tu correo para usar este método.
-              </p>
-            </div>
+              </span>
+            </span>
           </button>
         </div>
 
-        <div *ngIf="twofaError" class="alert alert-danger mt-3">
+        <div *ngIf="twofaError" class="alert alert-error">
           <lucide-icon [img]="AlertCircleIcon" size="18"></lucide-icon>
           {{ twofaError }}
         </div>
       </div>
 
       <!-- Paso 2: Verificación y Activación -->
-      <div *ngIf="twofaStep === 'verify'" class="space-y-4 pt-2">
+      <div *ngIf="twofaStep === 'verify'" class="twofa-step">
         <!-- TOTP QR y Clave -->
-        <div *ngIf="twofaMethod === 'totp'" class="text-center">
-          <p class="text-sm text-gray-600 mb-3">
+        <div *ngIf="twofaMethod === 'totp'" class="twofa-center">
+          <p class="twofa-intro">
             Escaneá este código QR con tu aplicación autenticadora (Google
             Authenticator, Authy, etc.):
           </p>
-          <div
-            class="inline-block p-3 bg-white border border-gray-200 rounded-xl shadow-sm mb-3"
-          >
+          <div class="twofa-qr">
             <img
               *ngIf="twofaQrDataUrl"
               [src]="twofaQrDataUrl"
@@ -682,18 +672,12 @@
             />
           </div>
 
-          <div class="text-xs text-gray-500 mb-1">
+          <div class="twofa-hint">
             ¿No podés escanear el código? Ingresá esta clave manual:
           </div>
-          <div
-            class="flex items-center justify-center gap-2 font-mono bg-gray-100 py-1.5 px-3 rounded-lg text-sm text-gray-800"
-          >
+          <div class="twofa-secret">
             <span>{{ twofaSecret }}</span>
-            <button
-              type="button"
-              (click)="copySecret()"
-              class="text-xs text-emerald-600 hover:text-emerald-700 cursor-pointer border-0 bg-transparent flex items-center gap-1"
-            >
+            <button type="button" (click)="copySecret()" class="twofa-copy">
               <lucide-icon [img]="CopyIcon" size="14"></lucide-icon>
               {{ copiedSecret ? "¡Copiado!" : "Copiar" }}
             </button>
@@ -701,29 +685,20 @@
         </div>
 
         <!-- Email Mensaje -->
-        <div *ngIf="twofaMethod === 'email'" class="text-center py-2">
-          <div
-            class="inline-flex p-3 bg-blue-50 text-blue-600 rounded-full mb-2"
-          >
+        <div *ngIf="twofaMethod === 'email'" class="twofa-center">
+          <div class="twofa-mail-icon">
             <lucide-icon [img]="MailIcon" size="28"></lucide-icon>
           </div>
-          <p class="text-sm text-gray-700">
+          <p class="twofa-intro">
             Enviamos un código de verificación de 6 dígitos a tu casilla de
             correo:
           </p>
-          <strong
-            class="text-sm text-gray-900"
-            *ngIf="profileData?.user as user"
-            >{{ user.email }}</strong
-          >
+          <strong *ngIf="profileData?.user as user">{{ user.email }}</strong>
         </div>
 
         <!-- Input del Código -->
-        <div class="form-group text-center mt-4">
-          <label
-            class="block text-xs font-semibold uppercase tracking-wider text-gray-500 mb-2"
-            for="confirm2faCode"
-          >
+        <div class="twofa-code-group">
+          <label class="twofa-code-label" for="confirm2faCode">
             Ingresá el código de 6 dígitos
           </label>
           <input
@@ -732,18 +707,16 @@
             maxlength="6"
             [(ngModel)]="twofaCode"
             placeholder="000000"
-            class="w-48 mx-auto text-center font-mono text-2xl tracking-widest py-2 px-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
+            class="twofa-code-input"
           />
         </div>
 
-        <div *ngIf="twofaError" class="alert alert-danger mt-3">
+        <div *ngIf="twofaError" class="alert alert-error">
           <lucide-icon [img]="AlertCircleIcon" size="18"></lucide-icon>
           {{ twofaError }}
         </div>
 
-        <div
-          class="flex items-center justify-end gap-2 pt-3 border-t border-gray-100"
-        >
+        <div class="twofa-actions">
           <button
             type="button"
             class="btn-secondary"
@@ -774,57 +747,43 @@
       (onHide)="closeTwofaDisable()"
       header="Desactivar autenticación en dos pasos"
     >
-      <div class="space-y-4 pt-2">
-        <p class="text-sm text-gray-600">
+      <div class="twofa-step">
+        <p class="twofa-intro">
           Para desactivar el segundo factor de autenticación, por favor confirmá
           con tu contraseña actual o un código de verificación:
         </p>
 
         <div class="form-group">
-          <label
-            class="block text-xs font-medium text-gray-700 mb-1"
-            for="disablePass"
-            >Contraseña actual</label
-          >
+          <label for="disablePass">Contraseña actual</label>
           <input
             id="disablePass"
             type="password"
             [(ngModel)]="twofaDisablePassword"
             placeholder="••••••••"
-            class="w-full py-2 px-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
+            class="form-input"
           />
         </div>
 
-        <div
-          class="text-center text-xs text-gray-400 font-semibold uppercase tracking-wider"
-        >
-          o mediante código
-        </div>
+        <div class="twofa-divider">o mediante código</div>
 
         <div class="form-group">
-          <label
-            class="block text-xs font-medium text-gray-700 mb-1"
-            for="disableCode"
-            >Código de 6 dígitos</label
-          >
+          <label for="disableCode">Código de 6 dígitos</label>
           <input
             id="disableCode"
             type="text"
             maxlength="6"
             [(ngModel)]="twofaDisableCode"
             placeholder="000000"
-            class="w-full text-center font-mono py-2 px-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
+            class="form-input twofa-code-inline"
           />
         </div>
 
-        <div *ngIf="twofaError" class="alert alert-danger">
+        <div *ngIf="twofaError" class="alert alert-error">
           <lucide-icon [img]="AlertCircleIcon" size="18"></lucide-icon>
           {{ twofaError }}
         </div>
 
-        <div
-          class="flex items-center justify-end gap-2 pt-3 border-t border-gray-100"
-        >
+        <div class="twofa-actions">
           <button
             type="button"
             class="btn-secondary"

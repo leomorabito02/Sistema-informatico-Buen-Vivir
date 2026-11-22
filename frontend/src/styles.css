@@ -225,6 +225,12 @@
   --bg-cream: var(--color-surface-cream);
   --bg-dark: var(--color-surface-dark);
   --text-main: var(--color-text);
+  /* Nombres viejos que todavía usan algunas pantallas. Sin definir, el
+     navegador caía al valor de respaldo de cada archivo (verde agua o azul,
+     fuera de la paleta del Centro) o descartaba la regla. */
+  --primary-rgb: 72, 88, 57; /* = --green-600 */
+  --secondary-color: var(--color-secondary);
+  --surface: var(--color-surface);
   --text-muted: var(--color-text-muted);
   --text-inverse: var(--color-text-inverse);
   --border: var(--color-border);
@@ -244,6 +250,15 @@
 html {
   -webkit-text-size-adjust: 100%;
   text-size-adjust: 100%;
+}
+
+/* Los controles nativos no heredan la tipografía: sin esto, botones y
+   campos sin clase de PrimeNG salían en Arial. */
+button,
+input,
+select,
+textarea {
+  font-family: inherit;
 }
 
 body {
@@ -1109,4 +1124,290 @@ td.empty-state {
 }
 .no-underline {
   text-decoration: none;
+}
+
+/* Campo con ícono adentro (lupa, sobre, candado…). p-input-icon-left/right
+   eran clases de PrimeNG 16 que la versión actual (19) ya no estiliza: el
+   ícono quedaba en una línea aparte, arriba del campo (Ofertas, Cursos,
+   Usuarios, Login, Registro). Las pantallas nuevas usan <p-iconfield>; esto
+   devuelve el mismo aspecto a las que todavía usan la clase vieja. */
+.p-input-icon-left,
+.p-input-icon-right {
+  position: relative;
+  display: inline-block;
+}
+.p-input-icon-left > i,
+.p-input-icon-right > i {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 1;
+  color: var(--color-text-muted);
+  line-height: 1;
+  pointer-events: none;
+}
+.p-input-icon-left > i {
+  left: var(--space-3);
+}
+.p-input-icon-right > i {
+  right: var(--space-3);
+}
+.p-input-icon-left > input,
+.p-input-icon-right > input {
+  width: 100%;
+}
+.p-input-icon-left > input {
+  padding-left: 2.5rem;
+}
+.p-input-icon-right > input {
+  padding-right: 2.5rem;
+}
+
+/* Botón chico de PrimeNG: por defecto queda en 12px, más chico que
+   cualquier texto del sistema (Notificaciones, Usuarios, Mi CV). Se lleva a
+   la escala tipográfica (15px) con un alto cómodo para tocar. */
+.p-button.p-button-sm {
+  min-height: 2.25rem;
+  font-size: var(--font-size-sm);
+}
+
+/* ── Utilidades que usaban los templates y no existían ─────────────────
+   Varios templates (Mi CV, Mi perfil, Ofertas, Notificaciones, Login,
+   Usuarios…) usan clases estilo Tailwind/PrimeFlex que el proyecto no
+   carga: no tenían efecto y se perdían márgenes, separadores y colores.
+   Se definen acá con la escala de espaciado (0,25rem) y la paleta del
+   Centro (grises → neutros, azules → verde institucional). */
+.m-0 {
+  margin: 0;
+}
+.mb-0 {
+  margin-bottom: 0;
+}
+.mt-2 {
+  margin-top: var(--space-2);
+}
+.mt-3 {
+  margin-top: var(--space-3);
+}
+.my-2 {
+  margin-top: var(--space-2);
+  margin-bottom: var(--space-2);
+}
+.my-3 {
+  margin-top: var(--space-3);
+  margin-bottom: var(--space-3);
+}
+.mx-2 {
+  margin-left: var(--space-2);
+  margin-right: var(--space-2);
+}
+.mr-1 {
+  margin-right: var(--space-1);
+}
+.ml-1 {
+  margin-left: var(--space-1);
+}
+.p-2 {
+  padding: var(--space-2);
+}
+.p-4 {
+  padding: var(--space-4);
+}
+.px-3 {
+  padding-left: var(--space-3);
+  padding-right: var(--space-3);
+}
+.py-1 {
+  padding-top: var(--space-1);
+  padding-bottom: var(--space-1);
+}
+.py-2 {
+  padding-top: var(--space-2);
+  padding-bottom: var(--space-2);
+}
+.py-5 {
+  padding-top: var(--space-5);
+  padding-bottom: var(--space-5);
+}
+.pt-3 {
+  padding-top: var(--space-3);
+}
+.pt-4 {
+  padding-top: var(--space-4);
+}
+.pb-1 {
+  padding-bottom: var(--space-1);
+}
+.pb-2 {
+  padding-bottom: var(--space-2);
+}
+.pb-3 {
+  padding-bottom: var(--space-3);
+}
+
+.inline-flex {
+  display: inline-flex;
+}
+.flex-column {
+  flex-direction: column;
+}
+.align-items-center {
+  align-items: center;
+}
+.align-items-start {
+  align-items: flex-start;
+}
+.justify-content-between {
+  justify-content: space-between;
+}
+.justify-end {
+  justify-content: flex-end;
+}
+.flex-between {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.text-left {
+  text-align: left;
+}
+.uppercase {
+  text-transform: uppercase;
+}
+.font-mono {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+.tracking-wide {
+  letter-spacing: 0.025em;
+}
+.tracking-wider {
+  letter-spacing: 0.05em;
+}
+.tracking-widest {
+  letter-spacing: 0.1em;
+}
+.line-height-3 {
+  line-height: 1.5;
+}
+
+.text-gray-400,
+.text-gray-500,
+.text-gray-600 {
+  color: var(--color-text-muted);
+}
+.text-gray-700,
+.text-gray-800,
+.text-gray-900 {
+  color: var(--color-text);
+}
+.text-muted-foreground {
+  color: var(--color-text-muted);
+}
+.text-foreground {
+  color: var(--color-text);
+}
+.text-red-500 {
+  color: var(--color-danger);
+}
+.text-green-500 {
+  color: var(--color-primary);
+}
+
+.bg-white,
+.surface-card {
+  background-color: var(--color-surface);
+}
+.bg-gray-50,
+.bg-gray-100,
+.surface-ground,
+.surface-100 {
+  background-color: var(--color-surface-alt);
+}
+.bg-gray-200 {
+  background-color: var(--neutral-200);
+}
+.bg-blue-50,
+.bg-emerald-50 {
+  background-color: var(--color-primary-soft);
+}
+.bg-blue-100,
+.bg-emerald-100 {
+  background-color: var(--color-primary-soft-strong);
+}
+
+.border-1 {
+  border: 1px solid var(--color-border);
+}
+.border-b,
+.border-bottom-1 {
+  border-bottom: 1px solid var(--color-border);
+}
+.border-gray-100,
+.border-gray-200,
+.surface-border {
+  border-color: var(--color-border);
+}
+.border-gray-300 {
+  border-color: var(--color-border-strong);
+}
+.rounded {
+  border-radius: var(--radius-sm);
+}
+.border-round {
+  border-radius: var(--radius-md);
+}
+.rounded-xl {
+  border-radius: var(--radius-xl);
+}
+.shadow-2 {
+  box-shadow: var(--shadow-sm);
+}
+
+.w-6 {
+  width: 1.5rem;
+}
+.h-6 {
+  height: 1.5rem;
+}
+.w-12 {
+  width: 3rem;
+}
+.h-12 {
+  height: 3rem;
+}
+.w-16 {
+  width: 4rem;
+}
+.h-16 {
+  height: 4rem;
+}
+.w-48 {
+  width: 12rem;
+}
+
+@media (min-width: 640px) {
+  .sm\:flex-row {
+    flex-direction: row;
+  }
+  .sm\:w-auto {
+    width: auto;
+  }
+}
+@media (min-width: 768px) {
+  .md\:grid-cols-2 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .md\:col-span-2 {
+    grid-column: span 2 / span 2;
+  }
+  .md\:flex-row {
+    flex-direction: row;
+  }
+  .md\:w-auto {
+    width: auto;
+  }
+  .md\:align-items-center {
+    align-items: center;
+  }
 }

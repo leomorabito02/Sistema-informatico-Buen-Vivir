@@ -11,10 +11,18 @@ import (
 
 type CourseController struct {
 	service services.CourseService
+	names   *services.TeacherNames
 }
 
 func NewCourseController(service services.CourseService) *CourseController {
 	return &CourseController{service: service}
+}
+
+// WithTeacherNames hace que las respuestas incluyan el nombre del docente
+// responsable (responsibleTeacherName). Sin esto, el campo no se envía.
+func (c *CourseController) WithTeacherNames(n *services.TeacherNames) *CourseController {
+	c.names = n
+	return c
 }
 
 // List responde GET /api/cursos?q=texto&area=id. Los dos son opcionales
@@ -31,6 +39,7 @@ func (c *CourseController) List(w http.ResponseWriter, r *http.Request) {
 		writeError(w, err)
 		return
 	}
+	c.names.Fill(r.Context(), courses)
 	writeJSON(w, http.StatusOK, services.FiltrarCursosPorArea(services.FiltrarCursos(courses, q), r.URL.Query().Get("area")))
 }
 
@@ -54,6 +63,7 @@ func (c *CourseController) ListDrafts(w http.ResponseWriter, r *http.Request) {
 		writeError(w, err)
 		return
 	}
+	c.names.Fill(r.Context(), courses)
 	writeJSON(w, http.StatusOK, courses)
 }
 
@@ -65,6 +75,7 @@ func (c *CourseController) ListByTeacherAdmin(w http.ResponseWriter, r *http.Req
 		writeError(w, err)
 		return
 	}
+	c.names.Fill(r.Context(), courses)
 	writeJSON(w, http.StatusOK, courses)
 }
 
@@ -75,6 +86,7 @@ func (c *CourseController) Get(w http.ResponseWriter, r *http.Request) {
 		writeError(w, err)
 		return
 	}
+	c.names.FillOne(r.Context(), course)
 	writeJSON(w, http.StatusOK, course)
 }
 

@@ -54,7 +54,8 @@ restaurarlo con `git checkout -- frontend/coverage` si no se quiere el cambio.
 | Carga local (k6) | `tests/carga/k6_carga_local.js` | `docker run --rm -v "$PWD/tests/carga:/scripts" grafana/k6:0.54.0 run /scripts/k6_carga_local.js` | 350.639 pedidos, 0 % de 5xx, p95 12 ms (servicios) |
 | Carga con volumen (Campañas) | `campaigns/internal/routes/carga_test.go` | `CARGA=1 FIRESTORE_EMULATOR_HOST=... go test ./internal/routes -run Carga -v` | 500 campañas p95 485 ms; 2000 p95 8,8 s |
 | Sonda de seguridad | `tests/seguridad/sonda/main.go` | `JWT_SECRET=... go run ./tests/seguridad/sonda > docs/evidencias/sonda-seguridad-resultado.json` | 39/39 OK con el stack reconstruido (12/11) |
-| k6 y ZAP del CD | `education/load_test.js`, `tests/performance/k6_auth_load_test.js`, job `cd-dast-zap` | Solo en el CD de testing | No ejecutados en la auditoría |
+| k6 y ZAP del CD | `auth/load_test.js`, job `cd-dast-zap` | Solo en el CD de testing | No ejecutados en la auditoría |
+| Carga de los 8 servicios por el gateway (22/11/2026) | `tests/carga/k6_servicios_gateway.js` | `docker run --rm -i -e BASE_URL=https://<gateway-testing> grafana/k6:0.54.0 run - < tests/carga/k6_servicios_gateway.js` | Lo corre el CD en testing (informativo). Solo lectura |
 
 La carga y la sonda solo hacen pedidos que no modifican datos: el stack
 local comparte bases con testing. Evidencias en `evidencias/`.

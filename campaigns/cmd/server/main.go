@@ -63,7 +63,7 @@ func main() {
 	if observability.MetricsEnabled() {
 		r.Handle("/metrics", metrics.Handler())
 	}
-	routes.RegisterRoutes(r, jwtService, controllers.NewCampaignController(service))
+	routes.RegisterRoutes(r, jwtService, controllers.NewCampaignController(service).WithAudit(repositories.NewAuditRepository(firestoreClient)))
 
 	server := &http.Server{
 		Addr:              ":" + cfg.Port,

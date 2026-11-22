@@ -1,7 +1,9 @@
+/* Ancho completo (la tabla es ancha), con el mismo margen que el resto de
+   las páginas del panel (.page-container). */
 .user-mgmt-container {
   width: 100%;
   max-width: 100%;
-  padding: 1.5rem;
+  padding: var(--space-6) var(--container-gutter) var(--space-12);
   margin: 0;
   font-family: inherit;
 }
@@ -198,7 +200,10 @@
   color: #4a4a4a;
 }
 
+/* Antes la columna se angostaba tanto que el email se partía letra por
+   letra. */
 .user-email {
+  min-width: 12rem;
   overflow-wrap: anywhere;
 }
 

@@ -5,6 +5,8 @@ import (
 	"embed"
 	"fmt"
 	"html/template"
+	"os"
+	"strings"
 	"time"
 )
 
@@ -77,7 +79,7 @@ type templateEngine struct {
 }
 
 func NewTemplateEngine() (TemplateEngine, error) {
-	parsed, err := template.ParseFS(emailTemplatesFS, "email/*.html")
+	parsed, err := template.New("emails").Funcs(funcionesMarca).ParseFS(emailTemplatesFS, "email/*.html")
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse embedded email templates: %w", err)
 	}
@@ -101,4 +103,32 @@ func (e *templateEngine) RenderEmail(templateID EmailTemplateID, data any) (stri
 
 func CurrentYear() int {
 	return time.Now().Year()
+}
+
+// LogoPorDefecto: logo del Centro en el front de producción (D7,
+// 22/11/2026). En testing sale de FRONTEND_URL (testing.ceibuenvivir.pages.dev).
+const LogoPorDefecto = "https://ceibuenvivir.pages.dev/assets/logo.png"
+
+// LogoURL devuelve la URL pública del logo para los correos: FRONTEND_URL
+// + /assets/logo.png, o el de producción si FRONTEND_URL no está o es local
+// (un cliente de correo no puede leer localhost).
+func LogoURL() string {
+	base := strings.TrimRight(strings.TrimSpace(os.Getenv("FRONTEND_URL")), "/")
+	if base == "" || strings.Contains(base, "localhost") || strings.Contains(base, "127.0.0.1") {
+		return LogoPorDefecto
+	}
+	return base + "/assets/logo.png"
+}
+
+// encabezadoMarca son los datos del parcial bv_encabezado.
+type encabezadoMarca struct {
+	Color     string
+	Subtitulo string
+}
+
+var funcionesMarca = template.FuncMap{
+	"logoURL": LogoURL,
+	"marca": func(color, subtitulo string) encabezadoMarca {
+		return encabezadoMarca{Color: color, Subtitulo: subtitulo}
+	},
 }

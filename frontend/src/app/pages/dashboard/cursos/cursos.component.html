@@ -1,7 +1,9 @@
 <p-toast></p-toast>
 <div class="page-container">
   <div class="header-section">
-    <div>
+    <!-- El título espera a saber el rol: antes mostraba "Catálogo de cursos"
+         y cambiaba a "Mis cursos" cuando llegaba la sesión. -->
+    <div [style.visibility]="rolCargado ? 'visible' : 'hidden'">
       <h1 class="page-title">
         {{ esParticipante ? "Mis cursos" : "Catálogo de cursos" }}
       </h1>
@@ -79,10 +81,9 @@
               {{ curso.materialsCount }} materiales</span
             >
           </div>
-          <div class="info-row" *ngIf="curso.teacherId">
+          <div class="info-row" *ngIf="curso.teacherName">
             <span
-              ><i class="pi pi-user"></i> Docente:
-              <code>{{ curso.teacherId }}</code></span
+              ><i class="pi pi-user"></i> Docente: {{ curso.teacherName }}</span
             >
           </div>
           <div class="status-badge-container">
@@ -172,8 +173,8 @@
       </p></ng-template
     >
 
-    <p class="muted" *ngIf="detail.teacherId">
-      Docente responsable: <code>{{ detail.teacherId }}</code>
+    <p class="muted" *ngIf="detail.teacherName">
+      Docente responsable: {{ detail.teacherName }}
     </p>
   </div>
 </p-dialog>
