@@ -125,7 +125,7 @@ func PersistPlans(
 	}
 
 	if worker != nil {
-		worker.Notify()
+		worker.NotifyInline(ctx)
 	}
 
 	return nil

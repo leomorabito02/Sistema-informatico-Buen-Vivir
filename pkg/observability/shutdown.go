@@ -1,0 +1,46 @@
+package observability
+
+import (
+	"context"
+	"errors"
+	"log/slog"
+	"net/http"
+	"os/signal"
+	"syscall"
+	"time"
+)
+
+const defaultShutdownTimeout = 8 * time.Second
+
+// ListenAndServeGraceful runs srv until ctx is cancelled or SIGTERM/SIGINT arrives (Cloud Run
+// sends SIGTERM with a 10s grace window before terminating an instance on scale-to-zero).
+// Optional onShutdown callbacks run after active HTTP requests drain.
+func ListenAndServeGraceful(ctx context.Context, srv *http.Server, onShutdown ...func(context.Context)) error {
+	sigCtx, stop := signal.NotifyContext(ctx, syscall.SIGTERM, syscall.SIGINT)
+	defer stop()
+
+	errCh := make(chan error, 1)
+	go func() {
+		if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+			errCh <- err
+		}
+		close(errCh)
+	}()
+
+	select {
+	case err := <-errCh:
+		return err
+	case <-sigCtx.Done():
+		shutdownCtx, cancel := context.WithTimeout(context.Background(), defaultShutdownTimeout)
+		defer cancel()
+
+		slog.Info("graceful_shutdown_started")
+		err := srv.Shutdown(shutdownCtx)
+		for _, fn := range onShutdown {
+			if fn != nil {
+				fn(shutdownCtx)
+			}
+		}
+		return err
+	}
+}

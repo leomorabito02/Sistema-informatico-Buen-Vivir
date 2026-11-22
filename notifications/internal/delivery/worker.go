@@ -8,6 +8,7 @@ import (
 	"html"
 	"log/slog"
 	"net/http"
+	"os"
 	"strings"
 	"sync"
 	"time"
@@ -21,9 +22,21 @@ import (
 )
 
 const (
-	defaultMaxAttempts = 5
-	defaultBatchSize   = 50
+	defaultMaxAttempts          = 5
+	defaultBatchSize            = 50
+	defaultInlineFlushTimeout   = 3 * time.Second
+	defaultShutdownFlushTimeout = 5 * time.Second
 )
+
+// InlineFlushEnabled returns true on Cloud Run (K_SERVICE set) or when
+// DELIVERY_INLINE_FLUSH=true, dispatching email/push inside the active Pub/Sub push request
+// so Cloud Run can scale to zero without per-minute Cloud Scheduler polling.
+func InlineFlushEnabled() bool {
+	if raw := strings.TrimSpace(os.Getenv("DELIVERY_INLINE_FLUSH")); raw != "" {
+		return strings.EqualFold(raw, "true") || raw == "1"
+	}
+	return strings.TrimSpace(os.Getenv("K_SERVICE")) != ""
+}
 
 // Worker runs background processing of pending notifications with exponential backoff and DLQ marking.
 type Worker struct {
@@ -73,10 +86,57 @@ func NewWorker(
 
 // Notify triggers an immediate async flush without blocking.
 func (w *Worker) Notify() {
+	if w == nil || w.notify == nil {
+		return
+	}
 	select {
 	case w.notify <- struct{}{}:
 	default:
 	}
+}
+
+// NotifyInline dispatches pending notifications inline (best-effort) on Cloud Run
+// (or DELIVERY_INLINE_FLUSH=true), falling back to async Notify otherwise.
+func (w *Worker) NotifyInline(ctx context.Context) {
+	if w == nil {
+		return
+	}
+	if InlineFlushEnabled() {
+		w.FlushBestEffort(ctx, defaultInlineFlushTimeout)
+		return
+	}
+	w.Notify()
+}
+
+// FlushBestEffort delivers pending notifications within timeout without propagating errors
+// to the caller. Pending rows remain in the database for retry on the next request or shutdown.
+func (w *Worker) FlushBestEffort(ctx context.Context, timeout time.Duration) int {
+	if w == nil || w.repo == nil {
+		return 0
+	}
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	if timeout <= 0 {
+		timeout = defaultInlineFlushTimeout
+	}
+	flushCtx, cancel := context.WithTimeout(ctx, timeout)
+	defer cancel()
+
+	n, err := w.Flush(flushCtx)
+	if err != nil {
+		logger := w.logger
+		if logger == nil {
+			logger = slog.Default()
+		}
+		logger.Warn("delivery worker: best-effort flush failed", slog.String("error", err.Error()))
+	}
+	return n
+}
+
+// Shutdown drains pending notifications during graceful shutdown (Cloud Run SIGTERM).
+func (w *Worker) Shutdown(ctx context.Context) {
+	w.FlushBestEffort(ctx, defaultShutdownFlushTimeout)
 }
 
 // Run executes the worker loop until context is canceled.

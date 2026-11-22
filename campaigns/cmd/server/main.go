@@ -15,6 +15,7 @@ import (
 	"buenvivir/campaigns/internal/events"
 	"buenvivir/campaigns/internal/events/producers"
 	"buenvivir/campaigns/internal/middlewares"
+	"buenvivir/campaigns/internal/observability"
 	"buenvivir/campaigns/internal/outbox"
 	"buenvivir/campaigns/internal/repositories"
 	"buenvivir/campaigns/internal/routes"
@@ -23,7 +24,8 @@ import (
 
 func main() {
 	// Logs en JSON a stdout: Cloud Run los manda tal cual a Cloud Logging.
-	slog.SetDefault(slog.New(slog.NewJSONHandler(os.Stdout, nil)))
+	observability.InitLogger("campaigns", os.Getenv("APP_ENV"))
+	metrics := observability.NewRegistry("campaigns")
 
 	cfg := config.LoadConfig()
 	ctx := context.Background()
@@ -37,10 +39,11 @@ func main() {
 	}
 	defer func() { _ = firestoreClient.Close() }()
 
-	relay := startRelay(ctx, cfg, firestoreClient)
+	relayCtx, cancelRelay := context.WithCancel(ctx)
+	relay := startRelay(relayCtx, cfg, firestoreClient)
 	var writer *outbox.Writer
 	if relay != nil {
-		writer = outbox.NewWriter(firestoreClient, events.ProducerCampanas, relay.Notify)
+		writer = outbox.NewWriter(firestoreClient, events.ProducerCampanas, relay.NotifyInline)
 	}
 	campanasProducer := producers.NewCampanasProducer(writer, cfg.Events.TopicCampanas)
 
@@ -50,7 +53,16 @@ func main() {
 	)
 
 	r := chi.NewRouter()
+	r.Use(observability.HTTPMiddleware(metrics, func(req *http.Request) string {
+		if rc := chi.RouteContext(req.Context()); rc != nil {
+			return rc.RoutePattern()
+		}
+		return ""
+	}))
 	middlewares.SetupMiddlewares(r, cfg.CORSAllowedOrigins)
+	if observability.MetricsEnabled() {
+		r.Handle("/metrics", metrics.Handler())
+	}
 	routes.RegisterRoutes(r, jwtService, controllers.NewCampaignController(service).WithAudit(repositories.NewAuditRepository(firestoreClient)))
 
 	server := &http.Server{
@@ -59,7 +71,10 @@ func main() {
 		ReadHeaderTimeout: 10 * time.Second,
 	}
 	slog.Info("Servicio Campaigns escuchando", slog.String("port", cfg.Port))
-	if err := server.ListenAndServe(); err != nil {
+	if err := observability.ListenAndServeGraceful(ctx, server, func(shutdownCtx context.Context) {
+		cancelRelay()
+		relay.Shutdown(shutdownCtx)
+	}); err != nil {
 		slog.Error("error al iniciar el servidor", slog.String("error", err.Error()))
 		os.Exit(1)
 	}

@@ -1,6 +1,8 @@
 package config
 
 import (
+	"encoding/base64"
+	"log"
 	"os"
 	"strings"
 )
@@ -56,7 +58,7 @@ func LoadConfig() *Config {
 		gcpBucketName = "buenvivir-resumes-bucket"
 	}
 
-	appCreds := os.Getenv("GOOGLE_APPLICATION_CREDENTIALS")
+	appCreds := resolveGoogleCredentials()
 
 	return &Config{
 		Port:               port,
@@ -81,4 +83,17 @@ func cleanDSN(v string) string {
 		v = strings.TrimSpace(v[1 : len(v)-1])
 	}
 	return v
+}
+
+// resolveGoogleCredentials returns GCP service account JSON or file path, prioritizing
+// GOOGLE_APPLICATION_CREDENTIALS_BASE64 (used in Cloud Run CD) over GOOGLE_APPLICATION_CREDENTIALS.
+func resolveGoogleCredentials() string {
+	if b64 := strings.TrimSpace(os.Getenv("GOOGLE_APPLICATION_CREDENTIALS_BASE64")); b64 != "" {
+		decoded, err := base64.StdEncoding.DecodeString(b64)
+		if err == nil {
+			return strings.TrimSpace(string(decoded))
+		}
+		log.Printf("Warning: invalid GOOGLE_APPLICATION_CREDENTIALS_BASE64: %v", err)
+	}
+	return strings.TrimSpace(os.Getenv("GOOGLE_APPLICATION_CREDENTIALS"))
 }

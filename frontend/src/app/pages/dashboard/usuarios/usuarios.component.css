@@ -130,6 +130,7 @@
 }
 
 .table-skeleton {
+  display: block;
   --p-skeleton-background: #ebeae5;
   --p-skeleton-animation-background: rgba(255, 255, 255, 0.55);
 }

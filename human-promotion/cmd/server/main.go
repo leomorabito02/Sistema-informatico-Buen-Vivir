@@ -22,6 +22,7 @@ import (
 	"buenvivir/human-promotion/internal/events/consumers"
 	"buenvivir/human-promotion/internal/events/producers"
 	"buenvivir/human-promotion/internal/middlewares"
+	"buenvivir/human-promotion/internal/observability"
 	"buenvivir/human-promotion/internal/outbox"
 	"buenvivir/human-promotion/internal/repositories"
 	"buenvivir/human-promotion/internal/routes"
@@ -30,7 +31,8 @@ import (
 
 func main() {
 	// Logs en JSON a stdout: Cloud Run los manda tal cual a Cloud Logging.
-	slog.SetDefault(slog.New(slog.NewJSONHandler(os.Stdout, nil)))
+	observability.InitLogger("human-promotion", os.Getenv("APP_ENV"))
+	metrics := observability.NewRegistry("human-promotion")
 
 	cfg := config.LoadConfig()
 	ctx := context.Background()
@@ -56,16 +58,9 @@ func main() {
 	}
 	defer func() { _ = firestoreClient.Close() }()
 
-	authTarget := cfg.AuthServiceURL
-	if authTarget == "" {
-		authTarget = cfg.AuthServiceGRPCTarget
-	}
+	authTarget, authIDToken := resolveServiceEndpoint(ctx, cfg.AuthServiceURL, cfg.AuthServiceGRPCTarget, cfg.UpstreamIDToken)
 	if authTarget == "" {
 		fatal("configuración inválida", errors.New("falta AUTH_SERVICE_URL o AUTH_SERVICE_GRPC_TARGET"))
-	}
-	var authIDToken func(context.Context) (string, error)
-	if cfg.UpstreamIDToken && cfg.AuthServiceURL != "" {
-		authIDToken = idTokenPara(ctx, cfg.AuthServiceURL)
 	}
 	authDirectory, err := repositories.NewAuthDirectory(authTarget, authIDToken)
 	if err != nil {
@@ -74,10 +69,11 @@ func main() {
 	defer func() { _ = authDirectory.Close() }()
 
 	// Mensajería asíncrona (docs/eventos/README.md).
-	relay := startRelay(ctx, cfg, firestoreClient, googleCredentials)
+	relayCtx, cancelRelay := context.WithCancel(ctx)
+	relay := startRelay(relayCtx, cfg, firestoreClient, googleCredentials)
 	var writer *outbox.Writer
 	if relay != nil {
-		writer = outbox.NewWriter(firestoreClient, events.ProducerPromocionHumana, relay.Notify)
+		writer = outbox.NewWriter(firestoreClient, events.ProducerPromocionHumana, relay.NotifyInline)
 	}
 	eventProducer := producers.NewPromocionHumana(writer, cfg.Events.TopicPromocion)
 
@@ -85,14 +81,7 @@ func main() {
 	hitoRepo := repositories.NewHitoRepository(firestoreClient, eventProducer)
 
 	jwtService := services.NewJWTService()
-	eduTarget := cfg.EducationServiceURL
-	if eduTarget == "" {
-		eduTarget = cfg.EducationServiceGRPCTarget
-	}
-	var eduIDToken func(context.Context) (string, error)
-	if cfg.UpstreamIDToken && cfg.EducationServiceURL != "" {
-		eduIDToken = idTokenPara(ctx, cfg.EducationServiceURL)
-	}
+	eduTarget, eduIDToken := resolveServiceEndpoint(ctx, cfg.EducationServiceURL, cfg.EducationServiceGRPCTarget, cfg.UpstreamIDToken)
 	fichaService := services.NewFichaService(fichaRepo, fieldCipher, authDirectory, repositories.NewEducationClient(eduTarget, eduIDToken))
 	hitoService := services.NewHitoService(hitoRepo, fichaRepo, fieldCipher, authDirectory)
 	actividadService := services.NewActividadService(repositories.NewLineaTiempoRepository(firestoreClient), fichaRepo)
@@ -100,7 +89,11 @@ func main() {
 	pdfService := services.NewPDFService(fichaService, hitoService, actividadService)
 
 	r := chi.NewRouter()
+	r.Use(observability.HTTPMiddleware(metrics, chiRoutePattern))
 	middlewares.SetupMiddlewares(r, cfg.CORSAllowedOrigins)
+	if observability.MetricsEnabled() {
+		r.Handle("/metrics", metrics.Handler())
+	}
 	routes.RegisterRoutes(r, jwtService, routes.Controllers{
 		Ficha:        controllers.NewFichaController(fichaService, pdfService),
 		Hito:         controllers.NewHitoController(hitoService),
@@ -117,7 +110,10 @@ func main() {
 	}
 
 	slog.Info("Servicio Human Promotion escuchando", slog.String("port", cfg.Port))
-	if err := server.ListenAndServe(); err != nil {
+	if err := observability.ListenAndServeGraceful(ctx, server, func(shutdownCtx context.Context) {
+		cancelRelay()
+		relay.Shutdown(shutdownCtx)
+	}); err != nil {
 		fatal("error al iniciar el servidor", err)
 	}
 }
@@ -125,6 +121,24 @@ func main() {
 func fatal(msg string, err error) {
 	slog.Error(msg, slog.String("error", err.Error()))
 	os.Exit(1)
+}
+
+func resolveServiceEndpoint(ctx context.Context, httpURL, grpcTarget string, useIDToken bool) (string, func(context.Context) (string, error)) {
+	target := httpURL
+	if target == "" {
+		target = grpcTarget
+	}
+	if useIDToken && httpURL != "" {
+		return target, idTokenPara(ctx, httpURL)
+	}
+	return target, nil
+}
+
+func chiRoutePattern(req *http.Request) string {
+	if rc := chi.RouteContext(req.Context()); rc != nil {
+		return rc.RoutePattern()
+	}
+	return ""
 }
 
 // startRelay arranca el publicador del outbox si hay proyecto de Pub/Sub

@@ -158,6 +158,9 @@ jobs:
         working-directory: pkg
         run: go test -v -race -coverprofile=coverage.out ./...
 
+      - name: Verify shared pkg copies are in sync
+        run: bash scripts/sync-eventlib.sh --check
+
       # D6 (22/11/2026): pkg es una dependencia de todos los servicios Go.
       - name: SCA — govulncheck
         working-directory: pkg
@@ -1553,6 +1556,9 @@ jobs:
             JWT_REFRESH_EXPIRATION_DAYS=${{ secrets.JWT_REFRESH_EXPIRATION_DAYS }}
             JWT_REFRESH_SECRET=${{ secrets.JWT_REFRESH_SECRET }}
             FIREBASE_CREDENTIALS_BASE64=${{ env.FIREBASE_CREDENTIALS_BASE64 }}
+            GOOGLE_APPLICATION_CREDENTIALS_BASE64=${{ env.FIREBASE_CREDENTIALS_BASE64 }}
+            GCP_PROJECT_ID=${{ secrets.GCP_PROJECT_ID }}
+            GCP_BUCKET_NAME=${{ vars.GCP_BUCKET_NAME || 'ceibuenvivir-bucket' }}
             CORS_ALLOWED_ORIGINS=${{ env.CORS_ALLOWED_ORIGINS_ESCAPED }}
             WORKER_IMPACT_URL=${{ secrets.WORKER_IMPACT_URL }}
             WORKER_SYNC_TOKEN=${{ secrets.WORKER_SYNC_TOKEN }}
@@ -1611,7 +1617,10 @@ jobs:
           REGION="${{ secrets.GCP_REGION }}"
           PREV=$(gcloud run services describe "$SERVICE" --region="$REGION" \
             --format='value(status.latestReadyRevisionName)' 2>/dev/null || echo "")
+          CUR_URL=$(gcloud run services describe "$SERVICE" --region="$REGION" \
+            --format='value(status.url)' 2>/dev/null || echo "")
           echo "prev_revision=$PREV" >> $GITHUB_OUTPUT
+          echo "current_url=$CUR_URL" >> $GITHUB_OUTPUT
           echo "Previous revision: ${PREV:-none}"
 
       - name: Validate dependencies (auth-service URL)
@@ -1633,6 +1642,9 @@ jobs:
           env_vars: |-
             APP_ENV=${{ needs.cd-setup.outputs.app_env }}
             ENV=${{ needs.cd-setup.outputs.app_env }}
+            PUBSUB_PROJECT_ID=${{ secrets.GCP_PROJECT_ID }}
+            PUBSUB_PUSH_AUDIENCE=${{ steps.pre-deploy.outputs.current_url }}
+            PUBSUB_PUSH_SERVICE_ACCOUNTS=sa-push-notif-edu@${{ secrets.GCP_PROJECT_ID }}.iam.gserviceaccount.com\,sa-push-notif-ph@${{ secrets.GCP_PROJECT_ID }}.iam.gserviceaccount.com\,sa-push-notif-usuarios@${{ secrets.GCP_PROJECT_ID }}.iam.gserviceaccount.com\,sa-push-notif-labor@${{ secrets.GCP_PROJECT_ID }}.iam.gserviceaccount.com\,sa-push-notif-campanas@${{ secrets.GCP_PROJECT_ID }}.iam.gserviceaccount.com\,sa-scheduler-outbox@${{ secrets.GCP_PROJECT_ID }}.iam.gserviceaccount.com
             AUTH_SERVICE_URL=${{ needs.cd-auth.outputs.service_url }}
             UPSTREAM_ID_TOKEN=true
             JWT_SECRET=${{ secrets.JWT_SECRET }}
@@ -1640,6 +1652,16 @@ jobs:
             RESEND_FROM_EMAIL_NOTIFICATIONS=${{ secrets.RESEND_FROM_EMAIL_NOTIFICATIONS }}
             RESEND_FROM_EMAIL_ALERTS=${{ secrets.RESEND_FROM_EMAIL_ALERTS }}
             DATABASE_URL_NOTIFICATIONS=${{ secrets.DATABASE_URL_NOTIFICATIONS }}
+
+      - name: Sync Pub/Sub push audience on first deploy or URL change
+        run: |
+          SERVICE="notifications-${{ needs.cd-setup.outputs.service_suffix }}"
+          REGION="${{ secrets.GCP_REGION }}"
+          DEPLOYED_URL="${{ steps.deploy.outputs.url }}"
+          if [ -n "$DEPLOYED_URL" ] && [ "$DEPLOYED_URL" != "${{ steps.pre-deploy.outputs.current_url }}" ]; then
+            gcloud run services update "$SERVICE" --region="$REGION" --project="${{ secrets.GCP_PROJECT_ID }}" \
+              --update-env-vars="PUBSUB_PUSH_AUDIENCE=$DEPLOYED_URL"
+          fi
 
       # Destino de los enlaces de los correos (confirmar cuenta, recuperar
       # contraseña, ir a la notificación). Sin FRONTEND_URL el servicio usaba
@@ -1708,7 +1730,10 @@ jobs:
           REGION="${{ secrets.GCP_REGION }}"
           PREV=$(gcloud run services describe "$SERVICE" --region="$REGION" \
             --format='value(status.latestReadyRevisionName)' 2>/dev/null || echo "")
+          CUR_URL=$(gcloud run services describe "$SERVICE" --region="$REGION" \
+            --format='value(status.url)' 2>/dev/null || echo "")
           echo "prev_revision=$PREV" >> $GITHUB_OUTPUT
+          echo "current_url=$CUR_URL" >> $GITHUB_OUTPUT
           echo "Previous revision: ${PREV:-none}"
 
       - name: Prepare Firestore credentials (base64)
@@ -1744,6 +1769,8 @@ jobs:
           env_vars: |-
             APP_ENV=${{ needs.cd-setup.outputs.app_env }}
             PUBSUB_PROJECT_ID=${{ secrets.GCP_PROJECT_ID }}
+            PUBSUB_PUSH_AUDIENCE=${{ steps.pre-deploy.outputs.current_url }}
+            PUBSUB_PUSH_SERVICE_ACCOUNTS=sa-push-edu-usuarios@${{ secrets.GCP_PROJECT_ID }}.iam.gserviceaccount.com\,sa-push-edu-contenido@${{ secrets.GCP_PROJECT_ID }}.iam.gserviceaccount.com\,sa-scheduler-outbox@${{ secrets.GCP_PROJECT_ID }}.iam.gserviceaccount.com
             CONTENTFUL_ENVIRONMENT=${{ needs.cd-setup.outputs.contentful_environment }}
             CONTENTFUL_SPACE_ID=${{ secrets.CONTENTFUL_SPACE_ID }}
             CONTENTFUL_CDA_TOKEN=${{ secrets.CONTENTFUL_CDA_TOKEN }}
@@ -1759,38 +1786,15 @@ jobs:
             ENTREGAS_BUCKET=ceibuenvivir-bucket
             VERTEX_PROJECT_ID=${{ secrets.GCP_PROJECT_ID }}
 
-      # Sin PUBSUB_PUSH_AUDIENCE y PUBSUB_PUSH_SERVICE_ACCOUNTS el servicio no
-      # monta /eventos/*, /internal/outbox/flush ni los recordatorios: Pub/Sub y
-      # Cloud Scheduler recibían 404 y los eventos salían solo cuando la
-      # instancia tenía CPU (19/11/2026). La audiencia se lee de la propia
-      # suscripción (la que firma el token); las cuentas son las que crea
-      # infra/pubsub/setup.sh. Solo crea una revisión nueva si algo cambió.
-      - name: Configure Pub/Sub push verification (PUBSUB_PUSH_*)
+      - name: Sync Pub/Sub push audience on first deploy or URL change
         run: |
           SERVICE="education-${{ needs.cd-setup.outputs.service_suffix }}"
           REGION="${{ secrets.GCP_REGION }}"
-          PROJECT="${{ secrets.GCP_PROJECT_ID }}"
-          AUDIENCE=""
-          for SUB in educacion-usuarios educacion-contenido; do
-            AUDIENCE=$(gcloud pubsub subscriptions describe "$SUB" --project="$PROJECT"               --format='value(pushConfig.oidcToken.audience)' 2>/dev/null || true)
-            [ -n "$AUDIENCE" ] && break
-          done
-          if [ -z "$AUDIENCE" ]; then
-            echo "::warning::No se pudo leer la audiencia de las suscripciones de $SERVICE (¿falta correr infra/pubsub/setup.sh o el permiso pubsub.subscriptions.get?). Sin configurar."
-            exit 0
+          DEPLOYED_URL="${{ steps.deploy.outputs.url }}"
+          if [ -n "$DEPLOYED_URL" ] && [ "$DEPLOYED_URL" != "${{ steps.pre-deploy.outputs.current_url }}" ]; then
+            gcloud run services update "$SERVICE" --region="$REGION" --project="${{ secrets.GCP_PROJECT_ID }}" \
+              --update-env-vars="PUBSUB_PUSH_AUDIENCE=$DEPLOYED_URL"
           fi
-          SAS=""
-          for SA in sa-push-edu-usuarios sa-push-edu-contenido sa-scheduler-outbox; do SAS="${SAS:+$SAS,}$SA@$PROJECT.iam.gserviceaccount.com"; done
-          ENV_JSON=$(gcloud run services describe "$SERVICE" --region="$REGION" --project="$PROJECT" --format=json | jq '.spec.template.spec.containers[0].env // []')
-          CUR_AUD=$(jq -r '.[] | select(.name == "PUBSUB_PUSH_AUDIENCE") | .value' <<<"$ENV_JSON")
-          CUR_SAS=$(jq -r '.[] | select(.name == "PUBSUB_PUSH_SERVICE_ACCOUNTS") | .value' <<<"$ENV_JSON")
-          if [ "$CUR_AUD" = "$AUDIENCE" ] && [ "$CUR_SAS" = "$SAS" ]; then
-            echo "$SERVICE ya tiene PUBSUB_PUSH_* al día ($AUDIENCE)"
-            exit 0
-          fi
-          # ^@^ cambia el separador: la lista de cuentas lleva comas.
-          gcloud run services update "$SERVICE" --region="$REGION" --project="$PROJECT"             --update-env-vars="^@^PUBSUB_PUSH_AUDIENCE=$AUDIENCE@PUBSUB_PUSH_SERVICE_ACCOUNTS=$SAS"
-          echo "$SERVICE: PUBSUB_PUSH_AUDIENCE=$AUDIENCE"
 
       - name: Ensure 100% traffic routed to latest Cloud Run revision
         run: |
@@ -1842,7 +1846,10 @@ jobs:
           REGION="${{ secrets.GCP_REGION }}"
           PREV=$(gcloud run services describe "$SERVICE" --region="$REGION" \
             --format='value(status.latestReadyRevisionName)' 2>/dev/null || echo "")
+          CUR_URL=$(gcloud run services describe "$SERVICE" --region="$REGION" \
+            --format='value(status.url)' 2>/dev/null || echo "")
           echo "prev_revision=$PREV" >> $GITHUB_OUTPUT
+          echo "current_url=$CUR_URL" >> $GITHUB_OUTPUT
           echo "Previous revision: ${PREV:-none}"
 
       - name: Prepare Firestore credentials (base64)
@@ -1886,6 +1893,8 @@ jobs:
           env_vars: |-
             APP_ENV=${{ needs.cd-setup.outputs.app_env }}
             PUBSUB_PROJECT_ID=${{ secrets.GCP_PROJECT_ID }}
+            PUBSUB_PUSH_AUDIENCE=${{ steps.pre-deploy.outputs.current_url }}
+            PUBSUB_PUSH_SERVICE_ACCOUNTS=sa-push-ph-educacion@${{ secrets.GCP_PROJECT_ID }}.iam.gserviceaccount.com\,sa-push-ph-usuarios@${{ secrets.GCP_PROJECT_ID }}.iam.gserviceaccount.com\,sa-scheduler-outbox@${{ secrets.GCP_PROJECT_ID }}.iam.gserviceaccount.com
             JWT_SECRET=${{ secrets.JWT_SECRET }}
             GOOGLE_APPLICATION_CREDENTIALS_BASE64=${{ env.GOOGLE_APPLICATION_CREDENTIALS_BASE64 }}
             CORS_ALLOWED_ORIGINS=${{ env.CORS_ALLOWED_ORIGINS_ESCAPED }}
@@ -1894,38 +1903,15 @@ jobs:
             EDUCATION_SERVICE_URL=${{ needs.cd-education.outputs.service_url }}
             UPSTREAM_ID_TOKEN=true
 
-      # Sin PUBSUB_PUSH_AUDIENCE y PUBSUB_PUSH_SERVICE_ACCOUNTS el servicio no
-      # monta /eventos/*, /internal/outbox/flush ni los recordatorios: Pub/Sub y
-      # Cloud Scheduler recibían 404 y los eventos salían solo cuando la
-      # instancia tenía CPU (19/11/2026). La audiencia se lee de la propia
-      # suscripción (la que firma el token); las cuentas son las que crea
-      # infra/pubsub/setup.sh. Solo crea una revisión nueva si algo cambió.
-      - name: Configure Pub/Sub push verification (PUBSUB_PUSH_*)
+      - name: Sync Pub/Sub push audience on first deploy or URL change
         run: |
           SERVICE="human-promotion-${{ needs.cd-setup.outputs.service_suffix }}"
           REGION="${{ secrets.GCP_REGION }}"
-          PROJECT="${{ secrets.GCP_PROJECT_ID }}"
-          AUDIENCE=""
-          for SUB in promocion-humana-educacion promocion-humana-usuarios; do
-            AUDIENCE=$(gcloud pubsub subscriptions describe "$SUB" --project="$PROJECT"               --format='value(pushConfig.oidcToken.audience)' 2>/dev/null || true)
-            [ -n "$AUDIENCE" ] && break
-          done
-          if [ -z "$AUDIENCE" ]; then
-            echo "::warning::No se pudo leer la audiencia de las suscripciones de $SERVICE (¿falta correr infra/pubsub/setup.sh o el permiso pubsub.subscriptions.get?). Sin configurar."
-            exit 0
+          DEPLOYED_URL="${{ steps.deploy.outputs.url }}"
+          if [ -n "$DEPLOYED_URL" ] && [ "$DEPLOYED_URL" != "${{ steps.pre-deploy.outputs.current_url }}" ]; then
+            gcloud run services update "$SERVICE" --region="$REGION" --project="${{ secrets.GCP_PROJECT_ID }}" \
+              --update-env-vars="PUBSUB_PUSH_AUDIENCE=$DEPLOYED_URL"
           fi
-          SAS=""
-          for SA in sa-push-ph-educacion sa-push-ph-usuarios sa-scheduler-outbox; do SAS="${SAS:+$SAS,}$SA@$PROJECT.iam.gserviceaccount.com"; done
-          ENV_JSON=$(gcloud run services describe "$SERVICE" --region="$REGION" --project="$PROJECT" --format=json | jq '.spec.template.spec.containers[0].env // []')
-          CUR_AUD=$(jq -r '.[] | select(.name == "PUBSUB_PUSH_AUDIENCE") | .value' <<<"$ENV_JSON")
-          CUR_SAS=$(jq -r '.[] | select(.name == "PUBSUB_PUSH_SERVICE_ACCOUNTS") | .value' <<<"$ENV_JSON")
-          if [ "$CUR_AUD" = "$AUDIENCE" ] && [ "$CUR_SAS" = "$SAS" ]; then
-            echo "$SERVICE ya tiene PUBSUB_PUSH_* al día ($AUDIENCE)"
-            exit 0
-          fi
-          # ^@^ cambia el separador: la lista de cuentas lleva comas.
-          gcloud run services update "$SERVICE" --region="$REGION" --project="$PROJECT"             --update-env-vars="^@^PUBSUB_PUSH_AUDIENCE=$AUDIENCE@PUBSUB_PUSH_SERVICE_ACCOUNTS=$SAS"
-          echo "$SERVICE: PUBSUB_PUSH_AUDIENCE=$AUDIENCE"
 
       - name: Ensure 100% traffic routed to latest Cloud Run revision
         run: |
@@ -2107,7 +2093,12 @@ jobs:
           REGION="${{ secrets.GCP_REGION }}"
           PREV=$(gcloud run services describe "$SERVICE" --region="$REGION" \
             --format='value(status.latestReadyRevisionName)' 2>/dev/null || echo "")
+          CUR_URL=$(gcloud run services describe "$SERVICE" --region="$REGION" \
+            --format='value(status.url)' 2>/dev/null || echo "")
+          PUSH_AUD="${CUR_URL:+${CUR_URL}/eventos}"
           echo "prev_revision=$PREV" >> $GITHUB_OUTPUT
+          echo "current_url=$CUR_URL" >> $GITHUB_OUTPUT
+          echo "push_audience=$PUSH_AUD" >> $GITHUB_OUTPUT
           echo "Previous revision: ${PREV:-none}"
 
       - name: Prepare Google credentials (base64)
@@ -2146,6 +2137,8 @@ jobs:
           flags: '--no-allow-unauthenticated --min-instances=0 --max-instances=3 --cpu=1 --cpu-boost --memory=256Mi --service-account=${{ secrets.GCP_SERVICE_ACCOUNT }}'
           env_vars: |-
             APP_ENV=${{ needs.cd-setup.outputs.app_env }}
+            PUBSUB_PUSH_AUDIENCE=${{ steps.pre-deploy.outputs.push_audience }}
+            PUBSUB_PUSH_SERVICE_ACCOUNTS=sa-push-dashboard@${{ secrets.GCP_PROJECT_ID }}.iam.gserviceaccount.com
             JWT_SECRET=${{ secrets.JWT_SECRET }}
             AUTH_SERVICE_URL=${{ needs.cd-auth.outputs.service_url }}
             EDUCATION_SERVICE_URL=${{ needs.cd-education.outputs.service_url }}
@@ -2156,38 +2149,15 @@ jobs:
             CORS_ALLOWED_ORIGINS=${{ env.CORS_ALLOWED_ORIGINS_ESCAPED }}
             GOOGLE_APPLICATION_CREDENTIALS_BASE64=${{ env.GOOGLE_APPLICATION_CREDENTIALS_BASE64 }}
 
-      # Sin PUBSUB_PUSH_AUDIENCE y PUBSUB_PUSH_SERVICE_ACCOUNTS el servicio no
-      # monta /eventos/*, /internal/outbox/flush ni los recordatorios: Pub/Sub y
-      # Cloud Scheduler recibían 404 y los eventos salían solo cuando la
-      # instancia tenía CPU (19/11/2026). La audiencia se lee de la propia
-      # suscripción (la que firma el token); las cuentas son las que crea
-      # infra/pubsub/setup.sh. Solo crea una revisión nueva si algo cambió.
-      - name: Configure Pub/Sub push verification (PUBSUB_PUSH_*)
+      - name: Sync Pub/Sub push audience on first deploy or URL change
         run: |
           SERVICE="dashboard-${{ needs.cd-setup.outputs.service_suffix }}"
           REGION="${{ secrets.GCP_REGION }}"
-          PROJECT="${{ secrets.GCP_PROJECT_ID }}"
-          AUDIENCE=""
-          for SUB in dashboard-usuarios dashboard-educacion dashboard-insercion-laboral; do
-            AUDIENCE=$(gcloud pubsub subscriptions describe "$SUB" --project="$PROJECT"               --format='value(pushConfig.oidcToken.audience)' 2>/dev/null || true)
-            [ -n "$AUDIENCE" ] && break
-          done
-          if [ -z "$AUDIENCE" ]; then
-            echo "::warning::No se pudo leer la audiencia de las suscripciones de $SERVICE (¿falta correr infra/pubsub/setup.sh o el permiso pubsub.subscriptions.get?). Sin configurar."
-            exit 0
+          DEPLOYED_URL="${{ steps.deploy.outputs.url }}"
+          if [ -n "$DEPLOYED_URL" ] && [ "$DEPLOYED_URL" != "${{ steps.pre-deploy.outputs.current_url }}" ]; then
+            gcloud run services update "$SERVICE" --region="$REGION" --project="${{ secrets.GCP_PROJECT_ID }}" \
+              --update-env-vars="PUBSUB_PUSH_AUDIENCE=${DEPLOYED_URL}/eventos"
           fi
-          SAS=""
-          for SA in sa-push-dashboard; do SAS="${SAS:+$SAS,}$SA@$PROJECT.iam.gserviceaccount.com"; done
-          ENV_JSON=$(gcloud run services describe "$SERVICE" --region="$REGION" --project="$PROJECT" --format=json | jq '.spec.template.spec.containers[0].env // []')
-          CUR_AUD=$(jq -r '.[] | select(.name == "PUBSUB_PUSH_AUDIENCE") | .value' <<<"$ENV_JSON")
-          CUR_SAS=$(jq -r '.[] | select(.name == "PUBSUB_PUSH_SERVICE_ACCOUNTS") | .value' <<<"$ENV_JSON")
-          if [ "$CUR_AUD" = "$AUDIENCE" ] && [ "$CUR_SAS" = "$SAS" ]; then
-            echo "$SERVICE ya tiene PUBSUB_PUSH_* al día ($AUDIENCE)"
-            exit 0
-          fi
-          # ^@^ cambia el separador: la lista de cuentas lleva comas.
-          gcloud run services update "$SERVICE" --region="$REGION" --project="$PROJECT"             --update-env-vars="^@^PUBSUB_PUSH_AUDIENCE=$AUDIENCE@PUBSUB_PUSH_SERVICE_ACCOUNTS=$SAS"
-          echo "$SERVICE: PUBSUB_PUSH_AUDIENCE=$AUDIENCE"
 
       - name: Ensure 100% traffic routed to latest Cloud Run revision
         run: |
@@ -2253,6 +2223,7 @@ jobs:
       id-token: write
     env:
       APP_ENV: ${{ needs.cd-setup.outputs.env_name == 'PROD' && 'production' || 'development' }}
+      GOOGLE_APPLICATION_CREDENTIALS_BASE64: ""
     outputs:
       service_url: ${{ steps.deploy.outputs.url }}
       prev_revision: ${{ steps.pre-deploy.outputs.prev_revision }}
@@ -2273,6 +2244,12 @@ jobs:
             --format='value(status.latestReadyRevisionName)' 2>/dev/null || echo "")
           echo "prev_revision=$PREV" >> $GITHUB_OUTPUT
           echo "Previous revision: ${PREV:-none}"
+
+      - name: Prepare Google credentials (base64)
+        run: |
+          echo "GOOGLE_APPLICATION_CREDENTIALS_BASE64=$(echo -n "$FIREBASE_JSON" | base64 -w 0)" >> $GITHUB_ENV
+        env:
+          FIREBASE_JSON: ${{ secrets.GOOGLE_APPLICATION_CREDENTIALS }}
 
       - name: Validate dependencies (cv-renderer URL)
         run: |
@@ -2295,6 +2272,7 @@ jobs:
             GCP_PROJECT_ID=${{ secrets.GCP_PROJECT_ID }}
             GCP_BUCKET_NAME=${{ vars.GCP_BUCKET_NAME || 'ceibuenvivir-bucket' }}
             APP_ENV=${{ env.APP_ENV }}
+            GOOGLE_APPLICATION_CREDENTIALS_BASE64=${{ env.GOOGLE_APPLICATION_CREDENTIALS_BASE64 }}
             # Identidad por JWT y no por X-User-* (el API Gateway de GCP no
             # valida el token de la app; auditoría 17/11/2026).
             JWT_SECRET=${{ secrets.JWT_SECRET }}

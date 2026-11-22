@@ -1,0 +1,170 @@
+{
+  "uid": "buenvivir-local-overview",
+  "title": "Buen Vivir - Observabilidad Local (Prometheus)",
+  "tags": ["buenvivir", "local", "prometheus"],
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "15s",
+  "time": { "from": "now-1h", "to": "now" },
+  "panels": [
+    {
+      "id": 1,
+      "type": "stat",
+      "title": "Servicios UP",
+      "gridPos": { "x": 0, "y": 0, "w": 6, "h": 4 },
+      "datasource": { "type": "prometheus", "uid": "prometheus-local" },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(up{job=\"buenvivir-services\"})"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "red", "value": null },
+              { "color": "yellow", "value": 5 },
+              { "color": "green", "value": 9 }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": 2,
+      "type": "stat",
+      "title": "Tasa de errores 5xx (%)",
+      "gridPos": { "x": 6, "y": 0, "w": 6, "h": 4 },
+      "datasource": { "type": "prometheus", "uid": "prometheus-local" },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "100 * (sum(rate(buenvivir_http_requests_total{status_class=\"5xx\"}[5m])) or vector(0)) / clamp_min(sum(rate(buenvivir_http_requests_total[5m])), 0.0001)"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 1 },
+              { "color": "red", "value": 5 }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": 3,
+      "type": "stat",
+      "title": "Requests en vuelo",
+      "gridPos": { "x": 12, "y": 0, "w": 6, "h": 4 },
+      "datasource": { "type": "prometheus", "uid": "prometheus-local" },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(buenvivir_http_requests_in_flight)"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "type": "stat",
+      "title": "Goroutines totales (Go)",
+      "gridPos": { "x": 18, "y": 0, "w": 6, "h": 4 },
+      "datasource": { "type": "prometheus", "uid": "prometheus-local" },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(go_goroutines)"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "type": "timeseries",
+      "title": "Pedidos por segundo (RPS) por servicio",
+      "gridPos": { "x": 0, "y": 4, "w": 12, "h": 8 },
+      "datasource": { "type": "prometheus", "uid": "prometheus-local" },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum by (service) (rate(buenvivir_http_requests_total[1m]))",
+          "legendFormat": "{{service}}"
+        }
+      ],
+      "fieldConfig": { "defaults": { "unit": "reqps" } }
+    },
+    {
+      "id": 6,
+      "type": "timeseries",
+      "title": "Errores 4xx y 5xx por servicio",
+      "gridPos": { "x": 12, "y": 4, "w": 12, "h": 8 },
+      "datasource": { "type": "prometheus", "uid": "prometheus-local" },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum by (service, status_class) (rate(buenvivir_http_requests_total{status_class=~\"4xx|5xx\"}[5m]))",
+          "legendFormat": "{{service}} ({{status_class}})"
+        }
+      ],
+      "fieldConfig": { "defaults": { "unit": "reqps" } }
+    },
+    {
+      "id": 7,
+      "type": "timeseries",
+      "title": "Latencia HTTP p95 por servicio (s)",
+      "gridPos": { "x": 0, "y": 12, "w": 12, "h": 8 },
+      "datasource": { "type": "prometheus", "uid": "prometheus-local" },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "histogram_quantile(0.95, sum by (service, le) (rate(buenvivir_http_request_duration_seconds_bucket[5m])))",
+          "legendFormat": "{{service}}"
+        }
+      ],
+      "fieldConfig": { "defaults": { "unit": "s" } }
+    },
+    {
+      "id": 8,
+      "type": "timeseries",
+      "title": "Memoria Heap en uso por servicio",
+      "gridPos": { "x": 12, "y": 12, "w": 12, "h": 8 },
+      "datasource": { "type": "prometheus", "uid": "prometheus-local" },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "go_memstats_heap_inuse_bytes",
+          "legendFormat": "{{service}} (Go heap)"
+        },
+        {
+          "refId": "B",
+          "expr": "nodejs_heap_size_used_bytes",
+          "legendFormat": "{{service}} (Node heap)"
+        }
+      ],
+      "fieldConfig": { "defaults": { "unit": "bytes" } }
+    },
+    {
+      "id": 9,
+      "type": "table",
+      "title": "Estado de targets (up)",
+      "gridPos": { "x": 0, "y": 20, "w": 24, "h": 6 },
+      "datasource": { "type": "prometheus", "uid": "prometheus-local" },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "up{job=\"buenvivir-services\"}",
+          "instant": true,
+          "format": "table"
+        }
+      ]
+    }
+  ]
+}

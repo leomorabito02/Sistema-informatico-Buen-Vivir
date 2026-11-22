@@ -18,6 +18,7 @@ import (
 	"buenvivir/dashboard/internal/controllers"
 	"buenvivir/dashboard/internal/events"
 	"buenvivir/dashboard/internal/events/consumers"
+	"buenvivir/dashboard/internal/observability"
 	"buenvivir/dashboard/internal/reportes"
 	"buenvivir/dashboard/internal/routes"
 	"buenvivir/dashboard/internal/services"
@@ -25,7 +26,8 @@ import (
 
 func main() {
 	// Logs en JSON (Cloud Run los manda a Cloud Logging).
-	slog.SetDefault(slog.New(slog.NewJSONHandler(os.Stdout, nil)))
+	observability.InitLogger("dashboard", os.Getenv("APP_ENV"))
+	metrics := observability.NewRegistry("dashboard")
 	cfg := config.LoadConfig()
 	ctx := context.Background()
 
@@ -75,6 +77,9 @@ func main() {
 	}
 
 	mux := http.NewServeMux()
+	if observability.MetricsEnabled() {
+		mux.Handle("GET /metrics", metrics.Handler())
+	}
 	routes.RegisterRoutes(mux, routes.Rutas{
 		Dashboard: controller,
 		Reportes:  reportes.NewHandlers(reportesSvc),
@@ -84,14 +89,14 @@ func main() {
 
 	srv := &http.Server{
 		Addr:              ":" + cfg.Port,
-		Handler:           routes.WithCORS(mux, routes.ParseOrigins(cfg.CORSAllowedOrigins)),
+		Handler:           observability.HTTPMiddleware(metrics, nil)(routes.WithCORS(mux, routes.ParseOrigins(cfg.CORSAllowedOrigins))),
 		ReadHeaderTimeout: 10 * time.Second,
 		// Cursos con muchas actividades pueden tardar: margen sobre el
 		// timeout de cada consulta a un servicio de origen.
 		WriteTimeout: 60 * time.Second,
 	}
-	log.Printf("Servicio Dashboard escuchando en :%s", cfg.Port)
-	if err := srv.ListenAndServe(); err != nil {
+	slog.Info("Servicio Dashboard escuchando", slog.String("port", cfg.Port))
+	if err := observability.ListenAndServeGraceful(ctx, srv); err != nil {
 		log.Fatalf("Error al iniciar el servidor: %v", err)
 	}
 }

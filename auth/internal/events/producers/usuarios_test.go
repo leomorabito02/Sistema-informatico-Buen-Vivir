@@ -107,5 +107,21 @@ func TestUsuariosProducer(t *testing.T) {
 		assert.NoError(t, err)
 		repo.AssertExpectations(t)
 	})
+
+	t.Run("onEnqueue callback runs after successful enqueue", func(t *testing.T) {
+		// Arrange
+		repo := new(mockOutboxRepo)
+		repo.On("EnqueueTx", ctx, (*gorm.DB)(nil), mock.Anything).Return(nil).Once()
+		notified := 0
+		p := producers.NewUsuariosProducer(repo, func() { notified++ })
+
+		// Act
+		err := p.UsuarioCreado(ctx, "u-11", "role_participant")
+
+		// Assert
+		assert.NoError(t, err)
+		assert.Equal(t, 1, notified)
+		repo.AssertExpectations(t)
+	})
 }
 
