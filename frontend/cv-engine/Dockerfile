@@ -16,19 +16,27 @@ RUN pnpm install --filter @buenvivir/cv-engine... --frozen-lockfile
 COPY cv-engine ./cv-engine
 RUN pnpm --filter @buenvivir/cv-engine run build:server
 
-# 2) Dependencias de producción solamente (sin vite, vitest, tsx ni esbuild).
+# 2) Dependencias de producción de cv-engine SOLAMENTE. `pnpm deploy` arma
+#    un node_modules aislado; con `install --filter` se colaba todo el
+#    workspace del frontend (Angular, Firebase, jsPDF...) y Trivy marcaba sus
+#    vulnerabilidades en una imagen que no los usa.
 FROM node:22-alpine AS deps
 WORKDIR /app
 RUN corepack enable && corepack prepare pnpm@9.15.0 --activate
 COPY pnpm-workspace.yaml package.json pnpm-lock.yaml* ./
 COPY cv-engine/package.json ./cv-engine/
-RUN pnpm install --filter @buenvivir/cv-engine... --prod --frozen-lockfile
+RUN pnpm --filter @buenvivir/cv-engine deploy --prod /out
 
 # 3) Imagen final.
 FROM node:22-alpine
+# La imagen base trae npm, npx, corepack y yarn, que el servidor no usa
+# (arranca con `node`). Trivy marcaba vulnerabilidades en paquetes internos
+# de npm (brace-expansion, ip-address, pacote, picomatch, sigstore).
+RUN rm -rf /usr/local/lib/node_modules/npm /usr/local/lib/node_modules/corepack \
+      /usr/local/bin/npm /usr/local/bin/npx /usr/local/bin/corepack \
+      /opt/yarn-* /usr/local/bin/yarn /usr/local/bin/yarnpkg
 WORKDIR /app
-COPY --from=deps /app/node_modules ./node_modules
-COPY --from=deps /app/cv-engine/node_modules ./cv-engine/node_modules
+COPY --from=deps /out/node_modules ./cv-engine/node_modules
 # package.json: lo usa Node para resolver el import interno #react-pdf-renderer.
 COPY cv-engine/package.json ./cv-engine/package.json
 # Las fuentes se leen desde <cwd>/fonts (src/fonts.ts).
