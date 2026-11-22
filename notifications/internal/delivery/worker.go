@@ -68,7 +68,7 @@ func WorkerEnabledFromEnv() bool {
 	if raw == "" {
 		return true
 	}
-	return !(strings.EqualFold(raw, "false") || raw == "0")
+	return !strings.EqualFold(raw, "false") && raw != "0"
 }
 
 // NewWorker instantiates a DeliveryWorker.
