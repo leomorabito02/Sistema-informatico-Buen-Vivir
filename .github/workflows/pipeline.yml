@@ -1236,178 +1236,6 @@ jobs:
           echo "All CI jobs passed. Gate cleared."
 
 # ============================================================================
-# STAGE 2: MUTATION TESTING (DISABLED / COMMENTED)
-# ============================================================================
-  mutation-frontend:
-    name: Mutation — Frontend (Stryker)
-    runs-on: ubuntu-latest
-    needs: [ci-frontend]
-    if: false # (github.event_name == 'push' && github.ref == 'refs/heads/testing') || (github.event_name == 'pull_request' && github.base_ref == 'refs/heads/main')
-    timeout-minutes: 30
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v4
-        with:
-          version: 9
-          run_install: false
-
-      - name: Install dependencies
-        working-directory: frontend
-        run: pnpm install --frozen-lockfile
-
-      - name: Run Stryker mutation tests
-        working-directory: frontend
-        run: |
-          npx stryker run > stryker_output.txt || true
-          cat stryker_output.txt
-          echo "### Frontend Mutation Report" >> $GITHUB_STEP_SUMMARY
-          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
-          tail -n 20 stryker_output.txt >> $GITHUB_STEP_SUMMARY
-          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
-
-      - name: Upload Stryker mutation report
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: stryker-report-${{ github.sha }}
-          path: frontend/reports/mutation/
-          retention-days: 14
-
-  mutation-auth:
-    name: Mutation — Auth Service (go-mutesting)
-    runs-on: ubuntu-latest
-    needs: [ci-auth]
-    if: false # (github.event_name == 'push' && github.ref == 'refs/heads/testing') || (github.event_name == 'pull_request' && github.base_ref == 'refs/heads/main')
-    timeout-minutes: 30
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Setup Go
-        uses: actions/setup-go@v5
-        with:
-          go-version: ${{ env.GO_VERSION }}
-          cache: true
-          cache-dependency-path: auth/go.sum
-
-      - name: Download Go dependencies
-        working-directory: auth
-        run: go mod download
-
-      - name: Install go-mutesting
-        run: go install github.com/zimmski/go-mutesting/cmd/go-mutesting@latest
-
-      - name: Run go-mutesting
-        working-directory: auth
-        run: |
-          go-mutesting ./internal/... > mutation_report.txt || true
-          cat mutation_report.txt
-          echo "### Auth Mutation Report" >> $GITHUB_STEP_SUMMARY
-          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
-          tail -n 20 mutation_report.txt >> $GITHUB_STEP_SUMMARY
-          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
-
-      - name: Upload mutation report
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: auth-mutation-report-${{ github.sha }}
-          path: auth/mutation_report.txt
-          retention-days: 14
-
-  mutation-education:
-    name: Mutation — Education Service (gremlins)
-    runs-on: ubuntu-latest
-    needs: [ci-education]
-    if: false # (github.event_name == 'push' && github.ref == 'refs/heads/testing') || (github.event_name == 'pull_request' && github.base_ref == 'refs/heads/main')
-    timeout-minutes: 30
-
-    services:
-      firestore:
-        image: mtlynch/firestore-emulator:latest
-        ports:
-          - 8390:8080
-
-    env:
-      FIRESTORE_EMULATOR_HOST: localhost:8390
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Setup Go
-        uses: actions/setup-go@v5
-        with:
-          go-version: ${{ env.GO_VERSION }}
-          cache: true
-          cache-dependency-path: education/go.sum
-
-      - name: Download Go dependencies
-        working-directory: education
-        run: go mod download
-
-      - name: Install gremlins
-        run: go install github.com/go-gremlins/gremlins/cmd/gremlins@latest
-
-      - name: Run gremlins
-        working-directory: education
-        run: |
-          gremlins unleash ./internal/... > mutation_report.txt || true
-          cat mutation_report.txt
-          echo "### Education Mutation Report" >> $GITHUB_STEP_SUMMARY
-          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
-          tail -n 20 mutation_report.txt >> $GITHUB_STEP_SUMMARY
-          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
-
-      - name: Upload mutation report
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: education-mutation-report-${{ github.sha }}
-          path: education/mutation_report.txt
-          retention-days: 14
-
-  mutation-rxresume:
-    name: Mutation — RxResume Service (gremlins)
-    runs-on: ubuntu-latest
-    needs: [ci-rxresume]
-    if: false # Disable for now unless explicitly needed
-    timeout-minutes: 30
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Setup Go
-        uses: actions/setup-go@v5
-        with:
-          go-version: ${{ env.GO_VERSION }}
-          cache: true
-          cache-dependency-path: rxresume/go.sum
-
-      - name: Download Go modules
-        working-directory: rxresume
-        run: go mod download
-
-      - name: Install gremlins
-        run: go install github.com/go-gremlins/gremlins/cmd/gremlins@latest
-
-      - name: Run mutation tests (rxresume)
-        working-directory: rxresume
-        run: |
-          gremlins unleash ./... || echo "Gremlins found survivors"
-
-# ============================================================================
 # STAGE 3: CD (Continuous Deployment)
 # Corre SOLO si el CI-Gate fue exitoso Y es un push a 'testing' o 'main'.
 # ============================================================================
@@ -2703,7 +2531,7 @@ jobs:
           echo "Frontend health: OK"
 
   cd-dast-zap:
-    name: CD — DAST (OWASP ZAP)
+    name: CD — DAST API Gateway (OWASP ZAP OpenAPI)
     runs-on: ubuntu-latest
     needs: [cd-setup, cd-smoke, cd-auth, cd-notifications, cd-education, cd-rxresume, cd-cv-renderer, cd-human-promotion, cd-labor-integration, cd-campaigns, cd-dashboard, cd-api-gateway]
     environment: ${{ needs.cd-setup.outputs.env_name }}
@@ -2736,13 +2564,284 @@ jobs:
           # D6 (22/11/2026): informativo. El reporte queda como artifact; un
           # hallazgo ya no dispara el rollback de todos los servicios.
           fail_action: false
-          artifact_name: zap-auth-report
+          artifact_name: zap-gateway-openapi-report
           allow_issue_writing: false
 
-  cd-load-k6:
-    name: CD — Load Tests (k6, informativo)
+  cd-dast-auth:
+    name: CD — DAST (OWASP ZAP — auth, informativo)
     runs-on: ubuntu-latest
-    needs: [cd-setup, cd-smoke, cd-auth, cd-api-gateway]
+    needs: [cd-setup, cd-smoke, cd-auth]
+    continue-on-error: true
+    environment: ${{ needs.cd-setup.outputs.env_name }}
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Mint ID token for Auth Service (ZAP)
+        id: auth_zap
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+          token_format: id_token
+          id_token_audience: ${{ needs.cd-auth.outputs.service_url }}
+          id_token_include_email: true
+
+      - name: Run OWASP ZAP Baseline — auth
+        run: |
+          TARGET_URL="${{ needs.cd-auth.outputs.service_url }}/health"
+          mkdir -p zap-out
+          cp auth/zap.conf zap-out/zap.conf
+          chmod 777 zap-out
+          docker run --rm \
+            -v "$PWD/zap-out:/zap/wrk/:rw" \
+            -e ZAP_AUTH_HEADER="X-Serverless-Authorization" \
+            -e ZAP_AUTH_HEADER_VALUE="Bearer ${{ steps.auth_zap.outputs.id_token }}" \
+            ghcr.io/zaproxy/zaproxy:stable \
+            zap-baseline.py -t "$TARGET_URL" -c zap.conf \
+              -r zap-auth-report.html -J zap-auth-report.json -I || true
+
+      - name: Upload ZAP report — auth
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: zap-auth-report-${{ github.sha }}
+          path: |
+            zap-out/zap-auth-report.html
+            zap-out/zap-auth-report.json
+          if-no-files-found: ignore
+
+  cd-dast-services:
+    name: CD — DAST (OWASP ZAP — ${{ matrix.service }}, informativo)
+    runs-on: ubuntu-latest
+    needs: [cd-setup, cd-smoke, cd-notifications, cd-education, cd-human-promotion, cd-labor-integration, cd-campaigns, cd-dashboard, cd-rxresume, cd-cv-renderer]
+    continue-on-error: true
+    environment: ${{ needs.cd-setup.outputs.env_name }}
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      id-token: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - service: notifications
+            health_path: /health
+            url: ${{ needs.cd-notifications.outputs.service_url }}
+          - service: education
+            health_path: /api/salud
+            url: ${{ needs.cd-education.outputs.service_url }}
+          - service: human-promotion
+            health_path: /health
+            url: ${{ needs.cd-human-promotion.outputs.service_url }}
+          - service: labor-integration
+            health_path: /health
+            url: ${{ needs.cd-labor-integration.outputs.service_url }}
+          - service: campaigns
+            health_path: /health
+            url: ${{ needs.cd-campaigns.outputs.service_url }}
+          - service: dashboard
+            health_path: /health
+            url: ${{ needs.cd-dashboard.outputs.service_url }}
+          - service: rxresume
+            health_path: /health
+            url: ${{ needs.cd-rxresume.outputs.service_url }}
+          - service: cv-renderer
+            health_path: /health
+            url: ${{ needs.cd-cv-renderer.outputs.service_url }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Mint ID token for ${{ matrix.service }} (ZAP)
+        id: svc_zap
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+          token_format: id_token
+          id_token_audience: ${{ matrix.url }}
+          id_token_include_email: true
+
+      - name: Run OWASP ZAP Baseline — ${{ matrix.service }}
+        run: |
+          SVC="${{ matrix.service }}"
+          TARGET_URL="${{ matrix.url }}${{ matrix.health_path }}"
+          mkdir -p zap-out
+          cp auth/zap.conf zap-out/zap.conf
+          chmod 777 zap-out
+          docker run --rm \
+            -v "$PWD/zap-out:/zap/wrk/:rw" \
+            -e ZAP_AUTH_HEADER="X-Serverless-Authorization" \
+            -e ZAP_AUTH_HEADER_VALUE="Bearer ${{ steps.svc_zap.outputs.id_token }}" \
+            ghcr.io/zaproxy/zaproxy:stable \
+            zap-baseline.py -t "$TARGET_URL" -c zap.conf \
+              -r "zap-${SVC}-report.html" -J "zap-${SVC}-report.json" -I || true
+
+      - name: Upload ZAP report — ${{ matrix.service }}
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: zap-${{ matrix.service }}-report-${{ github.sha }}
+          path: |
+            zap-out/zap-${{ matrix.service }}-report.html
+            zap-out/zap-${{ matrix.service }}-report.json
+          if-no-files-found: ignore
+
+  cd-security-probe:
+    name: CD — Security Probe (todos los microservicios, informativo)
+    runs-on: ubuntu-latest
+    needs: [cd-setup, cd-smoke, cd-auth, cd-notifications, cd-education, cd-human-promotion, cd-labor-integration, cd-campaigns, cd-dashboard, cd-rxresume, cd-cv-renderer, cd-api-gateway]
+    continue-on-error: true
+    environment: ${{ needs.cd-setup.outputs.env_name }}
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.26'
+
+      - name: Mint ID token — auth
+        id: tok_auth
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+          token_format: id_token
+          id_token_audience: ${{ needs.cd-auth.outputs.service_url }}
+          id_token_include_email: true
+
+      - name: Mint ID token — notifications
+        id: tok_notif
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+          token_format: id_token
+          id_token_audience: ${{ needs.cd-notifications.outputs.service_url }}
+          id_token_include_email: true
+
+      - name: Mint ID token — education
+        id: tok_edu
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+          token_format: id_token
+          id_token_audience: ${{ needs.cd-education.outputs.service_url }}
+          id_token_include_email: true
+
+      - name: Mint ID token — human-promotion
+        id: tok_hp
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+          token_format: id_token
+          id_token_audience: ${{ needs.cd-human-promotion.outputs.service_url }}
+          id_token_include_email: true
+
+      - name: Mint ID token — labor-integration
+        id: tok_labor
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+          token_format: id_token
+          id_token_audience: ${{ needs.cd-labor-integration.outputs.service_url }}
+          id_token_include_email: true
+
+      - name: Mint ID token — campaigns
+        id: tok_camp
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+          token_format: id_token
+          id_token_audience: ${{ needs.cd-campaigns.outputs.service_url }}
+          id_token_include_email: true
+
+      - name: Mint ID token — dashboard
+        id: tok_dash
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+          token_format: id_token
+          id_token_audience: ${{ needs.cd-dashboard.outputs.service_url }}
+          id_token_include_email: true
+
+      - name: Mint ID token — rxresume
+        id: tok_rx
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+          token_format: id_token
+          id_token_audience: ${{ needs.cd-rxresume.outputs.service_url }}
+          id_token_include_email: true
+
+      - name: Mint ID token — cv-renderer
+        id: tok_rend
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+          token_format: id_token
+          id_token_audience: ${{ needs.cd-cv-renderer.outputs.service_url }}
+          id_token_include_email: true
+
+      - name: Run security probe across API Gateway and all microservices
+        env:
+          GATEWAY_URL: ${{ needs.cd-api-gateway.outputs.gateway_url }}
+          AUTH_URL: ${{ needs.cd-auth.outputs.service_url }}
+          AUTH_ID_TOKEN: ${{ steps.tok_auth.outputs.id_token }}
+          NOTIFICATIONS_URL: ${{ needs.cd-notifications.outputs.service_url }}
+          NOTIFICATIONS_ID_TOKEN: ${{ steps.tok_notif.outputs.id_token }}
+          EDUCATION_URL: ${{ needs.cd-education.outputs.service_url }}
+          EDUCATION_ID_TOKEN: ${{ steps.tok_edu.outputs.id_token }}
+          HUMAN_PROMOTION_URL: ${{ needs.cd-human-promotion.outputs.service_url }}
+          HUMAN_PROMOTION_ID_TOKEN: ${{ steps.tok_hp.outputs.id_token }}
+          LABOR_URL: ${{ needs.cd-labor-integration.outputs.service_url }}
+          LABOR_ID_TOKEN: ${{ steps.tok_labor.outputs.id_token }}
+          CAMPAIGNS_URL: ${{ needs.cd-campaigns.outputs.service_url }}
+          CAMPAIGNS_ID_TOKEN: ${{ steps.tok_camp.outputs.id_token }}
+          DASHBOARD_URL: ${{ needs.cd-dashboard.outputs.service_url }}
+          DASHBOARD_ID_TOKEN: ${{ steps.tok_dash.outputs.id_token }}
+          RXRESUME_URL: ${{ needs.cd-rxresume.outputs.service_url }}
+          RXRESUME_ID_TOKEN: ${{ steps.tok_rx.outputs.id_token }}
+          CV_RENDERER_URL: ${{ needs.cd-cv-renderer.outputs.service_url }}
+          CV_RENDERER_ID_TOKEN: ${{ steps.tok_rend.outputs.id_token }}
+          JWT_SECRET: ${{ needs.cd-setup.outputs.env_name == 'TESTING' && secrets.JWT_SECRET || '' }}
+          FAIL_ON_FINDINGS: "true"
+        run: |
+          go run ./tests/seguridad/sonda/main.go > sonda-seguridad.json
+
+      - name: Upload security probe report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: sonda-seguridad-${{ github.sha }}
+          path: sonda-seguridad.json
+          if-no-files-found: ignore
+
+  cd-load-k6:
+    name: CD — Load Tests (k6 — auth, informativo)
+    runs-on: ubuntu-latest
+    needs: [cd-setup, cd-smoke, cd-auth]
     # D6 (22/11/2026): informativo. Si un umbral no se cumple el job queda
     # marcado, pero no corta el CD ni dispara el rollback.
     continue-on-error: true
@@ -2767,38 +2866,116 @@ jobs:
           id_token_audience: ${{ needs.cd-auth.outputs.service_url }}
           id_token_include_email: true
 
-      - name: Run k6 load tests
+      - name: Run k6 load tests — auth
         run: |
           AUTH_URL="${{ needs.cd-auth.outputs.service_url }}"
+          mkdir -p k6-out && chmod 777 k6-out
           echo "Running k6 against: $AUTH_URL"
-          docker run --rm -i grafana/k6 run \
+          docker run --rm -i -v "$PWD/k6-out:/out" \
             -e BASE_URL="$AUTH_URL" \
             -e ID_TOKEN="${{ steps.auth_k6.outputs.id_token }}" \
-            - < auth/load_test.js
+            grafana/k6:0.54.0 run --summary-export=/out/k6-auth.json - < auth/load_test.js
 
-      # Todos los microservicios a través del gateway, solo lectura (GET
-      # públicos o pedidos sin token que deben dar 401). Solo TESTING.
-      - name: Run k6 — todos los servicios por el gateway
-        run: |
-          GATEWAY="${{ needs.cd-api-gateway.outputs.gateway_url }}"
-          case "$GATEWAY" in http*) ;; *) GATEWAY="https://$GATEWAY" ;; esac
-          echo "k6 contra: $GATEWAY"
-          docker run --rm -i -v "$PWD:/out" \
-            -e BASE_URL="$GATEWAY" \
-            grafana/k6:0.54.0 run --summary-export=/out/k6-servicios.json - < tests/carga/k6_servicios_gateway.js
-
-      - name: Upload k6 summary
+      - name: Upload k6 summary — auth
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: k6-servicios-${{ github.sha }}
-          path: k6-servicios.json
+          name: k6-auth-${{ github.sha }}
+          path: k6-out/k6-auth.json
+          if-no-files-found: ignore
+
+  cd-load-services:
+    name: CD — Load Tests (k6 — ${{ matrix.service }}, informativo)
+    runs-on: ubuntu-latest
+    needs: [cd-setup, cd-smoke, cd-notifications, cd-education, cd-human-promotion, cd-labor-integration, cd-campaigns, cd-dashboard, cd-rxresume, cd-cv-renderer, cd-api-gateway]
+    continue-on-error: true
+    environment: ${{ needs.cd-setup.outputs.env_name }}
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      id-token: write
+    if: needs.cd-setup.outputs.env_name == 'TESTING'
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - service: notifications
+            script: tests/carga/k6_microservicio.js
+            url: ${{ needs.cd-notifications.outputs.service_url }}
+            needs_id_token: true
+          - service: education
+            script: education/load_test.js
+            url: ${{ needs.cd-education.outputs.service_url }}
+            needs_id_token: true
+          - service: human-promotion
+            script: tests/carga/k6_microservicio.js
+            url: ${{ needs.cd-human-promotion.outputs.service_url }}
+            needs_id_token: true
+          - service: labor-integration
+            script: tests/carga/k6_microservicio.js
+            url: ${{ needs.cd-labor-integration.outputs.service_url }}
+            needs_id_token: true
+          - service: campaigns
+            script: tests/carga/k6_microservicio.js
+            url: ${{ needs.cd-campaigns.outputs.service_url }}
+            needs_id_token: true
+          - service: dashboard
+            script: tests/carga/k6_microservicio.js
+            url: ${{ needs.cd-dashboard.outputs.service_url }}
+            needs_id_token: true
+          - service: rxresume
+            script: tests/carga/k6_microservicio.js
+            url: ${{ needs.cd-rxresume.outputs.service_url }}
+            needs_id_token: true
+          - service: cv-renderer
+            script: tests/carga/k6_microservicio.js
+            url: ${{ needs.cd-cv-renderer.outputs.service_url }}
+            needs_id_token: true
+          - service: api-gateway
+            script: tests/carga/k6_servicios_gateway.js
+            url: ${{ needs.cd-api-gateway.outputs.gateway_url }}
+            needs_id_token: false
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Mint ID token for ${{ matrix.service }} (k6)
+        id: svc_k6
+        if: matrix.needs_id_token
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+          token_format: id_token
+          id_token_audience: ${{ matrix.url }}
+          id_token_include_email: true
+
+      - name: Run k6 load tests — ${{ matrix.service }}
+        run: |
+          SVC="${{ matrix.service }}"
+          TARGET="${{ matrix.url }}"
+          case "$TARGET" in http*) ;; *) TARGET="https://$TARGET" ;; esac
+          mkdir -p k6-out && chmod 777 k6-out
+          echo "Running k6 ($SVC) against: $TARGET"
+          docker run --rm -i -v "$PWD/k6-out:/out" \
+            -e SERVICE="$SVC" \
+            -e BASE_URL="$TARGET" \
+            -e ID_TOKEN="${{ steps.svc_k6.outputs.id_token }}" \
+            grafana/k6:0.54.0 run --summary-export="/out/k6-${SVC}.json" - < "${{ matrix.script }}"
+
+      - name: Upload k6 summary — ${{ matrix.service }}
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: k6-${{ matrix.service }}-${{ github.sha }}
+          path: k6-out/k6-${{ matrix.service }}.json
           if-no-files-found: ignore
 
   cd-rollback:
     name: CD — Rollback (auto)
     runs-on: ubuntu-latest
-    needs: [cd-setup, cd-auth, cd-notifications, cd-education, cd-rxresume, cd-cv-renderer, cd-human-promotion, cd-labor-integration, cd-campaigns, cd-dashboard, cd-frontend, cd-smoke, cd-dast-zap, cd-load-k6]
+    needs: [cd-setup, cd-auth, cd-notifications, cd-education, cd-rxresume, cd-cv-renderer, cd-human-promotion, cd-labor-integration, cd-campaigns, cd-dashboard, cd-frontend, cd-smoke, cd-dast-zap, cd-dast-auth, cd-dast-services, cd-security-probe, cd-load-k6, cd-load-services]
     environment: ${{ needs.cd-setup.outputs.env_name }}
     timeout-minutes: 15
     permissions:

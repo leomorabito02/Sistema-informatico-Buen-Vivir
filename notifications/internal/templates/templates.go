@@ -5,13 +5,14 @@ import (
 	"embed"
 	"fmt"
 	"html/template"
-	"os"
-	"strings"
 	"time"
 )
 
 //go:embed email/*.html
 var emailTemplatesFS embed.FS
+
+//go:embed email/logo.png
+var embeddedLogoPNG []byte
 
 type EmailTemplateID string
 
@@ -105,19 +106,21 @@ func CurrentYear() int {
 	return time.Now().Year()
 }
 
-// LogoPorDefecto: logo del Centro en el front de producción (D7,
-// 22/11/2026). En testing sale de FRONTEND_URL (testing.ceibuenvivir.pages.dev).
-const LogoPorDefecto = "https://ceibuenvivir.pages.dev/assets/logo.png"
+const (
+	// LogoContentID is the MIME Content-ID used for the inline embedded logo attachment.
+	LogoContentID = "buenvivir-logo"
+	// LogoCID is the static cid: URI referenced by email templates.
+	LogoCID = "cid:" + LogoContentID
+)
 
-// LogoURL devuelve la URL pública del logo para los correos: FRONTEND_URL
-// + /assets/logo.png, o el de producción si FRONTEND_URL no está o es local
-// (un cliente de correo no puede leer localhost).
+// LogoURL returns the static inline Content-ID URI for the embedded institutional logo.
 func LogoURL() string {
-	base := strings.TrimRight(strings.TrimSpace(os.Getenv("FRONTEND_URL")), "/")
-	if base == "" || strings.Contains(base, "localhost") || strings.Contains(base, "127.0.0.1") {
-		return LogoPorDefecto
-	}
-	return base + "/assets/logo.png"
+	return LogoCID
+}
+
+// EmbeddedLogoPNG returns the compiled-in PNG bytes of the institutional logo.
+func EmbeddedLogoPNG() []byte {
+	return embeddedLogoPNG
 }
 
 // encabezadoMarca son los datos del parcial bv_encabezado.
@@ -127,7 +130,9 @@ type encabezadoMarca struct {
 }
 
 var funcionesMarca = template.FuncMap{
-	"logoURL": LogoURL,
+	"logoURL": func() template.URL {
+		return template.URL(LogoCID)
+	},
 	"marca": func(color, subtitulo string) encabezadoMarca {
 		return encabezadoMarca{Color: color, Subtitulo: subtitulo}
 	},

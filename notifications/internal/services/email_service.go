@@ -7,6 +7,7 @@ import (
 	"regexp"
 	"strings"
 
+	"buenvivir/notifications/internal/templates"
 	"github.com/resend/resend-go/v4"
 )
 
@@ -134,11 +135,7 @@ func htmlToPlainText(htmlStr string) string {
 	return strings.TrimSpace(result)
 }
 
-func (s *resendEmailService) SendEmail(ctx context.Context, msg EmailMessage) (string, error) {
-	if len(msg.To) == 0 {
-		return "", errors.New("recipient list cannot be empty")
-	}
-
+func (s *resendEmailService) buildSendEmailRequest(msg EmailMessage) *resend.SendEmailRequest {
 	textBody := strings.TrimSpace(msg.Text)
 	if textBody == "" && msg.Html != "" {
 		textBody = htmlToPlainText(msg.Html)
@@ -173,6 +170,27 @@ func (s *resendEmailService) SendEmail(ctx context.Context, msg EmailMessage) (s
 	if msg.Category != "" {
 		params.Tags = []resend.Tag{{Name: "category", Value: msg.Category}}
 	}
+
+	if strings.Contains(msg.Html, templates.LogoCID) {
+		if logoBytes := templates.EmbeddedLogoPNG(); len(logoBytes) > 0 {
+			params.Attachments = append(params.Attachments, &resend.Attachment{
+				Content:     logoBytes,
+				Filename:    "logo.png",
+				ContentType: "image/png",
+				ContentId:   templates.LogoContentID,
+			})
+		}
+	}
+
+	return params
+}
+
+func (s *resendEmailService) SendEmail(ctx context.Context, msg EmailMessage) (string, error) {
+	if len(msg.To) == 0 {
+		return "", errors.New("recipient list cannot be empty")
+	}
+
+	params := s.buildSendEmailRequest(msg)
 
 	sent, err := s.client.Emails.SendWithContext(ctx, params)
 	if err != nil {

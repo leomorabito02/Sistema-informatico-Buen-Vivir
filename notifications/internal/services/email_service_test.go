@@ -121,3 +121,36 @@ func TestHtmlToPlainText(t *testing.T) {
 	}
 }
 
+func TestBuildSendEmailRequest_InlineLogoAttachment(t *testing.T) {
+	// Arrange
+	svcRaw, err := NewResendEmailService("re_test_key", "onboarding@resend.dev")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	svc := svcRaw.(*resendEmailService)
+
+	// Act
+	withLogo := svc.buildSendEmailRequest(EmailMessage{
+		To:      []string{"user@example.com"},
+		Subject: "Con logo",
+		Html:    `<img src="cid:buenvivir-logo" alt="Logo">`,
+	})
+	withoutLogo := svc.buildSendEmailRequest(EmailMessage{
+		To:      []string{"user@example.com"},
+		Subject: "Sin logo",
+		Html:    `<p>Solo texto</p>`,
+	})
+
+	// Assert
+	if len(withLogo.Attachments) != 1 {
+		t.Fatalf("expected 1 inline logo attachment, got %d", len(withLogo.Attachments))
+	}
+	att := withLogo.Attachments[0]
+	if att.ContentId != "buenvivir-logo" || att.ContentType != "image/png" || att.Filename != "logo.png" || len(att.Content) == 0 {
+		t.Errorf("unexpected inline logo attachment metadata: %+v (len=%d)", att, len(att.Content))
+	}
+	if len(withoutLogo.Attachments) != 0 {
+		t.Errorf("expected no attachments when cid is not referenced, got %d", len(withoutLogo.Attachments))
+	}
+}
+
