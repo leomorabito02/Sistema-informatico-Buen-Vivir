@@ -5,6 +5,7 @@
     <div class="campo">
       <label for="filtroDesde">Desde</label>
       <p-datepicker
+        appendTo="body"
         inputId="filtroDesde"
         [(ngModel)]="desde"
         (onSelect)="emitir()"
@@ -22,6 +23,7 @@
     <div class="campo">
       <label for="filtroHasta">Hasta</label>
       <p-datepicker
+        appendTo="body"
         inputId="filtroHasta"
         [(ngModel)]="hasta"
         (onSelect)="emitir()"
@@ -38,6 +40,7 @@
     <div class="campo">
       <label for="filtroModulo">Módulo</label>
       <p-select
+        appendTo="body"
         inputId="filtroModulo"
         [options]="modulos"
         optionLabel="label"
@@ -51,6 +54,7 @@
     <div class="campo">
       <label for="filtroArea">Área formativa</label>
       <p-select
+        appendTo="body"
         inputId="filtroArea"
         [options]="opcionesArea"
         optionLabel="label"

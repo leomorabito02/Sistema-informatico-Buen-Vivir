@@ -25,6 +25,9 @@ type AuthServiceClient interface {
 	GetParticipant(ctx context.Context, participantID string) (*authpb.GetParticipantResponse, error)
 	GetCompany(ctx context.Context, companyID string) (*authpb.GetCompanyResponse, error)
 	GetActiveUserIDsByRoles(ctx context.Context, roles []string) ([]string, error)
+	// GetUserNames devuelve "Nombre Apellido" por id de usuario (usr-…).
+	// Best effort: los que no encuentra no vienen en el mapa.
+	GetUserNames(ctx context.Context, userIDs []string) (map[string]string, error)
 	Close() error
 }
 
@@ -113,6 +116,20 @@ func (c *authServiceClient) GetActiveUserIDsByRoles(ctx context.Context, roles [
 	return resp.UserIds, nil
 }
 
+func (c *authServiceClient) GetUserNames(ctx context.Context, userIDs []string) (map[string]string, error) {
+	names := make(map[string]string, len(userIDs))
+	for _, id := range userIDs {
+		resp, err := c.client.GetUserContact(ctx, &authpb.GetUserContactRequest{UserId: id})
+		if err != nil || resp == nil {
+			continue
+		}
+		if n := strings.TrimSpace(resp.FirstName + " " + resp.LastName); n != "" {
+			names[id] = n
+		}
+	}
+	return names, nil
+}
+
 func (c *authServiceClient) Close() error {
 	return c.conn.Close()
 }
@@ -192,6 +209,30 @@ func (h *httpAuthServiceClient) GetActiveUserIDsByRoles(ctx context.Context, rol
 		return nil, err
 	}
 	return res.UserIds, nil
+}
+
+// GetUserNames usa POST /api/v1/directory/users/summaries (el token
+// interno lleva role_dev, que esa ruta acepta).
+func (h *httpAuthServiceClient) GetUserNames(ctx context.Context, userIDs []string) (map[string]string, error) {
+	names := make(map[string]string, len(userIDs))
+	if len(userIDs) == 0 {
+		return names, nil
+	}
+	var res struct {
+		Data []struct {
+			UserID   string `json:"user_id"`
+			FullName string `json:"full_name"`
+		} `json:"data"`
+	}
+	if _, err := h.doRequest(ctx, http.MethodPost, "/api/v1/directory/users/summaries", map[string][]string{"user_ids": userIDs}, &res); err != nil {
+		return names, err
+	}
+	for _, u := range res.Data {
+		if n := strings.TrimSpace(u.FullName); n != "" {
+			names[u.UserID] = n
+		}
+	}
+	return names, nil
 }
 
 func (h *httpAuthServiceClient) Close() error {

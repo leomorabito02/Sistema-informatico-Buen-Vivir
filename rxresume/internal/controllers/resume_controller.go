@@ -6,6 +6,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"net/url"
 	"path/filepath"
 	"strings"
 
@@ -174,8 +175,16 @@ func (c *ResumeController) DownloadPublicMedia(w http.ResponseWriter, r *http.Re
 		return
 	}
 
-	// Basic security check: only allow pictures/ prefix
+	// Si el front codificó la dirección dos veces llega "pictures%2F…":
+	// se decodifica una vez más para no rechazar fotos válidas.
 	if !strings.HasPrefix(path, "pictures/") {
+		if decoded, err := url.QueryUnescape(path); err == nil {
+			path = decoded
+		}
+	}
+
+	// Basic security check: only allow pictures/ prefix
+	if !strings.HasPrefix(path, "pictures/") || strings.Contains(path, "..") {
 		http.Error(w, "unauthorized media path", http.StatusForbidden)
 		return
 	}

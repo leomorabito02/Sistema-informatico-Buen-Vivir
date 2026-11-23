@@ -24,6 +24,7 @@
         />
       </div>
       <p-dropdown
+        appendTo="body"
         [options]="employmentTypes"
         [(ngModel)]="selectedEmploymentType"
         (onChange)="filterJobs()"
@@ -602,11 +603,11 @@
               <div
                 class="w-12 h-12 bg-gray-200 rounded-full flex items-center justify-center font-bold text-xl text-gray-600"
               >
-                {{ candidate.resume?.data?.basics?.name?.charAt(0) || "?" }}
+                {{ candidateName(candidate).charAt(0) || "?" }}
               </div>
               <div>
                 <h3 class="font-bold text-lg m-0 text-gray-800">
-                  {{ candidate.resume?.data?.basics?.name || "Cargando..." }}
+                  {{ candidateName(candidate) }}
                 </h3>
                 <p class="text-gray-600 text-sm m-0">
                   {{
@@ -715,7 +716,7 @@
           Seleccione un participante...
         </option>
         <option *ngFor="let p of participants" [value]="p.user_id">
-          {{ p.email }}
+          {{ participantName(p) }}
         </option>
       </select>
     </div>

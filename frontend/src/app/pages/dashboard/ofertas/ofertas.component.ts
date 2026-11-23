@@ -579,6 +579,24 @@ export class OfertasComponent implements OnInit {
   showAcceptanceModal = false;
   acceptanceMessage = "";
 
+  /**
+   * Nombre del postulante: el que manda labor, si no el del CV. Antes se
+   * leía solo del CV y, si la persona no lo tenía, quedaba "Cargando...".
+   */
+  candidateName(candidate: { app: JobApplication; resume?: Resume }): string {
+    return (
+      candidate.app.nombre?.trim() ||
+      candidate.resume?.data?.basics?.name?.trim() ||
+      "Participante sin nombre cargado"
+    );
+  }
+
+  /** Nombre y apellido para el selector de "Postular participante". */
+  participantName(p: User): string {
+    const nombre = `${p.first_name ?? ""} ${p.last_name ?? ""}`.trim();
+    return nombre || p.email;
+  }
+
   /** El CV está guardado con el id de usuario del postulante. */
   cvId(app: JobApplication): string {
     return app.usuario_id || app.participante_id;

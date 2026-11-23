@@ -125,7 +125,7 @@ func (s *JobApplicationService) UpdateStatus(ctx context.Context, applicationID 
 	if offer == nil {
 		return repositories.ErrOfferNotFound
 	}
-	
+
 	if offer.CompanyID != companyID {
 		return errors.New("unauthorized: you do not own the offer for this application")
 	}
@@ -158,10 +158,9 @@ func (s *JobApplicationService) UpdateStatus(ctx context.Context, applicationID 
 			s.producer.Notify()
 		}
 	}
-	
+
 	return nil
 }
-
 
 func (s *JobApplicationService) ListByOffer(ctx context.Context, offerID string, role string, userID string) ([]*models.JobApplication, error) {
 	if role == "role_company" {
@@ -175,7 +174,53 @@ func (s *JobApplicationService) ListByOffer(ctx context.Context, offerID string,
 	}
 	// admin and volunteer can view all applications, participant maybe not, but we allow them or we can restrict.
 	// We'll let admin, volunteer and the owner company view it.
-	return s.repo.ListByOffer(ctx, offerID)
+	apps, err := s.repo.ListByOffer(ctx, offerID)
+	if err != nil {
+		return nil, err
+	}
+	s.fillApplicantNames(ctx, apps)
+	return apps, nil
+}
+
+// fillApplicantNames completa el nombre de cada postulante con auth
+// (best effort: si auth no responde, la lista sale igual sin nombres).
+func (s *JobApplicationService) fillApplicantNames(ctx context.Context, apps []*models.JobApplication) {
+	if s.authClient == nil || len(apps) == 0 {
+		return
+	}
+	ids := make([]string, 0, len(apps))
+	seen := map[string]bool{}
+	for _, a := range apps {
+		id := applicantUserID(a)
+		if id != "" && !seen[id] {
+			seen[id] = true
+			ids = append(ids, id)
+		}
+	}
+	if len(ids) == 0 {
+		return
+	}
+	names, _ := s.authClient.GetUserNames(ctx, ids)
+	for _, a := range apps {
+		if n := names[applicantUserID(a)]; n != "" {
+			a.Nombre = n
+		}
+	}
+}
+
+// applicantUserID es el id de usuario (usr-…) del postulante; las
+// postulaciones viejas lo tenían en participante_id.
+func applicantUserID(a *models.JobApplication) string {
+	if a == nil {
+		return ""
+	}
+	if strings.HasPrefix(a.UserID, "usr-") {
+		return a.UserID
+	}
+	if strings.HasPrefix(a.ParticipantID, "usr-") {
+		return a.ParticipantID
+	}
+	return ""
 }
 
 func (s *JobApplicationService) DeleteApplication(ctx context.Context, appID string, role string, userID string) error {
@@ -204,4 +249,3 @@ func isStatusSelected(status string) bool {
 		return false
 	}
 }
-
