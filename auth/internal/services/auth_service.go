@@ -103,7 +103,8 @@ func (s *authService) Register(ctx context.Context, req *dto.RegisterRequest) (r
 		}
 	}()
 
-	if req.Email == "" || req.Password == "" || req.Role == "" {
+	normalizedEmail := strings.ToLower(strings.TrimSpace(req.Email))
+	if normalizedEmail == "" || req.Password == "" || req.Role == "" {
 		return nil, errors.New("el correo electrónico, la contraseña y el rol son obligatorios")
 	}
 
@@ -111,7 +112,7 @@ func (s *authService) Register(ctx context.Context, req *dto.RegisterRequest) (r
 		return nil, err
 	}
 
-	user, err := s.userRepo.FindByEmail(ctx, req.Email)
+	user, err := s.userRepo.FindByEmail(ctx, normalizedEmail)
 	if err == nil && user != nil {
 		return nil, errors.New("ya existe una cuenta registrada con este correo electrónico")
 	}
@@ -120,7 +121,7 @@ func (s *authService) Register(ctx context.Context, req *dto.RegisterRequest) (r
 	if !strings.HasPrefix(roleID, "role_") {
 		roleID = "role_" + roleID
 	}
-	if roleID == "role_participant" && !IsGmail(req.Email) {
+	if roleID == "role_participant" && !IsGmail(normalizedEmail) {
 		return nil, ErrParticipantGmail
 	}
 	if !rolesDeRegistro[roleID] {
@@ -135,10 +136,10 @@ func (s *authService) Register(ctx context.Context, req *dto.RegisterRequest) (r
 
 	user = &models.User{
 		UserID:          "usr-" + utils.GenerateRandomString(10),
-		FirstName:       req.FirstName,
-		LastName:        req.LastName,
-		Email:           req.Email,
-		Phone:           req.Phone,
+		FirstName:       strings.TrimSpace(req.FirstName),
+		LastName:        strings.TrimSpace(req.LastName),
+		Email:           normalizedEmail,
+		Phone:           strings.TrimSpace(req.Phone),
 		PasswordHash:    hashedPassword,
 		RoleID:          roleID,
 		Status:          "active",
@@ -187,28 +188,29 @@ func (s *authService) CheckCredentials(ctx context.Context, req *dto.CheckCreden
 		}
 	}()
 
-	if req.Email == "" || req.Password == "" {
+	normalizedEmail := strings.ToLower(strings.TrimSpace(req.Email))
+	if normalizedEmail == "" || req.Password == "" {
 		return nil, errors.New("el correo electrónico y la contraseña son obligatorios")
 	}
 
-	users, err := s.userRepo.FindAllByEmail(ctx, req.Email)
+	users, err := s.userRepo.FindAllByEmail(ctx, normalizedEmail)
 	if err != nil {
 		return nil, errors.New("no existe ninguna cuenta registrada con este correo electrónico")
 	}
 
-	attemptKey := loginAttemptKey(req.Email)
+	attemptKey := loginAttemptKey(normalizedEmail)
 	if err := s.checkLoginLock(ctx, attemptKey); err != nil {
 		return nil, err
 	}
 
 	// Validate password against the first account (all accounts with the same email share the same password hash)
 	if !utils.CheckPasswordHash(req.Password, users[0].PasswordHash) {
-		slog.Warn("security: failed login attempt", slog.String("event", "invalid_password"), slog.String("email_hash", utils.HashToken(req.Email)))
+		slog.Warn("security: failed login attempt", slog.String("event", "invalid_password"), slog.String("email_hash", utils.HashToken(normalizedEmail)))
 		return nil, s.registerLoginFailure(ctx, attemptKey)
 	}
 	s.resetLoginFailures(ctx, attemptKey)
 
-	twofaResp, twofaErr := s.handleTwofaChallenge(ctx, req.Email, users, req.TrustedDevice, req.UserAgent)
+	twofaResp, twofaErr := s.handleTwofaChallenge(ctx, normalizedEmail, users, req.TrustedDevice, req.UserAgent)
 	if twofaErr != nil {
 		return nil, twofaErr
 	}
@@ -216,7 +218,7 @@ func (s *authService) CheckCredentials(ctx context.Context, req *dto.CheckCreden
 		return twofaResp, nil
 	}
 
-	return s.buildCheckCredentialsResponse(ctx, req.Email, users)
+	return s.buildCheckCredentialsResponse(ctx, normalizedEmail, users)
 }
 
 // CheckGoogleCredentials validates a Firebase ID token and returns available accounts linked to the Google account.
