@@ -28,6 +28,7 @@
     <div *ngIf="courseOptions.length > 0" class="course-picker">
       <label>Curso</label>
       <p-select
+        appendTo="body"
         [options]="courseOptions"
         optionLabel="label"
         optionValue="value"

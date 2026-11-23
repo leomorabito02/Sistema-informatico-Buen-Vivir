@@ -8,6 +8,7 @@
     <div class="date-picker">
       <label>Fecha</label>
       <p-datepicker
+        appendTo="body"
         [(ngModel)]="selectedDate"
         dateFormat="dd/mm/yy"
         (onSelect)="onDateChange()"

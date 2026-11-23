@@ -26,6 +26,8 @@ export interface JobApplication {
   participante_id: string;
   /** Id de usuario: el del CV. Las postulaciones viejas no lo traen. */
   usuario_id?: string;
+  /** Nombre del postulante (lo completa labor al listar los postulados). */
+  nombre?: string;
   oferta_id: string;
   estado?: string;
   fecha_postulacion?: string;

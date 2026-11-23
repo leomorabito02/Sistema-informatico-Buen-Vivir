@@ -297,6 +297,7 @@
       <label>
         Modalidad <span class="req">*</span>
         <p-select
+          appendTo="body"
           [options]="modeOptions"
           optionLabel="label"
           optionValue="value"
@@ -316,6 +317,7 @@
     <label>
       Área formativa <span class="req">*</span>
       <p-select
+        appendTo="body"
         [options]="areaOptions"
         optionLabel="label"
         optionValue="value"
@@ -331,6 +333,7 @@
     <label>
       Docente responsable <span class="req">*</span>
       <p-select
+        appendTo="body"
         [options]="teacherOptions"
         optionLabel="label"
         optionValue="value"
@@ -456,6 +459,7 @@
     <label *ngIf="materialForCourse && !editingMaterialId">
       Formato <span class="req">*</span>
       <p-select
+        appendTo="body"
         [options]="formatoCursoOptions"
         optionLabel="label"
         optionValue="value"
@@ -466,6 +470,7 @@
     <label *ngIf="!materialForCourse || editingMaterialId">
       Tipo
       <p-select
+        appendTo="body"
         [options]="materialTypeOptions"
         optionLabel="label"
         optionValue="value"

@@ -24,6 +24,15 @@ func (fakeAuth) GetCompany(context.Context, string) (*authpb.GetCompanyResponse,
 func (fakeAuth) GetActiveUserIDsByRoles(context.Context, []string) ([]string, error) {
 	return []string{"admin-1", "vol-1"}, nil
 }
+func (fakeAuth) GetUserNames(_ context.Context, ids []string) (map[string]string, error) {
+	out := map[string]string{}
+	for _, id := range ids {
+		if id == "usr-1" {
+			out[id] = "Paula Participante"
+		}
+	}
+	return out, nil
+}
 func (fakeAuth) Close() error { return nil }
 
 // fakeApps guarda las postulaciones en memoria.
@@ -94,7 +103,7 @@ func TestApplyToJob_GuardaIdDeParticipanteYDeUsuario(t *testing.T) {
 
 func TestListByParticipant_IncluyePostulacionesViejas(t *testing.T) {
 	repo := &fakeApps{apps: []*models.JobApplication{
-		{ID: "vieja", OfferID: "o1", ParticipantID: "usr-1"},                // antes del 29/10: id de usuario
+		{ID: "vieja", OfferID: "o1", ParticipantID: "usr-1"},                   // antes del 29/10: id de usuario
 		{ID: "nueva", OfferID: "o2", ParticipantID: "part-1", UserID: "usr-1"}, // ahora
 		{ID: "ajena", OfferID: "o1", ParticipantID: "part-2", UserID: "usr-2"},
 	}}
@@ -116,5 +125,28 @@ func TestListByParticipant_IncluyePostulacionesViejas(t *testing.T) {
 	}
 	if err := svc.DeleteApplication(context.Background(), "ajena", "role_participant", "usr-1"); err == nil {
 		t.Error("dejó borrar una postulación ajena")
+	}
+}
+
+// Los postulados salen con el nombre de la persona (antes la pantalla
+// quedaba en "Cargando..." si no tenía CV). Vale también para las
+// postulaciones viejas con usr-… en participante_id.
+func TestListByOffer_CompletaNombreDelPostulante(t *testing.T) {
+	repo := &fakeApps{apps: []*models.JobApplication{
+		{ID: "a1", ParticipantID: "part-1", UserID: "usr-1", OfferID: "o1"},
+		{ID: "a2", ParticipantID: "usr-1", OfferID: "o1"},
+		{ID: "a3", ParticipantID: "part-9", UserID: "usr-9", OfferID: "o1"},
+	}}
+	svc := NewJobApplicationService(repo, nil, fakeAuth{})
+
+	apps, err := svc.ListByOffer(context.Background(), "o1", "role_admin", "admin-1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if apps[0].Nombre != "Paula Participante" || apps[1].Nombre != "Paula Participante" {
+		t.Fatalf("nombres esperados, vino %q y %q", apps[0].Nombre, apps[1].Nombre)
+	}
+	if apps[2].Nombre != "" {
+		t.Fatalf("sin nombre en auth debería quedar vacío, vino %q", apps[2].Nombre)
 	}
 }

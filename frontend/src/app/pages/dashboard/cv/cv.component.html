@@ -450,6 +450,7 @@
                 <div class="field md:col-span-2">
                   <label [for]="'status-' + i">Estado</label>
                   <p-dropdown
+                    appendTo="body"
                     [id]="'status-' + i"
                     [options]="educationStatuses"
                     name="status--{{ i }}"
@@ -503,6 +504,7 @@
                     >Nivel de la habilidad</label
                   >
                   <p-dropdown
+                    appendTo="body"
                     [id]="'skill-level-' + i"
                     [options]="skillLevels"
                     name="skill-level--{{ i }}"
@@ -587,6 +589,7 @@
                     >Nivel del idioma</label
                   >
                   <p-dropdown
+                    appendTo="body"
                     [id]="'lang-level-' + i"
                     [options]="skillLevels"
                     name="lang-level--{{ i }}"
