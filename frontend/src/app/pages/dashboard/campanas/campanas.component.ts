@@ -116,10 +116,50 @@ export class CampanasComponent implements OnInit {
     );
   }
 
-  /** La imagen es una dirección web: mismo criterio que los enlaces de materiales. */
+  errorFoto = "";
+
+  /** Hay imagen cargada, ya sea una dirección web (campañas viejas) o una foto subida. */
   get imagenInvalida(): boolean {
     const u = this.form.imagen_url.trim();
-    return !!u && !/^https?:\/\//i.test(u);
+    return (
+      !!u && !/^(https?:\/\/|data:image\/(jpeg|png|webp);base64,)/i.test(u)
+    );
+  }
+
+  /** Lee la foto, la achica a 1000 px y la deja como JPEG en el formulario. */
+  onFotoElegida(ev: Event): void {
+    const input = ev.target as HTMLInputElement;
+    const file = input.files?.[0];
+    this.errorFoto = "";
+    if (!file) return;
+    if (!/^image\/(jpeg|png|webp)$/.test(file.type)) {
+      this.errorFoto = "El archivo tiene que ser JPG, PNG o WebP.";
+      return;
+    }
+    const lector = new FileReader();
+    lector.onerror = () => (this.errorFoto = "No se pudo leer la imagen.");
+    lector.onload = () => {
+      const img = new Image();
+      img.onerror = () => (this.errorFoto = "No se pudo leer la imagen.");
+      img.onload = () => {
+        const max = 1000;
+        const k = Math.min(1, max / Math.max(img.width, img.height));
+        const canvas = document.createElement("canvas");
+        canvas.width = Math.round(img.width * k);
+        canvas.height = Math.round(img.height * k);
+        const ctx = canvas.getContext("2d");
+        if (!ctx) {
+          this.errorFoto = "No se pudo procesar la imagen.";
+          return;
+        }
+        ctx.fillStyle = "#fff";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        this.form.imagen_url = canvas.toDataURL("image/jpeg", 0.8);
+      };
+      img.src = String(lector.result);
+    };
+    lector.readAsDataURL(file);
   }
 
   guardar(): void {
