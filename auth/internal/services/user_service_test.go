@@ -532,6 +532,38 @@ func TestUserService_CreateUser_AltaAdmin_NaceVerificadaEnTodosLosRoles(t *testi
 	}
 }
 
+func TestUserService_CreateUser_NormalizesEmailAndRole(t *testing.T) {
+	// Arrange
+	mockRepo := new(MockUserRepository)
+	prod := &mockUsuariosProducer{}
+	svc := services.NewUserService(mockRepo, prod)
+	ctx := context.WithValue(context.Background(), middlewares.RoleIDKey, "role_admin")
+	ctx = context.WithValue(ctx, middlewares.UserIDKey, "admin-1")
+
+	req := &dto.CreateUserRequest{
+		Email:     "  Usuario.Nuevo@Gmail.COM ",
+		FirstName: "Usuario",
+		LastName:  "Nuevo",
+		Password:  "Password123!",
+		RoleID:    "volunteer",
+		Phone:     "123456789",
+	}
+
+	mockRepo.On("CreateWithRoleProfile", mock.Anything, mock.MatchedBy(func(u *models.User) bool {
+		return u.Email == "usuario.nuevo@gmail.com" && u.RoleID == "role_volunteer" && u.IsEmailVerified
+	}), "role_volunteer", "admin-1").Return(nil)
+
+	// Act
+	res, err := svc.CreateUser(ctx, req)
+
+	// Assert
+	require.NoError(t, err)
+	assert.Equal(t, "usuario.nuevo@gmail.com", res.Email)
+	assert.Equal(t, "role_volunteer", res.RoleID)
+	assert.True(t, res.IsEmailVerified)
+	mockRepo.AssertExpectations(t)
+}
+
 func TestMensajesAltaUsuario_SinTextoDeLaBase(t *testing.T) {
 	err := errors.New(`ERROR: duplicate key value violates unique constraint "uni_users_email" (SQLSTATE 23505)`)
 	assert.Equal(t, "Ya existe una cuenta registrada con ese correo electrónico.", services.MensajeErrorBaseAlta(err))

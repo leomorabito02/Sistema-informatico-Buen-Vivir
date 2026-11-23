@@ -59,10 +59,36 @@ func NewUserService(userRepo repositories.UserRepository, opts ...any) UserServi
 	return svc
 }
 
+func normalizeCreateUserInput(req *dto.CreateUserRequest) string {
+	req.Email = strings.ToLower(strings.TrimSpace(req.Email))
+	req.FirstName = strings.TrimSpace(req.FirstName)
+	req.LastName = strings.TrimSpace(req.LastName)
+	req.Phone = strings.TrimSpace(req.Phone)
+
+	roleID := strings.TrimSpace(req.RoleID)
+	if roleID != "" && !strings.HasPrefix(roleID, "role_") {
+		roleID = "role_" + roleID
+	}
+	return roleID
+}
+
+func (s *userService) enqueueUserCreatedEvents(ctx context.Context, user *models.User) {
+	if s.producer == nil {
+		return
+	}
+	if err := s.producer.UsuarioCreado(ctx, user.UserID, user.RoleID); err != nil {
+		slog.Error("user_service: failed to enqueue UsuarioCreado event", "user_id", user.UserID, "error", err)
+	}
+	if err := s.producer.EmailSolicitado(ctx, "app-"+user.UserID, user.UserID, "cuenta_aprobada"); err != nil {
+		slog.Error("user_service: failed to enqueue account approved email", "user_id", user.UserID, "error", err)
+	}
+}
+
 func (s *userService) CreateUser(ctx context.Context, req *dto.CreateUserRequest) (*dto.UserResponse, error) {
+	roleID := normalizeCreateUserInput(req)
+
 	// 1. Validar request
-	val := utils.GetValidator()
-	if err := val.Struct(req); err != nil {
+	if err := utils.GetValidator().Struct(req); err != nil {
 		return nil, err
 	}
 
@@ -72,13 +98,13 @@ func (s *userService) CreateUser(ctx context.Context, req *dto.CreateUserRequest
 		return nil, fmt.Errorf("error encrypting password: %w", err)
 	}
 
-	if strings.TrimPrefix(req.RoleID, "role_") == "participant" {
+	if roleID == "role_participant" {
 		if err := validateParticipantAccount(req.Email, req.DNI, req.Address); err != nil {
 			return nil, err
 		}
 		ctx = repositories.WithParticipantProfile(ctx, strings.TrimSpace(req.DNI), strings.TrimSpace(req.Address))
 	}
-	if req.RoleID == "role_teacher" && req.IsExternal {
+	if roleID == "role_teacher" && req.IsExternal {
 		ctx = repositories.WithTeacherExternal(ctx, true)
 	}
 
@@ -89,13 +115,13 @@ func (s *userService) CreateUser(ctx context.Context, req *dto.CreateUserRequest
 	// y, si no tocaba el enlace del mail, no podía iniciar sesión.
 	user := &models.User{
 		UserID:          "usr-" + utils.GenerateRandomString(12), // helper pseudo-id o UUID
-		FirstName:       strings.TrimSpace(req.FirstName),
-		LastName:        strings.TrimSpace(req.LastName),
-		Email:           strings.TrimSpace(req.Email),
+		FirstName:       req.FirstName,
+		LastName:        req.LastName,
+		Email:           req.Email,
 		PasswordHash:    string(hashedPassword),
-		Phone:           strings.TrimSpace(req.Phone),
+		Phone:           req.Phone,
 		Status:          "active",
-		RoleID:          req.RoleID,
+		RoleID:          roleID,
 		IsEmailVerified: true,
 	}
 
@@ -114,14 +140,7 @@ func (s *userService) CreateUser(ctx context.Context, req *dto.CreateUserRequest
 		return nil, err
 	}
 
-	if s.producer != nil {
-		if err := s.producer.UsuarioCreado(ctx, user.UserID, user.RoleID); err != nil {
-			slog.Error("user_service: failed to enqueue UsuarioCreado event", "user_id", user.UserID, "error", err)
-		}
-		if err := s.producer.EmailSolicitado(ctx, "app-"+user.UserID, user.UserID, "cuenta_aprobada"); err != nil {
-			slog.Error("user_service: failed to enqueue account approved email", "user_id", user.UserID, "error", err)
-		}
-	}
+	s.enqueueUserCreatedEvents(ctx, user)
 
 	// Sincronizar stats de impacto y preferencias de notificaciones
 	NewKVSyncService(s.userRepo).SyncImpactStatsAsync()
