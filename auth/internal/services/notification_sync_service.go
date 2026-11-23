@@ -19,6 +19,8 @@ import (
 	"google.golang.org/grpc/credentials/insecure"
 )
 
+const bearerPrefix = "Bearer "
+
 type NotificationSyncService interface {
 	InitUserPreferencesAsync(userID string)
 }
@@ -101,9 +103,9 @@ func (s *notificationSyncService) performInitHTTP(baseURL, userID string) {
 	// internal HS256 service token in X-Service-Authorization and
 	// X-Forwarded-Authorization so the receiving middleware authenticates role_dev.
 	if tok, err := serviceToken(os.Getenv("JWT_SECRET")); err == nil && tok != "" {
-		req.Header.Set("Authorization", "Bearer "+tok)
-		req.Header.Set("X-Service-Authorization", "Bearer "+tok)
-		req.Header.Set("X-Forwarded-Authorization", "Bearer "+tok)
+		req.Header.Set("Authorization", bearerPrefix+tok)
+		req.Header.Set("X-Service-Authorization", bearerPrefix+tok)
+		req.Header.Set("X-Forwarded-Authorization", bearerPrefix+tok)
 	}
 	if strings.EqualFold(strings.TrimSpace(os.Getenv("UPSTREAM_ID_TOKEN")), "true") {
 		ts, err := idtoken.NewTokenSource(ctx, baseURL)
@@ -112,8 +114,8 @@ func (s *notificationSyncService) performInitHTTP(baseURL, userID string) {
 		} else if tok, err := ts.Token(); err != nil {
 			slog.Warn("notification_sync: failed to mint idtoken", "error", err, "target", baseURL)
 		} else if tok.AccessToken != "" {
-			req.Header.Set("Authorization", "Bearer "+tok.AccessToken)
-			req.Header.Set("X-Serverless-Authorization", "Bearer "+tok.AccessToken)
+			req.Header.Set("Authorization", bearerPrefix+tok.AccessToken)
+			req.Header.Set("X-Serverless-Authorization", bearerPrefix+tok.AccessToken)
 		}
 	}
 

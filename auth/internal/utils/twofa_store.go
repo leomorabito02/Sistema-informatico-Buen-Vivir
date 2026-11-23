@@ -14,6 +14,11 @@ import (
 	"gorm.io/gorm"
 )
 
+const (
+	whereNonceActive = "nonce = ? AND expires_at > ?"
+	whereNonce       = "nonce = ?"
+)
+
 // TwofaChallenge represents an ongoing 2FA verification attempt during login or setup.
 type TwofaChallenge struct {
 	Nonce     string
@@ -153,7 +158,7 @@ func (s *TwofaStore) CreateChallenge(email string, userIDs []string, method, cod
 func (s *TwofaStore) GetChallenge(nonce string) (*TwofaChallenge, bool) {
 	if db := s.getDB(); db != nil {
 		var rec models.TwofaChallengeRecord
-		err := db.Where("nonce = ? AND expires_at > ?", nonce, time.Now()).Take(&rec).Error
+		err := db.Where(whereNonceActive, nonce, time.Now()).Take(&rec).Error
 		if err != nil {
 			if !errors.Is(err, gorm.ErrRecordNotFound) {
 				slog.Error("twofa_store: failed to get challenge", "error", err)
@@ -217,7 +222,7 @@ func (s *TwofaStore) RecordFailedAttempt(nonce string) (attemptsLeft int, locked
 		locked = true
 		err := db.Transaction(func(tx *gorm.DB) error {
 			var rec models.TwofaChallengeRecord
-			if err := tx.Where("nonce = ?", nonce).Take(&rec).Error; err != nil {
+			if err := tx.Where(whereNonce, nonce).Take(&rec).Error; err != nil {
 				if errors.Is(err, gorm.ErrRecordNotFound) {
 					attemptsLeft = 0
 					locked = true
@@ -227,14 +232,14 @@ func (s *TwofaStore) RecordFailedAttempt(nonce string) (attemptsLeft int, locked
 			}
 			rec.Attempts++
 			if rec.Attempts >= 5 {
-				if err := tx.Where("nonce = ?", nonce).Delete(&models.TwofaChallengeRecord{}).Error; err != nil {
+				if err := tx.Where(whereNonce, nonce).Delete(&models.TwofaChallengeRecord{}).Error; err != nil {
 					return err
 				}
 				attemptsLeft = 0
 				locked = true
 				return nil
 			}
-			if err := tx.Model(&models.TwofaChallengeRecord{}).Where("nonce = ?", nonce).Update("attempts", rec.Attempts).Error; err != nil {
+			if err := tx.Model(&models.TwofaChallengeRecord{}).Where(whereNonce, nonce).Update("attempts", rec.Attempts).Error; err != nil {
 				return err
 			}
 			attemptsLeft = 5 - rec.Attempts
@@ -271,13 +276,13 @@ func (s *TwofaStore) ConsumeChallenge(nonce string) (*TwofaChallenge, bool) {
 		var ok bool
 		err := db.Transaction(func(tx *gorm.DB) error {
 			var rec models.TwofaChallengeRecord
-			if err := tx.Where("nonce = ? AND expires_at > ?", nonce, time.Now()).Take(&rec).Error; err != nil {
+			if err := tx.Where(whereNonceActive, nonce, time.Now()).Take(&rec).Error; err != nil {
 				if errors.Is(err, gorm.ErrRecordNotFound) {
 					return nil
 				}
 				return err
 			}
-			if err := tx.Where("nonce = ?", nonce).Delete(&models.TwofaChallengeRecord{}).Error; err != nil {
+			if err := tx.Where(whereNonce, nonce).Delete(&models.TwofaChallengeRecord{}).Error; err != nil {
 				return err
 			}
 			consumed = recordToChallenge(&rec)
@@ -309,7 +314,7 @@ func (s *TwofaStore) UpdateCode(nonce, newCode string, ttl time.Duration) bool {
 	if db := s.getDB(); db != nil {
 		now := time.Now()
 		res := db.Model(&models.TwofaChallengeRecord{}).
-			Where("nonce = ? AND expires_at > ?", nonce, now).
+			Where(whereNonceActive, nonce, now).
 			Updates(map[string]any{
 				"code":       newCode,
 				"expires_at": now.Add(ttl),

@@ -23,6 +23,7 @@ import (
 const (
 	defaultAuthTimeout    = 5 * time.Second
 	internalUsersBasePath = "/api/v1/directory/internal/users/"
+	bearerPrefix          = "Bearer "
 )
 
 // RecipientContact represents contact details for a campaign recipient.
@@ -281,17 +282,17 @@ func (h *httpAuthClient) doRequest(ctx context.Context, method, path string, bod
 	}
 	if h.jwtSecret != "" {
 		if tok, err := signServiceJWT(h.jwtSecret, "notifications-service"); err == nil && tok != "" {
-			req.Header.Set("Authorization", "Bearer "+tok)
-			req.Header.Set("X-Service-Authorization", "Bearer "+tok)
-			req.Header.Set("X-Forwarded-Authorization", "Bearer "+tok)
+			req.Header.Set("Authorization", bearerPrefix+tok)
+			req.Header.Set("X-Service-Authorization", bearerPrefix+tok)
+			req.Header.Set("X-Forwarded-Authorization", bearerPrefix+tok)
 		}
 	}
 	// Cloud Run IAM validates the GCP OIDC ID token in Authorization; AuthMiddleware
 	// reads X-Service-Authorization / X-Forwarded-Authorization for the internal HS256 JWT.
 	if h.idToken != nil {
 		if tok, err := h.idToken(callCtx); err == nil && tok != "" {
-			req.Header.Set("Authorization", "Bearer "+tok)
-			req.Header.Set("X-Serverless-Authorization", "Bearer "+tok)
+			req.Header.Set("Authorization", bearerPrefix+tok)
+			req.Header.Set("X-Serverless-Authorization", bearerPrefix+tok)
 		} else if err != nil {
 			slog.Warn("auth_client: failed to mint upstream id token", "error", err, "path", path)
 		}

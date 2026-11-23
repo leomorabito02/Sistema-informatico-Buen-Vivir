@@ -35,22 +35,7 @@ func AuthHeaders(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		jwtSecret := strings.TrimSpace(os.Getenv("JWT_SECRET"))
 		rawToken := extractRequestToken(r)
-
-		var userID, roleID string
-		if jwtSecret != "" {
-			if rawToken != "" {
-				if sub, role, ok := parseHS256AccessToken(rawToken, jwtSecret); ok {
-					userID, roleID = sub, role
-				}
-			}
-		} else {
-			userID = strings.TrimSpace(r.Header.Get("X-User-ID"))
-			roleID = strings.TrimSpace(r.Header.Get("X-User-Role"))
-			// Tests y desarrollo sin gateway: token crudo como user id.
-			if userID == "" && rawToken != "" {
-				userID = rawToken
-			}
-		}
+		userID, roleID := resolveIdentity(r, jwtSecret, rawToken)
 
 		if userID == "" {
 			w.Header().Set("Content-Type", "application/json")
@@ -69,6 +54,26 @@ func AuthHeaders(next http.Handler) http.Handler {
 
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
+}
+
+func resolveIdentity(r *http.Request, jwtSecret, rawToken string) (string, string) {
+	if jwtSecret != "" {
+		if rawToken == "" {
+			return "", ""
+		}
+		sub, role, ok := parseHS256AccessToken(rawToken, jwtSecret)
+		if !ok {
+			return "", ""
+		}
+		return sub, role
+	}
+	userID := strings.TrimSpace(r.Header.Get("X-User-ID"))
+	roleID := strings.TrimSpace(r.Header.Get("X-User-Role"))
+	// Tests y desarrollo sin gateway: token crudo como user id.
+	if userID == "" && rawToken != "" {
+		userID = rawToken
+	}
+	return userID, roleID
 }
 
 func extractRequestToken(r *http.Request) string {
