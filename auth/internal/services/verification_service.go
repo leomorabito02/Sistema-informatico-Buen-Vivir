@@ -155,10 +155,7 @@ func (s *verificationService) IssueActionLink(ctx context.Context, requestID, us
 		return "", fmt.Errorf("error guardando token de verificación: %w", err)
 	}
 
-	frontendURL := strings.TrimSpace(os.Getenv("FRONTEND_URL"))
-	if frontendURL == "" {
-		frontendURL = "https://ceibuenvivir.org"
-	}
+	frontendURL := utils.ResolveFrontendURL()
 	verifyPath := strings.TrimSpace(os.Getenv("EMAIL_VERIFICATION_PATH"))
 	if verifyPath == "" {
 		verifyPath = "/verify-email"

@@ -118,11 +118,8 @@ func (s *userService) CreateUser(ctx context.Context, req *dto.CreateUserRequest
 		if err := s.producer.UsuarioCreado(ctx, user.UserID, user.RoleID); err != nil {
 			slog.Error("user_service: failed to enqueue UsuarioCreado event", "user_id", user.UserID, "error", err)
 		}
-	}
-
-	if s.verificationService != nil {
-		if err := s.verificationService.GenerateAndSendVerification(ctx, user); err != nil {
-			slog.Error("user_service: failed to enqueue verification email", "user_id", user.UserID, "error", err)
+		if err := s.producer.EmailSolicitado(ctx, "app-"+user.UserID, user.UserID, "cuenta_aprobada"); err != nil {
+			slog.Error("user_service: failed to enqueue account approved email", "user_id", user.UserID, "error", err)
 		}
 	}
 

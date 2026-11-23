@@ -168,10 +168,7 @@ func (s *passwordRecoveryService) IssueActionLink(ctx context.Context, requestID
 		return "", fmt.Errorf("error guardando solicitud de recuperación: %w", err)
 	}
 
-	frontendURL := strings.TrimSpace(os.Getenv("FRONTEND_URL"))
-	if frontendURL == "" {
-		frontendURL = "https://ceibuenvivir.org"
-	}
+	frontendURL := utils.ResolveFrontendURL()
 	resetPath := strings.TrimSpace(os.Getenv("RESET_PASSWORD_PATH"))
 	if resetPath == "" {
 		resetPath = "/change-password"

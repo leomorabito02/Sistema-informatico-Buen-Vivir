@@ -221,11 +221,7 @@ services:
       - GRPC_PORT=50052
       - AUTH_GRPC_URL=auth-service:50051
       - PUBSUB_PUSH_AUTH=disabled
-      - FRONTEND_URL=http://localhost:4200
-      # Firestore (default) es la misma base que usa testing: si este
-      # contenedor envía los pendientes, los mails de testing salen con
-      # enlaces a localhost. Los envíos los hace testing (22/11/2026).
-      - DELIVERY_WORKER_ENABLED=false
+      - DELIVERY_WORKER_ENABLED=${DELIVERY_WORKER_ENABLED:-true}
       - FIREBASE_PROJECT_ID=ceibuenvivir
       - METRICS_ENABLED=true
     depends_on:
