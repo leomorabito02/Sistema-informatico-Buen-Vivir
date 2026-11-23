@@ -69,26 +69,37 @@
 
   <div class="grid-container" *ngIf="!cargando && !error && campaigns.length">
     <article *ngFor="let c of campaigns" class="campana-card">
-      <img
-        [src]="c.imagen_url"
-        [alt]="c.titulo"
-        class="campana-img"
-        loading="lazy"
-        (error)="onImageError($event)"
-      />
-      <div class="campana-body">
-        <div class="campana-cabecera">
-          <h2 class="campana-titulo">{{ c.titulo }}</h2>
-          <p-tag
-            [value]="c.estado === 'publicada' ? 'Publicada' : 'Borrador'"
-            [severity]="c.estado === 'publicada' ? 'success' : 'secondary'"
-          ></p-tag>
+      <div
+        class="campana-seleccionable"
+        role="button"
+        tabindex="0"
+        [attr.aria-label]="'Ver detalle de ' + c.titulo"
+        (click)="verDetalle(c)"
+        (keydown.enter)="verDetalle(c)"
+        (keydown.space)="$event.preventDefault(); verDetalle(c)"
+      >
+        <img
+          [src]="c.imagen_url"
+          [alt]="c.titulo"
+          class="campana-img"
+          loading="lazy"
+          (error)="onImageError($event)"
+        />
+        <div class="campana-body">
+          <div class="campana-cabecera">
+            <h2 class="campana-titulo">{{ c.titulo }}</h2>
+            <p-tag
+              [value]="c.estado === 'publicada' ? 'Publicada' : 'Borrador'"
+              [severity]="c.estado === 'publicada' ? 'success' : 'secondary'"
+            ></p-tag>
+          </div>
+          <p class="campana-fecha">
+            <i class="pi pi-calendar" aria-hidden="true"></i>
+            {{ fechaDMY(c.fecha) }}
+          </p>
+          <p class="campana-texto">{{ c.texto }}</p>
+          <span class="campana-ver-mas">Ver detalle</span>
         </div>
-        <p class="campana-fecha">
-          <i class="pi pi-calendar" aria-hidden="true"></i>
-          {{ fechaDMY(c.fecha) }}
-        </p>
-        <p class="campana-texto">{{ c.texto }}</p>
       </div>
       <div class="card-footer-buttons">
         <p-button
@@ -121,6 +132,47 @@
     </article>
   </div>
 </div>
+
+<p-dialog
+  [(visible)]="detalleVisible"
+  [modal]="true"
+  [dismissableMask]="true"
+  [style]="{ width: '720px' }"
+  [breakpoints]="{ '760px': '95vw' }"
+  [header]="seleccionada?.titulo ?? ''"
+>
+  <div *ngIf="seleccionada as s" class="detalle">
+    <img
+      [src]="s.imagen_url"
+      [alt]="s.titulo"
+      class="detalle-img"
+      (error)="onImageError($event)"
+    />
+    <div class="detalle-meta">
+      <p-tag
+        [value]="s.estado === 'publicada' ? 'Publicada' : 'Borrador'"
+        [severity]="s.estado === 'publicada' ? 'success' : 'secondary'"
+      ></p-tag>
+      <span class="campana-fecha">
+        <i class="pi pi-calendar" aria-hidden="true"></i>
+        {{ fechaDMY(s.fecha) }}
+      </span>
+    </div>
+    <p class="detalle-texto">{{ s.texto }}</p>
+  </div>
+  <ng-template pTemplate="footer">
+    <p-button
+      label="Cerrar"
+      [text]="true"
+      (onClick)="detalleVisible = false"
+    ></p-button>
+    <p-button
+      label="Editar"
+      icon="pi pi-pencil"
+      (onClick)="editarDesdeDetalle()"
+    ></p-button>
+  </ng-template>
+</p-dialog>
 
 <p-dialog
   [(visible)]="dialogo"

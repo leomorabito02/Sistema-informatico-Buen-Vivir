@@ -59,6 +59,25 @@ describe("CampanasComponent", () => {
     expect(tarjetas[1].textContent).not.toContain("Publicar");
   });
 
+  it("al seleccionar una campaña muestra su detalle y deja editarla", () => {
+    crear();
+    const el: HTMLElement = fixture.nativeElement;
+    const tarjeta = el.querySelector(".campana-seleccionable") as HTMLElement;
+    tarjeta.click();
+    fixture.detectChanges();
+
+    expect(component.detalleVisible).toBeTrue();
+    expect(component.seleccionada).toEqual(borrador);
+    const detalle = document.querySelector(".detalle") as HTMLElement;
+    expect(detalle.textContent).toContain("Traé tus botellas.");
+    expect(detalle.textContent).toContain("05/11/2026");
+
+    component.editarDesdeDetalle();
+    expect(component.detalleVisible).toBeFalse();
+    expect(component.dialogo).toBeTrue();
+    expect(component.editandoId).toBe("c1");
+  });
+
   it("muestra el estado vacío y el error del servicio", () => {
     crear([]);
     expect(fixture.nativeElement.textContent).toContain(

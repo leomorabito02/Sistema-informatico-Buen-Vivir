@@ -149,6 +149,10 @@
 .tarjeta-texto {
   margin: 0;
   white-space: pre-line;
+  display: -webkit-box;
+  -webkit-line-clamp: 4;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
 .sr-only {
@@ -159,22 +163,94 @@
   clip: rect(0 0 0 0);
 }
 
-.tarjeta-comentarios {
-  margin-top: 0.75rem;
-  background: none;
-  border: none;
-  padding: 0;
-  color: var(--primary);
-  font: inherit;
-  font-size: var(--font-size-sm);
-  font-weight: 600;
+.tarjeta {
   cursor: pointer;
-  text-decoration: underline;
+  transition:
+    box-shadow 0.15s,
+    transform 0.15s;
 }
 
-.tarjeta-comentarios:focus-visible {
+.tarjeta:hover {
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.08);
+  transform: translateY(-2px);
+}
+
+.tarjeta:focus-visible {
   outline: 2px solid var(--primary);
   outline-offset: 2px;
+}
+
+.tarjeta-ver-mas {
+  display: inline-block;
+  margin-top: 0.75rem;
+  color: var(--primary);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+}
+
+.detalle-fondo {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  background: rgba(0, 0, 0, 0.55);
+}
+
+.detalle {
+  position: relative;
+  width: 100%;
+  max-width: 720px;
+  max-height: 90vh;
+  overflow-y: auto;
+  background: #fff;
+  border-radius: 0.75rem;
+}
+
+.detalle-cerrar {
+  position: absolute;
+  top: 0.75rem;
+  right: 0.75rem;
+  display: flex;
+  padding: 0.4rem;
+  border: none;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.9);
+  cursor: pointer;
+}
+
+.detalle-cerrar:focus-visible {
+  outline: 2px solid var(--primary);
+}
+
+.detalle-img {
+  width: 100%;
+  max-height: 360px;
+  object-fit: cover;
+  display: block;
+  background: var(--muted, #f2f2ee);
+}
+
+.detalle-body {
+  padding: 1.25rem 1.5rem 1.5rem;
+}
+
+.detalle-titulo {
+  margin: 0 0 0.5rem;
+  font-size: 1.5rem;
+}
+
+.detalle-texto {
+  margin: 0;
+  white-space: pre-line;
+  line-height: 1.6;
+}
+
+.detalle-subtitulo {
+  margin: 1.5rem 0 0.75rem;
+  font-size: var(--font-size-lg);
 }
 
 .ver-mas {

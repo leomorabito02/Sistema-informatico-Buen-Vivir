@@ -69,6 +69,56 @@
   overflow: hidden;
 }
 
+.campana-seleccionable {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  cursor: pointer;
+  transition: background-color 0.15s;
+}
+
+.campana-seleccionable:hover {
+  background: var(--muted, #f2f2ee);
+}
+
+.campana-seleccionable:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: -2px;
+}
+
+.campana-ver-mas {
+  display: inline-block;
+  margin-top: 0.5rem;
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  color: var(--primary);
+}
+
+.detalle-img {
+  width: 100%;
+  max-height: 360px;
+  object-fit: cover;
+  border-radius: 0.5rem;
+  background: var(--muted, #f2f2ee);
+}
+
+.detalle-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin: 1rem 0 0.75rem;
+}
+
+.detalle-meta .campana-fecha {
+  margin: 0;
+}
+
+.detalle-texto {
+  margin: 0;
+  white-space: pre-line;
+  line-height: 1.6;
+}
+
 .card-footer-buttons {
   display: flex;
   gap: 0.5rem;

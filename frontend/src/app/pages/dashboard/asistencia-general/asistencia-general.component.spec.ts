@@ -49,7 +49,7 @@ describe("AsistenciaGeneralComponent", () => {
     expect(component.loading).toBeFalse();
     expect(component.rows.map((r) => r.nombreCompleto)).toEqual([
       "Ana Paz",
-      "p3",
+      "Participante sin nombre",
       "Zoe Ríos",
     ]);
     expect(component.rows[2].observacion).toBe("tarde");

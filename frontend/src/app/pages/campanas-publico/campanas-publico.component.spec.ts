@@ -67,7 +67,7 @@ describe("CampanasPublicoComponent", () => {
     expect(el.textContent).toContain("21/09/2026");
   }));
 
-  it("abre los comentarios de una campaña recién al pedirlos (HU-24)", fakeAsync(() => {
+  it("al seleccionar una campaña abre su detalle con los comentarios (HU-24)", fakeAsync(() => {
     service.publicasPagina.and.returnValue(
       of({ items: [campana], total: [campana].length }),
     );
@@ -75,12 +75,34 @@ describe("CampanasPublicoComponent", () => {
     tick(300);
     fixture.detectChanges();
     const el: HTMLElement = fixture.nativeElement;
+    expect(el.querySelector(".detalle")).toBeNull();
     expect(el.querySelector("app-comentarios")).toBeNull();
 
-    (el.querySelector(".tarjeta-comentarios") as HTMLButtonElement).click();
+    (el.querySelector(".tarjeta") as HTMLElement).click();
     fixture.detectChanges();
-    expect(el.querySelector("app-comentarios")).not.toBeNull();
-    expect(el.textContent).toContain("Ocultar comentarios");
+    const detalle = el.querySelector(".detalle") as HTMLElement;
+    expect(detalle.textContent).toContain("Campaña del árbol");
+    expect(detalle.textContent).toContain("Plantamos 50 árboles.");
+    expect(detalle.querySelector("app-comentarios")).not.toBeNull();
+
+    (el.querySelector(".detalle-cerrar") as HTMLButtonElement).click();
+    fixture.detectChanges();
+    expect(el.querySelector(".detalle")).toBeNull();
+  }));
+
+  it("cierra el detalle con Escape", fakeAsync(() => {
+    service.publicasPagina.and.returnValue(
+      of({ items: [campana], total: [campana].length }),
+    );
+    crear();
+    tick(300);
+    const component = fixture.componentInstance;
+    component.verDetalle(campana);
+    fixture.detectChanges();
+
+    document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape" }));
+    fixture.detectChanges();
+    expect(component.seleccionada).toBeNull();
   }));
 
   it("busca por título esperando a que se deje de escribir", fakeAsync(() => {
