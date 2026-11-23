@@ -130,6 +130,7 @@ func (w *outboxWorker) processSingleEvent(ctx context.Context, event models.Outb
 	if err := w.repo.MarkCompleted(ctx, event.ID); err != nil {
 		slog.Error("Failed to mark outbox event as completed", "id", event.ID, "error", err)
 	}
+	slog.Info("Outbox event published", "id", event.ID, "topic", event.Topic, "type", event.EventType)
 	return true
 }
 
