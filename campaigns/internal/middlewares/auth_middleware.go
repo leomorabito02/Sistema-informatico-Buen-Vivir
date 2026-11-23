@@ -21,9 +21,28 @@ type JWTService interface {
 	ValidateToken(tokenString string) (jwt.MapClaims, error)
 }
 
-// AuthMiddleware verifica el token JWT (cookie "__Host-access_token" o
-// header Authorization) y deja el usuario y su rol en el contexto, con
-// el mismo criterio que human-promotion.
+// extractBearerToken reads the JWT from cookie, X-Forwarded-Authorization (set by API Gateway), or Authorization.
+func extractBearerToken(r *http.Request) (string, string) {
+	if cookie, err := r.Cookie("__Host-access_token"); err == nil && cookie.Value != "" {
+		return cookie.Value, ""
+	}
+	for _, header := range []string{"X-Forwarded-Authorization", "Authorization"} {
+		authHeader := r.Header.Get(header)
+		if authHeader == "" {
+			continue
+		}
+		parts := strings.Split(authHeader, " ")
+		if len(parts) != 2 || parts[0] != "Bearer" {
+			return "", "Invalid token format"
+		}
+		return parts[1], ""
+	}
+	return "", "Unauthorized: missing token"
+}
+
+// AuthMiddleware verifica el token JWT (cookie "__Host-access_token",
+// X-Forwarded-Authorization o Authorization) y deja el usuario y su rol en el
+// contexto, con el mismo criterio que auth y notifications.
 func AuthMiddleware(jwtService JWTService) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -32,21 +51,10 @@ func AuthMiddleware(jwtService JWTService) func(http.Handler) http.Handler {
 				return
 			}
 
-			var tokenString string
-			if cookie, err := r.Cookie("__Host-access_token"); err == nil && cookie.Value != "" {
-				tokenString = cookie.Value
-			} else {
-				authHeader := r.Header.Get("Authorization")
-				if authHeader == "" {
-					http.Error(w, "Unauthorized: missing token", http.StatusUnauthorized)
-					return
-				}
-				parts := strings.Split(authHeader, " ")
-				if len(parts) != 2 || parts[0] != "Bearer" {
-					http.Error(w, "Invalid token format", http.StatusUnauthorized)
-					return
-				}
-				tokenString = parts[1]
+			tokenString, errMsg := extractBearerToken(r)
+			if errMsg != "" {
+				http.Error(w, errMsg, http.StatusUnauthorized)
+				return
 			}
 
 			claims, err := jwtService.ValidateToken(tokenString)

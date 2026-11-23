@@ -131,3 +131,22 @@ func TestSetupMiddlewares_CORSYLimiteDePedidos(t *testing.T) {
 		t.Errorf("el pedido 101 debía dar 429, dio %d", codigo)
 	}
 }
+
+func TestAuthMiddleware_XForwardedAuthorization(t *testing.T) {
+	// Arrange
+	h := AuthMiddleware(jwtFalso{jwt.MapClaims{"sub": "u-gw", "role": "role_participant"}})(eco)
+
+	// Act
+	rec := pedido(h, func(req *http.Request) {
+		req.Header.Set("Authorization", "Bearer google-oidc-token")
+		req.Header.Set("X-Forwarded-Authorization", "Bearer valido")
+	})
+
+	// Assert
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected 200 OK via X-Forwarded-Authorization, got %d", rec.Code)
+	}
+	if rec.Header().Get("X-Usuario") != "u-gw" || rec.Header().Get("X-Rol") != "role_participant" {
+		t.Errorf("unexpected context claims: user=%q role=%q", rec.Header().Get("X-Usuario"), rec.Header().Get("X-Rol"))
+	}
+}

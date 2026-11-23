@@ -366,8 +366,10 @@ func main() {
 			ok++
 		case "FALLA":
 			falla++
+			fmt.Fprintf(os.Stderr, "[FALLA] (%s) %s — %s %s: esperaba %v, obtuvo %d %s\n", c.Grupo, c.Nombre, c.Metodo, c.URL, c.Espera, c.Obtuvo, c.Nota)
 		default:
 			errores++
+			fmt.Fprintf(os.Stderr, "[ERROR] (%s) %s — %s %s: %s\n", c.Grupo, c.Nombre, c.Metodo, c.URL, c.Nota)
 		}
 	}
 	out := map[string]any{
