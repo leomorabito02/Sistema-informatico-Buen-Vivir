@@ -21,6 +21,7 @@ type Enrollment struct {
 	Nombre      string `json:"nombre,omitempty" firestore:"-"`
 	Apellido    string `json:"apellido,omitempty" firestore:"-"`
 	CourseTitle string `json:"courseTitle,omitempty" firestore:"-"`
+	TeacherID   string `json:"-" firestore:"-"`
 }
 
 // MotivoBajaParticipanteEliminado es el motivo que se guarda cuando la

@@ -99,24 +99,30 @@ func (s *notificationSyncService) performInitHTTP(baseURL, userID string) {
 
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("X-User-ID", userID)
+	useUpstreamIDToken := strings.EqualFold(strings.TrimSpace(os.Getenv("UPSTREAM_ID_TOKEN")), "true")
 	// Cloud Run IAM requires the GCP OIDC ID token in Authorization; keep the
 	// internal HS256 service token in X-Service-Authorization and
 	// X-Forwarded-Authorization so the receiving middleware authenticates role_dev.
 	if tok, err := serviceToken(os.Getenv("JWT_SECRET")); err == nil && tok != "" {
-		req.Header.Set("Authorization", bearerPrefix+tok)
 		req.Header.Set("X-Service-Authorization", bearerPrefix+tok)
 		req.Header.Set("X-Forwarded-Authorization", bearerPrefix+tok)
+		if !useUpstreamIDToken {
+			req.Header.Set("Authorization", bearerPrefix+tok)
+		}
 	}
-	if strings.EqualFold(strings.TrimSpace(os.Getenv("UPSTREAM_ID_TOKEN")), "true") {
+	if useUpstreamIDToken {
 		ts, err := idtoken.NewTokenSource(ctx, baseURL)
 		if err != nil {
-			slog.Warn("notification_sync: failed to create idtoken source", "error", err, "target", baseURL)
-		} else if tok, err := ts.Token(); err != nil {
-			slog.Warn("notification_sync: failed to mint idtoken", "error", err, "target", baseURL)
-		} else if tok.AccessToken != "" {
-			req.Header.Set("Authorization", bearerPrefix+tok.AccessToken)
-			req.Header.Set("X-Serverless-Authorization", bearerPrefix+tok.AccessToken)
+			slog.Warn("notification_sync: failed to create idtoken source, skipping request", "error", err, "target", baseURL, "user_id", userID)
+			return
 		}
+		tok, err := ts.Token()
+		if err != nil || tok.AccessToken == "" {
+			slog.Warn("notification_sync: failed to mint idtoken, skipping request", "error", err, "target", baseURL, "user_id", userID)
+			return
+		}
+		req.Header.Set("Authorization", bearerPrefix+tok.AccessToken)
+		req.Header.Set("X-Serverless-Authorization", bearerPrefix+tok.AccessToken)
 	}
 
 	resp, err := s.client.Do(req)

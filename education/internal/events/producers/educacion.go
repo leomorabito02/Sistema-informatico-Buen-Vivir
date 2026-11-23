@@ -93,9 +93,18 @@ func (p *Educacion) ContenidoDocenteSubido(ctx context.Context, c *models.Course
 }
 
 // ContenidoDocenteModerado: la administración publicó (aprobó) un curso.
-func (p *Educacion) ContenidoDocenteModerado(ctx context.Context, cursoID, resultado string) error {
+// docenteID es opcional para mantener compatibilidad con tests/llamadores previos;
+// cuando está presente permite que Notificaciones avise al docente responsable.
+func (p *Educacion) ContenidoDocenteModerado(ctx context.Context, cursoID, resultado string, docenteID ...string) error {
+	docente := ""
+	if len(docenteID) > 0 {
+		docente = docenteID[0]
+	}
 	return p.emit(ctx, nil, p.event(events.ContenidoDocenteModerado, events.ContenidoDocenteModeradoPayload{
-		CursoID: cursoID, Resultado: resultado,
+		CursoID:   cursoID,
+		DocenteID: docente,
+		Tipo:      events.ContenidoTipoCurso,
+		Resultado: resultado,
 	}, ""))
 }
 
@@ -134,6 +143,7 @@ func (p *Educacion) InscripcionCreada(ctx context.Context, tx *firestore.Transac
 		InscripcionID:    e.ID,
 		CursoID:          e.CursoID,
 		ParticipanteID:   e.ParticipanteID,
+		DocenteID:        e.TeacherID,
 		Titulo:           e.CourseTitle,
 		FechaInscripcion: e.FechaInscripcion,
 	}, e.ParticipanteID))

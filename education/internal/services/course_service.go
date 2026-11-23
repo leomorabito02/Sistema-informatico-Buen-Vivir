@@ -250,7 +250,14 @@ func (s *courseService) PublishCourse(ctx context.Context, id string) error {
 		// Publicar es la moderación editorial del curso: lo aprueba para
 		// el catálogo (HU-23). No existe todavía un "rechazo" explícito.
 		s.publish(ctx, events.ContenidoDocenteModerado, id, func() error {
-			return s.events.ContenidoDocenteModerado(ctx, id, events.ModeracionAprobado)
+			if !s.events.Enabled() {
+				return nil
+			}
+			docenteID := ""
+			if course, getErr := s.repo.Get(ctx, id); getErr == nil && course != nil {
+				docenteID = course.ResponsibleTeacher
+			}
+			return s.events.ContenidoDocenteModerado(ctx, id, events.ModeracionAprobado, docenteID)
 		})
 	}
 	return err
