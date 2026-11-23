@@ -17,6 +17,7 @@ import (
 	"auth/internal/repositories"
 	"auth/internal/services"
 	"auth/internal/storage"
+	"auth/internal/utils"
 	"context"
 	"google.golang.org/grpc"
 	"net"
@@ -37,6 +38,7 @@ func main() {
 		slog.Error("Database initialization failed", "error", err)
 		os.Exit(1)
 	}
+	utils.GetTwofaStore().SetDB(db)
 
 	// 3. Setup Repositories
 	userRepo := repositories.NewUserRepository(db)

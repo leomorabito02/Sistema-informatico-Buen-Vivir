@@ -4,8 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"os"
-	"strings"
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -14,6 +12,7 @@ import (
 	"auth/internal/middlewares"
 	"auth/internal/repositories"
 	"auth/internal/services"
+	"auth/internal/utils"
 )
 
 // serviceCtx marca una llamada gRPC como interna entre servicios. En gRPC no
@@ -342,11 +341,7 @@ func (c *GrpcAuthController) issueTwoFactorCode(ctx context.Context, userID stri
 }
 
 func resolveAccountApprovedURL() string {
-	frontendURL := strings.TrimSpace(os.Getenv("FRONTEND_URL"))
-	if frontendURL == "" {
-		frontendURL = "https://ceibuenvivir.org"
-	}
-	return fmt.Sprintf("%s/login", strings.TrimRight(frontendURL, "/"))
+	return fmt.Sprintf("%s/login", utils.ResolveFrontendURL())
 }
 
 func (c *GrpcAuthController) ListParticipants(ctx context.Context, _ *authpb.ListParticipantsRequest) (*authpb.ListParticipantsResponse, error) {

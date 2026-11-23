@@ -79,7 +79,7 @@ type templateEngine struct {
 }
 
 func NewTemplateEngine() (TemplateEngine, error) {
-	parsed, err := template.New("emails").Funcs(funcionesMarca).ParseFS(emailTemplatesFS, "email/*.html")
+	parsed, err := template.New("").Funcs(funcionesMarca).ParseFS(emailTemplatesFS, "email/*.html")
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse embedded email templates: %w", err)
 	}

@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log/slog"
 	"strings"
 	"time"
 
@@ -114,10 +115,12 @@ func (s *userService) CreateUser(ctx context.Context, req *dto.CreateUserRequest
 	}
 
 	if s.producer != nil {
-		_ = s.producer.UsuarioCreado(ctx, user.UserID, user.RoleID)
-		// Mismo mail que cuando el admin aprueba un registro: avisa que
-		// la cuenta está lista y trae el enlace para iniciar sesión.
-		_ = s.producer.EmailSolicitado(ctx, "app-"+user.UserID, user.UserID, "cuenta_aprobada")
+		if err := s.producer.UsuarioCreado(ctx, user.UserID, user.RoleID); err != nil {
+			slog.Error("user_service: failed to enqueue UsuarioCreado event", "user_id", user.UserID, "error", err)
+		}
+		if err := s.producer.EmailSolicitado(ctx, "app-"+user.UserID, user.UserID, "cuenta_aprobada"); err != nil {
+			slog.Error("user_service: failed to enqueue account approved email", "user_id", user.UserID, "error", err)
+		}
 	}
 
 	// Sincronizar stats de impacto y preferencias de notificaciones
@@ -345,7 +348,9 @@ func (s *userService) setApproval(ctx context.Context, id, status, emailTipo str
 		if status == "rejected" {
 			prefix = "rej-"
 		}
-		_ = s.producer.EmailSolicitado(ctx, prefix+user.UserID, user.UserID, emailTipo)
+		if err := s.producer.EmailSolicitado(ctx, prefix+user.UserID, user.UserID, emailTipo); err != nil {
+			slog.Error("user_service: failed to enqueue approval email", "user_id", user.UserID, "tipo", emailTipo, "error", err)
+		}
 	}
 
 	return dto.ToUserResponse(user), nil

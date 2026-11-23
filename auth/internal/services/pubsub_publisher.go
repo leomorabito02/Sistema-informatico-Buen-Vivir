@@ -44,6 +44,10 @@ func (p *PubSubPublisher) Publish(ctx context.Context, topic string, msg *pubsub
 
 	res := pub.Publish(ctx, msg)
 	_, err := res.Get(ctx)
+	if err != nil && msg != nil && msg.OrderingKey != "" {
+		// Pub/Sub v2 halts ordering key delivery on error until resumed.
+		pub.ResumePublish(msg.OrderingKey)
+	}
 	return err
 }
 

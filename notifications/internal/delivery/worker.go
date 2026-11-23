@@ -262,6 +262,15 @@ func (w *Worker) processRecipient(ctx context.Context, rec models.NotificationRe
 
 		backoffDuration := w.calculateBackoff(nextAttempt)
 		nextAttemptAt := w.Now().UTC().Add(backoffDuration)
+		w.logger.Warn("delivery worker: delivery attempt failed, scheduling retry",
+			slog.String("recipient_id", rec.RecipientID),
+			slog.String("user_id", rec.UserID),
+			slog.Int("attempt", nextAttempt),
+			slog.String("error", combinedErr),
+		)
+		if emailStatus == models.DeliveryStatusSent || pushStatus == models.DeliveryStatusSent {
+			_ = w.repo.UpdateDeliveryStatus(ctx, rec.RecipientID, emailStatus, pushStatus, emailMsgID, pushMsgID, &combinedErr)
+		}
 		return w.repo.UpdateRecipientRetry(ctx, rec.RecipientID, nextAttempt, nextAttemptAt, combinedErr)
 	}
 
@@ -296,7 +305,10 @@ func (w *Worker) deliverEmail(
 		return models.DeliveryStatusSkipped, nil, nil
 	}
 
-	toEmail, ok := w.resolveRecipientEmail(ctx, userID, isCritical, dataMap)
+	toEmail, ok, err := w.resolveRecipientEmail(ctx, userID, isCritical, dataMap)
+	if err != nil {
+		return models.DeliveryStatusFailed, nil, err
+	}
 	if !ok || toEmail == "" {
 		return models.DeliveryStatusSkipped, nil, nil
 	}
@@ -325,24 +337,34 @@ func (w *Worker) deliverEmail(
 	return models.DeliveryStatusSent, &msgID, nil
 }
 
-func (w *Worker) resolveRecipientEmail(ctx context.Context, userID string, isCritical bool, dataMap map[string]interface{}) (string, bool) {
+func (w *Worker) resolveRecipientEmail(ctx context.Context, userID string, isCritical bool, dataMap map[string]interface{}) (string, bool, error) {
 	if strings.Contains(userID, "@") {
-		return userID, true
+		return userID, true, nil
 	}
 	if w.authClient == nil {
-		return "", false
+		return "", false, nil
 	}
 	contact, err := w.authClient.GetUserContact(ctx, userID)
-	if err != nil || contact == nil || contact.Email == "" {
-		return "", false
+	if err != nil {
+		w.logger.Warn("delivery worker: failed to resolve recipient contact",
+			slog.String("user_id", userID),
+			slog.String("error", err.Error()),
+		)
+		return "", false, fmt.Errorf("failed to resolve recipient contact: %w", err)
+	}
+	if contact == nil || contact.Email == "" {
+		return "", false, nil
 	}
 	if !contact.IsEmailVerified && !isCritical {
-		return "", false
+		w.logger.Info("delivery worker: skipping non-critical email for unverified user",
+			slog.String("user_id", userID),
+		)
+		return "", false, nil
 	}
 	if _, hasName := dataMap["recipient_name"]; !hasName {
 		dataMap["recipient_name"] = strings.TrimSpace(contact.FirstName + " " + contact.LastName)
 	}
-	return contact.Email, true
+	return contact.Email, true, nil
 }
 
 func (w *Worker) resolveActionLink(ctx context.Context, notif *models.Notification, userID string, dataMap map[string]interface{}) error {

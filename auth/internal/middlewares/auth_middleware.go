@@ -31,17 +31,19 @@ func extractToken(r *http.Request) (string, int, string) {
 		return cookie.Value, 0, ""
 	}
 
-	authHeader := r.Header.Get("Authorization")
-	if authHeader == "" {
-		return "", http.StatusUnauthorized, "Unauthorized: missing token"
+	for _, header := range []string{"X-Service-Authorization", "X-Forwarded-Authorization", "Authorization"} {
+		authHeader := r.Header.Get(header)
+		if authHeader == "" {
+			continue
+		}
+		parts := strings.Split(authHeader, " ")
+		if len(parts) != 2 || parts[0] != "Bearer" {
+			return "", http.StatusUnauthorized, "Invalid token format"
+		}
+		return parts[1], 0, ""
 	}
 
-	parts := strings.Split(authHeader, " ")
-	if len(parts) != 2 || parts[0] != "Bearer" {
-		return "", http.StatusUnauthorized, "Invalid token format"
-	}
-
-	return parts[1], 0, ""
+	return "", http.StatusUnauthorized, "Unauthorized: missing token"
 }
 
 // extractContextFromClaims llena el contexto HTTP con los claims decodificados del JWT.

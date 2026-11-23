@@ -143,3 +143,49 @@ func TestServiceToken(t *testing.T) {
 		t.Fatalf("claims inesperados: %v", claims)
 	}
 }
+
+func TestNotificationSyncService_InitUserPreferencesAsync_SendsServiceHeaders(t *testing.T) {
+	// Arrange
+	var receivedAuth string
+	var receivedServiceAuth string
+	var receivedForwardedAuth string
+	var wg sync.WaitGroup
+	wg.Add(1)
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		defer wg.Done()
+		receivedAuth = r.Header.Get("Authorization")
+		receivedServiceAuth = r.Header.Get("X-Service-Authorization")
+		receivedForwardedAuth = r.Header.Get("X-Forwarded-Authorization")
+		w.WriteHeader(http.StatusCreated)
+	}))
+	defer server.Close()
+
+	t.Setenv("NOTIFICATIONS_SERVICE_URL", server.URL)
+	t.Setenv("JWT_SECRET", "test-s3cr3t")
+	t.Setenv("UPSTREAM_ID_TOKEN", "false")
+
+	svc := NewNotificationSyncService()
+
+	// Act
+	svc.InitUserPreferencesAsync("usr-s2s-123")
+
+	done := make(chan struct{})
+	go func() {
+		wg.Wait()
+		close(done)
+	}()
+	select {
+	case <-done:
+	case <-time.After(2 * time.Second):
+		t.Fatal("timed out waiting for async notification preference init")
+	}
+
+	// Assert
+	if receivedServiceAuth == "" || receivedForwardedAuth == "" || receivedAuth == "" {
+		t.Fatalf("expected service auth headers, got auth=%q svc=%q fwd=%q", receivedAuth, receivedServiceAuth, receivedForwardedAuth)
+	}
+	if receivedServiceAuth != receivedForwardedAuth {
+		t.Fatalf("expected matching X-Service-Authorization and X-Forwarded-Authorization headers")
+	}
+}

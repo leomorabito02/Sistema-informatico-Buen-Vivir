@@ -133,6 +133,7 @@ export class MiPerfilComponent implements OnInit {
   twofaLoading = false;
   twofaError = "";
   twofaSuccess = "";
+  twofaResentMessage = "";
   copiedSecret = false;
   deviceRevokedMessage = "";
 
@@ -1150,6 +1151,7 @@ export class MiPerfilComponent implements OnInit {
     this.twofaCode = "";
     this.twofaError = "";
     this.twofaSuccess = "";
+    this.twofaResentMessage = "";
     this.copiedSecret = false;
     this.showTwofaSetupModal = true;
   }
@@ -1158,11 +1160,13 @@ export class MiPerfilComponent implements OnInit {
     this.showTwofaSetupModal = false;
     this.twofaLoading = false;
     this.twofaError = "";
+    this.twofaResentMessage = "";
   }
 
   selectTwofaMethod(method: "email" | "totp"): void {
     this.twofaMethod = method;
     this.twofaError = "";
+    this.twofaResentMessage = "";
     this.twofaLoading = true;
 
     this.profileService.setupTwoFactor(method).subscribe({
@@ -1183,10 +1187,30 @@ export class MiPerfilComponent implements OnInit {
     });
   }
 
+  resendTwofaEmailCode(): void {
+    this.twofaError = "";
+    this.twofaResentMessage = "";
+    this.twofaLoading = true;
+
+    this.profileService.setupTwoFactor("email").subscribe({
+      next: () => {
+        this.twofaLoading = false;
+        this.twofaResentMessage =
+          "Se reenvió un nuevo código de 6 dígitos a tu correo.";
+      },
+      error: (err) => {
+        this.twofaLoading = false;
+        this.twofaError =
+          err.message || "Error al reenviar el código de verificación.";
+      },
+    });
+  }
+
   confirmEnableTwofa(): void {
     if (this.twofaCode?.trim().length !== 6) return;
     this.twofaLoading = true;
     this.twofaError = "";
+    this.twofaResentMessage = "";
 
     this.profileService
       .enableTwoFactor(this.twofaMethod, this.twofaCode.trim())

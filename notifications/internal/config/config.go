@@ -65,10 +65,7 @@ func LoadConfig() *Config {
 		resendFromAlerts = resendFromNotifications
 	}
 
-	frontendURL := strings.TrimSpace(os.Getenv("FRONTEND_URL"))
-	if frontendURL == "" {
-		frontendURL = "http://localhost:4200"
-	}
+	frontendURL := resolveFrontendURL(os.Getenv("FRONTEND_URL"), env)
 
 	return &Config{
 		Port:                      port,
@@ -88,6 +85,19 @@ func LoadConfig() *Config {
 		PubSubPushAuth:            strings.TrimSpace(os.Getenv("PUBSUB_PUSH_AUTH")),
 		FrontendURL:               frontendURL,
 		Environment:               env,
+	}
+}
+
+func resolveFrontendURL(raw, env string) string {
+	trimmed := strings.TrimRight(strings.TrimSpace(raw), "/")
+	if trimmed != "" && !strings.Contains(trimmed, "localhost") && !strings.Contains(trimmed, "127.0.0.1") {
+		return trimmed
+	}
+	switch strings.ToLower(strings.TrimSpace(env)) {
+	case "production", "prod":
+		return "https://ceibuenvivir.org"
+	default:
+		return "https://testing.ceibuenvivir.pages.dev"
 	}
 }
 

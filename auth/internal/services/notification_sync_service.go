@@ -19,6 +19,8 @@ import (
 	"google.golang.org/grpc/credentials/insecure"
 )
 
+const bearerPrefix = "Bearer "
+
 type NotificationSyncService interface {
 	InitUserPreferencesAsync(userID string)
 }
@@ -97,17 +99,23 @@ func (s *notificationSyncService) performInitHTTP(baseURL, userID string) {
 
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("X-User-ID", userID)
-	// Con JWT_SECRET, Notificaciones ya no confía en X-User-ID: se
-	// identifica como servicio interno (role_dev) y el user_id va en el
-	// body (auditoría 17/11/2026).
+	// Cloud Run IAM requires the GCP OIDC ID token in Authorization; keep the
+	// internal HS256 service token in X-Service-Authorization and
+	// X-Forwarded-Authorization so the receiving middleware authenticates role_dev.
 	if tok, err := serviceToken(os.Getenv("JWT_SECRET")); err == nil && tok != "" {
-		req.Header.Set("Authorization", "Bearer "+tok)
+		req.Header.Set("Authorization", bearerPrefix+tok)
+		req.Header.Set("X-Service-Authorization", bearerPrefix+tok)
+		req.Header.Set("X-Forwarded-Authorization", bearerPrefix+tok)
 	}
 	if strings.EqualFold(strings.TrimSpace(os.Getenv("UPSTREAM_ID_TOKEN")), "true") {
-		if ts, err := idtoken.NewTokenSource(ctx, baseURL); err == nil {
-			if tok, err := ts.Token(); err == nil && tok.AccessToken != "" {
-				req.Header.Set("X-Serverless-Authorization", "Bearer "+tok.AccessToken)
-			}
+		ts, err := idtoken.NewTokenSource(ctx, baseURL)
+		if err != nil {
+			slog.Warn("notification_sync: failed to create idtoken source", "error", err, "target", baseURL)
+		} else if tok, err := ts.Token(); err != nil {
+			slog.Warn("notification_sync: failed to mint idtoken", "error", err, "target", baseURL)
+		} else if tok.AccessToken != "" {
+			req.Header.Set("Authorization", bearerPrefix+tok.AccessToken)
+			req.Header.Set("X-Serverless-Authorization", bearerPrefix+tok.AccessToken)
 		}
 	}
 

@@ -16,6 +16,6 @@ kv_namespaces = [
 [env.production]
 name = "buen-vivir-impact-prod"
 kv_namespaces = [
-  { binding = "IMPACT_KV", id = "PROD_KV_NAMESPACE_ID" }
+  { binding = "IMPACT_KV", id = "efb9aae39654471e9b5292380a90be3e" }
 ]
 

@@ -7,6 +7,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"log/slog"
 	"os"
 	"strings"
 	"time"
@@ -56,7 +57,9 @@ func (s *verificationService) GenerateAndSendVerification(ctx context.Context, u
 	requestID := "ev-" + utils.GenerateRandomString(10)
 
 	if s.producer != nil {
-		_ = s.producer.EmailSolicitado(ctx, requestID, user.UserID, "verificacion")
+		if err := s.producer.EmailSolicitado(ctx, requestID, user.UserID, "verificacion"); err != nil {
+			slog.Error("verification_service: failed to enqueue verification email", "user_id", user.UserID, "error", err)
+		}
 	}
 
 	return nil
@@ -152,10 +155,7 @@ func (s *verificationService) IssueActionLink(ctx context.Context, requestID, us
 		return "", fmt.Errorf("error guardando token de verificación: %w", err)
 	}
 
-	frontendURL := strings.TrimSpace(os.Getenv("FRONTEND_URL"))
-	if frontendURL == "" {
-		frontendURL = "https://ceibuenvivir.org"
-	}
+	frontendURL := utils.ResolveFrontendURL()
 	verifyPath := strings.TrimSpace(os.Getenv("EMAIL_VERIFICATION_PATH"))
 	if verifyPath == "" {
 		verifyPath = "/verify-email"

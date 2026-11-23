@@ -35,22 +35,7 @@ func AuthHeaders(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		jwtSecret := strings.TrimSpace(os.Getenv("JWT_SECRET"))
 		rawToken := extractRequestToken(r)
-
-		var userID, roleID string
-		if jwtSecret != "" {
-			if rawToken != "" {
-				if sub, role, ok := parseHS256AccessToken(rawToken, jwtSecret); ok {
-					userID, roleID = sub, role
-				}
-			}
-		} else {
-			userID = strings.TrimSpace(r.Header.Get("X-User-ID"))
-			roleID = strings.TrimSpace(r.Header.Get("X-User-Role"))
-			// Tests y desarrollo sin gateway: token crudo como user id.
-			if userID == "" && rawToken != "" {
-				userID = rawToken
-			}
-		}
+		userID, roleID := resolveIdentity(r, jwtSecret, rawToken)
 
 		if userID == "" {
 			w.Header().Set("Content-Type", "application/json")
@@ -71,15 +56,36 @@ func AuthHeaders(next http.Handler) http.Handler {
 	})
 }
 
+func resolveIdentity(r *http.Request, jwtSecret, rawToken string) (string, string) {
+	if jwtSecret != "" {
+		if rawToken == "" {
+			return "", ""
+		}
+		sub, role, ok := parseHS256AccessToken(rawToken, jwtSecret)
+		if !ok {
+			return "", ""
+		}
+		return sub, role
+	}
+	userID := strings.TrimSpace(r.Header.Get("X-User-ID"))
+	roleID := strings.TrimSpace(r.Header.Get("X-User-Role"))
+	// Tests y desarrollo sin gateway: token crudo como user id.
+	if userID == "" && rawToken != "" {
+		userID = rawToken
+	}
+	return userID, roleID
+}
+
 func extractRequestToken(r *http.Request) string {
 	for _, cookieName := range []string{"__Host-access_token", "access_token"} {
 		if c, err := r.Cookie(cookieName); err == nil && strings.TrimSpace(c.Value) != "" {
 			return strings.TrimSpace(c.Value)
 		}
 	}
-	// El API Gateway de GCP pone su token de Cloud Run en Authorization y
-	// mueve el original a X-Forwarded-Authorization.
-	for _, header := range []string{"X-Forwarded-Authorization", "Authorization"} {
+	// Direct Cloud Run S2S calls put the GCP OIDC ID token in Authorization,
+	// while internal HS256 service JWTs travel in X-Service-Authorization or
+	// X-Forwarded-Authorization (matching auth middleware).
+	for _, header := range []string{"X-Service-Authorization", "X-Forwarded-Authorization", "Authorization"} {
 		if v := r.Header.Get(header); strings.HasPrefix(v, "Bearer ") {
 			return strings.TrimSpace(strings.TrimPrefix(v, "Bearer "))
 		}

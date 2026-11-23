@@ -162,6 +162,48 @@ func TestAuthMiddleware_TokenValidationError(t *testing.T) {
 	assert.Equal(t, http.StatusUnauthorized, w.Code)
 }
 
+func TestAuthMiddleware_ServiceAuthorizationHeadersPrecedence(t *testing.T) {
+	// Arrange
+	mockJWT := new(MockJWTService)
+	middleware := middlewares.AuthMiddleware(mockJWT)
+	claims := jwt.MapClaims{
+		"sub":  "notifications-service",
+		"role": "role_dev",
+		"type": "access",
+	}
+	mockJWT.On("ValidateToken", "internal.hs256.jwt").Return(claims, nil).Twice()
+
+	var capturedRole string
+	handler := middleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		capturedRole, _ = r.Context().Value(middlewares.RoleIDKey).(string)
+		w.WriteHeader(http.StatusOK)
+	}))
+
+	// Act 1: X-Service-Authorization takes precedence over Cloud Run OIDC Authorization
+	req1 := httptest.NewRequest("GET", "/api/v1/directory/internal/users/u1/contact", nil)
+	req1.Header.Set("Authorization", "Bearer gcp.oidc.id.token")
+	req1.Header.Set("X-Service-Authorization", "Bearer internal.hs256.jwt")
+	w1 := httptest.NewRecorder()
+	handler.ServeHTTP(w1, req1)
+
+	// Assert 1
+	assert.Equal(t, http.StatusOK, w1.Code)
+	assert.Equal(t, "role_dev", capturedRole)
+
+	// Act 2: X-Forwarded-Authorization fallback
+	capturedRole = ""
+	req2 := httptest.NewRequest("GET", "/api/v1/directory/internal/users/u1/contact", nil)
+	req2.Header.Set("Authorization", "Bearer gcp.oidc.id.token")
+	req2.Header.Set("X-Forwarded-Authorization", "Bearer internal.hs256.jwt")
+	w2 := httptest.NewRecorder()
+	handler.ServeHTTP(w2, req2)
+
+	// Assert 2
+	assert.Equal(t, http.StatusOK, w2.Code)
+	assert.Equal(t, "role_dev", capturedRole)
+	mockJWT.AssertExpectations(t)
+}
+
 type MockPermissionChecker struct {
 	mock.Mock
 }

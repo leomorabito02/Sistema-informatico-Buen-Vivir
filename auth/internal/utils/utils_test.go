@@ -75,3 +75,41 @@ func TestNonceStore(t *testing.T) {
 	assert.True(t, store.Consume(nonce, "usr-1"), "Should succeed for correct user")
 	assert.False(t, store.Consume(nonce, "usr-1"), "Should fail on second consume (single use)")
 }
+
+func TestResolveFrontendURL(t *testing.T) {
+	t.Run("ExplicitPublicURL", func(t *testing.T) {
+		// Arrange
+		t.Setenv("FRONTEND_URL", "https://ceibuenvivir.org/")
+		t.Setenv("APP_ENV", "testing")
+
+		// Act
+		got := utils.ResolveFrontendURL()
+
+		// Assert
+		assert.Equal(t, "https://ceibuenvivir.org", got)
+	})
+
+	t.Run("IgnoresLocalhostAndDefaultsToTesting", func(t *testing.T) {
+		// Arrange
+		t.Setenv("FRONTEND_URL", "http://localhost:4200")
+		t.Setenv("APP_ENV", "development")
+
+		// Act
+		got := utils.ResolveFrontendURL()
+
+		// Assert
+		assert.Equal(t, "https://testing.ceibuenvivir.pages.dev", got)
+	})
+
+	t.Run("ProductionFallback", func(t *testing.T) {
+		// Arrange
+		t.Setenv("FRONTEND_URL", "")
+		t.Setenv("APP_ENV", "production")
+
+		// Act
+		got := utils.ResolveFrontendURL()
+
+		// Assert
+		assert.Equal(t, "https://ceibuenvivir.org", got)
+	})
+}

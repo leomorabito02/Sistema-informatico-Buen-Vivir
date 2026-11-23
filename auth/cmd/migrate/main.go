@@ -37,6 +37,7 @@ func main() {
 		&models.OutboxEvent{},
 		&models.LoginAttempt{},
 		&models.AuditLog{},
+		&models.TwofaChallengeRecord{},
 	)
 	if err == nil && db.Migrator().HasColumn(&models.Participant{}, "doc_url") {
 		err = db.Migrator().DropColumn(&models.Participant{}, "doc_url")

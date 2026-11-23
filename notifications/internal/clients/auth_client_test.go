@@ -3,6 +3,8 @@ package clients
 import (
 	"context"
 	"errors"
+	"net/http"
+	"net/http/httptest"
 	"testing"
 
 	"buenvivir/notifications/api/proto/authpb"
@@ -383,4 +385,77 @@ func TestAuthClient_IssueActionLink(t *testing.T) {
 			t.Fatal("expected error, got nil")
 		}
 	})
+}
+
+func TestHTTPAuthClient_S2SHeaders_CloudRun(t *testing.T) {
+	// Arrange
+	var gotAuth, gotServerless, gotService, gotForwarded string
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		gotAuth = r.Header.Get("Authorization")
+		gotServerless = r.Header.Get("X-Serverless-Authorization")
+		gotService = r.Header.Get("X-Service-Authorization")
+		gotForwarded = r.Header.Get("X-Forwarded-Authorization")
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(`{"user_id":"usr-1","email":"u@test.com","is_email_verified":false}`))
+	}))
+	defer srv.Close()
+
+	client, err := NewAuthClient(
+		srv.URL,
+		WithJWTSecret("shared-secret"),
+		WithIDToken(func(context.Context) (string, error) { return "oidc-id-token", nil }),
+	)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	defer func() { _ = client.Close() }()
+
+	// Act
+	contact, err := client.GetUserContact(context.Background(), "usr-1")
+
+	// Assert
+	if err != nil {
+		t.Fatalf("unexpected GetUserContact error: %v", err)
+	}
+	if contact.Email != "u@test.com" {
+		t.Fatalf("unexpected email: %s", contact.Email)
+	}
+	if gotAuth != "Bearer oidc-id-token" || gotServerless != "Bearer oidc-id-token" {
+		t.Errorf("expected OIDC token in Authorization and X-Serverless-Authorization, got auth=%q serverless=%q", gotAuth, gotServerless)
+	}
+	if gotService == "" || gotService == "Bearer oidc-id-token" || gotForwarded != gotService {
+		t.Errorf("expected internal HS256 JWT in X-Service-Authorization (%q) and X-Forwarded-Authorization (%q)", gotService, gotForwarded)
+	}
+}
+
+func TestHTTPAuthClient_S2SHeaders_Local(t *testing.T) {
+	// Arrange
+	var gotAuth, gotService string
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		gotAuth = r.Header.Get("Authorization")
+		gotService = r.Header.Get("X-Service-Authorization")
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(`{"action_url":"https://testing.ceibuenvivir.pages.dev/verify-email?token=abc"}`))
+	}))
+	defer srv.Close()
+
+	client, err := NewAuthClient(srv.URL, WithJWTSecret("shared-secret"))
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	defer func() { _ = client.Close() }()
+
+	// Act
+	url, err := client.IssueActionLink(context.Background(), "req-1", "usr-1", "verificacion")
+
+	// Assert
+	if err != nil {
+		t.Fatalf("unexpected IssueActionLink error: %v", err)
+	}
+	if url == "" {
+		t.Fatal("expected action URL")
+	}
+	if gotAuth == "" || gotAuth != gotService {
+		t.Errorf("expected service JWT in both Authorization (%q) and X-Service-Authorization (%q)", gotAuth, gotService)
+	}
 }

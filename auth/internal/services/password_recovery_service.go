@@ -67,7 +67,9 @@ func (s *passwordRecoveryService) RequestReset(ctx context.Context, email string
 	requestID := "pr-" + utils.GenerateRandomString(10)
 
 	if s.producer != nil {
-		_ = s.producer.EmailSolicitado(ctx, requestID, primaryUser.UserID, "recuperacion_password")
+		if err := s.producer.EmailSolicitado(ctx, requestID, primaryUser.UserID, "recuperacion_password"); err != nil {
+			slog.Error("password_recovery_service: failed to enqueue reset email", "user_id", primaryUser.UserID, "error", err)
+		}
 	}
 
 	return nil
@@ -166,10 +168,7 @@ func (s *passwordRecoveryService) IssueActionLink(ctx context.Context, requestID
 		return "", fmt.Errorf("error guardando solicitud de recuperación: %w", err)
 	}
 
-	frontendURL := strings.TrimSpace(os.Getenv("FRONTEND_URL"))
-	if frontendURL == "" {
-		frontendURL = "https://ceibuenvivir.org"
-	}
+	frontendURL := utils.ResolveFrontendURL()
 	resetPath := strings.TrimSpace(os.Getenv("RESET_PASSWORD_PATH"))
 	if resetPath == "" {
 		resetPath = "/change-password"
