@@ -315,6 +315,7 @@ func (s *enrollmentService) Enroll(ctx context.Context, participanteID, cursoID,
 		CursoID:        cursoID,
 		Estado:         models.EnrollmentEstadoActiva,
 		CourseTitle:    course.Title,
+		TeacherID:      course.ResponsibleTeacher,
 	})
 }
 

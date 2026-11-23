@@ -64,7 +64,7 @@ func NewRelay(client *firestore.Client, publisher Publisher, logger *slog.Logger
 }
 
 const (
-	defaultInlineFlushTimeout   = 2 * time.Second
+	defaultInlineFlushTimeout   = 8 * time.Second
 	defaultShutdownFlushTimeout = 5 * time.Second
 )
 
