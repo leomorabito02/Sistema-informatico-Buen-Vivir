@@ -35,6 +35,7 @@ const ACCIONES: Record<string, string> = {
   baja: "Baja",
   aprobar: "Aprobación",
   rechazar: "Rechazo",
+  cerrar: "Cierre anticipado",
   acceso_denegado: "Acceso denegado",
   token_rechazado: "Sesión rechazada",
   editar: "Edición",
@@ -166,6 +167,7 @@ export class AuditoriaComponent implements OnInit {
       case "actualizar":
       case "editar":
       case "publicar":
+      case "cerrar":
       case "cambiar_foto":
         return "info";
       case "baja":

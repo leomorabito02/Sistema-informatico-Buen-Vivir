@@ -47,6 +47,10 @@ func (c *JobApplicationController) Apply(w http.ResponseWriter, r *http.Request)
 			http.Error(w, "already applied", http.StatusConflict)
 			return
 		}
+		if errors.Is(err, repositories.ErrOfferNotFound) {
+			http.Error(w, "offer not found", http.StatusNotFound)
+			return
+		}
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
@@ -59,14 +63,14 @@ func (c *JobApplicationController) ListByOffer(w http.ResponseWriter, r *http.Re
 	offerID := chi.URLParam(r, "id")
 	role := r.Header.Get(headerUserRole)
 	userID := r.Header.Get(headerUserID)
-	
+
 	applications, err := c.service.ListByOffer(r.Context(), offerID, role, userID)
 	if err != nil {
 		if err.Error() == "unauthorized: you do not own this offer" {
 			http.Error(w, err.Error(), http.StatusForbidden)
 			return
 		}
-		http.Error(w, "failed to list applications", http.StatusInternalServerError)
+		writeApplicationError(w, r, "list applications by offer", err)
 		return
 	}
 
@@ -93,9 +97,10 @@ func (c *JobApplicationController) ListMine(w http.ResponseWriter, r *http.Reque
 
 func (c *JobApplicationController) UpdateStatus(w http.ResponseWriter, r *http.Request) {
 	appID := chi.URLParam(r, "id")
-	companyID := r.Header.Get(headerUserID)
-	
-	if companyID == "" {
+	role := r.Header.Get(headerUserRole)
+	userID := r.Header.Get(headerUserID)
+
+	if userID == "" {
 		http.Error(w, "unauthorized", http.StatusUnauthorized)
 		return
 	}
@@ -106,7 +111,7 @@ func (c *JobApplicationController) UpdateStatus(w http.ResponseWriter, r *http.R
 		return
 	}
 
-	if err := c.service.UpdateStatus(r.Context(), appID, companyID, payload.Status); err != nil {
+	if err := c.service.UpdateStatus(r.Context(), appID, role, userID, payload.Status); err != nil {
 		if err.Error() == "unauthorized: you do not own the offer for this application" {
 			http.Error(w, err.Error(), http.StatusForbidden)
 			return
@@ -152,4 +157,3 @@ func writeApplicationError(w http.ResponseWriter, r *http.Request, op string, er
 		http.Error(w, "internal server error", http.StatusInternalServerError)
 	}
 }
-

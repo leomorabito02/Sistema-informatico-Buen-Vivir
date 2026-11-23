@@ -10,6 +10,7 @@ type CreateJobOfferRequest struct {
 	JobType      string    `json:"tipo_empleo"`
 	Salary       string    `json:"salario"`
 	Schedule     string    `json:"horario"`
+	Vacancies    int       `json:"vacantes"`
 	Requirements []string  `json:"requisitos"`
 	Deadline     time.Time `json:"fecha_limite"`
 	CreatorName  string    `json:"creador_nombre,omitempty"`
@@ -23,6 +24,7 @@ type UpdateJobOfferRequest struct {
 	JobType      string    `json:"tipo_empleo"`
 	Salary       string    `json:"salario"`
 	Schedule     string    `json:"horario"`
+	Vacancies    int       `json:"vacantes"`
 	Requirements []string  `json:"requisitos"`
 	Deadline     time.Time `json:"fecha_limite"`
 	Status       string    `json:"estado"`

@@ -17,7 +17,7 @@ func ofertaCompleta(titulo string) *models.JobOffer {
 	return &models.JobOffer{
 		Title: titulo, Description: "Atención al público", Location: "Alta Gracia",
 		Modality: "Presencial", JobType: "Medio tiempo", Salary: "A convenir",
-		Schedule: "Lunes a viernes 9 a 13", Requirements: []string{"Atención al cliente"},
+		Schedule: "Lunes a viernes 9 a 13", Vacancies: 2, Requirements: []string{"Atención al cliente"},
 		Deadline: time.Now().Add(30 * 24 * time.Hour),
 	}
 }
@@ -33,6 +33,7 @@ func TestValidateOfferFields(t *testing.T) {
 		"tipo":       func(o *models.JobOffer) { o.JobType = "" },
 		"salario":    func(o *models.JobOffer) { o.Salary = "" },
 		"horario":    func(o *models.JobOffer) { o.Schedule = "" },
+		"vacantes":   func(o *models.JobOffer) { o.Vacancies = 0 },
 		"requisitos": func(o *models.JobOffer) { o.Requirements = []string{" "} },
 		"fecha":      func(o *models.JobOffer) { o.Deadline = time.Time{} },
 		"vencida":    func(o *models.JobOffer) { o.Deadline = time.Now().AddDate(0, 0, -3) },
@@ -118,13 +119,13 @@ func TestValidateOfferFields_ListaTodosLosFaltantes(t *testing.T) {
 	if !errors.Is(err, ErrOfferInvalid) {
 		t.Fatalf("esperaba ErrOfferInvalid, fue %v", err)
 	}
-	for _, campo := range []string{"título", "descripción", "ubicación", "modalidad", "tipo de empleo", "salario", "horario", "requisitos", "fecha límite"} {
+	for _, campo := range []string{"título", "descripción", "ubicación", "modalidad", "tipo de empleo", "salario", "horario", "vacantes", "requisitos", "fecha límite"} {
 		if !strings.Contains(err.Error(), campo) {
 			t.Errorf("el mensaje no menciona %q: %s", campo, err)
 		}
 	}
 
-	o := &models.JobOffer{Title: "t", Description: "d", Location: "l", Modality: "m", JobType: "j", Salary: "s", Schedule: "h", Requirements: []string{"r"}}
+	o := &models.JobOffer{Title: "t", Description: "d", Location: "l", Modality: "m", JobType: "j", Salary: "s", Schedule: "h", Vacancies: 1, Requirements: []string{"r"}}
 	err = validateOfferFields(o, false)
 	if err == nil || err.Error() != "falta el campo obligatorio: fecha límite" {
 		t.Fatalf("un solo faltante: %v", err)

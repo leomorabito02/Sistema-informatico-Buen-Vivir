@@ -41,6 +41,7 @@
     </div>
   </div>
 
+  <!-- Pestañas para Participante -->
   <div class="tabs-container mb-4" *ngIf="isParticipant">
     <p-button
       [styleClass]="
@@ -63,25 +64,48 @@
     ></p-button>
   </div>
 
-  <div class="tabs-container mb-4" *ngIf="isCompany">
+  <!-- Selector de sección principal para Empresa / Admin / Voluntario -->
+  <div
+    class="section-switcher mb-3"
+    *ngIf="isCompany || isAdminOrVolunteer"
+    role="tablist"
+    aria-label="Secciones de ofertas"
+  >
+    <p-button
+      [styleClass]="
+        activeSection === 'vigentes'
+          ? 'p-button-primary'
+          : 'p-button-outlined p-button-secondary'
+      "
+      [label]="'Ofertas vigentes (' + vigentesCount + ')'"
+      icon="pi pi-briefcase"
+      (onClick)="setSection('vigentes')"
+    ></p-button>
+    <p-button
+      [styleClass]="
+        activeSection === 'historial'
+          ? 'p-button-primary'
+          : 'p-button-outlined p-button-secondary'
+      "
+      [label]="'Finalizadas e historial (' + historialCount + ')'"
+      icon="pi pi-history"
+      (onClick)="setSection('historial')"
+    ></p-button>
+  </div>
+
+  <!-- Subfiltros en Ofertas vigentes: Empresa -->
+  <div
+    class="tabs-container mb-4"
+    *ngIf="isCompany && activeSection === 'vigentes'"
+  >
     <p-button
       [styleClass]="
         companyTab === 'Todas'
           ? 'p-button-primary'
           : 'p-button-outlined p-button-secondary'
       "
-      label="Todas"
+      label="Todas vigentes"
       (onClick)="setTab('Todas')"
-      class="mr-2"
-    ></p-button>
-    <p-button
-      [styleClass]="
-        companyTab === 'Pendiente'
-          ? 'p-button-primary'
-          : 'p-button-outlined p-button-secondary'
-      "
-      label="Pendientes de aprobación"
-      (onClick)="setTab('Pendiente')"
       class="mr-2"
     ></p-button>
     <p-button
@@ -96,26 +120,20 @@
     ></p-button>
     <p-button
       [styleClass]="
-        companyTab === 'Vencida'
+        companyTab === 'Pendiente'
           ? 'p-button-primary'
           : 'p-button-outlined p-button-secondary'
       "
-      label="Vencidas"
-      (onClick)="setTab('Vencida')"
-      class="mr-2"
-    ></p-button>
-    <p-button
-      [styleClass]="
-        companyTab === 'Rechazada'
-          ? 'p-button-primary'
-          : 'p-button-outlined p-button-secondary'
-      "
-      label="Rechazadas"
-      (onClick)="setTab('Rechazada')"
+      label="Pendientes de aprobación"
+      (onClick)="setTab('Pendiente')"
     ></p-button>
   </div>
 
-  <div class="tabs-container mb-4" *ngIf="isAdminOrVolunteer">
+  <!-- Subfiltros en Ofertas vigentes: Admin / Voluntario -->
+  <div
+    class="tabs-container mb-4"
+    *ngIf="isAdminOrVolunteer && activeSection === 'vigentes'"
+  >
     <p-button
       [styleClass]="
         adminTab === 'Pendiente'
@@ -138,33 +156,71 @@
     ></p-button>
     <p-button
       [styleClass]="
-        adminTab === 'Vencida'
-          ? 'p-button-primary'
-          : 'p-button-outlined p-button-secondary'
-      "
-      label="Vencidas"
-      (onClick)="setTab('Vencida')"
-      class="mr-2"
-    ></p-button>
-    <p-button
-      [styleClass]="
-        adminTab === 'Rechazada'
-          ? 'p-button-primary'
-          : 'p-button-outlined p-button-secondary'
-      "
-      label="Rechazadas"
-      (onClick)="setTab('Rechazada')"
-      class="mr-2"
-    ></p-button>
-    <p-button
-      [styleClass]="
         adminTab === 'Todas'
           ? 'p-button-primary'
           : 'p-button-outlined p-button-secondary'
       "
-      label="Todas"
+      label="Todas vigentes"
       (onClick)="setTab('Todas')"
     ></p-button>
+  </div>
+
+  <!-- Subfiltros en Finalizadas e historial -->
+  <div
+    class="history-header mb-4"
+    *ngIf="(isCompany || isAdminOrVolunteer) && activeSection === 'historial'"
+  >
+    <div class="tabs-container mb-2">
+      <p-button
+        [styleClass]="
+          historyTab === 'Todas'
+            ? 'p-button-primary'
+            : 'p-button-outlined p-button-secondary'
+        "
+        label="Todas finalizadas"
+        (onClick)="setHistoryTab('Todas')"
+        class="mr-2"
+      ></p-button>
+      <p-button
+        [styleClass]="
+          historyTab === 'Vencida'
+            ? 'p-button-primary'
+            : 'p-button-outlined p-button-secondary'
+        "
+        label="Vencidas"
+        (onClick)="setHistoryTab('Vencida')"
+        class="mr-2"
+      ></p-button>
+      <p-button
+        [styleClass]="
+          historyTab === 'Cerrada'
+            ? 'p-button-primary'
+            : 'p-button-outlined p-button-secondary'
+        "
+        label="Cerradas"
+        (onClick)="setHistoryTab('Cerrada')"
+        class="mr-2"
+      ></p-button>
+      <p-button
+        [styleClass]="
+          historyTab === 'Rechazada'
+            ? 'p-button-primary'
+            : 'p-button-outlined p-button-secondary'
+        "
+        label="Rechazadas"
+        (onClick)="setHistoryTab('Rechazada')"
+      ></p-button>
+    </div>
+    <p class="text-sm text-muted m-0">
+      <ng-container *ngIf="isAdminOrVolunteer">
+        Acá se agrupan las ofertas vencidas, cerradas o rechazadas con los datos
+        de la empresa y los postulantes por los cuales consultar.
+      </ng-container>
+      <ng-container *ngIf="isCompany">
+        Acá podés revisar tus ofertas vencidas, cerradas o rechazadas, los
+        postulantes para seguimiento y los canales de contacto con el centro.
+      </ng-container>
+    </p>
   </div>
 
   <app-empty-state
@@ -188,32 +244,238 @@
           <p class="text-sm mb-1">
             <i class="pi pi-map-marker text-muted mr-1"></i> {{ job.ubicacion }}
           </p>
-          <p class="text-sm mb-2">
+          <p class="text-sm mb-1">
             <i class="pi pi-money-bill mr-1 text-muted"></i>
             {{ job.salario || "A convenir" }}
+          </p>
+          <p class="text-sm mb-2">
+            <i class="pi pi-briefcase mr-1 text-muted"></i>
+            <strong>{{ vacantesTexto(job) }}</strong>
           </p>
           <div class="tags-row mb-3">
             <p-tag [value]="job.tipo_empleo" severity="info"></p-tag>
             <p-tag [value]="job.modalidad" severity="warning"></p-tag>
             <p-tag
               [value]="job.estado"
-              [severity]="
-                job.estado === 'Activa'
-                  ? 'success'
-                  : job.estado === 'Pendiente'
-                    ? 'warn'
-                    : 'danger'
-              "
+              [severity]="offerStatusSeverity(job.estado)"
             ></p-tag>
           </div>
           <p class="text-xs text-muted" *ngIf="job.creador_nombre">
             <i class="pi pi-user mr-1"></i> Publicado por:
             {{ job.creador_nombre }}
           </p>
+          <p class="text-xs text-muted" *ngIf="job.fecha_limite">
+            <i class="pi pi-calendar mr-1"></i> Fecha límite:
+            {{ job.fecha_limite | date: "dd/MM/yyyy" : "-0300" }}
+          </p>
+          <p class="text-xs text-muted" *ngIf="job.fecha_cierre">
+            <i class="pi pi-lock mr-1"></i> Cerrada el:
+            {{ job.fecha_cierre | date: "dd/MM/yyyy" : "-0300" }}
+          </p>
           <p class="text-xs text-muted" *ngIf="job.created_at">
             <i class="pi pi-clock mr-1"></i> Publicado:
             {{ job.created_at | date: "dd/MM/yyyy" : "-0300" }}
           </p>
+
+          <!-- Bloque de seguimiento claro en ofertas vencidas o cerradas (Empresa y Gestión) -->
+          <div
+            *ngIf="
+              (isCompany || isAdminOrVolunteer) &&
+              activeSection === 'historial' &&
+              isFollowUpStatus(job.estado)
+            "
+            class="followup-panel mt-3"
+          >
+            <div class="followup-block">
+              <span class="followup-title">
+                <i class="pi pi-phone mr-1"></i> A quién contactar
+              </span>
+              <ng-container *ngIf="isAdminOrVolunteer">
+                <p class="text-sm m-0 font-semibold">
+                  {{ job.creador_nombre || "Empresa oferente" }}
+                </p>
+                <div
+                  *ngIf="job.empresa_email || job.empresa_telefono"
+                  class="followup-links mt-1"
+                >
+                  <a
+                    *ngIf="job.empresa_email"
+                    [href]="companyContactMailto(job)"
+                    class="followup-link"
+                  >
+                    <i class="pi pi-envelope mr-1"></i>{{ job.empresa_email }}
+                  </a>
+                  <a
+                    *ngIf="job.empresa_telefono"
+                    [href]="'tel:' + job.empresa_telefono"
+                    class="followup-link"
+                  >
+                    <i class="pi pi-phone mr-1"></i>{{ job.empresa_telefono }}
+                  </a>
+                </div>
+                <p
+                  *ngIf="!job.empresa_email && !job.empresa_telefono"
+                  class="text-xs text-muted m-0 mt-1"
+                >
+                  Sin correo ni teléfono de empresa registrado (oferta interna o
+                  perfil sin contacto).
+                </p>
+              </ng-container>
+
+              <ng-container *ngIf="isCompany">
+                <p class="text-sm m-0 font-semibold">
+                  {{ centroContacto.nombre }}
+                </p>
+                <div class="followup-links mt-1">
+                  <a
+                    [href]="'mailto:' + centroContacto.email"
+                    class="followup-link"
+                  >
+                    <i class="pi pi-envelope mr-1"></i
+                    >{{ centroContacto.email }}
+                  </a>
+                  <a
+                    *ngFor="let tel of centroContacto.telefonos"
+                    [href]="tel.href"
+                    class="followup-link"
+                  >
+                    <i class="pi pi-phone mr-1"></i>{{ tel.label }}
+                  </a>
+                </div>
+                <p class="text-xs text-muted m-0 mt-1">
+                  {{ centroContacto.horario }}
+                </p>
+                <a
+                  [routerLink]="['/contacto']"
+                  [queryParams]="centerContactQueryParams(job)"
+                  class="followup-cta mt-2"
+                >
+                  <i class="pi pi-send mr-1"></i>Consultar al centro
+                </a>
+              </ng-container>
+            </div>
+
+            <div class="followup-block mt-2">
+              <span class="followup-title">
+                <i class="pi pi-users mr-1"></i> Sobre cuáles postulantes
+                preguntar
+              </span>
+              <p
+                *ngIf="job.id && loadingApplicationsFor.has(job.id)"
+                class="text-xs text-muted m-0"
+              >
+                Cargando postulantes…
+              </p>
+              <div
+                *ngIf="job.id && applicationsErrorFor.has(job.id)"
+                class="text-xs"
+              >
+                <span class="text-muted"
+                  >No se pudieron cargar los postulantes.</span
+                >
+                <button
+                  type="button"
+                  class="followup-retry ml-1"
+                  (click)="loadHistoryApplications(job.id)"
+                >
+                  Reintentar
+                </button>
+              </div>
+              <ng-container
+                *ngIf="
+                  job.id &&
+                  !loadingApplicationsFor.has(job.id) &&
+                  !applicationsErrorFor.has(job.id)
+                "
+              >
+                <ng-container *ngIf="followUpCandidates(job.id) as seguimiento">
+                  <p class="text-xs text-muted m-0 mb-1" *ngIf="job.vacantes">
+                    Aceptados: {{ seguimiento.accepted.length }} /
+                    {{ job.vacantes }} vacantes
+                  </p>
+                  <div
+                    *ngIf="seguimiento.accepted.length > 0"
+                    class="candidate-group mb-1"
+                  >
+                    <span class="candidate-group-label"
+                      >Aceptados (confirmar incorporación):</span
+                    >
+                    <ul class="candidate-list">
+                      <li *ngFor="let app of seguimiento.accepted">
+                        <p-tag
+                          [value]="applicantDisplayName(app)"
+                          severity="success"
+                        ></p-tag>
+                      </li>
+                    </ul>
+                  </div>
+                  <div
+                    *ngIf="seguimiento.pending.length > 0"
+                    class="candidate-group"
+                  >
+                    <span class="candidate-group-label">
+                      {{
+                        isAdminOrVolunteer
+                          ? "Pendientes sin resolución (consultar a la empresa):"
+                          : "Pendientes de revisión (definir estado):"
+                      }}
+                    </span>
+                    <ul class="candidate-list">
+                      <li *ngFor="let app of seguimiento.pending">
+                        <p-tag
+                          [value]="applicantDisplayName(app)"
+                          severity="warn"
+                        ></p-tag>
+                      </li>
+                    </ul>
+                  </div>
+                  <p
+                    *ngIf="
+                      seguimiento.accepted.length === 0 &&
+                      seguimiento.pending.length === 0
+                    "
+                    class="text-xs text-muted m-0"
+                  >
+                    Sin postulantes aceptados ni pendientes de seguimiento.
+                  </p>
+                </ng-container>
+              </ng-container>
+            </div>
+          </div>
+
+          <!-- Aviso para participante si una oferta postulada finalizó -->
+          <div
+            *ngIf="isParticipant && isFollowUpStatus(job.estado)"
+            class="followup-panel mt-3"
+          >
+            <p class="text-xs m-0">
+              <ng-container
+                *ngIf="
+                  isAcceptedStatus(myApplicationsMap.get(job.id!));
+                  else postulacionFinalizada
+                "
+              >
+                ¡Fuiste aceptado/a en esta oferta! Si todavía no te contactaron,
+                escribinos por
+                <a
+                  [routerLink]="['/contacto']"
+                  [queryParams]="participantContactQueryParams(job)"
+                  class="followup-link"
+                  >Contacto con el centro</a
+                >.
+              </ng-container>
+              <ng-template #postulacionFinalizada>
+                Esta oferta ya finalizó ({{ job.estado }}). Podés consultar por
+                tu postulación en
+                <a
+                  [routerLink]="['/contacto']"
+                  [queryParams]="participantContactQueryParams(job)"
+                  class="followup-link"
+                  >Contacto con el centro</a
+                >.
+              </ng-template>
+            </p>
+          </div>
         </div>
         <ng-template pTemplate="footer">
           <div class="card-actions">
@@ -222,7 +484,9 @@
               [label]="appliedJobs.has(job.id!) ? 'Postulado' : 'Postularme'"
               [icon]="appliedJobs.has(job.id!) ? 'pi pi-check' : 'pi pi-send'"
               styleClass="w-full p-button-outlined"
-              [disabled]="job.estado === 'Vencida' || appliedJobs.has(job.id!)"
+              [disabled]="
+                !isEstado(job.estado, 'Activa') || appliedJobs.has(job.id!)
+              "
               (onClick)="applyToJob(job)"
             ></p-button>
             <div
@@ -236,9 +500,9 @@
               <p-tag
                 [value]="myApplicationsMap.get(job.id!) || 'Pendiente'"
                 [severity]="
-                  myApplicationsMap.get(job.id!) === 'Aceptado'
+                  isAcceptedStatus(myApplicationsMap.get(job.id!))
                     ? 'success'
-                    : myApplicationsMap.get(job.id!) === 'Rechazado'
+                    : isRejectedStatus(myApplicationsMap.get(job.id!))
                       ? 'danger'
                       : 'info'
                 "
@@ -246,7 +510,7 @@
             </div>
 
             <p-button
-              *ngIf="isAdminOrVolunteer && job.estado === 'Activa'"
+              *ngIf="isAdminOrVolunteer && isEstado(job.estado, 'Activa')"
               label="Postular participante"
               icon="pi pi-user-plus"
               styleClass="w-full p-button-outlined p-button-help"
@@ -260,6 +524,16 @@
               (onClick)="showApplications(job)"
             ></p-button>
             <p-button
+              *ngIf="
+                (isCompany || isAdminOrVolunteer) &&
+                isEstado(job.estado, 'Activa')
+              "
+              label="Cerrar oferta"
+              icon="pi pi-lock"
+              styleClass="w-full p-button-outlined p-button-warning"
+              (onClick)="confirmCloseOffer(job)"
+            ></p-button>
+            <p-button
               *ngIf="isCompany || isAdminOrVolunteer"
               label="Editar"
               icon="pi pi-pencil"
@@ -268,7 +542,8 @@
             ></p-button>
             <p-button
               *ngIf="
-                (isCompany || isAdminOrVolunteer) && job.estado === 'Vencida'
+                (isCompany || isAdminOrVolunteer) &&
+                isFollowUpStatus(job.estado)
               "
               label="Renovar"
               icon="pi pi-refresh"
@@ -283,22 +558,14 @@
               (onClick)="confirmDelete(job)"
             ></p-button>
             <p-button
-              *ngIf="
-                isAdmin &&
-                (job.estado === 'Pendiente' ||
-                  job.estado?.toLowerCase() === 'pendiente')
-              "
+              *ngIf="isAdmin && isEstado(job.estado, 'Pendiente')"
               label="Aprobar"
               icon="pi pi-check"
               styleClass="w-full p-button-outlined p-button-success"
               (onClick)="approveJob(job)"
             ></p-button>
             <p-button
-              *ngIf="
-                isAdmin &&
-                (job.estado === 'Pendiente' ||
-                  job.estado?.toLowerCase() === 'pendiente')
-              "
+              *ngIf="isAdmin && isEstado(job.estado, 'Pendiente')"
               label="Rechazar"
               icon="pi pi-times"
               styleClass="w-full p-button-outlined p-button-danger"
@@ -429,6 +696,27 @@
       </div>
 
       <div class="col-12 md:col-6 field mb-3">
+        <label for="vacantes"
+          >Número de vacantes <span class="req">*</span></label
+        >
+        <input
+          pInputText
+          type="number"
+          min="1"
+          step="1"
+          id="vacantes"
+          [(ngModel)]="newJob.vacantes"
+          class="w-full"
+          placeholder="Ej: 2"
+          [class.p-invalid]="errores.vacantes"
+          [attr.aria-invalid]="!!errores.vacantes"
+          aria-describedby="err-vacantes"
+        />
+        <small *ngIf="errores.vacantes" id="err-vacantes" class="field-error">{{
+          errores.vacantes
+        }}</small>
+      </div>
+      <div class="col-12 md:col-6 field mb-3">
         <label for="fecha_limite"
           >Fecha límite <span class="req">*</span></label
         >
@@ -555,6 +843,18 @@
           class="w-full"
         />
       </div>
+      <div class="field mb-3">
+        <label for="renew_vacancies">Vacantes disponibles</label>
+        <input
+          pInputText
+          type="number"
+          min="1"
+          step="1"
+          id="renew_vacancies"
+          [(ngModel)]="renewVacancies"
+          class="w-full"
+        />
+      </div>
     </div>
     <ng-template pTemplate="footer">
       <p-button
@@ -576,12 +876,87 @@
   <p-dialog
     [(visible)]="applicationsDialogVisible"
     [modal]="true"
-    [style]="{ width: '600px' }"
+    [style]="{ width: '640px', maxWidth: '95vw' }"
     header="Candidatos postulados"
   >
-    <div class="mb-4">
-      <span class="font-semibold text-gray-700">Puesto:</span>
-      <span class="font-bold">{{ currentJobTitle }}</span>
+    <div class="mb-3">
+      <div>
+        <span class="font-semibold text-gray-700">Puesto:</span>
+        <span class="font-bold ml-1">{{ currentJobTitle }}</span>
+      </div>
+      <div *ngIf="currentJob" class="text-sm text-muted mt-1">
+        {{ vacantesTexto(currentJob) }} · Aceptados: {{ modalAcceptedCount }} ·
+        Pendientes: {{ modalPendingCount }}
+      </div>
+    </div>
+
+    <div
+      *ngIf="
+        currentJob &&
+        currentJob.vacantes &&
+        currentJob.vacantes > 0 &&
+        modalAcceptedCount >= currentJob.vacantes &&
+        isEstado(currentJob.estado, 'Activa')
+      "
+      class="cupo-completo-banner mb-3"
+      role="status"
+    >
+      <p class="text-sm m-0">
+        <i class="pi pi-check-circle mr-1"></i>
+        Se cubrieron las {{ currentJob.vacantes }} vacantes ({{
+          modalAcceptedCount
+        }}
+        / {{ currentJob.vacantes }} aceptados). Podés cerrar la oferta antes de
+        su vencimiento.
+      </p>
+      <p-button
+        label="Cerrar oferta"
+        icon="pi pi-lock"
+        styleClass="p-button-sm p-button-warning"
+        (onClick)="confirmCloseOffer(currentJob)"
+      ></p-button>
+    </div>
+
+    <div
+      *ngIf="currentJob && isFollowUpStatus(currentJob.estado)"
+      class="followup-panel mb-3"
+    >
+      <span class="followup-title">
+        <i class="pi pi-phone mr-1"></i> Seguimiento de oferta
+        {{ currentJob.estado }}
+      </span>
+      <ng-container *ngIf="isAdminOrVolunteer">
+        <p class="text-xs m-0">
+          Contactar a
+          <strong>{{ currentJob.creador_nombre || "Empresa" }}</strong
+          >:
+          <a
+            *ngIf="currentJob.empresa_email"
+            [href]="companyContactMailto(currentJob)"
+            class="followup-link ml-1"
+            >{{ currentJob.empresa_email }}</a
+          >
+          <a
+            *ngIf="currentJob.empresa_telefono"
+            [href]="'tel:' + currentJob.empresa_telefono"
+            class="followup-link ml-2"
+            >{{ currentJob.empresa_telefono }}</a
+          >
+        </p>
+      </ng-container>
+      <ng-container *ngIf="isCompany">
+        <p class="text-xs m-0">
+          Para coordinar ingresos o dudas, contactá al Centro Buen Vivir ({{
+            centroContacto.email
+          }}).
+          <a
+            [routerLink]="['/contacto']"
+            [queryParams]="centerContactQueryParams(currentJob)"
+            class="followup-link ml-1"
+            >Consultar al centro</a
+          >
+        </p>
+      </ng-container>
     </div>
 
     <div class="flex flex-col gap-4">
@@ -630,9 +1005,9 @@
             <p-tag
               [value]="candidate.app.estado || 'Pendiente'"
               [severity]="
-                candidate.app.estado === 'Aceptado'
+                isAcceptedStatus(candidate.app.estado)
                   ? 'success'
-                  : candidate.app.estado === 'Rechazado'
+                  : isRejectedStatus(candidate.app.estado)
                     ? 'danger'
                     : 'info'
               "
@@ -665,11 +1040,12 @@
               class="text-gray-700 font-bold hover:text-gray-900 hover:underline"
               >Ver perfil completo</a
             >
-            <div class="flex gap-2">
+            <div class="flex gap-2" *ngIf="isCompany || isAdminOrVolunteer">
               <button
                 pButton
                 icon="pi pi-check"
                 class="p-button-rounded p-button-text p-button-success"
+                aria-label="Aceptar postulante"
                 pTooltip="Aceptar"
                 (click)="updateApplicationStatus(candidate, 'Aceptado')"
               ></button>
@@ -677,6 +1053,7 @@
                 pButton
                 icon="pi pi-times"
                 class="p-button-rounded p-button-text p-button-danger"
+                aria-label="Rechazar postulante"
                 pTooltip="Rechazar"
                 (click)="updateApplicationStatus(candidate, 'Rechazado')"
               ></button>
@@ -743,18 +1120,39 @@
     header="Participante aceptado"
     [(visible)]="showAcceptanceModal"
     [modal]="true"
-    [style]="{ width: '450px' }"
+    [style]="{ width: '480px', maxWidth: '95vw' }"
   >
-    <div class="flex items-center gap-3 py-3">
+    <div class="flex items-start gap-3 py-3">
       <i
         class="pi pi-check-circle text-green-500"
-        style="font-size: 2.5rem"
+        style="font-size: 2.25rem"
       ></i>
-      <p class="m-0 text-lg font-medium text-gray-800">
-        {{ acceptanceMessage }}
-      </p>
+      <div>
+        <p class="m-0 text-base font-medium text-gray-800">
+          {{ acceptanceMessage }}
+        </p>
+        <div class="text-xs text-muted mt-2">
+          <div>{{ centroContacto.nombre }}</div>
+          <div>Correo: {{ centroContacto.email }}</div>
+          <div>
+            Teléfonos:
+            <span *ngFor="let tel of centroContacto.telefonos; let last = last"
+              >{{ tel.label }}{{ last ? "" : " / " }}</span
+            >
+          </div>
+        </div>
+      </div>
     </div>
     <ng-template pTemplate="footer">
+      <a
+        *ngIf="acceptedOfferForContact"
+        [routerLink]="['/contacto']"
+        [queryParams]="centerContactQueryParams(acceptedOfferForContact)"
+        (click)="showAcceptanceModal = false"
+        class="followup-cta mr-2"
+      >
+        <i class="pi pi-send mr-1"></i>Ir a Contacto
+      </a>
       <p-button
         label="Entendido"
         icon="pi pi-check"

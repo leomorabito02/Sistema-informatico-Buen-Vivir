@@ -1,6 +1,8 @@
-import { Component, OnInit } from "@angular/core";
+import { Component, DestroyRef, OnInit, inject } from "@angular/core";
+import { takeUntilDestroyed } from "@angular/core/rxjs-interop";
 import { CommonModule } from "@angular/common";
 import { FormsModule } from "@angular/forms";
+import { ActivatedRoute, Router, RouterLink } from "@angular/router";
 import { CardModule } from "primeng/card";
 import { ButtonModule } from "primeng/button";
 import { TagModule } from "primeng/tag";
@@ -22,6 +24,16 @@ import { ProfileService } from "../../../services/profile.service";
 import { User } from "../../../core/models/auth.model";
 import { EmptyStateComponent } from "../../../shared/components/empty-state.component";
 
+export const CENTRO_CONTACTO = {
+  nombre: 'Equipo de Inserción Laboral — Centro "La Otra Orilla"',
+  email: "ceibuenvivir7@gmail.com",
+  telefonos: [
+    { label: "+54 9 3547 61 2118", href: "tel:+5493547612118" },
+    { label: "+54 9 3547 45 6184", href: "tel:+5493547456184" },
+  ],
+  horario: "Lunes a viernes de 09:00 a 18:00 hs",
+} as const;
+
 @Component({
   selector: "app-ofertas",
   standalone: true,
@@ -29,6 +41,7 @@ import { EmptyStateComponent } from "../../../shared/components/empty-state.comp
     EmptyStateComponent,
     CommonModule,
     FormsModule,
+    RouterLink,
     CardModule,
     ButtonModule,
     TagModule,
@@ -43,15 +56,22 @@ import { EmptyStateComponent } from "../../../shared/components/empty-state.comp
   styleUrls: ["./ofertas.component.css"],
 })
 export class OfertasComponent implements OnInit {
+  private readonly route = inject(ActivatedRoute);
+  private readonly router = inject(Router);
+  private readonly destroyRef = inject(DestroyRef);
+
+  readonly centroContacto = CENTRO_CONTACTO;
+
   searchTerm: string = "";
   private busquedaTimer?: ReturnType<typeof setTimeout>;
   showDialog = false;
   isEditing = false;
   currentRequisito = "";
 
-  // Variables para la renovación de ofertas
+  // Renewal dialog state
   showRenewDialog = false;
   renewDate = "";
+  renewVacancies = 1;
   selectedJobForRenew: JobOffer | null = null;
 
   newJob: JobOffer = {
@@ -63,6 +83,7 @@ export class OfertasComponent implements OnInit {
     tipo_empleo: "Tiempo Completo",
     salario: "",
     horario: "",
+    vacantes: 1,
     requisitos: [],
     fecha_limite: "",
     estado: "Activa",
@@ -73,15 +94,17 @@ export class OfertasComponent implements OnInit {
   isCompany = false;
   isParticipant = false;
   isAdminOrVolunteer = false;
-  /** Aprobar y rechazar ofertas es solo del administrador (HU-41). */
+  /** Approving and rejecting offers is exclusive to administrators (HU-41). */
   isAdmin = false;
   userId = "";
   currentUserName = "";
 
-  // Tabs for filtering
+  // Section and tab filters
+  activeSection: "vigentes" | "historial" = "vigentes";
   currentTab = "Disponibles"; // For participants
-  companyTab = "Todas"; // For companies
-  adminTab = "Pendiente"; // For admin/volunteer (mismo valor que el estado de la oferta)
+  companyTab = "Todas"; // For companies in vigentes
+  adminTab = "Pendiente"; // For admin/volunteer in vigentes
+  historyTab = "Todas"; // For company/staff in historial
 
   employmentTypes = [
     { label: "Todos", value: null },
@@ -92,16 +115,26 @@ export class OfertasComponent implements OnInit {
   selectedEmploymentType: string | null = null;
 
   applicationsDialogVisible = false;
+  currentJob: JobOffer | null = null;
   currentJobTitle = "";
   currentCandidates: { app: JobApplication; resume?: Resume }[] = [];
   appliedJobs: Set<string> = new Set();
   myApplicationsMap: Map<string, string> = new Map(); // oferta_id -> estado
 
-  // Admin Apply
+  // Cached applications for finalized offers follow-up
+  applicationsByOffer: Map<string, JobApplication[]> = new Map();
+  loadingApplicationsFor: Set<string> = new Set();
+  applicationsErrorFor: Set<string> = new Set();
+
+  // Admin / Volunteer Apply
   participants: User[] = [];
   selectedParticipant: string = "";
   showApplyDialog = false;
   jobToApply: JobOffer | null = null;
+
+  showAcceptanceModal = false;
+  acceptanceMessage = "";
+  acceptedOfferForContact: JobOffer | null = null;
 
   constructor(
     private readonly jobOfferService: JobOfferService,
@@ -114,6 +147,20 @@ export class OfertasComponent implements OnInit {
   ) {}
 
   ngOnInit() {
+    this.route.queryParamMap
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((params) => {
+        const nextSection =
+          params.get("seccion") === "historial" ? "historial" : "vigentes";
+        if (this.activeSection !== nextSection) {
+          this.activeSection = nextSection;
+          this.filterJobs();
+          if (nextSection === "historial") {
+            this.loadHistoryApplications();
+          }
+        }
+      });
+
     this.authService.isAuthenticated().subscribe({
       next: (res) => {
         const role = res?.role_id ?? res?.user?.role_id;
@@ -123,19 +170,26 @@ export class OfertasComponent implements OnInit {
           this.isAdmin = role === "role_admin" || role === "role_dev";
           this.isAdminOrVolunteer = this.isAdmin || role === "role_volunteer";
         }
-        const r = res as any;
+        const r = res as { user_id?: string };
         const uid = r.user_id || res?.user?.user_id;
         if (uid) {
           this.userId = uid;
         }
 
         if (this.isParticipant) {
+          this.activeSection = "vigentes";
           this.loadMyApplications();
         }
         if (this.isAdminOrVolunteer) {
           this.loadParticipants();
         }
         this.filterJobs();
+        if (
+          this.activeSection === "historial" &&
+          (this.isCompany || this.isAdminOrVolunteer)
+        ) {
+          this.loadHistoryApplications();
+        }
 
         this.profileService.getMyProfile().subscribe({
           next: (profile) => {
@@ -151,6 +205,84 @@ export class OfertasComponent implements OnInit {
     this.loadJobs();
   }
 
+  get vigentesCount(): number {
+    return this.jobs.filter((j) => this.isVigentStatus(j.estado)).length;
+  }
+
+  get historialCount(): number {
+    return this.jobs.filter((j) => this.isHistoryStatus(j.estado)).length;
+  }
+
+  get modalAcceptedCount(): number {
+    return this.currentCandidates.filter((c) =>
+      this.isAcceptedStatus(c.app.estado),
+    ).length;
+  }
+
+  get modalPendingCount(): number {
+    return this.currentCandidates.filter(
+      (c) =>
+        !this.isAcceptedStatus(c.app.estado) &&
+        !this.isRejectedStatus(c.app.estado),
+    ).length;
+  }
+
+  isEstado(actual?: string, expected?: string): boolean {
+    return (
+      (actual ?? "").trim().toLowerCase() ===
+      (expected ?? "").trim().toLowerCase()
+    );
+  }
+
+  isVigentStatus(estado?: string): boolean {
+    const e = (estado ?? "").trim().toLowerCase();
+    return e === "activa" || e === "pendiente";
+  }
+
+  isHistoryStatus(estado?: string): boolean {
+    const e = (estado ?? "").trim().toLowerCase();
+    return e === "vencida" || e === "cerrada" || e === "rechazada";
+  }
+
+  isFollowUpStatus(estado?: string): boolean {
+    const e = (estado ?? "").trim().toLowerCase();
+    return e === "vencida" || e === "cerrada";
+  }
+
+  isAcceptedStatus(estado?: string): boolean {
+    const e = (estado ?? "").trim().toLowerCase();
+    return [
+      "aceptado",
+      "aceptada",
+      "accepted",
+      "aprobada",
+      "aprobado",
+      "seleccionado",
+      "contratado",
+    ].includes(e);
+  }
+
+  isRejectedStatus(estado?: string): boolean {
+    const e = (estado ?? "").trim().toLowerCase();
+    return e === "rechazado" || e === "rechazada";
+  }
+
+  offerStatusSeverity(
+    estado?: string,
+  ): "success" | "warn" | "secondary" | "danger" {
+    const e = (estado ?? "").trim().toLowerCase();
+    if (e === "activa") return "success";
+    if (e === "pendiente") return "warn";
+    if (e === "cerrada") return "secondary";
+    return "danger";
+  }
+
+  vacantesTexto(job: JobOffer): string {
+    const v = Number(job.vacantes ?? 0);
+    if (!Number.isFinite(v) || v < 1) return "Vacantes sin especificar";
+    return v === 1 ? "1 vacante" : `${v} vacantes`;
+  }
+
   loadParticipants() {
     this.usersService.listByRole("role_participant").subscribe({
       next: (users) => (this.participants = users),
@@ -161,23 +293,26 @@ export class OfertasComponent implements OnInit {
   loadMyApplications() {
     this.jobOfferService.getMyApplications().subscribe({
       next: (apps) => {
-        apps.forEach((app) => {
+        this.appliedJobs.clear();
+        this.myApplicationsMap.clear();
+        (apps || []).forEach((app) => {
           this.appliedJobs.add(app.oferta_id);
           this.myApplicationsMap.set(app.oferta_id, app.estado || "Pendiente");
         });
+        this.filterJobs();
       },
       error: () =>
         console.warn("No se pudieron cargar las postulaciones del usuario."),
     });
   }
 
-  /** Espera a que se deje de tipear y pide las ofertas con el texto a labor-integration. */
+  /** Waits until typing pauses before requesting filtered offers from labor-integration. */
   buscar() {
     clearTimeout(this.busquedaTimer);
     this.busquedaTimer = setTimeout(() => this.loadJobs(), 300);
   }
 
-  /** true mientras se piden las ofertas (para no mostrar "no hay" antes de tiempo). */
+  /** True while offers are loading from the backend. */
   cargando = true;
 
   loadJobs() {
@@ -186,9 +321,17 @@ export class OfertasComponent implements OnInit {
       next: (data) => {
         this.cargando = false;
         this.jobs = data || [];
+        this.applicationsByOffer.clear();
+        this.applicationsErrorFor.clear();
         this.filterJobs();
+        if (
+          this.activeSection === "historial" &&
+          (this.isCompany || this.isAdminOrVolunteer)
+        ) {
+          this.loadHistoryApplications();
+        }
       },
-      error: (err) => {
+      error: () => {
         this.cargando = false;
         this.messageService.add({
           severity: "error",
@@ -197,6 +340,114 @@ export class OfertasComponent implements OnInit {
         });
       },
     });
+  }
+
+  loadHistoryApplications(forceOfferId?: string) {
+    if (!this.isCompany && !this.isAdminOrVolunteer) return;
+    const targets = this.jobs.filter((j) => {
+      if (!j.id || !this.isFollowUpStatus(j.estado)) return false;
+      if (forceOfferId) return j.id === forceOfferId;
+      return (
+        !this.applicationsByOffer.has(j.id) &&
+        !this.loadingApplicationsFor.has(j.id)
+      );
+    });
+
+    targets.forEach((job) => {
+      const offerId = job.id!;
+      this.loadingApplicationsFor.add(offerId);
+      this.applicationsErrorFor.delete(offerId);
+      this.jobOfferService.getApplicationsForOffer(offerId).subscribe({
+        next: (apps) => {
+          this.loadingApplicationsFor.delete(offerId);
+          this.applicationsByOffer.set(offerId, apps || []);
+        },
+        error: () => {
+          this.loadingApplicationsFor.delete(offerId);
+          this.applicationsErrorFor.add(offerId);
+        },
+      });
+    });
+  }
+
+  followUpCandidates(offerId?: string): {
+    accepted: JobApplication[];
+    pending: JobApplication[];
+  } {
+    if (!offerId) return { accepted: [], pending: [] };
+    const apps = this.applicationsByOffer.get(offerId) ?? [];
+    const accepted: JobApplication[] = [];
+    const pending: JobApplication[] = [];
+    for (const app of apps) {
+      if (this.isAcceptedStatus(app.estado)) {
+        accepted.push(app);
+      } else if (!this.isRejectedStatus(app.estado)) {
+        pending.push(app);
+      }
+    }
+    return { accepted, pending };
+  }
+
+  applicantDisplayName(app: JobApplication): string {
+    return (
+      app.nombre?.trim() ||
+      `Participante (${app.usuario_id || app.participante_id})`
+    );
+  }
+
+  private followUpNamesSummary(job: JobOffer): string {
+    const { accepted, pending } = this.followUpCandidates(job.id);
+    const parts: string[] = [];
+    if (accepted.length) {
+      parts.push(
+        `Aceptados: ${accepted.map((a) => this.applicantDisplayName(a)).join(", ")}`,
+      );
+    }
+    if (pending.length) {
+      parts.push(
+        `Pendientes sin resolución: ${pending.map((a) => this.applicantDisplayName(a)).join(", ")}`,
+      );
+    }
+    return parts.join("\n");
+  }
+
+  companyContactMailto(job: JobOffer): string {
+    if (!job.empresa_email) return "";
+    const subject = `Seguimiento de oferta "${job.titulo}" (${job.estado})`;
+    const summary = this.followUpNamesSummary(job);
+    const body = summary
+      ? `Hola,\n\nNos comunicamos desde el Centro Buen Vivir por la oferta "${job.titulo}" (${job.estado}) para consultar sobre:\n${summary}\n\nMuchas gracias.`
+      : `Hola,\n\nNos comunicamos desde el Centro Buen Vivir por la oferta "${job.titulo}" (${job.estado}).\n\nMuchas gracias.`;
+    return `mailto:${encodeURIComponent(job.empresa_email)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+  }
+
+  centerContactQueryParams(job: JobOffer): { asunto: string; mensaje: string } {
+    const summary = this.followUpNamesSummary(job);
+    const base = `Consulta sobre la oferta "${job.titulo}" (estado: ${job.estado}).`;
+    const mensaje = summary
+      ? `${base}\nPostulantes a consultar:\n${summary}`
+      : `${base} Quisiera coordinar el seguimiento con los responsables.`;
+    return {
+      asunto: "empleo",
+      mensaje: mensaje.slice(0, 3000),
+    };
+  }
+
+  participantContactQueryParams(job: JobOffer): {
+    asunto: string;
+    mensaje: string;
+  } {
+    const appStatus = job.id
+      ? this.myApplicationsMap.get(job.id) || "Pendiente"
+      : "Pendiente";
+    return {
+      asunto: "empleo",
+      mensaje:
+        `Hola, quiero consultar por mi postulación (${appStatus}) a la oferta "${job.titulo}" (${job.estado}).`.slice(
+          0,
+          3000,
+        ),
+    };
   }
 
   filterJobs() {
@@ -208,34 +459,60 @@ export class OfertasComponent implements OnInit {
       );
     }
 
-    // Tab filters
     if (this.isParticipant) {
       if (this.currentTab === "Disponibles") {
-        filtered = filtered.filter((j) => !this.appliedJobs.has(j.id!));
+        filtered = filtered.filter(
+          (j) =>
+            this.isEstado(j.estado, "Activa") && !this.appliedJobs.has(j.id!),
+        );
       } else if (this.currentTab === "Postuladas") {
         filtered = filtered.filter((j) => this.appliedJobs.has(j.id!));
       }
-    } else if (this.isCompany) {
-      if (this.companyTab !== "Todas") {
-        filtered = filtered.filter(
-          (j) => j.estado?.toLowerCase() === this.companyTab.toLowerCase(),
-        );
-      }
-    } else if (this.isAdminOrVolunteer) {
-      if (this.adminTab !== "Todas") {
-        filtered = filtered.filter(
-          (j) => j.estado?.toLowerCase() === this.adminTab.toLowerCase(),
-        );
+    } else if (this.isCompany || this.isAdminOrVolunteer) {
+      if (this.activeSection === "historial") {
+        filtered = filtered.filter((j) => this.isHistoryStatus(j.estado));
+        if (this.historyTab !== "Todas") {
+          filtered = filtered.filter((j) =>
+            this.isEstado(j.estado, this.historyTab),
+          );
+        }
+      } else {
+        filtered = filtered.filter((j) => this.isVigentStatus(j.estado));
+        const activeSubTab = this.isCompany ? this.companyTab : this.adminTab;
+        if (activeSubTab !== "Todas") {
+          filtered = filtered.filter((j) =>
+            this.isEstado(j.estado, activeSubTab),
+          );
+        }
       }
     }
 
     this.filteredJobs = filtered;
   }
 
+  setSection(section: "vigentes" | "historial") {
+    this.activeSection = section;
+    void this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: { seccion: section === "historial" ? "historial" : null },
+      queryParamsHandling: "merge",
+      replaceUrl: true,
+    });
+    this.filterJobs();
+    if (section === "historial") {
+      this.loadHistoryApplications();
+    }
+  }
+
   setTab(tab: string) {
     if (this.isParticipant) this.currentTab = tab;
     else if (this.isCompany) this.companyTab = tab;
     else if (this.isAdminOrVolunteer) this.adminTab = tab;
+    this.filterJobs();
+  }
+
+  setHistoryTab(tab: string) {
+    this.historyTab = tab;
     this.filterJobs();
   }
 
@@ -251,23 +528,30 @@ export class OfertasComponent implements OnInit {
       tipo_empleo: "Tiempo Completo",
       salario: "",
       horario: "",
+      vacantes: 1,
       requisitos: [],
       fecha_limite: "",
-      estado: "Pendiente",
+      estado: this.isAdminOrVolunteer ? "Activa" : "Pendiente",
     };
     this.currentRequisito = "";
     this.intentoGuardar = false;
     this.showDialog = true;
-    this.messageService.add({
-      severity: "info",
-      summary: "Aviso",
-      detail: "La oferta quedará en estado Pendiente hasta ser aprobada.",
-    });
+    if (this.isCompany) {
+      this.messageService.add({
+        severity: "info",
+        summary: "Aviso",
+        detail: "La oferta quedará en estado Pendiente hasta ser aprobada.",
+      });
+    }
   }
 
   openEditJobDialog(job: JobOffer) {
     this.isEditing = true;
-    this.newJob = { ...job, requisitos: [...(job.requisitos || [])] };
+    this.newJob = {
+      ...job,
+      vacantes: job.vacantes && job.vacantes > 0 ? job.vacantes : 1,
+      requisitos: [...(job.requisitos || [])],
+    };
     if (this.newJob.fecha_limite?.includes("T")) {
       const date = new Date(this.newJob.fecha_limite);
       const utc3Date = new Date(date.getTime() - 3 * 60 * 60 * 1000);
@@ -293,6 +577,7 @@ export class OfertasComponent implements OnInit {
   openRenewDialog(job: JobOffer) {
     this.selectedJobForRenew = job;
     this.renewDate = "";
+    this.renewVacancies = job.vacantes && job.vacantes > 0 ? job.vacantes : 1;
     this.showRenewDialog = true;
   }
 
@@ -305,9 +590,27 @@ export class OfertasComponent implements OnInit {
       });
       return;
     }
+    if (this.renewDate < hoyYMD()) {
+      this.messageService.add({
+        severity: "warn",
+        summary: "Aviso",
+        detail: "La nueva fecha límite debe ser hoy o posterior.",
+      });
+      return;
+    }
+    const vacantes = Math.floor(Number(this.renewVacancies));
+    if (!Number.isFinite(vacantes) || vacantes < 1) {
+      this.messageService.add({
+        severity: "warn",
+        summary: "Aviso",
+        detail: "Indicá al menos 1 vacante.",
+      });
+      return;
+    }
 
     const updatedJob = {
       ...this.selectedJobForRenew,
+      vacantes,
       estado: "Activa",
       fecha_limite: `${this.renewDate}T23:59:59-03:00`,
     } as JobOffer;
@@ -333,14 +636,54 @@ export class OfertasComponent implements OnInit {
       });
   }
 
+  confirmCloseOffer(job: JobOffer) {
+    if (!job.id) return;
+    this.confirmationService.confirm({
+      message:
+        "¿Querés cerrar esta oferta antes de su fecha límite? Dejará de recibir postulaciones y pasará a Finalizadas e historial.",
+      header: "Confirmar cierre anticipado",
+      icon: "pi pi-lock",
+      acceptLabel: "Sí, cerrar oferta",
+      rejectLabel: "Cancelar",
+      accept: () => {
+        if (!job.id) return;
+        this.jobOfferService.closeOffer(job.id).subscribe({
+          next: (closed) => {
+            this.messageService.add({
+              severity: "success",
+              summary: "Éxito",
+              detail: "Oferta cerrada correctamente.",
+            });
+            if (this.currentJob?.id === job.id) {
+              this.currentJob = {
+                ...this.currentJob,
+                ...closed,
+                estado: "Cerrada",
+              };
+            }
+            this.loadJobs();
+          },
+          error: (err) =>
+            this.messageService.add({
+              severity: "error",
+              summary: "Error",
+              detail: mensajeErrorOferta(
+                err,
+                "Hubo un problema al cerrar la oferta.",
+              ),
+            }),
+        });
+      },
+    });
+  }
+
   /**
-   * true después del primer intento de guardar: desde ahí cada campo
-   * obligatorio vacío muestra su error al lado (no antes, para no marcar
-   * en rojo un formulario recién abierto).
+   * True after the first save attempt so empty required fields highlight inline
+   * without showing red errors as soon as the dialog opens.
    */
   intentoGuardar = false;
 
-  /** Errores por campo del formulario de oferta (mismos criterios que el backend). */
+  /** Field-level errors matching backend offer validation. */
   get errores(): ErroresOferta {
     return this.intentoGuardar
       ? erroresOferta(this.newJob, { exigirFechaFutura: !this.isEditing })
@@ -348,7 +691,6 @@ export class OfertasComponent implements OnInit {
   }
 
   saveJob() {
-    // Un requisito escrito pero sin confirmar con Enter o "+" también cuenta.
     if (this.currentRequisito.trim()) {
       this.addRequisito();
     }
@@ -366,7 +708,10 @@ export class OfertasComponent implements OnInit {
       return;
     }
 
-    const jobToSave = { ...this.newJob };
+    const jobToSave: JobOffer = {
+      ...this.newJob,
+      vacantes: Math.floor(Number(this.newJob.vacantes)),
+    };
     if (jobToSave.fecha_limite && !jobToSave.fecha_limite.includes("T")) {
       jobToSave.fecha_limite = `${jobToSave.fecha_limite}T23:59:59-03:00`;
     } else if (!jobToSave.fecha_limite) {
@@ -471,6 +816,7 @@ export class OfertasComponent implements OnInit {
               });
               this.appliedJobs.add(job.id as string);
               this.myApplicationsMap.set(job.id as string, "Pendiente");
+              this.filterJobs();
             },
             error: (err) => {
               if (err.status === 409) {
@@ -481,11 +827,15 @@ export class OfertasComponent implements OnInit {
                 });
                 this.appliedJobs.add(job.id as string);
                 this.myApplicationsMap.set(job.id as string, "Pendiente");
+                this.filterJobs();
               } else {
                 this.messageService.add({
                   severity: "error",
                   summary: "Error",
-                  detail: "Hubo un problema al postularte.",
+                  detail: mensajeErrorOferta(
+                    err,
+                    "Hubo un problema al postularte.",
+                  ),
                 });
               }
             },
@@ -535,7 +885,7 @@ export class OfertasComponent implements OnInit {
             this.messageService.add({
               severity: "error",
               summary: "Error",
-              detail: "Hubo un problema al postular.",
+              detail: mensajeErrorOferta(err, "Hubo un problema al postular."),
             });
           }
         },
@@ -544,6 +894,7 @@ export class OfertasComponent implements OnInit {
 
   showApplications(job: JobOffer) {
     if (!job.id) return;
+    this.currentJob = job;
     this.currentJobTitle = job.titulo;
     this.currentCandidates = [];
     this.applicationsDialogVisible = true;
@@ -551,6 +902,7 @@ export class OfertasComponent implements OnInit {
     this.jobOfferService.getApplicationsForOffer(job.id).subscribe({
       next: (apps) => {
         const applications = apps || [];
+        this.applicationsByOffer.set(job.id!, applications);
         applications.forEach((app) => {
           const candidateData = {
             app,
@@ -576,10 +928,7 @@ export class OfertasComponent implements OnInit {
     });
   }
 
-  showAcceptanceModal = false;
-  acceptanceMessage = "";
-
-  /** Nombre del postulante: el que manda labor o, si no, el del CV. */
+  /** Applicant name: from labor-integration or CV basics fallback. */
   candidateName(candidate: { app: JobApplication; resume?: Resume }): string {
     return (
       candidate.app.nombre?.trim() ||
@@ -588,13 +937,13 @@ export class OfertasComponent implements OnInit {
     );
   }
 
-  /** Nombre y apellido para el selector de "Postular participante". */
+  /** Display name for the "Postular participante" selector. */
   participantName(p: User): string {
     const nombre = `${p.first_name ?? ""} ${p.last_name ?? ""}`.trim();
     return nombre || p.email;
   }
 
-  /** El CV está guardado con el id de usuario del postulante. */
+  /** CV documents are indexed by user_id. */
   cvId(app: JobApplication): string {
     return app.usuario_id || app.participante_id;
   }
@@ -609,10 +958,17 @@ export class OfertasComponent implements OnInit {
       .subscribe({
         next: () => {
           candidate.app.estado = status;
+          if (this.currentJob?.id) {
+            const cached = this.applicationsByOffer.get(this.currentJob.id);
+            if (cached) {
+              const target = cached.find((a) => a.id === candidate.app.id);
+              if (target) target.estado = status;
+            }
+          }
           if (this.isCompany && status === "Aceptado") {
-            const participantName =
-              candidate.resume?.data?.basics?.name || "este participante";
-            this.acceptanceMessage = `Has aceptado a ${participantName}. Ponte en contacto con los responsables para continuar.`;
+            const participantName = this.candidateName(candidate);
+            this.acceptanceMessage = `Has aceptado a ${participantName}. Comunicate con los responsables del centro para coordinar el ingreso.`;
+            this.acceptedOfferForContact = this.currentJob;
             this.showAcceptanceModal = true;
           } else {
             this.messageService.add({
@@ -673,8 +1029,7 @@ export class OfertasComponent implements OnInit {
 }
 
 /**
- * HU-39: campos obligatorios de una oferta (el backend valida lo mismo).
- * Devuelve los nombres de los que faltan, en el orden del formulario.
+ * HU-39: required offer fields (mirrors backend validation).
  */
 export function camposFaltantesOferta(job: {
   titulo?: string;
@@ -684,6 +1039,7 @@ export function camposFaltantesOferta(job: {
   tipo_empleo?: string;
   salario?: string;
   horario?: string;
+  vacantes?: number;
   requisitos?: string[];
   fecha_limite?: string;
 }): string[] {
@@ -696,13 +1052,17 @@ export function camposFaltantesOferta(job: {
   if (vacio(job.tipo_empleo)) faltan.push("tipo de empleo");
   if (vacio(job.salario)) faltan.push("salario");
   if (vacio(job.horario)) faltan.push("horario");
+  const vacantes = Number(job.vacantes);
+  if (!Number.isInteger(vacantes) || vacantes < 1) {
+    faltan.push("vacantes (al menos 1)");
+  }
   if (!(job.requisitos ?? []).some((r) => !vacio(r)))
     faltan.push("al menos un requisito");
   if (vacio(job.fecha_limite)) faltan.push("fecha límite");
   return faltan;
 }
 
-/** Campos del formulario de oferta que pueden tener error. */
+/** Form field keys that can carry inline validation messages. */
 export type CampoOferta =
   | "titulo"
   | "descripcion"
@@ -711,21 +1071,19 @@ export type CampoOferta =
   | "tipo_empleo"
   | "salario"
   | "horario"
+  | "vacantes"
   | "requisitos"
   | "fecha_limite";
 
 export type ErroresOferta = Partial<Record<CampoOferta, string>>;
 
-/** Fecha de hoy (YYYY-MM-DD) en Argentina, para comparar con el input date. */
+/** Today's date (YYYY-MM-DD) in UTC-3 for date input comparison. */
 function hoyYMD(): string {
   return new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString().slice(0, 10);
 }
 
 /**
- * Errores por campo de una oferta, con los mismos criterios que el backend
- * (labor-integration `validateOfferFields`): todos los campos obligatorios
- * y, al publicar, una fecha límite que no haya pasado. Así el formulario
- * no deja enviar algo que el backend va a rechazar.
+ * Per-field validation matching labor-integration `validateOfferFields`.
  */
 export function erroresOferta(
   job: Parameters<typeof camposFaltantesOferta>[0],
@@ -739,6 +1097,10 @@ export function erroresOferta(
   if (vacio(job.modalidad)) e.modalidad = "Elegí la modalidad.";
   if (vacio(job.salario)) e.salario = 'Ingresá el salario (o "A convenir").';
   if (vacio(job.horario)) e.horario = "Ingresá el horario.";
+  const vacantes = Number(job.vacantes);
+  if (!Number.isInteger(vacantes) || vacantes < 1) {
+    e.vacantes = "Indicá al menos 1 vacante.";
+  }
   if (vacio(job.fecha_limite)) {
     e.fecha_limite = "Elegí la fecha límite.";
   } else if (
@@ -753,7 +1115,7 @@ export function erroresOferta(
   return e;
 }
 
-/** Usa el texto que devuelve el backend (400 con el campo faltante). */
+/** Extracts user-facing 400 error message from backend response when available. */
 export function mensajeErrorOferta(err: unknown, fallback: string): string {
   const e = err as { status?: number; error?: unknown };
   if (e?.status === 400 && typeof e.error === "string" && e.error.trim()) {

@@ -2,6 +2,7 @@ package repositories
 
 import (
 	"context"
+	"time"
 
 	"cloud.google.com/go/firestore"
 	"google.golang.org/api/iterator"
@@ -16,6 +17,7 @@ type JobOfferRepository interface {
 	Delete(ctx context.Context, id string) error
 	UpdateStatus(ctx context.Context, id string, status string) error
 	UpdateStatusAndApprover(ctx context.Context, id string, status string, approvedBy string) error
+	Close(ctx context.Context, id string, closedBy string, closedAt time.Time) error
 	GetByID(ctx context.Context, id string) (*models.JobOffer, error)
 }
 
@@ -55,6 +57,9 @@ func (r *jobOfferRepository) List(ctx context.Context, companyID string) ([]*mod
 		if err := doc.DataTo(&offer); err != nil {
 			continue // skip invalid docs
 		}
+		if offer.ID == "" {
+			offer.ID = doc.Ref.ID
+		}
 		offers = append(offers, &offer)
 	}
 	return offers, nil
@@ -85,6 +90,17 @@ func (r *jobOfferRepository) UpdateStatusAndApprover(ctx context.Context, id str
 	return err
 }
 
+// Close marks an offer as Cerrada and records who closed it and when.
+func (r *jobOfferRepository) Close(ctx context.Context, id string, closedBy string, closedAt time.Time) error {
+	_, err := r.client.Collection("job_offers").Doc(id).Update(ctx, []firestore.Update{
+		{Path: "estado", Value: "Cerrada"},
+		{Path: "cerrado_por", Value: closedBy},
+		{Path: "fecha_cierre", Value: closedAt},
+		{Path: "updated_at", Value: closedAt},
+	})
+	return err
+}
+
 func (r *jobOfferRepository) GetByID(ctx context.Context, id string) (*models.JobOffer, error) {
 	doc, err := r.client.Collection("job_offers").Doc(id).Get(ctx)
 	if err != nil {
@@ -97,4 +113,3 @@ func (r *jobOfferRepository) GetByID(ctx context.Context, id string) (*models.Jo
 	offer.ID = doc.Ref.ID
 	return &offer, nil
 }
-

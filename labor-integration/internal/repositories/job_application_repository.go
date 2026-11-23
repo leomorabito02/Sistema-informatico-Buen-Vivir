@@ -82,6 +82,9 @@ func (r *jobApplicationRepository) ListByOffer(ctx context.Context, offerID stri
 		if err := doc.DataTo(&app); err != nil {
 			continue
 		}
+		if app.ID == "" {
+			app.ID = doc.Ref.ID
+		}
 		applications = append(applications, &app)
 	}
 	return applications, nil
@@ -133,4 +136,3 @@ func (r *jobApplicationRepository) Delete(ctx context.Context, applicationID str
 	_, err := r.client.Collection("job_applications").Doc(applicationID).Delete(ctx)
 	return err
 }
-

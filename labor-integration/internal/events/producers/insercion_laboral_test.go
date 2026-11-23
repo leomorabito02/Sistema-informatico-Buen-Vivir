@@ -39,4 +39,3 @@ func TestPostulacionSeleccionadaPayloadSinPII(t *testing.T) {
 		t.Errorf("payload no coincide con los valores esperados: %+v", payload)
 	}
 }
-
