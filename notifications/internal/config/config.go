@@ -67,6 +67,11 @@ func LoadConfig() *Config {
 
 	frontendURL := resolveFrontendURL(os.Getenv("FRONTEND_URL"), env)
 
+	databaseURL := strings.TrimSpace(cleanEnvValue(strings.TrimSpace(os.Getenv("DATABASE_URL_NOTIFICATIONS"))))
+	if databaseURL == "" {
+		databaseURL = strings.TrimSpace(cleanEnvValue(strings.TrimSpace(os.Getenv("DATABASE_URL_"))))
+	}
+
 	return &Config{
 		Port:                      port,
 		GRPCPort:                  grpcPort,
@@ -78,7 +83,7 @@ func LoadConfig() *Config {
 		ResendFrom:                resendFrom,
 		ResendFromNotifications:   resendFromNotifications,
 		ResendFromAlerts:          resendFromAlerts,
-		DatabaseURL:               os.Getenv("DATABASE_URL_NOTIFICATIONS"),
+		DatabaseURL:               databaseURL,
 		InternalHMACSecret:        os.Getenv("INTERNAL_HMAC_SECRET"),
 		PubSubPushAudience:        strings.TrimSpace(os.Getenv("PUBSUB_PUSH_AUDIENCE")),
 		PubSubPushServiceAccounts: splitCommaList(os.Getenv("PUBSUB_PUSH_SERVICE_ACCOUNTS")),

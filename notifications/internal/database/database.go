@@ -3,6 +3,7 @@ package database
 import (
 	"fmt"
 	"log/slog"
+	"strings"
 	"time"
 
 	"buenvivir/notifications/internal/models"
@@ -13,6 +14,7 @@ import (
 
 // InitDatabase initializes the connection pool to PostgreSQL using GORM and runs schema auto-migrations.
 func InitDatabase(dsn string) (*gorm.DB, error) {
+	dsn = strings.TrimSpace(strings.Trim(strings.TrimSpace(dsn), `"'`))
 	if dsn == "" {
 		return nil, fmt.Errorf("database connection string is empty")
 	}
