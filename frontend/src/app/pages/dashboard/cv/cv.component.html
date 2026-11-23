@@ -42,19 +42,13 @@
     </div>
   </div>
 
-  <div
-    *ngIf="message"
-    class="alert alert-info p-3 mb-4 rounded bg-primary/10 border border-primary/20 text-primary"
-  >
+  <div *ngIf="message" class="cv-aviso">
     {{ message }}
   </div>
 
-  <div
-    class="cv-layout flex flex-col md:flex-row gap-6"
-    *ngIf="!loading && resume?.data as cv"
-  >
+  <div class="cv-layout" *ngIf="!loading && resume?.data as cv">
     <!-- Formulario de edición -->
-    <div class="cv-form-section flex-1 max-w-full md:max-w-[60%]">
+    <div class="cv-form-section">
       <p-card header="Completá tu perfil" styleClass="p-card-shadow mb-4">
         <form #resumeForm="ngForm">
           <div class="form-section-group mb-6">
@@ -248,7 +242,7 @@
                 name="summary"
                 [(ngModel)]="cv.basics.summary"
                 placeholder="Contá un poco sobre tu perfil profesional..."
-                class="w-full min-h-[100px]"
+                class="w-full cv-resumen"
               ></textarea>
             </div>
           </div>
@@ -351,7 +345,7 @@
                   pTextarea
                   name="desc--{{ i }}"
                   [(ngModel)]="job.description"
-                  class="w-full min-h-[60px]"
+                  class="w-full cv-notas"
                 ></textarea>
               </div>
             </div>
@@ -626,7 +620,7 @@
               No has agregado referencias laborales o personales.
             </div>
 
-            <div class="space-y-3">
+            <div class="cv-lista">
               <div
                 *ngFor="let ref of cv.references; let i = index"
                 class="p-3 border border-gray-200 rounded-md bg-gray-50 flex gap-2 items-start"
@@ -688,8 +682,8 @@
     </div>
 
     <!-- Vista previa -->
-    <div class="cv-preview-section flex-1 max-w-full md:max-w-[40%]">
-      <div class="sticky top-4">
+    <div class="cv-preview-section">
+      <div>
         <p-card
           header="Vista previa"
           styleClass="p-card-shadow preview-card relative"
@@ -732,7 +726,7 @@
               <p class="text-xs text-gray-500">{{ cv.basics.location }}</p>
             </div>
 
-            <div class="preview-body space-y-5">
+            <div class="preview-body">
               <div class="preview-block">
                 <h4
                   class="font-semibold text-primary uppercase text-sm mb-1 border-b pb-1"
@@ -934,7 +928,7 @@
       <img
         [src]="getSelectedTemplateImage()"
         [alt]="getSelectedTemplateLabel()"
-        class="w-full h-auto rounded border shadow-sm max-h-[75vh] object-contain mx-auto"
+        class="cv-plantilla-grande rounded border shadow-sm"
       />
     </div>
   </p-dialog>
