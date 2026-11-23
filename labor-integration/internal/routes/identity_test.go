@@ -9,6 +9,8 @@ import (
 	"net/http/httptest"
 	"testing"
 	"time"
+
+	"github.com/go-chi/chi/v5"
 )
 
 const secretoPrueba = "secreto-de-prueba-de-al-menos-32-caracteres"
@@ -84,4 +86,24 @@ func TestIdentidad_NoSeConfiaEnHeadersDelCliente(t *testing.T) {
 			}
 		}
 	})
+}
+
+func TestRegisterRoutes_AllowsPreRegisteredRoutesWithoutPanic(t *testing.T) {
+	// Arrange
+	r := chi.NewRouter()
+	r.Handle("/metrics", http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	}))
+
+	// Act: RegisterRoutes must not panic even when /metrics was registered beforehand.
+	RegisterRoutes(r, Controllers{})
+
+	req := httptest.NewRequest(http.MethodGet, "/health", nil)
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+
+	// Assert
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected 200 on /health, got %d", w.Code)
+	}
 }
