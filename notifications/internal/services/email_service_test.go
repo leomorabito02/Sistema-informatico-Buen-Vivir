@@ -48,15 +48,29 @@ func TestResendEmailService_SendEmail_EmptyRecipients(t *testing.T) {
 }
 
 func TestNormalizeFromEmail(t *testing.T) {
-	// Arrange & Act & Assert
-	if got := normalizeFromEmail(""); got != "onboarding@resend.dev" {
-		t.Errorf("expected onboarding@resend.dev, got %s", got)
+	// Arrange
+	cases := []struct {
+		name  string
+		input string
+		want  string
+	}{
+		{"empty defaults", "", "onboarding@resend.dev"},
+		{"bare domain in brackets", "<notificaciones.ceibuenvivir.org>", "Buen Vivir <notificaciones@notificaciones.ceibuenvivir.org>"},
+		{"bare email", "alerts@example.com", "alerts@example.com"},
+		{"wrapped quotes", `"Buen Vivir <notificaciones@ceibuenvivir.org>"`, "Buen Vivir <notificaciones@ceibuenvivir.org>"},
+		{"missing angle brackets", "Buen Vivir notificaciones@ceibuenvivir.org", "Buen Vivir <notificaciones@ceibuenvivir.org>"},
+		{"unclosed bracket", "Buen Vivir <notificaciones@ceibuenvivir.org", "Buen Vivir <notificaciones@ceibuenvivir.org>"},
+		{"angle brackets around bare email", "<notificaciones@ceibuenvivir.org>", "notificaciones@ceibuenvivir.org"},
+		{"invalid garbage falls back", "not-an-email", "onboarding@resend.dev"},
 	}
-	if got := normalizeFromEmail("<notificaciones.ceibuenvivir.org>"); got != "Buen Vivir <notificaciones@notificaciones.ceibuenvivir.org>" {
-		t.Errorf("expected Buen Vivir <notificaciones@notificaciones.ceibuenvivir.org>, got %s", got)
-	}
-	if got := normalizeFromEmail("alerts@example.com"); got != "alerts@example.com" {
-		t.Errorf("expected alerts@example.com, got %s", got)
+
+	// Act & Assert
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			if got := normalizeFromEmail(tc.input); got != tc.want {
+				t.Errorf("normalizeFromEmail(%q) = %q, want %q", tc.input, got, tc.want)
+			}
+		})
 	}
 }
 
@@ -100,6 +114,16 @@ func TestResolveFromEmail_DualRouting(t *testing.T) {
 	}
 	if from := svc.resolveFrom(msgSecCat); from != "Buen Vivir Seguridad <seguridad@ceibuenvivir.org>" {
 		t.Errorf("expected alert sender for security category, got %s", from)
+	}
+
+	// Act & Assert 4: Invalid notifications sender falls back to valid alerts sender
+	fallbackRaw, err := NewDualResendEmailService("re_test_key", "invalid-from", "Buen Vivir Seguridad <seguridad@ceibuenvivir.org>")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	fallbackSvc := fallbackRaw.(*resendEmailService)
+	if from := fallbackSvc.resolveFrom(msgNotif); from != "Buen Vivir Seguridad <seguridad@ceibuenvivir.org>" {
+		t.Errorf("expected notifications sender to fall back to valid alerts sender, got %s", from)
 	}
 }
 
