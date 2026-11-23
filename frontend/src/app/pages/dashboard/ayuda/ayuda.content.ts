@@ -116,7 +116,9 @@ const GESTION_COMUN: AyudaTema[] = [
     pasos: [
       "Abrí Inserción laboral.",
       "Las ofertas que publica una empresa quedan Pendientes: revisalas y tocá Aprobar.",
+      "Indicá la cantidad de vacantes al publicar o editar, y usá Cerrar oferta si la búsqueda finaliza antes.",
       "Con Postular participante postulás a alguien; con Ver postulados ves quiénes se postularon.",
+      "En Finalizadas e historial ves las ofertas vencidas o cerradas junto al contacto de la empresa y los postulantes para seguimiento.",
     ],
   },
 ];
@@ -157,13 +159,17 @@ const EMPRESA: AyudaTema[] = [
     pregunta: "¿Cómo publico una oferta?",
     pasos: [
       "Abrí Ofertas laborales y tocá Publicar oferta.",
-      "Completá los datos y guardá.",
+      "Completá los datos (incluido el número de vacantes) y guardá.",
       "La oferta queda Pendiente hasta que el centro la aprueba.",
     ],
   },
   {
-    pregunta: "¿Cómo veo quién se postuló?",
-    pasos: ["En la oferta, tocá Ver postulados."],
+    pregunta: "¿Cómo veo quién se postuló o cierro una oferta antes de tiempo?",
+    pasos: [
+      "En la oferta, tocá Ver postulados para revisar perfiles y aceptar o rechazar.",
+      "Si ya cubriste las vacantes, tocá Cerrar oferta para moverla a Finalizadas e historial.",
+      "Desde Finalizadas e historial ves los canales del centro y qué postulantes requieren seguimiento.",
+    ],
   },
   {
     pregunta: "¿Cómo me comunico con el centro?",

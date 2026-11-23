@@ -93,3 +93,25 @@ func TestResolveGoogleClientOptions_EmptyFallsBackToADC(t *testing.T) {
 		t.Fatalf("expected nil options for ADC fallback, got %d", len(opts))
 	}
 }
+
+func TestResolveFirestoreDatabase(t *testing.T) {
+	for _, tc := range []struct {
+		name string
+		val  string
+		want string
+	}{
+		{"unset or empty defaults to default db", "", ""},
+		{"whitespace defaults to default db", "   ", ""},
+		{"explicit default marker", "(default)", ""},
+		{"literal null string", "null", ""},
+		{"uppercase NULL string", "NULL", ""},
+		{"custom database name", "buenvivir-prod", "buenvivir-prod"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Setenv("FIRESTORE_DATABASE", tc.val)
+			if got := resolveFirestoreDatabase(); got != tc.want {
+				t.Fatalf("resolveFirestoreDatabase() = %q, want %q", got, tc.want)
+			}
+		})
+	}
+}

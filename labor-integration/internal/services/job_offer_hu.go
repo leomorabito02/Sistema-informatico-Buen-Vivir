@@ -39,6 +39,9 @@ func validateOfferFields(o *models.JobOffer, checkDeadline bool) error {
 			faltan = append(faltan, c.nombre)
 		}
 	}
+	if o.Vacancies < 1 {
+		faltan = append(faltan, "vacantes (al menos 1)")
+	}
 	tieneRequisito := false
 	for _, r := range o.Requirements {
 		if strings.TrimSpace(r) != "" {

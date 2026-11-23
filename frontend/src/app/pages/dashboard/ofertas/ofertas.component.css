@@ -99,3 +99,113 @@
   justify-content: center;
   white-space: nowrap;
 }
+
+.section-switcher {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.tabs-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.followup-panel {
+  background: var(--color-surface-alt);
+  border: 1px solid var(--color-border);
+  border-left: 3px solid var(--color-secondary);
+  border-radius: var(--radius-md);
+  padding: var(--space-3);
+}
+
+.followup-block + .followup-block {
+  padding-top: var(--space-2);
+  border-top: 1px solid var(--color-border);
+}
+
+.followup-title {
+  display: block;
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--color-text-muted);
+  margin-bottom: var(--space-1);
+}
+
+.followup-links {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.followup-link {
+  color: var(--color-link);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-medium);
+  text-decoration: none;
+  word-break: break-word;
+}
+
+.followup-link:hover {
+  text-decoration: underline;
+}
+
+.followup-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: var(--space-1) var(--space-3);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-primary);
+  color: var(--color-primary);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  text-decoration: none;
+}
+
+.followup-cta:hover {
+  background: var(--color-primary-soft);
+}
+
+.followup-retry {
+  border: none;
+  background: transparent;
+  color: var(--color-link);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  cursor: pointer;
+  padding: 0;
+  text-decoration: underline;
+}
+
+.candidate-group-label {
+  display: block;
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text);
+  margin-bottom: var(--space-1);
+}
+
+.candidate-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.cupo-completo-banner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  border-radius: var(--radius-md);
+  background: var(--color-warning-soft);
+  border: 1px solid var(--ochre-200);
+}

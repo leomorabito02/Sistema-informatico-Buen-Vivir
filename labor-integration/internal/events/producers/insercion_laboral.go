@@ -137,7 +137,6 @@ func (p *insercionLaboralProducer) PostulacionSeleccionada(ctx context.Context, 
 	return p.writer.Add(ctx, ev)
 }
 
-
 // OfertaEliminada avisa que se borró una oferta (HU-41).
 func (p *insercionLaboralProducer) OfertaEliminada(ctx context.Context, ofertaID, empresaID string, porGestion bool) error {
 	if !p.Enabled() {

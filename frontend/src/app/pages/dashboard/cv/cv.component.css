@@ -37,8 +37,65 @@
   border-radius: 0.5rem;
 }
 
-@media (max-width: 840px) {
-  /* Handled by Tailwind md: breakpoint */
+/* Formulario y vista previa. min-width: 0 evita que el carrusel de plantillas
+   estire la columna (y la pantalla) más allá del ancho visible. */
+.cv-layout {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.cv-form-section,
+.cv-preview-section {
+  min-width: 0;
+  max-width: 100%;
+}
+
+@media (min-width: 1200px) {
+  .cv-layout {
+    flex-direction: row;
+    align-items: flex-start;
+  }
+
+  .cv-form-section {
+    flex: 3 1 0;
+  }
+
+  .cv-preview-section {
+    flex: 2 1 0;
+    position: sticky;
+    top: 1rem;
+  }
+}
+
+.preview-body > * + * {
+  margin-top: 1.25rem;
+}
+
+.cv-notas {
+  min-height: 60px;
+}
+
+.cv-resumen {
+  min-height: 100px;
+}
+
+.cv-plantilla-grande {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-height: 75vh;
+  object-fit: contain;
+  margin: 0 auto;
+}
+
+.cv-aviso {
+  padding: var(--space-3, 0.75rem);
+  margin-bottom: 1rem;
+  border-radius: var(--radius-md, 8px);
+  background: var(--color-primary-soft);
+  border: 1px solid var(--color-primary-soft-strong);
+  color: var(--color-primary);
 }
 
 .cv-warn-icon {
@@ -211,4 +268,8 @@
   color: var(--color-primary);
   border: 1px solid var(--color-primary-soft-strong);
   font-weight: 500;
+}
+
+.cv-lista > * + * {
+  margin-top: 0.75rem;
 }

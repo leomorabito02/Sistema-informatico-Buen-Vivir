@@ -19,11 +19,24 @@ func NewFirestoreClient(ctx context.Context) (*firestore.Client, error) {
 	if err != nil {
 		return nil, err
 	}
-	if credentialsJSON == nil {
-		return firestore.NewClient(ctx, firestore.DetectProjectID)
+	var opts []option.ClientOption
+	if credentialsJSON != nil {
+		_ = os.Unsetenv("GOOGLE_APPLICATION_CREDENTIALS")
+		opts = append(opts, option.WithCredentialsJSON(credentialsJSON)) //nolint:staticcheck // option.WithCredentialsJSON es necesario para credenciales inline (mismo criterio que human-promotion)
 	}
-	_ = os.Unsetenv("GOOGLE_APPLICATION_CREDENTIALS")
-	return firestore.NewClient(ctx, firestore.DetectProjectID, option.WithCredentialsJSON(credentialsJSON)) //nolint:staticcheck // option.WithCredentialsJSON es necesario para credenciales inline (mismo criterio que human-promotion)
+	if dbID := resolveFirestoreDatabase(); dbID != "" {
+		return firestore.NewClientWithDatabase(ctx, firestore.DetectProjectID, dbID, opts...)
+	}
+	return firestore.NewClient(ctx, firestore.DetectProjectID, opts...)
+}
+
+// resolveFirestoreDatabase returns the configured Firestore database ID, or empty string for "(default)".
+func resolveFirestoreDatabase() string {
+	dbID := strings.TrimSpace(os.Getenv("FIRESTORE_DATABASE"))
+	if dbID == "" || dbID == "(default)" || strings.EqualFold(dbID, "null") {
+		return ""
+	}
+	return dbID
 }
 
 // GoogleCredentialsJSON exposes inline credentials for other Google Cloud clients (Pub/Sub).

@@ -96,14 +96,14 @@ func main() {
 	r := chi.NewRouter()
 	r.Use(observability.HTTPMiddleware(metrics, chiRoutePattern))
 	r.Use(middleware.Recoverer)
-	if observability.MetricsEnabled() {
-		r.Handle("/metrics", metrics.Handler())
-	}
 
 	routes.RegisterRoutes(r, routes.Controllers{
 		JobOffer:       jobOfferController,
 		JobApplication: jobApplicationController,
 	})
+	if observability.MetricsEnabled() {
+		r.Handle("/metrics", metrics.Handler())
+	}
 
 	server := &http.Server{
 		Addr:              ":" + cfg.Port,

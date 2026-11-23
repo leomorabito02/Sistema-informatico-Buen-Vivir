@@ -31,9 +31,26 @@ func NewFirestoreClient(ctx context.Context, projectID string) (*firestore.Clien
 		}
 	}
 
+	if dbID := resolveFirestoreDatabase(); dbID != "" {
+		client, err := firestore.NewClientWithDatabase(ctx, projectID, dbID, opts...)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create firestore client: %w", err)
+		}
+		return client, nil
+	}
+
 	client, err := firestore.NewClient(ctx, projectID, opts...)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create firestore client: %w", err)
 	}
 	return client, nil
+}
+
+// resolveFirestoreDatabase returns the configured Firestore database ID, or empty string for "(default)".
+func resolveFirestoreDatabase() string {
+	dbID := strings.TrimSpace(os.Getenv("FIRESTORE_DATABASE"))
+	if dbID == "" || dbID == "(default)" || strings.EqualFold(dbID, "null") {
+		return ""
+	}
+	return dbID
 }

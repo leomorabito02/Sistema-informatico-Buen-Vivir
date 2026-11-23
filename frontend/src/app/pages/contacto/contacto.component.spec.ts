@@ -1,5 +1,9 @@
 import { ComponentFixture, TestBed } from "@angular/core/testing";
-import { provideRouter } from "@angular/router";
+import {
+  ActivatedRoute,
+  convertToParamMap,
+  provideRouter,
+} from "@angular/router";
 import { provideHttpClient } from "@angular/common/http";
 import {
   HttpTestingController,
@@ -98,5 +102,41 @@ describe("ContactoComponent", () => {
     localStorage.setItem("isAuthenticated", "true");
     const otra = TestBed.createComponent(ContactoComponent).componentInstance;
     expect(otra.inicio).toBe("/dashboard");
+  });
+
+  it("preloads valid subject and message from queryParams", async () => {
+    // Arrange
+    TestBed.resetTestingModule();
+    await TestBed.configureTestingModule({
+      imports: [ContactoComponent],
+      providers: [
+        provideRouter([]),
+        provideHttpClient(),
+        provideHttpClientTesting(),
+        {
+          provide: ActivatedRoute,
+          useValue: {
+            snapshot: {
+              queryParamMap: convertToParamMap({
+                asunto: "empleo",
+                mensaje: "Consulta sobre la oferta Panadero.",
+              }),
+            },
+          },
+        },
+      ],
+    }).compileComponents();
+
+    // Act
+    const prefilledFixture = TestBed.createComponent(ContactoComponent);
+    prefilledFixture.detectChanges();
+
+    // Assert
+    expect(prefilledFixture.componentInstance.contactForm.value.subject).toBe(
+      "empleo",
+    );
+    expect(prefilledFixture.componentInstance.contactForm.value.message).toBe(
+      "Consulta sobre la oferta Panadero.",
+    );
   });
 });

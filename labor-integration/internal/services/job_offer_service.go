@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	"buenvivir/labor-integration/api/proto/authpb"
 	"buenvivir/labor-integration/internal/events/producers"
 	"buenvivir/labor-integration/internal/models"
 	"buenvivir/labor-integration/internal/repositories"
@@ -27,7 +28,7 @@ var ErrOfferForbidden = errors.New("forbidden: no tenés permisos sobre esta ofe
 
 // Roles de gestión de ofertas. role_dev pasa como admin.
 func esAdminOferta(role string) bool { return role == "role_admin" || role == "role_dev" }
-func esStaffOferta(role string) bool  { return esAdminOferta(role) || role == "role_volunteer" }
+func esStaffOferta(role string) bool { return esAdminOferta(role) || role == "role_volunteer" }
 
 // puedeGestionarOferta: admin y voluntario sobre cualquiera (así lo ofrece
 // hoy la pantalla de ofertas); la empresa solo sobre las suyas; el resto,
@@ -74,7 +75,7 @@ func (s *JobOfferService) CreateOffer(ctx context.Context, offer *models.JobOffe
 		if company == nil {
 			return errors.New("company profile not found")
 		}
-		
+
 		if company.UserEmail == "" || company.UserPhone == "" || company.UserStatus != "active" ||
 			company.BusinessName == "" || company.Cuit == "" || strings.HasPrefix(company.Cuit, "PENDING-") || !isApprovedStatus(company.ApprovalStatus) {
 			return errors.New("company profile is incomplete or not approved")
@@ -84,8 +85,8 @@ func (s *JobOfferService) CreateOffer(ctx context.Context, offer *models.JobOffe
 	now := time.Now()
 	offer.CreatedAt = now
 	offer.UpdatedAt = now
-	
-	if role == "role_admin" || role == "role_volunteer" {
+
+	if esStaffOferta(role) {
 		offer.Status = "Activa"
 		offer.ApprovedBy = userID
 		if offer.CompanyID == "" {
@@ -94,7 +95,7 @@ func (s *JobOfferService) CreateOffer(ctx context.Context, offer *models.JobOffe
 	} else {
 		offer.Status = "Pendiente"
 	}
-	
+
 	if err := s.repo.Create(ctx, offer); err != nil {
 		return err
 	}
@@ -112,18 +113,24 @@ func (s *JobOfferService) CreateOffer(ctx context.Context, offer *models.JobOffe
 	return nil
 }
 
-func (s *JobOfferService) ListOffers(ctx context.Context, companyID string, role string) ([]*models.JobOffer, error) {
+func (s *JobOfferService) ListOffers(ctx context.Context, companyID string, role string, userID string) ([]*models.JobOffer, error) {
 	offers, err := s.repo.List(ctx, companyID)
 	if err != nil {
 		return nil, err
 	}
 
+	companyCache := make(map[string]*authpb.GetCompanyResponse)
+	var appliedOffers map[string]bool
+	if !esStaffOferta(role) && role != "role_company" && s.appRepo != nil && userID != "" {
+		appliedOffers = s.appliedOfferSet(ctx, userID)
+	}
+
 	var filteredOffers []*models.JobOffer
 	for _, offer := range offers {
 		s.checkOfferExpiration(ctx, offer)
-		s.populateMissingCreatorName(ctx, offer)
+		s.enrichCompanyInfo(ctx, offer, role, companyCache)
 
-		if s.isOfferVisibleForRole(offer, role) {
+		if s.isOfferVisibleForRole(offer, role, appliedOffers) {
 			filteredOffers = append(filteredOffers, offer)
 		}
 	}
@@ -138,22 +145,60 @@ func (s *JobOfferService) checkOfferExpiration(ctx context.Context, offer *model
 	}
 }
 
-func (s *JobOfferService) populateMissingCreatorName(ctx context.Context, offer *models.JobOffer) {
-	if offer.CreatorName == "" && offer.CompanyID != "" {
-		comp, err := s.authClient.GetCompany(ctx, offer.CompanyID)
-		if err == nil && comp != nil && comp.BusinessName != "" {
-			offer.CreatorName = comp.BusinessName
+func (s *JobOfferService) enrichCompanyInfo(ctx context.Context, offer *models.JobOffer, role string, cache map[string]*authpb.GetCompanyResponse) {
+	if s.authClient == nil || offer.CompanyID == "" {
+		return
+	}
+	comp, cached := cache[offer.CompanyID]
+	if !cached {
+		fetched, err := s.authClient.GetCompany(ctx, offer.CompanyID)
+		if err == nil {
+			comp = fetched
 		}
+		cache[offer.CompanyID] = comp
+	}
+	if comp == nil {
+		return
+	}
+	if offer.CreatorName == "" && comp.BusinessName != "" {
+		offer.CreatorName = comp.BusinessName
+	}
+	if esStaffOferta(role) {
+		offer.CompanyEmail = comp.UserEmail
+		offer.CompanyPhone = comp.UserPhone
 	}
 }
 
-// isOfferVisibleForRole: pendientes, rechazadas y eliminadas solo las ve la gestión
-// (admin, voluntario) y la empresa dueña. El resto ve solo las publicadas (HU-40).
-func (s *JobOfferService) isOfferVisibleForRole(offer *models.JobOffer, role string) bool {
+func (s *JobOfferService) appliedOfferSet(ctx context.Context, userID string) map[string]bool {
+	ids := []string{userID}
+	if s.authClient != nil {
+		if participant, err := s.authClient.GetParticipant(ctx, userID); err == nil && participant != nil && participant.Id != "" {
+			ids = append(ids, participant.Id)
+		}
+	}
+	apps, err := s.appRepo.ListByParticipant(ctx, ids)
+	if err != nil {
+		return nil
+	}
+	set := make(map[string]bool, len(apps))
+	for _, app := range apps {
+		if app != nil && app.OfferID != "" {
+			set[app.OfferID] = true
+		}
+	}
+	return set
+}
+
+// isOfferVisibleForRole restricts pending, rejected, and deleted offers to staff
+// and the owning company; participants see active offers plus finalized ones they applied to.
+func (s *JobOfferService) isOfferVisibleForRole(offer *models.JobOffer, role string, appliedOffers map[string]bool) bool {
 	if esStaffOferta(role) || role == "role_company" {
 		return true
 	}
-	return offer.Status == "Activa" || offer.Status == "Vencida"
+	if offer.Status == "Activa" {
+		return true
+	}
+	return (offer.Status == "Vencida" || offer.Status == "Cerrada") && appliedOffers[offer.ID]
 }
 
 func (s *JobOfferService) UpdateOffer(ctx context.Context, id string, offer *models.JobOffer, role, userID string) error {
@@ -161,14 +206,20 @@ func (s *JobOfferService) UpdateOffer(ctx context.Context, id string, offer *mod
 	if err != nil {
 		return err
 	}
+	if existing == nil {
+		return repositories.ErrOfferNotFound
+	}
 	if !puedeGestionarOferta(existing, role, userID) {
 		return ErrOfferForbidden
 	}
+	previousStatus := existing.Status
 	offer.Status = estadoPermitido(existing.Status, offer.Status, role)
-	if err := validateOfferFields(offer, false); err != nil {
+	reactivating := (previousStatus == "Vencida" || previousStatus == "Cerrada") && offer.Status == "Activa"
+	if err := validateOfferFields(offer, reactivating); err != nil {
 		return err
 	}
 
+	now := time.Now()
 	existing.Title = offer.Title
 	existing.Description = offer.Description
 	existing.Location = offer.Location
@@ -176,17 +227,56 @@ func (s *JobOfferService) UpdateOffer(ctx context.Context, id string, offer *mod
 	existing.JobType = offer.JobType
 	existing.Salary = offer.Salary
 	existing.Schedule = offer.Schedule
+	existing.Vacancies = offer.Vacancies
 	existing.Requirements = offer.Requirements
 	existing.Deadline = offer.Deadline
 	existing.Status = offer.Status
-	existing.UpdatedAt = time.Now()
+	existing.UpdatedAt = now
 
-	return s.repo.Update(ctx, id, existing)
+	if offer.Status == "Activa" && previousStatus != "Activa" {
+		existing.ClosedAt = nil
+		existing.ClosedBy = ""
+	} else if offer.Status == "Cerrada" && previousStatus != "Cerrada" {
+		existing.ClosedAt = &now
+		existing.ClosedBy = userID
+	}
+
+	if err := s.repo.Update(ctx, id, existing); err != nil {
+		return err
+	}
+	*offer = *existing
+	return nil
 }
 
-// estadoPermitido decide el estado después de editar. Solo el admin lo cambia
-// libremente (HU-40/41); empresa y voluntario solo pueden renovar una oferta vencida.
-// Un estado vacío deja el que estaba.
+// CloseOffer closes an active offer before its deadline.
+func (s *JobOfferService) CloseOffer(ctx context.Context, id, role, userID string) (*models.JobOffer, error) {
+	existing, err := s.repo.GetByID(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+	if existing == nil {
+		return nil, repositories.ErrOfferNotFound
+	}
+	if !puedeGestionarOferta(existing, role, userID) {
+		return nil, ErrOfferForbidden
+	}
+	s.checkOfferExpiration(ctx, existing)
+	if existing.Status != "Activa" {
+		return nil, &offerFieldError{msg: "solo se pueden cerrar ofertas activas"}
+	}
+	now := time.Now()
+	if err := s.repo.Close(ctx, id, userID, now); err != nil {
+		return nil, err
+	}
+	existing.Status = "Cerrada"
+	existing.ClosedBy = userID
+	existing.ClosedAt = &now
+	existing.UpdatedAt = now
+	return existing, nil
+}
+
+// estadoPermitido decides the resulting status on update. Only admin can change
+// status freely; company and volunteer may reactivate Vencida or Cerrada offers.
 func estadoPermitido(actual, pedido, role string) string {
 	if pedido == "" {
 		return actual
@@ -194,7 +284,7 @@ func estadoPermitido(actual, pedido, role string) string {
 	if esAdminOferta(role) {
 		return pedido
 	}
-	if actual == "Vencida" && pedido == "Activa" {
+	if (actual == "Vencida" || actual == "Cerrada") && pedido == "Activa" {
 		return pedido
 	}
 	return actual

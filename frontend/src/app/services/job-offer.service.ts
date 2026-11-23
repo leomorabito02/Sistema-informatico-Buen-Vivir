@@ -14,9 +14,14 @@ export interface JobOffer {
   tipo_empleo: string;
   salario: string;
   horario: string;
+  vacantes?: number;
   requisitos: string[];
   fecha_limite?: string;
   estado: string;
+  fecha_cierre?: string;
+  cerrado_por?: string;
+  empresa_email?: string;
+  empresa_telefono?: string;
   created_at?: string;
   updated_at?: string;
 }
@@ -80,6 +85,15 @@ export class JobOfferService {
   rejectOffer(id: string): Observable<void> {
     return this.http.put<void>(
       `${this.apiUrl}/${id}/reject`,
+      {},
+      { withCredentials: true },
+    );
+  }
+
+  /** Closes an active offer before its deadline. */
+  closeOffer(id: string): Observable<JobOffer> {
+    return this.http.put<JobOffer>(
+      `${this.apiUrl}/${id}/close`,
       {},
       { withCredentials: true },
     );

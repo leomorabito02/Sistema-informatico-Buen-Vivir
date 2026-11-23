@@ -3,6 +3,7 @@ package services
 import (
 	"context"
 	"testing"
+	"time"
 
 	"buenvivir/labor-integration/internal/models"
 )
@@ -50,6 +51,16 @@ func (m *mockOfferRepo) UpdateStatusAndApprover(ctx context.Context, id string, 
 	if o, ok := m.offers[id]; ok {
 		o.Status = status
 		o.ApprovedBy = approvedBy
+	}
+	return nil
+}
+
+func (m *mockOfferRepo) Close(ctx context.Context, id string, closedBy string, closedAt time.Time) error {
+	if o, ok := m.offers[id]; ok {
+		o.Status = "Cerrada"
+		o.ClosedBy = closedBy
+		o.ClosedAt = &closedAt
+		o.UpdatedAt = closedAt
 	}
 	return nil
 }
@@ -202,7 +213,7 @@ func TestJobApplicationService_NotificationDispatching(t *testing.T) {
 	}
 
 	// Act 2: Update status
-	err = svc.UpdateStatus(context.Background(), "app-1", "comp-1", "Aceptado")
+	err = svc.UpdateStatus(context.Background(), "app-1", "role_company", "comp-1", "Aceptado")
 	if err != nil {
 		t.Fatalf("unexpected error updating status: %v", err)
 	}

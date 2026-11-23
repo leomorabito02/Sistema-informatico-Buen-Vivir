@@ -4469,6 +4469,45 @@ paths:
               type: boolean
             Access-Control-Max-Age:
               type: integer
+  /api/v1/labor-integration/offers/{id}/close:
+    parameters:
+    - name: id
+      in: path
+      required: true
+      type: string
+    put:
+      summary: PUT /api/v1/labor-integration/offers/{id}/close
+      operationId: put__api_v1_labor_integration_offers_id_close
+      x-google-backend:
+        address: ${LABOR_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+        jwt_audience: ${LABOR_SERVICE_URL}
+      responses:
+        '200':
+          description: OK
+    options:
+      summary: CORS preflight for /api/v1/labor-integration/offers/{id}/close
+      operationId: options__api_v1_labor_integration_offers_id_close
+      x-google-backend:
+        address: ${LABOR_SERVICE_URL}
+        path_translation: APPEND_PATH_TO_ADDRESS
+        jwt_audience: ${LABOR_SERVICE_URL}
+      responses:
+        '200':
+          description: OK
+          headers:
+            Access-Control-Allow-Origin:
+              type: string
+            Access-Control-Allow-Methods:
+              type: string
+            Access-Control-Allow-Headers:
+              type: string
+            Access-Control-Expose-Headers:
+              type: string
+            Access-Control-Allow-Credentials:
+              type: boolean
+            Access-Control-Max-Age:
+              type: integer
   /api/v1/labor-integration/offers/{id}/applications:
     parameters:
     - name: id

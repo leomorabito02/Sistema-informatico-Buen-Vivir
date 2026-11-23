@@ -140,3 +140,21 @@ func TestGoogleCredentialsJSON_EquivalenceClasses(t *testing.T) {
 	})
 }
 
+func TestResolveFirestoreDatabase(t *testing.T) {
+	for _, tc := range []struct {
+		name string
+		val  string
+		want string
+	}{
+		{"empty", "", ""},
+		{"default", "(default)", ""},
+		{"null", "null", ""},
+		{"custom", "buenvivir-prod", "buenvivir-prod"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Setenv("FIRESTORE_DATABASE", tc.val)
+			assert.Equal(t, tc.want, resolveFirestoreDatabase())
+		})
+	}
+}
+

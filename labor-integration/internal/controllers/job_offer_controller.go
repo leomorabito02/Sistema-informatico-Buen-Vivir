@@ -86,16 +86,17 @@ func (c *JobOfferController) Create(w http.ResponseWriter, r *http.Request) {
 	userID := r.Header.Get(headerUserID)
 
 	offer := models.JobOffer{
-		CreatorName:    req.CreatorName,
-		Title:          req.Title,
-		Description:    req.Description,
-		Location:       req.Location,
-		Modality:       req.Modality,
-		JobType:        req.JobType,
-		Salary:         req.Salary,
-		Schedule:       req.Schedule,
-		Requirements:   req.Requirements,
-		Deadline:       req.Deadline,
+		CreatorName:  req.CreatorName,
+		Title:        req.Title,
+		Description:  req.Description,
+		Location:     req.Location,
+		Modality:     req.Modality,
+		JobType:      req.JobType,
+		Salary:       req.Salary,
+		Schedule:     req.Schedule,
+		Vacancies:    req.Vacancies,
+		Requirements: req.Requirements,
+		Deadline:     req.Deadline,
 	}
 
 	if role == "role_company" {
@@ -119,9 +120,10 @@ func (c *JobOfferController) Create(w http.ResponseWriter, r *http.Request) {
 
 func (c *JobOfferController) List(w http.ResponseWriter, r *http.Request) {
 	role := r.Header.Get(headerUserRole)
+	userID := r.Header.Get(headerUserID)
 	companyID := ""
 	if role == "role_company" {
-		companyID = r.Header.Get(headerUserID)
+		companyID = userID
 	}
 
 	// ?q= busca en título, empresa y ubicación; ?empresa= deja solo las
@@ -133,7 +135,7 @@ func (c *JobOfferController) List(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	offers, err := c.service.ListOffers(r.Context(), companyID, role)
+	offers, err := c.service.ListOffers(r.Context(), companyID, role, userID)
 	if err != nil {
 		http.Error(w, "failed to list offers", http.StatusInternalServerError)
 		return
@@ -152,18 +154,18 @@ func (c *JobOfferController) Update(w http.ResponseWriter, r *http.Request) {
 	}
 
 	offer := models.JobOffer{
-		Title:          req.Title,
-		Description:    req.Description,
-		Location:       req.Location,
-		Modality:       req.Modality,
-		JobType:        req.JobType,
-		Salary:         req.Salary,
-		Schedule:       req.Schedule,
-		Requirements:   req.Requirements,
-		Deadline:       req.Deadline,
-		Status:         req.Status,
+		Title:        req.Title,
+		Description:  req.Description,
+		Location:     req.Location,
+		Modality:     req.Modality,
+		JobType:      req.JobType,
+		Salary:       req.Salary,
+		Schedule:     req.Schedule,
+		Vacancies:    req.Vacancies,
+		Requirements: req.Requirements,
+		Deadline:     req.Deadline,
+		Status:       req.Status,
 	}
-
 
 	if err := c.service.UpdateOffer(r.Context(), id, &offer, r.Header.Get(headerUserRole), r.Header.Get(headerUserID)); err != nil {
 		writeOfferError(w, err, "failed to update offer")
@@ -171,6 +173,25 @@ func (c *JobOfferController) Update(w http.ResponseWriter, r *http.Request) {
 	}
 	c.record(r, "actualizar", id)
 
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	_ = json.NewEncoder(w).Encode(offer)
+}
+
+// Close marks an active job offer as Cerrada before its deadline.
+func (c *JobOfferController) Close(w http.ResponseWriter, r *http.Request) {
+	id := chi.URLParam(r, "id")
+	role := r.Header.Get(headerUserRole)
+	userID := r.Header.Get(headerUserID)
+
+	offer, err := c.service.CloseOffer(r.Context(), id, role, userID)
+	if err != nil {
+		writeOfferError(w, err, "failed to close offer")
+		return
+	}
+	c.record(r, "cerrar", id)
+
+	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	_ = json.NewEncoder(w).Encode(offer)
 }
@@ -195,17 +216,17 @@ func (c *JobOfferController) Approve(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "unauthorized", http.StatusForbidden)
 		return
 	}
-	
+
 	id := chi.URLParam(r, "id")
 	userID := r.Header.Get(headerUserID)
-	
+
 	r = withToken(r)
 	if err := c.service.ApproveOffer(r.Context(), id, userID); err != nil {
 		http.Error(w, "failed to approve offer", http.StatusInternalServerError)
 		return
 	}
 	c.record(r, "aprobar", id)
-	
+
 	w.WriteHeader(http.StatusOK)
 }
 
@@ -215,16 +236,16 @@ func (c *JobOfferController) Reject(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "unauthorized", http.StatusForbidden)
 		return
 	}
-	
+
 	id := chi.URLParam(r, "id")
 	userID := r.Header.Get(headerUserID)
-	
+
 	if err := c.service.RejectOffer(r.Context(), id, userID); err != nil {
 		http.Error(w, "failed to reject offer", http.StatusInternalServerError)
 		return
 	}
 	c.record(r, "rechazar", id)
-	
+
 	w.WriteHeader(http.StatusOK)
 }
 

@@ -1,6 +1,6 @@
 import { Component, OnInit, PLATFORM_ID, inject } from "@angular/core";
 import { CommonModule, isPlatformBrowser } from "@angular/common";
-import { RouterLink } from "@angular/router";
+import { ActivatedRoute, RouterLink } from "@angular/router";
 import {
   FormsModule,
   ReactiveFormsModule,
@@ -51,6 +51,7 @@ export class ContactoComponent implements OnInit {
   private readonly fb = inject(FormBuilder);
   private readonly platformId = inject(PLATFORM_ID);
   private readonly contacto = inject(ContactoService);
+  private readonly route = inject(ActivatedRoute);
 
   /** Motivos del formulario (el texto es lo que llega en el email). */
   readonly asuntos = [
@@ -84,6 +85,19 @@ export class ContactoComponent implements OnInit {
   });
 
   ngOnInit(): void {
+    const qp = this.route.snapshot.queryParamMap;
+    const asunto = (qp.get("asunto") ?? "").trim();
+    const mensaje = (qp.get("mensaje") ?? "").trim().slice(0, 3000);
+    const patch: { subject?: string; message?: string } = {};
+    if (this.asuntos.some((a) => a.value === asunto)) {
+      patch.subject = asunto;
+    }
+    if (mensaje) {
+      patch.message = mensaje;
+    }
+    if (Object.keys(patch).length > 0) {
+      this.contactForm.patchValue(patch);
+    }
     if (isPlatformBrowser(this.platformId)) {
       window.scrollTo(0, 0);
     }

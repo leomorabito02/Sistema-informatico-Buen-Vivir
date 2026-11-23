@@ -12,6 +12,9 @@ import (
 	"buenvivir/labor-integration/internal/repositories"
 )
 
+// ErrOfferNotActive indicates the target job offer cannot receive applications.
+var ErrOfferNotActive = errors.New("offer is not active")
+
 type JobApplicationService struct {
 	repo       repositories.JobApplicationRepository
 	offerRepo  repositories.JobOfferRepository
@@ -41,6 +44,25 @@ func NewJobApplicationService(repo repositories.JobApplicationRepository, offerR
 }
 
 func (s *JobApplicationService) ApplyToJob(ctx context.Context, application *models.JobApplication) error {
+	var offer *models.JobOffer
+	if s.offerRepo != nil {
+		fetched, err := s.offerRepo.GetByID(ctx, application.OfferID)
+		if err != nil {
+			return err
+		}
+		if fetched == nil {
+			return repositories.ErrOfferNotFound
+		}
+		if fetched.Status == "Activa" && !fetched.Deadline.IsZero() && time.Now().After(fetched.Deadline) {
+			fetched.Status = "Vencida"
+			_ = s.offerRepo.UpdateStatus(ctx, fetched.ID, "Vencida")
+		}
+		if fetched.Status != "Activa" {
+			return ErrOfferNotActive
+		}
+		offer = fetched
+	}
+
 	// Verify participant exists and is approved
 	participant, err := s.authClient.GetParticipant(ctx, application.ParticipantID)
 	if err != nil {
@@ -84,10 +106,8 @@ func (s *JobApplicationService) ApplyToJob(ctx context.Context, application *mod
 			partID = application.UserID
 		}
 		empresaID := ""
-		if s.offerRepo != nil {
-			if offer, err := s.offerRepo.GetByID(ctx, application.OfferID); err == nil && offer != nil {
-				empresaID = offer.CompanyID
-			}
+		if offer != nil {
+			empresaID = offer.CompanyID
 		}
 		if err := s.producer.PostulacionCreada(ctx, application.ID, application.OfferID, partID, empresaID); err != nil {
 			slog.Warn("failed to emit postulacion.creada", slog.String("error", err.Error()), slog.String("application_id", application.ID))
@@ -109,7 +129,7 @@ func (s *JobApplicationService) ListByParticipant(ctx context.Context, userID st
 	return s.repo.ListByParticipant(ctx, ids)
 }
 
-func (s *JobApplicationService) UpdateStatus(ctx context.Context, applicationID string, companyID string, status string) error {
+func (s *JobApplicationService) UpdateStatus(ctx context.Context, applicationID string, role string, userID string, status string) error {
 	app, err := s.repo.GetByID(ctx, applicationID)
 	if err != nil {
 		return err
@@ -126,7 +146,7 @@ func (s *JobApplicationService) UpdateStatus(ctx context.Context, applicationID 
 		return repositories.ErrOfferNotFound
 	}
 
-	if offer.CompanyID != companyID {
+	if !esStaffOferta(role) && !(role == "role_company" && offer.CompanyID == userID) {
 		return errors.New("unauthorized: you do not own the offer for this application")
 	}
 
@@ -163,10 +183,16 @@ func (s *JobApplicationService) UpdateStatus(ctx context.Context, applicationID 
 }
 
 func (s *JobApplicationService) ListByOffer(ctx context.Context, offerID string, role string, userID string) ([]*models.JobApplication, error) {
-	if role == "role_company" {
+	if !esStaffOferta(role) {
+		if role != "role_company" {
+			return nil, errors.New("unauthorized: you do not own this offer")
+		}
 		offer, err := s.offerRepo.GetByID(ctx, offerID)
 		if err != nil {
 			return nil, err
+		}
+		if offer == nil {
+			return nil, repositories.ErrOfferNotFound
 		}
 		if offer.CompanyID != userID {
 			return nil, errors.New("unauthorized: you do not own this offer")

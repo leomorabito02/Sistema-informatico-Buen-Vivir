@@ -154,9 +154,6 @@ func main() {
 		return ""
 	}))
 	middlewares.SetupMiddlewares(r)
-	if observability.MetricsEnabled() {
-		r.Handle("/metrics", metrics.Handler())
-	}
 	r.Use(middlewares.RateLimiter())
 
 	routes.RegisterRoutes(
@@ -180,6 +177,9 @@ func main() {
 			Progress:          controllers.NewProgressController(courseService, progressService),
 		},
 	)
+	if observability.MetricsEnabled() {
+		r.Handle("/metrics", metrics.Handler())
+	}
 
 	handler := routes.WithAsync(r, asyncEndpoints(cfg, firestoreClient, enrollmentRepo, activityRepo, contentfulClient, eventProducer, relay))
 

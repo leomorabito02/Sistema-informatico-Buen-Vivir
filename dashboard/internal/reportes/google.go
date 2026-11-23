@@ -120,7 +120,12 @@ func Nuevo(ctx context.Context, bucket string) (*Service, func(), error) {
 		opts = append(opts, option.WithCredentialsJSON(cred)) //nolint:staticcheck // credenciales inline, mismo criterio que education
 		_ = os.Unsetenv("GOOGLE_APPLICATION_CREDENTIALS")
 	}
-	fs, err := firestore.NewClient(ctx, firestore.DetectProjectID, opts...)
+	var fs *firestore.Client
+	if dbID := resolveFirestoreDatabase(); dbID != "" {
+		fs, err = firestore.NewClientWithDatabase(ctx, firestore.DetectProjectID, dbID, opts...)
+	} else {
+		fs, err = firestore.NewClient(ctx, firestore.DetectProjectID, opts...)
+	}
 	if err != nil {
 		return nil, nil, fmt.Errorf("no se pudo inicializar Firestore: %w", err)
 	}
@@ -131,6 +136,15 @@ func Nuevo(ctx context.Context, bucket string) (*Service, func(), error) {
 	}
 	cerrar := func() { _ = fs.Close(); _ = gcs.Close() }
 	return NewService(NewFirestoreRepository(fs), &gcsStorage{bucket: gcs.Bucket(bucket)}, bucket), cerrar, nil
+}
+
+// resolveFirestoreDatabase returns the configured Firestore database ID, or empty string for "(default)".
+func resolveFirestoreDatabase() string {
+	dbID := strings.TrimSpace(os.Getenv("FIRESTORE_DATABASE"))
+	if dbID == "" || dbID == "(default)" || strings.EqualFold(dbID, "null") {
+		return ""
+	}
+	return dbID
 }
 
 func credencialesGoogle() ([]byte, error) {
