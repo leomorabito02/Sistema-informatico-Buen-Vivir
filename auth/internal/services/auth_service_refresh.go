@@ -46,10 +46,8 @@ func (s *authService) RefreshToken(ctx context.Context, refreshToken string) (*d
 		return nil, err
 	}
 
-	// Revoke old token
 	_ = s.refreshTokenRepo.Revoke(ctx, rt.RefreshTokenID)
 
-	// Generate new token pair
 	accessToken, newRefreshToken, err := s.jwtService.GenerateTokenPair(user.UserID, user.RoleID, false)
 	if err != nil {
 		return nil, err

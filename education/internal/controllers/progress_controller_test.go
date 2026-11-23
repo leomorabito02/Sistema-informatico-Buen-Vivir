@@ -13,7 +13,7 @@ import (
 	"buenvivir/education/internal/repositories"
 )
 
-// HU-20 / auditoría 2026-11-11: progreso de un curso para admin y voluntario.
+// HU-20: progreso de un curso para admin y voluntario.
 func TestProgressController_CourseProgress(t *testing.T) {
 	t.Run("devuelve el progreso de cualquier curso existente", func(t *testing.T) {
 		courseSvc, progressSvc := new(MockCourseService), new(MockProgressService)

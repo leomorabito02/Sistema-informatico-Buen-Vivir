@@ -579,10 +579,7 @@ export class OfertasComponent implements OnInit {
   showAcceptanceModal = false;
   acceptanceMessage = "";
 
-  /**
-   * Nombre del postulante: el que manda labor, si no el del CV. Antes se
-   * leía solo del CV y, si la persona no lo tenía, quedaba "Cargando...".
-   */
+  /** Nombre del postulante: el que manda labor o, si no, el del CV. */
   candidateName(candidate: { app: JobApplication; resume?: Resume }): string {
     return (
       candidate.app.nombre?.trim() ||

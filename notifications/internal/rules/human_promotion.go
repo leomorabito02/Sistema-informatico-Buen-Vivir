@@ -9,10 +9,8 @@ import (
 	"buenvivir/notifications/internal/models"
 )
 
-// fichaURL es la pantalla de la ficha de un participante en el frontend
-// (/dashboard/promocion-humana/participantes/:participanteId, solo admin
-// y voluntario). Antes las reglas apuntaban a /dashboard/acompanamiento,
-// que no existe (auditoría 2026-11-11, Problema 3).
+// fichaURL es la pantalla de la ficha de un participante en el frontend (solo admin y
+// voluntario).
 func fichaURL(participanteID string) string {
 	if participanteID == "" {
 		return "/dashboard/promocion-humana"

@@ -25,15 +25,9 @@ func decodeJSONBody(r *http.Request, dst any) error {
 	return json.NewDecoder(r.Body).Decode(dst)
 }
 
-// writeError traduce un error de las capas de service/repository a una
-// respuesta HTTP apropiada: 400 si es de validación de negocio, 403 si
-// es de ownership (ej. un docente sobre un curso ajeno), 404 si la
-// entry/documento no se encontró, 409 si hubo conflicto de versión
-// (edición concurrente en Contentful), 422 si Contentful rechazó la
-// entry por validación (ej. publicar un borrador incompleto, con el
-// detalle de qué campos faltan), y 502 para cualquier otra falla
-// de infraestructura (Contentful o Firestore). 503 si una dependencia
-// opcional (la IA de sugerencias) no pudo responder.
+// writeError traduce errores de service/repository a HTTP: 400 validación, 403
+// ownership, 404 no encontrado, 409 conflicto de versión, 422 rechazo de Contentful,
+// 503 IA no disponible y 502 el resto.
 func writeError(w http.ResponseWriter, err error) {
 	switch {
 	case services.IsValidationError(err):

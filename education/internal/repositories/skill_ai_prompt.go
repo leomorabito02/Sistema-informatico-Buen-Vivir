@@ -19,11 +19,8 @@ const (
 	maxPromptCatalog    = 300
 )
 
-// Marcas que delimitan el texto escrito por usuarios dentro del pedido.
-// El modelo recibe la instrucción de tratar todo lo que esté entre ellas
-// como datos y nunca como órdenes (defensa contra "prompt injection":
-// una consigna que diga "ignorá lo anterior y..." no tiene que cambiar el
-// comportamiento).
+// Marcas que delimitan el texto de usuarios en el pedido: el modelo lo trata como
+// datos y no como órdenes (defensa contra prompt injection).
 const (
 	promptDataStart = "<<<DATOS>>>"
 	promptDataEnd   = "<<<FIN_DATOS>>>"
@@ -125,13 +122,9 @@ func promptField(s string) string {
 	return s
 }
 
-// skillsResponseSchema es el JSON Schema de la respuesta (Structured
-// Output). Con esto el proveedor está obligado a devolver exactamente
-// este formato: un objeto con la lista "habilidades", y cada una con
-// nombre, categoría (de la lista cerrada) y justificación.
-//
-// OpenAI exige "additionalProperties": false en modo estricto; Vertex
-// AI no lo acepta en su subconjunto de OpenAPI, por eso el parámetro.
+// skillsResponseSchema es el JSON Schema de la respuesta (lista "habilidades" con
+// nombre, categoría y justificación). strict agrega additionalProperties: false, que
+// OpenAI exige y Vertex AI no acepta.
 func skillsResponseSchema(strict bool) map[string]any {
 	cats := make([]string, len(models.SkillCategories))
 	for i, c := range models.SkillCategories {

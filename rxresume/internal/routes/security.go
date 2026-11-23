@@ -10,17 +10,9 @@ import (
 	"time"
 )
 
-// Seguridad de borde del servicio (auditoría 17/11/2026).
-//
-// En Docker el gateway nginx valida el token y pone X-User-ID /
-// X-User-Role. En GCP el API Gateway no hace eso: reenvía los headers que
-// mande el cliente. Con JWT_SECRET configurado, la identidad sale SOLO del
-// JWT verificado (cookie de sesión o Authorization) y se descartan los
-// X-User-* recibidos, igual que en labor-integration.
-//
-// CORS: el API Gateway de GCP no agrega los headers, así que los pone el
-// servicio (mismo criterio y lista fija que campaigns y auth). nginx en
-// local oculta los del servicio y pone los suyos, así que no se duplican.
+// Seguridad de borde del servicio. Con JWT_SECRET la identidad sale solo del JWT
+// verificado y se descartan los X-User-* recibidos (en GCP el API Gateway los reenvía
+// tal cual). CORS: el API Gateway no agrega los headers, así que los pone el servicio.
 
 const (
 	corsMethods = "GET, POST, PUT, PATCH, DELETE, OPTIONS"

@@ -38,10 +38,8 @@ export const appConfig: ApplicationConfig = {
       withViewTransitions(),
     ),
     provideHttpClient(withInterceptors([authInterceptor, errorInterceptor])),
-    // Sin esto, las animaciones de PrimeNG (p-dialog, p-toast, p-select…)
-    // no disparan el callback de fin de transición, que es lo que sacan
-    // el overlay/mask del DOM al cerrar: sin provider de animaciones el
-    // mask queda pegado en pantalla (se ve "trabada"/borrosa) para siempre.
+    // Sin esto, las animaciones de PrimeNG no terminan y el overlay de p-dialog o p-toast
+    // queda pegado en pantalla.
     provideAnimations(),
     provideServiceWorker("ngsw-worker.js", {
       enabled: !isDevMode(),

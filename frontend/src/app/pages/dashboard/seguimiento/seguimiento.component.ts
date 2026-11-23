@@ -61,13 +61,9 @@ export function riesgoDe(p: ParticipantProgress | undefined): Riesgo {
 }
 
 /**
- * Seguimiento (HU-20): asistencia y avance de cada participante en sus
- * cursos. Al entrar se ven todos los participantes inscriptos (una fila
- * por inscripción); el curso es un filtro opcional y el buscador filtra
- * por nombre sin cambiar de pantalla (pedido del 17/11/2026).
- *
- * Admin y voluntario ven cualquier curso del catálogo; el docente, solo
- * los suyos (/api/docente). El backend valida el acceso a cada curso.
+ * Seguimiento (HU-20): asistencia y avance de cada participante en sus cursos, una
+ * fila por inscripción. El curso es un filtro opcional y el buscador filtra por nombre.
+ * Admin y voluntario ven cualquier curso; el docente, solo los suyos.
  */
 @Component({
   selector: "app-seguimiento",
@@ -145,9 +141,8 @@ export class SeguimientoComponent implements OnInit {
     this.loading = true;
     this.error = "";
     this.cursosConError = [];
-    // silent: si falla, se muestra el error en esta pantalla (con
-    // Reintentar) en vez de saltar a la página de error del servidor, y
-    // las fallas pasajeras se reintentan solas (22/11/2026).
+    // silent: si falla, el error se muestra en esta pantalla (con Reintentar) y las fallas
+    // pasajeras se reintentan solas.
     const cursos$: Observable<Course[]> = this.gestion
       ? this.education.listCourses("", "", SILENT)
       : this.education.listMyCourses(SILENT);
@@ -163,9 +158,7 @@ export class SeguimientoComponent implements OnInit {
           this.loading = false;
           return;
         }
-        // Antes salían 2 pedidos por curso todos juntos; con muchos cursos
-        // Cloud Run respondía 5xx hasta "calentarse". Ahora van de a
-        // CURSOS_EN_PARALELO.
+        // Los pedidos van de a CURSOS_EN_PARALELO para no saturar Cloud Run con muchos cursos.
         from(cursos)
           .pipe(
             mergeMap((c) => this.filasDelCurso(c), CURSOS_EN_PARALELO),
@@ -216,7 +209,7 @@ export class SeguimientoComponent implements OnInit {
             cursoId: c.id,
             curso,
             estado: e.estado,
-            // Entero: la barra mostraba "66.666…%".
+            // Redondeado a entero para la barra.
             porcentajeAsistencia: Math.round(p?.porcentajeAsistencia ?? 0),
             actividadesAsistidas: p?.actividadesAsistidas ?? 0,
             actividadesTotal: p?.actividadesTotal ?? 0,

@@ -51,7 +51,7 @@ func TestCompletarDetalle_Habilidades(t *testing.T) {
 		t.Error("los datos de Auth tienen que seguir apareciendo")
 	}
 
-	// Sin EDUCATION_SERVICE_URL (skills nil): igual que antes.
+	// Sin EDUCATION_SERVICE_URL (skills nil): la ficha sale sin habilidades.
 	sin := &fichaService{auth: fakeAuth{}, now: time.Now}
 	if got := sin.completarDetalle(context.Background(), ficha).Habilidades; len(got) != 0 {
 		t.Errorf("sin cliente de Educación no debería haber habilidades: %v", got)

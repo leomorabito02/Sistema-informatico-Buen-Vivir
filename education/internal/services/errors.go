@@ -1,13 +1,7 @@
 package services
 
-// isParticipantApproved decide si un participante de auth-service está
-// habilitado ("participantes activos del centro"). auth-service guarda
-// "approved" (valor canónico) pero hay filas reales en Neon con
-// "accepted", el valor que se escribía hasta 2026-09-28 — se aceptan
-// los dos (ver auth/internal/services/approval_status.go). Vacío se
-// tolera (defensivo: no ocultar participantes por un dato mal formado).
-// Centralizado acá para que EnrollmentService y
-// GeneralAttendanceService no puedan volver a divergir en el literal.
+// isParticipantApproved decide si un participante está habilitado. Acepta "approved"
+// y "accepted" (valor viejo que sigue en la base) y tolera el vacío.
 func isParticipantApproved(status string) bool {
 	return status == "" || status == "approved" || status == "accepted"
 }
@@ -35,11 +29,8 @@ func IsValidationError(err error) bool {
 	return ok
 }
 
-// ForbiddenError señala que el usuario autenticado no tiene permiso
-// sobre el recurso puntual solicitado. Es distinto de un rol
-// insuficiente (eso lo corta RequireRole antes de llegar al service):
-// esto es una verificación de ownership, por ejemplo un docente
-// intentando editar un curso del que no es responsable.
+// ForbiddenError señala falta de permiso sobre un recurso puntual (ownership), por
+// ejemplo un docente editando un curso ajeno.
 type ForbiddenError struct {
 	Message string
 }
@@ -57,11 +48,8 @@ func IsForbiddenError(err error) bool {
 	return ok
 }
 
-// UnavailableError señala que una dependencia externa opcional no pudo
-// responder y el pedido no se puede completar ahora, pero el resto del
-// sistema sigue funcionando (por ejemplo, ninguna IA pudo sugerir
-// habilidades: se pueden cargar a mano). Los controllers responden 503
-// con el mensaje tal cual, porque está pensado para mostrarse en pantalla.
+// UnavailableError señala que una dependencia opcional no respondió (por ejemplo, la
+// IA). Se responde 503 con el mensaje tal cual.
 type UnavailableError struct {
 	Message string
 }

@@ -13,12 +13,8 @@ import (
 
 const openAIDefaultBaseURL = "https://api.openai.com/v1"
 
-// OpenAIClient pide sugerencias de habilidades a OpenAI. Es el
-// proveedor de RESPALDO (HU-21 / HU-58): solo se usa si Gemini falla.
-//
-// Igual que con Gemini, se usa la API REST directamente (sin SDK) para
-// no sumar dependencias. La API key llega por variable de entorno desde
-// Secret Manager y nunca se escribe en logs ni en respuestas.
+// OpenAIClient pide sugerencias de habilidades a OpenAI por su API REST. Es el
+// respaldo de Gemini (HU-21 / HU-58).
 type OpenAIClient struct {
 	httpClient *http.Client
 	baseURL    string

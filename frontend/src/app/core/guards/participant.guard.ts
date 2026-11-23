@@ -5,9 +5,8 @@ import { AuthService } from "../../services/auth.service";
 import { MeResponse } from "../models/auth.model";
 
 /**
- * Deja pasar solo a `role_participant`. Calcado de `adminOrVolunteerGuard`,
- * para la línea de tiempo propia del participante (HU-34). El backend
- * también lo restringe: el guard solo evita mostrar una pantalla vacía.
+ * Deja pasar solo a role_participant (línea de tiempo propia, HU-34). El backend
+ * también lo restringe.
  */
 export const participantGuard: CanActivateFn = () => {
   const authService = inject(AuthService);

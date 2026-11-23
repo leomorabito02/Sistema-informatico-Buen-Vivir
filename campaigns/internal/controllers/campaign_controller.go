@@ -40,8 +40,7 @@ func (c *CampaignController) ListPublished(w http.ResponseWriter, r *http.Reques
 	for i := range campaigns {
 		campaigns[i].CreadoPor = ""
 	}
-	// HU-50: con ?limit= se devuelve una página {items, total}; sin
-	// limit, la lista completa como antes (compatibilidad).
+	// HU-50: con ?limit= se devuelve una página {items, total}; sin limit, la lista completa.
 	if raw := r.URL.Query().Get("limit"); raw != "" {
 		page, ok := paginar(campaigns, raw, r.URL.Query().Get("offset"))
 		if !ok {
@@ -147,9 +146,8 @@ func (c *CampaignController) Publish(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, respuestaConMensaje{Mensaje: services.MsgCampanaPublicada, Campana: campaign})
 }
 
-// Delete: DELETE /api/v1/campaigns/{id} — baja lógica (auditoría
-// 2026-11-11, Problema 5). Responde el mensaje de éxito; 404 si no
-// existe o ya estaba dada de baja.
+// Delete: DELETE /api/v1/campaigns/{id}, baja lógica. 404 si no existe o ya estaba
+// dada de baja.
 func (c *CampaignController) Delete(w http.ResponseWriter, r *http.Request) {
 	err := c.service.Delete(r.Context(), chi.URLParam(r, "id"), middlewares.UserIDFromContext(r.Context()))
 	if err != nil {

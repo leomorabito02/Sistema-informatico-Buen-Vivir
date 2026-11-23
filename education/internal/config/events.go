@@ -6,12 +6,8 @@ import (
 	"time"
 )
 
-// EventsConfig es la configuración de la mensajería asíncrona (Pub/Sub,
-// ver docs/eventos/README.md). Nada es obligatorio para arrancar: sin
-// PUBSUB_PROJECT_ID el servicio no publica eventos (desarrollo local),
-// y sin la configuración de los push no expone los endpoints que los
-// reciben. Los secretos llegan como variables de entorno que Cloud Run
-// inyecta desde Secret Manager.
+// EventsConfig es la configuración de Pub/Sub. Nada es obligatorio: sin
+// PUBSUB_PROJECT_ID el servicio no publica eventos.
 type EventsConfig struct {
 	// ProjectID del proyecto de GCP donde están los topics. Vacío =
 	// publicación desactivada.

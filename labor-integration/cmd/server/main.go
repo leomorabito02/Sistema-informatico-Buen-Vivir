@@ -60,7 +60,6 @@ func main() {
 	}
 	defer func() { _ = authServiceClient.Close() }()
 
-	// Repositories
 	jobOfferRepo := repositories.NewJobOfferRepository(firestoreClient)
 	jobApplicationRepo := repositories.NewJobApplicationRepository(firestoreClient)
 
@@ -76,7 +75,6 @@ func main() {
 	// Education Client (HTTP in Cloud Run via EDUCATION_SERVICE_URL, gRPC in local Docker)
 	eduTarget, eduIDToken := resolveServiceEndpoint(ctx, cfg.EducationServiceURL, cfg.EducationServiceGRPCTarget, cfg.UpstreamIDToken)
 
-	// Services
 	jobOfferService := services.NewJobOfferService(
 		jobOfferRepo,
 		jobApplicationRepo,
@@ -91,7 +89,6 @@ func main() {
 		services.WithApplicationProducer(insercionLaboralProducer),
 	)
 
-	// Controllers
 	jobOfferController := controllers.NewJobOfferController(jobOfferService).
 		WithAudit(repositories.NewAuditRepository(firestoreClient))
 	jobApplicationController := controllers.NewJobApplicationController(jobApplicationService)
@@ -123,9 +120,8 @@ func main() {
 }
 
 func validateJWTConfig(cfg *config.Config) {
-	// Sin JWT_SECRET el servicio confía en los headers X-User-* (los pone
-	// el gateway nginx en local). En producción eso no es seguro: el API
-	// Gateway de GCP no los pisa (auditoría 2026-11-11).
+	// Sin JWT_SECRET el servicio confía en los headers X-User-* (los pone nginx en local).
+	// En producción no es seguro: el API Gateway de GCP no los pisa.
 	if cfg.JWTSecret == "" && strings.EqualFold(cfg.AppEnv, "production") {
 		log.Fatalf("invalid configuration: JWT_SECRET es obligatorio en producción")
 	}

@@ -111,8 +111,8 @@ func TestDeleteOffer_EmiteEliminada(t *testing.T) {
 	}
 }
 
-// Una oferta vacía informa todos los campos faltantes juntos, para que el
-// formulario los marque de una vez (17/11/2026).
+// Una oferta vacía informa todos los campos faltantes juntos, para que el formulario
+// los marque de una vez.
 func TestValidateOfferFields_ListaTodosLosFaltantes(t *testing.T) {
 	err := validateOfferFields(&models.JobOffer{}, false)
 	if !errors.Is(err, ErrOfferInvalid) {

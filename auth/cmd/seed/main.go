@@ -32,7 +32,6 @@ func main() {
 		}
 	}
 
-	// Ejemplo de permisos básicos (puedes extender esto según tus necesidades)
 	permissions := []models.Permission{
 		{PermissionID: "perm_users_read", Resource: "users", Action: "read", Description: "Ver usuarios"},
 		{PermissionID: "perm_users_write", Resource: "users", Action: "write", Description: "Crear/Editar usuarios"},
@@ -44,7 +43,6 @@ func main() {
 		}
 	}
 
-	// Ejemplo: Asignar todos los permisos al rol 'admin'
 	var adminRole models.Role
 	var allPerms []models.Permission
 	db.Where("name = ?", "admin").First(&adminRole)

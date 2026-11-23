@@ -15,13 +15,9 @@ type LoginAttempt struct {
 
 func (LoginAttempt) TableName() string { return "login_attempts" }
 
-// AuditLog es un registro de auditoría de Autenticación (HU-10, y los
-// rechazos de HU-03 y HU-06). Mismo formato que el de Educación y
-// Promoción Humana: quién, qué acción, sobre qué recurso, cuándo y desde
-// qué IP. Campos lista solo los NOMBRES de los campos modificados, nunca
-// sus valores (son datos personales). Es inmutable: el repositorio solo
-// crea y lista, y la migración agrega un trigger que rechaza UPDATE y
-// DELETE.
+// AuditLog es un registro de auditoría de Autenticación (HU-10, HU-03, HU-06). Campos
+// guarda solo los nombres de los campos modificados. Es inmutable: un trigger rechaza
+// UPDATE y DELETE.
 type AuditLog struct {
 	ID        uint      `gorm:"primaryKey;autoIncrement;column:id"`
 	UsuarioID string    `gorm:"column:usuario_id;index"`

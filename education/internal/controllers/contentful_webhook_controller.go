@@ -25,10 +25,8 @@ type ContenidoPublisher interface {
 	Contenido(ctx context.Context, eventID, eventType string, payload events.ContenidoPayload) error
 }
 
-// ContentfulWebhookController recibe los webhooks de Contentful
-// (POST /webhooks/contentful) y los convierte en eventos de
-// contenido-eventos. Solo valida y encola: responde enseguida y todo el
-// procesamiento ocurre en los consumidores.
+// ContentfulWebhookController recibe los webhooks de Contentful y los encola como
+// eventos de contenido.
 type ContentfulWebhookController struct {
 	secret    []byte
 	publisher ContenidoPublisher

@@ -3,7 +3,7 @@
  * y skill_suggestion.go.
  */
 
-/** Lista cerrada de categorías (decisión del equipo, 2026-10-06). */
+/** Lista cerrada de categorías. */
 export const SKILL_CATEGORIES = [
   "Tecnología",
   "Cuidado de la naturaleza",

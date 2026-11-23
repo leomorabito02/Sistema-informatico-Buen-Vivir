@@ -376,14 +376,12 @@ export function mapToResumeData(
   const cv: InternalCvData = "data" in input && input.data ? input.data : (input as InternalCvData);
   const base = structuredClone(defaultResumeData);
 
-  // 1. Template
   const rawTemplate = cv.metadata?.template;
   base.metadata.template =
     typeof rawTemplate === "string" && VALID_TEMPLATES.has(rawTemplate as Template)
       ? (rawTemplate as Template)
       : "azurill";
 
-  // 2. Primary Color
   const rawPrimary =
     opts.overridePrimaryColor ||
     cv.metadata?.design?.colors?.primary ||
@@ -391,7 +389,6 @@ export function mapToResumeData(
     "#485839";
   base.metadata.design.colors.primary = hexToRgba(rawPrimary);
 
-  // 3. Typography (Poppins default)
   base.metadata.typography = {
     heading: {
       fontFamily: "Poppins",
@@ -407,7 +404,6 @@ export function mapToResumeData(
     },
   };
 
-  // 4. Sections & Fields
   mapBasics(base, cv.basics, opts.pictureUrl);
   mapWork(base, cv.work);
   mapEducation(base, cv.education);

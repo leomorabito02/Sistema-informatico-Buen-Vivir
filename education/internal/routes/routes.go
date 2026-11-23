@@ -8,20 +8,10 @@ import (
 	"buenvivir/education/internal/services"
 )
 
-// RegisterRoutes registra los endpoints HTTP del servicio de
-// Educación sobre un router chi. Los GET de curso/área/material
-// exponen contenido publicado de Contentful (Content Delivery API) y
-// requieren un JWT válido pero ningún rol en particular. Las
-// escrituras (POST/PUT/DELETE, publicar/despublicar) requieren
-// role_admin. El grupo /api/docente es exclusivo de role_teacher
-// interno (is_external=false) y valida ownership sobre cada curso
-// antes de operar (ver DocenteController). El grupo /api/participante
-// es del rol participante y opera solo sobre sus propias inscripciones
-// y entregas. El grupo de inscripción /
-// actividades / asistencia por actividad / asistencia general es para
-// role_admin y role_volunteer (HU-18, HU-19, HU-19bis): a diferencia de
-// /api/docente, no tienen scope de "mis cursos" — admin y voluntario
-// operan sobre cualquier curso o participante del centro.
+// Controllers agrupa los controllers del servicio. Los GET de contenido requieren JWT;
+// las escrituras, role_admin; /api/docente es del docente interno (con ownership);
+// /api/participante opera sobre lo propio; inscripción y asistencia son de admin y
+// voluntario (HU-18, HU-19, HU-19bis).
 type Controllers struct {
 	Course            *controllers.CourseController
 	TrainingArea      *controllers.TrainingAreaController
@@ -49,19 +39,13 @@ func RegisterRoutes(
 	const apiCursosID = "/api/cursos/{id}"
 	r.Get("/api/salud", ctrls.Health.Health)
 
-	// -- comentarios (HU-24): públicos, como el contenido que comentan
-	//    (campañas y cursos se ven sin login). Comentar tiene el límite
-	//    estricto por IP (10 por minuto) para frenar el spam. Borrar es
-	//    del administrador, más abajo.
+	// -- comentarios (HU-24): públicos. Comentar tiene el límite estricto por IP (10/min).
 	if ctrls.Comment != nil {
 		r.Get("/api/comentarios", ctrls.Comment.List)
 		r.With(middlewares.StrictRateLimiter()).Post("/api/comentarios", ctrls.Comment.Create)
 	}
 
-	// -- biblioteca pública (HU-25): el material aprobado de docentes
-	//    externos se ve y se descarga sin login, dejando nombre,
-	//    apellido, email y teléfono. Descargar tiene el límite estricto
-	//    por IP.
+	// -- biblioteca pública (HU-25): sin login; descargar tiene el límite estricto por IP.
 	if ctrls.TeacherContent != nil {
 		r.Get("/api/biblioteca", ctrls.TeacherContent.ListPublic)
 		r.With(middlewares.StrictRateLimiter()).Post("/api/biblioteca/{id}/descargas", ctrls.TeacherContent.PublicDownload)
@@ -83,16 +67,8 @@ func RegisterRoutes(
 		r.Get("/api/entregas/{entregaId}/archivos/{indice}", ctrls.Submission.DownloadFile)
 
 		// -- escritura: exclusiva de role_admin --
-		//
-		// OJO: acá NO se puede usar r.Route(prefix, func(r chi.Router){...})
-		// para agrupar estos verbos, porque chi lo resuelve como un Mount
-		// (un subrouter aparte montado en ese prefijo para TODOS los
-		// métodos), que intercepta y tapa el r.Get(mismo path) ya
-		// registrado arriba para cualquier rol autenticado — un GET
-		// terminaría cayendo en el subrouter admin-only y devolviendo 403
-		// en vez de llegar a courseCtrl.List. Por eso cada verbo se
-		// registra suelto, en el mismo router (comparten el mismo árbol
-		// de rutas de chi, cada uno atado a su propio método).
+		// Cada verbo se registra suelto: r.Route haría un Mount de chi que tapa el GET del
+		// mismo path registrado arriba para cualquier rol.
 		r.Group(func(r chi.Router) {
 			r.Use(middlewares.RequireRole("role_admin"))
 
@@ -158,10 +134,8 @@ func RegisterRoutes(
 			r.Get("/api/contenidos-docentes/{id}/archivo", ctrls.TeacherContent.File)
 		}
 
-		// -- materiales: crear/subir/editar los puede hacer admin O
-		//    docente interno (para adjuntar/actualizar archivos de sus
-		//    propios cursos, ver vista docente de las HU). El borrado
-		//    queda arriba, solo admin.
+		// -- materiales: crear/subir/editar los puede hacer admin o docente interno.
+		// Borrar es solo admin.
 		r.Group(func(r chi.Router) {
 			r.Use(middlewares.RequireRole("role_admin", "role_teacher"))
 			r.Use(middlewares.RequireInternalTeacher)
@@ -171,12 +145,9 @@ func RegisterRoutes(
 			r.Put("/api/materiales/{id}", ctrls.Material.Update)
 		})
 
-		// -- inscripción, actividades (CRUD + entregas), consulta de
-		//    asistencia por actividad y asistencia general: role_admin o
-		//    role_volunteer (HU-18, HU-19, HU-19bis). La asistencia por
-		//    actividad es solo lectura: la generan las entregas. Rutas
-		//    sueltas (no r.Route) por la misma razón que el bloque de
-		//    admin de más arriba: evitar el Mount de chi.
+		// -- inscripción, actividades, asistencia por actividad (solo lectura) y asistencia
+		// general: role_admin o role_volunteer (HU-18, HU-19, HU-19bis). Rutas sueltas para
+		// evitar el Mount de chi.
 		r.Group(func(r chi.Router) {
 			r.Use(middlewares.RequireRole("role_admin", "role_volunteer"))
 
@@ -248,10 +219,8 @@ func RegisterRoutes(
 			r.Get("/cursos/{cursoId}/progreso", ctrls.Docente.GetProgress)
 		})
 
-		// -- participante: sus cursos inscriptos, el detalle de cada uno
-		//    con sus actividades y la entrega de actividades. El
-		//    participanteId sale de auth-service con el propio token (ver
-		//    SubmissionService.ResolveParticipantID), nunca del request.
+		// -- participante: sus cursos, actividades y entregas. El participanteId sale del
+		// propio token (SubmissionService.ResolveParticipantID), nunca del request.
 		r.Route("/api/participante", func(r chi.Router) {
 			r.Use(middlewares.RequireRole("role_participant"))
 

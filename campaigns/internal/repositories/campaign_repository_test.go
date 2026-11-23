@@ -115,9 +115,8 @@ func TestCampaignRepository_ListFiltraYOrdenaPorFecha(t *testing.T) {
 	}
 }
 
-// Problema 5 de la auditoría (2026-11-11): la baja es lógica. El
-// documento sigue en Firestore, con fecha y usuario, pero no se lista ni
-// se lee.
+// La baja es lógica: el documento sigue en Firestore, con fecha y usuario, pero no se
+// lista ni se lee.
 func TestCampaignRepository_BajaLogica(t *testing.T) {
 	client := newTestFirestore(t)
 	repo := NewCampaignRepository(client)

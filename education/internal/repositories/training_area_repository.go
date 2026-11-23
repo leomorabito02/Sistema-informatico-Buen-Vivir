@@ -8,10 +8,8 @@ import (
 
 const trainingAreaContentType = "trainingArea"
 
-// TrainingAreaRepository encapsula el acceso HTTP a Contentful para el
-// Content Type "trainingArea". Es un catálogo de referencia sin
-// moderación editorial: a diferencia de "course", no expone
-// publicar/despublicar — crear y editar publican automáticamente.
+// TrainingAreaRepository encapsula el Content Type "trainingArea" de Contentful. Es
+// un catálogo: crear y editar publican automáticamente.
 type TrainingAreaRepository interface {
 	List(ctx context.Context) ([]models.TrainingArea, error)
 	Create(ctx context.Context, input models.TrainingAreaInput) (*models.TrainingArea, error)

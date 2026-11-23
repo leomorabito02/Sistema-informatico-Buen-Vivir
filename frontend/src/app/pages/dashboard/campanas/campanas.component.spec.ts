@@ -182,8 +182,8 @@ describe("CampanasComponent", () => {
     );
   });
 
-  // 17/11/2026: el formulario aplica el mismo criterio que el backend y no
-  // envía una imagen que no sea http/https.
+  // El formulario aplica el mismo criterio que el backend y no envía una imagen que no
+  // sea http/https.
   it("no envía una imagen que no sea una dirección web", () => {
     crear();
     component.nueva();
@@ -219,7 +219,7 @@ describe("CampanasComponent", () => {
     expect(img.src).toContain("data:image/svg+xml");
   });
 
-  // Problema 5 de la auditoría (2026-11-11): baja lógica con confirmación.
+  // Baja lógica con confirmación.
   describe("eliminar", () => {
     function confirmar(aceptar: boolean) {
       const conf = fixture.debugElement.injector.get(ConfirmationService);

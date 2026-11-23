@@ -57,10 +57,8 @@ type Worker struct {
 	EmailInterval time.Duration
 	FrontendURL   string
 	Now           func() time.Time
-	// Disabled apaga el envío (Flush no hace nada). Lo usa el stack Docker
-	// local con DELIVERY_WORKER_ENABLED=false: comparte Firestore con
-	// testing y, si procesaba los pendientes de testing, mandaba los mails
-	// con enlaces a http://localhost:4200 (22/11/2026).
+	// Disabled apaga el envío (Flush no hace nada). Lo usa el Docker local, que comparte
+	// Firestore con testing, para no mandar los mails pendientes de testing.
 	Disabled bool
 }
 
@@ -259,7 +257,6 @@ func (w *Worker) processRecipient(ctx context.Context, rec models.NotificationRe
 		pushStatus, pushMsgID, pushErr = w.deliverPush(ctx, notif, rec.UserID, pref, dataMap)
 	}
 
-	// Consolidate errors
 	var errMsgs []string
 	if emailErr != nil {
 		errMsgs = append(errMsgs, emailErr.Error())

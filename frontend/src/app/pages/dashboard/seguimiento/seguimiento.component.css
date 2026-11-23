@@ -1,5 +1,5 @@
 /* Filtros arriba y separados de la tabla: primero se elige el curso
-   (opcional) y se busca; después se ve el listado (17/11/2026). */
+   (opcional) y se busca. */
 .filtros {
   display: flex;
   flex-wrap: wrap;

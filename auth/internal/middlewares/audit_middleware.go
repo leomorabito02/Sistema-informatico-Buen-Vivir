@@ -52,16 +52,9 @@ var camposSensibles = map[string]bool{"password": true, "new_password": true, "o
 
 const maxAuditBody = 1 << 20
 
-// AuditTrail registra en el log de auditoría (HU-10, HU-03, HU-06):
-//   - cada alta, edición o baja que terminó bien (2xx), con los nombres
-//     de los campos enviados (nunca los valores);
-//   - cada token presentado y rechazado (401) y cada acceso denegado
-//     por rol (403).
-//
-// Va en el grupo de rutas protegidas, por fuera de AuthMiddleware. El
-// registro se escribe antes de terminar el pedido (en Cloud Run la CPU se
-// corta al terminar), con un tope de 3 segundos; si falla, queda en el
-// log técnico.
+// AuditTrail registra en la auditoría (HU-10, HU-03, HU-06) las altas, ediciones y bajas
+// exitosas (solo nombres de campos) y los accesos rechazados (401/403). Escribe antes de
+// terminar el pedido, con un tope de 3 segundos.
 func AuditTrail(writer AuditWriter) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

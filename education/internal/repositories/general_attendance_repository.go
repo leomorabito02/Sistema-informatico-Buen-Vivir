@@ -19,11 +19,7 @@ const generalAttendanceCollection = "asistencia_general"
 // Firestore "asistencia_general" (HU-19bis/RF-64).
 type GeneralAttendanceRepository interface {
 	ListByDate(ctx context.Context, fecha string) ([]models.GeneralAttendance, error)
-	// RegisterBatch crea o actualiza (upsert) un documento por cada
-	// input, con id determinístico "{fecha}_{participanteId}": volver a
-	// cargar al mismo participante en la misma fecha sobrescribe el
-	// registro existente en vez de duplicarlo (mismo criterio que
-	// AttendanceRepository.RegisterBatch).
+	// RegisterBatch crea o actualiza un documento por input con id {fecha}_{participanteId}.
 	RegisterBatch(ctx context.Context, fecha string, inputs []models.GeneralAttendanceInput) error
 }
 
@@ -80,11 +76,8 @@ func (r *generalAttendanceRepository) RegisterBatch(ctx context.Context, fecha s
 		}
 	}
 
-	// Transacción (antes era un WriteBatch: igual de atómico). Lee los
-	// registros previos para saber si cada uno es una carga nueva o una
-	// edición: con eso se escribe, junto con el registro, la auditoría
-	// (HU-19bis) y el evento (outbox). Volver a guardar lo mismo no es
-	// un cambio y no deja rastro.
+	// Transacción: lee los registros previos para saber si es carga nueva o edición, y
+	// escribe junto con el registro la auditoría y el evento. Guardar lo mismo no deja rastro.
 	err := r.client.RunTransaction(ctx, func(ctx context.Context, tx *firestore.Transaction) error {
 		previous, err := tx.GetAll(refs)
 		if err != nil {

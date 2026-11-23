@@ -48,11 +48,8 @@ type ParticipantDirectory interface {
 	GetParticipantName(ctx context.Context, participantID, bearerToken string) (models.AuthUser, error)
 }
 
-// SubmissionService implementa las entregas de actividades y la vista
-// del curso del rol participante. Una entrega es única e inmutable, y
-// genera automáticamente la Asistencia del participante en esa
-// actividad (presente=true, fecha = fecha de la actividad), de la que
-// sale el progreso (HU-19, HU-20).
+// SubmissionService maneja las entregas y la vista del curso del participante. Cada
+// entrega es única e inmutable y genera la asistencia (HU-19, HU-20).
 type SubmissionService interface {
 	// ResolveParticipantID traduce el token del usuario autenticado a su
 	// participant_id de auth-service. Forbidden si no tiene perfil de
@@ -270,10 +267,8 @@ func (s *submissionService) ListByActivity(ctx context.Context, activity *models
 	return rows, nil
 }
 
-// fillNames resuelve nombre/apellido contra auth-service. No es fatal:
-// si falla, las filas quedan con el participanteId y el frontend lo
-// muestra así. Un docente no puede listar participantes en auth: para
-// él se piden los nombres de a uno, solo los de sus alumnos.
+// fillNames resuelve nombre y apellido contra auth-service (no es fatal). Para un
+// docente se piden de a uno, solo los de sus alumnos.
 func (s *submissionService) fillNames(ctx context.Context, rows []models.SubmissionStatusRow, bearerToken string) {
 	if len(rows) == 0 || s.directory == nil {
 		return

@@ -244,11 +244,8 @@ func (r *notificationRepository) CreateNotificationAndRecipients(ctx context.Con
 		return errors.New("notification cannot be nil")
 	}
 	return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		// Primero se descartan los destinatarios que ya la recibieron
-		// (mismo dedupe_key: un reintento de Pub/Sub del mismo evento). Si
-		// no queda ninguno, tampoco se guarda la notificación: antes
-		// quedaba una fila huérfana por cada reintento (auditoría
-		// 2026-11-11, Problema 3).
+		// Primero se descartan los destinatarios que ya la recibieron (mismo dedupe_key: un
+		// reintento de Pub/Sub). Si no queda ninguno, tampoco se guarda la notificación.
 		toInsert := make([]models.NotificationRecipient, 0, len(recipients))
 		for _, rec := range recipients {
 			if rec.DedupeKey != "" {

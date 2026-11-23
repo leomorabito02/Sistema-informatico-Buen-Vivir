@@ -7,11 +7,8 @@ import (
 	"strings"
 )
 
-// ErrNotFound es el sentinel que usan los repositories que no hablan
-// con Contentful (Firestore) para señalar "no existe", equivalente a
-// un ContentfulAPIError con StatusCode 404. IsNotFound reconoce ambos
-// casos para que la capa de controllers no tenga que distinguir de
-// qué fuente de datos vino el error.
+// ErrNotFound señala "no existe" en Firestore; IsNotFound lo reconoce junto con el
+// 404 de Contentful.
 var ErrNotFound = errors.New("recurso no encontrado")
 
 // fieldLabels traduce los ids de campo de Contentful a como los ve el

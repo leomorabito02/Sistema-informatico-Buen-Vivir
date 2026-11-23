@@ -95,7 +95,6 @@ func RequirePermissionMiddleware(permissionService interface{
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			
-			// Extraer el UserID o RoleID del contexto (puesto por AuthMiddleware)
 			userIDVal := r.Context().Value(UserIDKey)
 			if userIDVal == nil {
 				http.Error(w, "Unauthorized", http.StatusUnauthorized)
@@ -108,7 +107,6 @@ func RequirePermissionMiddleware(permissionService interface{
 			}
 			roleID := roleIDVal.(string)
 
-			// Consultar BD para verificar si el rol tiene {requiredAction} sobre {requiredResource}
 			hasPermission, err := permissionService.CheckPermission(r.Context(), roleID, requiredAction, requiredResource)
 			
 			if err != nil || !hasPermission {

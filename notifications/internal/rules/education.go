@@ -94,8 +94,8 @@ func (r *ContenidoDocenteSubidoRule) Build(_ context.Context, env events.Envelop
 	actionURL := "/dashboard/contenido-docente"
 	title := "Nuevo contenido pendiente de moderación"
 	message := "Un docente ha subido nuevo material educativo para revisión."
-	// Curso creado por un docente: queda en borrador hasta que el admin
-	// lo aprueba y publica desde Gestión de cursos (22/11/2026).
+	// Curso creado por un docente: queda en borrador hasta que el admin lo aprueba y
+	// publica desde Gestión de cursos.
 	if p.Tipo == events.ContenidoTipoCurso {
 		actionURL = "/dashboard/gestion-cursos"
 		title = "Nuevo curso pendiente de aprobación"
@@ -207,9 +207,8 @@ func (r *HabilidadOtorgadaRule) Build(_ context.Context, env events.Envelope) ([
 	}
 
 	actionURL := "/dashboard/mi-proceso"
-	// Desde el 22/11/2026 Education manda el nombre: el participante ve
-	// qué habilidad ganó. Los eventos viejos (sin nombre) usan el texto
-	// genérico.
+	// Education manda el nombre de la habilidad; los eventos viejos (sin nombre) usan el
+	// texto genérico.
 	message := "Obtuviste una nueva habilidad por completar una actividad. Mirala en Mi proceso."
 	if nombre := strings.TrimSpace(p.HabilidadNombre); nombre != "" {
 		message = fmt.Sprintf("Obtuviste la habilidad «%s» por completar una actividad. Ya figura en Mi proceso y en tu CV.", nombre)

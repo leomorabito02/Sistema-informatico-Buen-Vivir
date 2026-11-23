@@ -236,9 +236,7 @@ export class CampanasComponent implements OnInit {
   }
 
   /**
-   * Baja lógica con confirmación (Problema 5 de la auditoría): pide
-   * confirmar, llama al backend y saca la campaña de la lista sin recargar
-   * la página.
+   * Baja lógica con confirmación: llama al backend y saca la campaña de la lista sin recargar.
    */
   eliminar(c: Campana): void {
     if (this.eliminandoId) return;

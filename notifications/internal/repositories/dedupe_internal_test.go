@@ -8,9 +8,8 @@ import (
 	"buenvivir/notifications/internal/models"
 )
 
-// Problema 3 de la auditoría (2026-11-11): si Pub/Sub reintenta el mismo
-// evento, el destinatario no recibe la notificación dos veces y tampoco
-// queda guardada una notificación sin destinatarios.
+// Si Pub/Sub reintenta el mismo evento, el destinatario no recibe la notificación dos
+// veces y tampoco queda guardada una notificación sin destinatarios.
 func TestCreateNotificationAndRecipients_ReintentoNoDuplica(t *testing.T) {
 	repo := NewMemoryNotificationRepository().(*memoryNotificationRepository)
 	ctx := context.Background()

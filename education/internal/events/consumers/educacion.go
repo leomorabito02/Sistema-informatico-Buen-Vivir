@@ -1,7 +1,5 @@
-// Package consumers tiene los consumidores de eventos de Educación: los
-// handlers de las suscripciones push de Pub/Sub. Cada handler es
-// idempotente (procesarlo dos veces deja el mismo estado), además del
-// descarte de duplicados por event_id que hace events.Consumer.
+// Package consumers tiene los handlers de las suscripciones push de Pub/Sub de
+// Educación. Cada handler es idempotente.
 package consumers
 
 import (
@@ -56,11 +54,8 @@ func NewUsuarios(verifier events.Verifier, store events.ProcessedStore, enrollme
 		return deactivate(ctx, env, p.ParticipanteID)
 	})
 
-	// usuario.actualizado solo importa acá si es un participante cuya
-	// cuenta dejó de estar activa (por ejemplo, bloqueada): mismo criterio
-	// de "participante activo" que usa Dashboard. Si la cuenta se
-	// reactiva, las inscripciones NO se reactivan solas: se vuelve a
-	// inscribir (ver supuestos en docs/eventos/README.md).
+	// usuario.actualizado solo importa si un participante dejó de estar activo. Si la
+	// cuenta se reactiva, las inscripciones no se reactivan solas.
 	c.Handle(events.UsuarioActualizado, 1, func(ctx context.Context, env events.Envelope) error {
 		p, err := events.DecodePayload[events.UsuarioActualizadoPayload](env)
 		if err != nil {

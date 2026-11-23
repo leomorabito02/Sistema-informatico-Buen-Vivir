@@ -2,11 +2,8 @@ package models
 
 import "time"
 
-// SkillCategory es la categoría de una habilidad del catálogo. Es una
-// lista cerrada (decisión del equipo, 2026-10-06) y se guarda como texto,
-// igual que el resto de los estados y enums del repo (ver
-// EnrollmentEstado*): todavía está abierta la discusión de si los
-// valores fijos van como texto o en una tabla catálogo.
+// SkillCategory es la categoría de una habilidad del catálogo (lista cerrada,
+// guardada como texto).
 type SkillCategory string
 
 const (
@@ -34,10 +31,8 @@ func (c SkillCategory) IsValid() bool {
 	return false
 }
 
-// Origen de una habilidad en el perfil de un participante
-// (Participante_Habilidad.origen). "actividad" = la ganó al entregar una
-// actividad que la desarrolla; "manual" queda reservado para una futura
-// carga directa (hoy ningún endpoint lo escribe).
+// Origen de una habilidad del participante: "actividad" = la ganó al entregar una
+// actividad; "manual" queda reservado (ningún endpoint lo escribe).
 const (
 	SkillOrigenActividad = "actividad"
 	SkillOrigenManual    = "manual"
@@ -77,9 +72,8 @@ type ParticipantSkill struct {
 	HabilidadID    string    `json:"habilidadId" firestore:"habilidad_id"`
 	Origen         string    `json:"origen" firestore:"origen"`
 	Fecha          time.Time `json:"fecha" firestore:"fecha"`
-	// Actividad y curso en los que la ganó (para el Dashboard: filtrar
-	// por área formativa). Vacíos en las ganadas antes de 2026-10-08:
-	// ListGrantedSkills los completa al leer, a partir de las entregas.
+	// Actividad y curso en los que la ganó (para filtrar por área en el Dashboard).
+	// Si faltan, ListGrantedSkills los completa a partir de las entregas.
 	ActividadID string `json:"actividadId,omitempty" firestore:"actividad_id,omitempty"`
 	CursoID     string `json:"cursoId,omitempty" firestore:"curso_id,omitempty"`
 }

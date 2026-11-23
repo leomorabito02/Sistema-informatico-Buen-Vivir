@@ -7,10 +7,8 @@ import (
 	"buenvivir/dashboard/internal/models"
 )
 
-// Cálculo de los indicadores y las gráficas del dashboard (HU-52 a
-// HU-54). Funciones puras, sin red: se prueban solas y las reglas de
-// negocio quedan en un solo lugar. Antes vivían en el frontend
-// (dashboard.calculos.ts); el frontend ahora solo muestra el resultado.
+// Cálculo de los indicadores y las gráficas del dashboard (HU-52 a HU-54). Funciones
+// puras, sin red.
 
 // Zona es la hora del centro (Argentina, UTC-3 sin horario de verano).
 // Los cortes de día y de mes se calculan en esta zona, no en UTC: un alta

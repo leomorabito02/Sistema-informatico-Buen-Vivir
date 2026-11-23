@@ -12,10 +12,9 @@ export interface FilaPermisos {
 }
 
 /**
- * Matriz de roles y permisos tal como la aplica hoy el backend
- * (docs/ROLES_Y_PERMISOS.md). Decisión del 15/11/2026 sobre HU-06: es de
- * solo lectura, porque los permisos están en el código de cada servicio
- * y no en una tabla editable.
+ * Matriz de roles y permisos tal como la aplica el backend (docs/ROLES_Y_PERMISOS.md).
+ * Es de solo lectura (HU-06): los permisos están en el código de cada servicio, no en
+ * una tabla.
  */
 export const MATRIZ_PERMISOS: FilaPermisos[] = [
   {

@@ -61,17 +61,9 @@ interface HitoForm {
 }
 
 /**
- * Ficha de proceso personal de un participante (HU-29 a HU-33, HU-37).
- *
- *  - Si el participante no tiene ficha (404), muestra el alta.
- *  - Nombre, apellido, edad y habilidades son de solo lectura: vienen de
- *    Auth y se editan en Gestión de usuarios (HU-31).
- *  - Situación actual y avances son obligatorios y editables.
- *  - Línea de tiempo con todos los hitos en orden cronológico, alta y
- *    edición en un diálogo, y exportación a PDF generada en el backend.
- *    Mezcla, por fecha, la actividad del participante en el centro
- *    (inscripciones, cursos completados y asistencia por mes), que llega
- *    por eventos de Educación y no se edita.
+ * Ficha de proceso personal de un participante (HU-29 a HU-33, HU-37). Sin ficha (404)
+ * muestra el alta. Los datos personales vienen de Auth y son de solo lectura; situación
+ * y avances se editan. La línea de tiempo mezcla los hitos con la actividad en el centro.
  */
 @Component({
   selector: "app-ficha",
@@ -428,9 +420,8 @@ export class FichaComponent implements OnInit {
   }
 
   /**
-   * Responsable por defecto = usuario logueado (HU-32). Si además el
-   * usuario puede listar usuarios (hoy, solo admin en auth-service), se
-   * ofrecen como responsables los administradores y voluntarios.
+   * Responsable por defecto = usuario logueado (HU-32). Si el usuario puede listar
+   * usuarios, se ofrecen como responsables los administradores y voluntarios.
    */
   private cargarUsuarioYResponsables() {
     forkJoin({

@@ -30,14 +30,8 @@ interface Option {
 type EnrollmentRow = Enrollment & { nombreCompleto: string };
 
 /**
- * Inscripción de participantes a cursos (HU-18/RF-18), para role_admin y
- * role_volunteer. A diferencia de "Mis cursos" (docente), acá se puede
- * inscribir en cualquier curso publicado del catálogo.
- *
- * El selector de participantes busca en el backend
- * (`GET /api/participantes?q=&cursoId=`, ver ParticipantPickerComponent):
- * ya no se baja el directorio entero para filtrarlo en el navegador. Los
- * nombres de los inscriptos también los resuelve el backend.
+ * Inscripción de participantes a cursos (HU-18), para admin y voluntario, en cualquier
+ * curso publicado. El selector busca en el backend (GET /api/participantes?q=&cursoId=).
  */
 @Component({
   selector: "app-inscripciones",

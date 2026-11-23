@@ -76,13 +76,9 @@ const EXTENSIONES_PERMITIDAS = [
 ];
 
 /**
- * Detalle de un curso (`/dashboard/cursos/:id`): datos del curso arriba
- * y sus actividades abajo. Admin, voluntario y docente responsable
- * gestionan las actividades (crear, editar, eliminar) y ven las
- * entregas de cada una; el participante ve las actividades de un curso
- * en el que está inscripto y las entrega. Cada entrega marca la
- * actividad como cumplida y genera la asistencia del participante (ver
- * education/CLAUDE.md, sección Entregas).
+ * Detalle de un curso (`/dashboard/cursos/:id`): admin, voluntario y docente
+ * responsable gestionan las actividades y ven las entregas; el participante ve las
+ * actividades de su curso y las entrega (cada entrega genera su asistencia).
  */
 @Component({
   selector: "app-curso-detalle",
@@ -293,11 +289,7 @@ export class CursoDetalleComponent implements OnInit {
     return this.habilidadesPorActividad[actividadId] ?? [];
   }
 
-  /**
-   * Nombre del docente responsable: lo resuelve Educación en la respuesta
-   * del curso (responsibleTeacherName). Antes se pedía el perfil completo
-   * del docente a auth, algo que no le corresponde ver a un participante.
-   */
+  /** Nombre del docente responsable: viene en la respuesta del curso (responsibleTeacherName). */
   private resolverDocente() {
     this.docenteNombre = this.curso?.responsibleTeacherName?.trim() ?? "";
   }

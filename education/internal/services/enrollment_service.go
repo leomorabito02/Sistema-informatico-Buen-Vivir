@@ -22,22 +22,9 @@ type EnrollmentService interface {
 	CountActive(ctx context.Context, cursoID string) (int, error)
 	ListByParticipant(ctx context.Context, participantID string) ([]models.Enrollment, error)
 	GetBulkUserCourses(ctx context.Context, userIDs []string) ([]models.UserCourseSummary, error)
-	// Enroll inscribe a un participante en un curso publicado.
-	// bearerToken es el JWT crudo del usuario autenticado en education
-	// (ver middlewares.TokenKey), que se reenvía a auth-service para
-	// confirmar que el participante existe y está aprobado. Reglas de
-	// negocio, en este orden:
-	//  1. El curso tiene que existir y estar publicado (CDA). Si no está
-	//     publicado, se distingue "no existe" de "existe pero inactivo"
-	//     consultando la CMA.
-	//  2. El participante tiene que existir en auth-service y estar
-	//     aprobado.
-	//  3. El participante no puede tener ya una inscripción activa en
-	//     ese curso.
-	//  4. Si el curso tiene Capacity fijado, el cupo no puede estar
-	//     completo (inscripciones activas >= capacity).
-	// Un curso dado de baja (HU-16) sigue publicado pero no acepta
-	// inscripciones nuevas.
+	// Enroll inscribe a un participante en un curso publicado. Valida, en orden: que el
+	// curso exista y esté publicado (y no dado de baja), que el participante exista y esté
+	// aprobado en auth-service, que no tenga ya una inscripción activa y que haya cupo.
 	Enroll(ctx context.Context, participanteID, cursoID, bearerToken string) (*models.Enrollment, error)
 }
 

@@ -7,12 +7,8 @@ import (
 	"buenvivir/education/internal/repositories"
 )
 
-// ProgressService calcula, para cada participante inscripto en un
-// curso, el porcentaje de actividades del curso a las que asistió
-// (presente=true). Compone directamente los repositories de
-// actividades/inscripciones/asistencias en vez de sus services: es
-// solo lectura y combinación, no necesita las validaciones de esas
-// capas.
+// ProgressService calcula el porcentaje de actividades completadas de cada inscripto.
+// Usa los repositories directamente porque es solo lectura.
 type ProgressService interface {
 	CalculateCourseProgress(ctx context.Context, cursoID string) ([]models.ParticipantProgress, error)
 }

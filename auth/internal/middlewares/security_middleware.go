@@ -27,13 +27,8 @@ func isAllowedOrigin(origin string, envOrigins []string) bool {
 		strings.HasSuffix(origin, ".ceibuenvivir.org")
 }
 
-// corsMiddleware is a custom CORS handler that:
-//   - Intercepts ALL OPTIONS requests before any routing logic.
-//   - Adds Access-Control-* headers to every response from an allowed origin.
-//
-// This replaces rs/cors because the Google Cloud API Gateway strips
-// Access-Control-Request-Method before forwarding to Cloud Run, which prevents
-// the rs/cors library from recognising the request as a preflight.
+// corsMiddleware contesta todo OPTIONS antes del ruteo y agrega los headers de CORS.
+// Reemplaza rs/cors porque el API Gateway le saca al preflight Access-Control-Request-Method.
 func corsMiddleware(allowedOrigins []string) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
@@ -87,11 +82,8 @@ func OptionsInterceptor(next http.Handler) http.Handler {
 	})
 }
 
-// SetupMiddlewares configures global middlewares for the application.
-//
-// IMPORTANT: The chi.Mux.Use() method prepends middleware to the chain.
-// This means the LAST r.Use() call runs FIRST in the request lifecycle.
-// We register corsMiddleware LAST so it runs FIRST.
+// SetupMiddlewares configura los middlewares globales. Los OPTIONS los contesta antes
+// OptionsInterceptor, a nivel de http.Server.
 func SetupMiddlewares(r *chi.Mux) {
 	allowedOriginsEnv := os.Getenv("CORS_ALLOWED_ORIGINS")
 	var allowedOrigins []string
@@ -103,12 +95,10 @@ func SetupMiddlewares(r *chi.Mux) {
 		}
 	}
 
-	// Standard chi middlewares
 	r.Use(middleware.RequestID)
 	r.Use(middleware.RealIP) //nolint:staticcheck // RealIP used for internal logging
 	r.Use(middleware.Recoverer)
 
-	// Logging middleware adapted for JSON / Google Cloud Logging
 	r.Use(func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 			slog.Info("Incoming Request",
@@ -142,13 +132,6 @@ func SetupMiddlewares(r *chi.Mux) {
 		})
 	})
 
-	// CORS must be the outermost middleware (runs first, before anything else).
-	// In chi, r.Use() appends, so the first r.Use runs outermost.
-	// BUT we want CORS to run before RequestID, Recoverer, etc.
-	// Since chi executes middleware in registration order (first registered = outermost),
-	// we need to re-register. However, chi does not support prepend.
-	//
-	// The real fix: OptionsInterceptor at http.Server level handles OPTIONS before chi.
-	// This corsMiddleware adds headers for non-OPTIONS (normal) requests.
+	// corsMiddleware agrega los headers de CORS a las respuestas normales.
 	r.Use(corsMiddleware(allowedOrigins))
 }

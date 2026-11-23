@@ -201,7 +201,7 @@
   text-transform: uppercase;
 }
 
-/* Habilidades ganadas en el centro (22/11/2026): solo lectura. */
+/* Habilidades ganadas en el centro: solo lectura. */
 .cv-skill-centro {
   display: inline-flex;
   align-items: center;

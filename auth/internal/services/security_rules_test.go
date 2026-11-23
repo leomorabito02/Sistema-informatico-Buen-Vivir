@@ -13,8 +13,8 @@ import (
 	"github.com/stretchr/testify/mock"
 )
 
-// Reglas de permisos agregadas el 22/10/2026: nadie se registra ni se
-// crea como administrador sin serlo, y nadie se aprueba solo.
+// Reglas de permisos: nadie se registra ni se crea como administrador sin serlo, y
+// nadie se aprueba solo.
 
 func ctxConRol(role, userID string) context.Context {
 	ctx := context.WithValue(context.Background(), middlewares.RoleIDKey, role)

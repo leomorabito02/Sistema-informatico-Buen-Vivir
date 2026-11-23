@@ -16,12 +16,8 @@ const fechaLayout = "2006-01-02"
 // GeneralAttendanceService valida las reglas de negocio de la
 // asistencia general del centro (HU-19bis/RF-64).
 type GeneralAttendanceService interface {
-	// ListByDate arma el listado combinado: todos los participantes
-	// aprobados del centro (auth-service, vía AuthServiceClient), con su
-	// nombre/apellido resuelto (auth-service también, GET /users) y su
-	// asistencia para `fecha`, si ya se cargó. bearerToken es el JWT
-	// crudo del usuario autenticado en education (ver
-	// middlewares.TokenKey), que se reenvía tal cual a auth-service.
+	// ListByDate devuelve los participantes aprobados del centro con su nombre y su
+	// asistencia de esa fecha. bearerToken se reenvía a auth-service.
 	ListByDate(ctx context.Context, fecha, bearerToken string) ([]models.GeneralAttendanceView, error)
 	// RegisterBatch valida, por cada item del lote, que el participante
 	// exista en auth-service y esté aprobado, antes de guardar.
@@ -48,11 +44,7 @@ func (s *generalAttendanceService) ListByDate(ctx context.Context, fecha, bearer
 		return nil, err
 	}
 
-	// Participante no tiene nombre propio (vive en Usuario, ver DER).
-	// Resolverlo es una segunda llamada a auth-service, deliberadamente
-	// NO fatal: si falla (auth-service lento/caído en ese instante), se
-	// sigue devolviendo la asistencia general con los ids nomás, en vez
-	// de romper la pantalla completa por un dato secundario.
+	// Nombre y apellido viven en Usuario: si esta llamada falla no se corta la pantalla.
 	usersByID := make(map[string]models.AuthUser)
 	if users, err := s.authClient.ListUsers(ctx, bearerToken); err == nil {
 		for _, u := range users {
@@ -71,10 +63,7 @@ func (s *generalAttendanceService) ListByDate(ctx context.Context, fecha, bearer
 
 	views := make([]models.GeneralAttendanceView, 0, len(participants))
 	for _, p := range participants {
-		// "participantes activos del centro" (HU-19bis) = participantes
-		// aprobados. approval_status vacío se tolera (defensivo, no
-		// debería pasar) para no ocultar participantes por un dato mal
-		// formado en vez de fallar en silencio del otro lado.
+		// Solo participantes aprobados (HU-19bis).
 		if !isParticipantApproved(p.ApprovalStatus) {
 			continue
 		}

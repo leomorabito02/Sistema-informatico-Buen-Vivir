@@ -9,12 +9,8 @@ import (
 	"buenvivir/education/internal/services"
 )
 
-// EnrollmentController expone la inscripción de participantes a cursos
-// (HU-18/RF-18) para role_admin y role_volunteer. A diferencia de
-// DocenteController.ListEnrollments (bajo /api/docente, con chequeo de
-// "¿es tu curso?"), estos endpoints no están restringidos a un docente
-// responsable puntual: admin y voluntario pueden inscribir en
-// cualquier curso publicado, según la vista de HU-06.
+// EnrollmentController expone la inscripción a cursos (HU-18) para admin y
+// voluntario, en cualquier curso publicado.
 type EnrollmentController struct {
 	enrollmentService services.EnrollmentService
 }

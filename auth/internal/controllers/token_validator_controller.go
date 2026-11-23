@@ -28,7 +28,6 @@ func NewTokenValidatorController(jwtService TokenValidatorJWTService) *TokenVali
 func (c *TokenValidatorController) ValidateToken(w http.ResponseWriter, r *http.Request) {
 	var tokenString string
 
-	// Try extracting from cookie first (__Host-access_token or access_token)
 	cookie, err := r.Cookie("__Host-access_token")
 	if err != nil || cookie.Value == "" {
 		cookie, err = r.Cookie("access_token")
@@ -37,7 +36,6 @@ func (c *TokenValidatorController) ValidateToken(w http.ResponseWriter, r *http.
 	if err == nil && cookie.Value != "" {
 		tokenString = cookie.Value
 	} else {
-		// Fallback to Authorization header
 		authHeader := r.Header.Get("Authorization")
 		if authHeader == "" {
 			http.Error(w, "Unauthorized: missing token", http.StatusUnauthorized)

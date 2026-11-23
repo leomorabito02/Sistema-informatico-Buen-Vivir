@@ -1,8 +1,7 @@
 <p-toast></p-toast>
 <div class="page-container">
   <div class="header-section">
-    <!-- El título espera a saber el rol: antes mostraba "Catálogo de cursos"
-         y cambiaba a "Mis cursos" cuando llegaba la sesión. -->
+    <!-- El título espera a saber el rol para no mostrar uno y cambiarlo. -->
     <div [style.visibility]="rolCargado ? 'visible' : 'hidden'">
       <h1 class="page-title">
         {{ esParticipante ? "Mis cursos" : "Catálogo de cursos" }}

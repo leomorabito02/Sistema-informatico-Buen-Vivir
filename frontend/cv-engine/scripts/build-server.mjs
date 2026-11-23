@@ -1,13 +1,8 @@
-// Compila el servidor de cv-renderer en un solo archivo con TODAS sus
-// dependencias adentro (22/11/2026). Así la imagen Docker final no necesita
-// node_modules: con pnpm 9, `pnpm deploy` copiaba el almacén del workspace
-// entero (Angular, Firebase, jsPDF...) y Trivy marcaba sus vulnerabilidades
-// en una imagen que no los usa.
+// Compila el servidor de cv-renderer en un solo archivo con sus dependencias adentro,
+// para que la imagen Docker no necesite node_modules.
 //
-// Algunos paquetes (css-tree) leen JSON en tiempo de ejecución con
-// createRequire(import.meta.url), que esbuild no puede empaquetar. El plugin
-// cambia esos require("...json") por imports estáticos para que los datos
-// queden dentro del bundle.
+// css-tree lee JSON con createRequire en tiempo de ejecución: el plugin cambia esos
+// require("...json") por imports estáticos para que queden dentro del bundle.
 //
 // Uso: pnpm run build:server   (salida: dist/server/server.mjs)
 import { build } from "esbuild";

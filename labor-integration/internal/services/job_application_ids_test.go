@@ -128,9 +128,8 @@ func TestListByParticipant_IncluyePostulacionesViejas(t *testing.T) {
 	}
 }
 
-// Los postulados salen con el nombre de la persona (antes la pantalla
-// quedaba en "Cargando..." si no tenía CV). Vale también para las
-// postulaciones viejas con usr-… en participante_id.
+// Los postulados salen con el nombre de la persona aunque no tenga CV. Vale también
+// para las postulaciones viejas con usr-… en participante_id.
 func TestListByOffer_CompletaNombreDelPostulante(t *testing.T) {
 	repo := &fakeApps{apps: []*models.JobApplication{
 		{ID: "a1", ParticipantID: "part-1", UserID: "usr-1", OfferID: "o1"},

@@ -330,7 +330,7 @@ export class UsuariosComponent implements OnInit {
     this.showNewUserModal = true;
   }
 
-  /** Nombre visible del rol en el alta (antes se veía "role_participant"). */
+  /** Nombre visible del rol en el alta. */
   newRoleLabel(roleId: string): string {
     return NEW_ROLE_LABELS[roleId] ?? this.formatRoleName(roleId);
   }
@@ -417,7 +417,6 @@ export class UsuariosComponent implements OnInit {
       this.isVolunteerOnly &&
       user.originalUser?.role_id !== "role_participant"
     ) {
-      // Si el rol es distinto a role_participant, bloqueamos.
       this.messages.add({
         severity: "info",
         summary: "Sin permiso",
@@ -430,7 +429,6 @@ export class UsuariosComponent implements OnInit {
     this.selectedUser = user;
     this.cancelEditDocument();
 
-    // Inicializar el formulario con los datos básicos
     const userStatusRaw = user.originalUser?.status || "active";
     this.editForm = {
       first_name: user.originalUser?.first_name || "",
@@ -475,7 +473,6 @@ export class UsuariosComponent implements OnInit {
           }
           this.originalApprovalStatus = this.editForm.approval_status ?? "";
 
-          // Formatear fechas si existen para input type="date"
           if (this.editForm.birthdate) {
             this.editForm.birthdate = new Date(this.editForm.birthdate)
               .toISOString()
@@ -549,11 +546,6 @@ export class UsuariosComponent implements OnInit {
       });
   }
 
-  /**
-   * Baja de usuario (DELETE /api/v1/users/{id}). Pide confirmación antes;
-   * el backend solo deja borrar cuentas ajenas a role_admin / role_dev,
-   * por eso el botón se muestra solo a quien no es voluntario.
-   */
   /**
    * Cuentas pendientes que quien está mirando puede aprobar o rechazar:
    * admin, cualquiera; voluntario, solo participantes (igual que el
@@ -676,7 +668,7 @@ export class UsuariosComponent implements OnInit {
   onDetailPictureSelected(event: any) {
     const file = event.target?.files?.[0];
     if (file && this.selectedUser?.originalUser?.user_id) {
-      // HU-11 y D9: tipo y tamaño (el backend también lo controla).
+      // HU-11: tipo y tamaño (el backend también lo controla).
       const invalida = validarFotoPerfil(file);
       if (invalida) {
         this.messages.add({
@@ -885,7 +877,6 @@ export class UsuariosComponent implements OnInit {
       delete rolePayload["approved_by"];
     }
 
-    // Enviar petición para actualizar el rol
     this.usersService
       .updateRoleData(tableName, targetRoleId, rolePayload)
       .subscribe({

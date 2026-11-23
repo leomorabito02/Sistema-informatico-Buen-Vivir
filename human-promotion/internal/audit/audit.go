@@ -1,9 +1,5 @@
-// Package audit escribe el registro de auditoría de Promoción Humana
-// (HU-35, RNF-14): quién hizo qué, sobre qué recurso, cuándo y desde
-// qué IP. Autenticación todavía no tiene un mecanismo de auditoría
-// (LogAuditoria no existe), así que el registro vive en este servicio,
-// en la colección "auditoria", y se escribe en la MISMA transacción que
-// el cambio: no puede quedar un cambio sin su registro.
+// Package audit escribe el registro de auditoría de Promoción Humana (HU-35, RNF-14)
+// en la colección "auditoria", dentro de la misma transacción que el cambio.
 package audit
 
 import (

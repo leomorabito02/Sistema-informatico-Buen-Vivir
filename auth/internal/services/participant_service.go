@@ -233,10 +233,8 @@ func (s *participantService) DeleteParticipant(ctx context.Context, id string) e
 		return err
 	}
 
-	// HU-09: dar de baja un perfil de participante es de administración y
-	// voluntariado. Antes el propio participante podía borrar su perfil
-	// (auditoría 2026-11-11, Problema 4). Su cuenta la sigue pudiendo
-	// borrar con DELETE /users/{id}.
+	// HU-09: dar de baja un perfil de participante es de administración y voluntariado. La
+	// cuenta la puede borrar el propio usuario con DELETE /users/{id}.
 	reqRole, _ := ctx.Value(middlewares.RoleIDKey).(string)
 	if reqRole == "role_participant" {
 		return errors.New("forbidden: only administrators and volunteers can delete participant profiles")

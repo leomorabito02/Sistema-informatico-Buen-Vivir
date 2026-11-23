@@ -194,8 +194,7 @@ func TestCourseService_CreateCourse_Success(t *testing.T) {
 	assert.Equal(t, "c1", course.ID)
 }
 
-// Problema 1 (auditoría 2026-11-11): un curso se crea sin materiales y
-// los materiales se agregan después con un PUT.
+// Un curso se crea sin materiales y los materiales se agregan después con un PUT (HU-14).
 func TestCourseService_CreateCourse_SinMateriales(t *testing.T) {
 	repo := new(MockCourseRepository)
 	svc := services.NewCourseService(repo)

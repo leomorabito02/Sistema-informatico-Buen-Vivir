@@ -120,8 +120,7 @@ func TestRegisterRoutes_RBAC_DecisionTable(t *testing.T) {
 			isExternal:   true,
 			expectedCode: http.StatusForbidden,
 		},
-		// Auditoría 2026-11-11 (HU-20): progreso de cualquier curso, solo
-		// admin y voluntario.
+		// HU-20: progreso de cualquier curso, solo admin y voluntario.
 		{
 			name:         "Course progress: role_participant denied with 403",
 			method:       http.MethodGet,

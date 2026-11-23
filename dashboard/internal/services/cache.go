@@ -23,18 +23,9 @@ const (
 	FuenteEquipo        Fuente = "equipo"
 )
 
-// CachedDashboardService guarda en memoria lo que devuelve cada fuente,
-// para no consultar a los demás servicios en cada carga del dashboard.
-// Los eventos de Pub/Sub (participante.creado, curso.creado, ...) la
-// invalidan apenas cambia algo; el TTL es el respaldo para las
-// instancias que no recibieron el push y para las áreas formativas (que
-// no tienen evento). Dashboard sigue sin base de datos: la evolución
-// temporal se reconstruye con las fechas que guardan los servicios de
-// origen (ver docs/adr/0003-dashboard-sin-snapshots.md).
-//
-// Los datos son los mismos para todos los usuarios que pueden ver el
-// dashboard (solo administración), por eso la caché no depende de quién
-// consulta. Los errores no se cachean.
+// CachedDashboardService guarda en memoria lo que devuelve cada fuente. Los eventos de
+// Pub/Sub la invalidan y el TTL es el respaldo. Es la misma para todos (solo admin) y
+// los errores no se cachean (ver docs/adr/0003-dashboard-sin-snapshots.md).
 type CachedDashboardService struct {
 	inner DashboardService
 	ttl   time.Duration

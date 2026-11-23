@@ -286,9 +286,8 @@ func TestHealthYHeadersDeSeguridad(t *testing.T) {
 	}
 }
 
-// Problema 5 de la auditoría (2026-11-11): admin y voluntario dan de baja;
-// la campaña sale de la gestión y de la landing; participante, empresa,
-// docente y sin sesión no pueden.
+// Admin y voluntario dan de baja; la campaña sale de la gestión y de la landing;
+// participante, empresa, docente y sin sesión no pueden.
 func TestEliminarCampana_PermisosYEfecto(t *testing.T) {
 	srv := nuevoServidor(t)
 	vol := token(t, "role_volunteer", "voluntario-1")

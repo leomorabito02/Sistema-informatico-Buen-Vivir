@@ -22,17 +22,10 @@ type ActivityRepository interface {
 	ListByDateRange(ctx context.Context, start, end time.Time) ([]models.Activity, error)
 	Get(ctx context.Context, id string) (*models.Activity, error)
 	Create(ctx context.Context, cursoID string, input models.ActivityInput) (*models.Activity, error)
-	// Update reemplaza titulo/consigna/fecha de la actividad y, en la
-	// misma transacción, reescribe la fecha de sus asistencias: la
-	// asistencia generada por una entrega lleva siempre la fecha de la
-	// actividad, así que si la actividad se reprograma, sus asistencias
-	// se mueven con ella.
+	// Update reemplaza la actividad y mueve la fecha de sus asistencias en la misma transacción.
 	Update(ctx context.Context, id string, input models.ActivityInput) (*models.Activity, error)
-	// Delete borra la actividad junto con sus entregas, asistencias y
-	// habilidades asociadas en una sola transacción, para que el progreso (entregadas / total) no
-	// quede contando registros de una actividad que ya no existe. Los
-	// adjuntos del bucket los limpia el service (ver
-	// ActivityService.DeleteActivity).
+	// Delete borra la actividad con sus entregas, asistencias y habilidades en una
+	// transacción. Los adjuntos del bucket los limpia ActivityService.DeleteActivity.
 	Delete(ctx context.Context, id string) error
 }
 

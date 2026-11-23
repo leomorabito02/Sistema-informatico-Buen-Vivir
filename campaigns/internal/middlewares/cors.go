@@ -5,18 +5,9 @@ import (
 	"strings"
 )
 
-// CORS hecho a mano, con el mismo criterio que auth
-// (auth/internal/middlewares/security_middleware.go).
-//
-// No se usa rs/cors porque el API Gateway de Google le saca al preflight el
-// header Access-Control-Request-Method antes de mandarlo a Cloud Run: rs/cors
-// no lo reconoce como preflight, lo pasa a las rutas y chi contesta 405. Por
-// eso todo OPTIONS se contesta acá, sin llegar a las rutas.
-//
-// Orígenes permitidos: los de CORS_ALLOWED_ORIGINS más una lista fija (la
-// misma de auth), así testing (*.ceibuenvivir.pages.dev) y producción
-// funcionan aunque el secret no los tenga. Un origen que no está en ninguna
-// de las dos no recibe headers de CORS y el navegador bloquea la respuesta.
+// CORS hecho a mano (mismo criterio que auth): el API Gateway le saca al preflight
+// el header Access-Control-Request-Method, rs/cors no lo reconoce y chi contesta 405.
+// Por eso todo OPTIONS se contesta acá. Orígenes: CORS_ALLOWED_ORIGINS más una lista fija.
 const (
 	corsMethods = "GET, POST, PUT, PATCH, DELETE, OPTIONS"
 	corsHeaders = "Accept, Authorization, Content-Type, X-CSRF-Token, X-Requested-With, X-Skip-Global-Error, X-Redirect-On-404, X-Skip-500-Redirect"

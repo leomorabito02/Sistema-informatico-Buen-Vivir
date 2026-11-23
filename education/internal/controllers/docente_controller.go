@@ -10,12 +10,8 @@ import (
 	"buenvivir/education/internal/services"
 )
 
-// DocenteController agrupa los endpoints bajo /api/docente, exclusivos
-// del rol role_teacher interno (is_external=false, ver
-// middlewares.RequireInternalTeacher). Compone varios services porque
-// casi todas las operaciones necesitan primero verificar que el curso
-// (o, en los endpoints de asistencia, la actividad a través de su
-// curso) pertenece al docente autenticado antes de delegar.
+// DocenteController agrupa los endpoints de /api/docente (docente interno). Antes de
+// operar verifica que el curso pertenezca al docente autenticado.
 type DocenteController struct {
 	courseService     services.CourseService
 	activityService   services.ActivityService
@@ -154,13 +150,8 @@ func (c *DocenteController) CreateActivity(w http.ResponseWriter, r *http.Reques
 	writeJSON(w, http.StatusCreated, activity)
 }
 
-// verifyActivityOwnership resuelve el curso de una actividad y valida
-// que pertenezca al docente autenticado. Los endpoints de actividad,
-// entregas y asistencia se direccionan por actividadId, no por cursoId, así que hace falta
-// este paso extra antes de poder reusar CourseService.VerifyOwnership.
-// Devuelve la actividad ya resuelta (además del error) para que el
-// caller no tenga que volver a leerla de Firestore solo para sacarle
-// el CursoID.
+// verifyActivityOwnership resuelve el curso de una actividad, valida que sea del
+// docente y devuelve la actividad para no volver a leerla.
 func (c *DocenteController) verifyActivityOwnership(r *http.Request, actividadID string) (*models.Activity, error) {
 	activity, err := c.activityService.GetActivity(r.Context(), actividadID)
 	if err != nil {
@@ -250,7 +241,6 @@ func (c *DocenteController) ListEnrollments(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	// Con nombre y apellido: el docente veía solo el id del participante.
 	token, _ := r.Context().Value(middlewares.TokenKey).(string)
 	enrollments, err := c.enrollmentService.ListByCourseConNombres(r.Context(), cursoID, token)
 	if err != nil {

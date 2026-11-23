@@ -20,11 +20,8 @@ const (
 	defaultCMABaseURL = "https://api.contentful.com"
 )
 
-// ContentfulAPIError envuelve un error devuelto por Contentful (CDA o
-// CMA), conservando el status code HTTP para que las capas de arriba
-// (service/controller) puedan mapearlo a una respuesta apropiada
-// (404, 409 por conflicto de versión, etc.) sin tener que parsear el
-// cuerpo de nuevo.
+// ContentfulAPIError envuelve un error de Contentful conservando el status HTTP para
+// mapearlo a la respuesta (404, 409, etc.).
 type ContentfulAPIError struct {
 	StatusCode int
 	Body       string
@@ -39,11 +36,8 @@ func IsConflict(err error) bool {
 	return ok && apiErr.StatusCode == http.StatusConflict
 }
 
-// ContentfulClient es el cliente HTTP crudo compartido por los
-// repositories de course, trainingArea y material. Habla con la
-// Content Delivery API (lectura pública) y la Content Management API
-// (escritura), incluyendo el manejo de versionado optimista que exige
-// la CMA para editar, publicar y borrar entries.
+// ContentfulClient es el cliente HTTP de Contentful compartido por los repositories:
+// lee de la CDA y escribe en la CMA con versionado optimista.
 type ContentfulClient struct {
 	spaceID     string
 	environment string
@@ -52,11 +46,7 @@ type ContentfulClient struct {
 	locale      string
 	httpClient  *http.Client
 
-	// cdaBaseURL/cmaBaseURL/uploadBaseURL quedan como campos (con los
-	// hosts reales de Contentful como default) en vez de usar
-	// directamente las constantes, para que los tests de este paquete
-	// puedan apuntarlos a un httptest.Server y no hablar por red con
-	// Contentful de verdad.
+	// Los hosts son campos para que los tests los apunten a un httptest.Server.
 	cdaBaseURL    string
 	cmaBaseURL    string
 	uploadBaseURL string
@@ -101,10 +91,8 @@ func (c *ContentfulClient) ListEntries(ctx context.Context, contentType string, 
 	return c.ListEntriesWhere(ctx, contentType, include, nil)
 }
 
-// ListEntriesWhere es como ListEntries pero acepta filtros adicionales
-// de query (ej. {"fields.responsibleTeacher": "<userId>"}), tal como
-// los soporta la Content Delivery API. Al leer de la CDA, solo
-// devuelve entries ya publicadas.
+// ListEntriesWhere es como ListEntries con filtros de query de la CDA
+// (ej. {"fields.responsibleTeacher": "<userId>"}).
 func (c *ContentfulClient) ListEntriesWhere(ctx context.Context, contentType string, include int, filters map[string]string) (*models.ContentfulCollection, error) {
 	query := url.Values{}
 	query.Set("content_type", contentType)
@@ -126,13 +114,8 @@ func (c *ContentfulClient) ListEntriesWhere(ctx context.Context, contentType str
 	return &collection, nil
 }
 
-// ListManagementEntriesWhere lista entries vía la Content Management
-// API, que —a diferencia de la CDA— devuelve también las que están en
-// borrador (nunca publicadas o despublicadas). Acepta filtros de query
-// opcionales, ej. {"fields.responsibleTeacher": "<id>"} y
-// {"sys.publishedVersion[exists]": "false"} para quedarse solo con los
-// borradores. La CMA no resuelve "includes" ni aplana los campos: cada
-// field viene envuelto por locale (ver flattenCMAFields).
+// ListManagementEntriesWhere lista entries por la CMA, que también devuelve borradores.
+// La CMA no resuelve includes y cada campo viene envuelto por locale (ver flattenCMAFields).
 func (c *ContentfulClient) ListManagementEntriesWhere(ctx context.Context, contentType string, filters map[string]string) (*models.ContentfulCollection, error) {
 	query := url.Values{}
 	query.Set("content_type", contentType)
@@ -283,14 +266,8 @@ func (c *ContentfulClient) DeleteEntry(ctx context.Context, id string) error {
 	return err
 }
 
-// DeleteEntryCascade despublica y luego borra una entry. Es el flujo
-// que exige la CMA: una entry publicada no se puede borrar
-// directamente.
-//
-// Si la entry nunca se publicó (un borrador), la CMA responde 400 ("Not
-// published") al despublicar, no 404. En ese caso confirmamos contra la
-// CMA que de verdad no tiene versión publicada y seguimos con el borrado;
-// sin esto no se podía borrar ningún curso/área/material en borrador.
+// DeleteEntryCascade despublica y luego borra una entry. Si es un borrador, la CMA
+// responde 400 al despublicar: se confirma que no tiene versión publicada y se borra igual.
 func (c *ContentfulClient) DeleteEntryCascade(ctx context.Context, id string) error {
 	if err := c.UnpublishEntry(ctx, id); err != nil {
 		apiErr, ok := err.(*ContentfulAPIError)

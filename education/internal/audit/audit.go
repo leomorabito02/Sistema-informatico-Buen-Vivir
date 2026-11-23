@@ -1,10 +1,5 @@
-// Package audit escribe el registro de auditoría de Educación (HU-16 y
-// HU-19bis): quién hizo qué, sobre qué recurso, cuándo y desde qué IP.
-// Mismo modelo que el de Promoción Humana (human-promotion/internal/audit):
-// Autenticación todavía no tiene un log central, así que cada servicio
-// guarda el suyo en la colección "auditoria" y lo escribe en la MISMA
-// transacción que el cambio, para que no quede un cambio sin su registro.
-// No hay ruta para editar ni borrar registros: el log es de solo lectura.
+// Package audit escribe el registro de auditoría de Educación (HU-16 y HU-19bis).
+// Cada registro se guarda en la misma transacción que el cambio y es de solo lectura.
 package audit
 
 import (
@@ -18,17 +13,14 @@ import (
 	"buenvivir/education/internal/events"
 )
 
-// Collection es la colección de registros de auditoría.
 const Collection = "auditoria"
 
-// Acciones auditadas.
 const (
 	AccionBaja       = "baja"
 	AccionRegistrar  = "registrar"
 	AccionActualizar = "actualizar"
 )
 
-// Recursos auditados.
 const (
 	RecursoCurso             = "curso"
 	RecursoAsistenciaGeneral = "asistencia_general"

@@ -30,11 +30,8 @@ func LoadConfig() *Config {
 		port = "8080"
 	}
 
-	// DATABASE_URL_RXRESUME tiene prioridad; si no está se usa
-	// DATABASE_URL, que es la que pasan el CD de Cloud Run y el .env local.
-	// Antes solo se leía la primera: en testing y en Docker el servicio
-	// caía al default localhost:5432 y "Mi CV" respondía 500 (auditoría
-	// 17/11/2026).
+	// DATABASE_URL_RXRESUME tiene prioridad; si no está se usa DATABASE_URL (la del CD de
+	// Cloud Run y del .env local).
 	dbURL := cleanDSN(os.Getenv("DATABASE_URL_RXRESUME"))
 	if dbURL == "" {
 		dbURL = cleanDSN(os.Getenv("DATABASE_URL"))
@@ -73,10 +70,8 @@ func LoadConfig() *Config {
 	}
 }
 
-// cleanDSN saca espacios y comillas que envuelvan la cadena de conexión.
-// En testing el secret se cargó como 'postgresql://...' (copiado del
-// comando psql de Neon) y el driver no reconocía la URL: intentaba
-// conectarse por socket local con el usuario del contenedor (17/11/2026).
+// cleanDSN saca espacios y comillas que envuelvan la cadena de conexión (por ejemplo,
+// un secret copiado del comando psql de Neon).
 func cleanDSN(v string) string {
 	v = strings.TrimSpace(v)
 	for len(v) >= 2 && (v[0] == '\'' && v[len(v)-1] == '\'' || v[0] == '"' && v[len(v)-1] == '"') {

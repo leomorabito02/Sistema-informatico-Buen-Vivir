@@ -85,8 +85,7 @@ func TestDirectoryService_SearchParticipants(t *testing.T) {
 	assert.ErrorIs(t, err, services.ErrInvalidDirectoryRequest)
 }
 
-// Sin texto lista a todos los participantes (Promoción Humana, 17/11/2026),
-// con un tope propio más alto que el de la búsqueda.
+// Sin texto lista a todos los participantes, con un tope propio más alto que el de la búsqueda.
 func TestDirectoryService_SearchParticipants_SinTextoListaTodos(t *testing.T) {
 	repo := &fakeDirectoryRepo{}
 	svc := services.NewParticipantDirectoryService(repo)

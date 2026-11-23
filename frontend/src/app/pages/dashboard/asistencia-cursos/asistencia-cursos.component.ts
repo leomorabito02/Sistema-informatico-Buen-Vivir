@@ -25,13 +25,8 @@ interface Option {
 }
 
 /**
- * Historial de asistencia (HU-19/RF-19) para role_admin y
- * role_volunteer, de solo consulta: la asistencia no se carga a mano, la
- * genera cada entrega de actividad del participante (ver
- * `/dashboard/cursos/:id`). Muestra la matriz participante × actividad del
- * curso elegido. La vista "Por participante" se quitó a pedido del
- * 17/11/2026 (el historial por participante sigue en su ficha de
- * Promoción Humana).
+ * Historial de asistencia (HU-19) para admin y voluntario, solo consulta: la asistencia
+ * la genera cada entrega. Muestra la matriz participante × actividad del curso elegido.
  */
 @Component({
   selector: "app-asistencia-cursos",

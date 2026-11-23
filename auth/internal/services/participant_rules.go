@@ -6,13 +6,10 @@ import (
 	"strings"
 )
 
-// ErrParticipantGmail: decisión del 15/11/2026 sobre HU-01, el email de
-// un participante tiene que ser de Gmail (el resto de los roles puede
-// usar cualquier dominio).
+// ErrParticipantGmail: el email de un participante tiene que ser de Gmail (HU-01).
 var ErrParticipantGmail error = &validacionError{"el correo de un participante tiene que ser una cuenta de Gmail (@gmail.com)"}
 
-// ErrValidacion marca los errores de datos inválidos del alta: el
-// controlador responde 400 (antes cualquier error del servicio era 500).
+// ErrValidacion marca los errores de datos inválidos del alta: el controlador responde 400.
 var ErrValidacion = errors.New("datos inválidos")
 
 type validacionError struct{ msg string }

@@ -162,9 +162,8 @@ ensure_push_sub notificaciones-campanas campanas-eventos "$NOTIFICATIONS_URL/eve
   "$(filter campanas.campana.creada)" false
 
 # ── Permiso para invocar Cloud Run ────────────────────────────────────
-# Los servicios son privados (--no-allow-unauthenticated): sin
-# roles/run.invoker, Cloud Run rechaza con 403 cada push y cada barrido
-# de Cloud Scheduler aunque el token OIDC sea válido (17/11/2026).
+# Los servicios son privados: sin roles/run.invoker, Cloud Run rechaza con 403 cada
+# push y cada barrido de Cloud Scheduler aunque el token OIDC sea válido.
 SERVICIOS_RUN="$("${G[@]}" run services list --region "$REGION" --format='value(metadata.name,status.url)')"
 grant_invoker() { # $1=url del servicio $2..=service accounts
   local url="$1" name sa; shift

@@ -15,13 +15,8 @@ import (
 	"buenvivir/notifications/internal/services"
 )
 
-// Formulario de "Contacto e información institucional" (pedido del
-// 17/11/2026). Antes el formulario del frontend no enviaba nada: solo
-// mostraba "enviado". Ahora la consulta se manda por email al centro.
-//
-// No se guarda en la base: la consulta tiene datos personales (nombre y
-// email) y su único destino es la casilla del centro. El email sale con
-// Reply-To del remitente para que el centro conteste directo.
+// Formulario de contacto: la consulta se manda por email al centro, con Reply-To del
+// remitente. No se guarda en la base porque tiene datos personales.
 
 const (
 	DefaultContactEmail = "ceibuenvivir7@gmail.com"

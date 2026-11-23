@@ -182,12 +182,9 @@ export class AuthService {
   }
 
   /**
-   * Renueva la sesión. Con varias pestañas abiertas, solo una pide el
-   * refresh a la vez (Web Locks) y las demás reutilizan esa renovación:
-   * las cookies son compartidas, así que no hace falta pedir otra. Antes,
-   * si dos pestañas renovaban juntas, la segunda mandaba un refresh token
-   * recién rotado, auth lo tomaba como reutilización y cerraba todas las
-   * sesiones del usuario (D10, 22/11/2026).
+   * Renueva la sesión. Con varias pestañas abiertas, solo una pide el refresh a la vez
+   * (Web Locks) y las demás reutilizan esa renovación; si no, auth tomaría el refresh
+   * token rotado como reutilización y cerraría todas las sesiones.
    */
   refreshToken(): Observable<LoginResponse> {
     return from(
@@ -367,7 +364,7 @@ export class AuthService {
     if (body?.message) {
       errorMessage = body.message;
     } else if (typeof body?.error === "string" && body.error) {
-      // Auth responde {"error": "..."}: antes se perdía este mensaje.
+      // Auth responde {"error": "..."}.
       errorMessage = body.error;
     } else if (error.status === 429) {
       errorMessage =
@@ -410,10 +407,9 @@ function anotarRefresh(): void {
 }
 
 /**
- * Ejecuta `pedir` con un candado compartido entre pestañas del mismo
- * origen. Si mientras esperaba el candado otra pestaña ya renovó, no vuelve
- * a pedir y devuelve una respuesta vacía (la sesión ya está renovada en las
- * cookies). Sin Web Locks (navegadores viejos) se comporta como antes.
+ * Ejecuta `pedir` con un candado compartido entre pestañas del mismo origen. Si
+ * mientras esperaba otra pestaña ya renovó, no vuelve a pedir y devuelve una respuesta
+ * vacía (la sesión ya está en las cookies). Sin Web Locks pide sin candado.
  */
 export async function conCandadoDeRefresh<T>(
   pedir: () => Promise<T>,

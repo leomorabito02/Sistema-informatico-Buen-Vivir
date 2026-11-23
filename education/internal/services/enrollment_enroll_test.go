@@ -217,8 +217,8 @@ func TestEnroll_RepoErrors(t *testing.T) {
 	assert.ErrorIs(t, err, boom)
 }
 
-// auth-service guarda "approved"; "accepted" es el valor que se escribió
-// hasta 2026-09-28 y sigue en filas reales. Los dos habilitan a inscribir.
+// auth-service guarda "approved"; "accepted" es un valor viejo que sigue en la base.
+// Los dos habilitan a inscribir.
 func TestEnroll_AcceptsApprovedAndLegacyAccepted(t *testing.T) {
 	for _, status := range []string{"approved", "accepted", ""} {
 		f := newEnrollFixture(t, models.AuthParticipant{ParticipantID: "p1", ApprovalStatus: status})

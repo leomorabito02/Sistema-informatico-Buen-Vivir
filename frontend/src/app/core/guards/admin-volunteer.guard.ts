@@ -5,10 +5,8 @@ import { AuthService } from "../../services/auth.service";
 import { MeResponse } from "../models/auth.model";
 
 /**
- * Deja pasar solo a `role_admin` / `role_volunteer` / `role_dev`. Calcado
- * de `adminGuard`, para las pantallas nuevas de inscripción y asistencia
- * (HU-18, HU-19, HU-19bis) que el backend expone a admin y voluntario sin
- * scope de "mis cursos" (ver education/CONTEXTO_INSCRIPCIONES_ASISTENCIA.md).
+ * Deja pasar solo a role_admin, role_volunteer y role_dev (inscripción y asistencia:
+ * HU-18, HU-19, HU-19bis).
  */
 export const adminOrVolunteerGuard: CanActivateFn = () => {
   const authService = inject(AuthService);

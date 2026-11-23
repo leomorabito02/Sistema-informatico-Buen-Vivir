@@ -23,17 +23,11 @@ type EnrollmentRepository interface {
 	// estado) de un participante: es la base de "mis cursos" del rol
 	// participante.
 	ListByParticipant(ctx context.Context, participanteID string) ([]models.Enrollment, error)
-	// Create persiste una nueva inscripción. No valida duplicados ni
-	// cupo — eso es responsabilidad de EnrollmentService.Enroll, que
-	// lista las inscripciones activas del curso antes de llamar acá.
-	// Fuerza fecha_inscripcion a "ahora" y, si Estado viene vacío, lo
-	// deja en "activa".
+	// Create guarda una inscripción nueva (fecha = ahora, estado "activa" por defecto).
+	// Los duplicados y el cupo los valida EnrollmentService.Enroll.
 	Create(ctx context.Context, e models.Enrollment) (*models.Enrollment, error)
-	// DeactivateByParticipant da de baja las inscripciones activas de un
-	// participante que se dio de baja en auth-service (evento
-	// usuarios.participante.eliminado). No borra nada: conserva el
-	// historial con estado "baja" y el motivo. Devuelve cuántas cambió;
-	// repetirlo no cambia nada (idempotente).
+	// DeactivateByParticipant pasa a "baja" las inscripciones activas de un participante
+	// dado de baja en auth-service, conservando el historial. Devuelve cuántas cambió.
 	DeactivateByParticipant(ctx context.Context, participanteID, motivo string) (int, error)
 }
 

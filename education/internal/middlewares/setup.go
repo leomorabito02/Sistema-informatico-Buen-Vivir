@@ -14,12 +14,10 @@ func SetupMiddlewares(r *chi.Mux) {
 	// CORS primero: contesta el preflight (OPTIONS) antes que el resto.
 	r.Use(CORS(ParseOrigins(os.Getenv("CORS_ALLOWED_ORIGINS"))))
 
-	// Standard chi middlewares
 	r.Use(middleware.RequestID)
 	r.Use(middleware.RealIP) //nolint:staticcheck // RealIP se usa solo para logging interno; el gateway ya sanea X-Forwarded-For
 	r.Use(middleware.Recoverer)
 
-	// Logging middleware adapted for JSON / Google Cloud Logging
 	r.Use(func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 			slog.Info("Incoming Request",

@@ -31,12 +31,8 @@ func RequireAdmin(next http.Handler) http.Handler {
 	})
 }
 
-// NewGuard elige cómo saber quién pide. Con validador (JWT_SECRET
-// configurado, obligatorio en Google Cloud, donde el gateway no pone
-// X-User-Role) valida el token por su cuenta y reemplaza X-User-ID y
-// X-User-Role con lo que dice el token: así nadie puede mandarlos
-// inventados, e Inserción Laboral, que confía en esos headers, recibe los
-// verdaderos. Sin validador, confía en el gateway de Docker.
+// NewGuard elige cómo saber quién pide. Con JWT_SECRET valida el token y reemplaza
+// X-User-ID y X-User-Role con lo que dice el token; sin él, confía en el gateway de Docker.
 func NewGuard(v *auth.Validator) func(http.Handler) http.Handler {
 	if v == nil {
 		return RequireAdmin

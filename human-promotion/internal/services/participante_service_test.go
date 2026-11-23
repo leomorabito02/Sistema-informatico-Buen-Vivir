@@ -140,8 +140,8 @@ func (a authBusqueda) SearchParticipantes(_ context.Context, q string, limit int
 	}, nil
 }
 
-// Sin texto, Buscar devuelve el listado completo (pedido del 17/11/2026)
-// con el tope del listado; con 1 letra sigue siendo error de validación.
+// Sin texto, Buscar devuelve el listado completo con el tope del listado; con 1 letra
+// sigue siendo error de validación.
 func TestBuscar_SinTextoListaTodosConFicha(t *testing.T) {
 	var q string
 	var limite int

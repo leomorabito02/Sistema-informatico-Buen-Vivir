@@ -214,9 +214,8 @@ func containsFold(s, sub string) bool {
 	return strings.Contains(strings.ToLower(s), strings.ToLower(sub))
 }
 
-// Problema 3 de la auditoría (2026-11-11): ficha.actualizada lleva quién
-// creó la ficha, para que Notificaciones le avise cuando otra persona la
-// edita. Antes viajaba vacío y esa notificación no salía nunca.
+// ficha.actualizada lleva quién creó la ficha, para que Notificaciones le avise cuando
+// otra persona la edita.
 func TestFichaActualizada_LlevaCreadoPor(t *testing.T) {
 	client := newTestFirestore(t)
 	fichas := NewFichaRepository(client, producer(client))

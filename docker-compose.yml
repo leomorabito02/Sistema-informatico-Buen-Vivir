@@ -78,9 +78,8 @@ services:
       # HU-44: cruce de ofertas con habilidades (Educación es la dueña).
       - EDUCATION_SERVICE_GRPC_TARGET=education-service:50053
       - METRICS_ENABLED=true
-    # Solo desde esta máquina: labor confía en los headers X-User-* que
-    # pone el gateway si no tiene JWT_SECRET; publicado en 0.0.0.0 se podía
-    # saltear el gateway desde la red local (auditoría 2026-11-11).
+    # Solo desde esta máquina: sin JWT_SECRET labor confía en los headers X-User-* del
+    # gateway; publicado en 0.0.0.0 se podía saltear el gateway desde la red local.
     ports:
       - "127.0.0.1:8310:8080"
     depends_on:
@@ -336,12 +335,8 @@ services:
   pubsub-emulator:
     image: gcr.io/google.com/cloudsdktool/google-cloud-cli:emulators
     container_name: buenvivir-pubsub-emulator
-    # Auditoría 2026-11-11 (Problema 3): el emulador guarda todo en
-    # memoria. Si Docker lo reiniciaba solo (restart: on-failure o al
-    # reabrir Docker Desktop), arrancaba vacío y pubsub-init no volvía a
-    # correr: sin suscripciones, ningún evento llegaba a notifications.
-    # Ahora el propio contenedor vuelve a crear topics y suscripciones
-    # cada vez que arranca, y el healthcheck espera a que existan.
+    # El emulador guarda todo en memoria: el contenedor vuelve a crear topics y
+    # suscripciones cada vez que arranca, y el healthcheck espera a que existan.
     command:
       - bash
       - -c

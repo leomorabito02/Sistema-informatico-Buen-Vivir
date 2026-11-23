@@ -16,12 +16,9 @@ import (
 // maxIDsPorPedido: tope de ids por pedido a /directory/users/summaries.
 const maxIDsPorPedido = 50
 
-// GetUserNames devuelve user_id -> nombre completo para los ids pedidos
-// (POST /api/v1/directory/users/summaries de auth). Lo usa Educación para
-// mostrar el nombre del docente responsable a cualquier rol (D3,
-// 22/11/2026): el pedido va con un token interno de servicio, porque el
-// participante no puede consultar el directorio con su propio token. Solo
-// se piden nombres; nada de contacto ni DNI.
+// GetUserNames devuelve user_id -> nombre completo (POST /api/v1/directory/users/summaries).
+// Usa un token interno de servicio porque el participante no puede consultar el
+// directorio. Solo pide nombres.
 func (c *AuthServiceClient) GetUserNames(ctx context.Context, userIDs []string) (map[string]string, error) {
 	if c == nil || c.baseURL == "" {
 		return nil, ErrAuthServiceNotConfigured

@@ -88,8 +88,7 @@ func TestRutas_AdminVeResumenYAreas(t *testing.T) {
 	}
 }
 
-// Los datos crudos de cada servicio ya no se exponen: el cálculo se hace
-// en el Dashboard.
+// Los datos crudos de cada servicio no se exponen: el cálculo se hace en el Dashboard.
 func TestRutas_SinDatosCrudos(t *testing.T) {
 	mux := newMux(&fakeService{})
 	for _, p := range []string{"participantes", "cursos", "habilidades", "postulaciones", "promocion"} {

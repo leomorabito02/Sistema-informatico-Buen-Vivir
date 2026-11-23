@@ -32,10 +32,8 @@ type UserSummaryRow struct {
 // id pedido.
 var ErrParticipantProfileNotFound = errors.New("participante no encontrado")
 
-// ParticipantDirectoryRepository agrupa las consultas de solo lectura
-// que necesita Promoción Humana (ficha, búsqueda y línea de tiempo). Es
-// una interfaz aparte de ParticipantRepository/UserRepository para no
-// ampliar contratos que ya implementan otros mocks y servicios.
+// ParticipantDirectoryRepository agrupa las consultas de solo lectura que necesita
+// Promoción Humana (ficha, búsqueda y línea de tiempo).
 type ParticipantDirectoryRepository interface {
 	FindProfileByParticipantID(ctx context.Context, participantID string) (*ParticipantProfileRow, error)
 	FindProfileByUserID(ctx context.Context, userID string) (*ParticipantProfileRow, error)

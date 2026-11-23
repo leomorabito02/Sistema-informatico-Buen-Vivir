@@ -32,12 +32,8 @@ type gcsFileStorage struct {
 	bucket *storage.BucketHandle
 }
 
-// NewGCSFileStorage crea el FileStorage sobre un bucket de Cloud
-// Storage del mismo proyecto de GCP que Firestore. credentialsJSON son
-// las mismas credenciales que usa Firestore (ver GoogleCredentialsJSON);
-// nil = Application Default Credentials. Si bucketName está vacío
-// devuelve (nil, nil): el servicio arranca sin adjuntos. Respeta
-// STORAGE_EMULATOR_HOST para desarrollo local.
+// NewGCSFileStorage crea el FileStorage sobre un bucket de Cloud Storage con las mismas
+// credenciales de Firestore (nil = ADC). Si bucketName está vacío devuelve (nil, nil).
 func NewGCSFileStorage(ctx context.Context, bucketName string, credentialsJSON []byte) (FileStorage, *storage.Client, error) {
 	if bucketName == "" {
 		return nil, nil, nil

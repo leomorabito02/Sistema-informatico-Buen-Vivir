@@ -36,8 +36,7 @@ func rutaExiste(u string) bool {
 	return false
 }
 
-// Problema 3 de la auditoría (2026-11-11): las notificaciones de Promoción
-// Humana apuntaban a /dashboard/acompanamiento, que no existe.
+// Las notificaciones de Promoción Humana apuntan a la ficha del participante.
 func TestPromocionHumana_EnlacesALaFichaDelParticipante(t *testing.T) {
 	ctx := context.Background()
 	ficha := events.FichaPayload{FichaID: "f-1", ParticipanteID: "part-9", CreadoPor: "vol-1"}

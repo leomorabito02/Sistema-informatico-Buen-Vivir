@@ -47,10 +47,8 @@ func (p *PromocionHumana) FichaCreada(ctx context.Context, tx *firestore.Transac
 	return p.emit(ctx, tx, events.FichaCreada, events.FichaPayload{FichaID: fichaID, ParticipanteID: participanteID, CreadoPor: cp}, participanteID)
 }
 
-// FichaActualizada lleva también quién creó la ficha (creado_por, un id):
-// Notificaciones lo usa para avisarle al creador cuando otra persona la
-// edita. Antes no viajaba y esa notificación no se generaba nunca
-// (auditoría 2026-11-11, Problema 3).
+// FichaActualizada lleva también quién creó la ficha (creado_por): Notificaciones lo
+// usa para avisarle al creador cuando otra persona la edita.
 func (p *PromocionHumana) FichaActualizada(ctx context.Context, tx *firestore.Transaction, fichaID, participanteID string, creadoPor ...string) error {
 	cp := ""
 	if len(creadoPor) > 0 {

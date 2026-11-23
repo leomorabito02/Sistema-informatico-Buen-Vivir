@@ -4,9 +4,7 @@ package events
 
 import "time"
 
-// Topics. Los nombres reales se leen de variables de entorno en cada
-// servicio (ver la config de cada uno); estos son los valores por
-// defecto y los que crea infra/pubsub/setup.sh. Cada topic tiene su
+// Topics por defecto (los mismos que crea infra/pubsub/setup.sh). Cada uno tiene su
 // dead-letter topic: <topic>-dlq.
 const (
 	TopicUsuarios         = "usuarios-eventos"
@@ -163,10 +161,8 @@ type CampanaCreadaPayload struct {
 	CreadoPor string `json:"creado_por"`
 }
 
-// ParticipantePayload es el payload de usuarios.participante.creado y
-// usuarios.participante.eliminado (propuesto para Autenticación).
-// ParticipanteID es el id que usan Educación y Promoción Humana para
-// referirse al participante; UserID es el id del usuario asociado.
+// ParticipantePayload es el payload de usuarios.participante.creado y .eliminado.
+// ParticipanteID es el id que usan Educación y Promoción Humana; UserID, el del usuario.
 type ParticipantePayload struct {
 	ParticipanteID string `json:"participante_id"`
 	UserID         string `json:"user_id"`
@@ -251,8 +247,8 @@ type HabilidadOtorgadaPayload struct {
 	CursoID        string    `json:"curso_id"`
 	Origen         string    `json:"origen"`
 	Fecha          time.Time `json:"fecha"`
-	// HabilidadNombre es aditivo (22/11/2026): Notificaciones lo usa
-	// para decirle al participante qué habilidad ganó. Puede venir vacío.
+	// HabilidadNombre lo usa Notificaciones para decirle al participante qué habilidad
+	// ganó. Puede venir vacío.
 	HabilidadNombre string `json:"habilidad_nombre,omitempty"`
 }
 
@@ -271,10 +267,9 @@ const (
 	ContenidoTipoMaterial = "material" // ContenidoDocente de un docente externo (DER)
 )
 
-// ContenidoDocenteSubidoPayload: un docente cargó contenido que espera
-// la revisión de la administración (HU-23). Con tipo "curso" viene
-// curso_id; con tipo "material", contenido_id (agregado 2026-10-22, campo
-// opcional: compatible con la versión 1).
+// ContenidoDocenteSubidoPayload: un docente cargó contenido que espera la revisión de
+// la administración (HU-23). Con tipo "curso" viene curso_id; con "material",
+// contenido_id (opcional, compatible con la versión 1).
 type ContenidoDocenteSubidoPayload struct {
 	CursoID     string `json:"curso_id,omitempty"`
 	ContenidoID string `json:"contenido_id,omitempty"`
@@ -288,9 +283,8 @@ const (
 	ModeracionRechazado = "rechazado"
 )
 
-// ContenidoDocenteModeradoPayload: la administración revisó un curso o
-// un material. contenido_id, docente_id y tipo se agregaron el 2026-10-22
-// (opcionales: compatible con la versión 1).
+// ContenidoDocenteModeradoPayload: la administración revisó un curso o un material.
+// contenido_id, docente_id y tipo son opcionales (compatibles con la versión 1).
 type ContenidoDocenteModeradoPayload struct {
 	CursoID     string `json:"curso_id,omitempty"`
 	ContenidoID string `json:"contenido_id,omitempty"`

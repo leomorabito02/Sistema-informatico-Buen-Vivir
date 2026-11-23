@@ -15,11 +15,8 @@ type ProcessedStore interface {
 	MarkProcessed(ctx context.Context, consumer, eventID, eventType string) error
 }
 
-// MemoryStore es un ProcessedStore en memoria, acotado a los últimos
-// `capacity` eventos. Sirve para tests y para consumidores cuyos
-// efectos ya son idempotentes por naturaleza (por ejemplo, invalidar una
-// caché en Dashboard, que no tiene base de datos): ahí solo evita
-// trabajo repetido, no garantiza nada entre instancias.
+// MemoryStore es un ProcessedStore en memoria con los últimos `capacity` eventos.
+// Sirve para tests y para consumidores idempotentes (como Dashboard).
 type MemoryStore struct {
 	mu       sync.Mutex
 	capacity int

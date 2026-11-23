@@ -29,12 +29,10 @@ func main() {
 	// Load local .env if present (fallback for local development)
 	config.LoadEnvFile()
 
-	// 1. Setup Logger & Observability
 	observability.InitLogger("auth", os.Getenv("APP_ENV"))
 	metrics := observability.NewRegistry("auth")
 	slog.Info("Starting Auth Service...")
 
-	// 2. Setup Database
 	db, err := config.InitDatabase()
 	if err != nil {
 		slog.Error("Database initialization failed", "error", err)
@@ -42,7 +40,6 @@ func main() {
 	}
 	utils.GetTwofaStore().SetDB(db)
 
-	// 3. Setup Repositories
 	userRepo := repositories.NewUserRepository(db)
 	roleRepo := repositories.NewRoleRepository(db)
 	companyRepo := repositories.NewCompanyRepository(db)
@@ -66,7 +63,6 @@ func main() {
 		_ = os.Unsetenv("GOOGLE_APPLICATION_CREDENTIALS")
 	}
 
-	// Setup Storage
 	storageSvc, err := storage.NewObjectStorageService(
 		context.Background(),
 		os.Getenv("GCP_PROJECT_ID"),
@@ -78,7 +74,6 @@ func main() {
 		slog.Warn("GCP Storage initialization failed, skipping file uploads", "error", err)
 	}
 
-	// 4. Setup Services
 	jwtService, err := services.NewJWTServiceFromEnv()
 	if err != nil {
 		slog.Error("JWT initialization failed", "error", err)
@@ -131,7 +126,6 @@ func main() {
 	// Sincronizar contadores de impacto en Cloudflare Worker KV al iniciar el servicio
 	services.NewKVSyncService(userRepo).SyncImpactStatsAsync()
 
-	// 5. Setup Controllers
 	firestoreClient, err := storage.NewFirestoreClient(context.Background(), "")
 	if err != nil {
 		slog.Warn("Firestore initialization failed, push notification tokens will not be persisted", "error", err)
@@ -155,7 +149,6 @@ func main() {
 	grpcAuthController.SetLinkIssuers(verificationService, passwordRecoveryService, twofaService)
 	go startGRPCServer(grpcAuthController)
 
-	// 6. Setup Router and Middlewares
 	r := chi.NewRouter()
 	r.Use(observability.HTTPMiddleware(metrics, func(req *http.Request) string {
 		if rc := chi.RouteContext(req.Context()); rc != nil {
@@ -168,17 +161,12 @@ func main() {
 	// Middlewares (CORS and Security Headers must be handled here as API Gateway does not support allowCors)
 	middlewares.SetupMiddlewares(r)
 
-	// Override chi's default MethodNotAllowed to handle OPTIONS preflight.
-	// chi dispatches to MethodNotAllowedHandler when a path exists for another method
-	// (e.g., POST /auth/check-credentials) but not for the requested method (OPTIONS).
-	// This runs INSIDE chi's routing tree, so it's guaranteed to execute even if
-	// external wrappers like OptionsInterceptor are somehow bypassed.
+	// Contesta los OPTIONS que chi manda a MethodNotAllowed cuando el path existe para otro
+	// método (preflight de CORS).
 	r.MethodNotAllowed(http.HandlerFunc(handleMethodNotAllowed))
 
 	// DDoS Protection fallback (Global Rate Limiter)
 	r.Use(middlewares.RateLimiter())
-
-	// 7. Define Routes
 
 	r.Get("/health", authController.HealthCheck)
 	if observability.MetricsEnabled() {
@@ -205,7 +193,6 @@ func main() {
 			r.With(middlewares.StrictRateLimiter()).Post("/resend-2fa", authController.ResendTwofa)
 		})
 
-		// Protected Routes
 		r.Group(func(r chi.Router) {
 			// Auditoría (HU-10, HU-03, HU-06): va por fuera de AuthMiddleware
 			// para registrar también los tokens rechazados.
@@ -224,7 +211,6 @@ func main() {
 			r.Post("/profile/me/2fa/enable", authController.EnableTwofa)
 			r.Post("/profile/me/2fa/disable", authController.DisableTwofa)
 			r.Post("/profile/me/2fa/revoke-device", authController.RevokeTrustedDevice)
-			// Users CRUD
 			r.Route("/users", func(r chi.Router) {
 				r.Post("/", userController.CreateUser)
 				r.With(middlewares.RequireRole("role_admin", "role_dev", "role_volunteer")).
@@ -241,17 +227,13 @@ func main() {
 				r.With(middlewares.RequireRole("role_admin", "role_dev", "role_volunteer")).
 					Patch("/{id}/approval", userController.ApproveUser)
 				r.Get("/{id}", userController.GetUser)
-				// Perfil completo (contacto, DNI, datos del rol): solo el propio
-				// usuario o la gestión del centro. Antes cualquier usuario
-				// logueado podía leer el de cualquiera (D4, 22/11/2026). El
-				// nombre del docente de un curso lo resuelve Educación.
+				// Perfil completo: solo el propio usuario o la gestión del centro.
 				r.With(middlewares.RequireRoleOrSelf("id", "role_admin", "role_dev", "role_volunteer")).
 					Get("/{id}/profile", authController.GetUserProfile)
 				r.Put("/{id}", userController.UpdateUser)
 				r.Delete("/{id}", userController.DeleteUser)
 			})
 
-			// Roles CRUD
 			r.With(middlewares.RequireRole("role_admin", "role_dev")).Route("/roles", func(r chi.Router) {
 				r.Post("/", roleController.CreateRole)
 				r.Get("/", roleController.GetAllRoles)
@@ -260,7 +242,6 @@ func main() {
 				r.Delete("/{id}", roleController.DeleteRole)
 			})
 
-			// Companies CRUD
 			r.With(middlewares.RequireRole("role_admin", "role_company")).Route("/companies", func(r chi.Router) {
 				r.Post("/", companyController.CreateCompany)
 				r.Get("/", companyController.GetAllCompanies)
@@ -269,7 +250,6 @@ func main() {
 				r.Delete("/{id}", companyController.DeleteCompany)
 			})
 
-			// Teachers CRUD
 			r.With(middlewares.RequireRole("role_admin", "role_teacher")).Route("/teachers", func(r chi.Router) {
 				r.Post("/", teacherController.CreateTeacher)
 				r.Get("/", teacherController.GetAllTeachers)
@@ -278,10 +258,8 @@ func main() {
 				r.Delete("/{id}", teacherController.DeleteTeacher)
 			})
 
-			// Participants CRUD. role_volunteer también entra (HU-07/08/09 y
-			// HU-06: "vista voluntario" puede crear/editar/eliminar perfiles
-			// de participantes) — lo necesita education-service para poder
-			// validar/listar participantes (inscripción, asistencia).
+			// role_volunteer también entra (HU-06 a HU-09): education lo usa para validar y listar
+			// participantes.
 			r.With(middlewares.RequireRole("role_admin", "role_participant", "role_volunteer")).Route("/participants", func(r chi.Router) {
 				r.Post("/", participantController.CreateParticipant)
 				r.Get("/", participantController.GetAllParticipants)
@@ -298,7 +276,6 @@ func main() {
 				})
 			})
 
-			// Permissions CRUD
 			r.With(middlewares.RequireRole("role_admin", "role_dev")).Route("/permissions", func(r chi.Router) {
 				r.Post("/", permissionController.CreatePermission)
 				r.With(middlewares.RequirePermissionMiddleware(permissionService, "read", "permissions")).Get("/", permissionController.GetAllPermissions)
@@ -307,7 +284,6 @@ func main() {
 				r.Delete("/{id}", permissionController.DeletePermission)
 			})
 
-			// Volunteers CRUD
 			r.With(middlewares.RequireRole("role_admin", "role_volunteer")).Route("/volunteers", func(r chi.Router) {
 				r.Post("/", volunteerController.CreateVolunteer)
 				r.Get("/", volunteerController.GetAllVolunteers)
@@ -339,7 +315,6 @@ func main() {
 		})
 	})
 
-	// 8. Start Server
 	port := os.Getenv("PORT")
 	slog.Info("Servicio Auth escuchando en el puerto", "port", port)
 	// Wrap chi with a net/http level OPTIONS interceptor that runs before chi's

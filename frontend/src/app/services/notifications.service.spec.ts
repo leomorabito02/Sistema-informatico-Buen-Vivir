@@ -53,7 +53,7 @@ describe("NotificationsService", () => {
     );
   });
 
-  // Problema 3 de la auditoría: contador de no leídas para la campana.
+  // Contador de no leídas para la campana.
   it("refreshUnread actualiza el contador con el valor del backend", async () => {
     spyOn(window, "fetch").and.resolveTo(
       new Response(JSON.stringify({ unread_count: 3 }), { status: 200 }),

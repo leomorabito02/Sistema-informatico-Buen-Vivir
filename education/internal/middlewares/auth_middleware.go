@@ -17,12 +17,8 @@ const (
 	UserIDKey     contextKey = "userID"
 	RoleIDKey     contextKey = "roleID"
 	IsExternalKey contextKey = "isExternal"
-	// TokenKey guarda el JWT crudo (sin "Bearer ") del usuario
-	// autenticado. Lo usa AuthServiceClient para reenviarlo tal cual a
-	// auth-service (GET /api/v1/participants[/{id}], GET /api/v1/users)
-	// al inscribir, registrar asistencia o armar la asistencia general —
-	// así auth-service aplica su propio RBAC sobre el mismo usuario, en
-	// vez de que education necesite un secreto de servicio.
+	// TokenKey guarda el JWT crudo del usuario para reenviarlo a auth-service, que
+	// aplica su propio RBAC.
 	TokenKey contextKey = "rawToken"
 )
 
@@ -37,12 +33,10 @@ func AuthMiddleware(jwtService JWTService) func(http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			var tokenString string
 
-			// Primero intentar extraer de la cookie "__Host-access_token"
 			cookie, err := r.Cookie("__Host-access_token")
 			if err == nil && cookie.Value != "" {
 				tokenString = cookie.Value
 			} else {
-				// Fallback: Authorization header
 				authHeader := r.Header.Get("Authorization")
 				if authHeader == "" {
 					http.Error(w, "Unauthorized: missing token", http.StatusUnauthorized)
@@ -87,7 +81,6 @@ func RequirePermissionMiddleware(permissionService interface {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
-			// Extraer el UserID o RoleID del contexto (puesto por AuthMiddleware)
 			userIDVal := r.Context().Value(UserIDKey)
 			if userIDVal == nil {
 				http.Error(w, "Unauthorized", http.StatusUnauthorized)
@@ -100,7 +93,6 @@ func RequirePermissionMiddleware(permissionService interface {
 			}
 			roleID := roleIDVal.(string)
 
-			// Consultar BD para verificar si el rol tiene {requiredAction} sobre {requiredResource}
 			hasPermission, err := permissionService.CheckPermission(r.Context(), roleID, requiredAction, requiredResource)
 
 			if err != nil || !hasPermission {

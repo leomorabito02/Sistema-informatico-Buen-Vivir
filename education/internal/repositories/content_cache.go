@@ -5,22 +5,10 @@ import (
 	"time"
 )
 
-// contentCache guarda las respuestas de la Content Delivery API de
-// Contentful (HU-17, riesgo R2):
-//
-//   - Mientras una respuesta está fresca (TTL) se sirve sin llamar a
-//     Contentful.
-//   - Si Contentful falla con un 5xx o no responde (timeout, red), se
-//     sirve la última respuesta válida aunque esté vencida (stale
-//     content), en vez de devolver un error.
-//   - Los eventos contenido.publicado / contenido.despublicado (webhook
-//     de Contentful → Pub/Sub) y cada escritura propia por la CMA la
-//     invalidan: la marcan como vencida pero CONSERVAN el cuerpo, que
-//     sigue sirviendo de respaldo si Contentful se cae justo después.
-//
-// Es por instancia (en memoria): con varias instancias de Cloud Run, el
-// push de Pub/Sub invalida solo la que lo recibe; las demás se ponen al
-// día al vencer el TTL. Ver docs/adr/0006-cache-de-contenido.md.
+// contentCache guarda las respuestas de la CDA de Contentful (HU-17): sirve lo fresco
+// sin llamar a Contentful, sirve lo vencido si Contentful falla, y los webhooks o las
+// escrituras propias la invalidan conservando el cuerpo como respaldo. Es en memoria,
+// por instancia (ver docs/adr/0006-cache-de-contenido.md).
 type contentCache struct {
 	mu         sync.Mutex
 	ttl        time.Duration
@@ -33,12 +21,8 @@ type contentCache struct {
 	settleUntil time.Time
 }
 
-// settleWindow es cuánto se tarda en considerar confiable la CDA después
-// de una invalidación. Contentful propaga lo publicado a la CDA con unos
-// segundos de demora: si justo después de editar un curso la pantalla
-// recargaba, la CDA todavía devolvía la versión vieja y esa respuesta
-// quedaba guardada como fresca durante todo el TTL (el docente editado
-// "no cambiaba" por 5 minutos, 18/11/2026).
+// settleWindow es cuánto tarda la CDA en reflejar lo publicado: durante ese tiempo
+// después de invalidar, nada se guarda como fresco para no cachear la versión vieja.
 const settleWindow = 30 * time.Second
 
 type cacheEntry struct {
@@ -92,10 +76,8 @@ func (c *contentCache) put(key string, body []byte) {
 	c.entries[key] = cacheEntry{body: body, expiresAt: expiresAt}
 }
 
-// invalidate vence todas las respuestas pero conserva sus cuerpos como
-// respaldo (ver comentario del tipo) y abre la ventana de settleWindow,
-// durante la cual nada se guarda como fresco. Se invalida todo y no una entry
-// puntual porque los listados incluyen las entries y sus referencias.
+// invalidate vence todas las respuestas (conserva los cuerpos como respaldo) y abre
+// la ventana de settleWindow. Se invalida todo porque los listados incluyen referencias.
 func (c *contentCache) invalidate() {
 	if c == nil {
 		return

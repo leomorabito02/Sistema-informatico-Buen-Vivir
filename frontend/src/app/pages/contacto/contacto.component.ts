@@ -90,8 +90,7 @@ export class ContactoComponent implements OnInit {
   }
 
   /**
-   * Envía la consulta al centro (antes solo mostraba "enviado" sin mandar
-   * nada). El mensaje de éxito aparece recién cuando el backend confirma.
+   * Envía la consulta al centro. El mensaje de éxito aparece recién cuando el backend confirma.
    */
   onSubmit(): void {
     if (this.contactForm.invalid || this.enviando) {

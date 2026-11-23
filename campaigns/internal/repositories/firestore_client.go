@@ -10,18 +10,10 @@ import (
 	"google.golang.org/api/option"
 )
 
-// NewFirestoreClient crea el cliente de Firestore de Campañas (base
-// propia, NoSQL documental según el DER).
-//
-// Acepta las credenciales igual que human-promotion y education:
-//   - GOOGLE_APPLICATION_CREDENTIALS_BASE64: el JSON de la service account
-//     en base64 (lo que inyecta el pipeline de CD a Cloud Run);
-//   - GOOGLE_APPLICATION_CREDENTIALS con el JSON crudo (empieza con '{');
-//   - GOOGLE_APPLICATION_CREDENTIALS como path, o sin definir: Application
-//     Default Credentials estándar (también cubre FIRESTORE_EMULATOR_HOST).
-//
-// Con credenciales inline se limpia la variable de entorno para que
-// ninguna capa interna de las librerías de Google intente abrirla como path.
+// NewFirestoreClient crea el cliente de Firestore de Campañas. Acepta las credenciales en
+// GOOGLE_APPLICATION_CREDENTIALS_BASE64, como JSON crudo o como path (o ADC). Con
+// credenciales inline se limpia la variable para que las librerías de Google no la abran
+// como path.
 func NewFirestoreClient(ctx context.Context) (*firestore.Client, error) {
 	credentialsJSON, err := googleCredentialsJSON()
 	if err != nil {

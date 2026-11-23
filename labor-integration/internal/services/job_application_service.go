@@ -172,8 +172,6 @@ func (s *JobApplicationService) ListByOffer(ctx context.Context, offerID string,
 			return nil, errors.New("unauthorized: you do not own this offer")
 		}
 	}
-	// admin and volunteer can view all applications, participant maybe not, but we allow them or we can restrict.
-	// We'll let admin, volunteer and the owner company view it.
 	apps, err := s.repo.ListByOffer(ctx, offerID)
 	if err != nil {
 		return nil, err

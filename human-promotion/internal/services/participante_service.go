@@ -42,10 +42,8 @@ func NewParticipanteService(auth repositories.AuthDirectory, fichas repositories
 	return &participanteService{auth: auth, fichas: fichas, hitos: hitos, cipher: cipher, actividad: actividad}
 }
 
-// Buscar consulta Auth por nombre y después trae las fichas asociadas.
-// Sin texto devuelve el listado completo de participantes (hasta
-// maxListadoParticipantes), que es lo primero que se ve al entrar al
-// módulo; con texto exige al menos 2 caracteres, como antes.
+// Buscar consulta Auth por nombre y trae las fichas asociadas. Sin texto devuelve el
+// listado completo (hasta maxListadoParticipantes); con texto exige al menos 2 caracteres.
 func (s *participanteService) Buscar(ctx context.Context, query string) ([]models.ResultadoBusqueda, error) {
 	query = sanitizeText(query)
 	limite := maxResultadosBusqueda

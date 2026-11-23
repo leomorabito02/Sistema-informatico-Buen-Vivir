@@ -15,11 +15,8 @@ import (
 	"auth/internal/utils"
 )
 
-// serviceCtx marca una llamada gRPC como interna entre servicios. En gRPC no
-// viaja el usuario que originó el pedido, así que los servicios que chequean
-// permisos por rol (GetUserByID) la rechazaban siempre. Quien llama ya
-// validó al usuario en su propio endpoint (Inserción Laboral, por el
-// gateway); acá se lee con permisos de sistema.
+// serviceCtx marca una llamada gRPC como interna: en gRPC no viaja el usuario original,
+// así que se lee con permisos de sistema (quien llama ya validó al usuario).
 func serviceCtx(ctx context.Context) context.Context {
 	return context.WithValue(ctx, middlewares.RoleIDKey, "role_dev")
 }

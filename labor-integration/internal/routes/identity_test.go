@@ -37,8 +37,8 @@ func identidad(r *http.Request) (string, string) {
 	return id, rol
 }
 
-// Auditoría 2026-11-11 (Problema 4): con JWT_SECRET, los headers de
-// identidad que manda el cliente no valen; solo el JWT verificado.
+// Con JWT_SECRET, los headers de identidad que manda el cliente no valen; solo el JWT
+// verificado.
 func TestIdentidad_NoSeConfiaEnHeadersDelCliente(t *testing.T) {
 	t.Setenv("JWT_SECRET", secretoPrueba)
 

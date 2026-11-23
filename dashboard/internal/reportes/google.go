@@ -105,11 +105,8 @@ func (s *gcsStorage) Borrar(ctx context.Context, objeto string) error {
 
 // ── Arranque ───────────────────────────────────────────────────────────
 
-// Nuevo arma el servicio con Firestore y Cloud Storage. Con bucket vacío
-// devuelve (nil, nil, nil): el Dashboard arranca sin historial guardado.
-// Las credenciales se leen igual que en education y human-promotion
-// (GOOGLE_APPLICATION_CREDENTIALS_BASE64, JSON en línea o ADC). Respeta
-// FIRESTORE_EMULATOR_HOST y STORAGE_EMULATOR_HOST.
+// Nuevo arma el servicio con Firestore y Cloud Storage. Con bucket vacío devuelve
+// (nil, nil, nil): el Dashboard arranca sin historial guardado.
 func Nuevo(ctx context.Context, bucket string) (*Service, func(), error) {
 	if bucket == "" {
 		return nil, nil, nil

@@ -1,13 +1,7 @@
 package services
 
-// approvalStatusApproved es el valor canónico que se persiste para un
-// perfil aprobado ("approved", así lo manda el frontend y así lo filtran
-// el login y los contadores de impacto).
-//
-// Hasta 2026-09-28 esta rama normalizaba a "accepted", y hay filas
-// reales en Neon con ese valor (aprobadas en ese período), así que las
-// LECTURAS aceptan los dos (isApprovedStatus). Education hace lo mismo
-// del otro lado (services.isParticipantApproved).
+// approvalStatusApproved es el valor que se guarda para un perfil aprobado. Las lecturas
+// aceptan también "accepted", un valor viejo que sigue en la base (isApprovedStatus).
 const approvalStatusApproved = "approved"
 
 // approvalStatusLegacyAccepted es el valor anterior, que solo se acepta

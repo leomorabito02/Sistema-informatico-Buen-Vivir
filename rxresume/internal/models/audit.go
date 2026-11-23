@@ -2,10 +2,8 @@ package models
 
 import "time"
 
-// AuditEntry registra las acciones de gestión sobre el CV de otra persona
-// (D8, 22/11/2026): quién vio, editó o cambió la foto del CV de un
-// participante, cuándo y desde qué IP. No guarda el contenido del CV.
-// Mismo formato de salida que la auditoría de los demás servicios.
+// AuditEntry registra quién vio, editó o cambió la foto del CV de otra persona, cuándo
+// y desde qué IP. No guarda el contenido del CV.
 type AuditEntry struct {
 	ID        uint      `gorm:"primaryKey" json:"id"`
 	UsuarioID string    `gorm:"size:64;index" json:"usuario_id"`

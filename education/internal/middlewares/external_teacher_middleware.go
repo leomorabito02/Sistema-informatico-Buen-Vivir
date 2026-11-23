@@ -2,14 +2,8 @@ package middlewares
 
 import "net/http"
 
-// RequireInternalTeacher bloquea a los docentes externos
-// (claims["is_external"] == true) del acceso a las rutas /api/docente,
-// que son exclusivas del docente responsable "interno" de un curso
-// (ver historia de usuario del docente responsable). No existe en
-// auth-service porque es una regla propia del dominio de Educación.
-//
-// Se aplica siempre después de AuthMiddleware (que puebla
-// IsExternalKey en el contexto) y de RequireRole("role_teacher").
+// RequireInternalTeacher bloquea a los docentes externos (is_external) en
+// /api/docente. Va después de AuthMiddleware y RequireRole("role_teacher").
 func RequireInternalTeacher(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		isExternal, _ := r.Context().Value(IsExternalKey).(bool)

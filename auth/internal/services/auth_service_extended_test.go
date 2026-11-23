@@ -159,8 +159,8 @@ func TestAuthService_Login_Success(t *testing.T) {
 	assert.Equal(t, "refresh", res.RefreshToken)
 }
 
-// "accepted" es el valor que se guardaba antes de unificar en "approved":
-// hay perfiles reales así y tienen que poder seguir logueándose.
+// "accepted" es un valor viejo que sigue en la base: esos perfiles tienen que poder
+// seguir logueándose.
 func TestAuthService_Login_LegacyAcceptedStatus(t *testing.T) {
 	mockUserRepo := new(MockUserRepository)
 	mockQuerier := new(MockRoleProfileQuerier)

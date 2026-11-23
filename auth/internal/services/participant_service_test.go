@@ -317,9 +317,8 @@ func TestParticipantService_EdgeCases(t *testing.T) {
 	assert.NoError(t, err)
 }
 
-// Auditoría 2026-11-11 (Problema 4): nadie sin rol de gestión crea un
-// perfil a nombre de otra cuenta, y el participante no da de baja perfiles
-// de participante (HU-09).
+// Nadie sin rol de gestión crea un perfil a nombre de otra cuenta, y el participante no
+// da de baja perfiles de participante (HU-09).
 func TestParticipantService_PermisosDeAltaYBaja(t *testing.T) {
 	mockRepo := new(MockParticipantRepository)
 	mockUserRepo := new(MockUserRepository)

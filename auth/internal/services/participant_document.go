@@ -66,7 +66,6 @@ func (s *participantService) deleteStorageFileIfExists(ctx context.Context, docU
 }
 
 func (s *participantService) UploadDocument(ctx context.Context, participantID string, docName string, file io.Reader, contentType string, originalName string) (*models.ParticipantDocument, error) {
-	// 1. Validar acceso
 	participant, err := s.participantRepo.FindByID(ctx, participantID)
 	if err != nil {
 		return nil, err
@@ -75,7 +74,6 @@ func (s *participantService) UploadDocument(ctx context.Context, participantID s
 		return nil, err
 	}
 
-	// 2. Subir a GCS
 	cleanName := filepath.Base(originalName)
 	objectName := fmt.Sprintf("%s%s/%d_%s", documentStoragePrefix, participantID, time.Now().Unix(), cleanName)
 	
@@ -84,7 +82,6 @@ func (s *participantService) UploadDocument(ctx context.Context, participantID s
 		return nil, fmt.Errorf("error uploading document: %w", err)
 	}
 
-	// 3. Crear registro en BD
 	doc := &models.ParticipantDocument{
 		ID:            "pdoc-" + utils.GenerateRandomString(10),
 		ParticipantID: participantID,

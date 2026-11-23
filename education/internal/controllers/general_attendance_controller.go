@@ -8,10 +8,8 @@ import (
 	"buenvivir/education/internal/services"
 )
 
-// GeneralAttendanceController expone la asistencia general del centro
-// (HU-19bis/RF-64): control diario de concurrencia de todos los
-// participantes, independiente de cursos/actividades. Exclusivo de
-// role_admin y role_volunteer.
+// GeneralAttendanceController expone la asistencia general diaria del centro
+// (HU-19bis) para admin y voluntario.
 type GeneralAttendanceController struct {
 	service services.GeneralAttendanceService
 }
@@ -20,10 +18,8 @@ func NewGeneralAttendanceController(service services.GeneralAttendanceService) *
 	return &GeneralAttendanceController{service: service}
 }
 
-// List responde GET /api/asistencia-general?fecha=YYYY-MM-DD.
-// Devuelve el listado completo de participantes del centro (resuelto
-// contra auth-service) junto con su asistencia de esa fecha, si ya se
-// cargó.
+// List responde GET /api/asistencia-general?fecha=YYYY-MM-DD con los participantes
+// del centro y su asistencia de esa fecha.
 func (c *GeneralAttendanceController) List(w http.ResponseWriter, r *http.Request) {
 	fecha := r.URL.Query().Get("fecha")
 	token, _ := r.Context().Value(middlewares.TokenKey).(string)

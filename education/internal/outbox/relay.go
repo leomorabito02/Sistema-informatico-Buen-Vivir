@@ -29,11 +29,8 @@ type Publisher interface {
 	Publish(ctx context.Context, topic string, msg Message) error
 }
 
-// Relay publica los eventos pendientes del outbox. Corre en segundo
-// plano (Run) y además se puede disparar a mano (Flush), por ejemplo
-// desde Cloud Scheduler: con Cloud Run en scale to zero la goroutine no
-// tiene CPU entre requests, así que el barrido programado garantiza que
-// ningún pendiente quede esperando (ver docs/eventos/README.md).
+// Relay publica los eventos pendientes del outbox, en segundo plano (Run) o a pedido
+// (Flush, por ejemplo desde Cloud Scheduler, porque en Cloud Run sin requests no hay CPU).
 type Relay struct {
 	client    *firestore.Client
 	publisher Publisher

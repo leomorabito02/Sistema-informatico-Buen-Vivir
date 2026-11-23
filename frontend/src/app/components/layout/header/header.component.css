@@ -1,10 +1,7 @@
-/* Navegación del panel al estilo de las apps de comunidad tipo Humand:
-   barra lateral blanca fija con ícono + texto por sección y barra superior
-   fina con notificaciones y avatar. En celular/tablet la barra lateral es
-   un panel que se abre con el botón de menú.
-   Sin encapsulación: todo va bajo .app-header (salvo el menú de usuario,
-   que PrimeNG monta en <body>). El corrimiento del contenido lo da
-   .app-shell en styles.css. */
+/* Navegación del panel: barra lateral fija con ícono y texto por sección y
+   barra superior con notificaciones y avatar. En celular la barra lateral se
+   abre con el botón de menú. Sin encapsulación: todo va bajo .app-header
+   (salvo el menú de usuario, que PrimeNG monta en <body>). */
 
 /* ── Barra lateral ─────────────────────────────────────────────────────── */
 .app-header .app-sidebar {
@@ -357,7 +354,7 @@
   min-height: var(--tap-target);
 }
 
-/* Contador de notificaciones sin leer (auditoría 2026-11-11, Problema 3) */
+/* Contador de notificaciones sin leer */
 .app-header .notif-btn {
   position: relative;
 }

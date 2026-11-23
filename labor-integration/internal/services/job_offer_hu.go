@@ -31,9 +31,8 @@ func validateOfferFields(o *models.JobOffer, checkDeadline bool) error {
 		{o.Modality, "modalidad"}, {o.JobType, "tipo de empleo"}, {o.Salary, "salario"},
 		{o.Schedule, "horario"},
 	}
-	// Se juntan TODOS los faltantes en un solo mensaje (antes se cortaba
-	// en el primero y el formulario no podía marcar el resto; pedido del
-	// 17/11/2026). El frontend usa la misma lista (camposFaltantesOferta).
+	// Se juntan todos los faltantes en un solo mensaje. El frontend usa la misma lista
+	// (camposFaltantesOferta).
 	var faltan []string
 	for _, c := range campos {
 		if strings.TrimSpace(c.valor) == "" {
@@ -84,10 +83,9 @@ func bearerFrom(ctx context.Context) string {
 	return v
 }
 
-// MatchCompatibles devuelve, ordenados y sin repetir, los participantes
-// con al menos una habilidad cuyo nombre coincide con un requisito de la
-// oferta, sin distinguir mayúsculas ni acentos (decisión del 15/11/2026
-// sobre HU-44).
+// MatchCompatibles devuelve, ordenados y sin repetir, los participantes con al menos una
+// habilidad que coincide con un requisito de la oferta (HU-44), sin distinguir
+// mayúsculas ni acentos.
 func MatchCompatibles(requisitos []string, skills []repositories.GrantedSkill) []string {
 	pedidos := map[string]bool{}
 	for _, r := range requisitos {

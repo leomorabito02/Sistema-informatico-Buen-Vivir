@@ -52,9 +52,8 @@ import {
  */
 
 /**
- * `silent: true` no dispara el manejo global de errores (pantalla /500 o
- * diálogo): lo usa una pantalla que junta varios pedidos y resuelve sola
- * el que falla, como Seguimiento (22/11/2026).
+ * `silent: true` no dispara el manejo global de errores (pantalla /500 o diálogo): lo
+ * usa una pantalla que resuelve sola el pedido que falla, como Seguimiento.
  */
 export interface SilentOpts {
   silent?: boolean;
@@ -435,10 +434,7 @@ export class EducationService {
       .pipe(reintentoSilencioso(opts), catchError(this.handleError));
   }
 
-  /**
-   * Progreso formativo de cualquier curso (HU-20), para admin y
-   * voluntario: `GET /api/cursos/{id}/progreso` (auditoría 2026-11-11).
-   */
+  /** Progreso formativo de cualquier curso (HU-20), para admin y voluntario. */
   getCourseProgressGestion(
     cursoId: string,
     opts: SilentOpts = {},
@@ -452,10 +448,7 @@ export class EducationService {
   }
 
   // ---- Inscripción, asistencia por actividad y asistencia general ------
-  // (role_admin / role_volunteer, sin scope de "mis cursos" — agregado
-  // 2026-09-17 junto con las pantallas nuevas del frontend. Ver
-  // education/CONTEXTO_INSCRIPCIONES_ASISTENCIA.md para el detalle de
-  // los endpoints del backend, ya implementados y probados.)
+  // (role_admin / role_volunteer, sin scope de "mis cursos")
 
   /** Inscribe un participante en un curso publicado. */
   enrollParticipant(
@@ -544,12 +537,7 @@ export class EducationService {
       .pipe(reintentoSilencioso(opts), catchError(this.handleError));
   }
 
-  /**
-   * Actividades de un curso, sin chequeo de ownership (agregado
-   * 2026-09-21, ver `POST/GET /api/cursos/{id}/actividades` en
-   * education/CLAUDE.md). Reemplaza, para esta pantalla, al `listActivities`
-   * de más arriba (exclusivo de `role_teacher`).
-   */
+  /** Actividades de un curso, sin chequeo de ownership (para admin y voluntario). */
   listCourseActivities(cursoId: string): Observable<Activity[]> {
     return this.http
       .get<Activity[]>(`${this.base}/api/cursos/${cursoId}/actividades`, {

@@ -20,10 +20,8 @@ var camposAltaUsuario = map[string]string{
 	"Address":   "la dirección",
 }
 
-// MensajeValidacionAlta arma un mensaje en castellano con los campos que
-// no pasaron la validación del alta de usuario (antes el panel mostraba
-// "Campos inválidos: Password (password)"). Devuelve "" si err no es un
-// error de validación.
+// MensajeValidacionAlta arma un mensaje en castellano con los campos que no pasaron la
+// validación del alta. Devuelve "" si err no es de validación.
 func MensajeValidacionAlta(err error) string {
 	var ve validator.ValidationErrors
 	if !errors.As(err, &ve) || len(ve) == 0 {

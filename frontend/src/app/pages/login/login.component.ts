@@ -175,9 +175,8 @@ export class LoginComponent implements OnInit {
             "Tu cuenta fue bloqueada temporalmente por demasiados intentos fallidos. Intentá nuevamente más tarde.";
           return;
         }
-        // Antes se miraba si el texto decía "bloque": con contraseña mal el
-        // backend responde "...te quedan N intento(s) antes del bloqueo
-        // temporal" y se terminaba en "Acceso no disponible" (22/11/2026).
+        // No se mira el texto del mensaje: con contraseña mal el backend también menciona el
+        // bloqueo ("...antes del bloqueo temporal").
         if (isBlockedAccountError(err)) {
           this.loginError = "";
           void this.router.navigate(["/account-notice"]);

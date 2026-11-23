@@ -150,7 +150,7 @@ describe("AsistenciaCursosComponent", () => {
     expect(education.listCourseEnrollments).not.toHaveBeenCalled();
   });
 
-  // Pedido del 17/11/2026: se quitó el botón "Por participante".
+  // No hay botón "Por participante".
   it("ya no ofrece la vista por participante", () => {
     create();
     fixture.detectChanges();

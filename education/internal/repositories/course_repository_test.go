@@ -949,9 +949,8 @@ func TestCourseRepository_Get_Error(t *testing.T) {
 	assert.Nil(t, course)
 }
 
-// Editar un curso publicado lo vuelve a publicar con la versión nueva,
-// así el catálogo (CDA) muestra el cambio, por ejemplo el docente nuevo
-// (17/11/2026). El borrador (test anterior) no se publica.
+// Editar un curso publicado lo vuelve a publicar con la versión nueva, así el catálogo
+// (CDA) muestra el cambio. El borrador (test anterior) no se publica.
 func TestCourseRepository_Update_RepublicaSiEstabaPublicado(t *testing.T) {
 	publicado := false
 	cma := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

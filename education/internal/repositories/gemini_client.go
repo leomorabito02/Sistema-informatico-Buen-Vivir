@@ -16,13 +16,8 @@ import (
 
 const vertexScope = "https://www.googleapis.com/auth/cloud-platform"
 
-// GeminiClient pide sugerencias de habilidades a Gemini a través de
-// Vertex AI (proveedor principal, HU-58).
-//
-// Se habla con la API REST de Vertex directamente, sin el SDK de
-// Gemini, para no sumar una dependencia nueva: alcanza con un POST y la
-// autenticación de Google que el servicio ya trae (la misma cuenta de
-// servicio que usa Firestore). Por eso Gemini no necesita API key.
+// GeminiClient pide sugerencias de habilidades a Gemini por la API REST de Vertex AI
+// (proveedor principal, HU-58). Usa la cuenta de servicio de Google: no necesita API key.
 type GeminiClient struct {
 	httpClient *http.Client
 	endpoint   string
@@ -91,12 +86,8 @@ func (g *GeminiClient) Sugerir(ctx context.Context, p models.SkillPrompt) ([]mod
 			"role":  "user",
 			"parts": []map[string]string{{"text": skillsUserPrompt(p)}},
 		}},
-		// Structured Output: responseMimeType + responseSchema obligan a
-		// Gemini a devolver JSON con exactamente la forma del esquema.
-		// Temperatura baja: queremos respuestas estables, no creativas.
-		// thinkingBudget 0 apaga el "razonamiento" previo de Gemini 2.5
-		// Flash: para nombrar habilidades no hace falta, y esos tokens se
-		// cobran como salida y hacen más lenta la respuesta.
+		// Structured Output: el esquema obliga a Gemini a devolver ese JSON. Temperatura baja
+		// para respuestas estables; thinkingBudget 0 apaga el razonamiento (más rápido y barato).
 		"generationConfig": map[string]any{
 			"responseMimeType": "application/json",
 			"responseSchema":   skillsResponseSchema(false),

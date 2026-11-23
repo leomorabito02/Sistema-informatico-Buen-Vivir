@@ -221,8 +221,7 @@ describe("SeguimientoComponent", () => {
     expect(component.riesgoSeverity("Otro")).toBe("secondary");
   });
 
-  // Auditoría 2026-11-11 (Problema 4 / HU-20): admin y voluntario usan el
-  // catálogo y los endpoints de gestión, no /api/docente.
+  // HU-20: admin y voluntario usan el catálogo y los endpoints de gestión, no /api/docente.
   for (const rol of ["role_volunteer", "role_admin"]) {
     it(`${rol}: usa el catálogo y el progreso de gestión, con nombres`, () => {
       authSpy.isAuthenticated.and.returnValue(of({ role_id: rol } as any));

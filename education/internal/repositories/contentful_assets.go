@@ -10,11 +10,7 @@ import (
 	"time"
 )
 
-// defaultUploadBaseURL es el host de la Upload API de Contentful
-// (distinto de la CMA): recibe el binario crudo y devuelve un "upload"
-// temporal que después se linkea al crear el Asset. Es el default del
-// campo ContentfulClient.uploadBaseURL (ver contentful_client.go) — los
-// tests lo apuntan a un httptest.Server.
+// defaultUploadBaseURL es el host de la Upload API de Contentful (los tests lo reemplazan).
 const defaultUploadBaseURL = "https://upload.contentful.com"
 
 // UploadAsset sube un binario a Contentful y devuelve el id del Asset
@@ -31,7 +27,6 @@ func (c *ContentfulClient) UploadAsset(ctx context.Context, title, fileName, con
 		return "", fmt.Errorf("no se pudo subir el archivo a Contentful: %w", err)
 	}
 
-	// 2. crear el Asset
 	assetBody, _ := json.Marshal(map[string]any{
 		"fields": map[string]any{
 			"title": wrapLocale(c.locale, title),
@@ -58,7 +53,6 @@ func (c *ContentfulClient) UploadAsset(ctx context.Context, title, fileName, con
 		return "", fmt.Errorf("respuesta inesperada al crear el asset: %s", string(body))
 	}
 
-	// 3. procesar el archivo
 	if _, _, err := c.doCMA(ctx, http.MethodPut,
 		fmt.Sprintf("/assets/%s/files/%s/process", created.Sys.ID, c.locale),
 		map[string]string{"X-Contentful-Version": strconv.Itoa(created.Sys.Version)}, nil); err != nil {
@@ -97,7 +91,6 @@ func (c *ContentfulClient) UploadAsset(ctx context.Context, title, fileName, con
 		return "", fmt.Errorf("el archivo no terminó de procesarse en Contentful (reintentá)")
 	}
 
-	// 5. publicar
 	if _, _, err := c.doCMA(ctx, http.MethodPut, "/assets/"+created.Sys.ID+"/published",
 		map[string]string{"X-Contentful-Version": strconv.Itoa(version)}, nil); err != nil {
 		return "", fmt.Errorf("el asset se subió pero no se pudo publicar: %w", err)

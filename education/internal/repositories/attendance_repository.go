@@ -12,10 +12,8 @@ import (
 
 const attendancesCollection = "asistencias"
 
-// AttendanceRepository encapsula la lectura de la colección Firestore
-// "asistencias". Es de solo lectura: las asistencias no se cargan a
-// mano, las escribe SubmissionRepository.CreateWithAttendance al
-// entregar una actividad.
+// AttendanceRepository lee la colección "asistencias" (solo lectura: las escribe
+// SubmissionRepository.CreateWithAttendance).
 type AttendanceRepository interface {
 	ListByActivity(ctx context.Context, actividadID string) ([]models.Attendance, error)
 	ListByParticipant(ctx context.Context, participanteID string) ([]models.Attendance, error)

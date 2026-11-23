@@ -5,8 +5,8 @@ import (
 	"testing"
 )
 
-// D7 (22/11/2026): todas las plantillas comparten encabezado con logo y pie
-// institucional, sin etiquetas que Outlook ignora, y conservan su contenido.
+// Todas las plantillas comparten encabezado con logo y pie institucional, sin etiquetas
+// que Outlook ignora, y conservan su contenido.
 func TestPlantillas_IdentidadDelCentro(t *testing.T) {
 	t.Setenv("FRONTEND_URL", "https://testing.ceibuenvivir.pages.dev")
 	eng, err := NewTemplateEngine()
