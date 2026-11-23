@@ -10,17 +10,17 @@
     <div style="max-width: 580px; margin: 0 auto; background-color: #ffffff; border-radius: 14px; overflow: hidden; box-shadow: 0 4px 16px rgba(29,29,27,0.06); border: 1px solid #e7e6da;">
       <!-- Header -->
       {{if .IsCritical}}
-      <header style="background-color: #b3261e; border-bottom: 4px solid #7a1914; padding: 28px 32px; text-align: center;">
+      <div style="background-color: #b91c1c; border-bottom: 4px solid #7a1914; padding: 28px 32px; text-align: center;">
         <img src="{{logoURL}}" alt="Centro de Ecología Integral Buen Vivir" width="56" height="56" style="display: block; margin: 0 auto 12px auto; width: 56px; height: 56px; border-radius: 12px; background-color: #ffffff; padding: 4px; object-fit: contain;">
         <h1 style="margin: 0; font-size: 20px; font-weight: 700; color: #ffffff; letter-spacing: -0.3px;">Centro de Ecología Integral Buen Vivir</h1>
-        <p style="margin: 4px 0 0 0; font-size: 13px; color: #f9eeed;">Centro Barrial · Alertas y Notificaciones</p>
-      </header>
+        <p style="margin: 4px 0 0 0; font-size: 13px; color: #f9eeed;">Centro de Alertas y Notificaciones</p>
+      </div>
       {{else}}
-      <header style="background-color: #485839; border-bottom: 4px solid #9a5b43; padding: 28px 32px; text-align: center;">
+      <div style="background-color: #485839; border-bottom: 4px solid #9a5b43; padding: 28px 32px; text-align: center;">
         <img src="{{logoURL}}" alt="Centro de Ecología Integral Buen Vivir" width="56" height="56" style="display: block; margin: 0 auto 12px auto; width: 56px; height: 56px; border-radius: 12px; background-color: #ffffff; padding: 4px; object-fit: contain;">
         <h1 style="margin: 0; font-size: 20px; font-weight: 700; color: #ffffff; letter-spacing: -0.3px;">Centro de Ecología Integral Buen Vivir</h1>
-        <p style="margin: 4px 0 0 0; font-size: 13px; color: #e2e4df;">Centro Barrial · Alertas y Notificaciones</p>
-      </header>
+        <p style="margin: 4px 0 0 0; font-size: 13px; color: #e2e4df;">Centro de Alertas y Notificaciones</p>
+      </div>
       {{end}}
       <!-- Body -->
       <div style="padding: 36px 32px;">
@@ -54,7 +54,7 @@
         {{if .ActionURL}}
         <div style="text-align: center; margin: 0 auto 24px auto;">
           {{if .IsCritical}}
-          <a href="{{.ActionURL}}" target="_blank" style="display: inline-block; padding: 14px 28px; font-size: 15px; font-weight: 600; color: #ffffff; text-decoration: none; border-radius: 8px; background-color: #b3261e;">
+          <a href="{{.ActionURL}}" target="_blank" style="display: inline-block; padding: 14px 28px; font-size: 15px; font-weight: 600; color: #ffffff; text-decoration: none; border-radius: 8px; background-color: #b91c1c;">
             {{if .ActionText}}{{.ActionText}}{{else}}Ver detalles en el portal{{end}}
           </a>
           {{else}}
@@ -66,7 +66,7 @@
         {{end}}
       </div>
       <!-- Footer -->
-      <footer style="background-color: #f3f2eb; padding: 20px 32px; text-align: center; border-top: 1px solid #e7e6da;">
+      <div style="background-color: #f3f2eb; padding: 20px 32px; text-align: center; border-top: 1px solid #e7e6da;">
         <p style="margin: 0 0 6px 0; font-size: 12px; color: #66655b;">
           Este es un mensaje automático emitido por el sistema del Centro de Ecología Integral Buen Vivir.
         </p>
@@ -76,7 +76,7 @@
         <p style="margin: 0; font-size: 12px; color: #8a887b;">
           &copy; {{.Year}} Centro de Ecología Integral Buen Vivir. Todos los derechos reservados.
         </p>
-      </footer>
+      </div>
     </div>
   </div>
 </body>

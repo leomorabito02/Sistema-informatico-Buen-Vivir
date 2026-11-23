@@ -7,8 +7,6 @@ import (
 	"html/template"
 	"os"
 	"strings"
-	"os"
-	"strings"
 	"time"
 )
 
@@ -80,19 +78,8 @@ type templateEngine struct {
 	tmpl *template.Template
 }
 
-func defaultLogoURL() string {
-	base := strings.TrimRight(strings.TrimSpace(os.Getenv("FRONTEND_URL")), "/")
-	if base == "" {
-		base = "https://ceibuenvivir.org"
-	}
-	return base + "/assets/logo.png"
-}
-
 func NewTemplateEngine() (TemplateEngine, error) {
-	funcMap := template.FuncMap{
-		"logoURL": defaultLogoURL,
-	}
-	parsed, err := template.New("").Funcs(funcMap).ParseFS(emailTemplatesFS, "email/*.html")
+	parsed, err := template.New("").Funcs(funcionesMarca).ParseFS(emailTemplatesFS, "email/*.html")
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse embedded email templates: %w", err)
 	}

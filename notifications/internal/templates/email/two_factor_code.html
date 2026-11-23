@@ -13,13 +13,13 @@
   <div style="background-color: #faf9f5; padding: 40px 16px;">
     <div style="max-width: 580px; margin: 0 auto; background-color: #ffffff; border-radius: 14px; overflow: hidden; box-shadow: 0 4px 16px rgba(29,29,27,0.06); border: 1px solid #e7e6da;">
       <!-- Header -->
-      <header style="background-color: #485839; border-bottom: 4px solid #9a5b43; padding: 28px 32px; text-align: center;">
+      <div style="background-color: #485839; border-bottom: 4px solid #9a5b43; padding: 28px 32px; text-align: center;">
         <img src="{{logoURL}}" alt="Centro de Ecología Integral Buen Vivir" width="56" height="56" style="display: block; margin: 0 auto 12px auto; width: 56px; height: 56px; border-radius: 12px; background-color: #ffffff; padding: 4px; object-fit: contain;">
         <h1 style="margin: 0; font-size: 20px; font-weight: 700; color: #ffffff; letter-spacing: -0.3px;">Centro de Ecología Integral Buen Vivir</h1>
         <p style="margin: 4px 0 0 0; font-size: 13px; color: #e2e4df;">Centro Barrial · Seguridad y Control de Acceso</p>
-      </header>
+      </div>
       <!-- Body -->
-      <main style="padding: 36px 32px;">
+      <div style="padding: 36px 32px;">
         <h2 style="margin: 0 0 16px 0; font-size: 20px; font-weight: 600; color: #1d1d1b;">Código de verificación en dos pasos (2FA)</h2>
         <p style="margin: 0 0 16px 0; font-size: 15px; line-height: 1.6; color: #4a4943;">
           Hola {{if .RecipientName}}{{.RecipientName}}{{else}}estimado/a vecino/a{{end}},
@@ -41,14 +41,14 @@
         </div>
       </div>
       <!-- Footer -->
-      <footer style="background-color: #f3f2eb; padding: 20px 32px; text-align: center; border-top: 1px solid #e7e6da;">
+      <div style="background-color: #f3f2eb; padding: 20px 32px; text-align: center; border-top: 1px solid #e7e6da;">
         <p style="margin: 0 0 6px 0; font-size: 12px; color: #66655b;">
           Si no realizaste esta solicitud, te recomendamos cambiar tu contraseña y avisarnos a <a href="mailto:ceibuenvivir7@gmail.com" style="color: #485839; font-weight: 600; text-decoration: none;">ceibuenvivir7@gmail.com</a>.
         </p>
         <p style="margin: 0; font-size: 12px; color: #8a887b;">
           &copy; {{.Year}} Centro de Ecología Integral Buen Vivir. Todos los derechos reservados.
         </p>
-      </footer>
+      </div>
     </div>
   </div>
 </body>
