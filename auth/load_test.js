@@ -23,7 +23,7 @@ export const options = {
   },
 };
 
-export default function () {
+export default function runLoadTest() {
   // Use X-Serverless-Authorization so Cloud Run IAM does not collide with app JWT headers.
   const authHeaders = ID_TOKEN ? { 'X-Serverless-Authorization': `Bearer ${ID_TOKEN}` } : {};
 
@@ -45,7 +45,7 @@ export default function () {
   });
 
   const params = {
-    headers: Object.assign({ 'Content-Type': 'application/json' }, authHeaders),
+    headers: { 'Content-Type': 'application/json', ...authHeaders },
     timeout: '15s',
   };
 

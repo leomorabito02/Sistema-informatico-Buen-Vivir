@@ -18,7 +18,7 @@ export const options = {
   },
 };
 
-export default function () {
+export default function runLoadTest() {
   // Use X-Serverless-Authorization so Cloud Run IAM does not collide with app JWT headers.
   const cloudRunHeaders = ID_TOKEN ? { 'X-Serverless-Authorization': `Bearer ${ID_TOKEN}` } : {};
 
@@ -38,10 +38,10 @@ export default function () {
   // 3. Lectura de cursos con un token con formato inválido (ejercita la
   // rama de validación de JWTService.ValidateToken bajo carga).
   const params = {
-    headers: Object.assign(
-      { Authorization: 'Bearer token-invalido-de-carga' },
-      cloudRunHeaders
-    ),
+    headers: {
+      Authorization: 'Bearer token-invalido-de-carga',
+      ...cloudRunHeaders,
+    },
     timeout: '15s',
   };
   let invalidTokenRes = http.get(`${BASE_URL}/api/cursos`, params);

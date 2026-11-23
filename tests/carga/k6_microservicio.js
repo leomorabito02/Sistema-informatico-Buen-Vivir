@@ -125,13 +125,13 @@ function sendProtected(headers) {
   const url = `${BASE_URL}${profile.protectedPath}`;
   const params = { headers, tags: { servicio: SERVICE, endpoint: 'protected' }, timeout: '15s' };
   if (profile.protectedMethod === 'POST') {
-    const postHeaders = Object.assign({ 'Content-Type': 'application/json' }, headers);
-    return http.post(url, profile.protectedBody || '{}', Object.assign({}, params, { headers: postHeaders }));
+    const postHeaders = { 'Content-Type': 'application/json', ...headers };
+    return http.post(url, profile.protectedBody || '{}', { ...params, headers: postHeaders });
   }
   return http.get(url, params);
 }
 
-export default function () {
+export default function runLoadTest() {
   // X-Serverless-Authorization authenticates with Cloud Run IAM without overriding app Authorization headers.
   const cloudRunHeaders = ID_TOKEN ? { 'X-Serverless-Authorization': `Bearer ${ID_TOKEN}` } : {};
 
@@ -150,7 +150,7 @@ export default function () {
   );
 
   if (profile.testInvalidToken) {
-    const invalidHeaders = Object.assign({ Authorization: 'Bearer token-invalido-de-carga' }, cloudRunHeaders);
+    const invalidHeaders = { Authorization: 'Bearer token-invalido-de-carga', ...cloudRunHeaders };
     const invalidRes = sendProtected(invalidHeaders);
     recordResult(
       invalidRes,

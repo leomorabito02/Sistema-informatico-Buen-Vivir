@@ -24,6 +24,20 @@ import (
 	"time"
 )
 
+const (
+	pathHealth           = "/health"
+	pathAuthUsers        = "/api/v1/users"
+	pathCampaigns        = "/api/v1/campaigns"
+	pathNotifications    = "/api/v1/notifications"
+	pathRxResumeMe       = "/api/v1/rxresume/me"
+	pathEduCursos        = "/api/cursos"
+	pathEduBorradores    = "/api/cursos/borradores"
+	pathHPFichas         = "/api/v1/human-promotion/fichas?participante_id=x"
+	pathDashboardResumen = "/api/v1/dashboard/resumen?desde=2026-01-01&hasta=2026-01-31"
+	groupHeaderSpoofing  = "header-spoofing"
+	bearerPrefix         = "Bearer "
+)
+
 type target struct {
 	name       string
 	baseURL    string
@@ -82,16 +96,16 @@ func loadConfig() probeConfig {
 		return localURL
 	}
 	return probeConfig{
-		gw:      target{name: "gateway", baseURL: envOrDefault("GATEWAY_URL", "http://localhost:8080"), healthPath: "/health"},
-		auth:    target{name: "auth", baseURL: envOrDefault("AUTH_URL", defaultOrEmpty("")), idToken: strings.TrimSpace(os.Getenv("AUTH_ID_TOKEN")), healthPath: "/health"},
-		notif:   target{name: "notifications", baseURL: envOrDefault("NOTIFICATIONS_URL", defaultOrEmpty("")), idToken: strings.TrimSpace(os.Getenv("NOTIFICATIONS_ID_TOKEN")), healthPath: "/health"},
+		gw:      target{name: "gateway", baseURL: envOrDefault("GATEWAY_URL", "http://localhost:8080"), healthPath: pathHealth},
+		auth:    target{name: "auth", baseURL: envOrDefault("AUTH_URL", defaultOrEmpty("")), idToken: strings.TrimSpace(os.Getenv("AUTH_ID_TOKEN")), healthPath: pathHealth},
+		notif:   target{name: "notifications", baseURL: envOrDefault("NOTIFICATIONS_URL", defaultOrEmpty("")), idToken: strings.TrimSpace(os.Getenv("NOTIFICATIONS_ID_TOKEN")), healthPath: pathHealth},
 		edu:     target{name: "education", baseURL: envOrDefault("EDUCATION_URL", defaultOrEmpty("http://localhost:8210")), idToken: strings.TrimSpace(os.Getenv("EDUCATION_ID_TOKEN")), healthPath: "/api/salud"},
-		ph:      target{name: "human-promotion", baseURL: envOrDefault("HUMAN_PROMOTION_URL", defaultOrEmpty("http://localhost:8085")), idToken: strings.TrimSpace(os.Getenv("HUMAN_PROMOTION_ID_TOKEN")), healthPath: "/health"},
-		lab:     target{name: "labor-integration", baseURL: envOrDefault("LABOR_URL", defaultOrEmpty("http://localhost:8310")), idToken: strings.TrimSpace(os.Getenv("LABOR_ID_TOKEN")), healthPath: "/health"},
-		camp:    target{name: "campaigns", baseURL: envOrDefault("CAMPAIGNS_URL", defaultOrEmpty("")), idToken: strings.TrimSpace(os.Getenv("CAMPAIGNS_ID_TOKEN")), healthPath: "/health"},
-		dash:    target{name: "dashboard", baseURL: envOrDefault("DASHBOARD_URL", defaultOrEmpty("")), idToken: strings.TrimSpace(os.Getenv("DASHBOARD_ID_TOKEN")), healthPath: "/health"},
-		rx:      target{name: "rxresume", baseURL: envOrDefault("RXRESUME_URL", defaultOrEmpty("")), idToken: strings.TrimSpace(os.Getenv("RXRESUME_ID_TOKEN")), healthPath: "/health"},
-		rend:    target{name: "cv-renderer", baseURL: envOrDefault("CV_RENDERER_URL", defaultOrEmpty("")), idToken: strings.TrimSpace(os.Getenv("CV_RENDERER_ID_TOKEN")), healthPath: "/health"},
+		ph:      target{name: "human-promotion", baseURL: envOrDefault("HUMAN_PROMOTION_URL", defaultOrEmpty("http://localhost:8085")), idToken: strings.TrimSpace(os.Getenv("HUMAN_PROMOTION_ID_TOKEN")), healthPath: pathHealth},
+		lab:     target{name: "labor-integration", baseURL: envOrDefault("LABOR_URL", defaultOrEmpty("http://localhost:8310")), idToken: strings.TrimSpace(os.Getenv("LABOR_ID_TOKEN")), healthPath: pathHealth},
+		camp:    target{name: "campaigns", baseURL: envOrDefault("CAMPAIGNS_URL", defaultOrEmpty("")), idToken: strings.TrimSpace(os.Getenv("CAMPAIGNS_ID_TOKEN")), healthPath: pathHealth},
+		dash:    target{name: "dashboard", baseURL: envOrDefault("DASHBOARD_URL", defaultOrEmpty("")), idToken: strings.TrimSpace(os.Getenv("DASHBOARD_ID_TOKEN")), healthPath: pathHealth},
+		rx:      target{name: "rxresume", baseURL: envOrDefault("RXRESUME_URL", defaultOrEmpty("")), idToken: strings.TrimSpace(os.Getenv("RXRESUME_ID_TOKEN")), healthPath: pathHealth},
+		rend:    target{name: "cv-renderer", baseURL: envOrDefault("CV_RENDERER_URL", defaultOrEmpty("")), idToken: strings.TrimSpace(os.Getenv("CV_RENDERER_ID_TOKEN")), healthPath: pathHealth},
 		secret:  strings.TrimSpace(os.Getenv("JWT_SECRET")),
 		failOn:  strings.EqualFold(strings.TrimSpace(os.Getenv("FAIL_ON_FINDINGS")), "true"),
 		isLocal: !isRemote,
@@ -132,13 +146,13 @@ func addIfConfigured(casos *[]caso, t target, c caso) {
 func buildGatewayCases(cfg probeConfig, adminFalso, otraClave string) []caso {
 	var casos []caso
 	gw := cfg.gw
-	addIfConfigured(&casos, gw, caso{Grupo: "autenticacion", Nombre: "gateway auth /users sin token", Metodo: "GET", URL: "/api/v1/users", Espera: []int{401}})
-	addIfConfigured(&casos, gw, caso{Grupo: "autenticacion", Nombre: "gateway auth /users token alg=none", Metodo: "GET", URL: "/api/v1/users", Espera: []int{401}, token: adminFalso})
-	addIfConfigured(&casos, gw, caso{Grupo: "autenticacion", Nombre: "gateway auth /users token otra clave", Metodo: "GET", URL: "/api/v1/users", Espera: []int{401}, token: otraClave})
-	addIfConfigured(&casos, gw, caso{Grupo: "autenticacion", Nombre: "gateway campañas gestión sin token", Metodo: "GET", URL: "/api/v1/campaigns", Espera: []int{401}})
-	addIfConfigured(&casos, gw, caso{Grupo: "autenticacion", Nombre: "gateway notificaciones sin token", Metodo: "GET", URL: "/api/v1/notifications", Espera: []int{401}})
+	addIfConfigured(&casos, gw, caso{Grupo: "autenticacion", Nombre: "gateway auth /users sin token", Metodo: "GET", URL: pathAuthUsers, Espera: []int{401}})
+	addIfConfigured(&casos, gw, caso{Grupo: "autenticacion", Nombre: "gateway auth /users token alg=none", Metodo: "GET", URL: pathAuthUsers, Espera: []int{401}, token: adminFalso})
+	addIfConfigured(&casos, gw, caso{Grupo: "autenticacion", Nombre: "gateway auth /users token otra clave", Metodo: "GET", URL: pathAuthUsers, Espera: []int{401}, token: otraClave})
+	addIfConfigured(&casos, gw, caso{Grupo: "autenticacion", Nombre: "gateway campañas gestión sin token", Metodo: "GET", URL: pathCampaigns, Espera: []int{401}})
+	addIfConfigured(&casos, gw, caso{Grupo: "autenticacion", Nombre: "gateway notificaciones sin token", Metodo: "GET", URL: pathNotifications, Espera: []int{401}})
 	addIfConfigured(&casos, gw, caso{Grupo: "autenticacion", Nombre: "gateway dashboard sin token", Metodo: "GET", URL: "/api/v1/dashboard/resumen", Espera: []int{401}})
-	addIfConfigured(&casos, gw, caso{Grupo: "autenticacion", Nombre: "gateway rxresume sin token", Metodo: "GET", URL: "/api/v1/rxresume/me", Espera: []int{401}})
+	addIfConfigured(&casos, gw, caso{Grupo: "autenticacion", Nombre: "gateway rxresume sin token", Metodo: "GET", URL: pathRxResumeMe, Espera: []int{401}})
 	addIfConfigured(&casos, gw, caso{
 		Grupo: "labor-headers", Nombre: "gateway: aprobar oferta inexistente sin token y X-User-Role admin falsificado",
 		Metodo: "PUT", URL: "/api/v1/labor-integration/offers/audit-oferta-inexistente/approve", Espera: []int{401, 403},
@@ -154,28 +168,28 @@ func buildDirectServiceCases(cfg probeConfig, adminFalso, otraClave string) []ca
 	spoofHeaders := map[string]string{"X-User-ID": "audit-atacante", "X-User-Role": "role_admin"}
 
 	// Auth
-	addIfConfigured(&casos, cfg.auth, caso{Grupo: "autenticacion", Nombre: "auth directo /users sin token", Metodo: "GET", URL: "/api/v1/users", Espera: []int{401}})
-	addIfConfigured(&casos, cfg.auth, caso{Grupo: "autenticacion", Nombre: "auth directo /users token alg=none", Metodo: "GET", URL: "/api/v1/users", Espera: []int{401}, token: adminFalso})
-	addIfConfigured(&casos, cfg.auth, caso{Grupo: "autenticacion", Nombre: "auth directo /users token otra clave", Metodo: "GET", URL: "/api/v1/users", Espera: []int{401}, token: otraClave})
+	addIfConfigured(&casos, cfg.auth, caso{Grupo: "autenticacion", Nombre: "auth directo /users sin token", Metodo: "GET", URL: pathAuthUsers, Espera: []int{401}})
+	addIfConfigured(&casos, cfg.auth, caso{Grupo: "autenticacion", Nombre: "auth directo /users token alg=none", Metodo: "GET", URL: pathAuthUsers, Espera: []int{401}, token: adminFalso})
+	addIfConfigured(&casos, cfg.auth, caso{Grupo: "autenticacion", Nombre: "auth directo /users token otra clave", Metodo: "GET", URL: pathAuthUsers, Espera: []int{401}, token: otraClave})
 
 	// Notifications
-	addIfConfigured(&casos, cfg.notif, caso{Grupo: "autenticacion", Nombre: "notifications directo sin token", Metodo: "GET", URL: "/api/v1/notifications", Espera: []int{401}})
-	addIfConfigured(&casos, cfg.notif, caso{Grupo: "autenticacion", Nombre: "notifications directo token alg=none", Metodo: "GET", URL: "/api/v1/notifications", Espera: []int{401}, token: adminFalso})
-	addIfConfigured(&casos, cfg.notif, caso{Grupo: "header-spoofing", Nombre: "notifications directo con X-User-ID/X-User-Role falsificados", Metodo: "GET", URL: "/api/v1/notifications", Espera: []int{401}, headers: spoofHeaders})
+	addIfConfigured(&casos, cfg.notif, caso{Grupo: "autenticacion", Nombre: "notifications directo sin token", Metodo: "GET", URL: pathNotifications, Espera: []int{401}})
+	addIfConfigured(&casos, cfg.notif, caso{Grupo: "autenticacion", Nombre: "notifications directo token alg=none", Metodo: "GET", URL: pathNotifications, Espera: []int{401}, token: adminFalso})
+	addIfConfigured(&casos, cfg.notif, caso{Grupo: groupHeaderSpoofing, Nombre: "notifications directo con X-User-ID/X-User-Role falsificados", Metodo: "GET", URL: pathNotifications, Espera: []int{401}, headers: spoofHeaders})
 
 	// Education
-	addIfConfigured(&casos, cfg.edu, caso{Grupo: "autenticacion", Nombre: "education sin token", Metodo: "GET", URL: "/api/cursos", Espera: []int{401}})
-	addIfConfigured(&casos, cfg.edu, caso{Grupo: "autenticacion", Nombre: "education token alg=none (admin)", Metodo: "GET", URL: "/api/cursos/borradores", Espera: []int{401}, token: adminFalso})
-	addIfConfigured(&casos, cfg.edu, caso{Grupo: "autenticacion", Nombre: "education token firmado con otra clave", Metodo: "GET", URL: "/api/cursos/borradores", Espera: []int{401}, token: otraClave})
-	addIfConfigured(&casos, cfg.edu, caso{Grupo: "autenticacion", Nombre: "education token basura", Metodo: "GET", URL: "/api/cursos", Espera: []int{401}, token: "a.b.c"})
+	addIfConfigured(&casos, cfg.edu, caso{Grupo: "autenticacion", Nombre: "education sin token", Metodo: "GET", URL: pathEduCursos, Espera: []int{401}})
+	addIfConfigured(&casos, cfg.edu, caso{Grupo: "autenticacion", Nombre: "education token alg=none (admin)", Metodo: "GET", URL: pathEduBorradores, Espera: []int{401}, token: adminFalso})
+	addIfConfigured(&casos, cfg.edu, caso{Grupo: "autenticacion", Nombre: "education token firmado con otra clave", Metodo: "GET", URL: pathEduBorradores, Espera: []int{401}, token: otraClave})
+	addIfConfigured(&casos, cfg.edu, caso{Grupo: "autenticacion", Nombre: "education token basura", Metodo: "GET", URL: pathEduCursos, Espera: []int{401}, token: "a.b.c"})
 	addIfConfigured(&casos, cfg.edu, caso{
-		Grupo: "cors", Nombre: "education preflight desde origen no permitido", Metodo: "OPTIONS", URL: "/api/cursos", Espera: []int{200, 204, 403},
+		Grupo: "cors", Nombre: "education preflight desde origen no permitido", Metodo: "OPTIONS", URL: pathEduCursos, Espera: []int{200, 204, 403},
 		headers: map[string]string{"Origin": "https://sitio-malicioso.example", "Access-Control-Request-Method": "GET"}, checkCORS: true,
 	})
 	addIfConfigured(&casos, cfg.edu, caso{Grupo: "entradas", Nombre: "comentarios: listar con entidad inválida", Metodo: "GET", URL: "/api/comentarios?entidadTipo=%3Cscript%3E&entidadId=x", Espera: []int{400}})
 
 	// Human Promotion
-	addIfConfigured(&casos, cfg.ph, caso{Grupo: "autenticacion", Nombre: "human-promotion sin token", Metodo: "GET", URL: "/api/v1/human-promotion/fichas?participante_id=x", Espera: []int{401}})
+	addIfConfigured(&casos, cfg.ph, caso{Grupo: "autenticacion", Nombre: "human-promotion sin token", Metodo: "GET", URL: pathHPFichas, Espera: []int{401}})
 	addIfConfigured(&casos, cfg.ph, caso{Grupo: "autenticacion", Nombre: "human-promotion token alg=none", Metodo: "GET", URL: "/api/v1/human-promotion/indicadores", Espera: []int{401}, token: adminFalso})
 
 	// Labor Integration
@@ -188,18 +202,18 @@ func buildDirectServiceCases(cfg probeConfig, adminFalso, otraClave string) []ca
 	addIfConfigured(&casos, cfg.lab, caso{Grupo: "autenticacion", Nombre: "labor directo /applications/me sin token", Metodo: "GET", URL: "/api/v1/labor-integration/applications/me", Espera: []int{401}})
 
 	// Campaigns
-	addIfConfigured(&casos, cfg.camp, caso{Grupo: "autenticacion", Nombre: "campaigns directo gestión sin token", Metodo: "GET", URL: "/api/v1/campaigns", Espera: []int{401}})
-	addIfConfigured(&casos, cfg.camp, caso{Grupo: "autenticacion", Nombre: "campaigns directo token alg=none", Metodo: "GET", URL: "/api/v1/campaigns", Espera: []int{401}, token: adminFalso})
+	addIfConfigured(&casos, cfg.camp, caso{Grupo: "autenticacion", Nombre: "campaigns directo gestión sin token", Metodo: "GET", URL: pathCampaigns, Espera: []int{401}})
+	addIfConfigured(&casos, cfg.camp, caso{Grupo: "autenticacion", Nombre: "campaigns directo token alg=none", Metodo: "GET", URL: pathCampaigns, Espera: []int{401}, token: adminFalso})
 
 	// Dashboard
-	addIfConfigured(&casos, cfg.dash, caso{Grupo: "autenticacion", Nombre: "dashboard directo sin token", Metodo: "GET", URL: "/api/v1/dashboard/resumen?desde=2026-01-01&hasta=2026-01-31", Espera: []int{401}})
-	addIfConfigured(&casos, cfg.dash, caso{Grupo: "autenticacion", Nombre: "dashboard directo token alg=none", Metodo: "GET", URL: "/api/v1/dashboard/resumen?desde=2026-01-01&hasta=2026-01-31", Espera: []int{401}, token: adminFalso})
-	addIfConfigured(&casos, cfg.dash, caso{Grupo: "header-spoofing", Nombre: "dashboard directo con X-User-Role admin falsificado", Metodo: "GET", URL: "/api/v1/dashboard/resumen?desde=2026-01-01&hasta=2026-01-31", Espera: []int{401}, headers: spoofHeaders})
+	addIfConfigured(&casos, cfg.dash, caso{Grupo: "autenticacion", Nombre: "dashboard directo sin token", Metodo: "GET", URL: pathDashboardResumen, Espera: []int{401}})
+	addIfConfigured(&casos, cfg.dash, caso{Grupo: "autenticacion", Nombre: "dashboard directo token alg=none", Metodo: "GET", URL: pathDashboardResumen, Espera: []int{401}, token: adminFalso})
+	addIfConfigured(&casos, cfg.dash, caso{Grupo: groupHeaderSpoofing, Nombre: "dashboard directo con X-User-Role admin falsificado", Metodo: "GET", URL: pathDashboardResumen, Espera: []int{401}, headers: spoofHeaders})
 
 	// RxResume
-	addIfConfigured(&casos, cfg.rx, caso{Grupo: "autenticacion", Nombre: "rxresume directo sin token", Metodo: "GET", URL: "/api/v1/rxresume/me", Espera: []int{401}})
-	addIfConfigured(&casos, cfg.rx, caso{Grupo: "autenticacion", Nombre: "rxresume directo token alg=none", Metodo: "GET", URL: "/api/v1/rxresume/me", Espera: []int{401}, token: adminFalso})
-	addIfConfigured(&casos, cfg.rx, caso{Grupo: "header-spoofing", Nombre: "rxresume directo con X-User-ID/X-User-Role falsificados", Metodo: "GET", URL: "/api/v1/rxresume/me", Espera: []int{401}, headers: spoofHeaders})
+	addIfConfigured(&casos, cfg.rx, caso{Grupo: "autenticacion", Nombre: "rxresume directo sin token", Metodo: "GET", URL: pathRxResumeMe, Espera: []int{401}})
+	addIfConfigured(&casos, cfg.rx, caso{Grupo: "autenticacion", Nombre: "rxresume directo token alg=none", Metodo: "GET", URL: pathRxResumeMe, Espera: []int{401}, token: adminFalso})
+	addIfConfigured(&casos, cfg.rx, caso{Grupo: groupHeaderSpoofing, Nombre: "rxresume directo con X-User-ID/X-User-Role falsificados", Metodo: "GET", URL: pathRxResumeMe, Espera: []int{401}, headers: spoofHeaders})
 
 	// CV Renderer (internal service)
 	addIfConfigured(&casos, cfg.rend, caso{Grupo: "entradas", Nombre: "cv-renderer POST /render sin campo cv", Metodo: "POST", URL: "/render", Espera: []int{400}, body: "{}"})
@@ -217,11 +231,11 @@ func buildRoleCases(cfg probeConfig) []caso {
 	}
 	var casos []caso
 
-	addIfConfigured(&casos, cfg.edu, caso{Grupo: "roles", Nombre: "education token vencido", Metodo: "GET", URL: "/api/cursos", Espera: []int{401}, token: firmar(cfg.secret, claims("role_admin", false, "access", -time.Hour))})
-	addIfConfigured(&casos, cfg.edu, caso{Grupo: "roles", Nombre: "education token de refresh usado como acceso", Metodo: "GET", URL: "/api/cursos", Espera: []int{401}, token: firmar(cfg.secret, claims("role_admin", false, "refresh", time.Hour))})
-	addIfConfigured(&casos, cfg.edu, caso{Grupo: "roles", Nombre: "participante -> borradores de cursos (admin)", Metodo: "GET", URL: "/api/cursos/borradores", Espera: []int{403}, token: tok("role_participant")})
-	addIfConfigured(&casos, cfg.edu, caso{Grupo: "roles", Nombre: "participante -> crear curso", Metodo: "POST", URL: "/api/cursos", Espera: []int{403}, token: tok("role_participant"), body: "{}"})
-	addIfConfigured(&casos, cfg.edu, caso{Grupo: "roles", Nombre: "voluntario -> crear curso (solo admin)", Metodo: "POST", URL: "/api/cursos", Espera: []int{403}, token: tok("role_volunteer"), body: "{}"})
+	addIfConfigured(&casos, cfg.edu, caso{Grupo: "roles", Nombre: "education token vencido", Metodo: "GET", URL: pathEduCursos, Espera: []int{401}, token: firmar(cfg.secret, claims("role_admin", false, "access", -time.Hour))})
+	addIfConfigured(&casos, cfg.edu, caso{Grupo: "roles", Nombre: "education token de refresh usado como acceso", Metodo: "GET", URL: pathEduCursos, Espera: []int{401}, token: firmar(cfg.secret, claims("role_admin", false, "refresh", time.Hour))})
+	addIfConfigured(&casos, cfg.edu, caso{Grupo: "roles", Nombre: "participante -> borradores de cursos (admin)", Metodo: "GET", URL: pathEduBorradores, Espera: []int{403}, token: tok("role_participant")})
+	addIfConfigured(&casos, cfg.edu, caso{Grupo: "roles", Nombre: "participante -> crear curso", Metodo: "POST", URL: pathEduCursos, Espera: []int{403}, token: tok("role_participant"), body: "{}"})
+	addIfConfigured(&casos, cfg.edu, caso{Grupo: "roles", Nombre: "voluntario -> crear curso (solo admin)", Metodo: "POST", URL: pathEduCursos, Espera: []int{403}, token: tok("role_volunteer"), body: "{}"})
 	addIfConfigured(&casos, cfg.edu, caso{Grupo: "roles", Nombre: "participante -> auditoría de educación", Metodo: "GET", URL: "/api/auditoria", Espera: []int{403}, token: tok("role_participant")})
 	addIfConfigured(&casos, cfg.edu, caso{Grupo: "roles", Nombre: "voluntario -> auditoría de educación (solo admin)", Metodo: "GET", URL: "/api/auditoria", Espera: []int{403}, token: tok("role_volunteer")})
 	addIfConfigured(&casos, cfg.edu, caso{Grupo: "roles", Nombre: "participante -> asistencia general", Metodo: "GET", URL: "/api/asistencia-general?fecha=2026-01-01", Espera: []int{403}, token: tok("role_participant")})
@@ -230,19 +244,19 @@ func buildRoleCases(cfg probeConfig) []caso {
 	addIfConfigured(&casos, cfg.edu, caso{Grupo: "roles", Nombre: "docente -> rutas de participante", Metodo: "GET", URL: "/api/participante/cursos", Espera: []int{403}, token: tok("role_teacher")})
 	addIfConfigured(&casos, cfg.edu, caso{Grupo: "roles", Nombre: "participante -> borrar comentario (moderación admin)", Metodo: "DELETE", URL: "/api/comentarios/audit-inexistente", Espera: []int{403}, token: tok("role_participant")})
 
-	addIfConfigured(&casos, cfg.ph, caso{Grupo: "roles", Nombre: "participante -> fichas de promoción humana", Metodo: "GET", URL: "/api/v1/human-promotion/fichas?participante_id=x", Espera: []int{403}, token: tok("role_participant")})
-	addIfConfigured(&casos, cfg.ph, caso{Grupo: "roles", Nombre: "docente -> fichas de promoción humana", Metodo: "GET", URL: "/api/v1/human-promotion/fichas?participante_id=x", Espera: []int{403}, token: tok("role_teacher")})
-	addIfConfigured(&casos, cfg.ph, caso{Grupo: "roles", Nombre: "empresa -> fichas de promoción humana", Metodo: "GET", URL: "/api/v1/human-promotion/fichas?participante_id=x", Espera: []int{403}, token: tok("role_company")})
+	addIfConfigured(&casos, cfg.ph, caso{Grupo: "roles", Nombre: "participante -> fichas de promoción humana", Metodo: "GET", URL: pathHPFichas, Espera: []int{403}, token: tok("role_participant")})
+	addIfConfigured(&casos, cfg.ph, caso{Grupo: "roles", Nombre: "docente -> fichas de promoción humana", Metodo: "GET", URL: pathHPFichas, Espera: []int{403}, token: tok("role_teacher")})
+	addIfConfigured(&casos, cfg.ph, caso{Grupo: "roles", Nombre: "empresa -> fichas de promoción humana", Metodo: "GET", URL: pathHPFichas, Espera: []int{403}, token: tok("role_company")})
 	addIfConfigured(&casos, cfg.ph, caso{Grupo: "roles", Nombre: "voluntario -> indicadores (solo admin)", Metodo: "GET", URL: "/api/v1/human-promotion/indicadores", Espera: []int{403}, token: tok("role_volunteer")})
 	addIfConfigured(&casos, cfg.ph, caso{Grupo: "roles", Nombre: "voluntario -> auditoría de PH (solo admin)", Metodo: "GET", URL: "/api/v1/human-promotion/auditoria", Espera: []int{403}, token: tok("role_volunteer")})
 	addIfConfigured(&casos, cfg.ph, caso{Grupo: "roles", Nombre: "empresa -> mi línea de tiempo (solo participante)", Metodo: "GET", URL: "/api/v1/human-promotion/mi-linea-de-tiempo", Espera: []int{403}, token: tok("role_company")})
 
-	addIfConfigured(&casos, cfg.gw, caso{Grupo: "roles", Nombre: "participante -> crear campaña (gateway)", Metodo: "POST", URL: "/api/v1/campaigns", Espera: []int{403}, token: tok("role_participant"), body: "{}"})
-	addIfConfigured(&casos, cfg.gw, caso{Grupo: "roles", Nombre: "empresa -> gestión de campañas (gateway)", Metodo: "GET", URL: "/api/v1/campaigns", Espera: []int{403}, token: tok("role_company")})
+	addIfConfigured(&casos, cfg.gw, caso{Grupo: "roles", Nombre: "participante -> crear campaña (gateway)", Metodo: "POST", URL: pathCampaigns, Espera: []int{403}, token: tok("role_participant"), body: "{}"})
+	addIfConfigured(&casos, cfg.gw, caso{Grupo: "roles", Nombre: "empresa -> gestión de campañas (gateway)", Metodo: "GET", URL: pathCampaigns, Espera: []int{403}, token: tok("role_company")})
 	addIfConfigured(&casos, cfg.gw, caso{Grupo: "roles", Nombre: "participante -> eliminar campaña (gateway)", Metodo: "DELETE", URL: "/api/v1/campaigns/audit-inexistente", Espera: []int{403, 405}, token: tok("role_participant")})
 	addIfConfigured(&casos, cfg.gw, caso{Grupo: "roles", Nombre: "voluntario -> dashboard (solo admin)", Metodo: "GET", URL: "/api/v1/dashboard/resumen", Espera: []int{401, 403}, token: tok("role_volunteer")})
 	addIfConfigured(&casos, cfg.rx, caso{Grupo: "roles", Nombre: "participante -> listado global rxresume (solo admin/voluntario)", Metodo: "GET", URL: "/api/v1/rxresume/participants", Espera: []int{403}, token: tok("role_participant")})
-	addIfConfigured(&casos, cfg.auth, caso{Grupo: "roles", Nombre: "participante -> listado de usuarios auth (solo admin)", Metodo: "GET", URL: "/api/v1/users", Espera: []int{403}, token: tok("role_participant")})
+	addIfConfigured(&casos, cfg.auth, caso{Grupo: "roles", Nombre: "participante -> listado de usuarios auth (solo admin)", Metodo: "GET", URL: pathAuthUsers, Espera: []int{403}, token: tok("role_participant")})
 
 	return casos
 }
@@ -261,10 +275,10 @@ func runCase(cli *http.Client, c *caso) {
 		req.Header.Set("Content-Type", "application/json")
 	}
 	if c.idToken != "" {
-		req.Header.Set("X-Serverless-Authorization", "Bearer "+c.idToken)
+		req.Header.Set("X-Serverless-Authorization", bearerPrefix+c.idToken)
 	}
 	if c.token != "" {
-		req.Header.Set("Authorization", "Bearer "+c.token)
+		req.Header.Set("Authorization", bearerPrefix+c.token)
 	}
 	for k, v := range c.headers {
 		req.Header.Set(k, v)
@@ -309,7 +323,7 @@ func inspectHeaders(cli *http.Client, targets []target) map[string]map[string]st
 			continue
 		}
 		if t.idToken != "" {
-			req.Header.Set("X-Serverless-Authorization", "Bearer "+t.idToken)
+			req.Header.Set("X-Serverless-Authorization", bearerPrefix+t.idToken)
 		}
 		res, err := cli.Do(req)
 		if err != nil {
