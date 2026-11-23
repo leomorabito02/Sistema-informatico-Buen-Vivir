@@ -209,8 +209,6 @@ func (c *ResumeController) DownloadPublicMedia(w http.ResponseWriter, r *http.Re
 		contentType = "image/webp"
 	}
 
-	w.Header().Set("Access-Control-Allow-Origin", "*")
-	w.Header().Set("Vary", "Origin")
 	w.Header().Set("Content-Type", contentType)
 	w.Header().Set("Cache-Control", "public, max-age=31536000") // Cache for 1 year
 
