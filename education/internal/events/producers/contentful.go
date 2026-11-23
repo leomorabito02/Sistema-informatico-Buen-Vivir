@@ -47,13 +47,9 @@ type webhookBody struct {
 	} `json:"sys"`
 }
 
-// ParseContentfulWebhook traduce un webhook de Contentful. ok = false
-// si el topic no nos interesa (otras acciones o assets): se confirma
-// igual a Contentful para que no reintente.
-//
-// El event_id es determinístico (entry + acción + revisión): si
-// Contentful reintenta el mismo webhook, el outbox lo descarta y, si ya
-// se había publicado, el consumidor lo reconoce como duplicado.
+// ParseContentfulWebhook traduce un webhook de Contentful (ok = false si el topic no
+// interesa). El event_id es determinístico (entry + acción + revisión) para descartar
+// los reintentos.
 func ParseContentfulWebhook(topic string, body []byte) (ContentfulWebhook, bool, error) {
 	parts := strings.Split(topic, ".")
 	if len(parts) != 3 || parts[0] != "ContentManagement" || parts[1] != "Entry" {

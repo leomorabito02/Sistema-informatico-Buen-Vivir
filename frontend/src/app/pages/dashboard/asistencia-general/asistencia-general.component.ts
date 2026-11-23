@@ -24,15 +24,9 @@ interface AttendanceRow {
 }
 
 /**
- * Asistencia general del centro (HU-19bis/RF-64): control diario de
- * concurrencia, independiente de cursos/actividades. Usa
- * `GET/POST /api/asistencia-general?fecha=YYYY-MM-DD`.
- *
- * Solo se envían al backend las filas que quedaron explícitamente en
- * Presente/Ausente — las que el usuario deja "sin registrar" no se
- * mandan, para no pisar con `false` a alguien que simplemente no se
- * tocó todavía (ver `presente: null` en
- * education/internal/models/general_attendance.go).
+ * Asistencia general del centro (HU-19bis): control diario, independiente de los
+ * cursos. Solo se envían las filas marcadas Presente/Ausente, para no pisar con false a
+ * quien todavía no se tocó.
  */
 @Component({
   selector: "app-asistencia-general",

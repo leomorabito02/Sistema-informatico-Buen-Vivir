@@ -13,10 +13,7 @@ import (
 	"buenvivir/education/internal/repositories"
 )
 
-// CourseService valida las reglas de negocio de "course" antes de
-// delegar en el repository. Se expone como interfaz (no struct
-// concreto) para poder testearla con un repository mock (ver
-// course_service_test.go).
+// CourseService valida las reglas de negocio de los cursos antes de delegar en el repository.
 type CourseService interface {
 	ListCourses(ctx context.Context) ([]models.Course, error)
 	GetCourse(ctx context.Context, id string) (*models.Course, error)
@@ -30,31 +27,21 @@ type CourseService interface {
 	PublishCourse(ctx context.Context, id string) error
 	UnpublishCourse(ctx context.Context, id string) error
 
-	// ListCoursesByTeacher lista los cursos YA PUBLICADOS donde
-	// teacherID figura como responsibleTeacher (ver comentario en
-	// CourseRepository.ListByResponsibleTeacher).
+	// ListCoursesByTeacher lista los cursos publicados del docente.
 	ListCoursesByTeacher(ctx context.Context, teacherID string) ([]models.Course, error)
-	// ListDraftCoursesByTeacher lista los cursos de ese docente que
-	// todavía NO están publicados (borradores), leídos de la CMA.
-	// Complementa a ListCoursesByTeacher, que solo ve los publicados.
+	// ListDraftCoursesByTeacher lista los borradores del docente (CMA).
 	ListDraftCoursesByTeacher(ctx context.Context, teacherID string) ([]models.Course, error)
-	// ListAllDraftCourses lista TODOS los cursos en borrador (uso de
-	// administración: la tabla de "Gestión de cursos" del admin, para
-	// no perder de vista un curso creado y no publicado).
+	// ListAllDraftCourses lista todos los cursos en borrador (para administración).
 	ListAllDraftCourses(ctx context.Context) ([]models.Course, error)
-	// CreateCourseAsTeacher es el POST para el docente responsable:
-	// crea el curso en borrador (igual que el POST de admin, sin
-	// auto-publicar) forzando responsibleTeacher al id del propio
-	// docente autenticado. Queda pendiente de que un role_admin lo
-	// revise y publique.
+	// CreateCourseAsTeacher crea el curso en borrador a nombre del docente autenticado;
+	// queda pendiente de que un role_admin lo publique.
 	CreateCourseAsTeacher(ctx context.Context, teacherID string, input models.CourseInput) (*models.Course, error)
 	// UpdateCourseAsTeacher es el PUT restringido para el docente
 	// responsable: verifica ownership antes de delegar y no permite
 	// reasignar responsibleTeacher a otro id.
 	UpdateCourseAsTeacher(ctx context.Context, id, teacherID string, input models.CourseInput) (*models.Course, error)
-	// DeleteCourseAsTeacher da de baja un curso propio que todavía está
-	// en borrador (pendiente de aprobación). Uno publicado lo da de baja
-	// el administrador (22/11/2026).
+	// DeleteCourseAsTeacher da de baja un curso propio en borrador. Uno publicado lo da
+	// de baja el administrador.
 	DeleteCourseAsTeacher(ctx context.Context, id, teacherID string) error
 	// VerifyOwnership confirma que cursoID esté publicado y que
 	// teacherID sea su responsibleTeacher. La usan también los
@@ -293,13 +280,8 @@ func (s *courseService) ListAllDraftCourses(ctx context.Context) ([]models.Cours
 	return s.sinBajas(ctx, courses, err)
 }
 
-// VerifyOwnership usa Get (Content Delivery API, mismo método que el
-// GET público) para chequear ownership: si el curso está en borrador
-// o no existe, la CDA no lo devuelve y el error se propaga como 404
-// (repositories.IsNotFound), no como 403 — desde la perspectiva del
-// docente, un curso no publicado directamente "no existe" todavía en
-// el catálogo. El 403 queda reservado para cuando el curso sí está
-// publicado pero pertenece a otro docente.
+// VerifyOwnership usa la CDA: un curso en borrador o inexistente da 404 (para el
+// docente "no existe" todavía). El 403 es para un curso publicado de otro docente.
 func (s *courseService) VerifyOwnership(ctx context.Context, cursoID, teacherID string) error {
 	if strings.TrimSpace(cursoID) == "" {
 		return NewValidationError(errCourseIDRequired)
@@ -350,13 +332,9 @@ func (s *courseService) CreateCourseAsTeacher(ctx context.Context, teacherID str
 }
 
 func (s *courseService) UpdateCourseAsTeacher(ctx context.Context, id, teacherID string, input models.CourseInput) (*models.Course, error) {
-	// Antes solo se aceptaban cursos publicados (VerifyOwnership mira la
-	// CDA) y el docente no podía corregir un curso suyo pendiente.
 	if _, err := s.verifyTeacherOwnsCourse(ctx, id, teacherID); err != nil {
 		return nil, err
 	}
-	// El docente no puede reasignar el curso a otro responsable: se
-	// ignora cualquier valor que haya mandado el cliente en este campo.
 	input.ResponsibleTeacher = teacherID
 	if err := validateCourseInput(input); err != nil {
 		return nil, err
@@ -411,10 +389,8 @@ func (s *courseService) verifyTeacherOwnsCourse(ctx context.Context, id, teacher
 	return false, NewForbiddenError("no sos el docente responsable de este curso")
 }
 
-// validateCourseInput refleja los campos requeridos y los valores
-// predefinidos del Content Type "course" en Contentful. "mode" se
-// valida contra los valores en español ("Presencial", "Virtual",
-// "Mixta") tal como están configurados en el Space.
+// validateCourseInput refleja los campos requeridos y los valores de "mode" del
+// Content Type "course" en Contentful.
 func validateCourseInput(input models.CourseInput) error {
 	if strings.TrimSpace(input.Title) == "" {
 		return NewValidationError("el campo 'title' es requerido")
@@ -431,9 +407,7 @@ func validateCourseInput(input models.CourseInput) error {
 	if strings.TrimSpace(input.TrainingAreaID) == "" {
 		return NewValidationError("el campo 'trainingAreaId' es requerido")
 	}
-	// Los materiales son opcionales (HU-14: "debe permitir adjuntar",
-	// no obligar): un curso se puede crear sin materiales y sumarlos
-	// después. Lo que sí se valida es que no vengan ids vacíos.
+	// Los materiales son opcionales (HU-14); solo se valida que no vengan ids vacíos.
 	for _, id := range input.MaterialIDs {
 		if strings.TrimSpace(id) == "" {
 			return NewValidationError("el campo 'materialIds' tiene un id vacío")

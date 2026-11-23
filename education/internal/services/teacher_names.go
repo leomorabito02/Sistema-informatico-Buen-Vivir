@@ -12,11 +12,8 @@ import (
 // UserNamesSource devuelve user_id -> nombre (ver AuthServiceClient.GetUserNames).
 type UserNamesSource func(ctx context.Context, userIDs []string) (map[string]string, error)
 
-// TeacherNames completa Course.ResponsibleTeacherName antes de responder
-// (D3, 22/11/2026: en "Mis cursos" se veía "Docente: usr-…"). Guarda los
-// nombres unos minutos para no consultar a auth en cada listado. Si auth
-// no responde, el curso sale sin nombre y el front muestra el texto
-// genérico; nunca falla el pedido por esto.
+// TeacherNames completa Course.ResponsibleTeacherName antes de responder. Guarda los
+// nombres unos minutos; si auth no responde, el curso sale sin nombre.
 type TeacherNames struct {
 	source  UserNamesSource
 	ttl     time.Duration

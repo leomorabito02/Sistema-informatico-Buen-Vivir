@@ -62,12 +62,10 @@ func GetValidator() *validator.Validate {
 	if validate == nil {
 		validate = validator.New()
 
-		// Custom Validation for Password
 		_ = validate.RegisterValidation("password", func(fl validator.FieldLevel) bool {
 			return ValidatePasswordComplexity(fl.Field().String()) == nil
 		})
 
-		// Custom Validation for URL or Relative Path
 		_ = validate.RegisterValidation("url_or_relative", func(fl validator.FieldLevel) bool {
 			return ValidateURLOrRelative(fl.Field().String())
 		})

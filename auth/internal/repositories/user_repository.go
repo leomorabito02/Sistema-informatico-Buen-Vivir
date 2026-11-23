@@ -114,13 +114,10 @@ func (r *userRepository) FindAll(ctx context.Context) ([]models.User, error) {
 }
 
 func (r *userRepository) Create(ctx context.Context, user *models.User) error {
-	// Implementamos transacciones de GORM (equivalente a un try-catch seguro para DB)
 	return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		// Recovery en caso de panic dentro de la transacción
 		defer func() {
 			if r := recover(); r != nil {
 				tx.Rollback()
-				// Aquí podrías loguear el panic
 			}
 		}()
 

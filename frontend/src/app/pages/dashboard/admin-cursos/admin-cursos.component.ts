@@ -96,10 +96,8 @@ export class AdminCursosComponent implements OnInit {
     { label: "Link", value: "Link" },
   ];
   /**
-   * Formatos que se ofrecen al cargar un material desde el formulario de
-   * curso (pedido del 17/11/2026): solo PDF, DOC/DOCX y video. PDF y DOC
-   * se guardan como tipo "PDF" de Contentful (documento con archivo; el
-   * backend acepta PDF, DOC y DOCX) y el video como "Video" con su URL.
+   * Formatos que se ofrecen al cargar un material desde el curso: PDF, DOC/DOCX y video.
+   * PDF y DOC se guardan como tipo "PDF" de Contentful y el video como "Video" con su URL.
    */
   readonly formatoCursoOptions: { label: string; value: FormatoMaterial }[] = [
     { label: "PDF", value: "pdf" },
@@ -168,8 +166,7 @@ export class AdminCursosComponent implements OnInit {
     this.loading = true;
     forkJoin({
       courses: this.education.listCourses(),
-      // el endpoint de borradores puede no estar desplegado todavía
-      // (requiere rebuild de education-service) -> degradar a []
+      // Si fallan los borradores, se muestra el resto igual.
       drafts: this.education.listDraftCourses().pipe(catchError(() => of([]))),
       areas: this.education.listTrainingAreas(),
       materials: this.education.listMaterials(),
@@ -507,9 +504,8 @@ export class AdminCursosComponent implements OnInit {
 
   // ==================== MATERIALES ====================
   /**
-   * true cuando el diálogo de material se abrió desde el formulario de
-   * curso: el material nuevo queda adjuntado a ese curso (Problema 1 de
-   * la auditoría: subir materiales mientras se crea el curso).
+   * true cuando el diálogo de material se abrió desde el formulario de curso: el
+   * material nuevo queda adjuntado a ese curso.
    */
   materialForCourse = false;
 
@@ -541,10 +537,7 @@ export class AdminCursosComponent implements OnInit {
       : "PDF hasta 10 MB";
   }
 
-  /**
-   * Desde el curso, un material de archivo necesita el archivo (ya no hay
-   * opción de pegar un Asset ID de Contentful) y uno de video, su URL.
-   */
+  /** Desde el curso, un material de archivo necesita el archivo y uno de video, su URL. */
   get materialIncompleto(): boolean {
     if (!this.materialForm.title.trim()) return true;
     if (!this.materialForCourse || this.editingMaterialId) return false;

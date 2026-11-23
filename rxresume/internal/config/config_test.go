@@ -5,8 +5,8 @@ import (
 	"testing"
 )
 
-// El CD de Cloud Run y el .env local pasan DATABASE_URL; antes solo se
-// leía DATABASE_URL_RXRESUME y el servicio caía a localhost:5432.
+// El CD de Cloud Run y el .env local pasan DATABASE_URL: si no hay
+// DATABASE_URL_RXRESUME se usa esa.
 func TestLoadConfig_BaseDeDatos(t *testing.T) {
 	t.Setenv("DATABASE_URL_RXRESUME", "")
 	t.Setenv("DATABASE_URL", "postgres://neon/rx")

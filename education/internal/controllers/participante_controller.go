@@ -20,9 +20,8 @@ func NewParticipanteController(service services.ParticipanteService) *Participan
 	return &ParticipanteController{service: service}
 }
 
-// Buscar responde GET /api/participantes?q=texto&cursoId=id. Busca en el
-// backend (antes el navegador bajaba el directorio entero y filtraba).
-// Con cursoId deja afuera a los ya inscriptos en ese curso.
+// Buscar responde GET /api/participantes?q=texto&cursoId=id. Con cursoId deja afuera
+// a los ya inscriptos en ese curso.
 func (c *ParticipanteController) Buscar(w http.ResponseWriter, r *http.Request) {
 	token, _ := r.Context().Value(middlewares.TokenKey).(string)
 	q := r.URL.Query()

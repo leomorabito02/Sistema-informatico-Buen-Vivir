@@ -17,12 +17,8 @@ import { ResultadoBusqueda } from "../../../core/models/human-promotion.model";
 import { coincideBusqueda } from "../../../shared/utils/busqueda";
 
 /**
- * Promoción Humana: listado de participantes (HU-36) y acceso a su ficha de
- * proceso personal. Solo admin y voluntario (guard + backend).
- *
- * Al entrar se ve el listado completo; el buscador filtra ese listado
- * por nombre o apellido sin reemplazar la vista (pedido del 17/11/2026).
- * El backend devuelve el listado con `GET /participantes` sin texto.
+ * Promoción Humana: listado de participantes (HU-36) y acceso a su ficha. Solo admin y
+ * voluntario. El buscador filtra el listado por nombre o apellido.
  */
 @Component({
   selector: "app-promocion-humana",

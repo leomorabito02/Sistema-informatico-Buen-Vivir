@@ -2,17 +2,9 @@ package models
 
 import "time"
 
-// Submission representa un documento de la colección Firestore
-// "entregas": lo que un participante envió para una actividad.
-//
-// El id del documento es determinístico ({actividadId}_{participanteId},
-// el mismo que el de su Asistencia) y se crea con Create, que falla si
-// ya existe: así hay una única entrega por participante y actividad, y
-// una vez hecha no se puede reenviar ni anular.
-//
-// Los binarios de los adjuntos NO viven acá: están en el bucket de
-// Cloud Storage de entregas (ver repositories.FileStorage). Firestore
-// guarda solo sus metadatos, incluida la ruta del objeto en el bucket.
+// Submission es un documento de "entregas". Id: {actividadId}_{participanteId},
+// creado con Create (falla si existe): una sola entrega por actividad, sin reenvío.
+// Los adjuntos están en Cloud Storage; acá solo sus metadatos.
 type Submission struct {
 	ID             string           `json:"id" firestore:"-"`
 	ParticipanteID string           `json:"participanteId" firestore:"participante_id"`
@@ -22,11 +14,8 @@ type Submission struct {
 	FechaEntrega   time.Time        `json:"fechaEntrega" firestore:"fecha_entrega"`
 }
 
-// SubmissionFile son los metadatos de un adjunto de una entrega. Ruta
-// es la ruta del objeto dentro del bucket y no se expone por JSON: el
-// frontend descarga cada archivo por su índice a través de
-// GET /api/entregas/{id}/archivos/{indice}, que vuelve a validar
-// permisos antes de leer el bucket.
+// SubmissionFile son los metadatos de un adjunto. Ruta no se expone: el archivo se
+// descarga por índice en GET /api/entregas/{id}/archivos/{indice}, que valida permisos.
 type SubmissionFile struct {
 	Nombre string `json:"nombre" firestore:"nombre"`
 	Tipo   string `json:"tipo" firestore:"tipo"`

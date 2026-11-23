@@ -17,10 +17,8 @@ import (
 
 const educationCallTimeout = 5 * time.Second
 
-// SkillDirectory devuelve las habilidades que ganó un participante. Las
-// habilidades son datos de Educación (HU-21 / HU-58): este servicio no
-// tiene copia propia y las pide a education-service cada vez que arma el
-// detalle de una ficha, respetando que cada servicio tiene su propia base.
+// SkillDirectory devuelve las habilidades que ganó un participante, pidiéndolas a
+// education-service (este servicio no guarda copia).
 type SkillDirectory interface {
 	HabilidadesDe(ctx context.Context, participanteID string) ([]string, error)
 }

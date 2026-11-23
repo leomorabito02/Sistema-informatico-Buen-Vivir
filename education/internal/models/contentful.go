@@ -72,10 +72,8 @@ type contentfulAssetFile struct {
 	ContentType string `json:"contentType"`
 }
 
-// ContentfulCollection es la respuesta de list endpoints de la CDA
-// (GET /entries) e incluye los recursos enlazados en "includes" para
-// poder resolver referencias (trainingArea, material, coverImage, file)
-// sin hacer N+1 requests.
+// ContentfulCollection es la respuesta de GET /entries de la CDA, con los recursos
+// enlazados en "includes" para resolver referencias sin N+1 requests.
 type ContentfulCollection struct {
 	Total    int               `json:"total"`
 	Skip     int               `json:"skip"`

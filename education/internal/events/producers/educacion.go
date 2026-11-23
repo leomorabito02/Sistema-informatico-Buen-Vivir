@@ -92,9 +92,8 @@ func (p *Educacion) ContenidoDocenteSubido(ctx context.Context, c *models.Course
 	}, ""))
 }
 
-// ContenidoDocenteModerado: la administración publicó (aprobó) un curso.
-// docenteID es opcional para mantener compatibilidad con tests/llamadores previos;
-// cuando está presente permite que Notificaciones avise al docente responsable.
+// ContenidoDocenteModerado: la administración publicó (aprobó) un curso. docenteID
+// es opcional; si viene, Notificaciones avisa al docente.
 func (p *Educacion) ContenidoDocenteModerado(ctx context.Context, cursoID, resultado string, docenteID ...string) error {
 	docente := ""
 	if len(docenteID) > 0 {
@@ -175,9 +174,7 @@ func (p *Educacion) CursoCompletado(ctx context.Context, tx *firestore.Transacti
 	}, participanteID))
 }
 
-// HabilidadOtorgada: el participante ganó una habilidad (al entregar, o
-// retroactivamente al agregarle habilidades a una actividad ya entregada).
-// nombre es el nombre de la habilidad para el aviso al participante
+// HabilidadOtorgada: el participante ganó una habilidad. nombre se usa en el aviso
 // (vacío si no se pudo leer del catálogo).
 func (p *Educacion) HabilidadOtorgada(ctx context.Context, tx *firestore.Transaction, s models.ParticipantSkill, nombre string) error {
 	return p.emit(ctx, tx, p.event(events.HabilidadOtorgada, events.HabilidadOtorgadaPayload{

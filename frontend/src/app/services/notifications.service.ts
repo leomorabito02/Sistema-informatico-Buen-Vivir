@@ -154,11 +154,8 @@ export class NotificationsService {
   }
 
   /**
-   * Cantidad de no leídas que muestra la campana del encabezado. La
-   * refrescan el encabezado (cada minuto y al cambiar de pantalla) y la
-   * pantalla de notificaciones después de cada acción (auditoría
-   * 2026-11-11, Problema 3: antes no había contador y la interfaz no se
-   * enteraba de las notificaciones nuevas).
+   * Cantidad de no leídas que muestra la campana del encabezado. La refrescan el
+   * encabezado (cada minuto y al cambiar de pantalla) y la pantalla de notificaciones.
    */
   readonly unread = signal(0);
 

@@ -12,9 +12,7 @@ import (
 	"buenvivir/education/internal/models"
 )
 
-// Colecciones de habilidades (HU-21 / HU-58). Viven en la misma base
-// Firestore que actividades y entregas: son datos de Educación, así que
-// no hace falta pedirle nada a otro servicio para leerlas ni escribirlas.
+// Colecciones de habilidades (HU-21 / HU-58).
 const (
 	skillsCollection            = "habilidades"
 	activitySkillsCollection    = "actividad_habilidades"
@@ -39,19 +37,14 @@ func ParticipantSkillDocID(participanteID, habilidadID string) string {
 // habilidades: el catálogo, las de cada actividad y las de cada
 // participante.
 type SkillRepository interface {
-	// ListCatalog devuelve todo el catálogo de habilidades.
 	ListCatalog(ctx context.Context) ([]models.Skill, error)
 	// GetCatalog devuelve, indexadas por id, las habilidades pedidas que
 	// existan en el catálogo (las que no existen no aparecen).
 	GetCatalog(ctx context.Context, ids []string) (map[string]models.Skill, error)
 	ListLinksByActivity(ctx context.Context, actividadID string) ([]models.ActivitySkill, error)
 	ListLinksByCourse(ctx context.Context, cursoID string) ([]models.ActivitySkill, error)
-	// SetActivitySkills reemplaza las habilidades de una actividad por
-	// las recibidas. En una sola transacción: crea en el catálogo las que
-	// todavía no existen (las que ya existen quedan como están, con su
-	// nombre y categoría originales), agrega los vínculos nuevos y borra
-	// los que ya no van. Devuelve las habilidades tal como quedaron en el
-	// catálogo.
+	// SetActivitySkills reemplaza las habilidades de una actividad en una transacción:
+	// crea en el catálogo las que faltan, agrega los vínculos nuevos y borra los que ya no van.
 	SetActivitySkills(ctx context.Context, activity *models.Activity, skills []models.Skill) ([]models.Skill, error)
 	// GrantToParticipants asigna las habilidades a cada participante. Si
 	// un participante ya tenía una, no se toca (se conserva la primera
@@ -274,9 +267,8 @@ func (r *skillRepository) GrantToParticipants(ctx context.Context, participanteI
 	return nil
 }
 
-// grantOne crea una asignación. Con eventos activos va en una
-// transacción chica junto con su habilidad.otorgada (outbox); sin
-// eventos es un Create simple, como antes.
+// grantOne crea una asignación. Con eventos activos va en una transacción junto con
+// su habilidad.otorgada; sin eventos es un Create simple.
 func (r *skillRepository) grantOne(ctx context.Context, ref *firestore.DocumentRef, ps models.ParticipantSkill, nombre string) error {
 	if !r.events.Enabled() {
 		_, err := ref.Create(ctx, ps)

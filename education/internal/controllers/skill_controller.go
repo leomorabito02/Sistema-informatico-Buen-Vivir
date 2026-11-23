@@ -11,15 +11,8 @@ import (
 	"buenvivir/education/internal/services"
 )
 
-// SkillController expone las habilidades (HU-21 / HU-58): el catálogo,
-// las de cada actividad y las de cada participante.
-//
-// Quién puede gestionar las habilidades de una actividad: admin y
-// voluntario en cualquier curso (los mismos que gestionan actividades),
-// y el docente interno solo en los cursos de los que es responsable. Las
-// rutas son las mismas para los tres roles y el chequeo de "es mi curso"
-// lo hace este controller según el rol, igual que la descarga de
-// adjuntos (SubmissionController.DownloadFile).
+// SkillController expone las habilidades (HU-21 / HU-58): catálogo, por actividad y
+// por participante. Admin y voluntario gestionan cualquier curso; el docente, solo los suyos.
 type SkillController struct {
 	courseService     services.CourseService
 	activityService   services.ActivityService
@@ -194,13 +187,8 @@ func (c *SkillController) writeParticipantSkills(w http.ResponseWriter, r *http.
 	writeJSON(w, http.StatusOK, skills)
 }
 
-// authorizeCourse decide si quien hace el pedido puede gestionar las
-// habilidades de las actividades de ese curso. Admin y voluntario:
-// cualquier curso que exista (incluso en borrador, porque las
-// actividades se pueden armar antes de publicar). Docente interno: solo
-// si es el responsable (CourseService.VerifyOwnership, que además
-// responde 404 si el curso no está publicado, como el resto de
-// /api/docente).
+// authorizeCourse decide si quien pide puede gestionar las habilidades del curso:
+// admin y voluntario cualquiera; el docente interno solo si es el responsable.
 func (c *SkillController) authorizeCourse(r *http.Request, cursoID string) error {
 	role, _ := r.Context().Value(middlewares.RoleIDKey).(string)
 	if role == "role_teacher" {

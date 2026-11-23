@@ -7,9 +7,7 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-// Errores de "no existe" que los controllers traducen a 404. Sin esto, un
-// documento inexistente en Firestore llegaba como error genérico y se
-// respondía 500 con el texto interno (alertas 100000 y 90022 de ZAP).
+// Errores de "no existe" que los controllers traducen a 404.
 var (
 	ErrApplicationNotFound = errors.New("application not found")
 	ErrOfferNotFound       = errors.New("offer not found")

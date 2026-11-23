@@ -23,7 +23,6 @@ const (
 	ContentfulEnvMaster  ContentfulEnv = "master"
 )
 
-// Config agrupa toda la configuración del servicio de Educación.
 type Config struct {
 	Port     string
 	GRPCPort string
@@ -38,32 +37,19 @@ type Config struct {
 
 	CORSAllowedOrigins string
 
-	// AuthServiceURL es la base (sin path) de auth-service, ej.
-	// "http://auth-service:8080" en Docker o
-	// "https://auth-testing-xxxx.run.app" en Cloud Run. La usa
-	// AuthServiceClient para validar participantes al inscribir/registrar
-	// asistencia y para resolver el listado de participantes en la
-	// asistencia general, reenviando el JWT del usuario que llamó a
-	// education. Obligatoria en producción; en testing permite iniciar
-	// sin ella (emitiendo advertencia).
+	// AuthServiceURL es la base de auth-service (ej. http://auth-service:8080).
+	// Obligatoria en producción.
 	AuthServiceURL        string
 	AuthServiceGRPCTarget string
 	// UpstreamIDToken activa la generación de un token de identidad de Google
 	// en X-Serverless-Authorization para llamadas a servicios Cloud Run privados.
 	UpstreamIDToken bool
 
-	// EntregasBucket es el bucket de Cloud Storage (mismo proyecto de
-	// GCP que Firestore) donde se guardan los adjuntos de las entregas
-	// de actividades. Es privado: education lee los archivos con las
-	// mismas credenciales de Firestore y los sirve validando permisos.
-	// Si queda vacío, el servicio arranca igual y las entregas se
-	// aceptan solo con texto.
+	// EntregasBucket es el bucket privado de Cloud Storage para los adjuntos de las
+	// entregas. Si está vacío, las entregas se aceptan solo con texto.
 	EntregasBucket string
 
-	// SkillsAI es la configuración de la sugerencia de habilidades con IA
-	// (HU-21 / HU-58). Nada es obligatorio: si falta, el servicio arranca
-	// igual y el botón "Sugerir habilidades con IA" responde que no se
-	// pudo generar sugerencias (las habilidades se pueden cargar a mano).
+	// SkillsAI configura la sugerencia de habilidades con IA (HU-21 / HU-58). Es opcional.
 	SkillsAI SkillsAIConfig
 
 	// Events es la mensajería asíncrona con Pub/Sub (ver
@@ -71,12 +57,8 @@ type Config struct {
 	Events EventsConfig
 }
 
-// LoadConfig arma la configuración del servicio leyendo siempre el
-// archivo ".env" si existe; las variables ya presentes en el entorno real
-// del proceso siempre ganan sobre lo que diga el archivo (ver loadEnvFile).
-// Devuelve error si APP_ENV es inválido o si la combinación de
-// APP_ENV / CONTENTFUL_ENVIRONMENT es peligrosa, para que el servicio
-// directamente no arranque.
+// LoadConfig lee la configuración del entorno y del archivo .env (el entorno gana).
+// Falla si APP_ENV es inválido o si la combinación con CONTENTFUL_ENVIRONMENT es peligrosa.
 func LoadConfig() (*Config, error) {
 	if err := loadEnvFile(".env"); err != nil {
 		return nil, fmt.Errorf("no se pudo leer .env: %w", err)
@@ -138,11 +120,8 @@ func LoadConfig() (*Config, error) {
 	return cfg, nil
 }
 
-// validateEnvironmentSafety rechaza combinaciones peligrosas entre el
-// ambiente de la app y el Environment de Contentful, para que no sea
-// posible que una instancia de testing escriba por error en el
-// Environment "master" (producción) de Contentful, ni que producción
-// quede corriendo contra "testing".
+// validateEnvironmentSafety evita que testing escriba en el Environment "master" de
+// Contentful o que producción corra contra "testing".
 func (c *Config) validateEnvironmentSafety() error {
 	if c.ContentfulEnvironment == "" {
 		return fmt.Errorf("falta la variable CONTENTFUL_ENVIRONMENT")

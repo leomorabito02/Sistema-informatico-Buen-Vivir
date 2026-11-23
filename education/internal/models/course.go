@@ -2,10 +2,8 @@ package models
 
 import "encoding/json"
 
-// CourseMode enumera los valores predefinidos del campo "mode" del
-// Content Type "course" en Contentful. Los valores están en español
-// y capitalizados porque así están configurados en el Space (validation
-// "in": ["Presencial","Virtual","Mixta"]) — no traducir ni cambiar el casing.
+// CourseMode son los valores del campo "mode" del Content Type "course". Están en
+// español y capitalizados como en Contentful: no cambiarlos.
 type CourseMode string
 
 const (
@@ -30,54 +28,34 @@ type Course struct {
 	ID          string          `json:"id"`
 	Title       string          `json:"title"`
 	Description json.RawMessage `json:"description"`
-	// ResponsibleTeacher es el id de usuario (el "sub" del JWT emitido
-	// por auth-service) del docente responsable del curso, NO su
-	// nombre en texto libre. El Content Type de Contentful sigue
-	// declarándolo como Short text; es el backend el que reinterpreta
-	// su contenido como un id. El frontend lo elige con un selector de
-	// docentes que resuelve nombre -> id contra auth-service
-	// (admin-cursos.component, teacherOptions).
-	ResponsibleTeacher string        `json:"responsibleTeacher,omitempty"`
-	// ResponsibleTeacherName es el nombre del docente, resuelto contra
-	// auth al responder (no se guarda en Contentful). Campo aditivo: el id
-	// sigue siendo la relación (decisión D3, 22/11/2026).
-	ResponsibleTeacherName string `json:"responsibleTeacherName,omitempty"`
-	CoverImage         *AssetRef     `json:"coverImage,omitempty"`
-	Mode               string        `json:"mode"`
-	Duration           string        `json:"duration,omitempty"`
-	TrainingArea       *TrainingArea `json:"trainingArea,omitempty"`
-	Material           []Material    `json:"material,omitempty"`
-	// Capacity es el cupo máximo de inscriptos activos (campo "capacity"
-	// en Contentful, Number, opcional). nil = sin límite de cupo — ver
-	// EnrollmentService.Enroll, que es quien valida contra este valor.
+	// ResponsibleTeacher es el id de usuario (sub del JWT) del docente responsable, no su nombre.
+	ResponsibleTeacher string `json:"responsibleTeacher,omitempty"`
+	// ResponsibleTeacherName es el nombre del docente, resuelto contra auth al responder
+	// (no se guarda en Contentful).
+	ResponsibleTeacherName string        `json:"responsibleTeacherName,omitempty"`
+	CoverImage             *AssetRef     `json:"coverImage,omitempty"`
+	Mode                   string        `json:"mode"`
+	Duration               string        `json:"duration,omitempty"`
+	TrainingArea           *TrainingArea `json:"trainingArea,omitempty"`
+	Material               []Material    `json:"material,omitempty"`
+	// Capacity es el cupo máximo de inscriptos activos. nil = sin límite.
 	Capacity  *int   `json:"capacity,omitempty"`
 	CreatedAt string `json:"createdAt,omitempty"`
 	UpdatedAt string `json:"updatedAt,omitempty"`
 }
 
-// CourseInput es el payload que recibe el backend desde Angular para
-// crear o editar un curso. La descripción viaja como el documento
-// Rich Text de Contentful ya armado por el editor del frontend; el
-// backend lo transporta tal cual, sin interpretarlo.
+// CourseInput es el payload para crear o editar un curso. La descripción viaja como
+// Rich Text de Contentful, sin interpretarla.
 type CourseInput struct {
 	Title       string          `json:"title"`
 	Description json.RawMessage `json:"description"`
-	// ResponsibleTeacher: ver comentario en Course. No requiere
-	// validación de formato especial más allá de no estar vacío — es
-	// responsabilidad del frontend enviar un id válido de
-	// auth-service. En el PUT de docente (UpdateCourseAsTeacher) este
-	// valor se ignora y se fuerza al id del propio docente autenticado,
-	// para que no pueda reasignar el curso a otra persona.
+	// ResponsibleTeacher se ignora en el PUT de docente: se fuerza al docente autenticado.
 	ResponsibleTeacher string   `json:"responsibleTeacher,omitempty"`
 	CoverImageAssetID  string   `json:"coverImageAssetId,omitempty"`
 	Mode               string   `json:"mode"`
 	Duration           string   `json:"duration,omitempty"`
 	TrainingAreaID     string   `json:"trainingAreaId"`
 	MaterialIDs        []string `json:"materialIds,omitempty"`
-	// Capacity: ver comentario en Course. Requiere que el campo
-	// "capacity" (Number) exista en el content type "course" del Space
-	// de Contentful — si se manda un valor antes de que ese campo se
-	// haya creado ahí, Contentful rechaza el guardado (422, campo
-	// desconocido). nil = no fijar/tocar el cupo.
+	// Capacity: nil = no tocar el cupo.
 	Capacity *int `json:"capacity,omitempty"`
 }

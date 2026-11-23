@@ -8,9 +8,8 @@ import (
 	"buenvivir/education/internal/repositories"
 )
 
-// AttendanceService expone la consulta de "asistencias" por actividad
-// (HU-19). Es de solo lectura: la asistencia por curso ya no se carga a
-// mano, la genera cada entrega (ver SubmissionService.Submit).
+// AttendanceService consulta la asistencia por actividad (HU-19). Es de solo lectura:
+// la genera cada entrega (ver SubmissionService.Submit).
 type AttendanceService interface {
 	ListByActivity(ctx context.Context, actividadID string) ([]models.Attendance, error)
 }

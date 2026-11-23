@@ -267,8 +267,8 @@ func TestResumeService_GenerateResume_SetsPicture(t *testing.T) {
 	}
 }
 
-// Las rutas públicas no crean CVs: un id inexistente da ErrResumeNotFound
-// y la base queda igual (escaneo ZAP del 17/11/2026).
+// Las rutas públicas no crean CVs: un id inexistente da ErrResumeNotFound y la base
+// queda igual.
 func TestResumeService_PublicoNoCreaCV(t *testing.T) {
 	ctx := context.Background()
 	repo := &mockRepo{resumes: make(map[string]*models.Resume)}

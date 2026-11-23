@@ -16,8 +16,6 @@ func Chain(h http.Handler, mws ...Middleware) http.Handler {
 	return h
 }
 
-// contextKey, UserIDKey y RoleIDKey están declarados en auth_middleware.go
-
 // AuthHeaders lee los headers inyectados por el API Gateway (NGINX)
 // y los coloca en el contexto de la request para que la capa de
 // controladores/servicios pueda identificar al usuario autenticado.

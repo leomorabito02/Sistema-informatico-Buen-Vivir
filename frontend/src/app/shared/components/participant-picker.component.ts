@@ -19,12 +19,9 @@ export function etiquetaParticipante(p: {
 }
 
 /**
- * Selector de participantes que busca en el backend
- * (`GET /api/participantes?q=`): se escriben 2 letras del nombre, el
- * apellido o el DNI y education devuelve hasta 20 participantes
- * aprobados. Con `cursoId` deja afuera a los ya inscriptos en ese curso.
- * Reemplaza a los selectores que bajaban el directorio entero y
- * filtraban en el navegador.
+ * Selector de participantes que busca en el backend (`GET /api/participantes?q=`):
+ * con 2 letras del nombre, apellido o DNI devuelve hasta 20 aprobados. Con `cursoId`
+ * deja afuera a los ya inscriptos.
  */
 @Component({
   selector: "app-participant-picker",

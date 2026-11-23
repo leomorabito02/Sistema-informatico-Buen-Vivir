@@ -143,6 +143,8 @@ describe("HeaderComponent", () => {
       const rutas = routesOf(NAV_BY_ROLE["role_teacher"]);
       expect(rutas).not.toContain("/dashboard/ofertas");
       expect(rutas).not.toContain("/dashboard/campanas");
+      expect(rutas).not.toContain("/dashboard/progreso");
+      expect(rutas).toContain("/dashboard/seguimiento");
       expect(rutas[0]).toBe("/dashboard/mis-cursos");
     });
 

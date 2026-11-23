@@ -132,8 +132,7 @@
   --font-family-base:
     "Poppins", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
 
-  /* Escala subida un paso (2026-10-06, pedido de la usuaria: letra más
-     grande). La landing usa sus propios clamp() y no cambia. */
+  /* Escala de tamaños de letra. La landing usa sus propios clamp(). */
   --font-size-xs: 0.8125rem; /* 13px: ayudas, metadatos */
   --font-size-sm: 0.9375rem; /* 15px: etiquetas de campo, tablas */
   --font-size-base: 1.0625rem; /* 17px: cuerpo */
@@ -381,8 +380,8 @@ video {
 
 /* ==========================================================================
    Formularios en diálogo (alta y edición de cursos, campañas, materiales,
-   áreas, ofertas). Una sola definición para que todos compartan
-   distribución, tamaños, etiquetas, asterisco y mensajes (17/11/2026).
+   áreas, ofertas): todos comparten distribución, tamaños, etiquetas,
+   asterisco y mensajes.
    ========================================================================== */
 .form-grid {
   display: flex;
@@ -467,7 +466,7 @@ video {
 }
 
 /* Selector principal de curso (Inscripciones, Seguimiento, Asistencia):
-   ancho, alto y legible, separado del contenido que filtra (17/11/2026). */
+   ancho, alto y legible, separado del contenido que filtra. */
 .course-picker {
   display: flex;
   flex-direction: column;
@@ -507,9 +506,8 @@ video {
 }
 
 /* ==========================================================================
-   Superficies de PrimeNG con más presencia (2026-10-06): tarjetas con borde
-   y sombra sobre el fondo crema, encabezados de tabla y de diálogo en verde
-   suave en lugar de blanco sobre blanco.
+   Superficies de PrimeNG: tarjetas con borde y sombra sobre el fondo crema,
+   encabezados de tabla y de diálogo en verde suave.
    ========================================================================== */
 .p-card {
   border: 1px solid var(--color-border);

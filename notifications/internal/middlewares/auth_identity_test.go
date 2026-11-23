@@ -23,8 +23,8 @@ func firmarJWT(t *testing.T, secret string, claims map[string]any) string {
 	return h + "." + p + "." + base64.RawURLEncoding.EncodeToString(mac.Sum(nil))
 }
 
-// Con JWT_SECRET la identidad sale solo del token: un X-User-ID inventado
-// (que el API Gateway de GCP reenvía) ya no alcanza (auditoría 17/11/2026).
+// Con JWT_SECRET la identidad sale solo del token: un X-User-ID inventado (que el API
+// Gateway de GCP reenvía) no alcanza.
 func TestAuthHeaders_ConSecretoIgnoraHeadersFalsificados(t *testing.T) {
 	const secret = "s3cr3t"
 	t.Setenv("JWT_SECRET", secret)

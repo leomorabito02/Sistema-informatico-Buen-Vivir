@@ -99,8 +99,8 @@ export class CvComponent implements OnInit {
   readonly TriangleAlert = TriangleAlert;
 
   /**
-   * Habilidades que la persona ganó en el centro al completar actividades
-   * (22/11/2026). Se leen solas y van al PDF; no se editan a mano.
+   * Habilidades que la persona ganó en el centro al completar actividades. Van al PDF;
+   * no se editan a mano.
    */
   habilidadesCentro: string[] = [];
 

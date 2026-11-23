@@ -44,10 +44,8 @@ const (
 
 var ErrPDFNotReady = errors.New("pdf not ready")
 
-// ErrResumeNotFound: el usuario no tiene CV. Las rutas públicas responden
-// 404; antes creaban un CV vacío para cualquier id que se pidiera (un
-// visitante sin sesión podía llenar la base) y, si fallaba, devolvían 500
-// con el error interno (escaneo ZAP del 17/11/2026).
+// ErrResumeNotFound: el usuario no tiene CV. Las rutas públicas responden 404 (no
+// crean un CV vacío).
 var ErrResumeNotFound = errors.New("resume not found")
 
 type resumeService struct {
@@ -393,7 +391,6 @@ func (s *resumeService) GetPublicResume(ctx context.Context, userID string) (*mo
 func (s *resumeService) ExportPDF(ctx context.Context, userID string) ([]byte, error) {
 	objectName := fmt.Sprintf("pdfs/%s.pdf", userID)
 
-	// 1. Try to serve cached PDF from storage
 	if rc, err := s.storage.DownloadFile(ctx, objectName); err == nil {
 		defer rc.Close()
 		if pdfBytes, err := io.ReadAll(rc); err == nil && len(pdfBytes) > 0 {
@@ -415,7 +412,6 @@ func (s *resumeService) ExportPDF(ctx context.Context, userID string) ([]byte, e
 		}
 	}
 
-	// 3. Render on-demand via cv-renderer
 	pdfBytes, err := s.renderer.RenderPDF(ctx, &resumeForRender)
 	if err != nil {
 		return nil, fmt.Errorf("failed to render PDF: %w", err)

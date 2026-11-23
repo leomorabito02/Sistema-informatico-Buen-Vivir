@@ -97,11 +97,8 @@ func (s *campaignService) Create(ctx context.Context, in models.CampaignInput, c
 	if err != nil {
 		return models.Campaign{}, err
 	}
-	// No se emite campana.creada acá: la campaña nace en borrador y no es
-	// pública. El evento (que dispara los avisos a participantes y
-	// voluntariado) sale una sola vez, al publicarla. Antes salía también
-	// acá y cada campaña generaba dos avisos, el primero de una campaña
-	// que todavía no se veía (auditoría 2026-11-11, Problema 3).
+	// campana.creada no se emite acá: la campaña nace en borrador. El evento (que dispara
+	// los avisos) sale una sola vez, al publicarla.
 	return created, nil
 }
 

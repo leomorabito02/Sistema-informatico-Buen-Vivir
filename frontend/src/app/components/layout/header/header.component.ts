@@ -38,7 +38,6 @@ import {
   MessageCircle,
   ShieldCheck,
   Sprout,
-  TrendingUp,
   Users,
   X,
 } from "lucide-angular";
@@ -83,8 +82,7 @@ const ASISTENCIA: MenuItem = {
 };
 
 /**
- * Promoción humana (22/11/2026): antes "Promoción humana" y "Seguimiento"
- * eran subopciones de "Participantes" y no se entendía la diferencia.
+ * Promoción humana:
  * - Fichas personales: la ficha de proceso de cada participante.
  * - Seguimiento educativo: asistencia y avance en los cursos.
  */
@@ -150,7 +148,6 @@ export const NAV_BY_ROLE: Record<string, MenuItem[]> = {
   role_teacher: [
     { label: "Mis cursos", routerLink: "/dashboard/mis-cursos" },
     { label: "Asistencia", routerLink: "/dashboard/asistencia" },
-    { label: "Progreso", routerLink: "/dashboard/progreso" },
     { label: "Seguimiento educativo", routerLink: "/dashboard/seguimiento" },
   ],
   role_company: [
@@ -179,7 +176,6 @@ const NAV_ICONS: Record<string, LucideIconData> = {
   "Mi proceso": Sprout,
   "Mi CV": FileText,
   "Mis contenidos": FileText,
-  Progreso: TrendingUp,
   "Seguimiento educativo": ClipboardList,
   Auditoría: ShieldCheck,
   "Roles y permisos": ShieldCheck,
@@ -229,7 +225,7 @@ export class HeaderComponent implements OnInit {
   private readonly notifications = inject(NotificationsService, {
     optional: true,
   });
-  /** No leídas de la campana (Problema 3 de la auditoría). */
+  /** No leídas de la campana. */
   readonly unread = () => this.notifications?.unread() ?? 0;
   private unreadTimer: ReturnType<typeof setInterval> | null = null;
 
@@ -253,7 +249,6 @@ export class HeaderComponent implements OnInit {
     { label: "Cerrar sesión", command: () => this.logout() },
   ];
 
-  // Icons
   readonly Bell = Bell;
   readonly ChevronDown = ChevronDown;
   readonly CircleUserRound = CircleUserRound;

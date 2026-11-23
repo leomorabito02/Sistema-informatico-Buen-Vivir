@@ -31,14 +31,9 @@ const (
 // cuando ninguna IA pudo responder. Deja claro que puede seguir sin la IA.
 const MsgSuggestionsUnavailable = "No pudimos generar sugerencias en este momento. Podés cargarlas a mano o probar de nuevo más tarde."
 
-// SugeridorHabilidades es lo que tiene que saber hacer cualquier
-// proveedor de IA para sugerir habilidades. Hay dos implementaciones:
-// Gemini (principal) y OpenAI (respaldo), en el paquete repositories.
-// Tener una interfaz común permite agregar o cambiar proveedores sin
-// tocar la lógica de abajo, y probarla con proveedores falsos (mocks),
-// sin llamar nunca a las APIs reales.
+// SugeridorHabilidades es la interfaz común de los proveedores de IA (Gemini y
+// OpenAI). Permite cambiarlos sin tocar la lógica y probarla con mocks.
 type SugeridorHabilidades interface {
-	// Nombre identifica al proveedor ("gemini", "openai").
 	Nombre() string
 	Sugerir(ctx context.Context, p models.SkillPrompt) ([]models.SkillSuggestion, error)
 }
@@ -217,12 +212,8 @@ func isRetryableAIError(err error) bool {
 	return errors.As(err, &netErr)
 }
 
-// validateSuggestions controla cada habilidad devuelta por la IA contra
-// las reglas del catálogo (nombre no vacío y corto, categoría de la lista
-// cerrada). Las que no cumplen se descartan. Si la IA devolvió
-// habilidades pero NINGUNA sirve, la respuesta entera se considera
-// inválida (ok = false) y se prueba el proveedor de respaldo. Una lista
-// vacía es válida: significa "no encontré habilidades para sugerir".
+// validateSuggestions descarta las sugerencias que no cumplen las reglas del catálogo.
+// Si ninguna sirve, devuelve ok = false para probar el respaldo. Una lista vacía es válida.
 func validateSuggestions(raw []models.SkillSuggestion) ([]models.SkillSuggestion, bool) {
 	valid := make([]models.SkillSuggestion, 0, len(raw))
 	for _, sg := range raw {
@@ -242,13 +233,8 @@ func validateSuggestions(raw []models.SkillSuggestion) ([]models.SkillSuggestion
 	return valid, true
 }
 
-// filterSuggestions aplica las reglas de "no repetir" de HU-21:
-//   - se descartan las que la actividad ya tiene (guardadas o en el
-//     formulario), comparando por nombre normalizado;
-//   - se descartan las repetidas dentro de la misma respuesta;
-//   - si una sugerencia es una habilidad que ya existe en el catálogo
-//     (aunque la IA la haya escrito distinto), se devuelve la del
-//     catálogo, con su id, para reusarla y no crear una variante.
+// filterSuggestions descarta las que la actividad ya tiene y las repetidas, y reemplaza
+// las que ya existen en el catálogo por la versión del catálogo (con su id).
 func filterSuggestions(valid []models.SkillSuggestion, excluded map[string]bool, catalogByKey map[string]models.Skill) []models.SkillSuggestion {
 	result := make([]models.SkillSuggestion, 0, len(valid))
 	seen := make(map[string]bool, len(valid))

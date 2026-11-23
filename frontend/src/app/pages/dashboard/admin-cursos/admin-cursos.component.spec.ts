@@ -141,7 +141,7 @@ describe("AdminCursosComponent", () => {
       component.courseForm.trainingAreaId = "area1";
       component.courseForm.responsibleTeacher = "teacher1";
       component.courseForm.duration = "4 semanas";
-      // Problema 1 de la auditoría: los materiales son opcionales.
+      // Los materiales son opcionales (HU-14).
       expect(component.courseFormValid)
         .withContext("sin materiales también es válido")
         .toBeTrue();

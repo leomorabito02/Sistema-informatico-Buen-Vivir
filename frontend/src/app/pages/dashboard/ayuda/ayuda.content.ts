@@ -78,7 +78,6 @@ const DOCENTE: AyudaTema[] = [
   {
     pregunta: "¿Dónde veo cómo avanza el grupo?",
     pasos: [
-      "Progreso: avance y asistencia promedio de cada curso.",
       "Seguimiento educativo: asistencia y avance de cada participante en tus cursos.",
     ],
   },

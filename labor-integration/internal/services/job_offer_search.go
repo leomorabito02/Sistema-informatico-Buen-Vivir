@@ -15,11 +15,8 @@ func normalizar(s string) string {
 	return sinTildes.Replace(strings.ToLower(strings.TrimSpace(s)))
 }
 
-// FiltrarOfertas deja las ofertas cuyo título, empresa o ubicación
-// contienen q (HU-45 y HU-46: un solo buscador encuentra por título o por
-// empresa) y, si viene empresa, solo las de esa empresa por nombre o por
-// empresa_id. No distingue mayúsculas ni tildes. Antes filtraba el
-// frontend con la lista entera.
+// FiltrarOfertas deja las ofertas cuyo título, empresa o ubicación contienen q (HU-45,
+// HU-46) y, si viene empresa, solo las de esa empresa. No distingue mayúsculas ni tildes.
 func FiltrarOfertas(offers []*models.JobOffer, q, empresa string) []*models.JobOffer {
 	q = normalizar(q)
 	empresa = normalizar(empresa)

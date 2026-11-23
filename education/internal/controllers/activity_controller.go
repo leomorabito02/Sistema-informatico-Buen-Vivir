@@ -10,13 +10,8 @@ import (
 	"buenvivir/education/internal/services"
 )
 
-// ActivityController expone el CRUD de actividades de un curso y el
-// listado de entregas de cada actividad a role_admin y role_volunteer,
-// sin el chequeo de ownership que sí aplica DocenteController bajo
-// /api/docente — admin y voluntario operan sobre cualquier curso del
-// centro. Comparte los mismos services que DocenteController: una
-// actividad creada acá es indistinguible de una creada por el docente
-// responsable.
+// ActivityController expone el CRUD de actividades y sus entregas a admin y
+// voluntario, sin el chequeo de ownership del docente.
 type ActivityController struct {
 	courseService     services.CourseService
 	activityService   services.ActivityService
@@ -37,11 +32,7 @@ func (c *ActivityController) List(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, activities)
 }
 
-// Create responde POST /api/cursos/{id}/actividades. Valida que el
-// curso exista antes de crear la actividad, para no dejar actividades
-// huérfanas en Firestore apuntando a un cursoId inexistente. Acepta
-// también borradores (el admin puede armar las actividades antes de
-// publicar el curso).
+// Create responde POST /api/cursos/{id}/actividades. Valida que el curso exista.
 func (c *ActivityController) Create(w http.ResponseWriter, r *http.Request) {
 	cursoID := chi.URLParam(r, "id")
 	if err := c.courseService.VerifyExists(r.Context(), cursoID); err != nil {

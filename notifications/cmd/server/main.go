@@ -54,7 +54,6 @@ func main() {
 
 	startGRPCServer(cfg.GRPCPort, grpcController)
 
-	// Delivery Worker
 	workerCtx, cancelWorkers := context.WithCancel(context.Background())
 	deliveryWorker := delivery.NewWorker(repo, emailSvc, pushSvc, authClient, tmplEngine, nil)
 	deliveryWorker.FrontendURL = cfg.FrontendURL
@@ -64,11 +63,9 @@ func main() {
 	}
 	go deliveryWorker.Run(workerCtx)
 
-	// Pub/Sub Push Verifier and Processed Store
 	pushVerifier := buildPushVerifier(cfg)
 	processedStore := store.NewProcessedStore(db)
 
-	// Rule Registry and Audience Resolver
 	registry := rules.NewRegistry()
 	registry.Register(&rules.InscripcionCreadaRule{})
 	registry.Register(&rules.ContenidoDocenteSubidoRule{})
@@ -198,11 +195,8 @@ func buildPushVerifier(cfg *config.Config) events.Verifier {
 	isProd := cfg.Environment == "production"
 	pushVerifier, err := events.NewPushVerifier(cfg.PubSubPushAuth, cfg.PubSubPushAudience, cfg.PubSubPushServiceAccounts, isProd)
 	if err != nil {
-		// En producción no se acepta ningún push sin verificar: antes se
-		// caía a NoVerifier y cualquiera que llegara a /eventos/* podía
-		// fabricar notificaciones (auditoría 2026-11-11). Es la regla de
-		// docs/eventos: "PUBSUB_PUSH_AUTH=disabled solo en local; en
-		// producción no arranca".
+		// En producción no se acepta ningún push sin verificar (PUBSUB_PUSH_AUTH=disabled
+		// solo en local).
 		if isProd {
 			log.Fatalf("push verifier: %v", err)
 		}

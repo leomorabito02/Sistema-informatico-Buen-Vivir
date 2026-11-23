@@ -28,8 +28,8 @@ func (m *memAudit) List(_ context.Context, f repositories.AuditFilter) ([]models
 	return out, nil
 }
 
-// D8 (22/11/2026): la acción de gestión queda registrada con quién, qué y
-// sobre qué CV; sin repositorio no se registra nada ni se rompe.
+// La acción de gestión queda registrada con quién, qué y sobre qué CV; sin repositorio
+// no se registra nada ni se rompe.
 func TestRegistrar_GuardaQuienQueYSobreQuien(t *testing.T) {
 	audit := &memAudit{}
 	c := NewResumeController(nil).WithAudit(audit)

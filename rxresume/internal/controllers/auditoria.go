@@ -11,7 +11,7 @@ import (
 	"buenvivir/rxresume/internal/repositories"
 )
 
-// Acciones auditadas sobre el CV de otra persona (D8, 22/11/2026).
+// Acciones auditadas sobre el CV de otra persona.
 const (
 	AccionVer         = "ver"
 	AccionEditar      = "editar"

@@ -11,11 +11,8 @@ import (
 	"buenvivir/education/internal/repositories"
 )
 
-// ActivityService valida las reglas de negocio de "actividades" antes
-// de delegar en el repository (Firestore). El chequeo de ownership del
-// curso (¿este docente puede ver/editar actividades acá?) vive en
-// CourseService.VerifyOwnership y lo hace el controller antes de
-// llamar a este service, no este service.
+// ActivityService valida las reglas de negocio de las actividades. El ownership del
+// curso lo verifica el controller antes (CourseService.VerifyOwnership).
 type ActivityService interface {
 	// ListByCourse devuelve las actividades del curso ordenadas por
 	// fecha (y por fecha de alta para desempatar).

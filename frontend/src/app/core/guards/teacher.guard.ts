@@ -5,11 +5,8 @@ import { AuthService } from "../../services/auth.service";
 import { MeResponse } from "../models/auth.model";
 
 /**
- * Deja pasar solo a `role_teacher` (docente responsable). Evita que un
- * admin/voluntario llegue por URL directa a las pantallas de "mis
- * cursos" (scope docente) y se confunda con las pantallas equivalentes
- * de admin/voluntario (`adminOrVolunteerGuard`: asistencia-cursos,
- * asistencia-general, inscripciones).
+ * Deja pasar solo a role_teacher (pantallas de "mis cursos"), para que admin y
+ * voluntario usen las suyas.
  */
 export const teacherGuard: CanActivateFn = () => {
   const authService = inject(AuthService);

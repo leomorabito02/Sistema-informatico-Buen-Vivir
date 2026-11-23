@@ -1,9 +1,6 @@
 /**
- * Modelos del microservicio de Educación (education-service).
- *
- * Reflejan 1:1 lo que devuelve la API real (Contentful + Firestore),
- * NO los tipos "aspiracionales" de los mocks de UX. Fuente de verdad:
- * education/internal/models/*.go y education/POSTMAN_EXAMPLES.md.
+ * Modelos del microservicio de Educación: reflejan lo que devuelve la API real
+ * (ver education/internal/models/*.go).
  */
 
 /** Documento Rich Text de Contentful (el backend lo transporta tal cual). */
@@ -66,7 +63,7 @@ export interface Course {
   description: RichTextDocument | null;
   /** id de usuario (sub del JWT) del docente responsable, NO su nombre. */
   responsibleTeacher?: string;
-  /** Nombre del docente, resuelto por Educación al responder (D3). */
+  /** Nombre del docente, resuelto por Educación al responder. */
   responsibleTeacherName?: string;
   coverImage?: AssetRef;
   mode: string;
@@ -233,11 +230,8 @@ export interface FiltroAuditoria {
 }
 
 /**
- * Fila de `GET /api/asistencia-general`: un participante aprobado del
- * centro + su asistencia general para la fecha pedida. `presente` es
- * `null` cuando todavía no se cargó ningún registro ese día (distinto
- * de `false`, que es "se cargó y marcó ausente"). `nombre`/`apellido`
- * pueden venir vacíos si auth-service no pudo resolver el usuario.
+ * Fila de GET /api/asistencia-general. `presente` es null si todavía no se cargó
+ * (false es "ausente"). `nombre` y `apellido` pueden venir vacíos.
  */
 export interface GeneralAttendance {
   participanteId: string;
@@ -270,11 +264,7 @@ export interface EducationApiError {
   error: string;
 }
 
-/**
- * Aplana un documento Rich Text de Contentful a texto plano.
- * Suficiente para listados y previews; para render completo hace falta
- * un componente dedicado (pendiente, ver INTEGRACION_EDUCATION_FRONTEND.md).
- */
+/** Aplana un documento Rich Text de Contentful a texto plano (para listados y previews). */
 export function richTextToPlain(
   doc: RichTextDocument | null | undefined,
 ): string {

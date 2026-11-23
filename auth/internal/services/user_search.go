@@ -15,11 +15,8 @@ func normalizar(s string) string {
 	return sinTildes.Replace(strings.ToLower(strings.TrimSpace(s)))
 }
 
-// FiltrarUsuarios deja los usuarios del rol pedido (role vacío = todos)
-// cuyo nombre, apellido, email o teléfono contienen q, sin distinguir mayúsculas
-// ni tildes ("gomez" encuentra "Gómez"). Es el buscador de Usuarios y el
-// selector de docentes, que antes filtraba el frontend con la lista
-// entera. El permiso de ver la lista lo controla GetAllUsers.
+// FiltrarUsuarios deja los usuarios del rol pedido (vacío = todos) cuyo nombre, apellido,
+// email o teléfono contienen q, sin distinguir mayúsculas ni tildes.
 func FiltrarUsuarios(users []dto.UserResponse, q, role string) []dto.UserResponse {
 	q = normalizar(q)
 	role = strings.TrimSpace(role)

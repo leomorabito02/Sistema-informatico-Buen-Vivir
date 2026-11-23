@@ -382,7 +382,7 @@ El estado es el final, después de las correcciones de la auditoría. Detalle co
 
 ### HU-20: Progreso formativo por actividades
 
-- **Actor:** Participante, voluntario
+- **Actor:** Participante, voluntario, administrador, docente
 - **Estado:** Implementado
 - **Frontend:** seguimiento, curso-detalle (participante)
 - **Backend:** ProgressService

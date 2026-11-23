@@ -14,11 +14,9 @@ var (
 	pushSubLine = regexp.MustCompile(`(?m)^ensure_push_sub ([a-z0-9-]+) .*\\\n\s+"\$\(filter ([^)]*)\)"`)
 )
 
-// InfraFilters lee infra/pubsub/setup.sh y devuelve, por suscripción,
-// los tipos de evento de su filtro. Lo usan los tests de cada servicio
-// para comprobar que el filtro creado en GCP coincide con lo que el
-// consumidor realmente procesa (si no, los eventos nuevos no llegarían
-// o llegarían de más).
+// InfraFilters lee infra/pubsub/setup.sh y devuelve los tipos de evento del filtro de
+// cada suscripción. Los tests lo usan para comprobar que coincide con lo que procesa
+// el consumidor.
 func InfraFilters(setupPath string) (map[string][]string, error) {
 	raw, err := os.ReadFile(setupPath)
 	if err != nil {

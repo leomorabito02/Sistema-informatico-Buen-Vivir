@@ -161,7 +161,7 @@ jobs:
       - name: Verify shared pkg copies are in sync
         run: bash scripts/sync-eventlib.sh --check
 
-      # D6 (22/11/2026): pkg es una dependencia de todos los servicios Go.
+      # pkg es una dependencia de todos los servicios Go.
       - name: SCA — govulncheck
         working-directory: pkg
         run: |
@@ -1071,8 +1071,7 @@ jobs:
       - name: Docker build (cv-renderer)
         run: docker build -t cv-renderer:${{ github.sha }} -f frontend/cv-engine/Dockerfile ./frontend
 
-      # D6 (22/11/2026): era la única imagen sin escaneo. Bloquea solo
-      # CRITICAL/HIGH con arreglo disponible, como las demás.
+      # Bloquea solo CRITICAL/HIGH con arreglo disponible, como las demás imágenes.
       - name: Trivy image scan (block CRITICAL/HIGH)
         uses: aquasecurity/trivy-action@v0.36.0
         with:
@@ -1150,9 +1149,8 @@ jobs:
           grep -q "Referrer-Policy" nginx.conf          || { echo "::error::Missing Referrer-Policy header"; exit 1; }
           echo "All required OWASP headers present."
 
-  # D6 (22/11/2026): configuraciones inseguras en Dockerfiles, docker-compose
-  # y workflows (Trivy config). Informativo: no bloquea ni entra en ci-gate;
-  # los hallazgos quedan en el log del job para revisarlos.
+  # Configuraciones inseguras en Dockerfiles, docker-compose y workflows (Trivy config).
+  # Informativo: no bloquea ni entra en ci-gate.
   ci-iac:
     name: CI — Configuración segura (Trivy config, informativo)
     runs-on: ubuntu-latest
@@ -1397,10 +1395,8 @@ jobs:
             UPSTREAM_ID_TOKEN=true
             FRONTEND_URL=${{ needs.cd-setup.outputs.frontend_url }}
 
-      # Destino de los enlaces de los correos (confirmar cuenta, recuperar
-      # contraseña, ir a la notificación). Sin FRONTEND_URL el servicio usaba
-      # su valor por defecto (auth: https://ceibuenvivir.org, que sirve un
-      # front viejo). Solo en TESTING: producción no se toca (22/11/2026).
+      # Destino de los enlaces de los correos (confirmar cuenta, recuperar contraseña, ir a
+      # la notificación). Solo en testing.
       - name: Configure FRONTEND_URL (testing)
         if: needs.cd-setup.outputs.env_name == 'TESTING'
         run: |
@@ -1496,10 +1492,8 @@ jobs:
               --update-env-vars="PUBSUB_PUSH_AUDIENCE=$DEPLOYED_URL"
           fi
 
-      # Destino de los enlaces de los correos (confirmar cuenta, recuperar
-      # contraseña, ir a la notificación). Sin FRONTEND_URL el servicio usaba
-      # su valor por defecto (auth: https://ceibuenvivir.org, que sirve un
-      # front viejo). Solo en TESTING: producción no se toca (22/11/2026).
+      # Destino de los enlaces de los correos (confirmar cuenta, recuperar contraseña, ir a
+      # la notificación). Solo en testing.
       - name: Configure FRONTEND_URL (testing)
         if: needs.cd-setup.outputs.env_name == 'TESTING'
         run: |
@@ -2106,8 +2100,7 @@ jobs:
             GCP_BUCKET_NAME=${{ vars.GCP_BUCKET_NAME || 'ceibuenvivir-bucket' }}
             APP_ENV=${{ env.APP_ENV }}
             GOOGLE_APPLICATION_CREDENTIALS_BASE64=${{ env.GOOGLE_APPLICATION_CREDENTIALS_BASE64 }}
-            # Identidad por JWT y no por X-User-* (el API Gateway de GCP no
-            # valida el token de la app; auditoría 17/11/2026).
+            # Identidad por JWT y no por X-User-* (el API Gateway de GCP no valida el token de la app).
             JWT_SECRET=${{ secrets.JWT_SECRET }}
 
       - name: Ensure 100% traffic routed to latest Cloud Run revision
@@ -2561,8 +2554,7 @@ jobs:
           format: openapi
           cmd_options: '-O ${{ needs.cd-api-gateway.outputs.gateway_url }}'
           rules_file_name: 'auth/zap.conf'
-          # D6 (22/11/2026): informativo. El reporte queda como artifact; un
-          # hallazgo ya no dispara el rollback de todos los servicios.
+          # Informativo: el reporte queda como artifact y un hallazgo no dispara el rollback.
           fail_action: false
           artifact_name: zap-gateway-openapi-report
           allow_issue_writing: false
@@ -2842,8 +2834,8 @@ jobs:
     name: CD — Load Tests (k6 — auth, informativo)
     runs-on: ubuntu-latest
     needs: [cd-setup, cd-smoke, cd-auth]
-    # D6 (22/11/2026): informativo. Si un umbral no se cumple el job queda
-    # marcado, pero no corta el CD ni dispara el rollback.
+    # Informativo: si un umbral no se cumple el job queda marcado, pero no corta el CD ni
+    # dispara el rollback.
     continue-on-error: true
     environment: ${{ needs.cd-setup.outputs.env_name }}
     timeout-minutes: 15
@@ -2981,8 +2973,7 @@ jobs:
     permissions:
       contents: read
       id-token: write
-    # D6 (22/11/2026): solo los smoke tests disparan el rollback; ZAP y k6
-    # son informativos.
+    # Solo los smoke tests disparan el rollback; ZAP y k6 son informativos.
     if: always() && needs.cd-smoke.result == 'failure'
 
     steps:

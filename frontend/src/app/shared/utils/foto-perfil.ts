@@ -8,9 +8,8 @@ const EXTENSIONES_FOTO = /\.(jpe?g|png|webp|gif)$/i;
 export const ACCEPT_FOTO = ".jpg,.jpeg,.png,.webp,.gif";
 
 /**
- * Valida una foto de perfil antes de subirla (D9, 22/11/2026). Devuelve el
- * mensaje para mostrar, o null si la foto se puede subir. El backend
- * (rxresume) repite el control mirando el contenido real del archivo.
+ * Valida una foto de perfil antes de subirla. Devuelve el mensaje para mostrar, o null
+ * si se puede subir. El backend (rxresume) repite el control con el contenido real.
  */
 export function validarFotoPerfil(
   file: File | null | undefined,

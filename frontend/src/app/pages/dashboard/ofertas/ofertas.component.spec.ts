@@ -79,8 +79,8 @@ describe("OfertasComponent", () => {
     expect(labels()).toContain("Rechazar");
   });
 
-  // 17/11/2026: los obligatorios se marcan con * y, al intentar publicar,
-  // cada campo vacío muestra su error al lado; no se llama al backend.
+  // Los obligatorios se marcan con * y, al intentar publicar, cada campo vacío muestra su
+  // error al lado; no se llama al backend.
   it("marca los obligatorios y muestra el error junto a cada campo", () => {
     const service = TestBed.inject(JobOfferService);
     const crear = spyOn(service, "createOffer").and.returnValue(of({} as any));

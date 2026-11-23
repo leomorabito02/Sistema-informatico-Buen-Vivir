@@ -90,9 +90,8 @@ export class CampaignsService {
   }
 
   /**
-   * Baja lógica (Problema 5 de la auditoría): la campaña deja de verse en
-   * la gestión y en la landing. Solo admin y voluntariado (el backend
-   * responde 403 al resto).
+   * Baja lógica: la campaña deja de verse en la gestión y en la landing. Solo admin y
+   * voluntariado.
    */
   eliminar(id: string): Observable<{ mensaje: string }> {
     return this.http

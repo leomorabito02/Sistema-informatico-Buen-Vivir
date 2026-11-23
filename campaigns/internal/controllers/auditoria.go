@@ -10,7 +10,7 @@ import (
 	"buenvivir/campaigns/internal/repositories"
 )
 
-// Acciones auditadas de Campañas (D8, 22/11/2026).
+// Acciones auditadas de Campañas.
 const (
 	AccionCrear    = "crear"
 	AccionEditar   = "editar"

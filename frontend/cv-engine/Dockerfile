@@ -1,15 +1,10 @@
-# cv-renderer en dos etapas (22/11/2026).
+# cv-renderer en dos etapas:
 #
-# 1) Build: instala dependencias y compila el servidor en UN solo archivo
+# 1) Build: instala dependencias y compila el servidor en un solo archivo
 #    (scripts/build-server.mjs) con todas sus dependencias adentro.
-# 2) Imagen final: solo Node, el bundle y las fuentes. Sin node_modules, sin
-#    npm/npx/corepack/yarn y sin esbuild.
-#
-# Por qué: Trivy marcaba vulnerabilidades HIGH/CRITICAL de cosas que el
-# servidor no usa: el binario de esbuild (tsx al arrancar), el workspace
-# entero del frontend (Angular, Firebase, jsPDF...) que se colaba con
-# `pnpm install --filter` y `pnpm deploy`, y paquetes internos del npm de
-# la imagen base.
+# 2) Imagen final: solo Node, el bundle y las fuentes, sin node_modules ni
+#    herramientas de build, para que Trivy no marque vulnerabilidades de cosas
+#    que el servidor no usa.
 
 # 1) Build.
 FROM node:22-alpine AS build

@@ -14,10 +14,7 @@ func NewHealthController(cfg *config.Config) *HealthController {
 	return &HealthController{cfg: cfg}
 }
 
-// Health responde GET /api/salud, informando qué ambiente y qué
-// Contentful Environment tiene cargados esta instancia — útil para
-// confirmar rápido, sin leer logs, contra qué está hablando el
-// servicio (clave para no confundir testing con producción).
+// Health responde GET /api/salud con el ambiente y el Environment de Contentful cargados.
 func (c *HealthController) Health(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]string{
 		"status":                "UP",

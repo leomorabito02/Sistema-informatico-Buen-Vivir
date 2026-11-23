@@ -19,14 +19,8 @@ const (
 	maxSkillsAITimeoutLimit = 60 * time.Second
 )
 
-// SkillsAIConfig agrupa lo que necesitan los dos proveedores de IA.
-//
-//   - Gemini (principal) corre en Vertex AI: se autentica con la misma
-//     cuenta de servicio de Google que ya usa el servicio para Firestore,
-//     así que NO lleva API key. Solo hace falta el proyecto de GCP.
-//   - OpenAI (respaldo) sí lleva API key. En Cloud Run llega como
-//     variable de entorno inyectada desde Secret Manager; nunca se
-//     escribe en el código ni en el repo.
+// SkillsAIConfig agrupa la configuración de los proveedores de IA: Gemini (Vertex AI,
+// sin API key) y OpenAI (respaldo, con API key desde Secret Manager).
 type SkillsAIConfig struct {
 	VertexProjectID string
 	VertexLocation  string

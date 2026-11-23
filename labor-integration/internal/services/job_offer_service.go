@@ -23,8 +23,6 @@ type JobOfferService struct {
 type JobOfferServiceOption func(*JobOfferService)
 
 // ErrOfferForbidden: el rol no puede hacer esa operación sobre la oferta.
-// Antes editar y borrar no controlaban rol ni dueño (auditoría
-// 2026-11-11, Problema 4).
 var ErrOfferForbidden = errors.New("forbidden: no tenés permisos sobre esta oferta")
 
 // Roles de gestión de ofertas. role_dev pasa como admin.
@@ -149,11 +147,8 @@ func (s *JobOfferService) populateMissingCreatorName(ctx context.Context, offer 
 	}
 }
 
-// isOfferVisibleForRole: pendientes, rechazadas y eliminadas solo las ve
-// la gestión (admin, voluntario) y la empresa dueña (el controller ya le
-// filtra las suyas). El resto ve solo las publicadas (HU-40). Antes
-// cualquier rol que no fuera participante (docente, por ejemplo) veía
-// también las pendientes de todas las empresas.
+// isOfferVisibleForRole: pendientes, rechazadas y eliminadas solo las ve la gestión
+// (admin, voluntario) y la empresa dueña. El resto ve solo las publicadas (HU-40).
 func (s *JobOfferService) isOfferVisibleForRole(offer *models.JobOffer, role string) bool {
 	if esStaffOferta(role) || role == "role_company" {
 		return true
@@ -189,10 +184,9 @@ func (s *JobOfferService) UpdateOffer(ctx context.Context, id string, offer *mod
 	return s.repo.Update(ctx, id, existing)
 }
 
-// estadoPermitido decide el estado después de editar. Solo el admin lo
-// cambia libremente (aprobar es suyo, HU-40/41). Empresa y voluntario
-// solo pueden renovar una oferta vencida ("Vencida" -> "Activa"); otro
-// cambio se ignora. Un estado vacío deja el que estaba (antes lo borraba).
+// estadoPermitido decide el estado después de editar. Solo el admin lo cambia
+// libremente (HU-40/41); empresa y voluntario solo pueden renovar una oferta vencida.
+// Un estado vacío deja el que estaba.
 func estadoPermitido(actual, pedido, role string) string {
 	if pedido == "" {
 		return actual

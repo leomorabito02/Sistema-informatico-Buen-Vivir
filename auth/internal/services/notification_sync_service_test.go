@@ -124,8 +124,7 @@ func TestNotificationSyncService_InitUserPreferencesAsync_GRPC(t *testing.T) {
 	}
 }
 
-// Con JWT_SECRET el pedido a Notificaciones lleva un token de servicio
-// role_dev firmado (Notificaciones ya no confía en X-User-ID).
+// Con JWT_SECRET el pedido a Notificaciones lleva un token de servicio role_dev firmado.
 func TestServiceToken(t *testing.T) {
 	if tok, err := serviceToken(""); err != nil || tok != "" {
 		t.Fatalf("sin secreto no debe firmar: %q %v", tok, err)

@@ -10,13 +10,9 @@ import {
 import { fechaLocal } from "./dashboard.fechas";
 
 /**
- * Indicadores y gráficas del dashboard (HU-52, HU-53, HU-54).
- *
- * El microservicio de Dashboard (dashboard/, Go) consulta a cada servicio
- * de origen, calcula los indicadores y las series por mes, y devuelve el
- * resultado listo para mostrar: el frontend no calcula nada. Si un
- * servicio de origen falla, sus indicadores vienen con
- * `disponible: false` y el resto llega igual.
+ * Indicadores y gráficas del dashboard (HU-52 a HU-54). El microservicio calcula todo y
+ * devuelve el resultado listo; si una fuente falla, sus indicadores vienen con
+ * `disponible: false`.
  */
 @Injectable({ providedIn: "root" })
 export class DashboardService {

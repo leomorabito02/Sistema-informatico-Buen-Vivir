@@ -44,7 +44,6 @@ func NewFirebaseService() (FirebaseService, error) {
 		opt := option.WithCredentialsJSON([]byte(credentialsJSON)) //nolint:staticcheck // option.WithCredentialsJSON is required for Firebase inline credentials
 		app, err = firebase.NewApp(ctx, nil, opt)
 	} else if credentialsEnv != "" {
-		// Check if it's a raw JSON string instead of a path
 		if len(credentialsEnv) > 0 && credentialsEnv[0] == '{' {
 			if os.Getenv("FIREBASE_CREDENTIALS_JSON") == "" {
 				_ = os.Setenv("FIREBASE_CREDENTIALS_JSON", credentialsEnv)

@@ -48,8 +48,7 @@ type SubmissionController struct {
 	names             *services.TeacherNames
 }
 
-// WithTeacherNames: "Mis cursos" del participante muestra el nombre del
-// docente responsable (D3, 22/11/2026).
+// WithTeacherNames hace que "Mis cursos" muestre el nombre del docente responsable.
 func (c *SubmissionController) WithTeacherNames(n *services.TeacherNames) *SubmissionController {
 	c.names = n
 	return c

@@ -19,10 +19,8 @@ type Rutas struct {
 	Guard func(http.Handler) http.Handler
 }
 
-// RegisterRoutes: el resumen ya calculado (HU-52 a HU-54), las áreas
-// formativas para el filtro y el historial de reportes (HU-55). Todo es
-// solo para la administración. Los datos crudos de cada servicio ya no se
-// exponen: el cálculo se hace acá y el frontend solo muestra.
+// RegisterRoutes registra el resumen (HU-52 a HU-54), las áreas formativas para el
+// filtro y el historial de reportes (HU-55). Todo es solo para la administración.
 func RegisterRoutes(mux *http.ServeMux, r Rutas) {
 	ctrl := r.Dashboard
 	mux.HandleFunc("GET /health", ctrl.HealthCheck)

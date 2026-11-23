@@ -22,11 +22,11 @@ import (
 	"buenvivir/campaigns/internal/services"
 )
 
-// TestCarga_ListadoPublicoConVolumen es una prueba de carga en proceso
-// (auditoría 2026-11-11, Problema 2): servicio real + emulador de Firestore,
-// sin tocar datos reales. Carga CARGA_CAMPANAS campañas (500 por defecto) y
-// lanza 50 clientes simultáneos (cada uno con su IP) contra el listado público, con y sin
-// búsqueda, y la gestión con token. Solo corre con CARGA=1 y el emulador:
+// TestCarga_ListadoPublicoConVolumen es una prueba de carga en proceso:
+// servicio real + emulador de Firestore, sin tocar datos reales. Carga
+// CARGA_CAMPANAS campañas (500 por defecto) y lanza 50 clientes simultáneos
+// (cada uno con su IP) contra el listado público, con y sin búsqueda, y la
+// gestión con token. Solo corre con CARGA=1 y el emulador:
 //
 //	CARGA=1 FIRESTORE_EMULATOR_HOST=127.0.0.1:18390 go test ./internal/routes -run Carga -v
 func TestCarga_ListadoPublicoConVolumen(t *testing.T) {

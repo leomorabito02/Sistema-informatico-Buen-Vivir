@@ -32,7 +32,6 @@ import (
 )
 
 func main() {
-	// Logs estructurados en JSON (Cloud Run los manda a Cloud Logging).
 	observability.InitLogger("education", os.Getenv("APP_ENV"))
 	metrics := observability.NewRegistry("education")
 
@@ -220,11 +219,8 @@ func startGRPCServer(port string, grpcCtrl educationpb.EducationServiceServer) {
 	}()
 }
 
-// skillProviders arma la lista de proveedores de IA para sugerir
-// habilidades, en orden de preferencia: Gemini (principal) y OpenAI
-// (respaldo). Los que no están configurados se omiten; si falla la
-// configuración de Gemini el servicio arranca igual (con OpenAI, o sin
-// IA), porque sugerir habilidades es una ayuda, no algo imprescindible.
+// skillProviders arma los proveedores de IA para sugerir habilidades: Gemini
+// (principal) y OpenAI (respaldo). Los que no están configurados se omiten.
 func skillProviders(cfg *config.Config, googleCredentials []byte) []services.SugeridorHabilidades {
 	var providers []services.SugeridorHabilidades
 	ai := cfg.SkillsAI

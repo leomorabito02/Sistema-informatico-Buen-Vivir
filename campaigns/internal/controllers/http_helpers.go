@@ -10,9 +10,8 @@ import (
 	"buenvivir/campaigns/internal/services"
 )
 
-// maxBodyBytes acota el cuerpo de las requests: el texto más largo (5000
-// caracteres) y la foto subida (hasta maxImagenDatos, ~700 KB en base64)
-// entran holgados. Antes era 64 KB y rechazaba las fotos (23/11/2026).
+// maxBodyBytes acota el cuerpo: alcanza para el texto más largo y la foto subida
+// (hasta maxImagenDatos en base64).
 const maxBodyBytes = 1 << 20
 
 func writeJSON(w http.ResponseWriter, status int, payload any) {

@@ -11,12 +11,8 @@ import (
 // perfil a nombre de otra cuenta.
 var errCreateForOtherUser = errors.New("forbidden: access denied to create a profile for another user")
 
-// checkCreateProfileOwnership: admin y dev crean perfiles para cualquier
-// cuenta; los roles de staffRoles también (por ejemplo, el voluntario crea
-// participantes, HU-07). El resto solo puede crear el perfil de su propia
-// cuenta. Antes no se validaba y, por ejemplo, un participante podía crear
-// un perfil de participante a nombre de otro usuario (auditoría
-// 2026-11-11, Problema 4).
+// checkCreateProfileOwnership: admin, dev y los staffRoles crean perfiles para cualquier
+// cuenta (el voluntario crea participantes, HU-07); el resto, solo el de su propia cuenta.
 func checkCreateProfileOwnership(ctx context.Context, targetUserID string, staffRoles ...string) error {
 	if isAdminRequest(ctx) {
 		return nil
@@ -34,10 +30,8 @@ func checkCreateProfileOwnership(ctx context.Context, targetUserID string, staff
 	return nil
 }
 
-// canApprove dice si quien hace el pedido puede fijar el approval_status
-// de un perfil del rol profileRole. Aprueban admin y dev (HU-12, HU-38);
-// el voluntario, además, perfiles de participantes (HU-07). Sin esto, una
-// cuenta pendiente podía aprobarse sola con PUT sobre su propio perfil.
+// canApprove dice si quien pide puede fijar el approval_status de un perfil de
+// profileRole: admin y dev (HU-12, HU-38) y el voluntario para participantes (HU-07).
 func canApprove(ctx context.Context, profileRole string) bool {
 	reqRole, _ := ctx.Value(middlewares.RoleIDKey).(string)
 	switch reqRole {

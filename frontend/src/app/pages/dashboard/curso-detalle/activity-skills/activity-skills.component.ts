@@ -32,13 +32,9 @@ import { EmptyStateComponent } from "../../../../shared/components/empty-state.c
 export const MAX_SKILLS_PER_ACTIVITY = 8;
 
 /**
- * Sección "Habilidades que desarrolla esta actividad" de la ventana de
- * alta / edición de actividad (HU-21 / HU-58).
- *
- * No guarda nada por su cuenta: mantiene la lista `skills` del formulario
- * y la devuelve con `skillsChange`. El componente padre la guarda cuando
- * se guarda la actividad. Así las sugerencias de la IA que nadie aceptó
- * nunca llegan a la base (viven solo acá, como pide el DER).
+ * Sección "Habilidades que desarrolla esta actividad" del formulario de actividad
+ * (HU-21 / HU-58). No guarda nada: devuelve la lista con skillsChange y la guarda el
+ * padre junto con la actividad, así las sugerencias no aceptadas nunca llegan a la base.
  */
 @Component({
   selector: "app-activity-skills",

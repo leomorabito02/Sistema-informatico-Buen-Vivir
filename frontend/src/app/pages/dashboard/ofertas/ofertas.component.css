@@ -1,6 +1,4 @@
-/* Buscador, filtro y "Publicar oferta" en una sola fila y a la misma
-   altura (antes: buscador de 28px con letra de 12px, desplegable de 45px y
-   el botón partido en dos líneas). */
+/* Buscador, filtro y "Publicar oferta" en una sola fila y a la misma altura. */
 .header-actions {
   display: flex;
   gap: var(--space-4);
@@ -63,9 +61,8 @@
   }
 }
 
-/* Formulario de la oferta: dos columnas desde tablet (col-12 / md:col-6
-   eran clases de PrimeFlex, que el proyecto no carga, y todo quedaba en
-   una sola columna). Los campos col-12 sin md:col-6 ocupan la fila. */
+/* Formulario de la oferta: dos columnas desde tablet; los campos col-12 sin
+   md:col-6 ocupan la fila. */
 .dialog-body.grid {
   grid-template-columns: minmax(0, 1fr);
   column-gap: var(--space-4);
@@ -80,10 +77,8 @@
   }
 }
 
-/* Tarjeta: textos en dos tamaños (contenido 15px, metadatos 13px) y
-   acciones de a dos por fila; si queda una sola, ocupa la fila (antes
-   todas iban apiladas y la tarjeta de la empresa o del admin quedaba muy
-   alta). */
+/* Tarjeta: textos en dos tamaños (contenido 15px, metadatos 13px) y acciones
+   de a dos por fila; si queda una sola, ocupa la fila. */
 .card-body p {
   margin-top: 0;
 }

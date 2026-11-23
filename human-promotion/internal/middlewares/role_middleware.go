@@ -37,9 +37,7 @@ func RequireRole(allowedRoles ...string) func(http.Handler) http.Handler {
 			}
 
 			if !allowed {
-				// Las fichas son datos sensibles (Ley 25.326): todo intento
-				// denegado queda registrado. Cuando exista el log de
-				// auditoría (HU-35), este es el punto donde enviarlo.
+				// Las fichas son datos sensibles (Ley 25.326): todo intento denegado queda registrado.
 				slog.Warn("acceso denegado por rol",
 					slog.String("user_id", UserIDFromContext(r.Context())),
 					slog.String("role", userRole),

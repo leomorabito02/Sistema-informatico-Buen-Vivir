@@ -25,10 +25,8 @@ func (c *CourseController) WithTeacherNames(n *services.TeacherNames) *CourseCon
 	return c
 }
 
-// List responde GET /api/cursos?q=texto&area=id. Los dos son opcionales
-// y se combinan: q busca en título, área formativa y descripción (ver
-// services.FiltrarCursos) y area deja solo los cursos de esa área
-// formativa (HU-28). No incluye los cursos dados de baja (HU-16).
+// List responde GET /api/cursos?q=texto&area=id. Filtra por texto y área formativa
+// (HU-28) y no incluye los cursos dados de baja (HU-16).
 func (c *CourseController) List(w http.ResponseWriter, r *http.Request) {
 	q, ok := busquedaCursos(w, r)
 	if !ok {

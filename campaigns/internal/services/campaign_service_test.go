@@ -294,9 +294,8 @@ func (m *mockCampanasProducer) Notify() {
 	m.notifyCalled = true
 }
 
-// El aviso de campaña nueva sale una sola vez, al publicar: crear el
-// borrador no avisa y publicar de nuevo tampoco (Problema 3 de la
-// auditoría: antes avisaba dos veces, la primera de un borrador).
+// El aviso de campaña nueva sale una sola vez, al publicar: crear el borrador no avisa
+// y publicar de nuevo tampoco.
 func TestCampanaCreada_SoloAlPublicarYUnaVez(t *testing.T) {
 	prod := &mockCampanasProducer{}
 	svc := NewCampaignService(
@@ -328,7 +327,7 @@ func TestCampanaCreada_SoloAlPublicarYUnaVez(t *testing.T) {
 	}
 }
 
-// ── Baja lógica (Problema 5 de la auditoría 2026-11-11) ──
+// ── Baja lógica ──
 
 func TestDelete_SacaLaCampanaDeGestionYPublico(t *testing.T) {
 	ctx := context.Background()

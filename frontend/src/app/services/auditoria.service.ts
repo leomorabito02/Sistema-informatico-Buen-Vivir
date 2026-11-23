@@ -47,14 +47,14 @@ export class AuditoriaService {
     );
   }
 
-  /** Auditoría de Campañas (D8, 22/11/2026): alta, edición, publicación y baja. */
+  /** Auditoría de Campañas: alta, edición, publicación y baja. */
   listarCampanas(
     filtro: FiltroAuditoria = {},
   ): Observable<RegistroAuditoria[]> {
     return this.listar(`${this.base}/api/v1/campaigns/auditoria`, filtro);
   }
 
-  /** Acciones de gestión sobre CV de participantes (D8): ver, editar, cambiar foto. */
+  /** Acciones de gestión sobre CV de participantes: ver, editar, cambiar foto. */
   listarCv(filtro: FiltroAuditoria = {}): Observable<RegistroAuditoria[]> {
     return this.listar(`${this.base}/api/v1/rxresume/auditoria`, filtro);
   }

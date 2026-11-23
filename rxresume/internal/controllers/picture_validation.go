@@ -9,9 +9,8 @@ import (
 	"strings"
 )
 
-// Fotos de perfil (D9, 22/11/2026): además del tope de 5 MB (HU-11) se
-// exige una extensión de imagen y que el contenido real lo sea. Antes se
-// aceptaba cualquier archivo y se guardaba como application/octet-stream.
+// Fotos de perfil: además del tope de 5 MB (HU-11) se exige una extensión de imagen y
+// que el contenido real lo sea.
 var (
 	extensionesFoto = map[string]bool{".jpg": true, ".jpeg": true, ".png": true, ".webp": true, ".gif": true}
 	tiposFoto       = map[string]bool{"image/jpeg": true, "image/png": true, "image/webp": true, "image/gif": true}

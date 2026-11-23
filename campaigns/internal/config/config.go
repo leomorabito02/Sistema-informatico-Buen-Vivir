@@ -17,7 +17,6 @@ type Config struct {
 	// = no se habilita CORS (el acceso normal es por el API Gateway).
 	CORSAllowedOrigins string
 
-	// NotificationsServiceURL: URL base del servicio de notificaciones.
 	NotificationsServiceURL string
 
 	// InternalHMACSecret: Secreto compartido para autenticar eventos con notifications-service.

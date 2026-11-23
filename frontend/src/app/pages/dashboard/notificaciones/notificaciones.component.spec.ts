@@ -293,8 +293,8 @@ describe("NotificacionesComponent", () => {
     );
   });
 
-  // Problema 3 de la auditoría (2026-11-11): la pantalla se entera sola de
-  // las notificaciones nuevas y mantiene al día el contador de la campana.
+  // La pantalla se entera sola de las notificaciones nuevas y mantiene al día el contador
+  // de la campana.
   describe("actualización automática", () => {
     it("después de marcar como leída refresca el contador", async () => {
       await component.loadNotifications();

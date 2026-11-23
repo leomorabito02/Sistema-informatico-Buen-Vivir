@@ -26,12 +26,8 @@ const (
 	defaultCatalogSearchLimit = 20
 )
 
-// SkillService maneja el catálogo de habilidades, las habilidades de
-// cada actividad y las que ganó cada participante (HU-21 / HU-58).
-//
-// El permiso sobre el curso (¿este docente puede tocar esta actividad?)
-// lo valida el controller antes de llamar acá, igual que con
-// ActivityService.
+// SkillService maneja el catálogo de habilidades, las de cada actividad y las de cada
+// participante (HU-21 / HU-58). El permiso sobre el curso lo valida el controller.
 type SkillService interface {
 	// SearchCatalog devuelve las habilidades del catálogo cuyo nombre
 	// contiene el texto buscado (sin importar mayúsculas ni tildes),
@@ -40,10 +36,8 @@ type SkillService interface {
 	// GetCourseSkills devuelve las habilidades del curso (unión de las de
 	// sus actividades) y las de cada actividad.
 	GetCourseSkills(ctx context.Context, cursoID string) (*models.CourseSkills, error)
-	// SetActivitySkills reemplaza las habilidades de la actividad y se
-	// las asigna también a quienes ya la entregaron (decisión del equipo:
-	// quien entregó temprano no tiene que quedar con menos habilidades
-	// que quien entregó tarde por la misma tarea).
+	// SetActivitySkills reemplaza las habilidades de la actividad y se las asigna también
+	// a quienes ya la entregaron.
 	SetActivitySkills(ctx context.Context, activity *models.Activity, inputs []models.SkillInput) ([]models.Skill, error)
 	// ListParticipantSkills devuelve las habilidades que ganó el
 	// participante, con nombre y categoría del catálogo.

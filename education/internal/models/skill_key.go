@@ -15,15 +15,9 @@ var accentFolding = map[rune]rune{
 	'ñ': 'n', 'ç': 'c',
 }
 
-// SkillKey devuelve la clave normalizada de un nombre de habilidad: en
-// minúsculas, sin tildes, sin signos de puntuación y con las palabras
-// unidas por guiones. "Trabajo en equipo", " trabajo  en Equipo." y
-// "Trabajo en Équipo" dan todas "trabajo-en-equipo".
-//
-// Por qué existe: es la única regla que decide si dos habilidades son
-// "la misma". Se usa como id del documento en el catálogo (así Firestore
-// impide el duplicado) y para filtrar las sugerencias de la IA contra lo
-// que ya existe. No depende de que la IA escriba igual que el catálogo.
+// SkillKey devuelve la clave normalizada de un nombre de habilidad (minúsculas, sin
+// tildes ni signos, palabras unidas por guiones). Decide si dos habilidades son la
+// misma: es el id del catálogo y filtra las sugerencias de la IA.
 func SkillKey(nombre string) string {
 	var b strings.Builder
 	lastDash := true // evita guiones al principio y repetidos

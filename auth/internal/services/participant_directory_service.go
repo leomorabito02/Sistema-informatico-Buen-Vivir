@@ -14,8 +14,7 @@ const (
 	maxParticipantSearchLength = 100
 	defaultParticipantSearch   = 20
 	maxParticipantSearch       = 50
-	// maxParticipantList acota el listado completo (búsqueda vacía) que
-	// muestra Promoción Humana al entrar (pedido del 17/11/2026).
+	// maxParticipantList acota el listado completo (búsqueda vacía) de Promoción Humana.
 	maxParticipantList = 500
 	maxUserSummaryIDs  = 200
 )

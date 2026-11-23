@@ -8,12 +8,8 @@ import (
 	"buenvivir/education/internal/services"
 )
 
-// ProgressController expone el progreso formativo de un curso (HU-20)
-// para role_admin y role_volunteer, sin el chequeo de "¿es tu curso?" de
-// DocenteController.GetProgress: según HU-06 admin y voluntario operan
-// sobre cualquier curso. Agregado en la auditoría 2026-11-11: la pantalla
-// "Seguimiento" estaba en el menú de admin y voluntario pero solo podía
-// usar /api/docente/* (403 para el voluntario, lista vacía para el admin).
+// ProgressController expone el progreso formativo de un curso (HU-20) a admin y
+// voluntario, sin el chequeo de ownership del docente.
 type ProgressController struct {
 	courseService   services.CourseService
 	progressService services.ProgressService

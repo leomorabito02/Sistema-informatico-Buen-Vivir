@@ -48,9 +48,7 @@ func (e *UpstreamError) Error() string {
 
 func (e *UpstreamError) Unwrap() error { return e.Err }
 
-// ErrNoConfigurado: no hay dirección para ese servicio (por ejemplo,
-// Inserción Laboral todavía no se despliega en Cloud Run). Solo falla ese
-// indicador.
+// ErrNoConfigurado: no hay dirección para ese servicio. Solo falla ese indicador.
 var ErrNoConfigurado = errors.New("servicio no configurado")
 
 // Upstream es un servicio de origen.
@@ -58,10 +56,8 @@ type Upstream struct {
 	Name    string
 	BaseURL string
 	HTTP    *http.Client
-	// IDToken, si no es nil, da un token de identidad de Google para el
-	// servicio. En Cloud Run los servicios no aceptan llamadas anónimas
-	// (--no-allow-unauthenticated): el token va en X-Serverless-Authorization,
-	// así la sesión del usuario sigue viajando en Cookie y Authorization.
+	// IDToken da un token de identidad de Google para llamar a servicios privados de Cloud
+	// Run (va en X-Serverless-Authorization; la sesión sigue en Cookie y Authorization).
 	IDToken func(ctx context.Context) (string, error)
 }
 

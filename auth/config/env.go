@@ -6,10 +6,8 @@ import (
 	"strings"
 )
 
-// LoadEnvFile parses a local .env file (KEY=VALUE per line, # comments, optional quotes)
-// without adding external dependencies. If variables are already present in the environment
-// (e.g. from Docker or platform secrets), they take precedence.
-// If the file does not exist, it silently continues.
+// LoadEnvFile lee un archivo .env local sin pisar las variables que ya existen en el
+// entorno. Si el archivo no existe, sigue sin error.
 func LoadEnvFile(paths ...string) {
 	if len(paths) == 0 {
 		paths = []string{".env", "../.env"}

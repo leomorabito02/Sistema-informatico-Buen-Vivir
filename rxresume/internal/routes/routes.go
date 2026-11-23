@@ -23,7 +23,7 @@ func RegisterRoutes(mux *http.ServeMux, ctrl *controllers.ResumeController) {
 	mux.HandleFunc("GET /api/v1/rxresume/participants", ctrl.GetAllParticipantsResumes)
 
 	mux.HandleFunc("GET /api/v1/rxresume/user", ctrl.GetUserResumeByAdmin)
-	// Auditoría de las acciones de gestión sobre CV ajenos (D8, 22/11/2026).
+	// Auditoría de las acciones de gestión sobre CV ajenos.
 	mux.HandleFunc("GET /api/v1/rxresume/auditoria", ctrl.Auditoria)
 	mux.HandleFunc("PUT /api/v1/rxresume/user", ctrl.UpdateUserResumeByAdmin)
 	mux.HandleFunc("GET /api/v1/rxresume/user/pdf-status", ctrl.GetUserPDFStatusByAdmin)

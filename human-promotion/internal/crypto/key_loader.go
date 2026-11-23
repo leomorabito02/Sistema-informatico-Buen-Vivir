@@ -11,11 +11,8 @@ import (
 	"cloud.google.com/go/secretmanager/apiv1/secretmanagerpb"
 )
 
-// LoadKey resuelve la clave AES-256. En Cloud Run se lee de Secret
-// Manager (secretName = "projects/<id>/secrets/<nombre>/versions/<v>");
-// en local, sin Secret Manager, se acepta la clave en base64 directo
-// desde el entorno. En ambos casos el valor guardado es la clave de 32
-// bytes codificada en base64, nunca la clave cruda en el código.
+// LoadKey resuelve la clave AES-256: de Secret Manager en Cloud Run, o en base64 desde
+// el entorno en local.
 func LoadKey(ctx context.Context, secretName, base64Key string) ([]byte, error) {
 	encoded := base64Key
 	if secretName != "" {

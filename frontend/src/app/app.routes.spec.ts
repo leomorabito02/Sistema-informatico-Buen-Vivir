@@ -31,7 +31,7 @@ describe("App Routes", () => {
       dashboardRoute?.loadComponent || dashboardRoute?.component,
     ).toBeDefined();
     expect(dashboardRoute?.canActivate).toEqual([authGuard]);
-    expect(dashboardRoute?.children).toHaveSize(26); // + permisos (HU-06)
+    expect(dashboardRoute?.children).toHaveSize(25);
   });
 
   it("should lazy load pending-approval component", async () => {
@@ -138,7 +138,6 @@ describe("App Routes", () => {
     "cursos",
     "gestion-cursos",
     "mis-cursos",
-    "progreso",
     "ofertas",
     "cv",
     "usuarios",

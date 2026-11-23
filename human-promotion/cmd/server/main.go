@@ -30,7 +30,6 @@ import (
 )
 
 func main() {
-	// Logs en JSON a stdout: Cloud Run los manda tal cual a Cloud Logging.
 	observability.InitLogger("human-promotion", os.Getenv("APP_ENV"))
 	metrics := observability.NewRegistry("human-promotion")
 

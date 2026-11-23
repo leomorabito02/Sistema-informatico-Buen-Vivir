@@ -22,15 +22,9 @@ const (
 
 var ErrUnauthorized = errors.New("unauthorized: missing user context")
 
-// AuthHeaders identifica a quien hace el pedido.
-//
-// Con JWT_SECRET (Cloud Run) la identidad sale SOLO del JWT verificado
-// (cookie de sesión, X-Forwarded-Authorization o Authorization): los
-// X-User-ID / X-User-Role que mande el cliente se ignoran, porque el API
-// Gateway de GCP los reenvía tal cual y cualquiera podía leer las
-// notificaciones de otro usuario (auditoría 17/11/2026). Sin JWT_SECRET
-// (Docker local) se confía en los headers que pone el gateway nginx después
-// de validar el token, como antes.
+// AuthHeaders identifica a quien hace el pedido. Con JWT_SECRET (Cloud Run) la
+// identidad sale solo del JWT verificado y se ignoran los X-User-* del cliente. Sin
+// JWT_SECRET (Docker local) se confía en los headers que pone el gateway nginx.
 func AuthHeaders(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		jwtSecret := strings.TrimSpace(os.Getenv("JWT_SECRET"))

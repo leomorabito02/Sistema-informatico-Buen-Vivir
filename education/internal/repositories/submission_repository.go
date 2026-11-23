@@ -29,11 +29,9 @@ func SubmissionDocID(actividadID, participanteID string) string {
 // SubmissionRepository encapsula el acceso a la colección Firestore
 // "entregas".
 type SubmissionRepository interface {
-	// CreateWithAttendance crea la entrega y, en la misma transacción,
-	// escribe la Asistencia del participante en esa actividad con
-	// presente=true y fecha = activity.Fecha, y le asigna al participante
-	// las habilidades de la actividad que todavía no tenía. O se guarda
-	// todo o nada. Devuelve ErrAlreadySubmitted si ya había una entrega.
+	// CreateWithAttendance crea en una transacción la entrega, su asistencia (presente,
+	// con la fecha de la actividad) y las habilidades nuevas del participante.
+	// ErrAlreadySubmitted si ya había una entrega.
 	CreateWithAttendance(ctx context.Context, activity *models.Activity, sub models.Submission) (*models.Submission, error)
 	Get(ctx context.Context, id string) (*models.Submission, error)
 	ListByActivity(ctx context.Context, actividadID string) ([]models.Submission, error)
@@ -69,10 +67,7 @@ func (r *submissionRepository) CreateWithAttendance(ctx context.Context, activit
 	}
 
 	err := r.client.RunTransaction(ctx, func(ctx context.Context, tx *firestore.Transaction) error {
-		// Habilidades (HU-21): entregar la actividad le da al participante
-		// las habilidades que esa actividad desarrolla. Va en la misma
-		// transacción que la entrega para que no pueda quedar una entrega
-		// sin sus habilidades (o habilidades sin entrega). Firestore pide
+		// Habilidades (HU-21): van en la misma transacción que la entrega. Firestore pide
 		// leer todo antes de la primera escritura.
 		newSkills, err := r.missingParticipantSkills(tx, activity.ID, sub.ParticipanteID)
 		if err != nil {

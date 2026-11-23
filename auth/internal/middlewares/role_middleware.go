@@ -47,13 +47,8 @@ func RequireRole(allowedRoles ...string) func(http.Handler) http.Handler {
 	}
 }
 
-// RequireRoleOrSelf deja pasar a los roles indicados (con el mismo bypass
-// de admin y dev que RequireRole) y, además, a cualquier usuario
-// autenticado cuando el parámetro de la URL `param` es su propio user_id.
-// Lo usa /directory/participants/by-user/{userId}: Promoción Humana lo
-// llama con el token del participante para armar "Mi proceso" (HU-34) y
-// antes recibía 403, que terminaba en un 500 (auditoría 17/11/2026).
-// Nadie puede consultar el perfil de otro usuario por esta vía.
+// RequireRoleOrSelf deja pasar a los roles indicados (más admin y dev) y a cualquier
+// usuario autenticado cuando el parámetro `param` de la URL es su propio user_id.
 func RequireRoleOrSelf(param string, allowedRoles ...string) func(http.Handler) http.Handler {
 	byRole := RequireRole(allowedRoles...)
 	return func(next http.Handler) http.Handler {

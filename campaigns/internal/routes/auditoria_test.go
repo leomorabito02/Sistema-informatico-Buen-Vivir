@@ -51,8 +51,7 @@ func servidorConAuditoria(t *testing.T) (*httptest.Server, *memAudit) {
 	return srv, audit
 }
 
-// D8 (22/11/2026): crear, editar, publicar y dar de baja quedan
-// registrados con quién, qué y sobre qué campaña.
+// Crear, editar, publicar y dar de baja quedan registrados con quién, qué y sobre qué campaña.
 func TestAuditoria_RegistraLasEscrituras(t *testing.T) {
 	srv, audit := servidorConAuditoria(t)
 	vol := token(t, "role_volunteer", "voluntario-1")

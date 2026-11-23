@@ -29,27 +29,15 @@ type CourseRepository interface {
 	Delete(ctx context.Context, id string) error
 	Publish(ctx context.Context, id string) error
 	Unpublish(ctx context.Context, id string) error
-	// ListByResponsibleTeacher filtra por fields.responsibleTeacher en
-	// la CDA, es decir, solo devuelve cursos YA PUBLICADOS de ese
-	// docente. Un curso en borrador no aparece acá aunque el campo
-	// responsibleTeacher ya lo tenga asignado.
+	// ListByResponsibleTeacher devuelve los cursos publicados (CDA) de ese docente.
 	ListByResponsibleTeacher(ctx context.Context, teacherID string) ([]models.Course, error)
-	// ListDraftsByResponsibleTeacher es el complemento por CMA: devuelve
-	// los cursos de ese docente que TODAVÍA NO están publicados
-	// (borradores). Las referencias vienen solo con su id (la CMA no
-	// resuelve includes), igual que la respuesta de los endpoints de
-	// escritura.
+	// ListDraftsByResponsibleTeacher devuelve los borradores (CMA) de ese docente,
+	// incluidos los despublicados. Las referencias vienen solo con su id.
 	ListDraftsByResponsibleTeacher(ctx context.Context, teacherID string) ([]models.Course, error)
-	// ListAllDrafts es la versión de administración de
-	// ListDraftsByResponsibleTeacher: TODOS los cursos en borrador
-	// (sin filtrar por docente), leídos de la CMA. Referencias solo con
-	// su id.
+	// ListAllDrafts devuelve todos los cursos en borrador (CMA), sin filtrar por docente.
 	ListAllDrafts(ctx context.Context) ([]models.Course, error)
-	// ExistsInManagement confirma si la entry existe en la CMA (borrador
-	// o publicada), sin importar su estado de publicación. Lo usa
-	// EnrollmentService para distinguir "curso inexistente" de "curso
-	// inactivo/despublicado" cuando Get (que solo ve la CDA, publicados)
-	// devuelve not-found.
+	// ExistsInManagement confirma si la entry existe en la CMA, publicada o no. Sirve para
+	// distinguir "curso inexistente" de "curso despublicado".
 	ExistsInManagement(ctx context.Context, id string) (bool, error)
 }
 
@@ -75,11 +63,8 @@ func (r *courseRepository) List(ctx context.Context) ([]models.Course, error) {
 	return courses, nil
 }
 
-// Get busca el curso por sys.id vía el endpoint de colección de la CDA
-// (no GET /entries/{id}): ese endpoint de entry suelta no devuelve
-// "includes" en la respuesta real de Contentful (confirmado contra la
-// API real), así que trainingArea/material/coverImage quedaban sin
-// resolver. El endpoint de colección filtrado sí trae "includes".
+// Get usa el endpoint de colección de la CDA filtrado por sys.id porque
+// GET /entries/{id} no devuelve "includes".
 func (r *courseRepository) Get(ctx context.Context, id string) (*models.Course, error) {
 	collection, err := r.client.ListEntriesWhere(ctx, courseContentType, courseInclude, map[string]string{
 		"sys.id": id,
@@ -107,10 +92,6 @@ func (r *courseRepository) Create(ctx context.Context, input models.CourseInput)
 }
 
 // Update reemplaza por completo los campos del curso (semántica PUT).
-// No vuelve a publicar automáticamente: si el curso ya estaba
-// publicado, la versión pública queda como estaba hasta que se llame
-// explícitamente a Publish, que es el comportamiento esperado para
-// contenido editorial moderado.
 func (r *courseRepository) Update(ctx context.Context, id string, input models.CourseInput) (*models.Course, error) {
 	current, err := r.client.GetManagementEntry(ctx, id)
 	if err != nil {
@@ -122,10 +103,8 @@ func (r *courseRepository) Update(ctx context.Context, id string, input models.C
 		return nil, err
 	}
 
-	// Un curso publicado se vuelve a publicar para que el cambio se vea:
-	// la CMA deja la edición como borrador pendiente y el catálogo (CDA)
-	// seguía mostrando la versión anterior (p. ej. el docente viejo,
-	// 17/11/2026). Un borrador queda como borrador.
+	// Un curso publicado se vuelve a publicar para que el cambio se vea en el catálogo;
+	// un borrador queda como borrador.
 	if current.Sys.PublishedVersion != 0 {
 		published, err := r.client.PublishEntry(ctx, id, updated.Sys.Version)
 		if err != nil {
@@ -208,10 +187,6 @@ func (r *courseRepository) ListByResponsibleTeachers(ctx context.Context, teache
 	return courses, nil
 }
 
-// ListDraftsByResponsibleTeacher lee de la CMA (ve borradores) y se
-// queda solo con las entries sin publicar (sys.publishedVersion
-// ausente). Un curso publicado y luego despublicado también cae acá,
-// que es lo correcto: no está en el catálogo.
 func (r *courseRepository) ListDraftsByResponsibleTeacher(ctx context.Context, teacherID string) ([]models.Course, error) {
 	collection, err := r.client.ListManagementEntriesWhere(ctx, courseContentType, map[string]string{
 		"fields.responsibleTeacher":    teacherID,
@@ -228,9 +203,6 @@ func (r *courseRepository) ListDraftsByResponsibleTeacher(ctx context.Context, t
 	return courses, nil
 }
 
-// ListAllDrafts devuelve todas las entries de "course" sin publicar
-// (sys.publishedVersion ausente), sin filtrar por responsibleTeacher.
-// Un curso publicado y luego despublicado también cae acá.
 func (r *courseRepository) ListAllDrafts(ctx context.Context) ([]models.Course, error) {
 	collection, err := r.client.ListManagementEntriesWhere(ctx, courseContentType, map[string]string{
 		"sys.publishedVersion[exists]": "false",
@@ -264,10 +236,8 @@ func courseInputToFields(locale string, input models.CourseInput) map[string]any
 	if input.CoverImageAssetID != "" {
 		fields["coverImage"] = wrapLocale(locale, models.NewAssetLink(input.CoverImageAssetID))
 	}
-	// capacity solo se manda si vino seteado: el campo es opcional y,
-	// si todavía no existe en el content type de Contentful, mandarlo
-	// siempre rompería el Create/Update de CUALQUIER curso (no solo los
-	// que quieren fijar cupo). Ver comentario en models.CourseInput.
+	// capacity solo se manda si vino: si el campo no existe en el content type, mandarlo
+	// rompería el guardado de cualquier curso.
 	if input.Capacity != nil {
 		fields["capacity"] = wrapLocale(locale, *input.Capacity)
 	}
@@ -312,11 +282,8 @@ func courseFromCDAEntry(entry models.ContentfulEntry, idx *models.IncludesIndex)
 	return c
 }
 
-// courseFromCMAEntry mapea una entry cruda de la Content Management API
-// (campos envueltos por locale, referencias sin resolver) al modelo de
-// dominio. Se usa para listar borradores del docente: trainingArea,
-// material y coverImage quedan solo con su id, igual que la respuesta
-// de los endpoints de escritura.
+// courseFromCMAEntry mapea una entry de la CMA (campos por locale, referencias sin
+// resolver) al modelo. Las referencias quedan solo con su id.
 func courseFromCMAEntry(locale string, entry models.ContentfulEntry) models.Course {
 	flat := flattenCMAFields(entry.Fields, locale)
 
@@ -345,12 +312,8 @@ func courseFromCMAEntry(locale string, entry models.ContentfulEntry) models.Cour
 	return c
 }
 
-// courseFromInput arma la respuesta de los endpoints de escritura a
-// partir de lo que el propio cliente envió más los metadatos que
-// devuelve Contentful (id, timestamps). No vuelve a resolver
-// trainingArea/material/coverImage contra Contentful: esos quedan solo
-// con su id. La vista totalmente resuelta se obtiene con un GET
-// posterior (que lee de la CDA una vez que el curso esté publicado).
+// courseFromInput arma la respuesta de las escrituras con lo enviado más los
+// metadatos de Contentful. Las referencias quedan solo con su id.
 func courseFromInput(sys models.ContentfulSys, input models.CourseInput) models.Course {
 	c := models.Course{
 		ID:                 sys.ID,

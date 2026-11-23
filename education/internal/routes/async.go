@@ -24,11 +24,9 @@ type AsyncEndpoints struct {
 	RemindersTrigger http.Handler
 }
 
-// WithAsync arma el handler raíz del servicio. Los endpoints asíncronos
-// van POR FUERA del router de la API: no les corresponden ni el CORS, ni
-// el JWT de usuario, ni el rate limit por IP (Pub/Sub manda los push
-// desde IPs compartidas de Google y el límite de 100/min los frenaría).
-// El correlation id (header X-Correlation-ID) se aplica a todo.
+// WithAsync arma el handler raíz. Los endpoints asíncronos van fuera del router de la
+// API: sin CORS, JWT de usuario ni rate limit por IP (Pub/Sub usa IPs compartidas de
+// Google). El correlation id se aplica a todo.
 func WithAsync(api http.Handler, a AsyncEndpoints) http.Handler {
 	mux := http.NewServeMux()
 	mount := func(pattern string, h http.Handler) {

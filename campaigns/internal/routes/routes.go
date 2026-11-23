@@ -25,14 +25,13 @@ func RegisterRoutes(r chi.Router, jwtService middlewares.JWTService, ctrl *contr
 			r.Use(middlewares.RequireRole("role_volunteer"))
 
 			r.Get("/", ctrl.List)
-			// Auditoría (D8, 22/11/2026): solo administración. Ruta estática:
-			// chi la resuelve antes que /{id}.
+			// Auditoría: solo administración. Ruta estática: chi la resuelve antes que /{id}.
 			r.With(middlewares.RequireRole("role_admin")).Get("/auditoria", ctrl.Auditoria)
 			r.Post("/", ctrl.Create)
 			r.Get("/{id}", ctrl.Get)
 			r.Put("/{id}", ctrl.Update)
 			r.Post("/{id}/publicar", ctrl.Publish)
-			// baja lógica (Problema 5 de la auditoría 2026-11-11)
+			// baja lógica
 			r.Delete("/{id}", ctrl.Delete)
 		})
 	})

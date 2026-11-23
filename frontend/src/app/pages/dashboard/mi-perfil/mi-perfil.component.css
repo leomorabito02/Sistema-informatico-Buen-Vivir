@@ -4,9 +4,7 @@
   padding: 2rem;
 }
 
-/* Título a la izquierda y "Editar perfil" a la derecha, en la misma fila
-   (antes el botón ocupaba una fila sola entre el título y la primera
-   tarjeta). */
+/* Título a la izquierda y "Editar perfil" a la derecha, en la misma fila. */
 .page-header {
   display: flex;
   justify-content: space-between;
@@ -148,9 +146,7 @@
   margin-top: 0.5rem;
 }
 
-/* Ancho según el texto, como el resto de los botones del sistema (antes
-   "Activar 2FA" ocupaba todo el ancho de la tarjeta y, en los diálogos,
-   empujaba al botón "Atrás"). */
+/* Ancho según el texto, como el resto de los botones del sistema. */
 .btn-primary {
   width: auto;
   padding: 0.75rem 1.5rem;
@@ -459,10 +455,7 @@ button.btn-google:hover:not(:disabled) {
   gap: 1rem;
 }
 
-/* ── Autenticación en dos pasos (diálogos) ───────────────────────────────
-   El marcado usaba clases de Tailwind que el proyecto no carga: los
-   métodos salían como botones nativos (borde negro, Arial, texto centrado)
-   y "Desactivar 2FA" no tenía estilo. */
+/* ── Autenticación en dos pasos (diálogos) ─────────────────────────────── */
 .btn-danger {
   padding: 0.75rem 1.5rem;
   background-color: var(--color-danger);

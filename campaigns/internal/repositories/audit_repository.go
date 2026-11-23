@@ -8,9 +8,8 @@ import (
 	"google.golang.org/api/iterator"
 )
 
-// AuditCollection guarda la auditoría de Campañas (D8, 22/11/2026). Nombre
-// propio para no mezclarse con la colección "auditoria" de Educación y
-// Promoción Humana, que comparten la base (default).
+// AuditCollection guarda la auditoría de Campañas, separada de la colección "auditoria"
+// de Educación y Promoción Humana, que comparten la base.
 const AuditCollection = "auditoria_campanas"
 
 // AuditEntry: quién hizo qué sobre qué campaña, cuándo y desde qué IP.

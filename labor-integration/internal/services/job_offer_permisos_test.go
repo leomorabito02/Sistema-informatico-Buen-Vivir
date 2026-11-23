@@ -8,8 +8,7 @@ import (
 	"buenvivir/labor-integration/internal/models"
 )
 
-// Auditoría 2026-11-11 (Problema 4): editar, borrar, crear y listar
-// ofertas respetan rol y dueño (HU-39 a HU-42).
+// Editar, borrar, crear y listar ofertas respetan rol y dueño (HU-39 a HU-42).
 
 func svcConOferta(estado string) (*JobOfferService, *mockOfferRepo) {
 	repo := newMockOfferRepo()

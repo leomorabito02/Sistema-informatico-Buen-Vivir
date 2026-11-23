@@ -16,10 +16,8 @@ func normalizar(s string) string {
 	return sinTildes.Replace(strings.ToLower(strings.TrimSpace(s)))
 }
 
-// FiltrarCursos deja los cursos cuyo título, área formativa o descripción
-// contienen q, sin distinguir mayúsculas ni tildes ("huerta" encuentra
-// "Huerta agroecológica"). q vacío devuelve todos. Es el buscador del
-// catálogo, que antes filtraba el frontend con la lista entera.
+// FiltrarCursos deja los cursos cuyo título, área formativa o descripción contienen q,
+// sin distinguir mayúsculas ni tildes. q vacío devuelve todos.
 func FiltrarCursos(cursos []models.Course, q string) []models.Course {
 	q = normalizar(q)
 	if q == "" {

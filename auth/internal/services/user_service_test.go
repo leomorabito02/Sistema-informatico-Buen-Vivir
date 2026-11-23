@@ -491,9 +491,8 @@ func (m *mockVerificationService) IssueActionLink(ctx context.Context, requestID
 	return "", nil
 }
 
-// El alta que hace el administrador nace verificada y aprobada para todos
-// los roles, y pide el mail "cuenta_aprobada" en vez del de verificación
-// (22/11/2026: el usuario creado desde el panel no podía entrar).
+// El alta que hace el administrador nace verificada y aprobada para todos los roles, y
+// pide el mail "cuenta_aprobada" en vez del de verificación.
 func TestUserService_CreateUser_AltaAdmin_NaceVerificadaEnTodosLosRoles(t *testing.T) {
 	roles := []string{"role_participant", "role_teacher", "role_volunteer", "role_company", "role_admin"}
 	for _, role := range roles {

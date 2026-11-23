@@ -71,7 +71,6 @@ func NewJWTServiceFromEnv() (JWTService, error) {
 }
 
 func (s *jwtService) GenerateTokenPair(userID string, role string, isExternal bool) (string, string, error) {
-	// Access Token
 	accessTokenClaims := jwt.MapClaims{
 		"sub":         userID,
 		"role":        role,
@@ -86,7 +85,6 @@ func (s *jwtService) GenerateTokenPair(userID string, role string, isExternal bo
 		return "", "", fmt.Errorf("failed to sign access token: %w", err)
 	}
 
-	// Refresh Token
 	refreshString, err := utils.GenerateSecureToken(32)
 	if err != nil {
 		return "", "", fmt.Errorf("failed to generate refresh token: %w", err)

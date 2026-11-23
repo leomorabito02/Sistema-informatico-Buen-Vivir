@@ -24,9 +24,8 @@ import {
 import { AuthService } from "../../services/auth.service";
 
 /**
- * HU-01 (decisión del 15/11/2026): los participantes se registran con una
- * cuenta de Gmail; el resto de los roles puede usar cualquier dominio. El
- * backend valida lo mismo.
+ * HU-01: los participantes se registran con una cuenta de Gmail; el resto de los roles
+ * puede usar cualquier dominio. El backend valida lo mismo.
  */
 export function participantGmailValidator(
   control: AbstractControl,
