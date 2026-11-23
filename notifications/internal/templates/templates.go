@@ -7,6 +7,8 @@ import (
 	"html/template"
 	"os"
 	"strings"
+	"os"
+	"strings"
 	"time"
 )
 
@@ -87,7 +89,10 @@ func defaultLogoURL() string {
 }
 
 func NewTemplateEngine() (TemplateEngine, error) {
-	parsed, err := template.ParseFS(emailTemplatesFS, "email/*.html")
+	funcMap := template.FuncMap{
+		"logoURL": defaultLogoURL,
+	}
+	parsed, err := template.New("").Funcs(funcMap).ParseFS(emailTemplatesFS, "email/*.html")
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse embedded email templates: %w", err)
 	}
