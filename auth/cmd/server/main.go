@@ -1,12 +1,17 @@
 package main
 
 import (
+	"context"
 	"log/slog"
+	"net"
 	"net/http"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/go-chi/chi/v5"
+	"google.golang.org/api/option"
+	"google.golang.org/grpc"
 
 	"auth/api/proto/authpb"
 	"auth/config"
@@ -18,9 +23,6 @@ import (
 	"auth/internal/services"
 	"auth/internal/storage"
 	"auth/internal/utils"
-	"context"
-	"google.golang.org/grpc"
-	"net"
 )
 
 func main() {
@@ -56,6 +58,13 @@ func main() {
 	passwordRecoveryRepo := repositories.NewPasswordRecoveryRepository(db)
 	loginAttemptRepo := repositories.NewLoginAttemptRepository(db)
 	auditRepo := repositories.NewAuditRepository(db)
+
+	// Clear any stale GOOGLE_APPLICATION_CREDENTIALS when base64 inline credentials are provided
+	// so ADC/idtoken calls do not fail trying to open a nonexistent file path.
+	if strings.TrimSpace(os.Getenv("GOOGLE_APPLICATION_CREDENTIALS_BASE64")) != "" ||
+		strings.TrimSpace(os.Getenv("FIREBASE_CREDENTIALS_BASE64")) != "" {
+		_ = os.Unsetenv("GOOGLE_APPLICATION_CREDENTIALS")
+	}
 
 	// Setup Storage
 	storageSvc, err := storage.NewObjectStorageService(
@@ -362,11 +371,21 @@ func initOutbox(ctx context.Context, outboxRepo repositories.OutboxRepository) (
 }
 
 func startOutboxWorker(ctx context.Context, outboxRepo repositories.OutboxRepository) services.OutboxWorker {
-	pubsubProject := os.Getenv("PUBSUB_PROJECT_ID")
+	pubsubProject := strings.TrimSpace(os.Getenv("PUBSUB_PROJECT_ID"))
 	if pubsubProject == "" {
+		slog.Warn("PUBSUB_PROJECT_ID is empty: outbox worker disabled")
 		return nil
 	}
-	pubPublisher, err := services.NewPubSubPublisher(ctx, pubsubProject)
+	var pubOpts []option.ClientOption
+	if strings.TrimSpace(os.Getenv("PUBSUB_EMULATOR_HOST")) == "" {
+		var err error
+		pubOpts, err = storage.ResolveGoogleClientOptions(os.Getenv("GOOGLE_APPLICATION_CREDENTIALS"))
+		if err != nil {
+			slog.Warn("PubSub credentials resolution failed for outbox worker", "error", err)
+			return nil
+		}
+	}
+	pubPublisher, err := services.NewPubSubPublisher(ctx, pubsubProject, pubOpts...)
 	if err != nil {
 		slog.Warn("PubSub publisher initialization failed for outbox worker", "error", err)
 		return nil
