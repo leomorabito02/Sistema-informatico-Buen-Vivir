@@ -693,7 +693,11 @@
             Enviamos un código de verificación de 6 dígitos a tu casilla de
             correo:
           </p>
-          <strong *ngIf="profileData?.user as user">{{ user.email }}</strong>
+          <strong
+            class="text-sm text-gray-900"
+            *ngIf="profileData?.user as user"
+            >{{ user.email }}</strong
+          >
         </div>
 
         <!-- Input del Código -->

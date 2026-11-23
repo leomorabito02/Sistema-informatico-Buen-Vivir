@@ -64,6 +64,17 @@ func TestAuthHeaders_ConSecretoIgnoraHeadersFalsificados(t *testing.T) {
 		t.Fatalf("X-Forwarded-Authorization: code=%d user=%q", rec.Code, got)
 	}
 
+	// Llamada directa S2S en Cloud Run con OIDC en Authorization y JWT interno en X-Service-Authorization.
+	got = ""
+	req = httptest.NewRequest(http.MethodGet, "/api/v1/notifications/preferences/init", nil)
+	req.Header.Set("Authorization", "Bearer gcp-oidc-id-token")
+	req.Header.Set("X-Service-Authorization", "Bearer "+valido)
+	rec = httptest.NewRecorder()
+	h.ServeHTTP(rec, req)
+	if rec.Code != http.StatusOK || got != "usr-1" {
+		t.Fatalf("X-Service-Authorization: code=%d user=%q", rec.Code, got)
+	}
+
 	// Firma inválida: 401.
 	req = httptest.NewRequest(http.MethodGet, "/api/v1/notifications", nil)
 	req.AddCookie(&http.Cookie{Name: "access_token", Value: firmarJWT(t, "otra", map[string]any{"sub": "usr-2", "type": "access"})})

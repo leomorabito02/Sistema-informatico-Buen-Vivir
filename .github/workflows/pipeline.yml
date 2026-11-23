@@ -1426,6 +1426,7 @@ jobs:
       service_suffix: ${{ steps.env.outputs.service_suffix }}
       app_env: ${{ steps.env.outputs.app_env }}
       contentful_environment: ${{ steps.env.outputs.contentful_environment }}
+      frontend_url: ${{ steps.env.outputs.frontend_url }}
 
     steps:
       - name: Checkout repository
@@ -1442,11 +1443,13 @@ jobs:
             # (validateEnvironmentSafety en internal/config/config.go).
             echo "app_env=production"                   >> $GITHUB_OUTPUT
             echo "contentful_environment=master"        >> $GITHUB_OUTPUT
+            echo "frontend_url=https://ceibuenvivir.org" >> $GITHUB_OUTPUT
           elif [ "${{ github.ref }}" = "refs/heads/testing" ]; then
             echo "env_name=TESTING"                     >> $GITHUB_OUTPUT
             echo "service_suffix=testing"               >> $GITHUB_OUTPUT
             echo "app_env=testing"                      >> $GITHUB_OUTPUT
             echo "contentful_environment=testing"       >> $GITHUB_OUTPUT
+            echo "frontend_url=https://testing.ceibuenvivir.pages.dev" >> $GITHUB_OUTPUT
           else
             echo "::error::Branch '${{ github.ref }}' no autorizada para CD."
             exit 1
@@ -1564,6 +1567,7 @@ jobs:
             WORKER_SYNC_TOKEN=${{ secrets.WORKER_SYNC_TOKEN }}
             NOTIFICATIONS_SERVICE_URL=${{ steps.notif.outputs.url }}
             UPSTREAM_ID_TOKEN=true
+            FRONTEND_URL=${{ needs.cd-setup.outputs.frontend_url }}
 
       # Destino de los enlaces de los correos (confirmar cuenta, recuperar
       # contraseña, ir a la notificación). Sin FRONTEND_URL el servicio usaba
@@ -1652,6 +1656,7 @@ jobs:
             RESEND_FROM_EMAIL_NOTIFICATIONS=${{ secrets.RESEND_FROM_EMAIL_NOTIFICATIONS }}
             RESEND_FROM_EMAIL_ALERTS=${{ secrets.RESEND_FROM_EMAIL_ALERTS }}
             DATABASE_URL_NOTIFICATIONS=${{ secrets.DATABASE_URL_NOTIFICATIONS }}
+            FRONTEND_URL=${{ needs.cd-setup.outputs.frontend_url }}
 
       - name: Sync Pub/Sub push audience on first deploy or URL change
         run: |

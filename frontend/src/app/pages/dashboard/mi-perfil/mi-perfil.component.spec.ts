@@ -31,6 +31,10 @@ describe("MiPerfilComponent", () => {
       "updateMyPassword",
       "linkGoogleAccount",
       "unlinkGoogleAccount",
+      "setupTwoFactor",
+      "enableTwoFactor",
+      "disableTwoFactor",
+      "revokeTrustedDevice",
     ]);
     profileServiceSpy.getMyProfile.and.returnValue(
       of({
@@ -262,6 +266,41 @@ describe("MiPerfilComponent", () => {
 
       expect(component.isExported).toBeTrue();
       expect(component.isExporting).toBeFalse();
+    });
+  });
+
+  describe("2FA Email Setup", () => {
+    it("should resend email OTP and display feedback message", () => {
+      // Arrange
+      profileServiceSpy.setupTwoFactor.and.returnValue(
+        of({ method: "email", message: "Sent" }),
+      );
+      component.twofaMethod = "email";
+      component.twofaStep = "verify";
+
+      // Act
+      component.resendTwofaEmailCode();
+
+      // Assert
+      expect(profileServiceSpy.setupTwoFactor).toHaveBeenCalledWith("email");
+      expect(component.twofaLoading).toBeFalse();
+      expect(component.twofaResentMessage).toContain("reenvió");
+      expect(component.twofaError).toBe("");
+    });
+
+    it("should display error if resend email OTP fails", () => {
+      // Arrange
+      profileServiceSpy.setupTwoFactor.and.returnValue(
+        throwError(() => ({ message: "Error de red" })),
+      );
+
+      // Act
+      component.resendTwofaEmailCode();
+
+      // Assert
+      expect(component.twofaLoading).toBeFalse();
+      expect(component.twofaError).toBe("Error de red");
+      expect(component.twofaResentMessage).toBe("");
     });
   });
 });

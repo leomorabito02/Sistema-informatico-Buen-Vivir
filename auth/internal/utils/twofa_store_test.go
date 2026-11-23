@@ -1,11 +1,15 @@
 package utils
 
 import (
+	"regexp"
 	"testing"
 	"time"
 
+	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"gorm.io/driver/postgres"
+	"gorm.io/gorm"
 )
 
 func TestTwofaStore(t *testing.T) {
@@ -103,4 +107,57 @@ func TestTwofaStore_SingletonAndEdgeCases(t *testing.T) {
 	assert.False(t, ok)
 	_, ok = store.GetChallengeByEmail("lock@example.com")
 	assert.False(t, ok)
+}
+
+func setupTwofaTestDB(t *testing.T) (*gorm.DB, sqlmock.Sqlmock) {
+	t.Helper()
+	sqlDB, mock, err := sqlmock.New()
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = sqlDB.Close() })
+
+	db, err := gorm.Open(postgres.New(postgres.Config{
+		Conn:                 sqlDB,
+		PreferSimpleProtocol: true,
+	}), &gorm.Config{})
+	require.NoError(t, err)
+	return db, mock
+}
+
+func TestTwofaStore_PostgresPersistence(t *testing.T) {
+	// Arrange
+	db, mock := setupTwofaTestDB(t)
+	store := newTwofaStore()
+	store.SetDB(db)
+
+	mock.ExpectBegin()
+	mock.ExpectExec(regexp.QuoteMeta(`DELETE FROM "twofa_challenges" WHERE email = $1`)).
+		WithArgs("user@example.com").
+		WillReturnResult(sqlmock.NewResult(0, 0))
+	mock.ExpectExec(regexp.QuoteMeta(`INSERT INTO "twofa_challenges"`)).
+		WithArgs(sqlmock.AnyArg(), "user@example.com", `["usr-1"]`, "email_setup", "123456", "", 0, sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg()).
+		WillReturnResult(sqlmock.NewResult(1, 1))
+	mock.ExpectCommit()
+
+	// Act: CreateChallenge persists to Postgres
+	nonce, err := store.CreateChallenge("User@Example.com", []string{"usr-1"}, "email_setup", "123456", "", 10*time.Minute)
+
+	// Assert
+	require.NoError(t, err)
+	assert.NotEmpty(t, nonce)
+
+	// Arrange: GetCodeByEmail reads from Postgres (simulating a different Cloud Run instance)
+	now := time.Now()
+	rows := sqlmock.NewRows([]string{
+		"nonce", "email", "user_ids_json", "method", "code", "secret", "attempts", "expires_at", "created_at", "updated_at",
+	}).AddRow(nonce, "user@example.com", `["usr-1"]`, "email_setup", "123456", "", 0, now.Add(10*time.Minute), now, now)
+	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "twofa_challenges" WHERE email = $1 AND expires_at > $2 ORDER BY created_at DESC LIMIT $3`)).
+		WithArgs("user@example.com", sqlmock.AnyArg(), 1).
+		WillReturnRows(rows)
+
+	// Act
+	code := store.GetCodeByEmail("user@example.com")
+
+	// Assert
+	assert.Equal(t, "123456", code)
+	require.NoError(t, mock.ExpectationsWereMet())
 }

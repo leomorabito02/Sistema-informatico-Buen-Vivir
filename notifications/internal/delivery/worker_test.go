@@ -43,7 +43,8 @@ func (m *mockPushService) SendMulticast(_ context.Context, tokens []string, _, _
 }
 
 type mockAuthClient struct {
-	tokens []string
+	tokens            []string
+	getUserContactErr error
 }
 
 func (m *mockAuthClient) GetUserDeviceTokens(_ context.Context, _ string) ([]string, error) {
@@ -59,6 +60,9 @@ func (m *mockAuthClient) IsUserEmailVerified(_ context.Context, _ string) (bool,
 	return true, nil
 }
 func (m *mockAuthClient) GetUserContact(_ context.Context, userID string) (*clients.RecipientContact, error) {
+	if m.getUserContactErr != nil {
+		return nil, m.getUserContactErr
+	}
 	return &clients.RecipientContact{
 		UserID:          userID,
 		Email:           "user@example.com",
@@ -361,4 +365,49 @@ func TestDeliveryWorker_NotifyInlineAndShutdown(t *testing.T) {
 	nilWorker.Notify()
 	nilWorker.NotifyInline(context.Background())
 	nilWorker.Shutdown(context.Background())
+}
+
+func TestDeliveryWorker_Flush_RetriesOnGetUserContactError(t *testing.T) {
+	// Arrange
+	repo := repositories.NewMemoryNotificationRepository()
+	emailSvc := &mockEmailService{}
+	authCl := &mockAuthClient{getUserContactErr: errors.New("auth-service responded HTTP 401")}
+
+	notif := &models.Notification{
+		ID:         "ntf-contact-err",
+		Category:   models.CategorySecurity,
+		Title:      "Verifica tu correo",
+		Message:    "Código de seguridad",
+		SendEmail:  true,
+		IsCritical: true,
+	}
+	_ = repo.CreateNotification(context.Background(), notif)
+	_ = repo.CreateRecipients(context.Background(), []models.NotificationRecipient{{
+		RecipientID:    "rcp-contact-err",
+		NotificationID: notif.ID,
+		UserID:         "usr-contact-err",
+		EmailStatus:    models.DeliveryStatusPending,
+		Attempts:       0,
+	}})
+
+	worker := delivery.NewWorker(repo, emailSvc, nil, authCl, nil, nil)
+	worker.Now = func() time.Time { return time.Date(2026, 11, 22, 12, 0, 0, 0, time.UTC) }
+
+	// Act
+	_, err := worker.Flush(context.Background())
+
+	// Assert
+	if err != nil {
+		t.Fatalf("unexpected flush error: %v", err)
+	}
+	saved, err := repo.FindRecipientByID(context.Background(), "rcp-contact-err", "usr-contact-err")
+	if err != nil {
+		t.Fatalf("failed to find recipient: %v", err)
+	}
+	if saved.EmailStatus == models.DeliveryStatusSkipped {
+		t.Fatalf("expected failed/retryable status instead of skipped when GetUserContact fails")
+	}
+	if saved.Attempts != 1 || saved.NextAttemptAt == nil {
+		t.Errorf("expected retry scheduled (attempts=1, NextAttemptAt set), got attempts=%d next=%v", saved.Attempts, saved.NextAttemptAt)
+	}
 }

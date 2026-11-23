@@ -9,6 +9,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"strings"
@@ -278,14 +279,21 @@ func (h *httpAuthClient) doRequest(ctx context.Context, method, path string, bod
 	if body != nil {
 		req.Header.Set("Content-Type", "application/json")
 	}
-	if h.idToken != nil {
-		if tok, err := h.idToken(callCtx); err == nil && tok != "" {
-			req.Header.Set("X-Serverless-Authorization", "Bearer "+tok)
+	if h.jwtSecret != "" {
+		if tok, err := signServiceJWT(h.jwtSecret, "notifications-service"); err == nil && tok != "" {
+			req.Header.Set("Authorization", "Bearer "+tok)
+			req.Header.Set("X-Service-Authorization", "Bearer "+tok)
+			req.Header.Set("X-Forwarded-Authorization", "Bearer "+tok)
 		}
 	}
-	if h.jwtSecret != "" {
-		if tok, err := signServiceJWT(h.jwtSecret, "notifications-service"); err == nil {
+	// Cloud Run IAM validates the GCP OIDC ID token in Authorization; AuthMiddleware
+	// reads X-Service-Authorization / X-Forwarded-Authorization for the internal HS256 JWT.
+	if h.idToken != nil {
+		if tok, err := h.idToken(callCtx); err == nil && tok != "" {
 			req.Header.Set("Authorization", "Bearer "+tok)
+			req.Header.Set("X-Serverless-Authorization", "Bearer "+tok)
+		} else if err != nil {
+			slog.Warn("auth_client: failed to mint upstream id token", "error", err, "path", path)
 		}
 	}
 

@@ -113,7 +113,9 @@ func (s *twofaService) InitiateSetup(ctx context.Context, userID, method string)
 	}
 
 	if s.producer != nil {
-		_ = s.producer.EmailSolicitado(ctx, setupNonce, user.UserID, "two_factor_code")
+		if err := s.producer.EmailSolicitado(ctx, setupNonce, user.UserID, "two_factor_code"); err != nil {
+			slog.Error("twofa_service: failed to enqueue 2FA setup email", "user_id", user.UserID, "error", err)
+		}
 	}
 
 	return &dto.SetupTwofaResponse{
@@ -270,7 +272,9 @@ func (s *twofaService) InitiateLoginChallenge(ctx context.Context, email string,
 	}
 
 	if method == "email" && len(userIDs) > 0 && s.producer != nil {
-		_ = s.producer.EmailSolicitado(ctx, nonce, userIDs[0], "two_factor_code")
+		if err := s.producer.EmailSolicitado(ctx, nonce, userIDs[0], "two_factor_code"); err != nil {
+			slog.Error("twofa_service: failed to enqueue 2FA login challenge email", "user_id", userIDs[0], "error", err)
+		}
 	}
 
 	return nonce, nil
@@ -354,7 +358,9 @@ func (s *twofaService) ResendLoginOTP(ctx context.Context, twofaNonce string) er
 	s.store.UpdateCode(twofaNonce, newCode, 10*time.Minute)
 
 	if len(challenge.UserIDs) > 0 && s.producer != nil {
-		_ = s.producer.EmailSolicitado(ctx, twofaNonce, challenge.UserIDs[0], "two_factor_code")
+		if err := s.producer.EmailSolicitado(ctx, twofaNonce, challenge.UserIDs[0], "two_factor_code"); err != nil {
+			slog.Error("twofa_service: failed to enqueue 2FA resend email", "user_id", challenge.UserIDs[0], "error", err)
+		}
 	}
 
 	return nil

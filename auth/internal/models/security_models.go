@@ -36,3 +36,19 @@ type AuditLog struct {
 }
 
 func (AuditLog) TableName() string { return "auditoria" }
+
+// TwofaChallengeRecord persists active 2FA challenges across stateless instances.
+type TwofaChallengeRecord struct {
+	Nonce       string    `gorm:"column:nonce;type:varchar(128);primaryKey"`
+	Email       string    `gorm:"column:email;type:varchar(255);index;not null"`
+	UserIDsJSON string    `gorm:"column:user_ids_json;type:text;not null"`
+	Method      string    `gorm:"column:method;type:varchar(16);not null"`
+	Code        string    `gorm:"column:code;type:varchar(64)"`
+	Secret      string    `gorm:"column:secret;type:text"`
+	Attempts    int       `gorm:"column:attempts;not null;default:0"`
+	ExpiresAt   time.Time `gorm:"column:expires_at;index;not null"`
+	CreatedAt   time.Time `gorm:"column:created_at;autoCreateTime"`
+	UpdatedAt   time.Time `gorm:"column:updated_at;autoUpdateTime"`
+}
+
+func (TwofaChallengeRecord) TableName() string { return "twofa_challenges" }

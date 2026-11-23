@@ -77,9 +77,10 @@ func extractRequestToken(r *http.Request) string {
 			return strings.TrimSpace(c.Value)
 		}
 	}
-	// El API Gateway de GCP pone su token de Cloud Run en Authorization y
-	// mueve el original a X-Forwarded-Authorization.
-	for _, header := range []string{"X-Forwarded-Authorization", "Authorization"} {
+	// Direct Cloud Run S2S calls put the GCP OIDC ID token in Authorization,
+	// while internal HS256 service JWTs travel in X-Service-Authorization or
+	// X-Forwarded-Authorization (matching auth middleware).
+	for _, header := range []string{"X-Service-Authorization", "X-Forwarded-Authorization", "Authorization"} {
 		if v := r.Header.Get(header); strings.HasPrefix(v, "Bearer ") {
 			return strings.TrimSpace(strings.TrimPrefix(v, "Bearer "))
 		}

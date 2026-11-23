@@ -67,7 +67,9 @@ func (s *passwordRecoveryService) RequestReset(ctx context.Context, email string
 	requestID := "pr-" + utils.GenerateRandomString(10)
 
 	if s.producer != nil {
-		_ = s.producer.EmailSolicitado(ctx, requestID, primaryUser.UserID, "recuperacion_password")
+		if err := s.producer.EmailSolicitado(ctx, requestID, primaryUser.UserID, "recuperacion_password"); err != nil {
+			slog.Error("password_recovery_service: failed to enqueue reset email", "user_id", primaryUser.UserID, "error", err)
+		}
 	}
 
 	return nil

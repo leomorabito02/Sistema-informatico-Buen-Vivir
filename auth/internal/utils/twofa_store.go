@@ -3,8 +3,15 @@ package utils
 import (
 	crand "crypto/rand"
 	"encoding/hex"
+	"encoding/json"
+	"errors"
+	"log/slog"
+	"strings"
 	"sync"
 	"time"
+
+	"auth/internal/models"
+	"gorm.io/gorm"
 )
 
 // TwofaChallenge represents an ongoing 2FA verification attempt during login or setup.
@@ -19,9 +26,10 @@ type TwofaChallenge struct {
 	ExpiresAt time.Time
 }
 
-// TwofaStore is an in-memory, thread-safe store for 2FA challenges.
+// TwofaStore is a thread-safe store for 2FA challenges with optional PostgreSQL persistence.
 type TwofaStore struct {
 	mu         sync.Mutex
+	db         *gorm.DB
 	challenges map[string]*TwofaChallenge
 	byEmail    map[string]string // email -> nonce for deduplication / retrieval by request ID
 }
@@ -42,6 +50,40 @@ func GetTwofaStore() *TwofaStore {
 	return globalTwofaStore
 }
 
+// SetDB configures optional PostgreSQL backing so active challenges survive Cloud Run scaling.
+func (s *TwofaStore) SetDB(db *gorm.DB) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.db = db
+}
+
+func (s *TwofaStore) getDB() *gorm.DB {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.db
+}
+
+func normalizeEmailKey(email string) string {
+	return strings.ToLower(strings.TrimSpace(email))
+}
+
+func recordToChallenge(rec *models.TwofaChallengeRecord) *TwofaChallenge {
+	var userIDs []string
+	if rec.UserIDsJSON != "" {
+		_ = json.Unmarshal([]byte(rec.UserIDsJSON), &userIDs)
+	}
+	return &TwofaChallenge{
+		Nonce:     rec.Nonce,
+		Email:     rec.Email,
+		UserIDs:   userIDs,
+		Method:    rec.Method,
+		Code:      rec.Code,
+		Secret:    rec.Secret,
+		Attempts:  rec.Attempts,
+		ExpiresAt: rec.ExpiresAt,
+	}
+}
+
 // CreateChallenge creates a new challenge valid for ttl duration.
 func (s *TwofaStore) CreateChallenge(email string, userIDs []string, method, code, secret string, ttl time.Duration) (string, error) {
 	raw := make([]byte, 32)
@@ -49,12 +91,44 @@ func (s *TwofaStore) CreateChallenge(email string, userIDs []string, method, cod
 		return "", err
 	}
 	nonce := hex.EncodeToString(raw)
+	emailKey := normalizeEmailKey(email)
+	expiresAt := time.Now().Add(ttl)
+
+	if db := s.getDB(); db != nil {
+		if userIDs == nil {
+			userIDs = []string{}
+		}
+		userIDsBytes, err := json.Marshal(userIDs)
+		if err != nil {
+			return "", err
+		}
+		rec := &models.TwofaChallengeRecord{
+			Nonce:       nonce,
+			Email:       emailKey,
+			UserIDsJSON: string(userIDsBytes),
+			Method:      method,
+			Code:        code,
+			Secret:      secret,
+			Attempts:    0,
+			ExpiresAt:   expiresAt,
+		}
+		err = db.Transaction(func(tx *gorm.DB) error {
+			if err := tx.Where("email = ?", emailKey).Delete(&models.TwofaChallengeRecord{}).Error; err != nil {
+				return err
+			}
+			return tx.Create(rec).Error
+		})
+		if err != nil {
+			slog.Error("twofa_store: failed to persist challenge", "error", err)
+			return "", err
+		}
+		return nonce, nil
+	}
 
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	// Clean any previous nonce for this email if present
-	if oldNonce, exists := s.byEmail[email]; exists {
+	if oldNonce, exists := s.byEmail[emailKey]; exists {
 		delete(s.challenges, oldNonce)
 	}
 
@@ -66,17 +140,29 @@ func (s *TwofaStore) CreateChallenge(email string, userIDs []string, method, cod
 		Code:      code,
 		Secret:    secret,
 		Attempts:  0,
-		ExpiresAt: time.Now().Add(ttl),
+		ExpiresAt: expiresAt,
 	}
 
 	s.challenges[nonce] = challenge
-	s.byEmail[email] = nonce
+	s.byEmail[emailKey] = nonce
 
 	return nonce, nil
 }
 
 // GetChallenge retrieves an active, unexpired challenge.
 func (s *TwofaStore) GetChallenge(nonce string) (*TwofaChallenge, bool) {
+	if db := s.getDB(); db != nil {
+		var rec models.TwofaChallengeRecord
+		err := db.Where("nonce = ? AND expires_at > ?", nonce, time.Now()).Take(&rec).Error
+		if err != nil {
+			if !errors.Is(err, gorm.ErrRecordNotFound) {
+				slog.Error("twofa_store: failed to get challenge", "error", err)
+			}
+			return nil, false
+		}
+		return recordToChallenge(&rec), true
+	}
+
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -89,10 +175,23 @@ func (s *TwofaStore) GetChallenge(nonce string) (*TwofaChallenge, bool) {
 
 // GetChallengeByEmail retrieves an active, unexpired challenge by email.
 func (s *TwofaStore) GetChallengeByEmail(email string) (*TwofaChallenge, bool) {
+	emailKey := normalizeEmailKey(email)
+	if db := s.getDB(); db != nil {
+		var rec models.TwofaChallengeRecord
+		err := db.Where("email = ? AND expires_at > ?", emailKey, time.Now()).Order("created_at DESC").Take(&rec).Error
+		if err != nil {
+			if !errors.Is(err, gorm.ErrRecordNotFound) {
+				slog.Error("twofa_store: failed to get challenge by email", "error", err)
+			}
+			return nil, false
+		}
+		return recordToChallenge(&rec), true
+	}
+
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	nonce, ok := s.byEmail[email]
+	nonce, ok := s.byEmail[emailKey]
 	if !ok {
 		return nil, false
 	}
@@ -105,15 +204,8 @@ func (s *TwofaStore) GetChallengeByEmail(email string) (*TwofaChallenge, bool) {
 
 // GetCodeByEmail retrieves the current active OTP code for an email (used by IssueActionLink).
 func (s *TwofaStore) GetCodeByEmail(email string) string {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
-	nonce, ok := s.byEmail[email]
+	challenge, ok := s.GetChallengeByEmail(email)
 	if !ok {
-		return ""
-	}
-	challenge, ok := s.challenges[nonce]
-	if !ok || time.Now().After(challenge.ExpiresAt) {
 		return ""
 	}
 	return challenge.Code
@@ -121,6 +213,41 @@ func (s *TwofaStore) GetCodeByEmail(email string) string {
 
 // RecordFailedAttempt increments the failed attempt count. If attempts >= 5, removes the challenge.
 func (s *TwofaStore) RecordFailedAttempt(nonce string) (attemptsLeft int, locked bool) {
+	if db := s.getDB(); db != nil {
+		locked = true
+		err := db.Transaction(func(tx *gorm.DB) error {
+			var rec models.TwofaChallengeRecord
+			if err := tx.Where("nonce = ?", nonce).Take(&rec).Error; err != nil {
+				if errors.Is(err, gorm.ErrRecordNotFound) {
+					attemptsLeft = 0
+					locked = true
+					return nil
+				}
+				return err
+			}
+			rec.Attempts++
+			if rec.Attempts >= 5 {
+				if err := tx.Where("nonce = ?", nonce).Delete(&models.TwofaChallengeRecord{}).Error; err != nil {
+					return err
+				}
+				attemptsLeft = 0
+				locked = true
+				return nil
+			}
+			if err := tx.Model(&models.TwofaChallengeRecord{}).Where("nonce = ?", nonce).Update("attempts", rec.Attempts).Error; err != nil {
+				return err
+			}
+			attemptsLeft = 5 - rec.Attempts
+			locked = false
+			return nil
+		})
+		if err != nil {
+			slog.Error("twofa_store: failed to record failed attempt", "error", err)
+			return 0, true
+		}
+		return attemptsLeft, locked
+	}
+
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -130,7 +257,7 @@ func (s *TwofaStore) RecordFailedAttempt(nonce string) (attemptsLeft int, locked
 	}
 	challenge.Attempts++
 	if challenge.Attempts >= 5 {
-		delete(s.byEmail, challenge.Email)
+		delete(s.byEmail, normalizeEmailKey(challenge.Email))
 		delete(s.challenges, nonce)
 		return 0, true
 	}
@@ -139,6 +266,31 @@ func (s *TwofaStore) RecordFailedAttempt(nonce string) (attemptsLeft int, locked
 
 // ConsumeChallenge removes and returns the challenge on successful verification.
 func (s *TwofaStore) ConsumeChallenge(nonce string) (*TwofaChallenge, bool) {
+	if db := s.getDB(); db != nil {
+		var consumed *TwofaChallenge
+		var ok bool
+		err := db.Transaction(func(tx *gorm.DB) error {
+			var rec models.TwofaChallengeRecord
+			if err := tx.Where("nonce = ? AND expires_at > ?", nonce, time.Now()).Take(&rec).Error; err != nil {
+				if errors.Is(err, gorm.ErrRecordNotFound) {
+					return nil
+				}
+				return err
+			}
+			if err := tx.Where("nonce = ?", nonce).Delete(&models.TwofaChallengeRecord{}).Error; err != nil {
+				return err
+			}
+			consumed = recordToChallenge(&rec)
+			ok = true
+			return nil
+		})
+		if err != nil {
+			slog.Error("twofa_store: failed to consume challenge", "error", err)
+			return nil, false
+		}
+		return consumed, ok
+	}
+
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -147,13 +299,28 @@ func (s *TwofaStore) ConsumeChallenge(nonce string) (*TwofaChallenge, bool) {
 		return nil, false
 	}
 
-	delete(s.byEmail, challenge.Email)
+	delete(s.byEmail, normalizeEmailKey(challenge.Email))
 	delete(s.challenges, nonce)
 	return challenge, true
 }
 
 // UpdateCode updates the expected code (e.g. on OTP resend) and extends expiry.
 func (s *TwofaStore) UpdateCode(nonce, newCode string, ttl time.Duration) bool {
+	if db := s.getDB(); db != nil {
+		now := time.Now()
+		res := db.Model(&models.TwofaChallengeRecord{}).
+			Where("nonce = ? AND expires_at > ?", nonce, now).
+			Updates(map[string]any{
+				"code":       newCode,
+				"expires_at": now.Add(ttl),
+			})
+		if res.Error != nil {
+			slog.Error("twofa_store: failed to update code", "error", res.Error)
+			return false
+		}
+		return res.RowsAffected > 0
+	}
+
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -174,10 +341,17 @@ func (s *TwofaStore) cleanupLoop() {
 		s.mu.Lock()
 		for nonce, c := range s.challenges {
 			if now.After(c.ExpiresAt) {
-				delete(s.byEmail, c.Email)
+				delete(s.byEmail, normalizeEmailKey(c.Email))
 				delete(s.challenges, nonce)
 			}
 		}
+		db := s.db
 		s.mu.Unlock()
+
+		if db != nil {
+			if err := db.Where("expires_at <= ?", now).Delete(&models.TwofaChallengeRecord{}).Error; err != nil {
+				slog.Warn("twofa_store: cleanup expired db rows failed", "error", err)
+			}
+		}
 	}
 }

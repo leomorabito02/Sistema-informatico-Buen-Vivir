@@ -296,7 +296,10 @@ func (w *Worker) deliverEmail(
 		return models.DeliveryStatusSkipped, nil, nil
 	}
 
-	toEmail, ok := w.resolveRecipientEmail(ctx, userID, isCritical, dataMap)
+	toEmail, ok, err := w.resolveRecipientEmail(ctx, userID, isCritical, dataMap)
+	if err != nil {
+		return models.DeliveryStatusFailed, nil, err
+	}
 	if !ok || toEmail == "" {
 		return models.DeliveryStatusSkipped, nil, nil
 	}
@@ -325,24 +328,31 @@ func (w *Worker) deliverEmail(
 	return models.DeliveryStatusSent, &msgID, nil
 }
 
-func (w *Worker) resolveRecipientEmail(ctx context.Context, userID string, isCritical bool, dataMap map[string]interface{}) (string, bool) {
+func (w *Worker) resolveRecipientEmail(ctx context.Context, userID string, isCritical bool, dataMap map[string]interface{}) (string, bool, error) {
 	if strings.Contains(userID, "@") {
-		return userID, true
+		return userID, true, nil
 	}
 	if w.authClient == nil {
-		return "", false
+		return "", false, nil
 	}
 	contact, err := w.authClient.GetUserContact(ctx, userID)
-	if err != nil || contact == nil || contact.Email == "" {
-		return "", false
+	if err != nil {
+		w.logger.Warn("delivery worker: failed to resolve recipient contact",
+			slog.String("user_id", userID),
+			slog.String("error", err.Error()),
+		)
+		return "", false, fmt.Errorf("failed to resolve recipient contact: %w", err)
+	}
+	if contact == nil || contact.Email == "" {
+		return "", false, nil
 	}
 	if !contact.IsEmailVerified && !isCritical {
-		return "", false
+		return "", false, nil
 	}
 	if _, hasName := dataMap["recipient_name"]; !hasName {
 		dataMap["recipient_name"] = strings.TrimSpace(contact.FirstName + " " + contact.LastName)
 	}
-	return contact.Email, true
+	return contact.Email, true, nil
 }
 
 func (w *Worker) resolveActionLink(ctx context.Context, notif *models.Notification, userID string, dataMap map[string]interface{}) error {
