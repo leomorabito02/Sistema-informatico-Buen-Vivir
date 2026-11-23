@@ -114,8 +114,17 @@ func TestRenderEmail_AllTemplates(t *testing.T) {
 			if !strings.Contains(html, tc.contains) {
 				t.Errorf("expected rendered html to contain %q, but got:\n%s", tc.contains, html)
 			}
-			if !strings.Contains(html, "Buen Vivir") {
-				t.Errorf("expected rendered html to contain brand 'Buen Vivir'")
+			if !strings.Contains(html, "Centro de Ecología Integral Buen Vivir") {
+				t.Errorf("expected rendered html to contain institutional name 'Centro de Ecología Integral Buen Vivir'")
+			}
+			if !strings.Contains(html, "/assets/logo.png") {
+				t.Errorf("expected rendered html to contain logo path '/assets/logo.png'")
+			}
+			if !strings.Contains(html, "ceibuenvivir7@gmail.com") {
+				t.Errorf("expected rendered html to contain contact email 'ceibuenvivir7@gmail.com'")
+			}
+			if strings.Contains(strings.ToLower(html), "asociación civil") {
+				t.Errorf("expected rendered html not to contain 'Asociación Civil'")
 			}
 		})
 	}

@@ -3,41 +3,50 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Confirmación de cambio de correo - Buen Vivir</title>
+  <title>Confirmación de cambio de correo - Centro de Ecología Integral Buen Vivir</title>
 </head>
-<body style="margin: 0; padding: 0; background-color: #f6f8f5; font-family: Arial, Helvetica, sans-serif; color: #1d1d1b;">
-  <div style="background-color: #f6f8f5; padding: 40px 16px;">
-    <div style="max-width: 580px; margin: 0 auto; background-color: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 16px rgba(0,0,0,0.06); border: 1px solid #e3e8df;">
+<body style="margin: 0; padding: 0; background-color: #faf9f5; font-family: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #1d1d1b;">
+  <div style="background-color: #faf9f5; padding: 40px 16px;">
+    <div style="max-width: 580px; margin: 0 auto; background-color: #ffffff; border-radius: 14px; overflow: hidden; box-shadow: 0 4px 16px rgba(29,29,27,0.06); border: 1px solid #e7e6da;">
       <!-- Header -->
-{{template "bv_encabezado" (marca "#485839" "Seguridad de la Cuenta")}}
+      <header style="background-color: #485839; border-bottom: 4px solid #9a5b43; padding: 28px 32px; text-align: center;">
+        <img src="{{logoURL}}" alt="Centro de Ecología Integral Buen Vivir" width="56" height="56" style="display: block; margin: 0 auto 12px auto; width: 56px; height: 56px; border-radius: 12px; background-color: #ffffff; padding: 4px; object-fit: contain;">
+        <h1 style="margin: 0; font-size: 20px; font-weight: 700; color: #ffffff; letter-spacing: -0.3px;">Centro de Ecología Integral Buen Vivir</h1>
+        <p style="margin: 4px 0 0 0; font-size: 13px; color: #e2e4df;">Centro Barrial · Seguridad de la Cuenta</p>
+      </header>
       <!-- Body -->
-      <div style="padding: 36px 32px;">
+      <main style="padding: 36px 32px;">
         <h2 style="margin: 0 0 16px 0; font-size: 20px; font-weight: 600; color: #1d1d1b;">Confirmación de cambio de correo electrónico</h2>
-        <p style="margin: 0 0 16px 0; font-size: 15px; line-height: 1.6; color: #4b5843;">
-          Hola {{if .RecipientName}}{{.RecipientName}}{{else}}estimado/a usuario/a{{end}},
+        <p style="margin: 0 0 16px 0; font-size: 15px; line-height: 1.6; color: #4a4943;">
+          Hola {{if .RecipientName}}{{.RecipientName}}{{else}}estimado/a vecino/a{{end}},
         </p>
-        <p style="margin: 0 0 16px 0; font-size: 15px; line-height: 1.6; color: #4b5843;">
-          Has solicitado actualizar tu dirección de correo electrónico a:
+        <p style="margin: 0 0 16px 0; font-size: 15px; line-height: 1.6; color: #4a4943;">
+          Solicitaste actualizar tu dirección de correo electrónico a:
         </p>
-        <p style="margin: 0 0 24px 0; font-size: 16px; font-weight: 600; color: #1d1d1b; background-color: #f1f4ee; padding: 12px 16px; border-radius: 6px; text-align: center;">
+        <p style="margin: 0 0 24px 0; font-size: 16px; font-weight: 600; color: #1d1d1b; background-color: #f3f2eb; border: 1px solid #e7e6da; padding: 12px 16px; border-radius: 8px; text-align: center;">
           {{.NewEmail}}
         </p>
-        <p style="margin: 0 0 24px 0; font-size: 15px; line-height: 1.6; color: #4b5843;">
-          Para confirmar y aplicar este cambio, por favor haz clic en el siguiente botón:
+        <p style="margin: 0 0 24px 0; font-size: 15px; line-height: 1.6; color: #4a4943;">
+          Para confirmar y aplicar este cambio, hacé clic en el siguiente botón:
         </p>
         <div style="text-align: center; margin: 0 auto 28px auto;">
           <a href="{{.ActionURL}}" target="_blank" style="display: inline-block; padding: 14px 28px; font-size: 15px; font-weight: 600; color: #ffffff; text-decoration: none; border-radius: 8px; background-color: #485839;">Confirmar nuevo correo</a>
         </div>
-        <div style="background-color: #fff8e6; border-left: 4px solid #d97706; padding: 12px 16px; border-radius: 4px;">
-          <p style="margin: 0; font-size: 13px; line-height: 1.5; color: #92400e;">
-            <strong>Advertencia:</strong> Si tú no solicitaste este cambio, ponte en contacto con nuestro equipo de seguridad de inmediato.
+        <div style="background-color: #f6f2eb; border-left: 4px solid #8a5a00; padding: 12px 16px; border-radius: 6px;">
+          <p style="margin: 0; font-size: 13px; line-height: 1.5; color: #5f3e00;">
+            <strong>Advertencia:</strong> Si no solicitaste este cambio, ponete en contacto de inmediato con nuestro equipo escribiendo a <a href="mailto:ceibuenvivir7@gmail.com" style="color: #485839; font-weight: 600; text-decoration: none;">ceibuenvivir7@gmail.com</a>.
           </p>
         </div>
       </div>
       <!-- Footer -->
-      <div style="background-color: #f6f8f5; padding: 20px 32px; text-align: center; border-top: 1px solid #e3e8df;">
-{{template "bv_pie" .Year}}
-      </div>
+      <footer style="background-color: #f3f2eb; padding: 20px 32px; text-align: center; border-top: 1px solid #e7e6da;">
+        <p style="margin: 0 0 6px 0; font-size: 12px; color: #66655b;">
+          Contacto: <a href="mailto:ceibuenvivir7@gmail.com" style="color: #485839; font-weight: 600; text-decoration: none;">ceibuenvivir7@gmail.com</a>
+        </p>
+        <p style="margin: 0; font-size: 12px; color: #8a887b;">
+          &copy; {{.Year}} Centro de Ecología Integral Buen Vivir. Todos los derechos reservados.
+        </p>
+      </footer>
     </div>
   </div>
 </body>
