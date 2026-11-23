@@ -5,10 +5,12 @@ import (
 	"log/slog"
 	"net/http"
 	"os"
+	"strings"
 	"time"
 
 	"cloud.google.com/go/firestore"
 	"github.com/go-chi/chi/v5"
+	"google.golang.org/api/option"
 
 	"buenvivir/campaigns/internal/config"
 	"buenvivir/campaigns/internal/controllers"
@@ -32,6 +34,12 @@ func main() {
 
 	jwtService := services.NewJWTService()
 
+	googleCredentials, err := repositories.GoogleCredentialsJSON()
+	if err != nil {
+		slog.Error("credenciales de Google inválidas", slog.String("error", err.Error()))
+		os.Exit(1)
+	}
+
 	firestoreClient, err := repositories.NewFirestoreClient(ctx)
 	if err != nil {
 		slog.Error("no se pudo inicializar Firestore", slog.String("error", err.Error()))
@@ -40,7 +48,7 @@ func main() {
 	defer func() { _ = firestoreClient.Close() }()
 
 	relayCtx, cancelRelay := context.WithCancel(ctx)
-	relay := startRelay(relayCtx, cfg, firestoreClient)
+	relay := startRelay(relayCtx, cfg, firestoreClient, googleCredentials)
 	var writer *outbox.Writer
 	if relay != nil {
 		writer = outbox.NewWriter(firestoreClient, events.ProducerCampanas, relay.NotifyInline)
@@ -80,12 +88,16 @@ func main() {
 	}
 }
 
-func startRelay(ctx context.Context, cfg *config.Config, client *firestore.Client) *outbox.Relay {
+func startRelay(ctx context.Context, cfg *config.Config, client *firestore.Client, googleCredentials []byte) *outbox.Relay {
 	if !cfg.Events.PublishEnabled() {
 		slog.Info("PUBSUB_PROJECT_ID vacío: campaigns no publica eventos")
 		return nil
 	}
-	publisher, err := outbox.NewPubSubPublisher(ctx, cfg.Events.ProjectID)
+	var opts []option.ClientOption
+	if googleCredentials != nil && strings.TrimSpace(os.Getenv("PUBSUB_EMULATOR_HOST")) == "" {
+		opts = append(opts, option.WithCredentialsJSON(googleCredentials)) //nolint:staticcheck // inline credentials injected in Cloud Run CD
+	}
+	publisher, err := outbox.NewPubSubPublisher(ctx, cfg.Events.ProjectID, opts...)
 	if err != nil {
 		slog.Error("no se pudo inicializar Pub/Sub", slog.String("error", err.Error()))
 		os.Exit(1)

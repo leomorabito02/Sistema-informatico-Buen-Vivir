@@ -2,7 +2,9 @@ package services
 
 import (
 	"context"
+	"encoding/base64"
 	"errors"
+	"os"
 	"testing"
 
 	"firebase.google.com/go/v4/messaging"
@@ -109,5 +111,43 @@ func TestSendMulticast_ClientError(t *testing.T) {
 	}
 	if res != nil {
 		t.Errorf("expected nil result on error, got %+v", res)
+	}
+}
+
+func TestResolveFirebaseClientOptions_Base64OverridesAndUnsetsLegacyPath(t *testing.T) {
+	// Arrange
+	rawJSON := `{"type":"service_account","project_id":"ceibuenvivir"}`
+	encoded := base64.StdEncoding.EncodeToString([]byte(rawJSON))
+	t.Setenv("FIREBASE_CREDENTIALS_BASE64", "")
+	t.Setenv("GOOGLE_APPLICATION_CREDENTIALS_BASE64", encoded)
+	t.Setenv("FIREBASE_CREDENTIALS_JSON", "")
+	t.Setenv("GOOGLE_APPLICATION_CREDENTIALS", "./stale-creds.json")
+
+	// Act
+	opts, err := resolveFirebaseClientOptions()
+
+	// Assert
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+	if len(opts) != 1 {
+		t.Fatalf("expected 1 option, got %d", len(opts))
+	}
+	if got := os.Getenv("GOOGLE_APPLICATION_CREDENTIALS"); got != "" {
+		t.Fatalf("expected GOOGLE_APPLICATION_CREDENTIALS to be unset, got %q", got)
+	}
+}
+
+func TestResolveFirebaseClientOptions_InvalidBase64(t *testing.T) {
+	// Arrange
+	t.Setenv("FIREBASE_CREDENTIALS_BASE64", "not-valid-base64!!!")
+	t.Setenv("GOOGLE_APPLICATION_CREDENTIALS_BASE64", "")
+
+	// Act
+	_, err := resolveFirebaseClientOptions()
+
+	// Assert
+	if err == nil {
+		t.Fatal("expected error for invalid base64")
 	}
 }

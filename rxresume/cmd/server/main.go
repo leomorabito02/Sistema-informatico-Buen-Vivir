@@ -5,6 +5,7 @@ import (
 	"log"
 	"log/slog"
 	"net/http"
+	"os"
 	"strings"
 	"time"
 
@@ -24,6 +25,9 @@ import (
 
 func main() {
 	cfg := config.LoadConfig()
+	if strings.TrimSpace(os.Getenv("GOOGLE_APPLICATION_CREDENTIALS_BASE64")) != "" || strings.HasPrefix(cfg.ApplicationCreds, "{") {
+		_ = os.Unsetenv("GOOGLE_APPLICATION_CREDENTIALS")
+	}
 	observability.InitLogger("rxresume", cfg.AppEnv)
 	metrics := observability.NewRegistry("rxresume")
 

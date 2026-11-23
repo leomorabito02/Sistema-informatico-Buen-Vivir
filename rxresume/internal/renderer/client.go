@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"strings"
 	"time"
@@ -32,6 +33,8 @@ func NewClient(baseURL string) Client {
 		if idClient, err := idtoken.NewClient(context.Background(), baseURL); err == nil {
 			idClient.Timeout = 60 * time.Second
 			httpClient = idClient
+		} else {
+			slog.Warn("renderer: failed to create idtoken client, falling back to default HTTP client", "error", err)
 		}
 	}
 

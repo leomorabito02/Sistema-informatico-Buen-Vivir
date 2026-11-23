@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"strings"
 
 	"cloud.google.com/go/firestore"
 	"google.golang.org/api/option"
@@ -12,23 +13,21 @@ import (
 // NewFirestoreClient initializes a Firestore client using configured environment credentials.
 func NewFirestoreClient(ctx context.Context, projectID string) (*firestore.Client, error) {
 	if projectID == "" {
-		projectID = os.Getenv("FIREBASE_PROJECT_ID")
+		projectID = strings.TrimSpace(os.Getenv("FIREBASE_PROJECT_ID"))
+		if projectID == "" {
+			projectID = strings.TrimSpace(os.Getenv("GCP_PROJECT_ID"))
+		}
 		if projectID == "" {
 			projectID = "ceibuenvivir"
 		}
 	}
 
-	credsPath := os.Getenv("GOOGLE_APPLICATION_CREDENTIALS")
-	if credsPath == "" {
-		credsPath = os.Getenv("FIREBASE_CREDENTIALS_JSON")
-	}
 	var opts []option.ClientOption
-
-	if credsPath != "" {
-		if len(credsPath) > 0 && credsPath[0] == '{' {
-			opts = append(opts, option.WithCredentialsJSON([]byte(credsPath))) //nolint:staticcheck
-		} else {
-			opts = append(opts, option.WithCredentialsFile(credsPath)) //nolint:staticcheck
+	if strings.TrimSpace(os.Getenv("FIRESTORE_EMULATOR_HOST")) == "" {
+		var err error
+		opts, err = ResolveGoogleClientOptions(os.Getenv("GOOGLE_APPLICATION_CREDENTIALS"))
+		if err != nil {
+			return nil, fmt.Errorf("failed to resolve firestore credentials: %w", err)
 		}
 	}
 

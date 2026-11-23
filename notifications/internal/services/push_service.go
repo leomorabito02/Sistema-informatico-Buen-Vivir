@@ -45,34 +45,12 @@ func NewFirebasePushService(ctx context.Context) (PushService, error) {
 		fbCfg = &firebase.Config{ProjectID: projectID}
 	}
 
-	var app *firebase.App
-	var err error
-
-	credentialsEnv := os.Getenv("GOOGLE_APPLICATION_CREDENTIALS")
-	credentialsJSON := os.Getenv("FIREBASE_CREDENTIALS_JSON")
-	credentialsB64 := os.Getenv("FIREBASE_CREDENTIALS_BASE64")
-
-	if credentialsB64 != "" {
-		decoded, decErr := base64.StdEncoding.DecodeString(credentialsB64)
-		if decErr != nil {
-			return nil, fmt.Errorf("error decoding FIREBASE_CREDENTIALS_BASE64: %w", decErr)
-		}
-		app, err = firebase.NewApp(ctx, fbCfg, option.WithCredentialsJSON(decoded)) //nolint:staticcheck
-	} else if credentialsJSON != "" {
-		app, err = firebase.NewApp(ctx, fbCfg, option.WithCredentialsJSON([]byte(credentialsJSON))) //nolint:staticcheck
-	} else if credentialsEnv != "" {
-		if len(credentialsEnv) > 0 && credentialsEnv[0] == '{' {
-			if os.Getenv("FIREBASE_CREDENTIALS_JSON") == "" {
-				_ = os.Setenv("FIREBASE_CREDENTIALS_JSON", credentialsEnv)
-			}
-			_ = os.Unsetenv("GOOGLE_APPLICATION_CREDENTIALS")
-			app, err = firebase.NewApp(ctx, fbCfg, option.WithCredentialsJSON([]byte(credentialsEnv))) //nolint:staticcheck
-		} else {
-			app, err = firebase.NewApp(ctx, fbCfg, option.WithCredentialsFile(credentialsEnv)) //nolint:staticcheck
-		}
-	} else {
-		app, err = firebase.NewApp(ctx, fbCfg)
+	opts, err := resolveFirebaseClientOptions()
+	if err != nil {
+		return nil, err
 	}
+
+	app, err := firebase.NewApp(ctx, fbCfg, opts...)
 	if err != nil {
 		return nil, fmt.Errorf("failed to initialize firebase app: %w", err)
 	}
@@ -83,6 +61,41 @@ func NewFirebasePushService(ctx context.Context) (PushService, error) {
 	}
 
 	return &firebasePushService{client: client}, nil
+}
+
+// resolveFirebaseClientOptions builds Firebase client options prioritizing base64-encoded
+// inline credentials over legacy GOOGLE_APPLICATION_CREDENTIALS and unsetting stale env paths.
+func resolveFirebaseClientOptions() ([]option.ClientOption, error) {
+	for _, envKey := range []string{"FIREBASE_CREDENTIALS_BASE64", "GOOGLE_APPLICATION_CREDENTIALS_BASE64"} {
+		if b64 := strings.TrimSpace(os.Getenv(envKey)); b64 != "" {
+			decoded, err := base64.StdEncoding.DecodeString(b64)
+			if err != nil {
+				return nil, fmt.Errorf("error decoding %s: %w", envKey, err)
+			}
+			if creds := strings.TrimSpace(string(decoded)); creds != "" {
+				_ = os.Unsetenv("GOOGLE_APPLICATION_CREDENTIALS")
+				return []option.ClientOption{option.WithCredentialsJSON([]byte(creds))}, nil //nolint:staticcheck // inline service account credentials
+			}
+		}
+	}
+
+	if credentialsJSON := strings.TrimSpace(os.Getenv("FIREBASE_CREDENTIALS_JSON")); credentialsJSON != "" {
+		_ = os.Unsetenv("GOOGLE_APPLICATION_CREDENTIALS")
+		return []option.ClientOption{option.WithCredentialsJSON([]byte(credentialsJSON))}, nil //nolint:staticcheck // inline service account credentials
+	}
+
+	if credentialsEnv := strings.TrimSpace(os.Getenv("GOOGLE_APPLICATION_CREDENTIALS")); credentialsEnv != "" {
+		if strings.HasPrefix(credentialsEnv, "{") {
+			if os.Getenv("FIREBASE_CREDENTIALS_JSON") == "" {
+				_ = os.Setenv("FIREBASE_CREDENTIALS_JSON", credentialsEnv)
+			}
+			_ = os.Unsetenv("GOOGLE_APPLICATION_CREDENTIALS")
+			return []option.ClientOption{option.WithCredentialsJSON([]byte(credentialsEnv))}, nil //nolint:staticcheck // inline service account credentials
+		}
+		return []option.ClientOption{option.WithCredentialsFile(credentialsEnv)}, nil //nolint:staticcheck // credential file path
+	}
+
+	return nil, nil
 }
 
 // NewPushServiceWithClient creates a PushService with a custom or mocked messaging client.

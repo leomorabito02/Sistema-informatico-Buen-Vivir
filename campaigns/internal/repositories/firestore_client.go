@@ -34,6 +34,12 @@ func NewFirestoreClient(ctx context.Context) (*firestore.Client, error) {
 	return firestore.NewClient(ctx, firestore.DetectProjectID, option.WithCredentialsJSON(credentialsJSON)) //nolint:staticcheck // option.WithCredentialsJSON es necesario para credenciales inline (mismo criterio que human-promotion)
 }
 
+// GoogleCredentialsJSON exposes inline credentials for other Google Cloud clients (Pub/Sub).
+// Must be called before NewFirestoreClient, which unsets GOOGLE_APPLICATION_CREDENTIALS.
+func GoogleCredentialsJSON() ([]byte, error) {
+	return googleCredentialsJSON()
+}
+
 func googleCredentialsJSON() ([]byte, error) {
 	if b64 := strings.TrimSpace(os.Getenv("GOOGLE_APPLICATION_CREDENTIALS_BASE64")); b64 != "" {
 		return base64.StdEncoding.DecodeString(b64)
