@@ -151,20 +151,26 @@
       ></textarea>
     </label>
     <label>
-      Imagen (dirección web) <span class="req">*</span>
+      Imagen <span class="req">*</span>
       <input
-        pInputText
-        [(ngModel)]="form.imagen_url"
-        type="url"
-        placeholder="https://…"
-        [class.p-invalid]="imagenInvalida"
+        type="file"
+        accept="image/jpeg,image/png,image/webp"
+        (change)="onFotoElegida($event)"
       />
-      <small class="field-hint" [class.err]="imagenInvalida">
-        {{
-          imagenInvalida
-            ? "Debe empezar con http:// o https://"
-            : "Pegá el enlace de la imagen."
-        }}
+      <img
+        *ngIf="form.imagen_url"
+        [src]="form.imagen_url"
+        alt="Vista previa de la imagen"
+        style="
+          max-width: 100%;
+          max-height: 160px;
+          border-radius: 8px;
+          margin-top: 8px;
+          object-fit: cover;
+        "
+      />
+      <small class="field-hint" [class.err]="!!errorFoto">
+        {{ errorFoto || "Elegí una foto de tu computadora (JPG, PNG o WebP)." }}
       </small>
     </label>
     <label>

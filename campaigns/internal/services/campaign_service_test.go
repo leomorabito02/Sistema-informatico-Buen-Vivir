@@ -133,6 +133,7 @@ func TestCreate_Validaciones(t *testing.T) {
 		{"texto largo", func(in *models.CampaignInput) { in.Texto = strings.Repeat("ñ", 5001) }, "El texto no puede superar los 5000 caracteres"},
 		{"imagen javascript", func(in *models.CampaignInput) { in.ImagenURL = "javascript:alert(1)" }, "La imagen debe ser una dirección web válida (http o https)"},
 		{"imagen sin host", func(in *models.CampaignInput) { in.ImagenURL = "https://" }, "La imagen debe ser una dirección web válida (http o https)"},
+		{"imagen data svg", func(in *models.CampaignInput) { in.ImagenURL = "data:image/svg+xml;base64,PHN2Zz4=" }, "La imagen debe ser una dirección web válida (http o https)"},
 		{"imagen ftp", func(in *models.CampaignInput) { in.ImagenURL = "ftp://example.org/a.jpg" }, "La imagen debe ser una dirección web válida (http o https)"},
 		{"fecha con barras", func(in *models.CampaignInput) { in.Fecha = "05/11/2026" }, "La fecha debe tener el formato AAAA-MM-DD"},
 		{"fecha imposible", func(in *models.CampaignInput) { in.Fecha = "2026-02-30" }, "La fecha debe tener el formato AAAA-MM-DD"},

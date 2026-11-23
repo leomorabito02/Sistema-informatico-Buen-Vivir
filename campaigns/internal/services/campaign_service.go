@@ -2,6 +2,7 @@ package services
 
 import (
 	"context"
+	"encoding/base64"
 	"log/slog"
 	"net/url"
 	"regexp"
@@ -20,9 +21,12 @@ const (
 	maxTitulo    = 150
 	maxTexto     = 5000
 	maxImagenURL = 2048
-	maxBusqueda  = 100
-	minAnioFecha = 1900
-	maxAnioFecha = 2100
+	// Foto subida desde la computadora: el navegador la achica y viaja como
+	// data:image/...;base64 (límite de Firestore: 1 MB por documento).
+	maxImagenDatos = 700000
+	maxBusqueda    = 100
+	minAnioFecha   = 1900
+	maxAnioFecha   = 2100
 )
 
 var (
@@ -254,6 +258,9 @@ func tooLong(s string, max int) bool {
 // validImageURL acepta solo direcciones http(s) con host: descarta, por
 // ejemplo, "javascript:" o "data:", que el navegador podría ejecutar.
 func validImageURL(s string) bool {
+	if validImageData(s) {
+		return true
+	}
 	if tooLong(s, maxImagenURL) {
 		return false
 	}
@@ -262,6 +269,21 @@ func validImageURL(s string) bool {
 		return false
 	}
 	return u.Scheme == "http" || u.Scheme == "https"
+}
+
+// validImageData acepta una foto subida (jpeg, png o webp en base64). Solo
+// esos tipos: nada de svg ni html, que podrían ejecutar código.
+func validImageData(s string) bool {
+	if len(s) > maxImagenDatos {
+		return false
+	}
+	for _, p := range []string{"data:image/jpeg;base64,", "data:image/png;base64,", "data:image/webp;base64,"} {
+		if strings.HasPrefix(s, p) {
+			_, err := base64.StdEncoding.DecodeString(s[len(p):])
+			return err == nil && len(s) > len(p)
+		}
+	}
+	return false
 }
 
 // parseFecha valida una fecha calendario AAAA-MM-DD en un rango razonable.

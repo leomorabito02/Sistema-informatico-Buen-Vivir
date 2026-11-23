@@ -99,7 +99,8 @@ func (r *EmailSolicitadoRule) Build(_ context.Context, env events.Envelope) ([]N
 		message = "Tu cuenta ha sido aprobada exitosamente."
 		templateID = "account_approved"
 		category = models.CategorySystem
-		isCritical = false
+		// Crítico para que la notificación de aprobación llegue aunque el correo no estuviera verificado aún.
+		isCritical = true
 	case "cuenta_rechazada":
 		// HU-12 y HU-38: aviso de rechazo. Sin enlace de acción, así
 		// que no se manda request_id (no hay link que pedirle a Auth).
