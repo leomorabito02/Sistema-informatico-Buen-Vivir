@@ -4,6 +4,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log/slog"
+	"net/mail"
 	"regexp"
 	"strings"
 
@@ -64,6 +66,14 @@ func NewDualResendEmailService(apiKey string, fromNotifications string, fromAler
 	if normAlerts == "" || normAlerts == defaultFromEmail {
 		normAlerts = normNotif
 	}
+	if (normNotif == "" || normNotif == defaultFromEmail) && normAlerts != "" && normAlerts != defaultFromEmail {
+		normNotif = normAlerts
+	}
+
+	slog.Info("resend email service configured",
+		slog.String("from_notifications", normNotif),
+		slog.String("from_alerts", normAlerts),
+	)
 
 	return &resendEmailService{
 		client:            resend.NewClient(apiKey),
@@ -72,16 +82,50 @@ func NewDualResendEmailService(apiKey string, fromNotifications string, fromAler
 	}, nil
 }
 
+// normalizeFromEmail coerces env-provided sender strings into a Resend-valid
+// `email@example.com` or `Name <email@example.com>` address.
 func normalizeFromEmail(from string) string {
-	trimmed := strings.TrimSpace(from)
+	trimmed := strings.TrimSpace(strings.Trim(strings.TrimSpace(from), `"'`))
 	if trimmed == "" {
 		return defaultFromEmail
 	}
-	cleaned := strings.Trim(trimmed, "<>")
-	if !strings.Contains(cleaned, "@") {
-		return fmt.Sprintf("Buen Vivir <notificaciones@%s>", cleaned)
+
+	if !strings.Contains(trimmed, "@") {
+		cleaned := strings.TrimSpace(strings.Trim(trimmed, "<>\"'"))
+		if cleaned != "" && strings.Contains(cleaned, ".") && !strings.ContainsAny(cleaned, " \t\r\n") {
+			return fmt.Sprintf("Buen Vivir <notificaciones@%s>", cleaned)
+		}
+		return defaultFromEmail
 	}
-	return trimmed
+
+	if addr, err := mail.ParseAddress(trimmed); err == nil {
+		return formatResendAddress(addr.Name, addr.Address)
+	}
+
+	// Recover common secret formatting mistakes such as missing angle brackets
+	// ("Buen Vivir user@domain.com") or an unclosed "<".
+	fields := strings.Fields(trimmed)
+	for i, f := range fields {
+		if !strings.Contains(f, "@") {
+			continue
+		}
+		candidate := strings.Trim(f, "<>\"',;")
+		if addr, err := mail.ParseAddress(candidate); err == nil {
+			name := strings.Join(fields[:i], " ")
+			return formatResendAddress(name, addr.Address)
+		}
+	}
+
+	slog.Warn("invalid RESEND_FROM_EMAIL format, falling back to default sender", slog.String("fallback", defaultFromEmail))
+	return defaultFromEmail
+}
+
+func formatResendAddress(name, address string) string {
+	cleanName := strings.TrimSpace(strings.NewReplacer(`"`, "", `'`, "", "<", "", ">", "", "\r", "", "\n", "").Replace(name))
+	if cleanName == "" {
+		return address
+	}
+	return fmt.Sprintf("%s <%s>", cleanName, address)
 }
 
 func (s *resendEmailService) resolveFrom(msg EmailMessage) string {

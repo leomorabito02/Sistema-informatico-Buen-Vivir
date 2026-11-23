@@ -24,8 +24,9 @@ import (
 const (
 	defaultMaxAttempts          = 5
 	defaultBatchSize            = 50
-	defaultInlineFlushTimeout   = 3 * time.Second
+	defaultInlineFlushTimeout   = 25 * time.Second
 	defaultShutdownFlushTimeout = 5 * time.Second
+	defaultEmailInterval        = 550 * time.Millisecond
 )
 
 // InlineFlushEnabled returns true on Cloud Run (K_SERVICE set) or when
@@ -50,11 +51,12 @@ type Worker struct {
 	notify chan struct{}
 	mu     sync.Mutex
 
-	BatchSize   int
-	MaxAttempts int
-	Interval    time.Duration
-	FrontendURL string
-	Now         func() time.Time
+	BatchSize     int
+	MaxAttempts   int
+	Interval      time.Duration
+	EmailInterval time.Duration
+	FrontendURL   string
+	Now           func() time.Time
 	// Disabled apaga el envío (Flush no hace nada). Lo usa el stack Docker
 	// local con DELIVERY_WORKER_ENABLED=false: comparte Firestore con
 	// testing y, si procesaba los pendientes de testing, mandaba los mails
@@ -91,10 +93,11 @@ func NewWorker(
 		tmplEngine:   tmplEngine,
 		logger:       logger,
 		notify:       make(chan struct{}, 1),
-		BatchSize:    defaultBatchSize,
-		MaxAttempts:  defaultMaxAttempts,
-		Interval:     30 * time.Second,
-		Now:          time.Now,
+		BatchSize:     defaultBatchSize,
+		MaxAttempts:   defaultMaxAttempts,
+		Interval:      30 * time.Second,
+		EmailInterval: defaultEmailInterval,
+		Now:           time.Now,
 	}
 }
 
@@ -181,6 +184,7 @@ func (w *Worker) Flush(ctx context.Context) (int, error) {
 	defer w.mu.Unlock()
 
 	totalProcessed := 0
+	var lastEmailSentAt time.Time
 	for {
 		pending, err := w.repo.FindPendingRecipients(ctx, w.BatchSize)
 		if err != nil {
@@ -191,12 +195,29 @@ func (w *Worker) Flush(ctx context.Context) (int, error) {
 		}
 
 		for _, rec := range pending {
+			if ctx.Err() != nil {
+				return totalProcessed, ctx.Err()
+			}
+			if rec.EmailStatus == models.DeliveryStatusPending && !lastEmailSentAt.IsZero() && w.EmailInterval > 0 {
+				if wait := w.EmailInterval - time.Since(lastEmailSentAt); wait > 0 {
+					timer := time.NewTimer(wait)
+					select {
+					case <-ctx.Done():
+						timer.Stop()
+						return totalProcessed, ctx.Err()
+					case <-timer.C:
+					}
+				}
+			}
 			if err := w.processRecipient(ctx, rec); err != nil {
 				w.logger.Warn("delivery worker: recipient processing encountered error",
 					slog.String("recipient_id", rec.RecipientID),
 					slog.String("user_id", rec.UserID),
 					slog.String("error", err.Error()),
 				)
+			}
+			if rec.EmailStatus == models.DeliveryStatusPending {
+				lastEmailSentAt = time.Now()
 			}
 			totalProcessed++
 		}
@@ -269,7 +290,16 @@ func (w *Worker) processRecipient(ctx context.Context, rec models.NotificationRe
 			slog.String("error", combinedErr),
 		)
 		if emailStatus == models.DeliveryStatusSent || pushStatus == models.DeliveryStatusSent {
-			_ = w.repo.UpdateDeliveryStatus(ctx, rec.RecipientID, emailStatus, pushStatus, emailMsgID, pushMsgID, &combinedErr)
+			// Keep failed channels in pending state so FindPendingRecipients retries them without resending succeeded channels.
+			persistedEmailStatus := emailStatus
+			if emailErr != nil {
+				persistedEmailStatus = models.DeliveryStatusPending
+			}
+			persistedPushStatus := pushStatus
+			if pushErr != nil {
+				persistedPushStatus = models.DeliveryStatusPending
+			}
+			_ = w.repo.UpdateDeliveryStatus(ctx, rec.RecipientID, persistedEmailStatus, persistedPushStatus, emailMsgID, pushMsgID, &combinedErr)
 		}
 		return w.repo.UpdateRecipientRetry(ctx, rec.RecipientID, nextAttempt, nextAttemptAt, combinedErr)
 	}

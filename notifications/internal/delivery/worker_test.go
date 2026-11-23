@@ -32,13 +32,15 @@ func (m *mockEmailService) SendEmail(_ context.Context, msg services.EmailMessag
 }
 
 type mockPushService struct {
-	sendErr error
+	sendErr   error
+	sentCount int
 }
 
 func (m *mockPushService) SendMulticast(_ context.Context, tokens []string, _, _ string, _ map[string]string) (*services.MulticastResult, error) {
 	if m.sendErr != nil {
 		return nil, m.sendErr
 	}
+	m.sentCount += len(tokens)
 	return &services.MulticastResult{SuccessCount: len(tokens)}, nil
 }
 
@@ -409,5 +411,64 @@ func TestDeliveryWorker_Flush_RetriesOnGetUserContactError(t *testing.T) {
 	}
 	if saved.Attempts != 1 || saved.NextAttemptAt == nil {
 		t.Errorf("expected retry scheduled (attempts=1, NextAttemptAt set), got attempts=%d next=%v", saved.Attempts, saved.NextAttemptAt)
+	}
+}
+
+func TestDeliveryWorker_PartialFailure_KeepsFailedEmailPendingForRetry(t *testing.T) {
+	// Arrange
+	repo := repositories.NewMemoryNotificationRepository()
+	emailSvc := &mockEmailService{sendErr: errors.New("429 rate limit exceeded")}
+	pushSvc := &mockPushService{}
+	authCl := &mockAuthClient{tokens: []string{"tok-1"}}
+
+	notif := &models.Notification{
+		ID:        "ntf-camp-partial",
+		Category:  models.CategoryCampaigns,
+		Title:     "Nueva campaña comunitaria",
+		Message:   "Se ha registrado una nueva campaña comunitaria.",
+		SendEmail: true,
+		SendPush:  true,
+	}
+	_ = repo.CreateNotification(context.Background(), notif)
+	_ = repo.CreateRecipients(context.Background(), []models.NotificationRecipient{{
+		RecipientID:    "rcp-camp-1",
+		NotificationID: notif.ID,
+		UserID:         "usr-camp-1",
+		EmailStatus:    models.DeliveryStatusPending,
+		PushStatus:     models.DeliveryStatusPending,
+	}})
+
+	worker := delivery.NewWorker(repo, emailSvc, pushSvc, authCl, nil, nil)
+	worker.EmailInterval = 0
+	worker.Now = func() time.Time { return time.Now().UTC().Add(-time.Hour) }
+
+	// Act 1: email fails (429), push succeeds
+	if _, err := worker.Flush(context.Background()); err != nil {
+		t.Fatalf("unexpected flush 1 error: %v", err)
+	}
+	afterFirst, _ := repo.FindRecipientByID(context.Background(), "rcp-camp-1", "usr-camp-1")
+	if afterFirst.PushStatus != models.DeliveryStatusSent {
+		t.Fatalf("expected push sent after first flush, got %s", afterFirst.PushStatus)
+	}
+	if afterFirst.EmailStatus != models.DeliveryStatusPending {
+		t.Fatalf("expected failed email to stay pending for retry, got %s", afterFirst.EmailStatus)
+	}
+
+	// Act 2: Resend recovers, next flush retries ONLY email
+	emailSvc.sendErr = nil
+	if _, err := worker.Flush(context.Background()); err != nil {
+		t.Fatalf("unexpected flush 2 error: %v", err)
+	}
+
+	// Assert
+	afterSecond, _ := repo.FindRecipientByID(context.Background(), "rcp-camp-1", "usr-camp-1")
+	if afterSecond.EmailStatus != models.DeliveryStatusSent {
+		t.Errorf("expected email sent on retry, got %s", afterSecond.EmailStatus)
+	}
+	if len(emailSvc.sentMsgs) != 1 {
+		t.Errorf("expected 1 email sent on retry, got %d", len(emailSvc.sentMsgs))
+	}
+	if pushSvc.sentCount != 1 {
+		t.Errorf("expected push not to be duplicated on retry (count=1), got %d", pushSvc.sentCount)
 	}
 }
