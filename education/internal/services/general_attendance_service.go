@@ -83,6 +83,10 @@ func (s *generalAttendanceService) ListByDate(ctx context.Context, fecha, bearer
 		if u, ok := usersByID[p.UserID]; ok {
 			view.Nombre = u.FirstName
 			view.Apellido = u.LastName
+		} else if u, err := s.authClient.GetParticipantName(ctx, p.ParticipantID, bearerToken); err == nil {
+			// El docente no puede listar todos los usuarios: se pide uno por uno.
+			view.Nombre = u.FirstName
+			view.Apellido = u.LastName
 		}
 		if rec, ok := byParticipant[p.ParticipantID]; ok {
 			presente := rec.Presente

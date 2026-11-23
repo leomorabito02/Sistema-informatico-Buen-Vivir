@@ -1,4 +1,10 @@
-import { Component, DestroyRef, OnInit, inject } from "@angular/core";
+import {
+  Component,
+  DestroyRef,
+  HostListener,
+  OnInit,
+  inject,
+} from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { FormsModule } from "@angular/forms";
 import { RouterLink } from "@angular/router";
@@ -18,6 +24,7 @@ import {
   Megaphone,
   Search,
   Calendar,
+  X,
 } from "lucide-angular";
 import { FooterComponent } from "../../components/layout/footer/footer.component";
 import { CampaignsService } from "../../services/campaigns.service";
@@ -54,6 +61,7 @@ export class CampanasPublicoComponent implements OnInit {
   readonly MegaphoneIcon = Megaphone;
   readonly SearchIcon = Search;
   readonly CalendarIcon = Calendar;
+  readonly XIcon = X;
 
   private readonly service = inject(CampaignsService);
   private readonly destroyRef = inject(DestroyRef);
@@ -64,8 +72,8 @@ export class CampanasPublicoComponent implements OnInit {
   total = 0;
   cargandoMas = false;
   private ultimaBusqueda = "";
-  /** Campañas con los comentarios abiertos: se piden recién al abrirlos. */
-  readonly comentariosAbiertos = new Set<string>();
+  /** Los comentarios se piden recién al abrir el detalle. */
+  seleccionada: Campana | null = null;
   busqueda = "";
   cargando = true;
   error = "";
@@ -133,9 +141,13 @@ export class CampanasPublicoComponent implements OnInit {
     return d && m && a ? `${d}/${m}/${a}` : fecha;
   }
 
-  alternarComentarios(id: string): void {
-    if (this.comentariosAbiertos.has(id)) this.comentariosAbiertos.delete(id);
-    else this.comentariosAbiertos.add(id);
+  verDetalle(c: Campana): void {
+    this.seleccionada = c;
+  }
+
+  @HostListener("document:keydown.escape")
+  cerrarDetalle(): void {
+    this.seleccionada = null;
   }
 
   onImageError(event: Event): void {

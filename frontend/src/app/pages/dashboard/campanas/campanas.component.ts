@@ -68,6 +68,20 @@ export class CampanasComponent implements OnInit {
   guardando = false;
   form: CampanaInput = vacio();
 
+  seleccionada: Campana | null = null;
+  detalleVisible = false;
+
+  verDetalle(c: Campana): void {
+    this.seleccionada = c;
+    this.detalleVisible = true;
+  }
+
+  editarDesdeDetalle(): void {
+    if (!this.seleccionada) return;
+    this.detalleVisible = false;
+    this.editar(this.seleccionada);
+  }
+
   ngOnInit(): void {
     this.cargar();
   }

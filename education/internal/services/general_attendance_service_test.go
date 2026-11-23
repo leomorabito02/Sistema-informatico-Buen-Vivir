@@ -78,7 +78,7 @@ func TestGeneralAttendance_ListByDate_CombinesParticipantsUsersAndRecords(t *tes
 	assert.Empty(t, views[2].Nombre, "sin usuario asociado queda solo el id")
 }
 
-func TestGeneralAttendance_ListByDate_UsersFailureIsNotFatal(t *testing.T) {
+func TestGeneralAttendance_ListByDate_UsersFailureFallsBackToOneByOne(t *testing.T) {
 	auth := centroConParticipantes()
 	auth.failUsers = true
 	repo, svc := newGeneralAttendanceFixture(t, auth)
@@ -88,7 +88,8 @@ func TestGeneralAttendance_ListByDate_UsersFailureIsNotFatal(t *testing.T) {
 
 	require.NoError(t, err)
 	require.Len(t, views, 3)
-	assert.Empty(t, views[0].Nombre)
+	assert.Equal(t, "Ana", views[0].Nombre)
+	assert.Equal(t, "Pérez", views[0].Apellido)
 }
 
 func TestGeneralAttendance_ListByDate_InvalidDate(t *testing.T) {

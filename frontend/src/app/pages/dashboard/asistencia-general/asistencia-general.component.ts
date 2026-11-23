@@ -87,7 +87,7 @@ export class AsistenciaGeneralComponent implements OnInit {
             participanteId: p.participanteId,
             nombreCompleto:
               `${p.nombre ?? ""} ${p.apellido ?? ""}`.trim() ||
-              p.participanteId,
+              "Participante sin nombre",
             presente: p.presente,
             observacion: p.observacion ?? "",
           }))

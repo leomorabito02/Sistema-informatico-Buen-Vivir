@@ -65,7 +65,16 @@
     </p>
 
     <div class="grid" *ngIf="!cargando && campanas.length">
-      <article *ngFor="let c of campanas" class="tarjeta">
+      <article
+        *ngFor="let c of campanas"
+        class="tarjeta"
+        role="button"
+        tabindex="0"
+        [attr.aria-label]="'Ver detalle de ' + c.titulo"
+        (click)="verDetalle(c)"
+        (keydown.enter)="verDetalle(c)"
+        (keydown.space)="$event.preventDefault(); verDetalle(c)"
+      >
         <img
           [src]="c.imagen_url"
           [alt]="c.titulo"
@@ -84,23 +93,7 @@
             {{ fechaDMY(c.fecha) }}
           </p>
           <p class="tarjeta-texto">{{ c.texto }}</p>
-          <button
-            type="button"
-            class="tarjeta-comentarios"
-            [attr.aria-expanded]="comentariosAbiertos.has(c.id)"
-            (click)="alternarComentarios(c.id)"
-          >
-            {{
-              comentariosAbiertos.has(c.id)
-                ? "Ocultar comentarios"
-                : "Ver comentarios"
-            }}
-          </button>
-          <app-comentarios
-            *ngIf="comentariosAbiertos.has(c.id)"
-            entidadTipo="campana"
-            [entidadId]="c.id"
-          ></app-comentarios>
+          <span class="tarjeta-ver-mas">Ver detalle y comentarios</span>
         </div>
       </article>
     </div>
@@ -115,6 +108,52 @@
       </button>
     </div>
   </main>
+
+  <div
+    *ngIf="seleccionada as s"
+    class="detalle-fondo"
+    (click)="cerrarDetalle()"
+  >
+    <div
+      class="detalle"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="detalle-titulo"
+      (click)="$event.stopPropagation()"
+    >
+      <button
+        type="button"
+        class="detalle-cerrar"
+        aria-label="Cerrar detalle"
+        (click)="cerrarDetalle()"
+      >
+        <lucide-angular [img]="XIcon" class="icon-md"></lucide-angular>
+      </button>
+      <img
+        [src]="s.imagen_url"
+        [alt]="s.titulo"
+        class="detalle-img"
+        (error)="onImageError($event)"
+      />
+      <div class="detalle-body">
+        <h2 id="detalle-titulo" class="detalle-titulo">{{ s.titulo }}</h2>
+        <p class="tarjeta-fecha">
+          <lucide-angular
+            [img]="CalendarIcon"
+            class="icon-sm icon-mr"
+            aria-hidden="true"
+          ></lucide-angular>
+          {{ fechaDMY(s.fecha) }}
+        </p>
+        <p class="detalle-texto">{{ s.texto }}</p>
+        <h3 class="detalle-subtitulo">Comentarios</h3>
+        <app-comentarios
+          entidadTipo="campana"
+          [entidadId]="s.id"
+        ></app-comentarios>
+      </div>
+    </div>
+  </div>
 
   <app-footer></app-footer>
 </div>
