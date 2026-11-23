@@ -205,14 +205,6 @@ export const routes: Routes = [
           ),
       },
       {
-        path: "progreso",
-        canActivate: [teacherGuard],
-        loadComponent: () =>
-          import("./pages/dashboard/progreso/progreso.component").then(
-            (m) => m.ProgresoComponent,
-          ),
-      },
-      {
         // HU-06: guards por rol (el backend igual valida cada pedido).
         path: "ofertas",
         canActivate: [

@@ -13,7 +13,6 @@
     "!src/app/pages/dashboard/notificaciones/**",
     "!src/app/pages/dashboard/ofertas/**",
     "!src/app/pages/dashboard/participantes/**",
-    "!src/app/pages/dashboard/progreso/**",
     "!src/app/pages/dashboard/seguimiento/**",
     "!src/app/pages/dashboard/usuarios/**"
   ],

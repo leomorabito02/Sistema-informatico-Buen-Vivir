@@ -38,7 +38,6 @@ import {
   MessageCircle,
   ShieldCheck,
   Sprout,
-  TrendingUp,
   Users,
   X,
 } from "lucide-angular";
@@ -150,7 +149,6 @@ export const NAV_BY_ROLE: Record<string, MenuItem[]> = {
   role_teacher: [
     { label: "Mis cursos", routerLink: "/dashboard/mis-cursos" },
     { label: "Asistencia", routerLink: "/dashboard/asistencia" },
-    { label: "Progreso", routerLink: "/dashboard/progreso" },
     { label: "Seguimiento educativo", routerLink: "/dashboard/seguimiento" },
   ],
   role_company: [
@@ -179,7 +177,6 @@ const NAV_ICONS: Record<string, LucideIconData> = {
   "Mi proceso": Sprout,
   "Mi CV": FileText,
   "Mis contenidos": FileText,
-  Progreso: TrendingUp,
   "Seguimiento educativo": ClipboardList,
   Auditoría: ShieldCheck,
   "Roles y permisos": ShieldCheck,
