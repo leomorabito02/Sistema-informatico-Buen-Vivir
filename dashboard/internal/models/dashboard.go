@@ -158,6 +158,13 @@ type JobApplication struct {
 
 // ── Promoción Humana (indicadores agregados por el equipo) ─────────────
 
+// Equipo: cuentas activas de empresas, docentes y voluntarios (hoy).
+type Equipo struct {
+	Empresas    int `json:"empresas"`
+	Docentes    int `json:"docentes"`
+	Voluntarios int `json:"voluntarios"`
+}
+
 // Promocion: fichas e hitos para "Fichas activas" y "Participantes con
 // seguimiento". Solo ids, estados y fechas: Promoción Humana nunca manda
 // el contenido confidencial de fichas ni hitos.

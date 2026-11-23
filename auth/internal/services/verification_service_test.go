@@ -397,3 +397,7 @@ func TestVerificationService_VerifyEmail_MultiAccount(t *testing.T) {
 	assert.True(t, u1.IsEmailVerified)
 	assert.True(t, u2.IsEmailVerified)
 }
+
+func (m *mockUserRepoForVerification) CountActiveStaff(ctx context.Context) (int64, int64, int64, error) {
+	return 0, 0, 0, nil
+}

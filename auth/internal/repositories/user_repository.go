@@ -23,6 +23,9 @@ type UserRepository interface {
 	Delete(ctx context.Context, id string) error
 	CountActiveParticipants(ctx context.Context) (int64, error)
 	CountVolunteers(ctx context.Context) (int64, error)
+	// CountActiveStaff cuenta las cuentas activas y aprobadas de empresas,
+	// docentes y voluntarios (para el Dashboard).
+	CountActiveStaff(ctx context.Context) (empresas, docentes, voluntarios int64, err error)
 	// FindParticipantsHistory devuelve todos los participantes, también
 	// los dados de baja (soft delete), con sus fechas de alta,
 	// aprobación y baja. Para el Dashboard.
@@ -266,6 +269,22 @@ func (r *userRepository) CountActiveParticipants(ctx context.Context) (int64, er
 
 func (r *userRepository) CountVolunteers(ctx context.Context) (int64, error) {
 	return r.countAcceptedUsersByRole(ctx, "role_volunteer", "volunteers")
+}
+
+func (r *userRepository) CountActiveStaff(ctx context.Context) (int64, int64, int64, error) {
+	empresas, err := r.countAcceptedUsersByRole(ctx, "role_company", "companies")
+	if err != nil {
+		return 0, 0, 0, err
+	}
+	docentes, err := r.countAcceptedUsersByRole(ctx, "role_teacher", "teachers")
+	if err != nil {
+		return 0, 0, 0, err
+	}
+	voluntarios, err := r.CountVolunteers(ctx)
+	if err != nil {
+		return 0, 0, 0, err
+	}
+	return empresas, docentes, voluntarios, nil
 }
 
 func (r *userRepository) FindParticipantsHistory(ctx context.Context) ([]models.ParticipantHistory, error) {

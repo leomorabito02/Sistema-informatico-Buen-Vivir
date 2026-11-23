@@ -223,6 +223,8 @@ func main() {
 				// chi la resuelve antes que /{id}.
 				r.With(middlewares.RequireRole("role_admin", "role_dev")).
 					Get("/participants/history", userController.GetParticipantsHistory)
+				r.With(middlewares.RequireRole("role_admin", "role_dev")).
+					Get("/active-counts", userController.GetActiveStaffCounts)
 				r.Post("/me/devices", deviceController.RegisterDevice)
 				r.With(middlewares.RequireRole("role_admin", "role_dev", "role_volunteer")).
 					Post("/{id}/approve", userController.ApproveUser)

@@ -110,12 +110,17 @@ export class AsistenciaComponent implements OnInit {
       .subscribe({
         next: ({ enrollments, activities, attendance }) => {
           this.activities = activities;
-          // auth-service no le resuelve nombres de participantes al rol
-          // docente: se muestran por id.
+          // El endpoint del docente ya trae nombre y apellido; si falta
+          // alguno, la tabla muestra el id.
+          const nombres = new Map<string, string>();
+          for (const e of enrollments) {
+            const nombre = `${e.nombre ?? ""} ${e.apellido ?? ""}`.trim();
+            if (nombre) nombres.set(e.participanteId, nombre);
+          }
           this.rows = buildAttendanceMatrixRows(
             enrollments,
             attendance,
-            new Map(),
+            nombres,
           );
           this.loadingMatrix = false;
         },

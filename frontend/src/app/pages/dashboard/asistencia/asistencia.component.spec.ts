@@ -130,6 +130,17 @@ describe("AsistenciaComponent", () => {
     expect(component.loadingMatrix).toBeFalse();
   });
 
+  it("muestra nombre y apellido en vez del id", () => {
+    educationServiceSpy.listEnrollments.and.returnValue(
+      of([{ ...enrollments[0], nombre: "Ana", apellido: "Pérez" }]),
+    );
+    fixture.detectChanges();
+    component.selectedCourseId = "c1";
+    component.onCourseChange();
+
+    expect(component.rows[0].nombre).toBe("Ana Pérez");
+  });
+
   it("handles a course without activities", () => {
     educationServiceSpy.listActivities.and.returnValue(of([]));
     fixture.detectChanges();

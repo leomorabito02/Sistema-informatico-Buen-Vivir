@@ -155,7 +155,19 @@ export class CampanasComponent implements OnInit {
         ctx.fillStyle = "#fff";
         ctx.fillRect(0, 0, canvas.width, canvas.height);
         ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-        this.form.imagen_url = canvas.toDataURL("image/jpeg", 0.8);
+        // El backend acepta hasta ~700 KB: si la foto es muy detallada se
+        // baja la calidad hasta que entre.
+        let calidad = 0.8;
+        let datos = canvas.toDataURL("image/jpeg", calidad);
+        while (datos.length > 650_000 && calidad > 0.3) {
+          calidad -= 0.15;
+          datos = canvas.toDataURL("image/jpeg", calidad);
+        }
+        if (datos.length > 650_000) {
+          this.errorFoto = "La imagen es demasiado pesada. Probá con otra.";
+          return;
+        }
+        this.form.imagen_url = datos;
       };
       img.src = String(lector.result);
     };

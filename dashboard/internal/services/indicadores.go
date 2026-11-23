@@ -47,6 +47,7 @@ type Datos struct {
 	Habilidades   *[]models.ParticipanteHabilidad
 	Postulaciones *[]models.Postulacion
 	Promocion     *models.Promocion
+	Equipo        *models.Equipo
 }
 
 type metaIndicador struct {
@@ -57,6 +58,9 @@ type metaIndicador struct {
 // dos de Promoción Humana.
 var metaIndicadores = []metaIndicador{
 	{"participantesActivos", "Participantes activos", "Participantes con la cuenta activa al cierre del período.", ModuloUsuarios, "autenticacion"},
+	{"empresasActivas", "Empresas activas", "Empresas con la cuenta activa y aprobada hoy.", ModuloUsuarios, "autenticacion"},
+	{"docentesActivos", "Docentes activos", "Docentes con la cuenta activa y aprobada hoy.", ModuloUsuarios, "autenticacion"},
+	{"voluntariosActivos", "Voluntarios activos", "Voluntarios con la cuenta activa y aprobada hoy.", ModuloUsuarios, "autenticacion"},
 	{"cursosEnDesarrollo", "Cursos en desarrollo", "Cursos publicados con actividades pendientes.", ModuloEducacion, "educacion"},
 	{"cursosFinalizados", "Cursos finalizados", "Cursos publicados cuyas actividades ya ocurrieron todas.", ModuloEducacion, "educacion"},
 	{"habilidadesDesarrolladas", "Habilidades desarrolladas", "Habilidades aceptadas por la administración en el período.", ModuloEducacion, "educacion"},
@@ -241,6 +245,13 @@ func CalcularResumen(d Datos, f Filtros) models.Resumen {
 		series["participantes"] = []models.SerieGrafica{
 			{Nombre: "Participantes activos", Puntos: porMes(func(m Mes) int { return activos(m.Corte) })},
 		}
+	}
+
+	// Cantidades de hoy (no dependen del período elegido).
+	if d.Equipo != nil {
+		valores["empresasActivas"] = ptr(d.Equipo.Empresas)
+		valores["docentesActivos"] = ptr(d.Equipo.Docentes)
+		valores["voluntariosActivos"] = ptr(d.Equipo.Voluntarios)
 	}
 
 	// El área formativa afecta solo a cursos y habilidades.

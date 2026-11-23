@@ -25,6 +25,7 @@ type DashboardService interface {
 	Postulaciones(ctx context.Context, cred clients.Credentials) ([]models.Postulacion, error)
 	Areas(ctx context.Context, cred clients.Credentials) ([]models.Area, error)
 	Promocion(ctx context.Context, cred clients.Credentials) (models.Promocion, error)
+	Equipo(ctx context.Context, cred clients.Credentials) (models.Equipo, error)
 }
 
 type dashboardService struct {
@@ -86,6 +87,15 @@ func MapParticipante(h models.ParticipantHistory) (models.Participante, bool) {
 		p.Estado, p.FechaBaja = "baja", &baja
 	}
 	return p, true
+}
+
+// Equipo: empresas, docentes y voluntarios con la cuenta activa y aprobada.
+func (s *dashboardService) Equipo(ctx context.Context, cred clients.Credentials) (models.Equipo, error) {
+	var res models.AuthResponse[models.Equipo]
+	if err := s.auth.GetJSON(ctx, "/api/v1/users/active-counts", cred, &res); err != nil {
+		return models.Equipo{}, err
+	}
+	return res.Data, nil
 }
 
 // ── Cursos y áreas (Educación) ────────────────────────────────────────

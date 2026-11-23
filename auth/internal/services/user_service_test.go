@@ -724,3 +724,7 @@ func TestUserService_CreateUser_ParticipantRequiredFields(t *testing.T) {
 		mockRepo.AssertNotCalled(t, "CreateWithRoleProfile", mock.Anything, mock.Anything, mock.Anything, mock.Anything)
 	}
 }
+
+func (m *MockUserRepository) CountActiveStaff(ctx context.Context) (int64, int64, int64, error) {
+	return 0, 0, 0, nil
+}
