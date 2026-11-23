@@ -20,6 +20,7 @@ const (
 	FuentePostulaciones Fuente = "postulaciones"
 	FuenteAreas         Fuente = "areas"
 	FuentePromocion     Fuente = "promocion"
+	FuenteEquipo        Fuente = "equipo"
 )
 
 // CachedDashboardService guarda en memoria lo que devuelve cada fuente,
@@ -103,6 +104,10 @@ func (c *CachedDashboardService) Postulaciones(ctx context.Context, cred clients
 
 func (c *CachedDashboardService) Areas(ctx context.Context, cred clients.Credentials) ([]models.Area, error) {
 	return cached(c, FuenteAreas, ctx, cred, c.inner.Areas)
+}
+
+func (c *CachedDashboardService) Equipo(ctx context.Context, cred clients.Credentials) (models.Equipo, error) {
+	return cached(c, FuenteEquipo, ctx, cred, c.inner.Equipo)
 }
 
 func (c *CachedDashboardService) Promocion(ctx context.Context, cred clients.Credentials) (models.Promocion, error) {

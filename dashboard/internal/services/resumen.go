@@ -60,6 +60,13 @@ func Resumen(ctx context.Context, svc DashboardService, cred clients.Credentials
 		}
 		return err
 	})
+	cargar("equipo", func() error {
+		v, err := svc.Equipo(ctx, cred)
+		if err == nil {
+			d.Equipo = &v
+		}
+		return err
+	})
 	wg.Wait()
 	return CalcularResumen(d, f)
 }

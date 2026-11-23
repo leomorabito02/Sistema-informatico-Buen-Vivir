@@ -28,6 +28,14 @@ type UpdateUserRequest struct {
 	Status    string `json:"status" validate:"omitempty,oneof=active suspended"`
 }
 
+// ActiveStaffCounts: cuentas activas y aprobadas por rol, para el Dashboard
+// (GET /api/v1/users/active-counts).
+type ActiveStaffCounts struct {
+	Empresas    int64 `json:"empresas"`
+	Docentes    int64 `json:"docentes"`
+	Voluntarios int64 `json:"voluntarios"`
+}
+
 // ParticipantHistoryResponse es un participante en el historial que usa
 // el Dashboard (GET /api/v1/users/participants/history). Incluye a los
 // dados de baja: deleted_at es la fecha de la baja lógica.

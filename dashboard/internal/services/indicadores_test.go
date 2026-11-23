@@ -99,7 +99,7 @@ var promocionPrueba = models.Promocion{
 
 func todos() Datos {
 	ps, cs, hs, po, pr := participantesPrueba, cursosPrueba, habilidadesPrueba, postulacionesPrueba, promocionPrueba
-	return Datos{Participantes: &ps, Cursos: &cs, Habilidades: &hs, Postulaciones: &po, Promocion: &pr}
+	return Datos{Participantes: &ps, Cursos: &cs, Habilidades: &hs, Postulaciones: &po, Promocion: &pr, Equipo: &models.Equipo{Empresas: 5, Docentes: 6, Voluntarios: 7}}
 }
 
 func valor(t *testing.T, r models.Resumen, id string) *int {
@@ -244,11 +244,14 @@ func TestCalcularResumen_Indicadores(t *testing.T) {
 			t.Errorf("%s debería estar disponible", i.ID)
 		}
 	}
-	want := []string{"participantesActivos", "cursosEnDesarrollo", "cursosFinalizados", "habilidadesDesarrolladas", "insercionesLaborales", "fichasActivas", "participantesConSeguimiento"}
+	want := []string{"participantesActivos", "empresasActivas", "docentesActivos", "voluntariosActivos", "cursosEnDesarrollo", "cursosFinalizados", "habilidadesDesarrolladas", "insercionesLaborales", "fichasActivas", "participantesConSeguimiento"}
 	if !reflect.DeepEqual(ids, want) {
 		t.Fatalf("orden de los indicadores: %v", ids)
 	}
 	esperar(t, r, "participantesActivos", 2)        // p1, p2
+	esperar(t, r, "empresasActivas", 5)
+	esperar(t, r, "docentesActivos", 6)
+	esperar(t, r, "voluntariosActivos", 7)
 	esperar(t, r, "cursosEnDesarrollo", 1)          // c2
 	esperar(t, r, "cursosFinalizados", 2)           // c1, c3
 	esperar(t, r, "habilidadesDesarrolladas", 3)    // h1, h2, h3
@@ -333,7 +336,7 @@ func TestCalcularResumen_Modulo(t *testing.T) {
 		ModuloEducacion: {"cursosEnDesarrollo,cursosFinalizados,habilidadesDesarrolladas", "cursos,habilidades"},
 		ModuloInsercion: {"insercionesLaborales", "inserciones"},
 		ModuloPromocion: {"fichasActivas,participantesConSeguimiento", "promocion"},
-		ModuloUsuarios:  {"participantesActivos", "participantes"},
+		ModuloUsuarios:  {"participantesActivos,empresasActivas,docentesActivos,voluntariosActivos", "participantes"},
 	}
 	for modulo, want := range casos {
 		ind, gra := ids(CalcularResumen(todos(), filtros("2026-01-01", "2026-06-30", modulo, "")))

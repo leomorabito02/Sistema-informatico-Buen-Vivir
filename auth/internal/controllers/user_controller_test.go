@@ -45,6 +45,14 @@ func (m *MockUserService) GetParticipantsHistory(ctx context.Context) ([]dto.Par
 	return args.Get(0).([]dto.ParticipantHistoryResponse), args.Error(1)
 }
 
+func (m *MockUserService) GetActiveStaffCounts(ctx context.Context) (*dto.ActiveStaffCounts, error) {
+	args := m.Called(ctx)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*dto.ActiveStaffCounts), args.Error(1)
+}
+
 func (m *MockUserService) GetAllUsers(ctx context.Context) ([]dto.UserResponse, error) {
 	args := m.Called(ctx)
 	if args.Get(0) == nil {

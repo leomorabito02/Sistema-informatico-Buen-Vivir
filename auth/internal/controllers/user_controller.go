@@ -141,6 +141,17 @@ func (c *UserController) GetParticipantsHistory(w http.ResponseWriter, r *http.R
 	utils.JSONResponse(w, http.StatusOK, true, rows, nil)
 }
 
+// GetActiveStaffCounts responde GET /api/v1/users/active-counts (solo
+// admin): empresas, docentes y voluntarios activos. Lo consume Dashboard.
+func (c *UserController) GetActiveStaffCounts(w http.ResponseWriter, r *http.Request) {
+	counts, err := c.userService.GetActiveStaffCounts(r.Context())
+	if err != nil {
+		utils.JSONResponse(w, errorStatus(err, http.StatusInternalServerError), false, nil, err.Error())
+		return
+	}
+	utils.JSONResponse(w, http.StatusOK, true, counts, nil)
+}
+
 func (c *UserController) ApproveUser(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
 	if id == "" {

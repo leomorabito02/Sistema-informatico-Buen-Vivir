@@ -45,6 +45,10 @@ func (f *fakeService) Promocion(context.Context, clients.Credentials) (models.Pr
 	return models.Promocion{Fichas: []models.FichaPromocion{{ID: "f1"}}}, f.err
 }
 
+func (f *fakeService) Equipo(context.Context, clients.Credentials) (models.Equipo, error) {
+	return models.Equipo{Empresas: 2, Docentes: 3, Voluntarios: 4}, f.err
+}
+
 func newMux(svc *fakeService) *http.ServeMux {
 	mux := http.NewServeMux()
 	routes.RegisterRoutes(mux, routes.Rutas{Dashboard: controllers.NewDashboardController(svc)})

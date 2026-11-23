@@ -26,6 +26,7 @@ type UserService interface {
 	UpdateUser(ctx context.Context, id string, req *dto.UpdateUserRequest) (*dto.UserResponse, error)
 	DeleteUser(ctx context.Context, id string) error
 	GetParticipantsHistory(ctx context.Context) ([]dto.ParticipantHistoryResponse, error)
+	GetActiveStaffCounts(ctx context.Context) (*dto.ActiveStaffCounts, error)
 	ApproveUser(ctx context.Context, id string) (*dto.UserResponse, error)
 	// RejectUser rechaza la cuenta y avisa por email (HU-12, HU-38).
 	RejectUser(ctx context.Context, id string) (*dto.UserResponse, error)
@@ -317,6 +318,18 @@ func (s *userService) GetParticipantsHistory(ctx context.Context) ([]dto.Partici
 		}
 	}
 	return result, nil
+}
+
+func (s *userService) GetActiveStaffCounts(ctx context.Context) (*dto.ActiveStaffCounts, error) {
+	reqRole, _ := ctx.Value(middlewares.RoleIDKey).(string)
+	if reqRole != "role_admin" && reqRole != "role_dev" {
+		return nil, errors.New("forbidden: only administrators can see these counts")
+	}
+	e, d, v, err := s.userRepo.CountActiveStaff(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return &dto.ActiveStaffCounts{Empresas: e, Docentes: d, Voluntarios: v}, nil
 }
 
 func (s *userService) ApproveUser(ctx context.Context, id string) (*dto.UserResponse, error) {

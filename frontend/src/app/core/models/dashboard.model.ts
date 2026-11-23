@@ -30,6 +30,9 @@ export interface AreaFormativa {
 
 export type IndicadorId =
   | "participantesActivos"
+  | "empresasActivas"
+  | "docentesActivos"
+  | "voluntariosActivos"
   | "cursosEnDesarrollo"
   | "cursosFinalizados"
   | "habilidadesDesarrolladas"
