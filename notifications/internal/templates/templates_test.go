@@ -124,8 +124,8 @@ func assertRenderedEmailBranding(t *testing.T, html, expected string) {
 	if !strings.Contains(html, "Centro de Ecología Integral Buen Vivir") {
 		t.Errorf("expected rendered html to contain institutional name 'Centro de Ecología Integral Buen Vivir'")
 	}
-	if !strings.Contains(html, "/assets/logo.png") {
-		t.Errorf("expected rendered html to contain logo path '/assets/logo.png'")
+	if !strings.Contains(html, `src="`+LogoCID+`"`) {
+		t.Errorf("expected rendered html to contain inline logo cid %q", LogoCID)
 	}
 	if !strings.Contains(html, "ceibuenvivir7@gmail.com") {
 		t.Errorf("expected rendered html to contain contact email 'ceibuenvivir7@gmail.com'")

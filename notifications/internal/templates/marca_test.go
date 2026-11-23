@@ -32,7 +32,7 @@ func TestPlantillas_IdentidadDelCentro(t *testing.T) {
 			t.Fatalf("%s: %v", c.id, err)
 		}
 		esperado := append([]string{
-			"https://testing.ceibuenvivir.pages.dev/assets/logo.png",
+			`src="` + LogoCID + `"`,
 			"Centro de Ecología Integral",
 			"&copy; 2026 Centro de Ecología Integral Buen Vivir",
 			"ceibuenvivir7@gmail.com",
@@ -42,7 +42,7 @@ func TestPlantillas_IdentidadDelCentro(t *testing.T) {
 				t.Errorf("%s: falta %q", c.id, e)
 			}
 		}
-		for _, prohibido := range []string{"<header", "<main", "<footer", "Sistema Informático Integral"} {
+		for _, prohibido := range []string{"<header", "<main", "<footer", "Sistema Informático Integral", "#ZgotmplZ"} {
 			if strings.Contains(html, prohibido) {
 				t.Errorf("%s: no debería contener %q", c.id, prohibido)
 			}
@@ -51,15 +51,15 @@ func TestPlantillas_IdentidadDelCentro(t *testing.T) {
 }
 
 func TestLogoURL(t *testing.T) {
-	casos := map[string]string{
-		"":                      LogoPorDefecto,
-		"http://localhost:4200": LogoPorDefecto,
-		"https://testing.ceibuenvivir.pages.dev/": "https://testing.ceibuenvivir.pages.dev/assets/logo.png",
+	// Arrange & Act
+	got := LogoURL()
+	logoBytes := EmbeddedLogoPNG()
+
+	// Assert
+	if got != LogoCID {
+		t.Errorf("LogoURL() = %q, want %q", got, LogoCID)
 	}
-	for env, want := range casos {
-		t.Setenv("FRONTEND_URL", env)
-		if got := LogoURL(); got != want {
-			t.Errorf("FRONTEND_URL=%q: %q, want %q", env, got, want)
-		}
+	if len(logoBytes) < 8 || string(logoBytes[:4]) != "\x89PNG" {
+		t.Errorf("expected EmbeddedLogoPNG to contain valid PNG bytes, got len=%d", len(logoBytes))
 	}
 }
