@@ -19,7 +19,7 @@ import (
 	"cloud.google.com/go/pubsub/v2"
 )
 
-const defaultOutboxInlineTimeout = 2 * time.Second
+const defaultOutboxInlineTimeout = 10 * time.Second
 
 // OutboxInlineFlushEnabled returns true on Cloud Run (K_SERVICE set) or when
 // OUTBOX_INLINE_FLUSH=true, allowing pending outbox rows to flush before the HTTP
@@ -130,6 +130,7 @@ func (w *outboxWorker) processSingleEvent(ctx context.Context, event models.Outb
 	if err := w.repo.MarkCompleted(ctx, event.ID); err != nil {
 		slog.Error("Failed to mark outbox event as completed", "id", event.ID, "error", err)
 	}
+	slog.Info("Outbox event published", "id", event.ID, "topic", event.Topic, "type", event.EventType)
 	return true
 }
 
@@ -155,6 +156,7 @@ func (w *outboxWorker) FlushBestEffort(ctx context.Context, timeout time.Duratio
 
 	processed, err := w.ProcessDueEvents(flushCtx)
 	if err != nil {
+		w.dirty.Store(true)
 		slog.Warn("Outbox best-effort flush failed", "error", err)
 		return processed
 	}

@@ -381,7 +381,7 @@ func outboxInlineFlushMiddleware(worker services.OutboxWorker) func(http.Handler
 		return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 			next.ServeHTTP(w, req)
 			if worker != nil && services.OutboxInlineFlushEnabled() {
-				worker.FlushIfDirty(context.Background(), 2*time.Second)
+				worker.FlushIfDirty(context.Background(), 10*time.Second)
 			}
 		})
 	}
